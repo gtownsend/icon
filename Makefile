@@ -1,7 +1,7 @@
 #  configuration parameters
 VER=9.4.d
 name=unspecified
-dest=/opt/icon
+dest=/must/specify/dest/
 
 # for old versions of "make"
 SHELL=/bin/sh
@@ -149,6 +149,7 @@ DIR=icon.$(VER)
 Package:
 		rm -rf $(DIR)
 		umask 002; $(MAKE) Install dest=$(DIR)
+		cp README $(DIR)
 		tar cf - icon.$(VER) | gzip -9 >icon.$(VER).tgz
 		rm -rf $(DIR)
 		
