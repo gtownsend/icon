@@ -6,8 +6,8 @@ All:	Ilib Ibin
 
 #  Make a library distribution (portable ucode and include files).
 
-Ilib:	../bin/libcfunc.so
-../bin/libcfunc.so:  ../bin/icont
+Ilib:	cfuncs/libcfunc.so
+cfuncs/libcfunc.so:  ../bin/icont
 	cp incl/*.icn gincl/*.icn cfuncs/icall.h ../lib
 	cd procs;  LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
 	cd gprocs; LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
@@ -18,15 +18,15 @@ Ilib:	../bin/libcfunc.so
 
 Cfuncs:
 	cd cfuncs; LPATH= $(MAKE) ICONT=../../bin/icont
-	mv cfuncs/*.u? ../lib
-	mv cfuncs/libcfunc.so ../bin
+	cp cfuncs/*.u? ../lib
+	cp cfuncs/libcfunc.so ../bin
 
 
 #  Make selected graphics program binaries (platform-dependent icode)
 #  for ../bin, given that ../lib is ready
 
-Ibin:	../bin/vib
-../bin/vib:  ../bin/icont ../bin/libcfunc.so
+Ibin:	gpacks/vib/vib
+gpacks/vib/vib:  ../bin/icont
 	MAKE=$(MAKE) ./BuildBin
 
 
@@ -74,8 +74,7 @@ ZipFiles:  Ilib
 #  Clean up.
 
 Clean Pure:
-	-rm -f ../bin/vib ../bin/libcfunc.so
-	-rm -rf ilib iexe *.zip */*.u[12] */*.zip
+	-rm -rf ilib iexe *.zip */*.u[12] */*.zip */*.so
 	-rm -f xx `find *procs *progs -type f -perm -100 -print`
 	for d in cfuncs *packs/[abcdefghijklmnopqrstuvwxyz]*; do \
 	    (cd $$d; $(MAKE) Clean); done
