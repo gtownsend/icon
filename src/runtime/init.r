@@ -131,10 +131,6 @@ struct region rootstring, rootblock;
    int op_tbl_sz = (sizeof(init_op_tbl) / sizeof(struct b_proc));
    struct pf_marker *pfp = NULL;  /* Procedure frame pointer */
 
-   #ifndef MaxHeader
-      #define MaxHeader MaxHdr
-   #endif				/* MaxHeader */
-
    #ifdef MultiThread
       struct progstate *curpstate;  /* lastop accessed in program state */
       struct progstate rootpstate;
@@ -254,7 +250,7 @@ struct header *hdr;
    getc(fname);
    getc(fname);
 #else					/* ShellHeader */
-   if (fseek(fname, (long)MaxHeader, 0) == -1)
+   if (fseek(fname, (long)MaxHdr, 0) == -1)
       error(name, errmsg);
 #endif					/* ShellHeader */
 #endif					/* Header */

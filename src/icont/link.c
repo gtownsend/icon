@@ -14,9 +14,6 @@
    #ifndef ShellHeader
       #include "hdr.h"
    #endif					/* ShellHeader */
-   #ifndef MaxHeader
-      #define MaxHeader MaxHdr
-   #endif					/* MaxHeader */
 #endif					/* Header */
 
 static	void	setexe	(char *fname);
@@ -159,10 +156,10 @@ char *outname;
 
       #else				/* ShellHeader */
          /*
-          *  Always write MaxHeader bytes.
+          *  Always write MaxHdr bytes.
           */
-         fwrite(iconxhdr, sizeof(char), MaxHeader, outfile);
-         hdrsize = MaxHeader;
+         fwrite(iconxhdr, sizeof(char), MaxHdr, outfile);
+         hdrsize = MaxHdr;
       #endif				/* ShellHeader */
    #endif				/* Header */
 
