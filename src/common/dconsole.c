@@ -147,7 +147,7 @@ char *alcstr(char *s, int len)
 {
    register char *s1;
 
-   s1 = (char *)alloc((msize)(len + 1));
+   s1 = (char *)alloc(len + 1);
    return strncpy(s1, s, len);
 }
 

@@ -1060,7 +1060,7 @@ int xdisp(fp,dp,count,f)
    nglobals = eglobals - globals;
 #endif					/* COMPILER */
 
-   indices = (word *)malloc((msize)nglobals * sizeof(word));
+   indices = (word *)malloc(nglobals * sizeof(word));
    if (indices == NULL)
       return Failed;
    else {

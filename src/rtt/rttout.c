@@ -2807,7 +2807,7 @@ struct sym_entry *op_params; /* operation parameters or NULL */
       prt_str("else {", IndentInc);
       ForceNl();
       prt_str(
-       "r_tendp = (struct tend_desc *)malloc((msize)(sizeof(struct tend_desc)",
+       "r_tendp = (struct tend_desc *)malloc((sizeof(struct tend_desc)",
          2 * IndentInc);
       ForceNl();
       prt_str("", 3 * IndentInc);

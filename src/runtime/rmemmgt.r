@@ -588,7 +588,7 @@ dptr dp;
       if (qualfree >= equallist) {
 
 	 /* reallocate a new qualifier list that's twice as large */
-	 newqual = (char *)realloc((char *)quallist, (msize)(2 * qualsize));
+	 newqual = (char *)realloc((char *)quallist, 2 * qualsize);
 	 if (newqual) {
 	    quallist = (dptr *)newqual;
 	    qualfree = (dptr *)(newqual + qualsize);

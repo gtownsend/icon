@@ -1185,7 +1185,7 @@ static int gfsetup()
    word len;
 
    len = (word)gf_width * (word)gf_height;
-   gf_string = (unsigned char *)malloc((msize)len);
+   gf_string = (unsigned char *)malloc(len);
    gf_prefix = (short *)malloc(GifTableSize * sizeof(short));
    gf_suffix = (short *)malloc(GifTableSize * sizeof(short));
    if (!gf_string || !gf_prefix || !gf_suffix)
@@ -1420,7 +1420,7 @@ int x, y, width, height;
 
    if (!(gf_f = fopen(filename, "wb")))
       return Failed;
-   if (!(gf_string = (unsigned char*)malloc((msize)len)))
+   if (!(gf_string = (unsigned char*)malloc(len)))
       return Error;
 
    for (i = 0; i < DMAXCOLORS; i++)

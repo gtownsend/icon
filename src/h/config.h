@@ -3,7 +3,7 @@
  */
 
 /*
- * System-specific definitions are in define.h
+ * System-specific definitions are in define.h, which is loaded first.
  */
 
 /*
@@ -150,6 +150,11 @@
    #define MultiThread
 #endif					/* EventMon */
 
+#ifndef NoExternalFunctions
+   #undef ExternalFunctions
+   #define ExternalFunctions
+#endif					/* NoExternalFunctions */
+
 /*
  * Names for standard environment variables.
  * The standard names are used unless they are overridden.
@@ -198,6 +203,10 @@
 #ifndef IPATH
    #define IPATH "IPATH"
 #endif
+
+/*
+ * Graphics definitions.
+ */
 
 #ifdef MSWindows
    #undef Graphics
@@ -267,10 +276,23 @@
 
 #endif					/* Graphics */
 
-#ifndef NoExternalFunctions
-   #undef ExternalFunctions
-   #define ExternalFunctions
-#endif					/* NoExternalFunctions */
+/*
+ * Data sizes and alignment.
+ */
+
+#ifndef WordBits
+   #define WordBits 32
+#endif					/* WordBits */
+
+#ifndef IntBits
+   #define IntBits WordBits
+#endif					/* IntBits */
+
+#define WordSize sizeof(word)
+
+#ifndef StackAlign
+   #define StackAlign 2
+#endif					/* StackAlign */
 
 /*
  * EBCDIC == 0 corresponds to ASCII.
@@ -294,10 +316,6 @@
    #define DeBugIconx
 #endif					/* DeBug */
 
-#ifndef AllocType
-   #define AllocType unsigned int
-#endif					/* AllocType */
-
 #ifndef MaxHdr
    #define MaxHdr 4096
 #endif					/* MaxHdr */
@@ -305,18 +323,6 @@
 #ifndef MaxPath
    #define MaxPath 200
 #endif					/* MaxPath */
-
-#ifndef StackAlign
-   #define StackAlign 2
-#endif					/* StackAlign */
-
-#ifndef WordBits
-   #define WordBits 32
-#endif					/* WordBits */
-
-#ifndef IntBits
-   #define IntBits WordBits
-#endif					/* IntBits */
 
 #ifndef SourceSuffix
    #define SourceSuffix ".icn"
@@ -357,16 +363,6 @@
       #define ReadDirectory
    #endif				/* UNIX*/
 #endif					/* ReadDirectory */
-
-/*
- * Default sizing and such.
- */
-
-#define WordSize sizeof(word)
-
-#ifndef ByteBits
-   #define ByteBits 8
-#endif					/* ByteBits */
 
 /*
  *  The following definitions assume ANSI C.
@@ -556,7 +552,7 @@ Deliberate Syntax Error
 #endif					/* DiffPtrs */
 
 #ifndef AllocReg
-   #define AllocReg(n) malloc((msize)n)
+   #define AllocReg(n) malloc(n)
 #endif					/* AllocReg */
 
 #define MaxFileName 256

@@ -88,14 +88,14 @@ struct astkblk *alcactiv()
    {
    struct astkblk *abp;
 
-   abp = (struct astkblk *)malloc((msize)sizeof(struct astkblk));
+   abp = (struct astkblk *)malloc(sizeof(struct astkblk));
 
    /*
     * If malloc failed, attempt to free some co-expression blocks and retry.
     */
    if (abp == NULL) {
       collect(Static);
-      abp = (struct astkblk *)malloc((msize)sizeof(struct astkblk));
+      abp = (struct astkblk *)malloc(sizeof(struct astkblk));
       }
 
    if (abp == NULL)
@@ -136,7 +136,7 @@ struct b_coexpr *alccoexp()
    {
    struct b_coexpr *ep;
    static int serial = 2; /* main co-expression is allocated elsewhere */
-   ep = (struct b_coexpr *)malloc((msize)stksize);
+   ep = (struct b_coexpr *)malloc(stksize);
 
    /*
     * If malloc failed or if there have been too many co-expression allocations
@@ -145,7 +145,7 @@ struct b_coexpr *alccoexp()
 
    if (ep == NULL || alcnum > AlcMax) {
       collect(Static);
-      ep = (struct b_coexpr *)malloc((msize)stksize);
+      ep = (struct b_coexpr *)malloc(stksize);
       }
 
    if (ep == NULL)
@@ -187,15 +187,15 @@ struct b_coexpr *alccoexp()
 #ifdef MultiThread
    if (icodesize > 0) {
       ep = (struct b_coexpr *)
-	calloc(1, (msize)(stacksize+
+	calloc(1, stacksize+
 		       icodesize+
 		       sizeof(struct progstate)+
-		       sizeof(struct b_coexpr)));
+		       sizeof(struct b_coexpr));
       }
    else
 #endif					/* MultiThread */
 
-   ep = (struct b_coexpr *)malloc((msize)stksize);
+   ep = (struct b_coexpr *)malloc(stksize);
 
    /*
     * If malloc failed or if there have been too many co-expression allocations
@@ -209,12 +209,12 @@ struct b_coexpr *alccoexp()
 #ifdef MultiThread
       if (icodesize>0) {
          ep = (struct b_coexpr *)
-	    malloc((msize)(mstksize+icodesize+sizeof(struct progstate)));
+	    malloc(mstksize+icodesize+sizeof(struct progstate));
          }
       else
 #endif					/* MultiThread */
 
-         ep = (struct b_coexpr *)malloc((msize)stksize);
+         ep = (struct b_coexpr *)malloc(stksize);
       }
       if (ep == NULL)
          ReturnErrNum(305, NULL);

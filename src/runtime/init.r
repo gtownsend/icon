@@ -803,9 +803,9 @@ Deliberate Syntax Error
     */
 
 #if COMPILER
-   mainhead = (struct b_coexpr *)malloc((msize)sizeof(struct b_coexpr));
+   mainhead = (struct b_coexpr *)malloc(sizeof(struct b_coexpr));
 #else					/* COMPILER */
-   stack = (word *)malloc((msize)mstksize);
+   stack = (word *)malloc(mstksize);
    mainhead = (struct b_coexpr *)stack;
 
 #endif					/* COMPILER */
@@ -974,7 +974,7 @@ Deliberate Syntax Error
    else {
       char *buf;
 
-      buf = (char *)malloc((msize)BUFSIZ);
+      buf = (char *)malloc(BUFSIZ);
       if (buf == NULL)
 	 fatalerr(305, NULL);
       setbuf(stderr, buf);
@@ -991,7 +991,7 @@ Deliberate Syntax Error
 #else					/* MSWindows */
       char *buf;
 
-      buf = (char *)malloc((msize)BUFSIZ);
+      buf = (char *)malloc(BUFSIZ);
       if (buf == NULL)
 	 fatalerr(305, NULL);
 #endif					/* MSWindows */

@@ -73,7 +73,7 @@ continuation succ_cont;
           * Copy the arguments from the list into an tended array of descriptors.
           */
          nargs = BlkLoc(dstrct)->list.size + 1;
-         tnd_args = (struct tend_desc *)malloc((msize)(sizeof(struct tend_desc)
+         tnd_args = (struct tend_desc *)malloc((sizeof(struct tend_desc)
             + (nargs - 1) * sizeof(struct descrip)));
          if (tnd_args == NULL)
             RunErr(305, NULL);
@@ -110,7 +110,7 @@ continuation succ_cont;
           * of descriptors.
           */
          nargs = BlkLoc(dstrct)->record.recdesc->proc.nfields;
-         tnd_args = (struct tend_desc *)malloc((msize)(sizeof(struct tend_desc)
+         tnd_args = (struct tend_desc *)malloc((sizeof(struct tend_desc)
             + (nargs - 1) * sizeof(struct descrip)));
          if (tnd_args == NULL)
             RunErr(305, NULL);

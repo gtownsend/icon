@@ -69,6 +69,8 @@ word pc = 0;		/* simulated program counter */
 #define CodeCheck(n) if ((long)codep + (n) > (long)((long)codeb + maxcode))\
                      codeb = (char *) trealloc(codeb, &codep, &maxcode, 1,\
                        (n), "code buffer");
+
+#define ByteBits 8
 
 /*
  * gencode - read .u1 file, resolve variable references, and generate icode.

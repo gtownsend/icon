@@ -18,7 +18,7 @@ char *s;
    {
    register char *s1;
 
-   s1 = (char *)malloc((msize)(strlen(s) + 1));
+   s1 = (char *)malloc(strlen(s) + 1);
    if (s1 == NULL) {
       fprintf(stderr, "salloc(%d): out of memory\n",(int)strlen(s) + 1);
       exit(EXIT_FAILURE);
@@ -56,7 +56,7 @@ unsigned int n;
    if (n == 0)				/* Work-around for 0 allocation */
       n = 1;
 
-   a = calloc((msize)n,sizeof(char));
+   a = calloc(n,sizeof(char));
    if (a == NULL) {
       fprintf(stderr, "alloc(%d): out of memory\n", (int)n);
       exit(EXIT_FAILURE);
