@@ -72,9 +72,9 @@ int stubexe;				/* TRUE if resource attached to executable */
 char *prog_name;			/* name of icode file */
 
 #if !COMPILER
-#define OpDef(p,n,s,u) int Cat(O,p) (dptr cargp);
-#include "../h/odefs.h"
-#undef OpDef
+#passthru #define OpDef(p,n,s,u) int Cat(O,p) (dptr cargp);
+#passthru #include "../h/odefs.h"
+#passthru #undef OpDef
 
 /*
  * External declarations for operator blocks.
