@@ -226,7 +226,11 @@ int main(int argc, char *argv[]) {
 static void execute(char *ofile, char *efile, char *args[]) {
    int n;
    char **argv, **p;
+   char buf[MaxPath+10];
 
+   /*
+    * Build argument vector.
+    */
    for (n = 0; args[n] != NULL; n++)	/* count arguments */
       ;
    p = argv = alloc((n + 5) * sizeof(char *));
@@ -237,8 +241,7 @@ static void execute(char *ofile, char *efile, char *args[]) {
    *p = NULL;
 
    /*
-    * Redirect stderr if requested, then execute the file.
-    * It knows how to find iconx.
+    * Redirect stderr if requested.
     */
    if (efile != NULL) {
       close(fileno(stderr));
@@ -247,6 +250,16 @@ static void execute(char *ofile, char *efile, char *args[]) {
       else if (freopen(efile, "w", stderr) == NULL)
          quitf("could not redirect stderr to %s\n", efile);
       }
+   
+   /*
+    * Export $ICONX to specify the path to iconx.
+    */
+   sprintf(buf, "ICONX=%s", iconxloc);
+   putenv(buf);
+
+   /*
+    * Execute the generated program.
+    */
    execv(ofile, argv);
    quitf("could not execute %s", ofile);
    }
