@@ -302,7 +302,6 @@ struct header *hdr;
    }
 #endif					/* WinGraphics */
 
-
    /*
     * Look for environment variable ICODE_TEMP=xxxxx:yyyyy as a message
     * from icont to delete icode file xxxxx and to use yyyyy for &progname.
@@ -616,11 +615,7 @@ void envset()
    env_int("TRACE", &k_trace, 0, (uword)0);
    env_int("COEXPSIZE", &stksize, 1, (uword)MaxUnsigned);
    env_int("STRSIZE", &ssize, 1, (uword)MaxBlock);
-   env_int("HEAPSIZE", &abrsize, 1, (uword)MaxBlock);
-   #ifndef BSD_4_4_LITE
-      env_int("BLOCKSIZE", &abrsize, 1, (uword)MaxBlock);    /* synonym */
-   #endif				/* BSD_4_4_LITE */
-   env_int("BLKSIZE", &abrsize, 1, (uword)MaxBlock);      /* synonym */
+   env_int("BLKSIZE", &abrsize, 1, (uword)MaxBlock);
    env_int("MSTKSIZE", &mstksize, 1, (uword)MaxUnsigned);
    env_int("QLSIZE", &qualsize, 1, (uword)MaxBlock);
    env_int("IXCUSHION", &memcushion, 1, (uword)100);	/* max 100 % */
