@@ -6,7 +6,7 @@
 #
 #	Authors:  Ralph E. Griswold and Gregg M. Townsend
 #
-#	Date:     November 16, 2000
+#	Date:     November 17, 2000
 #
 ############################################################################
 #
@@ -152,13 +152,13 @@ procedure pfactors(i)		#: primes that divide integer
    local facts, p
 
    facts := []
-
-### needs optimizations
-
    every p := prime() do {
       if p > i then break
-      if i % p = 0 then
+      if i % p = 0 then {
          put(facts, p)
+	 while i % p = 0 do
+	    i /:= p
+	 }
       }
 
    return facts
@@ -220,9 +220,6 @@ procedure prdecomp(i)		#: prime decomposition
    local decomp, count, p
 
    decomp := []
-
-### needs optimizations
-
    every p := prime() do {
       count := 0
       while i % p = 0 do {
