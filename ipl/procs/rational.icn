@@ -6,11 +6,15 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     November 10, 1999
+#	Date:     November 17, 2000
 #
 ############################################################################
 #
 #   This file is in the public domain.
+#
+############################################################################
+#
+#	Contributor:  Gregg M. Townsend
 #
 ############################################################################
 #
@@ -29,9 +33,13 @@
 #     rat2str(r)    Convert the rational number r to its string
 #                   representation.
 #
+#     real2rat(v,p) Convert real to rational with precision p.
+#                   The default precision is 1e-10.
+#                   (Too much precision gives huge, ugly factions.)
+#
 #     reciprat(r)   Produce the reciprocal of rational number r.
 #
-#     str2rst(s)    Convert the string representation of a rational number
+#     str2rat(s)    Convert the string representation of a rational number
 #                   (such as "3/2") to a rational number.
 #
 #     subrat(r1,r2) Subtract rational numbers r1 and r2.
@@ -129,6 +137,36 @@ procedure ratred(r)		#: reduce rational to lowest terms
    div := gcd(r.numer, r.denom)
 
    return rational(r.numer / div, r.denom / div, r.sign)
+
+end
+
+#  real2rat(v, p) -- convert real to rational with precision p
+#
+#  Originally based on a calculator algorithm posted to usenet on August 19,
+#  1987, by Joseph D. Rudmin, Duke University Physics Dept. (duke!dukempd!jdr)
+
+$define MAXITER 40		# maximum number of iterations
+$define PRECISION 1e-10		# default conversion precision
+
+procedure real2rat(r, p)
+   local t, d, i, j
+   static x, y
+   initial { x := list(MAXITER); y := list(MAXITER + 2) }
+
+   t := abs(r)
+   /p := PRECISION
+   every i := 1 to MAXITER do {
+      x[i] := integer(t)
+      y[i + 1] := 1
+      y[i + 2] := 0
+      every j := i to 1 by -1 do
+         y[j] := x[j] * y[j + 1] + y[j + 2]
+      if abs(y[1] / real(y[2]) - r) < p then break
+      d := t - integer(t)
+      if d < p then break
+      t := 1.0 / d
+      }
+   return rational(y[1], y[2], if r >= 0 then 1 else -1)
 
 end
 
