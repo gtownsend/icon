@@ -7,7 +7,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     October 3, 1995
+#	Date:     November 17, 2004
 #
 ############################################################################
 #
@@ -28,6 +28,8 @@
 */
 
 #include <signal.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "icall.h"
 

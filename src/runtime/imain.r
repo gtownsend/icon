@@ -287,7 +287,7 @@ int *ip;
    register word i, j;
    register struct b_proc *pp;
    register dptr dp;
-   extern Omkrec();
+   extern int Omkrec();
    #ifdef MultiThread
       register struct progstate *savedstate;
    #endif				/* MultiThread */

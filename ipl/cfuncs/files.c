@@ -7,7 +7,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     October 3, 1995
+#	Date:     November 17, 2004
 #
 ############################################################################
 #
@@ -29,6 +29,9 @@
 */
 
 #include "icall.h"
+
+#include <sys/types.h>
+#include <sys/stat.h>
 
 int icon_chmod (int argc, descriptor argv[]) /*: change UNIX file permissions */
    {

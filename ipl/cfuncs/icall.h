@@ -7,7 +7,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     May 7, 2002
+#	Date:     November 17, 2004
 #
 ############################################################################
 #
@@ -143,6 +143,10 @@ typedef struct { word title, size, id; void *head, *tail; } listblock;
 char *alcstr(char *s, word len);
 realblock *alcreal(double v);
 fileblock *alcfile(FILE *fp, int stat, descriptor *name);
+int cnv_c_str(descriptor *s, descriptor *d);
+int cnv_int(descriptor *s, descriptor *d);
+int cnv_real(descriptor *s, descriptor *d);
+int cnv_str(descriptor *s, descriptor *d);
 double getdbl(descriptor *d);
 
 extern descriptor nulldesc;		/* null descriptor */
