@@ -475,6 +475,7 @@ static void setfile()
          &fnmsize, sizeof(struct ipc_fname), 1, "file name table");
    fnmfree->ipc = pc;
    fnmfree->fname = getrest();
+   strcpy(icnname, &lsspace[fnmfree->fname]);
    fnmfree++;
    newline();
    }

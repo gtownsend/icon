@@ -12,6 +12,7 @@ extern FILE *infile;		/* current input file */
 extern FILE *outfile;		/* linker output file */
 extern FILE *dbgfile;		/* debug file */
 extern char inname[];		/* input file name */
+extern char icnname[];		/* source program file name */
 extern int lineno;		/* source program line number (from ucode) */
 extern int colmno;		/* source program column number */
 

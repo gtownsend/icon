@@ -77,11 +77,11 @@ FILE *outfile;				/* interpreter code output file */
    static char dbgname[MaxFileName];	/* debug file name */
 #endif					/* DeBugLinker */
 
-char inname[MaxFileName];		/* input file name */
-static char icnname[MaxFileName];	/* icon source file name */
-
 struct lfile *llfiles = NULL;		/* List of files to link */
 
+char inname[MaxFileName];		/* input file name */
+
+char icnname[MaxFileName];		/* current icon source file name */
 int colmno = 0;				/* current source column number */
 int lineno = 0;				/* current source line number */
 int fatals = 0;				/* number of errors encountered */

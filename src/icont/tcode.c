@@ -521,11 +521,11 @@ register nodeptr t;
 	 creatsp = creatstk;
 
 	 writecheck(fprintf(codefile, "proc %s\n", Str0(Tree0(t))));
+	 setloc(t);
 	 lout(codefile);
 	 constout(codefile);
 
 	 emit("declend");
-	 setloc(t);
 	 if (TType(Tree1(t)) != N_Empty) {
 	    lab = alclab(1);
 	    emitl("init", lab);
