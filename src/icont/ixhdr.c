@@ -62,7 +62,7 @@ static void doiconx(char *argv[]) {
       hsyserr("cannot execute ", xcmd);
       }
 
-   hsyserr("cannot find iconx", "");
+   hsyserr(argv[1], ": cannot find iconx");
    }
 
 /*
