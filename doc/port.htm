@@ -1,0 +1,215 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Porting the Icon Implementation</TITLE>
+    <LINK REL="STYLESHEET" TYPE="text/css" HREF="istyle.css">
+    <LINK REL="SHORTCUT ICON" HREF="shortcut.gif">
+</HEAD>
+<BODY>
+
+<P><A HREF="http://www.cs.arizona.edu/icon/"> <IMG SRC="wwwcube.gif"
+ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
+
+<H1>Porting the Icon Implementation</H1>
+
+<P> Gregg M. Townsend
+<BR> <SMALL> Department of Computer Science </SMALL>
+<BR> <SMALL> The University of Arizona </SMALL>
+
+<P> <SMALL> www.cs.arizona.edu/icon/v942/port.htm
+<BR> Last updated January 6, 2004 </SMALL>
+<!-- $Id$ -->
+
+<H2> Introduction </H2>
+
+This document describes how to port a source release of Icon to a new platform.
+It assumes familiarity with the process by which Icon is
+<A HREF=build.htm>built from source</A>
+using an existing configuration.
+
+<H2>Requirements</H2>
+
+Icon expects the underlying system to conform to certain standards
+that are met by most modern systems.
+These are not necessarily the latest standards but rather
+versions that have already been widely implemented.
+Newer standards maintain compatibility and present no problems.
+
+
+<H3>POSIX Commands</H3>
+
+Icon is build using Makefiles and shell scripts, as defined by
+POSIX.2 (IEEE 1003.2-1992).
+
+
+<H3>C Compiler</H3>
+
+Icon requires a production-quality compiler supporting ANSI C (X3.159-1989).
+<EM>Production quality</EM> implies correctness, robustness,
+and the ability to handle large files and complicated expressions.
+
+<H3>C Data Sizes</H3>
+
+Icon places the following requirements on C data sizes: 
+    <UL>
+	<LI><I>chars</I> must be 8 bits. 
+	<LI><I>ints</I> must be 16, 32, or 64 bits. 
+	<LI><I>longs</I> and pointers must be 32 or 64 bits. 
+	<LI>All pointers must be the same length. 
+	<LI>Pointers and <I>longs</I> must be the same length. 
+    </UL>
+If your C data sizes do not meet these requirements,
+do not attempt to configure Icon. 
+
+
+<H3>POSIX Library</H3>
+
+In addition to the standard C library, Icon uses the library functions
+specified by POSIX.1 (IEEE 1993.1-1996).
+In particular, Icon uses <DFN>POSIX threads</DFN> and <DFN>semaphores</DFN>
+to implement context switching for co-expressions.
+This eliminates the need for specialized assembly-language code,
+some of which can still be seen in older configurations.
+
+
+
+<H2> The Porting Process </H2>
+
+Every different Icon configuration has its own subdirectory in the
+<CODE>config</CODE> directory of the Icon source tree.
+To add a new configuration, create a new directory, and copy in the
+<CODE>define.h</CODE>, <CODE>Makedefs</CODE>, and <CODE>status</CODE> files
+from the <CODE>posix</CODE> configuration directory.
+
+<P> The porting process involves repeating these steps until
+the system is working:
+<OL>
+    <LI> Edit the configuration files.
+    <LI> Configure:
+    	<CODE>make Configure name=</CODE><VAR>newdirectory</VAR>
+    <LI> Build: <CODE>make</CODE>
+    <LI> Test: <CODE>make Test</CODE>
+</OL>
+If a configuration parameter is changed it is necessary to
+reconfigure and rebuild from the beginning.
+
+<P> The Icon source code has proven to be robust and portable.
+Most problems are related to command options and library locations,
+the things that are configured in the <CODE>Makedefs</CODE> file.
+
+<P> If the system builds smoothly, but problems are revealed by
+<CODE>make Test</CODE>, try removing any C optimization options.
+New compilers are often stressed beyond their capabilities by Icon.
+
+<P> It is best to start by building just the basic Icon system.
+When that is working, repeat with <CODE>make X-Configure</CODE>
+instead of <CODE>make Configure</CODE> to build Icon with graphics.
+(Note that <CODE>make Test</CODE> does not test graphics, and so you
+should also execute <CODE>bin/colrbook</CODE> as an additional manual test.)
+Finally, when those configurations are working, you may wish to
+enable dynamic loading as described in a later section.
+
+
+<H2> Configuration Parameters </H2>
+
+Icon is set up by editing three files in the configuration directory
+of a particular platform.
+You can examine the files in other directories to see working examples.
+
+
+<H3> <CODE>define.h</CODE> </H3>
+
+Edit the comment at the beginning of <CODE>define.h</CODE>,
+but otherwise leave this file alone.
+Although some older configurations may define additional values,
+they are not needed here.
+
+
+<H3> <CODE>Makedefs</CODE> </H3>
+
+The critical configuration work is done by editing the
+<CODE>Makedefs</CODE> file.
+The parameters set here are:
+<BLOCKQUOTE><DL>
+
+    <DT><CODE>CC</CODE>
+    <DD>The command name for the C compiler.  Typical values are
+	<CODE>cc</CODE>, <CODE>gcc</CODE>, or <CODE>c89</CODE>.
+
+    <DT><CODE>CFLAGS</CODE>
+    <DD>C compiler flags.  A path specification for the X11 libraries
+    	is usually needed.
+	Include <CODE>&ndash;O </CODE> to optimize the C code, 
+	but remove it if it causes problems.
+
+    <DT><CODE>CFDYN</CODE>
+    <DD>C compiler flags for generating dynamic libraries,
+    	usually a flag that generates position-independent code.
+	A typical value is <CODE>&ndash;fPIC</CODE>.
+
+    <DT><CODE>RLINK</CODE>
+    <DD>General runtime libraries.
+    	Many systems require <CODE>&ndash;lm</CODE> to link
+	the math library.
+	Some systems also require <CODE>&ndash;ldl</CODE> to link
+	<CODE>dlopen()</CODE>.
+
+    <DT><CODE>TLIBS</CODE>
+    <DD>Thread library.
+	Some systems require <CODE>&ndash;lpthread</CODE> or other
+	values (see examples in other configurations) to link the
+	threads library.
+
+    <DT><CODE>XLIBS</CODE>
+    <DD>Linker specifications for the X Windows library.
+	Many systems need both a path and a library name here.
+    	
+    <DT><CODE>XPMDEFS</CODE>
+    <DD>Definitions for building the XPM library.
+    	Change this (see other examples) if problems occur
+	while building the <CODE>src/xpm</CODE> directory.
+    	
+    <DT><CODE>GDIR</CODE>
+    <DD>Leave this alone.
+
+</DL></BLOCKQUOTE>
+
+
+<H3> <CODE>status</CODE> </H3>
+
+The <CODE>status</CODE> file is not used by the build process,
+but it should be edited to document the target platform,
+and it should be updated whenever the configuration changes.
+
+
+
+<H2> Dynamic Loading </H2>
+
+Icon's optional dynamic loading facility allows Icon programs
+to call specially written user C code via the built-in
+<CODE>loadfunc</CODE> procedure.
+Dynamic loading is enabled by
+<OL>
+    <LI> Editing <CODE>config/</CODE><VAR>name</VAR><CODE>/define.h</CODE>
+    	to add <CODE>#define LoadFunc</CODE> at the end.
+    <LI> Editing <CODE>ipl/cfuncs/mklib.sh</CODE>
+    	to add a new case to the shell script that builds
+	a shared library from a set of C object files.
+    <LI> Reconfiguring, rebuilding, and retesting as usual.
+	If dynamic loading is enabled in <CODE>define.h</CODE>,
+	it is tested by <CODE>make Test</CODE>.
+</OL>
+
+<P> The second step is the hardest; on many systems, documentation
+discussing the building of shared libraries is scant or nonexistent.
+
+<P> If problems are found while building, check especially the definitions
+of the <CODE>Makedefs</CODE> parameters
+<CODE>CFDYN</CODE> and <CODE>RLINK</CODE>.
+
+
+
+<P> <HR>
+
+</BODY>
+</HTML>
