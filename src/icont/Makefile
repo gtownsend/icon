@@ -60,9 +60,9 @@ opcode.o:	opcode.h ../h/opdefs.h
 # hdr.h is always built but not always used
 hdr.h:		newhdr ixhdr.hdr
 		./newhdr -o hdr.h ixhdr.hdr
-newhdr:		newhdr.c ../h/define.h ../h/gsupport.h
+newhdr:		newhdr.c ../h/define.h ../h/config.h ../h/gsupport.h
 		$(CC) $(CFLAGS) $(LDFLAGS) -o newhdr newhdr.c
-ixhdr.hdr:	ixhdr.c ../h/define.h ../h/header.h ../h/define.h
+ixhdr.hdr:	ixhdr.c ../h/define.h ../h/config.h ../h/header.h
 		$(CC) $(CFLAGS) $(LDFLAGS) -o ixhdr.hdr ixhdr.c
 		strip ixhdr.hdr
 
