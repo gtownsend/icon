@@ -8,6 +8,12 @@ Ilib:	../bin/libcfunc.so
 	cp incl/*.icn gincl/*.icn cfuncs/icall.h ../lib
 	cd procs;  LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
 	cd gprocs; LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
+	if grep LoadFunc ../src/h/define.h >/dev/null; then $(MAKE) Cfuncs; fi
+
+
+#  Make C functions.  Only called if LoadFunc is defined.
+
+Cfuncs:
 	cd cfuncs; LPATH= $(MAKE) ICONT=../../bin/icont
 	mv cfuncs/*.u? ../lib
 	mv cfuncs/libcfunc.so ../bin
