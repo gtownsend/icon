@@ -13,5 +13,5 @@ unix.u1: unix.icn
 idolmain.u1: idolmain.icn
 	icont -s -c idolmain
 
-clean:
+Clean:
 	rm -rf *.u[12] idol idolboot idolmain unix idolcode.env

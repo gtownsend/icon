@@ -99,5 +99,5 @@ install: all
 #
 clean:
 	-rm -f *~ #*# core *.u[12] $(PROGNAME).output
-clobber: clean
-	-rm $(PROGNAME)
+Clean clobber: clean
+	-rm -f $(PROGNAME)

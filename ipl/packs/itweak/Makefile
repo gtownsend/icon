@@ -116,5 +116,5 @@ demo : sample-debug
 
 ##### cleanup
 
-clean :
+Clean :
 	rm -f $(ITWEAK) *.u[12]
