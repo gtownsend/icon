@@ -30,8 +30,11 @@ fi
 
 # find and copy the context switch code.
 # use pthreads version if specified, or as a last resort.
-# by default, look for `uname -m`.[cs] and then rswitch.[cs].
-ARCH=`uname -m`
+# first try `uname -p`.[cs] or `uname -m`.[cs] and then rswitch.[cs].
+ARCH=`uname -p`
+if [ "$ARCH" = "unknown" ]; then
+   ARCH=`uname -m`
+fi
 if [ "$CSW" = "pthreads" ]; then
    RSW=pthreads.c
    COCLEAN="#define CoClean"
