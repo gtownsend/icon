@@ -6,7 +6,7 @@
 #
 #	Authors:  Gregg M. Townsend and William S. Evans
 #
-#	Date:     May 7, 2002
+#	Date:     February 19, 2003
 #
 ############################################################################
 #
@@ -1155,7 +1155,7 @@ end
 #  locate(wproj) -- calculate scale and location using caller's projection
 
 procedure locproc(wproj)
-   local e, i, m, n, s, u, cx, dx, dy, ll, lat, lon, winv, yoff
+   local d, e, m, s, u, cx, dx, dy, ll, lat, lon, winv
 
    winv := invp(wproj)			# get projection from screen to lat/lon
    dx := WAttrib("dx")			# get popup box coordinate system
@@ -1163,26 +1163,18 @@ procedure locproc(wproj)
 
    #  compute a reasonably round length that works for a scale bar
    u := 90 * DEGSCALE / 1e7		# one meter, in latitude units
-   m := 1e5				# start w/ big multiplier, and reduce
-   repeat {
-      yoff := u * m
-      ll := project(wproj, [xmin, ymin + yoff, xmin, ymin])
-      n := ll[4] - ll[2]
-      if n <= SMAX then break
-      m := m / 10
-      }
-   if SMAX >= n * (i := 5 | 4 | 3 | 2) then {
-      n *:= i
-      m *:= i
-      }
+   m := sbsize(wproj, xmin, ymin, u, SMAX)
 
    # draw the scale bar
+   ll := project(wproj, [xmin, ymin, xmin + m * u, ymin])
+   d := ll[3] - ll[1]
+   cx := BOXW / 2
+   FillRectangle(cx - d / 2, 55, d, 8)
+
    if m >= 1000 then
-      s := (m / 1e3) || " km"
+      s := (m / 1000) || " km"
    else
       s := m || " m"
-   cx := BOXW / 2
-   FillRectangle(cx - n / 2, 55, n, 8)
    CenterString(cx, 70, s)
 
    #  give coordinates of mouse location until button released

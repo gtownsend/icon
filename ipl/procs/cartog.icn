@@ -6,7 +6,7 @@
 #
 #	Authors:  Gregg M. Townsend and William S. Evans
 #
-#	Date:     June 27, 2002
+#	Date:     February 19, 2003
 #
 ############################################################################
 #
@@ -72,6 +72,16 @@
 #
 ############################################################################
 #
+#	sbsize(p, x, y, u, maxl) calculates a scale bar size for use with
+#	projection p at input coordinates (x, y).  Given u, the size of
+#	an unprojected convenient unit (meter, foot, mile, etc.) at (x, y),
+#	sbsize() returns the maximum "round number" N such that
+#	   -- N is of the form  i * 10 ^ k  for i in {1,2,3,4,5}
+#	   -- the projected length of the segment (x, y, x + N * u, y) 
+#	      does not exceed maxl
+#
+############################################################################
+#
 #	UTM conversion algorithms are based on:
 #
 #		Map Projections: A Working Manual
@@ -125,6 +135,31 @@ end
 
 procedure invp(p)			#: return inversion of projection
    return (\p.inv)(p)
+end
+
+
+
+#  sbsize(p, x, y, u, maxl) --  calculate scalebar size
+
+procedure sbsize(p, x, y, u, maxl)	#: calculate scalebar size
+   local d, i, m, r
+
+   m := 1
+   repeat {
+      r := project(p, [x, y, x + m * u, y])
+      d := r[3] - r[1]
+      if d > maxl then
+         m := m / 10.0
+      else if d * 10 >= maxl
+         then break
+      else
+         m := m * 10
+      }
+
+   if maxl >= d * (i := 5 | 4 | 3 | 2) then
+      m *:= i
+
+   return m
 end
 
 
