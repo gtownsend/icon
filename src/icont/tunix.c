@@ -6,7 +6,7 @@
 #include "tproto.h"
 #include "tglobals.h"
 
-static void execute (char *ofile, char *efile, char * *args);
+static void execute (char *ofile, char *efile, char *args[]);
 static void usage (void);
 
 static char patchpath[MaxPath+18] = "%PatchStringHere->";
@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
 /*
  * execute - execute iconx to run the icon program
  */
-static void execute(char *ofile, char *efile, char *args) {
+static void execute(char *ofile, char *efile, char *args[]) {
    int n;
    char **argv, **p;
 
