@@ -341,16 +341,6 @@
    #define ShellHeader
 #endif					/* UNIX */
 
-#if MSDOS && !NT
-   #undef DirectExecution
-   #define DirectExecution
-#endif					/* MSDOS && !NT */
-
-#ifdef Header
-   #undef DirectExecution
-   #define DirectExecution
-#endif					/* Header */
-
 /*
  *  Vsizeof is for use with variable-sized (i.e., indefinite)
  *   structures containing an array of descriptors declared of size 1
