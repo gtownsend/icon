@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     June 7, 2000
+#	Date:     August 2, 2001
 #
 ############################################################################
 #
@@ -51,7 +51,10 @@ procedure dofile(fname)
    local f, dda, d, e, s
 
    write("\n", \fname, ":")
-   f := ddfopen(fname) | stop("can't open ", fname)
+   if /fname then
+      f := ddfopen(&input) | stop("standard input is not a DDF file")
+   else
+      f := ddfopen(fname) | stop("can't open ", fname, " as DDF file")
    write()
 
    dda := ddfdda(f)
