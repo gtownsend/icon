@@ -1,0 +1,30 @@
+#!/bin/ksh
+#
+#  Test-build all IPL components
+#  taking care to use minimal IPATH and LPATH
+
+
+IC=${IC-../../bin/icont}
+
+function compile { $IC -us $1 || echo "         -- failed in $1"; }
+
+
+rm -f */*.u[12]
+(cd procs; ls -ld `whence $IC`)
+
+(echo cfuncs:; cd cfuncs; IPATH=                         make -s cfunc.u2)
+(echo procs:;  cd procs;  IPATH="../incl"                   $IC -usc *icn)
+(echo gprocs:; cd gprocs; IPATH="../incl ../gincl"          $IC -usc *icn)
+(echo mprocs:; cd mprocs; IPATH="../incl ../gincl ../mincl" $IC -usc *icn)
+
+export LPATH="../incl"
+export IPATH="../procs ../cfuncs"
+(echo progs:; cd progs;  for f in *.icn; do compile $f; done)
+
+export LPATH="../incl  ../gincl"
+export IPATH="../procs ../cfuncs ../gprocs"
+(echo gprogs:; cd gprogs;  for f in *.icn; do compile $f; done)
+
+export LPATH="../incl  ../gincl  ../mincl"
+export IPATH="../procs ../cfuncs ../gprocs ../mprocs"
+(echo mprogs:; cd mprogs;  for f in *.icn; do compile $f; done)
