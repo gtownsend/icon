@@ -15,7 +15,7 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 <BR> <SMALL> Department of Computer Science </SMALL>
 <BR> <SMALL> The University of Arizona </SMALL>
 
-<P> <SMALL> Last updated April 30, 2001 </SMALL>
+<P> <SMALL> Last updated May 1, 2001 </SMALL>
 <!-- $Id$ -->
 
 
@@ -78,6 +78,71 @@ For version 9.4, the effective path is:
 and the way executable Icon programs locate the interpreter.
 These changes, which are transparent to most users, are discussed
 in more detail on the <A HREF="files.htm">File Organization</A> page.
+
+
+<H2> Other Icon Changes </H2>
+
+<P> Several areas of the Icon implementation have been cleaned up,
+in particular the run-time initialization code,
+and some obsolete configurations have been removed.
+
+<P> With one clearly marked exception, programs in the standard
+test suite now generate reproducible output.
+
+<P> The following bug-fixes have been applied:
+<UL>
+<LI> Don't lose sign bit when converting real to large integer.
+<LI> Don't crash on duplicate close(f).
+<LI> Consistently give runerr for coordinate value too large for X.
+<LI> Give runerr instead segfault for window attribute over 127 chars long.
+<LI> Exit instead of looping on segfault during traceback of segfault.
+<LI> Work around gcc 2.96 file inclusion bug.
+</UL>
+
+
+<H2> Library Changes </H2>
+
+
+<P> The program library has been incorporated into the main Icon source tree
+and is routinely built along with icont and iconx.  Tests for most of the
+core library functions and loadable C functions have been incorporated the
+standard test suite, and some additional consistency tests were developed.
+
+<P> Numerous changes were made throughout the library to fix linking problems,
+to fix typos and formatting, and to support building via Makefiles.
+
+<P> Some files that were miscategorized as graphics or non-graphics have been
+moved.  Duplicate files in the cfuncs and packs/loadfunc directories have
+been eliminated.  Some other obsolete files were also removed.
+
+<P> Other significant changes were:
+
+<PRE>
+procs/datetime		fixed dayoweek() to get all twelve months right
+procs/factors		fixed divisors() to consistently return all factors
+			fixed genfactors() for some failing cases
+			added some minor optimizations
+procs/io		modified to allow ":" as a path separator under Unix
+procs/lists		fixed fatal bugs in lminlen() and lmaxlen()
+procs/numbers		fixed decimal() for values where remainder repeats
+procs/pqueue		added new priority queue procedures
+procs/rational		added real2rat(v, p)	#: convert real to rational
+procs/records		added fieldnum(R, s)	#: return index of field R.s
+
+gprocs/drawlab		modified to let the caller control the window size
+
+progs/htprep		modified to improve quoting
+progs/ipatch		modified to understand v9.4 headers as well as v9.3
+progs/unclog		added: program to reformat CVS logs
+
+gprogs/breakout		added: a new breakout game
+gprogs/dlgvu		modified to allow interruption while drawing labels
+gprogs/gallery		modified to recognize some nonstandard JPEG files
+gpacks/tiger		modified to allow interruption of drawing
+gpacks/xtiles		fixed the usage message
+
+packs/loadfunc/cspace	increased the default window size
+</PRE>
 
 
 <H2> Other Documentation </H2>
