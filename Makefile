@@ -108,7 +108,7 @@ Install:
 		cd $D/lib; rm -f *
 		cp README $D
 		cp bin/[abcdefghijklmnopqrstuvwxyz]* $D/bin
-		rm -f $D/bin/libXpm* $D/bin/rt* $D/bin/icon
+		rm -f $D/bin/libI* $D/bin/rt* $D/bin/icon
 		(cd $D/bin; ln -s icont icon)
 		cp lib/*.* $D/lib
 		cp doc/*.* $D/doc

@@ -5,7 +5,7 @@ OBJS =	long.o getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
 	munix.o literals.o rswitch.o alloc.o long.o getopt.o time.o\
 	save.o redirerr.o xwindow.o dlrgint.o ipp.o
 
-common:		doincl $(OBJS) xpmaybe
+common:		doincl $(OBJS) gpxmaybe
 
 doincl:		doincl.c ../h/arch.h
 		$(CC) $(CFLAGS) -o doincl doincl.c
@@ -14,12 +14,15 @@ doincl:		doincl.c ../h/arch.h
 patchstr:	patchstr.c
 		$(CC) $(CFLAGS) -o patchstr patchstr.c
 
-xpmaybe:
-		-if [ "x$(XL)" != "x" ]; then $(MAKE) xpm; fi
+gpxmaybe:
+		-if [ "x$(XL)" != "x" ]; then $(MAKE) $(GDIR); fi
 
 xpm:
 		cd ../xpm; $(MAKE) libXpm.a
-		cp ../xpm/libXpm.a ../../bin
+		cp ../xpm/libXpm.a ../../bin/libIgpx.a
+
+wincap:		cd ../wincap; $(MAKE) libWincap.a
+		cp -u ../wincap/libWincap.a ../../bin/libIgpx.a
 
 $(OBJS): ../h/define.h ../h/arch.h ../h/config.h ../h/cstructs.h \
 	  ../h/typedefs.h ../h/mproto.h ../h/cpuconf.h
