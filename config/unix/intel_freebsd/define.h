@@ -1,5 +1,5 @@
 /*
- * Icon configuration file for freeBSD
+ * Icon configuration file for freeBSD on Intel
  */
 
 #define UNIX 1
