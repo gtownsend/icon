@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     July 18, 1995
+#	Date:     November 3, 2000
 #
 ############################################################################
 #
@@ -65,7 +65,7 @@ global idset			# identifier characters
 procedure main(args)
    local line, t
 
-   idset := &letters ++ &digits ++ '.-'
+   idset := &letters ++ &digits ++ '.-_:'
    
    lineno := 0
    errors := 0
@@ -177,7 +177,18 @@ procedure attval()
    initial valset := &cset[34+:94] -- '\'\\"{}'
    return (="\"" || tab(upto('"')) || move(1)) |
       (="'" || tab(upto('\'')) || move(1)) |
-      ("\"" || tab(many(valset)) || "\"")
+      aquote(tab(many(valset)))
+end
+
+
+
+#  aquote(s) -- quote attribute value, but only if needed
+
+procedure aquote(s)
+   if many(idset, s) = *s + 1 then
+      return s
+   else
+      return '"' || s || '"'
 end
 
 
