@@ -35,7 +35,7 @@
  *  systems. An example is:
  *
  *	Double		align reals at double-word boundaries
- *
+ *			(when sizeof(long) > sizeof(double))
  */
 
 /*
@@ -305,10 +305,6 @@
 #ifndef StackAlign
    #define StackAlign 8
 #endif					/* StackAlign */
-
-#if WordBits == 64 && !defined(Double)
-   #define Double
-#endif					/* Wordbits 64 && !Double */
 
 /*
  * EBCDIC == 0 corresponds to ASCII.
