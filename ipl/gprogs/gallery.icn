@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     May 29, 2001
+#	Date:     October 10, 2002
 #
 ############################################################################
 #
@@ -14,16 +14,15 @@
 #
 ############################################################################
 #
-#  Usage:  gallery [-{gc}n] [-{whs}nnn] [-{rmtud}] file...
+#  Usage:  gallery [-{whs}nnn] [-{rmtud}] file...
 #
 #  Gallery displays multiple images in a single window.  The images
 #  are shrunken by resampling and tiled in columns or rows.
 #
 #  GIF and XPM format images are always supported.  JPEG format is
-#  supported when built by Jcon.  Raw-mode PPM files are supported
-#  if the v9 loadfunc() library is available.  JPEG, PPM, and RLE
-#  formats are also available under Unix if the necessary conversion
-#  utilities are available in the shell search path.
+#  supported when built by Jcon.  JPEG, PPM, TIFF, PNG, and RLE formats
+#  are also available under Unix if the necessary conversion utilities
+#  are available in the shell search path.
 #
 #  When the window fills, diagonal lines in the extreme corners of the
 #  window indicate that you can press Enter for the next screenful.
@@ -35,10 +34,6 @@
 #  The right mouse button activates the same popup momentarily until
 #  the button is released.
 #
-#  -cn or -gn selects the color palette used; -c6 is the default.
-#  (However, -g30 may look better even for color images.)
-#  The color palette is ignored when built by Jcon.
-#
 #  -wnnn sets the maximum width for displaying an image;
 #  -hnnn sets the maximum height.  -snnn sets both.
 #  By default, sizes are chosen automatically, subject to a minimum
@@ -49,6 +44,13 @@
 #  -t trims file names of leading path components and extensions.
 #  -u shows images completely unlabeled.
 #  -d prints some debugging information.
+#
+#  The standard Window() options are accepted and can be used to
+#  set the window size and other parameters.  A default gamma value
+#  of 1.0 can be changed by using (e.g.) "-A gamma=1.6".
+#
+#  -cn and -gn options, which formerly selected a color palette,
+#  are now ignored.
 #
 ############################################################################
 #
@@ -73,16 +75,7 @@ link io
 link random
 
 
-$undef _DYNAMIC_LOADING		# delete this to enable direct PPM reading
-
-$ifdef _DYNAMIC_LOADING
-link cfunc
-$endif
-
-
-$define DefPalette "c6"		# default palette
 $define Gap 4			# gap between images
-
 $define MinWidth 32		# minimum width if auto-scaled
 $define MinHeight 32		# minimum height if auto-scaled
 
@@ -91,8 +84,6 @@ record area(fname, x, y, w, h, iw, ih)
 
 global opts			# command options
 global tempname			# temporary file name
-
-global pal			# selected palette (if any)
 
 global ww, wh, fh, fw		# window dimensions
 global maxw, maxh		# maximum size of displayed image
@@ -110,7 +101,7 @@ procedure main(args)
    tempname := "/tmp/gal" || right(?99999, 5, "0") || ".tmp"
 
    # open the window and process options
-   Window("size=800,500", "bg=pale gray", "font=sans,8", args)
+   Window("size=800,500", "bg=pale gray", "font=sans,8", "gamma=1.0", args)
    opts := options(args, "g+c+w+h+s+rmtud")
    if \opts["m"] then
       WAttrib("canvas=maximal")
@@ -138,9 +129,6 @@ procedure main(args)
       layout(*args)
 
    aspmax := real(maxw) / real(maxh)
-
-   pal := ("c" || \opts["c"]) | ("g" || \opts["g"]) | DefPalette
-   PaletteChars(pal) | stop("invalid palette ", pal)
 
    # Display the files.
    x := y := Gap
@@ -254,7 +242,6 @@ procedure main(args)
    FillPolygon(0, h, 0, h - gg, gg - 1, h - 1)
    FillPolygon(w, 0, w - gg, 0, w - 1, gg - 1)
    FillPolygon(w, h, w - gg, h - 1, w - 1, h - gg)
-
 
    while e := Event() do case e of {		# wait for event
       QuitEvents():		exit()		# quit on "q" etc
@@ -383,21 +370,6 @@ end
 
 
 
-## rdimage(fname, f) -- read image into scratch window
-
-procedure rdimage(fname, f)
-   return case iformat(f) of {
-      "GIF":		gifread(f, fname, pal)
-      "JPEG":		jpegread(f, fname, pal)
-      "PBM" | "PGM":	pnmread(f, fname, pal)
-      "PPM":		ppmread(f, fname, pal)
-      "RLE":		rleread(f, fname, pal)
-      "XPM":		xpmread(f, fname, pal)
-      }
-end
-
-
-
 ## iformat(f) -- return image format of file f
 
 procedure iformat(f)
@@ -408,11 +380,15 @@ procedure iformat(f)
    seek(f, 1)
    s ? {
       if ="GIF8"		then return "GIF"
+      if ="\x89PNG"		then return "PNG"
       if ="\xFF\xD8\xFF"	then return "JPEG"
+      if ="MM\x00\x2A"		then return "TIFF"
+      if ="II\x2A\x00"		then return "TIFF"
       if =("P1" | "P4")		then return "PBM"
       if =("P2" | "P5")		then return "PGM"
       if =("P3" | "P6")		then return "PPM"
       if ="\x52\xCC"		then return "RLE"
+      if ="BM"			then return "BMP"
       if find("XPM")		then return "XPM"
       fail
       }
@@ -420,139 +396,74 @@ end
 
 
 
-## xpmread(f, fname, pal) -- read XPM image from file f, named fname
+## rdimage(fname, f) -- read image into scratch window
 
-procedure xpmread(f, fname, pal)
-   local s, w, h, win
-
-   s := XPMImage(f, pal) | fail
-   w := imswidth(s)
-   h := imsheight(s)
-   win := WOpen("canvas=hidden", "bg=" || WAttrib("bg"),
-      "width=" || w, "height=" || h) | fail
-   DrawImage(win, 0, 0, s)
-   return win
-end
-
-
-
-## gifread(f, fname, pal) -- read GIF image from file f, named fname
-#
-#  WOpen("image=") is avoided because that consumes color palette entries.
-#  Instead, the image is read using ReadImage with a palette restriction.
-#
-#  gifread returns a window containing the image.
-#  It fails if for any reason the image cannot be read.
-
-procedure gifread(f, fname, pal)
-   local w, h, win
-
-$ifdef _JAVA		# no palettes, no problem
-   return WOpen("canvas=hidden", "bg=" || WAttrib("bg"), "image=" || fname)
-$else
-
-   (reads(f, 10) | fail) ? {		# read header
-      ="GIF8" | fail
-      move(2)
-      w := ord(move(1)) + 256 * ord(move(1))	# width
-      h := ord(move(1)) + 256 * ord(move(1))	# height
+procedure rdimage(fname, f)
+   return case iformat(f) of {
+      "GIF" | "XPM":		load(fname)
+      "PNG":			convert(fname, "pngtopnm")
+      "JPEG":			jpegread(fname)
+      "TIFF":			convert(fname, "tifftopnm")
+      "PBM" | "PGM" | "PPM":	convert(fname, "cat")
+      "RLE":			convert(fname, "rletopnm")
+      "BMP":			convert(fname, "bmptoppm")
       }
-   win := WOpen("canvas=hidden", "bg=" || WAttrib("bg"),
-      "width=" || w, "height=" || h) | fail
-   if ReadImage(win, fname, 0, 0, pal) then
-      return win
-   close(win)
-   fail
-
-$endif
 end
 
 
 
-## jpegread(f, fname, pal) -- read JPEG image
+## convert(fname, utilname) -- read image by converting through PPM to GIF
 
-procedure jpegread(f, fname, pal)
-
-$ifdef _JAVA
-   return WOpen("canvas=hidden", "bg=" || WAttrib("bg"), "image=" || fname)
-$else
-   needprog("djpeg") | fail
-   return filter("djpeg -g 2>/dev/null", fname, pal)
-$endif
-
-end
-
-
-
-## ppmread(f, fname, pal) -- read PPM file
-
-procedure ppmread(f, fname, pal)
-
-$ifdef _DYNAMIC_LOADING
-   return rawppm(f, fname, pal) | pnmread(f, fname, pal)
-$else
-   return pnmread(f, fname, pal)
-$endif
-
-end
-
-
-
-## pnmread(f, fname, pal) -- read PPM/PGM/PBM image by spawning converter
-
-procedure pnmread(f, fname, pal)
+procedure convert(fname, utilname)
+   needprog(utilname) | fail
    needprog("ppmquant") | fail
    needprog("ppmtogif") | fail
-   return filter("ppmquant 256 2>/dev/null | ppmtogif 2>/dev/null", fname, pal)
+   return mkgif(utilname ||
+      " 2>/dev/null | ppmquant 256 2>/dev/null | ppmtogif 2>/dev/null",
+      fname)
 end
 
 
 
-$ifdef _DYNAMIC_LOADING
+## mkgif(cmd, fname) -- run filter to produce GIF file
 
-## rawppm(f, fname, pal) -- read raw-mode PPM file f, named fname
-
-procedure rawppm(f, fname, pal)
-   local w, h, s, win
-
-   s := ""
-   while s ||:= reads(f, 200000)
-   w := ppmwidth(s) | fail
-   h := ppmheight(s)
-   win := WOpen("canvas=hidden", "width=" || w, "height=" || h) | fail
-   DrawImage(win, 0, 0, ppmimage(s, pal, ""))
-   return win
-end
-
-$endif  # _DYNAMIC_LOADING
-
-
-
-## rleread(f, fname, pal) -- read Utah RLE image
-
-procedure rleread(f, fname, pal)
-   needprog("rlequant") | fail
-   needprog("rletogif") | fail
-   return filter("rlequant | rletogif", fname, pal)
-end
-
-
-
-## filter(cmd, fname, pal) -- run filter to produce GIF file
-
-procedure filter(cmd, fname, pal)
+procedure mkgif(cmd, fname)
    local win, f
 
    remove(tempname)
-   cmd := "<" || fname || " " || cmd || " >" || tempname
+   cmd := "<\"" || fname || "\" " || cmd || " >" || tempname
    if \opts["d"] then
       write(&errout, "+ ", cmd)
    system(cmd)
    f := open(tempname) | fail
-   win := gifread(f, tempname, pal)
+   win := load(tempname)
    close(f)
    remove(tempname)
    return \win
+end
+
+
+
+## jpegread(fname) -- read JPEG image
+
+procedure jpegread(fname)
+
+   $ifdef _JAVA
+      return load(fname)
+   $else
+      needprog("djpeg") | fail
+      return mkgif("djpeg -g 2>/dev/null", fname)
+   $endif
+
+end
+
+
+
+## load(fname) -- read image using WOpen
+
+procedure load(fname)
+   return WOpen("canvas=hidden", "bg=" || WAttrib("bg"),
+      "gamma=" || WAttrib("gamma"), "image=" || fname)
 end
 
 
