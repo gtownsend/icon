@@ -1,7 +1,7 @@
 /*
  * coswitch for Sun-4 Sparc.
  * 
- * Compile this with 'cc -c rswitch.c'.  Do not use cc -O.
+ * Compile this with 'gcc -c rswitch.c'.  Do not use gcc -O.
  */
 
 #include <sys/asm_linkage.h>

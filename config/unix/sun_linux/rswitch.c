@@ -1,5 +1,5 @@
 /*
- * coswitch for Sun-4 Sparc.
+ * Coswitch for Sun-4 Sparc.
  * 
  * Compile this with 'cc -c rswitch.c'.  Do not use cc -O.
  */
