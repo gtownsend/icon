@@ -1,0 +1,113 @@
+x:    123abc
+*x:   6
+!x:   123abc
+?z:   z
+
+   &digits: '0123456789'
+    &lcase: 'abcdefghijklmnopqrstuvwxyz'
+    &ucase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  &letters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+    &ascii: 128 elements
+
+   x         y          x++y         y++x     x--y   y--x   x**y   y**x   ~~x
+'123abc' 'abcxyz'    123abcxyz    123abcxyz    123    xyz    abc    abc 123abc
+'123abc' "xyzabc"    123abcxyz    123abcxyz    123    xyz    abc    abc 123abc
+'123abc'     3456    123456abc    123456abc  12abc    456      3      3 123abc
+'123abc'    34.56   .123456abc   .123456abc  12abc   .456      3      3 123abc
+'123abc'   "@ 90"    01239@abc    01239@abc 123abc    09@               123abc
+"a1b2c3" 'abcxyz'    123abcxyz    123abcxyz    123    xyz    abc    abc 123abc
+"a1b2c3" "xyzabc"    123abcxyz    123abcxyz    123    xyz    abc    abc 123abc
+"a1b2c3"     3456    123456abc    123456abc  12abc    456      3      3 123abc
+"a1b2c3"    34.56   .123456abc   .123456abc  12abc   .456      3      3 123abc
+"a1b2c3"   "@ 90"    01239@abc    01239@abc 123abc    09@               123abc
+    1234 'abcxyz'   1234abcxyz   1234abcxyz   1234 abcxyz                 1234
+    1234 "xyzabc"   1234abcxyz   1234abcxyz   1234 abcxyz                 1234
+    1234     3456       123456       123456     12     56     34     34   1234
+    1234    34.56      .123456      .123456     12    .56     34     34   1234
+    1234   "@ 90"      012349@      012349@   1234    09@                 1234
+   12.34 'abcxyz'  .1234abcxyz  .1234abcxyz  .1234 abcxyz                .1234
+   12.34 "xyzabc"  .1234abcxyz  .1234abcxyz  .1234 abcxyz                .1234
+   12.34     3456      .123456      .123456    .12     56     34     34  .1234
+   12.34    34.56      .123456      .123456     12     56    .34    .34  .1234
+   12.34   "@ 90"     .012349@     .012349@  .1234    09@                .1234
+      '' 'abcxyz'       abcxyz       abcxyz        abcxyz                     
+      '' "xyzabc"       abcxyz       abcxyz        abcxyz                     
+      ''     3456         3456         3456          3456                     
+      ''    34.56        .3456        .3456         .3456                     
+      ''   "@ 90"          09@          09@           09@                     
+
+  0  "\x00"  "\x00"    0  '\x00'
+ 15  "\x0f"  "\x0f"   15  '\x0f'
+ 30  "\x1e"  "\x1e"   30  '\x1e'
+ 45     "-"     "-"   45     '-'
+ 60     "<"     "<"   60     '<'
+ 75     "K"     "K"   75     'K'
+ 90     "Z"     "Z"   90     'Z'
+105     "i"     "i"  105     'i'
+120     "x"     "x"  120     'x'
+135  "\x87"  "\x87"  135  '\x87'
+150  "\x96"  "\x96"  150  '\x96'
+165  "\xa5"  "\xa5"  165  '\xa5'
+180  "\xb4"  "\xb4"  180  '\xb4'
+195  "\xc3"  "\xc3"  195  '\xc3'
+210  "\xd2"  "\xd2"  210  '\xd2'
+225  "\xe1"  "\xe1"  225  '\xe1'
+240  "\xf0"  "\xf0"  240  '\xf0'
+255  "\xff"  "\xff"  255  '\xff'
+
+       0  "\x00"    0
+   15.71  "\x0f"   15
+  "32rU"  "\x1e"   30
+ "16r2D"     "-"   45
+    "60"     "<"   60
+ "8r113"     "K"   75
+    "90"     "Z"   90
+   "105"     "i"  105
+   "120"     "x"  120
+ "8r207"  "\x87"  135
+ "16r96"  "\x96"  150
+ "16ra5"  "\xa5"  165
+ "16rB4"  "\xb4"  180
+ "16rc3"  "\xc3"  195
+ "16rD2"  "\xd2"  210
+ "16re1"  "\xe1"  225
+ "16rf0"  "\xf0"  240
+ "16rfF"  "\xff"  255
+
+"\x00"    0  "\x00"
+"\x0f"   15  "\x0f"
+"\x1e"   30  "\x1e"
+   "-"   45     "-"
+   "<"   60     "<"
+   "K"   75     "K"
+   "Z"   90     "Z"
+   "i"  105     "i"
+   "x"  120     "x"
+"\x87"  135  "\x87"
+"\x96"  150  "\x96"
+"\xa5"  165  "\xa5"
+"\xb4"  180  "\xb4"
+"\xc3"  195  "\xc3"
+"\xd2"  210  "\xd2"
+"\xe1"  225  "\xe1"
+"\xf0"  240  "\xf0"
+"\xff"  255  "\xff"
+
+'\x00'  "\x00"    0
+'\x0f'  "\x0f"   15
+'\x1e'  "\x1e"   30
+   '-'     "-"   45
+   '<'     "<"   60
+   'K'     "K"   75
+   'Z'     "Z"   90
+   'i'     "i"  105
+   'x'     "x"  120
+'\x87'  "\x87"  135
+'\x96'  "\x96"  150
+'\xa5'  "\xa5"  165
+'\xb4'  "\xb4"  180
+'\xc3'  "\xc3"  195
+'\xd2'  "\xd2"  210
+'\xe1'  "\xe1"  225
+'\xf0'  "\xf0"  240
+'\xff'  "\xff"  255

@@ -1,0 +1,59 @@
+#SRC: JCON
+
+#  test of random selection
+#  (sets and tables are commented out because
+#   v9 and jcon select different elements)
+
+record r10(a,b,c,d,e,f,g,h,i,j)
+
+procedure main()
+   local r
+
+   rtest()
+   r := &random
+
+   rtest()
+
+   &random := 0
+   rtest()
+
+   &random := r
+   rtest()
+
+   &random := 11213
+   rtest()
+end
+
+procedure rtest()
+   local i
+   static L, S, T, R
+   initial {
+      R := r10(1,2,3,4,5,6,7,8,9,10)
+      L := []
+      T := table()
+      every i := 1 to 100 do {
+         put(L, i)
+	 T[i] := -i
+      }
+      S := set(L)
+   }
+
+   write()
+   write(right(&random,10), "  i  ", ?9999)
+   write(right(&random,10), "  i  ", ?9999)
+   write(right(&random,10), "  r  ", integer(10000 * ?0))
+   write(right(&random,10), "  r  ", integer(10000 * ?0))
+   write(right(&random,10), "  s  ", ?"abcdefghijklmnopqrstuvwxyz")
+   write(right(&random,10), "  s  ", ?"ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+   write(right(&random,10), "  c  ", ?&lcase)
+   write(right(&random,10), "  c  ", ?&ucase)
+   write(right(&random,10), "  L  ", ?L)
+   write(right(&random,10), "  L  ", ?L)
+   write(right(&random,10), "  R  ", ?R)
+   write(right(&random,10), "  R  ", ?R)
+#   write(right(&random,10), "  S  ", ?S)
+#   write(right(&random,10), "  S  ", ?S)
+#   write(right(&random,10), "  T  ", ?T)
+#   write(right(&random,10), "  T  ", ?T)
+   return
+end

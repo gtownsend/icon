@@ -1,0 +1,81 @@
+#SRC: JCON
+
+# set test
+
+procedure main()
+   local x, y, z
+
+   wset("empty", x := set())
+   write(type(x))
+   write(image(?x))		# should fail
+   write(image(member(x)))	# should fail
+   wset("insert", insert(x))
+   write(image(?x))		# should write &null
+   write(image(member(x)))	# should write &null
+   write(image(member(x,3)))	# should write &null
+   wset("insert", insert(x))
+   wset("delete", delete(x))
+   wset("delete", delete(x))
+   write()
+
+   wset("x", x := set([1,2,4]))
+   wset("y", y := set([1,2,5]))
+   wset("x ++ y", x ++ y)
+   wset("y ++ x", y ++ x)
+   wset("x -- y", x -- y)
+   wset("y -- x", y -- x)
+   wset("x ** y", x ** y)
+   wset("y ** x", y ** x)
+   write()
+
+   wset("empty", x := set(&null))
+   wset("+ 1", insert(x, 1,4,7))	# only inserts 1
+   wset("+ 2", insert(x, 2))
+   wset("+ c", insert(x, "c"))
+   wset("- 3", delete(x, 3))		# deletes nothing
+   wset("- 1", delete(x, 1, 2))		# only deletes 1
+   wset("- 1", delete(x, 1))
+   wset("+ 2", insert(x, 2))
+   wset("+ 1", insert(x, 1))
+   wset("+ 7.0", insert(x, 7.0))
+   wset("+ 7.0", insert(x, 7.0))
+   wset("+ 'cs'", insert(x, 'cs'))
+   wset("+ 'cs'", insert(x, 'cs'))
+   wset("x =", x)
+   write()
+
+   wset("3,a,4", y := set([3,"a",4]))
+   wset("y ++ x", y ++ x)
+   wset("y ** x", y ** x)
+   wset("y -- x", y -- x)
+   wset("x -- y", x -- y)
+   write()
+
+   every insert(z := set(), !y)
+   wset("z from !y", z)
+
+   write()
+   x := set([3,1,4,1,5,9,2,6,5,3,5])
+   y := copy(x)
+   delete(x, 4)
+   insert(x, 7)
+   insert(y, 0)
+   delete(y, 1)
+   wset("x", x)
+   wset("y", y)
+end
+
+
+
+#  dump a set, assuming it contains nothing other than:
+#	&null, 0 - 9, 0.0 - 9.0, "", "a" - "e", '', 'cs'
+
+procedure wset(label, S)
+   local x
+
+   writes(right(label, 10), " :", right(*S, 2), " :")
+   every x := &null | (0 to 9) | 0.0+(0 to 9) | "" | !"abcde" | '' | 'cs' do
+      writes(" ", image(member(S, x)))
+   write()
+   return
+end

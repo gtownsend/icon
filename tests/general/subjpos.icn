@@ -1,0 +1,82 @@
+#SRC: JCON
+
+procedure main()
+   local i, s, x
+
+   ws()		# dump initial state
+   write()
+
+   every setsubj(s := "cat" | "" | "donut" | "x") do
+      every i := -*s-2 to *s+3 do
+         setpos(i)
+   write()
+
+   "outer" ? {
+      ws()
+      &pos := 3
+      ws()
+      "inner" ? {
+         ws()
+         &pos := 2
+         ws()
+         }
+      ws()
+      }
+
+   "123456" ? {
+      &pos := 3
+      x := 4
+      write("&pos=", &pos, " x=", x)
+      &pos :=: x
+      write("&pos=", &pos, " x=", x)
+      &pos := 3
+      x := 9
+      &pos :=: x
+      write("&pos=", &pos, " x=", x)
+      &pos := 3
+      x := 9
+      x :=: &pos
+      write("&pos=", &pos, " x=", x)
+      &pos := 3
+      x := 9
+      every &pos <-> x do write("&pos=", &pos, " x=", x)
+      write("&pos=", &pos, " x=", x)
+      &pos := 3
+      x := 9
+      every x <-> &pos do write("&pos=", &pos, " x=", x)
+      write("&pos=", &pos, " x=", x)
+      &pos := 3
+      x := 2
+      every &pos <-> x do &subject := "A"
+      write("&pos=", &pos, " x=", x)
+      &pos := 3
+      x := 2
+      every x <-> &pos do &subject := "A"
+      write("&pos=", &pos, " x=", x)
+   }
+end
+
+procedure setpos(n)
+   writes("p := ", right(image(n),10))
+   if &pos := n then
+      writes("       ")
+   else
+      writes(" FAILED")
+   ws()
+   return
+end
+
+procedure setsubj(s)
+   writes("s := ", right(image(s),10))
+   if &subject := s then
+      writes("       ")
+   else
+      writes(" FAILED")
+   ws()
+   return
+end
+
+procedure ws()	# write state of &setpos and &subject
+   write("  &pos=", image(&pos), "   &subject=", image(&subject))
+   return
+end

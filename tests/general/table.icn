@@ -1,0 +1,97 @@
+#SRC: JCON
+
+# table test
+
+procedure main()
+   local k, x, y
+
+   x := table()
+   tdump("initial", x)
+   writes("should fail ", image(?x))
+   every writes(" ", ">>" | !x | "\n")		# portable with 0 or 1 entries
+   x[2] := 3;
+   every writes(" ", ">>" | !x | image(?x) | "\n")
+   x[4] := 7;
+   x["a"] := "A";
+   tdump("+2+4+a", x)
+
+   every !x := 88
+   tdump("!x=88", x)
+
+   every x[key(x)] := 99
+   tdump("[all]=99", x)
+
+   every k := key(x) do
+      x[k] := k
+   tdump("x[k]=k", x)
+
+   /x[1] | write("/1")
+   \x[2] | write("\\2")
+
+   x := table()
+   if member(x) then write("NULL IS MEMBER")
+   insert(x)				| write("failed 0")
+   insert(x, 1)				| write("failed 1")
+   insert(x, 3, )			| write("failed 3")
+   insert(x, 5, 55)			| write("failed 5")
+   insert(insert(x, 6, 66), 7, 77)	| write("failed 67")
+   insert(x, , "null")			| write("failed n")
+   if not member(x) then write("NULL IS NOT MEMBER")
+   tdump("insert", x)
+   delete(x)				| write("failed dn")
+   delete(x, 3, 6)			| write("failed d36")	# del only 3
+   delete(delete(x, 7), 1)		| write("failed d71")
+   tdump("delete", x)
+
+   x := table(0)
+   write(x[47])
+   tdump("t0", x)
+   insert(x)				| write("failed 0")
+   insert(x, 1)				| write("failed 1")
+   insert(x, 3, )			| write("failed 3")
+   insert(x, 5, 55)			| write("failed 5")
+   insert(insert(x, 6, 66), 7, 77)	| write("failed 67")
+   insert(x, , "null")			| write("failed n")
+   tdump("t0i", x)
+   delete(x)				| write("failed dn")
+   delete(x, 3, 6)			| write("failed d36")	# del only 3
+   delete(delete(x, 7), 1)		| write("failed d71")
+   tdump("t0d", x)
+
+   write()
+   x := table(7)
+   every x[3] <- 19
+   every write("k ", key(x))
+   every write("v ", !x)
+
+   x := table()
+   every k := 0 to 4 do
+      x[k] := k + 10
+   y := copy(x)
+   every !x +:= 20
+   every !y +:= 40
+   tdump("30s", x)
+   tdump("50s", y)
+
+end
+
+
+#  dump a table, assuming that keys are drawn from: &null, 0 - 9, "a" - "e"
+#
+#  also checks member()
+
+procedure tdump(label, T)
+   local x
+
+   writes(right(label, 10), " :", right(*T, 2), " :")
+   every x := &null | (0 to 9) | !"abcde" do
+      if x === key(T) then {
+         writes(" [", image(x), "]", image(T[x]))
+	 member(T, x) | writes(":NONMEMBER")
+         }
+      else {
+	 member(T, x) & writes(" MEMBER:", image(x))
+         }
+   write()
+   return
+end

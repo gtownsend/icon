@@ -1,0 +1,51 @@
+#SRC: JCON
+
+# test maintenance of scanning environments.
+
+procedure main()
+	write("simple")
+	"fghjkl" ? {
+		write(tab(3))
+		write(&pos)
+		write(tab(5))
+	}
+	write("nested")
+	"123456" ? {
+		write(tab(3))
+		"abcdef" ? {
+			write(tab(3))
+			write(&pos)
+			write(tab(5))
+		}
+		write(&pos)
+		write(tab(5))
+	}
+
+	write("break")
+	every write("98765" ? repeat break upto(&digits))
+
+	write("nested break")
+	every write("12345" ? repeat { "67890" ? { write(move(1)); break upto(&digits)}})
+	
+	write("next")
+	every write("98765" ? { every 1 do { "mnbv" ? next }; write(move(2))})
+
+	write("non-local")
+	"qwerty" ? {
+		every write(foo()) do write(move(1))
+	}
+
+	"abcdef" ? {
+	    write(&pos)
+	    every ="abc" do {
+	        write(&pos)
+	    }
+	    write(&pos)
+	}
+end
+
+procedure foo()
+	suspend move(1)
+	"zxc" ? suspend upto(&lcase)
+	suspend upto(&lcase)
+end

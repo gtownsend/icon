@@ -1,0 +1,67 @@
+#SRC: JCON
+
+#  check coercion of operator arguments
+#  uses string invocation of operations
+
+
+procedure main()
+   local i, r, c, s
+
+   i := 1
+   r := 2
+   c := '3'
+   s := "9"
+
+   every unop(!"+-*!/\\", i, r, c, s)
+
+   write()
+   every binop(!"+-*/%^<=>" | "<<" | "==" | ">>" , i, r, c, s)
+   binop("[]", i, r, '12345', "67890")
+   every binop("++" | "--" | "**", 12, .23, 'x1', "x2")
+
+   write()
+   every toby(2.3 | '20' | "2", 17.5 | '71' | "17", 3.1 | '30' | "3.2")
+
+   write()
+   every writes("  ", ~~(1257787 | 3.14159 | "arizona") | "\n")
+   every writes("  ", ((123456 | 678.901 | 'tucson') ? move(5)) | "\n")
+
+end
+
+
+procedure toby(i, j, k)
+   local n, s
+   s := image(i) || " to " || image(j) || " by " || image(k) || ":"
+   writes(left(s, 24))
+   every n := i to j by k do
+      writes(" ", n)
+   write()
+end
+
+
+procedure unop(o, i, r, c, s)
+   write(left(o || "x", 7),
+      right(o(i) | "---", 6),
+      right(o(r) | "---", 6),
+      right(o(c) | "---", 6),
+      right(o(s) | "---", 6))
+   return
+end
+
+
+procedure binop(o, i, r, c, s)
+   write("x ", left(o || " y", 5),
+      right(o(i, r) | "---", 6),
+      right(o(i, c) | "---", 6),
+      right(o(i, s) | "---", 6),
+      right(o(r, i) | "---", 6),
+      right(o(r, c) | "---", 6),
+      right(o(r, s) | "---", 6),
+      right(o(c, i) | "---", 6),
+      right(o(c, r) | "---", 6),
+      right(o(c, s) | "---", 6),
+      right(o(s, i) | "---", 6),
+      right(o(s, r) | "---", 6),
+      right(o(s, c) | "---", 6))
+   return
+end

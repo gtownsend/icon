@@ -1,0 +1,131 @@
+#SRC: JCON
+
+# test arithmetic operators and numeric coercion
+#
+# note: two lines of shifttest output differ from v9 with large integers
+#
+# note also:  on Dec Alpha, Java doesn't sign-extend on right-shifts,
+#		causing differences to appear.
+
+procedure main()
+   local i, j
+
+   numtest(0, 0)
+   numtest(0, 1)
+   numtest(0, -1)
+   numtest(1, 0)
+   numtest(1, 1)
+   numtest(1, 2)
+   numtest(7, 3)
+   numtest(3, 8)
+   numtest(6.2, 4)
+   numtest(8, 2.5)
+   numtest(5.4, 1.2)
+   numtest(" 1 ", 2.5)
+   numtest(" 3.4", 1.7)
+   numtest(" 5 ", " 5 ")
+   numtest('40', '7')
+   numtest(3, '21')
+   numtest(0., 0.)
+   numtest(0., 1.)
+   numtest(0., -1.)
+   numtest(1, -2)
+   numtest(1., -2.)
+   numtest(-3, 2)
+   numtest(-3., " 2. ")
+   numtest(-6, -3)
+   numtest(-6., -3.)
+   write()
+
+   every (i := -9 | 0 | 5 | 191) & (j := -23 | 0 | 9 | 61) do
+      bitcombo(i, j)
+   write()
+
+   shifttest()
+   write()
+
+   every pow(-3 to 3, -3 to 3)
+   every pow(.5 | 1 | 1.5, (-3 to 3) / 2.0)
+   every pow(-1.5 | -1.0 | -.5 | 0.0, -3 to 3)
+end
+
+procedure numtest(a, b)
+   static f
+   initial f := "---"
+
+   wr5(+a)
+   wr5(b)
+   wr5(abs(a))
+   wr5(-b)
+   wr5(a + b)
+   wr5(a - b)
+   wr5(a * b)
+   if b ~= 0 then wr5(a / b) else wr5(f)
+   if b ~= 0 then wr5(a % b) else wr5(f)
+   wr5(-b)
+   wr5(a < b  | f)
+   wr5(a <= b | f)
+   wr5(a = b  | f)
+   wr5(a ~= b | f)
+   wr5(a >= b | f)
+   wr5(a > b  | f)
+   write()
+   return
+end
+
+procedure bitcombo(i, j)
+   every wr5(i | j | icom(i) | icom(j) | iand(i,j) | ior(i,j) | ixor(i,j))
+   write()
+   return
+end
+
+procedure wr5(n)			# write in 5 chars
+   local s
+   if type(n) == "real" then n := r1(n)
+   s := string(n)
+   if *s < 4 then s := right(s, 4)
+   writes(s, " ")
+   return
+end
+
+procedure r1(v)				# round real to 1 digit after decimal
+   if v >= 0 then
+      return integer(v * 10 + 0.5) / 10.0
+   else
+      return integer(v * 10 - 0.5) / 10.0
+end
+
+
+procedure shifttest()
+   local n
+
+   every n := 64 | 63 | (5 to -5 by -1) | -63 | -64 do {
+      wr25(ishift(1, n))
+      wr25(ishift(1703, n))
+      wr25(ishift(-251, n))
+      write()
+   }
+end
+
+procedure wr25(n)
+   writes(right(n, 25))
+end
+
+
+
+procedure pow(m, n)
+   local v
+
+   if m = 0 & n <= 0 then
+      fail
+   v := m ^ n
+   if type(v) == "real" then {
+      if v > 0 then
+	 v := integer(v * 1000 + 0.5) / 1000.0
+      else
+	 v := integer(v * 1000 - 0.5) / 1000.0
+      }
+   write(right(m, 5), " ^ ", left(n, 5), "=", right(v, 7))
+   return
+end
+

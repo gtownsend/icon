@@ -1,0 +1,89 @@
+#SRC: JCON
+
+procedure main()
+   local i, x, y, z
+
+   write(args(push))
+   write(args(put))
+
+   limage("a", list())
+   limage("b", list(2))
+   limage("c", list(,3))
+   limage("d", list(4,5))
+   limage("d", list(6,7,8))
+   limage("e", [])
+   limage("f", [&null])
+   limage("g", [1])
+   limage("h", [2,3,4,5])
+   limage("i", [1,2,3] ||| [4,5,6,7,8])
+
+   x := [1,2,3]
+   push(x);			limage("A", x)
+   put(x);			limage("B", x)
+   write("\t", image(pop(x)));	limage("C", x)
+   write("\t", image(get(x)));	limage("D", x)
+   write("\t", image(pull(x)));	limage("E", x)
+   push(x,4);			limage("F", x)
+   push(x,5,6,7);		limage("G", x)
+   push(push(x,8,9),10,11);	limage("H", x)
+   put(x,12);			limage("I", x)
+   put(x,13,14,15);		limage("J", x)
+   put(put(x,16,17),18,19);	limage("K", x)
+   put(push(x,20,21),22,23);	limage("L", x)
+   every !x := 7;		limage("M", x)
+
+   x := [1,2,3,4,5]
+
+   every i := 0 to *x+3 do
+      x[i] := i;
+   limage("N", x)
+
+   every i := -*x-3 to 0 do
+      x[i] := i;
+   limage("O", x)
+
+   x := [1]
+   write("\t", ?x)
+   ?x := 2
+   limage("P", x)
+   write(x[0] | "ok failure 0")
+   write(x[2] | "ok failure 2")
+   write(x[-2] | "ok failure -2")
+   get(x)
+   write(get(x) | "ok failure on get")
+   write(pop(x) | "ok failure on pop")
+   write(pull(x) | "ok failure on pull")
+
+   x := [1,2,3,4,5,6,7,8,9]
+   limage("p", x)
+   limage("q", x[1:0])
+   limage("r", x[2:5])
+   limage("s", x[-3:5])
+   limage("t", x[-5:-1])
+   limage("u", x[-3+:6]) | write("u. wraparound failed") # should fail (v9 bug)
+   limage("v", x[3-:6]) | write("v. wraparound failed")	 # should fail (v9 bug)
+
+   write()
+   y := copy(x)		# ensure that copies are distinct
+   every !x +:= 10
+   every !y +:= 20
+   limage("x", x)
+   limage("y", y)
+
+   z := x ||| y
+   limage("z", z)
+   every !x +:= 10
+   every !y +:= 20
+   every !z +:= 50
+   limage("x", x)
+   limage("y", y)
+   limage("z", z)
+
+end
+
+procedure limage(label, lst)
+   writes(label, ". [", *lst, "]")
+   every writes(" ", image(!lst))
+   write()
+   return
+end

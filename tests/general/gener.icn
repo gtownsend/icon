@@ -1,3 +1,5 @@
+#SRC: V9GEN
+
 ##    gener.icn -- test generation in parallel with inserts/deletes
 #
 #     This is a torture test for the set generation code.  Items are inserted
@@ -18,6 +20,7 @@ procedure main (args)
       verbose := 1
    every tdel (41 | 619 | 991,  3 | 11 |  23)
    every tins (40 | 103 | 233,  239 | 419 | 503,  3 | 11 | 23)
+   stale()
    write ("[done]")
    end
 
@@ -97,3 +100,42 @@ procedure check (s1, s2, l)
 
    write (ok)
    end
+
+
+
+##  check for generation of stale (already deleted) elements of sets and tables
+
+procedure stale()
+   local i, N, S, T
+
+   N := 100
+   T := table()
+   S := set()
+
+   write()
+   every i := 1 to N do {
+      T[i] := i
+      insert(S, i)
+      }
+
+   write("checking !S:")
+   every i := !S do {
+      if not member(S, i) then write("S[", i, "] stale")
+      delete(S, ?N)
+      }
+
+   write("checking !T:")
+   every i := !T do {
+      if /T[i] then write("T[", i, "] stale")
+      delete(T, ?N)
+      }
+
+   write("checking key(T):")
+   every i := key(T) do {
+      if /T[i] then write("T[", i, "] stale")
+      delete(T, ?N)
+      }
+
+   write()
+   return
+end

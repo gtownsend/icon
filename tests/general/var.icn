@@ -1,16 +1,40 @@
+#SRC: V9GEN
+
 procedure main(a)
-   local x
+   local x, l0, l1, l2, l3, l4, l5, l6, l7, l8, l9
    static y
    variable("a") := 1
    variable("x") := 2
    variable("y") := 3
-   if variable("z") then write("oops")
+   if variable("z") then write("oops z")
+   &subject := "abcde"
+   &pos := 3
+   write("&pos &subject: ", &pos, " ", variable("&subject"))
+   variable("&subject") := "wxyz"
+   write("&pos &subject: ", &pos, " ", variable("&subject"))
+   if variable("&clock") then write("oops &clock")
    main2()
+   write()
+
+   # test display()
+   # some formats should differ from those of image()
+   l0 := []
+   l1 := [&letters -- 'jJ']
+   l2 := ["supercalifragilistic", "expialidocious"]
+   l3 := [&phi, &e, &pi]
+   l4 := [1,2,3,4]
+   l5 := [1,2,3,4,5]
+   l6 := [1,2,3,4,5,6]
+   l7 := [1,2,3,4,5,6,7]
+   l8 := [1,2,3,4,5,6,7,8]
+   l9 := [l0, l1, l2, l3, l4, l5, l6, l7, l8]
+   recurse(1, 4)
 end
 
 record complex(r,i)
 
 procedure main2(a)
+   local T, L, L1
    static s
    every write(image(name(main | T | L | s | a)))
    T := table()
@@ -25,4 +49,21 @@ procedure main2(a)
    every write(image(name(L[1 | 2 | 3 | -1 | -10])))
    every write(image(name(L1[1 | 2 | 3 | -1 | -10])))
    write(image(name(complex().r)))
+   return
+end
+
+procedure recurse(a,b)	# to build up some context for display() 
+   local x, y
+   x := a + b
+   y := a - b
+   if a < 5 then
+      recurse(a + 1, b + a)
+   else {
+      write(repl('-',70))
+      display(3, &output)
+      write(repl('-',70))
+      display(, &output)
+      write(repl('-',70))
+      }
+   return
 end

@@ -1,0 +1,234 @@
+#SRC: JCON
+
+# test sorting and copying
+
+procedure main(args)
+   listtest()
+   rectest()
+   tbltest()
+   copytest()
+   messtest()
+end
+
+
+
+#  listtest() -- test sorting of lists and sets
+
+procedure listtest()
+   local n, x, S, L1, L2, L3
+
+   every n := (0 to 10) | 23 | 47 | 91 do {
+
+      write(n, ":")
+      S := set()
+      while *S < n do
+         insert(S, randval())
+
+      L1 := list()
+      every put (L1, !S)
+
+      L2 := sort(L1)
+      L3 := sort(set(L1))
+
+      check(L2, L3)
+
+      L2 := sort(copy(L1))
+      L3 := sort(copy(set(L1)))
+      check(L2, L3)
+
+   }
+end
+
+
+#  rectest() -- test sorting of records
+
+record r0()
+record r1(a)
+record r2(a,b)
+record r5(a,b,c,d,e)
+
+procedure rectest()
+   write()
+   wlist(sort(r0()))
+   wlist(sort(copy(r0()),))
+   wlist(sort(r1(12)))
+   wlist(sort(r2(5,2)))
+   wlist(sort(r5(2,7,1,8,3)))
+   wlist(sort(r5(3,1,4,1,6)))
+   wlist(sort(r5("t","e","p","a","d")))
+   wlist(sort(copy(r5("t","e","p","a","d"))))
+   return
+end
+
+
+
+#  tbltest() -- test sorting of tables
+
+procedure tbltest()
+   local T, L
+
+   T := table()
+   T[7] := "h"
+   T[2] := "a"
+   T[8] := "r"
+   T[0] := "e"
+   T[3] := "o"
+   T[6] := "s"
+   T[5] := "n"
+   T[1] := "t"
+   T[4] := "i"
+   T[9] := "d"
+
+   write()
+   L := sort(T);    every writes(" ", *L | !!L | "\n")
+   L := sort(T, 1); every writes(" ", *L | !!L | "\n")
+   L := sort(T, 2); every writes(" ", *L | !!L | "\n")
+   L := sort(T, 3); every writes(" ", *L |  !L | "\n")
+   L := sort(T, 4); every writes(" ", *L |  !L | "\n")
+
+   T := copy(T)
+   L := sort(T);    every writes(" ", *L | !!L | "\n")
+   L := sort(T, 1); every writes(" ", *L | !!L | "\n")
+   L := sort(T, 2); every writes(" ", *L | !!L | "\n")
+   L := sort(T, 3); every writes(" ", *L |  !L | "\n")
+   L := sort(T, 4); every writes(" ", *L |  !L | "\n")
+   return
+end
+
+
+
+#  randval() -- return random integer, real, string, or cset value
+
+procedure randval()
+   return case ?4 of {
+      1:  ?999					# 000 - 999
+      2:  ?99 / 10.0				# 0.0 - 9.9
+      3:  ?&letters || ?&letters || ?&letters	# "AAA" - "ZZZ"
+      4:  ?&digits ++ ?&letters ++ ?&letters	# '0AA' - '9ZZ'
+      }
+end
+
+
+#  check that two lists have identical components
+#  and that they are in ascending order
+
+procedure check(a, b)
+   local i, ai, ai1, bi, d
+
+   if *a ~= *b then
+      stop("different sizes: ", image(a), " / ", image(b))
+   every i := 1 to *a do {
+      ai := a[i]
+      bi := b[i]
+      ai1 := a[i-1] | &null
+      if ai ~=== bi then
+         stop("element ", i, " differs")
+      if type(ai) === type(ai1) then {
+         case type(ai) of {
+	    "integer":	d := (ai1 > ai) | &null
+	    "real":	d := (ai1 > ai) | &null
+	    "string":	d := (ai1 >> ai) | &null
+	    }
+	 stop("element ", i, " out of order: ", image(\d))
+         }
+      }
+   return
+end
+
+
+#  write list
+
+procedure wlist(L)
+   writes(*L, ":")
+   every writes(right(!L, 4) | "\n")
+   return
+end
+
+
+
+#  test copy(), especially that copies are really distinct
+
+procedure copytest()
+   local L1, L2, S1, S2, T1, T2, R1, R2
+
+   write()
+
+   L1 := [1,2,3]
+   push(L1, L1)
+   L2 := copy(L1)
+   pull(L2)
+   put(L2, 4)
+   every writes(" ", "L1:" | image(!L1) | "\n")
+   every writes(" ", "L2:" | image(!L2) | "\n")
+
+   S1 := set([1,2,3])
+   insert(S1, S1)
+   S2 := copy(S1)
+   delete(S2, 2)
+   insert(S2, 5)
+   every writes(" ", "S1:" | image(!sort(S1)) | "\n")
+   every writes(" ", "S2:" | image(!sort(S2)) | "\n")
+
+   T1 := table()
+   T1[2] := "j"
+   T1[5] := "c"
+   T1[8] := "n"
+   T1[15] := T1
+   T2 := copy(T1)
+   delete(T2, 5)
+   insert(T2, 11, "t")
+   every writes(" ", "T1:" | image(!sort(T1,3)) | "\n")
+   every writes(" ", "T2:" | image(!sort(T2,3)) | "\n")
+
+   R1 := r5(1,3,5,7,9)
+   R2 := copy(R1)
+   R1.b := 4
+   R2.d := 6
+   every writes(" ", "R1:" | image(R1) | image(!sort(R1)) | "\n")
+   every writes(" ", "R2:" | image(R2) | image(!sort(R2)) | "\n")
+
+   return
+end
+
+
+
+#  sort different types together
+
+procedure messtest()
+   local L1, L2, L3
+
+   write()
+   L1 := [
+      '', '0cs', 4.4, set(), 2.2, "a", &null, integer, wlist, "epsilons",
+      r0, "delta", push, "beta", table(5), [], write, '123cs', [3,4], -3^41,
+      image, insert(table(3),4,7), &input, 3.3, reverse, r1(1), [], table(4),
+      r5, r5(1,23), &null, create 1 | 2, 5.5, set([5,6]), "", r2(5,6), -7^23,
+      "epsilon", [1,2,3], r5(7,8,9), r2, &output, 4, , set([0,1,2]), 1,
+      r5(1,2,3), r1, check, create 3 | 4, serial, 'XYZcs', 1.1, r1(5), 5^28,
+      '1234cs', 5, r0(), read, "gamma", r5(4,5,6,7,8), 2, create 5 to 7,
+      table, r2(1,2), right, r0(), "alpha", messtest, &errout, 11^19,
+      listtest, "gamma", main, 3]
+   put(L1, L1)
+   L2 := copy(L1)
+   every put(L1, copy(!L2))
+
+   write()
+   every write(image(!sort(L1)))
+
+   wsortf(L1, 2)
+   wsortf(L1, -1)
+   return
+end
+
+procedure wsortf(L, n)
+   local e, s
+
+   write()
+   every e := !sortf(L,n) do {
+      s := image(e)
+      if (s ? =("list" | "record")) & not (s ?= "record constructor") then
+         writes("key=", image(e[n]), " ")	# may fail
+      write(s)
+      }
+   return
+end

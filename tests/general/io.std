@@ -1,0 +1,125 @@
+file: &errout
+file: &input
+file: &output
+file: file(/dev/null)
+file: file(/etc/motd)
+
+aaa
+bbbb
+ccccc
+dddddd
+eeeeeee
+ffffffff
+ggggggggg
+hhhhhhhhhh
+
+flush /etc/motd: file(/etc/motd)
+close /etc/motd: file(/etc/motd)
+close /etc/motd: file(/etc/motd)
+flush /etc/motd: file(/etc/motd)
+
+flush /dev/null: file(/dev/null)
+close /dev/null: file(/dev/null)
+close /dev/null: file(/dev/null)
+flush /dev/null: file(/dev/null)
+
+read  /dev/null:	
+   !f:		 
+   read/!f:	
+   reads():	
+
+write tmp1,w:	 follow the yellow brick road : 30
+read  tmp1:	 follow the yellow brick road
+   !f:		 follow the yellow brick road 
+   read/!f:	 follow the yellow brick road
+   reads():	 follo w.the .yell ow.br ick.r oad.
+
+write tmp1,w:	 shorter file : 14
+read  tmp1:	 shorter file
+   !f:		 shorter file 
+   read/!f:	 shorter file
+   reads():	 short er.fi le.
+
+write tmp1,a:	 gets extended : 28
+read  tmp1:	 shorter file gets extended
+   !f:		 shorter file gets extended 
+   read/!f:	 shorter file gets extended
+   reads():	 short er.fi le.ge ts.ex tende d.
+
+write tmp1,rw:	 changed : 9
+read  tmp1:	 changed file gets extended
+   !f:		 changed file gets extended 
+   read/!f:	 changed file gets extended
+   reads():	 chang ed.fi le.ge ts.ex tende d.
+
+write tmp1,b:	 mode b  : 8
+read  tmp1:	 mode b  file gets extended
+   !f:		 mode b  file gets extended 
+   read/!f:	 mode b  file gets extended
+   reads():	 mode. b..fi le.ge ts.ex tende d.
+
+write tmp1,crw:	 cleared anew : 14
+read  tmp1:	 cleared anew
+   !f:		 cleared anew 
+   read/!f:	 cleared anew
+   reads():	 clear ed.an ew.
+read  tmp2:	 cleared anew
+   !f:		 cleared anew 
+   read/!f:	 cleared anew
+   reads():	 clear ed.an ew.
+
+file(tmp1)
+file(tmp2)
+>stdout>stdout>stdout
+
+>stdout
+
+read  tmp1:	 >1a>1b>1c  >1d  >1e>1f
+   !f:		 >1a>1b>1c  >1d  >1e>1f 
+   read/!f:	 >1a>1b>1c  >1d  >1e>1f
+   reads():	 >1a>1 b>1c. .>1d. .>1e> 1f.
+read  tmp2:	 >2a>2b >2c >2d  >2e>2f
+   !f:		 >2a>2b >2c >2d  >2e>2f 
+   read/!f:	 >2a>2b >2c >2d  >2e>2f
+   reads():	 >2a>2 b.>2c .>2d. .>2e> 2f.
+
+abcdef
+ghi
+jklmno
+pqr
+stu
+vwxyz
+
+$ echo hello world
+hello world
+$ ls io.[ids][tca][dnt]
+io.dat
+io.icn
+io.std
+
+file(echo hello world)
+> hello world
+
+file(sed 's/^/=()= /' io.icn)
+> =()= #SRC: JCON
+> =()= 
+> =()= #  I/O test -- writes ./tmp1 and ./tmp2 as well as stdout
+> =()= 
+> =()= procedure main()
+> =()=    local L, f, m, n, t1, t2
+> =()= 
+> =()=    L := [&input, &output, &errout,
+> =()=    	m := open("/etc/motd"), n := open("/dev/null", "w")]
+> =()=    L := sort(L)
+
+file(ls io.i?n io.d?t io.s?d)
+> io.dat
+> io.icn
+> io.std
+
+file(tr aeiou oaeui)
+--- closing output pipe
+unca ipun o medneght draory
+twu ruods devargad en o yalluw wuud
+ond tha muma roths uitgroba
+--- done closing output pipe

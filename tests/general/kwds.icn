@@ -1,0 +1,90 @@
+#SRC: JCON
+
+#  kwds.icn -- check keywords, as best can do reproducibly
+
+procedure main()
+   local f
+
+   &error := 747
+   # every kw("allocated", &allocated | "[failed]")
+   every kw("ascii", &ascii | "[failed]")
+   every kw("clock", nmap(&clock) | "[failed]")
+   # every kw("col", &col | "[failed]")
+   every kw("collections", &collections | "[failed]")
+   # every kw("control", &control | "[failed]")
+   every kw("cset", &cset | "[failed]")
+   every kw("current", &current | "[failed]")
+   every kw("date", nmap(&date) | "[failed]")
+   every kw("dateline", (&dateline ** 'kwfxday, EIRL:m') | "[failed]")
+   every kw("digits", &digits | "[failed]")
+   every kw("dump", &dump | "[failed]")
+   every kw("e", &e | "[failed]")
+   every kw("error", &error | "[failed]")
+   every kw("errornumber", &errornumber | "[failed]")
+   every kw("errortext", &errortext | "[failed]")
+   every kw("errorvalue", &errorvalue | "[failed]")
+   every kw("errout", &errout | "[failed]")
+   every kw("fail", &fail | "[failed]")
+
+   every insert(f := set(), &features)
+   every delete(f, "dynamic loading" | "graphics" | "X Windows") # may be absent
+   every kw("features", member(f, &features))
+
+   every kw("input", &input | "[failed]")
+   every kw("interval", &interval | "[failed]")
+   every kw("lcase", &lcase | "[failed]")
+   every kw("ldrag", &ldrag | "[failed]")
+   every kw("letters", &letters | "[failed]")
+   every kw("level", &level | "[failed]")
+   every kw("lpress", &lpress | "[failed]")
+   every kw("lrelease", &lrelease | "[failed]")
+   every kw("main", &main | "[failed]")
+   every kw("mdrag", &mdrag | "[failed]")
+   # every kw("meta", &meta | "[failed]")
+   every kw("mpress", &mpress | "[failed]")
+   every kw("mrelease", &mrelease | "[failed]")
+   every kw("null", &null | "[failed]")
+   every kw("output", &output | "[failed]")
+   every kw("phi", &phi | "[failed]")
+   every kw("pi", &pi | "[failed]")
+   every kw("pos", &pos | "[failed]")
+   every kw("progname", &progname | "[failed]")
+   every kw("random", &random | "[failed]")
+   every kw("rdrag", &rdrag | "[failed]")
+   every kw("regions", &regions | "[failed]")
+   every kw("resize", &resize | "[failed]")
+   # every kw("row", &row | "[failed]")
+   every kw("rpress", &rpress | "[failed]")
+   every kw("rrelease", &rrelease | "[failed]")
+   # every kw("shift", &shift | "[failed]")
+   every kw("source", &source | "[failed]")
+   # every kw("storage", &storage | "[failed]")
+   every kw("subject", &subject | "[failed]")
+   every kw("time", nmap(right(&time,4,0)) | "[failed]")
+   every kw("trace", &trace | "[failed]")
+   every kw("ucase", &ucase | "[failed]")
+   every kw("version", left(&version,16) | "[failed]")
+   # every kw("window", &window | "[failed]")
+   # every kw("x", &x | "[failed]")
+   # every kw("y", &y | "[failed]")
+end
+
+procedure kw(label, value)
+   local s
+   static prev
+
+   if \prev == label & value == "[failed]" then
+      return
+   case type(value) of {
+      "string":  s := value
+      "cset":    s := image(value) || "  [size " || *value || "]"
+      default:   s := image(value)
+      }
+   write(right("&" || label, 12), ": ", s)
+   prev := label
+   return
+end
+
+procedure nmap(s)
+   return map(s, "0123456789", "nnnnnnnnnn")
+end

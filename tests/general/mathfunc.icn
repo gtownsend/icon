@@ -1,0 +1,36 @@
+#SRC: JCON
+
+#  test math functions including argument coercion
+
+procedure main()
+   every try(sqrt, 0.0 | 0.25 | 1 | 2.25 | "4" | 256.0)
+   every try(log, 0.1 | 0.25 | 1.0 | &e | "10" | 100 | 1000)
+   every try(log, 0.1 | 0.25 | 1.0 | &e | "10" | 100 | 1000, 10)
+   every try(exp, -3 | -1 | 0 | 1.0 | "2" | '3')
+   write()
+   every try(dtor, -1000 | -360 | -90 | '0' | "45" | 360 | 1000)
+   every try(rtod, -3 * &pi | -2 * &pi | -&pi | '0' | &pi / 3 | &pi / 2 |
+   	"3.1415936535" | 2 * &pi)
+   every try(sin | cos | tan, -&pi / 3 | '0' | "3.1415926535")
+   every try(asin | acos, '-1' | -0.5 | "0" | 0.5 | 1.0)
+   every try(atan, "-1000" | -47 | -1 | -.5 | '0' | .5 | 1 | 47 | 1000) 
+   every try(atan, -1 | '0' | "1", '-1' | "0" | 1)
+end
+
+
+#  try(p, a, b) -- print call to p(a,b) and its results
+
+procedure try(p, a, b)
+   write(image(p,15), "(", r(a), (", "||r(\b)) | &null, ") = ", r(p(a,b)))
+   return
+end
+
+
+#  r(v) -- round v to have only 3 digits after the decimal point
+
+procedure r(v)
+   if v >= 0 then
+      return integer(v * 1000 + 0.5) / 1000.0
+   else
+      return integer(v * 1000 - 0.5) / 1000.0
+end

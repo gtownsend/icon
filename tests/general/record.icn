@@ -1,0 +1,43 @@
+#SRC: JCON
+
+record simple(f)
+record rec(f1, f2)
+
+procedure main()
+   local a, b
+
+   a := rec()
+   a.f1 := 1
+   a.f2 := 2
+   write(a.f1, " ", a.f2)
+   a := rec(3)
+   a.f2 := 4
+   write(a.f1, " ", a.f2)
+   a := rec(5,6)
+   write(a.f1, " ", a.f2)
+   a.f1 := 7
+   a.f2 := 8
+   write(a.f1, " ", a.f2)
+   a := rec(9,10,11)
+   write(a.f1, " ", a.f2)
+   a := rec(11, 12)
+   every write(!a)
+   every !a := 13
+   write(a.f2)
+
+   b := simple(14)
+   write(?b)
+   ?b := 15
+   write(!b)
+
+   b := rec(3, 7)
+   every write(b[1 to 3])
+   every write(b["f" || (1 to 3)])
+
+   a := rec(1, 2)
+   b := rec(3, 4)
+   a.f1 +:= 10
+   a.f2 +:= 20
+   every !b +:= 70
+   every writes(" ", !a | !b | "\n")
+end

@@ -1,0 +1,54 @@
+#SRC: JCON
+
+# string test -- including operations on string *constants*
+
+procedure main()
+   local s, t
+
+   s := "abcde"
+   write("type ", type(s))
+   write("*s  ", *s)
+   write("s:  ", s)
+   write("s:  ", image(s))
+   every writes("!:  " | !s | "\n")
+   every writes("1:  " | s[1 to 5] | "\n")
+   every writes("0:  " | s[0 to 7] | "\n")
+   every writes("-5: " | s[-5 to -1] | "\n")
+   every writes("-7: " | s[-7 to -0] | "\n")
+
+   write("s1: ", s[1:6]);
+   write("s2: ", s[1+:5]);
+   write("s3: ", s[1-:-5]);
+   write("s4: ", s[1:0]);
+   write("s5: ", s[-5:0]);
+   write("s6: ", s[6:1]);
+   write("s7: ", s[0:-5]);
+   write("s8: ", s[2:4]);
+   write("s9: ", s[-2:-4]);
+
+   write("k1: ","ABCDE"[1:6]);
+   write("k2: ","ABCDE"[1+:5]);
+   write("k3: ","ABCDE"[1-:-5]);
+   write("k4: ","ABCDE"[1:0]);
+   write("k5: ","ABCDE"[-5:0]);
+   write("k6: ","ABCDE"[6:1]);
+   write("k7: ","ABCDE"[0:-5]);
+   write("k8: ","ABCDE"[2:4]);
+   write("k9: ","ABCDE"[-2:-4]);
+
+   t := "abc" || "de"
+   write("t:  ", image(t))
+   (s === t) | write("not ===")
+   (s ~=== t) & write("are ~===")
+
+   write("?x:  ", ?"x")
+   write("?y:  ", ?"yyyyyyyyyyy")
+   write("?z:  ", ?"" | "nope")	# should "nope"
+
+   write("c1: ", image("" || ""))
+   write("c2: ", image("a" || ""))
+   write("c3: ", image("" || "b"))
+   write("c4: ", image("cd" || "ef"))
+   write("c5: ", image(3.14 || 159))
+   write("c6: ", image('abc' || 'def'))
+end

@@ -1,0 +1,85 @@
+#SRC: JCON
+
+# test csets and character conversions
+
+procedure main()
+   local a, c, i, n, s, cs, ct, x, y
+
+   x := 'a1b2c3'
+   write("x:    ", x);
+   write("*x:   ", *x)
+   every writes("!x:   " | !x | "\n");
+   write("?z:   ", ?'z')
+   write("?empty: ", ?'', " (OOPS)")	# should fail
+   write()
+
+   kw("digits", &digits)
+   kw("lcase", &lcase)
+   kw("ucase", &ucase)
+   kw("letters", &letters)
+   write("    &ascii: ", *&ascii, " elements")
+   write()
+
+   write ("   x         y     ",
+      "     x++y         y++x     x--y   y--x   x**y   y**x   ~~x")
+
+   every x := ( 'a1b2c3' | "a1b2c3" | 1234 | 12.34 | '') &
+         y := ( 'xyzabc' | "xyzabc" | 3456 | 34.56 | "@ 90") do {
+	write(
+	   right(image(x),8), right(image(y),9),
+	   right(x++y, 13), right(y++x, 13),
+	   right(x--y, 7), right(y--x, 7),
+	   right(x**y, 7), right(y**x, 7),
+	   right(~~x, 7))
+   }
+
+   # various tests involving chars with the sign bit set
+
+   # test conversion of int to char (string) and back
+   write()
+   every i := 0 to 255 by 15 do {
+      s := ""
+      c := char(i)
+      s ||:= c
+      n := ord(c)
+      cs := cset(c)
+      write(right(i, 3), right(image(c), 8), right(image(s), 8), right(n, 5),
+	 right(image(cs), 8))
+      }
+
+   # test more and stranger conversions 
+   write()
+   a := [0, 15.71, "32rU", "16r2D", "60", "8r113", "90", "105", "120", "8r207",
+	"16r96", "16ra5", "16rB4", "16rc3", "16rD2", "16re1", "16rf0", "16rfF"]
+   every s := !a do {
+      c := char(s)
+      n := ord(c)
+      write(right(image(s), 8), right(image(c), 8), right(n, 5))
+      }
+
+   # test conversion of string to int and back
+   write()
+   a := ["\x00", "\x0F", "\x1e", "-", "<", "\113", "Z", "i", "x", "\x87",
+         "\x96", "\xa5", "\xB4", "\xc3", "\xD2", "\xe1", "\xf0", "\xfF"]
+   every s := !a do {
+      n := ord(s)
+      c := char(n)
+      write(right(image(s), 6), right(n, 5), right(image(c), 8))
+      }
+
+   # test conversion of cset to string and int
+   write()
+   a := ['\x00', '\x0F', '\x1e', '-', '<', '\113', 'Z', 'i', 'x', '\x87',
+         '\x96', '\xa5', '\xB4', '\xc3', '\xD2', '\xe1', '\xf0', '\xfF']
+   every cs := !a do {
+      s := string(cs)
+      n := ord(cs)
+      write(right(image(cs), 6), right(image(s), 8), right(n, 5))
+      }
+end
+
+procedure kw(label, value)
+   write(right("&" || label, 10), ": '", value, "'")
+   return
+end
+
