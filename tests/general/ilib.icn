@@ -1,13 +1,14 @@
 #  a simple test of many of the core library procedures
 
 link core
+link rational
 link cfunc
 
 $define LSIZE 16
 $define GENLIMIT 25
 
 procedure main()
-   local L, T
+   local L, T, r1, r2, r3
 
    L := [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
    T := table("0")
@@ -141,6 +142,20 @@ procedure main()
    gen(tanh, &pi / 3)
 
    write()
+   write("rational:")
+   rat(str2rat, "(355/113)")
+   r1 := rat(real2rat, 355. / 113.)
+   gen(rat2str, r1)
+   gen(rat2real, r1)
+   r2 := rat(negrat, r1)
+   r3 := rat(reciprat, r1)
+   rat(addrat, r1, r3)
+   rat(subrat, r1, r3)
+   rat(mpyrat, r1, r2)
+   rat(divrat, r1, r3)
+   trat()
+
+   write()
    write("random:")
    gen(rand_num)
    gen(rand_int, 20)
@@ -243,7 +258,7 @@ procedure main()
 
 end
 
-procedure gen (p, a[])			#: test simple procedure or generator
+procedure gen(p, a[])			#: test simple procedure or generator
    &random := 4747
    writes(left(image(p)[11:0], LSIZE - 1))
    every writes(" ", ((p ! a) \ GENLIMIT) | "\n")
@@ -270,7 +285,14 @@ procedure tbl(p, a[])			#: test procedure that returns a table
       }
    else
       write("[FAILED]")
-   return
+   return \T
+end
+
+procedure rat(p, a[])			#: test procedure that returns rational
+   local v
+   v := p ! a
+   write(left(image(p)[11:0], LSIZE), rat2str(\v) | ["[FAILED]"])
+   return \v
 end
 
 procedure tfact(n)			#:  test factorization of n
@@ -281,7 +303,7 @@ procedure tfact(n)			#:  test factorization of n
    v := 1
    every v *:= !F
    if v ~= n then
-      write("   ", n, ": PRODUCT OF FACTORS = " ,v)
+      write("   ", n, ": PRODUCT OF FACTORS = ", v)
 
    F := set(F)
    P := pfactors(n)
@@ -296,10 +318,10 @@ procedure tfact(n)			#:  test factorization of n
    every i := 1 to n do
       if member(D, i) then {
          if n % i ~= 0 then write ("   ", n, ": BOGUS DIVISOR ", i)
-	 }
+         }
       else {
          if n % i == 0 then write ("   ", n, ": MISSING DIVISOR ", i)
-	 }
+         }
 end
 
 procedure tprimes(n)			#: test first n primes
@@ -308,8 +330,8 @@ procedure tprimes(n)			#: test first n primes
    L1 := []
    every i := seq() do {
       if isprime(i) then {
-	 put(L1, i)
-	 if *L1 = n then break
+         put(L1, i)
+         if *L1 = n then break
          }
       }
 
@@ -323,4 +345,17 @@ procedure tprimes(n)			#: test first n primes
    every i := 1 to n do
       if not (L1[i] = L2[i] = L3[i]) then
          write("   PRIME ENTRY ", i, ":   ", L1[i], ", ", L2[i], ", ", L3[i])
+end
+
+procedure trat()			#: test rational arithmetic
+   local r1, r2, L, n, d, r, g
+
+   write("[testing conversions]")
+   L := [2, 3, 5, 7, 9, 17, 19, 27, 45, 63, 75, 81, 98, 99, 121, 175, 225]
+   every (n := !L) & (d := !L) do {
+      r := real2rat(n * (1. / d))
+      g := gcd(n, d)
+      if r.numer ~= n / g | r.denom ~= d / g then
+         write("   REAL2RAT: ", n, " / ", d, " => ", r.numer, " / ", r.denom)
+      }
 end
