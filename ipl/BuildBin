@@ -1,0 +1,49 @@
+#!/bin/ksh -p
+#
+#  BuildBin -- build selected executables into ../bin
+
+#  Standard list of programs  ("ipatch" must be first)
+PROGS="ipatch"
+GPROGS="colrbook colrpick fontpick palette wevents xgamma"
+GPACKS="vib"
+
+#  Standard path embedded in Icon binaries
+#  (it shouldn't be used, but this is better than embedding a personal path)
+STDPATH=/opt/icon/bin/iconx
+
+#  Set paths
+TOP=`cd ..; echo $PWD`
+BIN=$TOP/bin
+export PATH=$BIN:.:$PATH
+export IPATH=$TOP/lib
+export LPATH=$TOP/lib
+
+#  Always build progs
+cd progs
+for p in $PROGS; do
+    (set -x; icont -us $p)
+    ipatch $p $STDPATH 2>/dev/null
+    mv $p $BIN
+done
+cd ..
+
+#  If not configured for graphics, quit at this point
+grep Graphics ../src/h/define.h >/dev/null || exit 0
+
+#  Build graphics programs
+cd gprogs
+for p in $GPROGS; do
+    (set -x; icont -us $p)
+    ipatch $p $STDPATH 2>/dev/null
+    mv $p $BIN
+done
+cd ..
+
+#  Build graphics packages
+for p in $GPACKS; do
+    cd gpacks/$p
+    make
+    ipatch $p $STDPATH 2>/dev/null
+    mv $p $BIN
+    cd ../..
+done

@@ -2,7 +2,7 @@ SHELL=/bin/sh
 MAKE=make
 name=unspecified
 
-default:	Icon Ilib
+default:	Icon Ilib Ibin
 
 src/h/define.h:
 	:
@@ -105,6 +105,9 @@ Common:		src/h/define.h
 
 Ilib:		bin/icont
 		cd ipl;			$(MAKE)
+
+Ibin:		bin/icont
+		cd ipl;			$(MAKE) Ibin
 
 ##################################################################
 #

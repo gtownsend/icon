@@ -1,6 +1,9 @@
+#  Makefile for Icon Program Library
+
+
 #  make library distribution (portable ucode and include files)
-Ilib:	.ldone
-.ldone:
+Ilib:	../bin/libcfunc.so
+../bin/libcfunc.so:  ../bin/icont
 	cp incl/*.icn gincl/*.icn mincl/*.icn cfuncs/icall.h ../lib
 	cd procs;  LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
 	cd gprocs; LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
@@ -8,15 +11,19 @@ Ilib:	.ldone
 	cd cfuncs; LPATH= $(MAKE) ICONT=../../bin/icont
 	mv cfuncs/*.u? ../lib
 	mv cfuncs/libcfunc.so ../bin
-	touch .ldone
 
-# make program binaries (platform-dependent icode), given that ../lib is ready
-Iexe:	.xdone
-.xdone:	.ldone
-	rm -f .xdone iexe/*
+# make selected program binaries (platform-dependent icode) for ../bin,
+# given that ../lib is ready
+Ibin:	../bin/ipatch
+../bin/ipatch:  ../bin/icont
+	./BuildBin
+
+
+# make full set of program binaries (not usually done) in ./iexe,
+# given that ../lib is ready
+Iexe:
+	rm -f iexe/*
 	./BuildExe
-	touch .xdone
-	
 
 # check for undefined identifiers in ../lib
 # (outside the core modules, there are many of these)
@@ -35,6 +42,6 @@ Check:
 
 # clean up
 Clean:
-	rm -rf .ldone .xdone iexe */*.u[12] */*.zip
+	rm -rf iexe */*.u[12] */*.zip
 	rm -f `find *procs *progs -type f -perm -100`
 	for d in cfuncs *packs/[a-z]*; do (cd $$d; make Clean); done
