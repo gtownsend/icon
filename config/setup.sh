@@ -35,8 +35,11 @@ ARCH=`uname -m`
 if [ "$CSW" = "pthreads" ]; then
    RSW=pthreads.c
    COCLEAN="#define CoClean"
-elif [ -f $NAME/$ARCH.[cs] ]; then
-   RSW=`echo $NAME/$ARCH.[cs]`
+elif [ -f "$NAME/$ARCH.c" ]; then
+   RSW="$NAME/$ARCH.c"
+   COCLEAN=
+elif [ -f "$NAME/$ARCH.s" ]; then
+   RSW="$NAME/$ARCH.s"
    COCLEAN=
 elif [ -f $NAME/rswitch.[cs] ]; then
    RSW=`echo $NAME/rswitch.[cs]`
