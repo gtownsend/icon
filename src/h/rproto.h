@@ -229,6 +229,7 @@ void		xmfree		(void);
    int	allowresize	(wbp w, int on);
    int	blimage		(wbp w, int x, int y, int wd, int h,
 			  int ch, unsigned char *s, word len);
+   int	capture		(wbp w, int x, int y, int width, int hgt, short *data);
    wcp	clone_context	(wbp w);
    int	copyArea	(wbp w,wbp w2,int x,int y,int wd,int h,int x2,int y2);
    int	do_config	(wbp w, int status);
@@ -251,8 +252,6 @@ void		xmfree		(void);
    void	getfntnam	(wbp w, char *answer);
    void	geticonic	(wbp w, char *answer);
    int	geticonpos	(wbp w, char *s);
-   int	getimstr	(wbp w, int x, int y, int width, int hgt,
-			  struct palentry *ptbl, unsigned char *data);
    void	getlinestyle	(wbp w, char *answer);
    int	getpixel_init	(wbp w, struct imgmem *imem);
    int	getpixel_term	(wbp w, struct imgmem *imem);

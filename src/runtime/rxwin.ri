@@ -2582,31 +2582,25 @@ int on_icon;
    }
 
 /*
- * getimstr(w, x, y, width, height, paltbl, data) -- get image as a string.
+ * capture(w, x, y, width, height, data) -- get image region.
  *
- * Stores the specified subimage in data, one pixel per byte, and sets
- * entries in paltbl corresponding to the pixel values that were used.
+ * Stores the specified subimage in data as 15-bit linear color.
  */
-
-/*
- * The getimstr() code assumes that a maximum of 256 colors can be onscreen
- * at one time.  If GIFMAX maximum is raised, code must be added for the
- * depth>8 case to reduce the local copy of the image to no more than the
- * 256-color maximum allowed in a GIF file.  This reduction operation is
- * nontrivial; look up "color quantization" in computer graphics literature.
- */
-
-int getimstr(w, x, y, width, height, paltbl, data)
+int capture(w, x, y, width, height, data)
 wbp w;
 int x, y, width, height;
-struct palentry paltbl[GIFMAX];
-unsigned char *data;
+short *data;
    {
+   Visual *v;
    XImage *im;
    XColor colorcell;
+   LinearColor lc;
    wclrp *cpp;
-   unsigned long px, clist[GIFMAX], *lp;
-   int i, ncolors;
+   unsigned char cmap[256];
+   short *cval;
+   int i, r, g, b, ncolors;
+   unsigned long px, clist[GIFMAX], *lp, *ckey;
+   double gamma = w->context->gamma;
    STDLOCALS(w);
 
    /*
@@ -2616,65 +2610,56 @@ unsigned char *data;
    if (!im)
       return 0;
 
-   if (im->depth <= 8) {
-
-      /*
-       * We can use the pixel values directly as color indices.
-       * Put them in the data string, noting which colors are used.
-       */
-      for (i = 0; i < GIFMAX; i++)
-         clist[i] = i;
-      for (y = 0; y < height; y++)
-         for (x = 0; x < width; x++) {
-            *data++ = px = XGetPixel(im, x, y) & 0xFF;
-            paltbl[px].used = 1;
-            }
-      }
-
-   else {
-
-      /*
-       * Make a sorted list of the pixel values of the colors that are in
-       * use.  Search this list for every pixel and store the resulting
-       * list index as the color index.
-       */
-      lp = clist;
-      for (cpp = wd->colrptrs; cpp < wd->colrptrs + wd->numColors; cpp++) {
-         *lp++ = (*cpp)->c;
-	 if (lp - clist == GIFMAX)
-	    break;
-	 }
-      ncolors = lp - clist;
-      qsort((char *)clist, ncolors, sizeof(*clist), (int (*)())ulcmp);
-
-      for (y = 0; y < height; y++)
-         for (x = 0; x < width; x++) {
-            px = XGetPixel(im, x, y);
-            lp = (unsigned long *)qsearch((char *)&px, (char *)clist,
-               ncolors, sizeof(*clist), (int (*)())ulcmp);
-            if (lp)
-               i = lp - clist;
-            else
-               i = 0;			/* use black if not found */
-            *data++ = i;
-            paltbl[i].used = 1;
-            }
-      }
+   /*
+    * Make a mapping table from X color to 5-bit linear color.
+    */
+   for (i = 0; i < 256; i++)
+      cmap[i] = 31 * pow(i / 255., gamma) + 0.5;
 
    /*
-    * Query the real color values from X; Icon's data structures
-    * may show several entries for any particular pixel value.
+    * Translate the colors and store in the data buffer.
     */
-   for (i = 0; i < GIFMAX; i++)
-      if (paltbl[i].used) {
-         colorcell.pixel = clist[i];
-         colorcell.flags = DoRed | DoGreen | DoBlue;
-         XQueryColor(stddpy, wd->cmap, &colorcell);
-         paltbl[i].clr = lcolor(w, colorcell);
-         paltbl[i].valid = 1;
+   v = wd->visual;
+   if (v->class == TrueColor && v->red_mask == 0x00FF0000L
+   && v->green_mask == 0x0000FF00L && v->blue_mask == 0x000000FFL) {
+      /*
+       * 24-bit RGB is decomposed and mapped directly
+       */
+      for (y = 0; y < height; y++) {
+         for (x = 0; x < width; x++) {
+            px = XGetPixel(im, x, y);
+            r = cmap[(px >> 16) & 0xFF];
+            g = cmap[(px >> 8) & 0xFF];
+            b = cmap[px & 0xFF];
+            *data++ = (r << 10) | (g << 5) | b;
+            }
          }
-
-   XDestroyImage(im);
+      }
+   else {
+      /*
+       * General case uses a cache to improve performance.
+       */
+      #define CCACHE 4987	/* cache size; should be odd */
+      ckey = calloc(CCACHE, sizeof(ckey[0]));
+      cval = calloc(CCACHE, sizeof(cval[0]));
+      if (!ckey || !cval)
+         return 0;
+      for (y = 0; y < height; y++) {
+         for (x = 0; x < width; x++) {
+            px = XGetPixel(im, x, y);		/* get pixel value */
+            i = px % CCACHE;			/* get cache index */
+            if (ckey[i] != px) {		/* if color not cached */
+               colorcell.pixel = px;
+               colorcell.flags = DoRed | DoGreen | DoBlue;
+               XQueryColor(stddpy, wd->cmap, &colorcell);	/* costly */
+               ckey[i] = px;
+               cval[i] = (cmap[colorcell.red >> 8] << 10) |
+   	          (cmap[colorcell.green >> 8] << 5) | cmap[colorcell.blue >> 8];
+               }
+            *data++ = cval[i];			/* save rgb15 color value */
+            }
+         }
+      }
    return 1;
    }
 

@@ -42,11 +42,11 @@ static	void	gfput		(int b);
 
 static	int	gfwrite		(wbp w, char *filename,
 				   int x, int y, int width, int height);
-static	void	gfpack		(unsigned char *data, long len,
-				   struct palentry *paltbl);
 static	void	gfmktree	(lzwnode *tree);
 static	void	gfout		(int tcode);
 static	void	gfdump		(void);
+
+static	int	medcut	(long hlist[], struct palentry plist[], int ncolors);
 
 static FILE *gf_f;			/* input file */
 
@@ -59,7 +59,8 @@ static short *gf_prefix, *gf_suffix;	/* prefix and suffix tables */
 static int gf_free;			/* next free position */
 
 static struct palentry *gf_paltbl;	/* palette table */
-static unsigned char *gf_string;	/* image string */
+static unsigned char *gf_string;	/* incoming image data */
+static short *gf_pixels;		/* outgoing image data */
 static unsigned char *gf_nxt, *gf_lim;	/* store pointer and its limit */
 static int gf_row, gf_step;		/* current row and step size */
 
@@ -487,7 +488,7 @@ int x, y, width, height;
 
    r = gfwrite(w, filename, x, y, width, height);
    if (gf_f) fclose(gf_f);
-   if (gf_string) free((pointer)gf_string);
+   if (gf_pixels) free((pointer)gf_pixels);
    return r;
    }
 
@@ -503,27 +504,39 @@ wbp w;
 char *filename;
 int x, y, width, height;
    {
-   int i, c, cur;
-   long len;
-   LinearColor *cp;
-   unsigned char *p, *q;
-   struct palentry paltbl[GIFMAX];
    unsigned char obuf[GifBlockSize];
+   short *p, *q;
+   int i, c, cur, nc;
+   long h, npixels, hlist[1<<15];
+   LinearColor *cp;
+   struct palentry paltbl[GIFMAX];
    lzwnode tree[GifTableSize + 1];
 
-   len = (long)width * (long)height;	/* total length of data */
+   npixels = (long)width * (long)height;	/* total length of data */
 
    if (!(gf_f = fopen(filename, "wb")))
       return Failed;
-   if (!(gf_string = (unsigned char*)malloc(len)))
+   if (!(gf_pixels = malloc(npixels * sizeof(short))))
       return Error;
 
-   for (i = 0; i < GIFMAX; i++)
-      paltbl[i].used = paltbl[i].valid = paltbl[i].transpt = 0;
-   if (!getimstr(w, x, y, width, height, paltbl, gf_string))
+   if (!capture(w, x, y, width, height, gf_pixels))	/* get data (rgb15) */
       return Error;
 
-   gfpack(gf_string, len, paltbl);	/* pack color table, set color params */
+   memset(hlist, 0, sizeof(hlist));
+   for (h = 0; h < npixels; h++)	/* make histogram */
+      hlist[gf_pixels[h]]++;
+
+   nc = medcut(hlist, paltbl, GIFMAX);	/* make palette using median cut alg */
+   if (nc == 0)
+      return Error;
+
+   gf_nbits = 1;			/* figure out gif bits for nc colors */
+   while ((1 << gf_nbits) < nc)
+      gf_nbits++;
+   if (gf_nbits < 2)
+      gf_cdsize = 2;
+   else
+      gf_cdsize = gf_nbits;
 
    gf_clear = 1 << gf_cdsize;		/* set encoding variables */
    gf_eoi = gf_clear + 1;
@@ -538,7 +551,7 @@ int x, y, width, height;
       0x80 | ((gf_nbits - 1) << 4) | (gf_nbits - 1), 0, 0);
 
    for (i = 0; i < (1 << gf_nbits); i++) {	/* output color table */
-      if (i < GIFMAX && paltbl[i].valid) {
+      if (i < GIFMAX && i < nc) {
          cp = &paltbl[i].clr;
          putc(cp->red >> 8, gf_f);
          putc(cp->green >> 8, gf_f);
@@ -566,11 +579,11 @@ int x, y, width, height;
 
    gfout(gf_clear);			/* start with CLEAR code */
 
-   p = gf_string;
-   q = p + len;
-   cur = *p++;				/* first pixel is special */
+   p = gf_pixels;
+   q = p + npixels;
+   cur = hlist[*p++];			/* first pixel is special */
    while (p < q) {
-      c = *p++;				/* get code */
+      c = hlist[*p++];			/* get code */
       for (i = tree[cur].child; i != 0; i = tree[i].sibling)
          if (tree[i].tcode == c)	/* find as suffix of previous string */
             break;
@@ -612,51 +625,6 @@ int x, y, width, height;
       return Failed;
    else
       return Succeeded;			/* caller will close file */
-   }
-
-/*
- * gfpack() - pack palette table to eliminate gaps
- *
- * Sets gf_nbits and gf_cdsize based on the number of colors.
- */
-static void gfpack(data, len, paltbl)
-unsigned char *data;
-long len;
-struct palentry *paltbl;
-   {
-   int i, ncolors, lastcolor;
-   unsigned char *p, *q, cmap[GIFMAX];
-
-   ncolors = 0;
-   lastcolor = 0;
-   for (i = 0; i < GIFMAX; i++)
-      if (paltbl[i].used) {
-         lastcolor = i;
-         cmap[i] = ncolors;		/* mapping to output color */
-         if (i != ncolors) {
-            paltbl[ncolors] = paltbl[i];		/* shift down */
-            paltbl[i].used = paltbl[i].valid = paltbl[i].transpt = 0;
-							/* invalidate old */
-            }
-         ncolors++;
-         }
-
-   if (ncolors < lastcolor + 1) {	/* if entries were moved to fill gaps */
-      p = data;
-      q = p + len;
-      while (p < q) {
-         *p = cmap[*p];			/* adjust color values in data string */
-         p++;
-         }
-      }
-
-   gf_nbits = 1;
-   while ((1 << gf_nbits) < ncolors)
-      gf_nbits++;
-   if (gf_nbits < 2)
-      gf_cdsize = 2;
-   else
-      gf_cdsize = gf_nbits;
    }
 
 /*
@@ -705,6 +673,264 @@ static void gfdump()
    putc(n, gf_f);			/* write block size */
    fwrite((pointer)gf_obuf, 1, n, gf_f); /*write block */
    gf_rem = GifBlockSize;		/* reset buffer to empty */
+   }
+
+/*
+ * Median cut quantization code, based on the classic algorithm from
+ *	Color Image Quantization for Frame Buffer Display
+ *	Paul Heckbert
+ *	SIGGRAPH '82, July 1982 (vol 16 no 3), pp297-307
+ */
+
+typedef struct box {	/* 3-D RGB region for median cut algorithm */
+   struct box *next;		/* next box in chain */
+   long count;			/* number of occurrences in this region */
+   char maxaxis;		/* indication of longest axis */
+   char maxdim;			/* length along longest axis */
+   char cutpt;			/* cut point along that axis */
+   char rmin, gmin, bmin;	/* minimum r, g, b values (5-bit color) */
+   char rmax, gmax, bmax;	/* maximum r, g, b values (5-bit color) */
+   } box;
+
+#define MC_QUANT 5		/* quantize colors to 5 bits for median cut */
+#define MC_MAXC ((1 << MC_QUANT) - 1)	/* so the maximum color value is 31 */
+
+#define MC_RED (2 * MC_QUANT)	/* red shift */
+#define MC_GRN (1 * MC_QUANT)	/* green shift */
+#define MC_BLU (0 * MC_QUANT)	/* blue shift */
+
+static void mc_shrink(box *bx);
+static void mc_cut(box *bx);
+static void mc_setcolor(box *bx, struct palentry *pe, int i);
+static void mc_median(box *bx, int axis, long counts[], int min, int max);
+static void mc_remove(box *bx);
+static void mc_insert(box *bx);
+
+static long *mc_hlist;		/* current histogram list */
+static box *mc_blist;		/* current box list */
+static int mc_nboxes = 0;	/* number of boxes allocated so far */
+
+static box *mc_bfirst;		/* first box on linked list */
+
+/*
+ * medcut(hlist, plist, n) -- perform median-cut color quantization.
+ *
+ * On entry, hlist is a histogram of 32768 entries (5-bit color),
+ *  plist is an array of n palentry structs to be filled in,
+ *  and n is the number of colors desired in the result.
+ *
+ * On exit, up to n entries in plist have been filled in, and each
+ *  hlist entry is an index into plist for the corresponding color.
+ *
+ * medcut returns the number of entries actually used.
+ *  This is usually n if the histogram has that many nonzero entries.
+ *  A return code of 0 indicates an allocation failure.
+ */
+int medcut(long hlist[], struct palentry plist[], int ncolors) {
+   box *bx;
+   int i;
+
+   if ((mc_blist = malloc(ncolors * sizeof(box))) == NULL)
+      return 0;
+   mc_nboxes = 0;
+   mc_hlist = hlist;
+
+   bx = &mc_blist[mc_nboxes++];		/* create initial box */
+   bx->next = NULL;
+   bx->rmin = bx->gmin = bx->bmin = 0;
+   bx->rmax = bx->gmax = bx->bmax = 31;
+   mc_shrink(bx);			/* set box statistics */
+   mc_bfirst = bx;			/* put as first and only box on chain */
+
+   while (mc_nboxes < ncolors && mc_bfirst->maxdim > 1)
+      mc_cut(mc_bfirst);		/* split box with longest dimension */
+
+   for (i = 0; i < mc_nboxes; i++)		/* for every box created */
+      mc_setcolor(&mc_blist[i], &plist[i], i);	/* set palette entry */
+
+   free(mc_blist);
+   return mc_nboxes;
+   }
+
+/*
+ * mc_shrink(bx) -- shrink a box to tightly enclose its contents.
+ *
+ *  Adjusts rmin, gmin, bmin, rmax, gmax, bmax. 
+ *  Calculates count, maxaxis, maxdim, and cutpt
+ *  (while the necessary statistics are handy).
+ */
+static void mc_shrink(box *bx) {
+   int i, n, r, g, b, t, dr, dg, db;
+   long rcounts[MC_MAXC+1], gcounts[MC_MAXC+1], bcounts[MC_MAXC+1];
+
+   memset(rcounts, 0, (MC_MAXC + 1) * sizeof(long));
+   memset(gcounts, 0, (MC_MAXC + 1) * sizeof(long));
+   memset(bcounts, 0, (MC_MAXC + 1) * sizeof(long));
+
+   /*
+    * Simultaneously count cross-sections along r, g, and b axes.
+    */
+   t = n = 0;
+   for (r = bx->rmin; r <= bx->rmax; r++) {
+      for (g = bx->gmin; g <= bx->gmax; g++) {
+         for (b = bx->bmin; b <= bx->bmax; b++) {
+            i = (r << MC_RED) + (g << MC_GRN) + (b << MC_BLU);
+            n = mc_hlist[i];
+            t += n;
+            rcounts[r] += n;
+            gcounts[g] += n;
+            bcounts[b] += n;
+            }
+         }
+      }
+   bx->count = t;
+
+   /*
+    * Adjust min/mas bounds to tightly enclose the data we found.
+    */
+   while (rcounts[bx->rmin] == 0)  bx->rmin++;
+   while (rcounts[bx->rmax] == 0)  bx->rmax--;
+   while (gcounts[bx->gmin] == 0)  bx->gmin++;
+   while (gcounts[bx->gmax] == 0)  bx->gmax--;
+   while (bcounts[bx->bmin] == 0)  bx->bmin++;
+   while (bcounts[bx->bmax] == 0)  bx->bmax--;
+
+   /*
+    * Find and record the axis of longest dimension.
+    */
+   dr = bx->rmax - bx->rmin;
+   dg = bx->gmax - bx->gmin;
+   db = bx->bmax - bx->bmin;
+   if (db > dg && db > dr)
+      mc_median(bx, MC_BLU, bcounts, bx->bmin, bx->bmax);
+   else if (dr > dg)
+      mc_median(bx, MC_RED, rcounts, bx->rmin, bx->rmax);
+   else
+      mc_median(bx, MC_GRN, gcounts, bx->gmin, bx->gmax);
+   }
+
+/*
+ * mc_median(bx, axis, counts, cmin, cmax) -- find median and set box values.
+ */
+static void mc_median(box *bx, int axis, long counts[], int cmin, int cmax) {
+   int lower, upper;
+
+   bx->maxaxis = axis;
+   bx->maxdim = cmax - cmin + 1;
+   lower = counts[cmin];
+   upper = counts[cmax];
+
+   /*
+    * Approach from both ends to find the median bin.
+    */
+   while (cmin < cmax) {
+      if (lower < upper)
+         lower += counts[++cmin];
+      else
+         upper += counts[--cmax];
+      }
+
+   /*
+    * Have counted the median bin in both upper and lower halves.
+    *  Remove it from the larger of those two.
+    */
+   if (lower < upper)
+      upper -= counts[cmax++];
+   else
+      lower -= counts[cmin--];
+
+   bx->cutpt = cmax;
+   bx->count = lower + upper;
+   }
+
+/*
+ * mc_cut(bx) -- split box at previously recorded cutpoint.
+ */
+static void mc_cut(box *b1) {
+   box *b2;
+
+   mc_remove(b1);			/* unlink box */
+   b2 = &mc_blist[mc_nboxes++];		/* allocate new box */
+   *b2 = *b1;				/* duplicate the contents */
+
+   switch (b1->maxaxis) {
+      case MC_RED:  b1->rmax = b1->cutpt - 1;  b2->rmin = b2->cutpt;  break;
+      case MC_GRN:  b1->gmax = b1->cutpt - 1;  b2->gmin = b2->cutpt;  break;
+      case MC_BLU:  b1->bmax = b1->cutpt - 1;  b2->bmin = b2->cutpt;  break;
+      }
+   mc_shrink(b1);			/* recomputes box statistics */
+   mc_shrink(b2);
+
+   mc_insert(b1);			/* put both boxes back on list */
+   mc_insert(b2);
+   }
+
+/*
+ * mc_remove(bx) -- remove box from global linked list.
+ *
+ *  This is fast in practice because we always remove the first entry.
+ */
+static void mc_remove(box *bx) {
+   box **bp;
+
+   for (bp = &mc_bfirst; *bp != NULL; bp = &(*bp)->next) {
+      if (*bp == bx) {
+         *bp = bx->next;
+         return;
+         }
+      }
+   }
+
+/*
+ * mc_insert(bx) -- insert box in list, preserving decreasing maxdim ordering.
+ */
+static void mc_insert(box *bx) {
+   box **bp;
+
+   for (bp = &mc_bfirst; *bp != NULL; bp = &(*bp)->next) {
+      if (bx->maxdim > (*bp)->maxdim
+      || (bx->maxdim == (*bp)->maxdim && bx->count >= (*bp)->count)) 
+	 break;
+      }
+   bx->next = *bp;
+   *bp = bx;
+   }
+
+/*
+ * mc_setcolor(bx, pe, i) -- set palette entry to box color.
+ *
+ *  Also sets the associated hlist entries to i, the palette index.
+ */
+static void mc_setcolor(box *bx, struct palentry *pe, int i) {
+   int j, r, g, b;
+   long n, t = 0, rtotal = 0, gtotal = 0, btotal = 0;
+
+   /*
+    * Calculate a weighted sum of the colors in the box.
+    */
+   for (r = bx->rmin; r <= bx->rmax; r++) {
+      for (g = bx->gmin; g <= bx->gmax; g++) {
+         for (b = bx->bmin; b <= bx->bmax; b++) {
+            j = (r << MC_RED) + (g << MC_GRN) + (b << MC_BLU);
+            n = mc_hlist[j];
+            t += n;
+            rtotal += n * r;
+            gtotal += n * g;
+            btotal += n * b;
+            mc_hlist[j] = i;
+            }
+         }
+      }
+
+   /*
+    * Scale colors using floating arithmetic to avoid overflow.
+    */
+   pe->clr.red = (65535. / MC_MAXC) * rtotal / t + 0.5;
+   pe->clr.green = (65535. / MC_MAXC) * gtotal / t + 0.5;
+   pe->clr.blue = (65535. / MC_MAXC) * btotal / t + 0.5;
+   pe->used = 1;
+   pe->valid = 1;
+   pe->transpt = 0;
    }
 
 #endif					/* Graphics */
