@@ -33,7 +33,7 @@ XOBJS =	xcnv.o xdata.o xdef.o xerrmsg.o xextcall.o xfconv.o xfload.o xfmath.o\
 	xkeyword.o xlmisc.o xoarith.o xoasgn.o xocat.o xocomp.o\
 	xomisc.o xoref.o xoset.o xovalue.o xralc.o xrcoexpr.o xrcomp.o\
 	xrdebug.o xrlrgint.o xrmemmgt.o xrmisc.o xrstruct.o xrsys.o\
-	xrwinrsc.o xrwinsys.o xrwindow.o
+	xrwinrsc.o xrwinsys.o xrwindow.o xrcolor.o xrimage.o
 
 OBJS =	$(XOBJS) $(COBJS)
 
@@ -258,6 +258,16 @@ xrwindow.o: rwindow.r $(HDRS) $(GRAPHICSHDRS)
 	$(CC) -c $(CFLAGS) xrwindow.c
 	rm xrwindow.c
 
+xrcolor.o: rcolor.r $(HDRS) $(GRAPHICSHDRS)
+	../../bin/rtt -x rcolor.r
+	$(CC) -c $(CFLAGS) xrcolor.c
+	rm xrcolor.c
+
+xrimage.o: rimage.r $(HDRS) $(GRAPHICSHDRS)
+	../../bin/rtt -x rimage.r
+	$(CC) -c $(CFLAGS) xrimage.c
+	rm xrimage.c
+
 
 ####################################################################
 #
@@ -280,7 +290,7 @@ rt.db: $(HDRS)
 	  lmisc.r oarith.r oasgn.r ocat.r ocomp.r omisc.r\
 	  oref.r oset.r ovalue.r ralc.r rcoexpr.r rcomp.r\
 	  rdebug.r rlrgint.r rmemmgt.r rmisc.r rstruct.r\
-	  rsys.r rwinrsc.r rwinsys.r rwindow.r
+	  rsys.r rwinrsc.r rwinsys.r rwindow.r rcolor.r rimage.r
 	$(CC) -c $(CFLAGS) `sed 's/$$/.c/' rttcur.lst`
 	rm `sed 's/$$/.c/' rttcur.lst`
 
@@ -290,7 +300,7 @@ rt.a: ../common/rswitch.o ../common/long.o ../common/time.o\
       keyword.o lmisc.o oarith.o oasgn.o ocat.o ocomp.o omisc.o oref.o oset.o\
       ovalue.o ralc.o rcoexpr.o rcomp.o rdebug.o rlrgint.o rmemmgt.o\
       rmisc.o rstruct.o rsys.o rwinrsc.o rwinsys.o\
-      rwindow.o ../common/xwindow.o ../common/alloc.o
+      rwindow.o rcolor.o rimage.o ../common/xwindow.o ../common/alloc.o
 	rm -f rt.a
 	ar qc rt.a `sed 's/$$/.o/' rttfull.lst` ../common/rswitch.o\
 	    ../common/long.o ../common/time.o\
@@ -490,5 +500,15 @@ rwinsys.o: rwinsys.r $(HDRS) $(GRAPHICSHDRS)
 
 rwindow.o: rwindow.r $(HDRS) $(GRAPHICSHDRS)
 	../../bin/rtt rwindow.r
+	$(CC) -c $(CFLAGS) `sed 's/$$/.c/' rttcur.lst`
+	rm `sed 's/$$/.c/' rttcur.lst`
+
+rcolor.o: rcolor.r $(HDRS) $(GRAPHICSHDRS)
+	../../bin/rtt rcolor.r
+	$(CC) -c $(CFLAGS) `sed 's/$$/.c/' rttcur.lst`
+	rm `sed 's/$$/.c/' rttcur.lst`
+
+rimage.o: rimage.r $(HDRS) $(GRAPHICSHDRS)
+	../../bin/rtt rimage.r
 	$(CC) -c $(CFLAGS) `sed 's/$$/.c/' rttcur.lst`
 	rm `sed 's/$$/.c/' rttcur.lst`
