@@ -439,23 +439,6 @@
    #define PerilDelta 100
 
    /*
-    * Define PushAVal for computers that store longs and pointers differently.
-    */
-
-   #if !MSDOS
-      #define PushAVal(x) PushVal(x)
-   #else				/* MSDOS */
-      static union {
-         pointer stkadr;
-         word stkint;
-         } stkword;
-
-      #define PushAVal(x)  {sp++; \
-				stkword.stkadr = (char *)(x); \
-				*sp = stkword.stkint;}
-   #endif				/* MSDOS */
-
-   /*
     * Macros for pushing values on the interpreter stack.
     */
 
@@ -473,6 +456,11 @@
     * Push word.
     */
    #define PushVal(v)	{*++sp = (word)(v);}
+
+   /*
+    * Push address.  Once weird for DOS, now the same as PushVal.
+    */
+   #define PushAVal(x) PushVal(x)
 
    /*
     * Macros related to function and operator definition.
