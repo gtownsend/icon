@@ -1,7 +1,7 @@
 /*
  * ixhdr.c -- bootstrap header for icode files
  *
- * (used as an alternative to ShellHeader)
+ * (used when BinaryHeader is defined)
  */
 
 #include "../h/gsupport.h"

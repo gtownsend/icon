@@ -1,7 +1,7 @@
 /*
  * Intermediate program to convert iconx.hdr into a header file for inclusion
  * in icont.  This eliminates a compile-time file search on Unix systems.
- * Definition of Header (without ShellHeader) activates the inclusion.
+ * Definition of BinaryHeader activates the inclusion.
  */
 
 #include "../h/gsupport.h"
@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
    /*
     * If header is to be used, make sure it fits.
     */
-   #ifndef ShellHeader
+   #ifdef BinaryHeader
       if (n > MaxHdr) {
          fprintf(stderr, "%s: file size is %d bytes but MaxHdr is only %d\n",
             argv[0], n, MaxHdr);
@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
             }
          return EXIT_FAILURE;
          }
-   #endif				/* ShellHeader */
+   #endif				/* BinaryHeader */
 
    while (n++ < MaxHdr)
       putbyte(fout, 0);
