@@ -1,4 +1,7 @@
 #  Makefile for Version 9.4 of Icon
+#
+#  Things have changed since Version 9.3.
+#  See doc/install.htm for instructions.
 
 
 #  configuration parameters
@@ -11,7 +14,7 @@ dest=/must/specify/dest/
 #
 # Default targets.
 
-default:	Icon Ilib Ibin
+All:	Icont Ilib Ibin
 
 config/unix/$(name)/status src/h/define.h:
 	:
@@ -56,7 +59,7 @@ Status:
 
 # The interpreter: icont and iconx.
 
-Icon Icon-icont bin/icont: Common
+Icont bin/icont: Common
 		cd src/icont;		$(MAKE)
 		cd src/runtime;		$(MAKE) 
 
@@ -64,7 +67,7 @@ Icon Icon-icont bin/icont: Common
 # The compiler: rtt, the run-time system, and iconc.
 # (NO LONGER SUPPORTED OR MAINTAINED.)
 
-Icon-iconc:	Common
+Iconc bin/iconc: Common
 		cd src/runtime;		$(MAKE) comp_all
 		cd src/iconc;		$(MAKE)
 
