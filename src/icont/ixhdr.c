@@ -15,11 +15,6 @@
 static	void	doiconx		(char *argv[]);
 static	void	hsyserr		(char *av, char *file);
 
-#ifdef HardWiredPaths
-   static char patchpath[MaxPath + 18] = "%PatchStringHere->";
-   static char *refpath = RefPath;
-#endif					/* HardWiredPaths */
-
 int main(int argc, char *argv[]) {
    char fullpath[256];
    char *argvx[1000];
@@ -56,39 +51,18 @@ int main(int argc, char *argv[]) {
 static void doiconx(char *argv[]) {
    char xcmd[256];
 
-#ifdef HardWiredPaths
-   static char hardpath[MaxPath];
-
-   if ((int)(strlen(refpath) + 6) > MaxPath)
-      hsyserr("path to iconx too long", "");
-   strcpy(hardpath, refpath);
-   strcat(hardpath, "iconx");
-
-   if ((int)strlen(patchpath) > 18)
-      strcpy(hardpath, patchpath + 18);
-#endif					/* HardWiredPaths */
-
    if ((argv[0] = getenv("ICONX")) != NULL && argv[0][0] != '\0') {
       execv(argv[0], argv);		/* exec file specified by $ICONX */
       hsyserr("cannot execute $ICONX: ", argv[0]);
       }
 
-#ifdef HardWiredPaths
-   argv[0] = hardpath;			/* try predefined file */
-   execv(hardpath, argv);
-#endif					/* HardWiredPaths */
- 
    if (findonpath("iconx", xcmd, sizeof(xcmd))) {    /* if iconx on $PATH */
       argv[0] = xcmd;
       execv(xcmd, argv);
       hsyserr("cannot execute ", xcmd);
       }
 
-#ifdef HardWiredPaths
-   hsyserr("cannot execute ", hardpath);
-#else					/* HardWiredPaths */
    hsyserr("cannot find iconx", "");
-#endif					/* HardWiredPaths */
    }
 
 /*
