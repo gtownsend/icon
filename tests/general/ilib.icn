@@ -203,13 +203,13 @@ procedure main()
 
    write()
    write("sets:")			# sets
-   lst(cset2set, &digits)
-   lst(domain, T)
-   lst(inverse, T)
+   stt(cset2set, &digits)
+   stt(domain, T)
+   tbl(inverse, T)
    #   pairset, T    returns list of lists
-   lst(range, T)
-   lst(seteq, set([4, 7, 1]), set([7, 1, 4]))
-   lst(setlt, set([4, 7, 1]), set([7, 3, 1, 4]))
+   stt(range, T)
+   stt(seteq, set([4, 7, 1]), set([7, 1, 4]))
+   stt(setlt, set([4, 7, 1]), set([7, 3, 1, 4]))
    gen(simage, set(L))
 
    write()
@@ -288,6 +288,15 @@ procedure lst(p, a[])			#: test a procedure that returns a list
    L := (p ! a) | ["[FAILED]"]
    writes(left(image(p)[11:0], LSIZE - 1))
    every writes(" ", (!L \ GENLIMIT) | "\n")
+   return
+end
+
+procedure stt(p, a[])			#: test a procedure that returns a set
+   local L
+
+   L := sort(p ! a) | ["[FAILED]"]
+   writes(left(image(p)[11:0], LSIZE - 1), " {")
+   every writes(" ", (!L \ GENLIMIT) | "}\n")
    return
 end
 

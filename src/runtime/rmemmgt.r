@@ -242,6 +242,14 @@ uword segsize[] = {
    ((uword)HSlots) << 8,		/* segment 9 */
    ((uword)HSlots) << 9,		/* segment 10 */
    ((uword)HSlots) << 10,		/* segment 11 */
+   ((uword)HSlots) << 11,		/* segment 12 */
+   ((uword)HSlots) << 12,		/* segment 13 */
+   ((uword)HSlots) << 13,		/* segment 14 */
+   ((uword)HSlots) << 14,		/* segment 15 */
+   ((uword)HSlots) << 15,		/* segment 16 */
+   ((uword)HSlots) << 16,		/* segment 17 */
+   ((uword)HSlots) << 17,		/* segment 18 */
+   ((uword)HSlots) << 18,		/* segment 19 */
    };
 
 /*

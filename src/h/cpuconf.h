@@ -152,7 +152,7 @@
  *  HSegs	Maximum number of hash bin segments; the maximum number of
  *		hash bins is HSlots * 2 ^ (HSegs - 1).
  *
- *		If Hsegs is increased above 12, the arrays log2h[] and segsize[]
+ *		If Hsegs is increased above 20, the arrays log2h[] and segsize[]
  *		in the runtime system will need modification.
  *
  *  MaxHLoad	Maximum loading factor; more hash bins are allocated when
@@ -170,8 +170,8 @@
       #define HSlots     4
       #define LogHSlots  2
    #else				/* IntBits */
-      #define HSlots     8
-      #define LogHSlots  3
+      #define HSlots     16
+      #define LogHSlots  4
    #endif				/* IntBits */
 #endif					/* HSlots */
 
@@ -183,7 +183,7 @@
    #if IntBits == 16
       #define HSegs	  6
    #else				/* IntBits */
-      #define HSegs	 10
+      #define HSegs	 20
    #endif				/* IntBits */
 #endif					/* HSegs */
 
