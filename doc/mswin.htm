@@ -16,7 +16,7 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 <BR> <SMALL> The University of Arizona </SMALL>
 
 <P> <SMALL> www.cs.arizona.edu/icon/v942/mswin.htm
-<BR> Last updated January 13, 2003 </SMALL>
+<BR> Last updated March 25, 2003 </SMALL>
 <!-- $Id$ -->
 
 
@@ -49,14 +49,15 @@ available on a standard POSIX development system.
 <P> Icon is built in a Cygwin shell window.
 The process is the same as on other platforms
 and uses the configuration named <CODE>intel_cygwin</CODE>.
-See the <A HREF=build.htm>installation documentation</A> for details.
+See the <A HREF=build.htm>installation documentation</A>
+for instructions on building Icon.
 
 
 <H2> Running Icon programs </H2>
 
 <P> Icon is run by commands entered in a terminal window.
-The simplest of these is "<CODE>icon foo.icn</CODE>",
-which runs the program contained in the source file <CODE>foo.icn</CODE>.
+The simplest of these is "<CODE>icon prog.icn</CODE>",
+which runs the program contained in the source file <CODE>prog.icn</CODE>.
 The translator <CODE>icont</CODE> can create executable programs
 from Icon source code.
 The Unix-style "man pages" for <A HREF=icon.txt><CODE>icon</CODE></A>
@@ -64,7 +65,7 @@ and <A HREF=icont.txt><CODE>icont</CODE></A>
 describe the command options in a traditionally cryptic manner.
 
 
-<H2> Interpreter path </H2>
+<H2> Path settings </H2>
 
 <P> Icon programs require an interpreter for execution.
 On Windows, the path of the interpreter is not embedded
@@ -77,8 +78,9 @@ The program must be able to find
     <LI> in the search path
 </UL>
 
-<P> To distribute an Icon program in executable form, include
-<CODE>iconx.exe</CODE> in the same directory as the executable program.
+<P> Additionally, the Cygwin library <CODE>cygwin1.dll</CODE>
+must be on the search path if a program built by <CODE>icont</CODE>
+is to be executed by double-clicking its file icon.
 
 
 <H2> Extra built-in functions </H2>
@@ -110,21 +112,10 @@ The dynamic loading interface &mdash; <CODE>loadfunc()</CODE> &mdash;
 is not implemented.
 
 
-<H2> Stability </H2>
-
-<P> The bulk of the Icon translator and run-time system
-is common to all ports of Icon is quite stable and robust.
-A few sections of code involving file access and path searching
-are specific to Windows.
-
-<P> Much of the graphics subsystem code is unique to Windows.
-This code is in uncertain shape and is not well tested.
-
-
 <H2> Known bugs </H2>
 
 <UL>
-    <LI> Resizing a window sends a large number of events.
+    <LI> Resizing a window sends a large number of events to the program.
 </UL>
 
 
