@@ -9,12 +9,12 @@
 exec 2>&1
 
 
-#  Set minimal path needed.  Not all systems have all these directories
+#  Set minimal path needed.  (Not all systems have all these directories.)
 V9BIN=`cd ../bin; echo $PWD`
 export PATH=$V9BIN:/usr/xpg4/bin:/usr/ccs/bin:/bin:/usr/bin
 
 #  List timestamp of icont we'll be using
-ls -l $V9BIN/icont
+ls -l $V9BIN/icont || exit
 
 #  Use default Icon options
 unset BLKSIZE STRSIZE MSTKSIZE COEXPSIZE TRACE NOERRBUF FPATH IPATH LPATH
@@ -47,8 +47,8 @@ done
 
 #  Check for undeclared identifiers or insufficient links in the core modules.
 echo core modules:
-(cd procs;  IPATH=         icont -us -fs core.u2)
-(cd gprocs; IPATH=../procs icont -us -fs graphics.u2)
+(cd procs;  IPATH=         icont -o ../xxx -us -fs core.u2)
+(cd gprocs; IPATH=../procs icont -o ../xxx -us -fs graphics.u2)
 
 #  Check linkages for all procedure files, ignoring most undeclared identifiers.
 
