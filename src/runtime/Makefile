@@ -123,7 +123,7 @@ xfwindow.o: fwindow.r $(HDRS) $(GRAPHICSHDRS)
 	$(CC) -c $(CFLAGS) xfwindow.c
 	rm xfwindow.c
 
-ximain.o: imain.r $(HDRS)
+ximain.o: imain.r $(HDRS) ../h/version.h
 	../../bin/rtt -x imain.r
 	$(CC) -c $(CFLAGS) ximain.c
 	rm ximain.c
