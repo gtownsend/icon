@@ -4,18 +4,19 @@ name=unspecified
 
 default:	Icon Ilib Ibin
 
-src/h/define.h:
+config/unix/$(name)/status src/h/define.h:
 	:
 	: To configure Icon, run either
 	:
 	:	make Configure name=xxxx     [for no graphics]
-	: or	make X-Configure name=xxxx   [with graphics]
+	: or	make X-Configure name=xxxx   [with X-Windows graphics]
 	:
 	: where xxxx is one of
 	:
 	@(cd config/unix; ls -d [a-z]*)
 	:
 	@exit 1
+
 
 ##################################################################
 #
@@ -25,13 +26,13 @@ src/h/define.h:
 # Configure the code for a specific system.
 #
 
-Configure:
+Configure:	config/unix/$(name)/status
 		make Clean
 		cp config/unix/Common/Makefile config/unix/$(name)/
 		cd config/unix/$(name);	$(MAKE) 
 		rm -f config/unix/$(name)/Makefile
 
-X-Configure:
+X-Configure:	config/unix/$(name)/status
 		make Clean
 		cp config/unix/Common/Makefile config/unix/$(name)/
 		cd config/unix/$(name);	$(MAKE) X-Icon
