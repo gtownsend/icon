@@ -1,6 +1,6 @@
 #  Makefile for configuring a Unix build.
 #
-#  (make Setup name=xxx_yyy)
+#  (make Setup-[No]Graphics name=xxx_yyy)
 
 name = undefined
 TOP = ../..
