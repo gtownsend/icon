@@ -11,8 +11,7 @@ Samples-icont:
 		sh Test-icont
 
 Clean:
-		rm -f local/*
-		touch local/.placeholder
+		rm -f local/*.out
 
 # Entries beyond this point are for use at Arizona only.
 #   *** Do not delete the line above; it is used in trimming Makefiles
@@ -20,6 +19,5 @@ Clean:
 
 Dist-clean:
 		rm -f .*K* .emacs*
-		rm -f local/*
-		touch local/.placeholder
+		rm -f local/*.out
 		rm -rf `gcomp Test* Makefile local stand *.icn *.dat`

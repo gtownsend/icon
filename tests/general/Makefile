@@ -45,8 +45,7 @@ test-large:
 #  Clean up.
 #
 Clean:
-		rm -f local/*
-		touch local/.placeholder
+		rm -f foo.baz local/*.out
 
 
 # Entries beyond this point are for use at Arizona only.
@@ -54,8 +53,7 @@ Clean:
 #   for distribution ***
 
 Dist-clean:
-		rm -f local/*
-		touch local/.placeholder
+		rm -f local/*.out
 		rm -rf `gcomp README Makefile Test* local stand *.icn *.dat \
 		  *.lst`
 
