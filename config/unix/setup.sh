@@ -50,6 +50,12 @@ case $RSW in
    *.s)  cp $RSW $SRC/common/rswitch.s;;
 esac
 
+if [ "$RSW" = "pthreads.c" ]; then
+   TL='$(TLIBS)'
+else
+   TL=
+fi
+
 RSN=`echo $RSW | sed 's=.*/=='`
 
 # build the "define.h" file
@@ -63,6 +69,8 @@ cat  $NAME/define.h				>> $SRC/h/define.h
 echo "#  from config/unix/$NAME"		 > $TOP/Makedefs
 echo ""						>> $TOP/Makedefs
 cat $NAME/Makedefs				>> $TOP/Makedefs
+echo ""						>> $TOP/Makedefs
+echo "TL = $TL"					>> $TOP/Makedefs
 echo ""						>> $TOP/Makedefs
 echo "#  $GPX"					>> $TOP/Makedefs
 echo "XL = $XL"					>> $TOP/Makedefs

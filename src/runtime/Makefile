@@ -39,7 +39,7 @@ OBJS =	$(XOBJS) $(COBJS)
 
 iconx: $(OBJS)
 	cd ../common; $(MAKE)
-	$(CC) $(RLINK) -o iconx  $(OBJS) $(XL) $(RLIBS)
+	$(CC) $(RLINK) -o iconx  $(OBJS) $(XL) $(RLIBS) $(TL)
 	cp iconx ../../bin
 	strip ../../bin/iconx
 
