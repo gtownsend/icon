@@ -3,6 +3,7 @@
 # Unix Makefile for installing itweak and running a sample debugging session.
 #
 # $Id$
+# updated 4-aug-2000/gmt
 #
 # 'make' or 'make install'
 # does the necessary compilations to get the itweak package ready to use.
@@ -56,7 +57,7 @@
 #
 ############################################################################ 
 
-ICONT=icont
+ICONT=icont -s
 ITWEAK=itweak
 
 
@@ -112,3 +113,8 @@ demo : sample-debug
 	@echo '-------------- session start --------------------------'
 	@(DBG_INPUT=$(CMD); export DBG_INPUT; sample ipxref.icn)
 	@echo '-------------- session end ----------------------------'
+
+##### cleanup
+
+clean :
+	rm -f $(ITWEAK) *.u[12]
