@@ -179,14 +179,12 @@ end
 #  numbers.
 
 procedure isprime(n)		#: test for primality
-   local p, limit
+   local p
 
-   if n = 1 then fail		# 1 is not a prime
-
-   limit := sqrt(real(n))	# may get integer overflow
-
+   n := integer(n) | runerr(101, n)
+   if n <= 1 then fail		# 1 is not a prime
    every p := prime() do {
-      if p >= n then return n
+      if p * p > n then return n
       if n % p = 0 then fail
       }
 
