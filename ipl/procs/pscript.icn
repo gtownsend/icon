@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     August 14, 1996
+#	Date:     February 21, 2003
 #
 ############################################################################
 #
@@ -14,15 +14,17 @@
 #
 ############################################################################
 #
-#	epsheader(f, x, y, w, h, flags) writes an Encapsulated PostScript
-#	file header and initializes the PostScript coordinate system.
+#  This file contains procedures for writing PostScript output explicitly,
+#  as contrasted with the procedures in psrecord.icn that write PostScript
+#  as a side effect of normal graphics calls.
+#
+#  epsheader(f, x, y, w, h, flags) writes an Encapsulated PostScript
+#  file header and initializes the PostScript coordinate system.
+#
+#  psprotect(s) adds escapes to protect characters that are special in
+#  PostScript strings, notably parentheses and backslash.
 #
 ############################################################################
-#
-#  This file is intended to contain procedures for writing PostScript
-#  output explicitly, as contrasted with the procedures in psrecord.icn
-#  that write PostScript as a side effect of normal graphics calls.
-#  There is only one procedure at present.
 #
 #  epsheader(f, x, y, w, h, flags) aids the creation of an Encapsulated
 #  PostScript file by writing a header.  An EPS file can either be
@@ -53,6 +55,13 @@
 #	write(f, x1, " ", y1, " moveto ", x2, " ", y2, " lineto stroke")
 #	   ...
 #	write(f, "showpage")
+#
+############################################################################
+#
+#  psprotect(s) adds a backslash character before each parenthesis or
+#  backslash in s.  These characters are special in PostScript strings.
+#  The characters \n \r \t \b \f are also replaced by escape sequences,
+#  for readability, although this is not required by PostScript.
 #
 ############################################################################
 
@@ -110,4 +119,18 @@ procedure epsheader(f, x, y, w, h, flags)	#: write PostScript header
    write(f, "1 72 div inch setlinewidth")
    write(f)
    return
+end
+
+procedure psprotect(s)			#: escape special PostScript characters
+   local t 
+
+   s ? {
+      t := ""
+      while t ||:= tab(upto('()\\\n\r\t\b\f')) do {
+         t ||:= "\\"
+         t ||:= map(move(1), "()\\\n\r\t\b\f", "()\\nrtbf")
+         }
+      return t ||:= tab(0)
+      }
+
 end
