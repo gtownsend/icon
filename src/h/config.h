@@ -72,11 +72,6 @@
    #define MultiThread
 #endif					/* EventMon */
 
-#ifndef NoExternalFunctions
-   #undef ExternalFunctions
-   #define ExternalFunctions
-#endif					/* NoExternalFunctions */
-
 /*
  * Graphics definitions.
  */
