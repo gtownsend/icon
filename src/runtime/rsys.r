@@ -59,23 +59,12 @@ struct b_file *fbp;
 void iconhost(hostname)
 char *hostname;
    {
-
-#ifdef HostStr
-   /*
-    * The string constant HostStr contains the host name.
-    */
-   strcpy(hostname,HostStr);
-#else					/* HostStr */
-   {
    /*
     * Use the uname system call.  (POSIX)
     */
    struct utsname utsn;
    uname(&utsn);
    strcpy(hostname,utsn.nodename);
-   }
-#endif					/* HostStr */
-
    }
 
 /*

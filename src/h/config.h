@@ -10,7 +10,7 @@
  *  A number of symbols are defined here.
  *  Some enable or disable certain Icon features, for example:
  *	NoCoexpr	disables co-expressions
- *	LargeInts	enables large integers
+ *	LoadFunc	enables dynamic loading
  *
  *  Other definitions may occur for different configurations. These include:
  *	DeBug		debugging code
@@ -161,7 +161,7 @@
 #endif					/* TargetDir */
 
 /*
- * Features enabled by default under certain systems
+ * Features enabled by default.
  */
 #ifndef NoPipes
    #define Pipes

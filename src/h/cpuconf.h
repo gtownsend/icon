@@ -210,6 +210,10 @@
    #define MaxAbrSize 500000		/* size of the block region in bytes */
 #endif					/* MaxAbrSize */
 
+#ifndef MinAbrSize
+   #define MinAbrSize	 5000		/* minimum block region size */
+#endif					/* MinAbrSize */
+
 #ifndef MStackSize
    #ifdef MultiThread
       #define MStackSize 20000		/* size of the main stack in words */
@@ -241,42 +245,3 @@
 #ifndef RegionGrowth
    #define RegionGrowth 200		/* % region growth when full */
 #endif					/* RegionGrowth */
-
-/*
- * Minimum regions sizes (presently not used).
- */
-#ifndef MinStatSize
-   #ifdef Coexpr
-      #define MinStatSize	10240	/* size of the static region in bytes*/
-   #else				/* Coexpr */
-      #define MinStatSize	 1024	/* size of static region in bytes */
-   #endif				/* Coexpr */
-#endif					/* MinStatSize */
-
-#ifndef MinStrSpace
-   #define MinStrSpace		 5000	/* size of the string space in bytes */
-#endif					/* MinStrSpace */
-
-#ifndef MinAbrSize
-   #define MinAbrSize		 5000	/* size of the block region in bytes */
-#endif					/* MinAbrSize */
-
-#ifndef MinMStackSize
-   #define MinMStackSize	 2000	/* size of the main stack in words */
-#endif					/* MinMStackSize */
-
-#ifndef MinStackSize
-   #define MinStackSize		 1000	/* words in co-expression stack */
-#endif					/* MinStackSize */
-
-#ifndef MinQualLstSize
-   #define MinQualLstSize	  500	/* size of qualifier pointer region */
-#endif					/* MinQualLstSize */
-
-#ifndef GranSize
-   #define GranSize		   64	/* storage allocation granule size */
-#endif					/* GranSize */
-
-#ifndef Sqlinc
-   #define Sqlinc 128*sizeof(dptr *)	/* qualifier pointer list increment */
-#endif					/* Sqlinc */

@@ -29,11 +29,11 @@
 #include <sys/time.h>
 #include <sys/times.h>
 #include <sys/types.h>
+#include <sys/utsname.h>
 
 /*
  * Operating-system-dependent includes.
  */
-
 #if MSWIN
    #include <windows.h>
    #include <sys/cygwin.h>
@@ -67,17 +67,9 @@
    #include <X11/Xatom.h>
 #endif					/* XWindows */
 
-#ifdef Graphics
-   #define VanquishReturn(s) return s;
-#endif					/* Graphics */
-
 /*
  * Feature-dependent includes.
  */
-#ifndef HostStr
-   #include <sys/utsname.h>
-#endif					/* HostStr */
-
 #ifdef LoadFunc
    #include <dlfcn.h>
 #endif					/* LoadFunc */
