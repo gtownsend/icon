@@ -8,12 +8,12 @@
 #  XPMDEFS  definitions for building XPM library
 #  GDIR     directory of graphics helper library
 
-CC = cc
-CFLAGS = -I /usr/X11R6/include
+CC ?= cc
+CFLAGS += -I/usr/X11R6/include
 CFDYN = -fPIC
 RLINK = -Wl,-E
 RLIBS = -lm
-TLIBS =
-XLIBS = -L/usr/X11R6/lib -Wl,-R/usr/X11R6/lib -lX11
-XPMDEFS = -DZPIPE -I /usr/X11R6/include
+TLIBS = -lpthread
+XLIBS = -Wl,-R/usr/X11R6/lib -L/usr/X11R6/lib -lX11
+XPMDEFS = -DZPIPE -I/usr/X11R6/include
 GDIR = xpm
