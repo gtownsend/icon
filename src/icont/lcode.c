@@ -531,12 +531,7 @@ char *name;
       labels[lab] = WordSize - pc;	/* add to front of reference chain */
       }
    else					/* output relative offset */
-
-#ifdef CRAY
-      outword((labels[lab] - (pc + WordSize))/8);
-#else					/* CRAY */
       outword(labels[lab] - (pc + WordSize));
-#endif					/* CRAY */
    }
 
 static void lemitn(op, n, name)
@@ -564,11 +559,7 @@ char *name;
    {
    misalign();
 
-#ifdef CRAY
-   loc = (loc - pc - 16)/8;
-#else					/* CRAY */
    loc -= pc + ((IntBits/ByteBits) + WordSize);
-#endif					/* CRAY */
 
 #ifdef DeBugLinker
    if (Dflag) {
@@ -1628,12 +1619,7 @@ int lab;
    if (p > 0)
       quit("multiply defined label in ucode");
    while (p < 0) {		/* follow reference chain */
-
-#ifdef CRAY
-      r = (pc - (WordSize - p))/8;	/* compute relative offset */
-#else					/* CRAY */
       r = pc - (WordSize - p);	/* compute relative offset */
-#endif					/* CRAY */
       q = codep - (pc + p);	/* point to word with address */
       cp = (char *) &p;		/* address of integer p       */
       cr = (char *) &r;		/* address of integer r       */

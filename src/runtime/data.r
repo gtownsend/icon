@@ -366,10 +366,6 @@ struct errtab errtab[] = {
    0,	""
    };
 
-/*
- * Note:  the following material is here to avoid a bug in the Cray C compiler.
- */
-
 #if !COMPILER
 #define OpDef(p,n,s,u) int Cat(O,p) (dptr cargp);
 #include "../h/odefs.h"
