@@ -89,13 +89,7 @@ end
 
    if (y == 0.0)
       runerr(204);
-
    z = x / y;
-#ifdef SUN
-   if (z >= HUGE || z <= -HUGE) {
-      kill(getpid(), SIGFPE);
-   }
-#endif
    return C_double z;
 }
 #enddef

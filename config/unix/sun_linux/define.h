@@ -3,11 +3,7 @@
  */
 
 #define UNIX 1
-
 #define LoadFunc
-
-/* Sun parameters */
-#define SUN
 
 /* use gcc to compile generated code */
 #define CComp "gcc"

@@ -21,7 +21,6 @@
  *  There also are definitions of symbols for specific computers and
  *  versions of operating systems.  These include:
  *
- *	SUN		code specific to the Sun Workstation
  *	MICROSOFT	code specific to the Microsoft C compiler for MS-DOS
  *
  *  Other definitions may occur for different configurations. These include:

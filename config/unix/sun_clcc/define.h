@@ -3,8 +3,6 @@
  */
 
 #define UNIX 1
-#define SUN
-
 #define LoadFunc
 
 /* use clcc to compile generated code */

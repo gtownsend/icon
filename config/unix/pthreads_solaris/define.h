@@ -8,6 +8,5 @@
 #define LoadFunc
 
 /* Solaris and Sun C */
-#define SUN
 #define CComp "c89"
 #define COpts "-I/usr/openwin/include -ldl"

@@ -3,7 +3,6 @@
  */
 
 #define UNIX 1
-#define SUN 1
 
 #define COpts "-I/usr/openwin/include"
 
