@@ -5,7 +5,7 @@ OBJS =	long.o getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
 	munix.o literals.o rswitch.o alloc.o long.o getopt.o time.o\
 	save.o redirerr.o xwindow.o dlrgint.o ipp.o
 
-common:		doincl patchstr $(OBJS) xpmaybe
+common:		doincl $(OBJS) xpmaybe
 
 doincl:		doincl.c ../h/arch.h
 		$(CC) $(CFLAGS) -o doincl doincl.c
@@ -13,7 +13,6 @@ doincl:		doincl.c ../h/arch.h
 
 patchstr:	patchstr.c
 		$(CC) $(CFLAGS) -o patchstr patchstr.c
-		cp patchstr ../../bin
 
 xpmaybe:
 		-if [ "x$(XL)" != "x" ]; then $(MAKE) xpm; fi
