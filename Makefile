@@ -5,7 +5,7 @@
 
 
 #  configuration parameters
-VERSION=v940
+VERSION=v941
 name=unspecified
 csw=custom
 dest=/must/specify/dest/
