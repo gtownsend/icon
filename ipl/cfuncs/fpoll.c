@@ -7,7 +7,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     November 21, 1996
+#	Date:     June 8, 2001
 #
 ############################################################################
 #
@@ -62,7 +62,7 @@ int fpoll(int argc, descriptor *argv)	/*: await data from file */
 #ifdef __linux
    if (f->_IO_read_ptr < f->_IO_read_end)
       RetArg(1);
-#elif __bsdi__
+#elif __bsdi__ || __FreeBSD__
    if (f->_r > 0)
       RetArg(1);
 #else
