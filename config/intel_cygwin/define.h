@@ -8,9 +8,9 @@
 #define WinExtns	/* enable native Windows functions */
 
 #define CComp "gcc"
-#define ExecSuffix ".exe"
 
-#define BinaryHeader
+#define ExecSuffix ".exe"
 #define IcodeSuffix ".exe"
 
+#define BinaryHeader
 #define MaxHdr 16384 
