@@ -1,4 +1,3 @@
-
 /*
  * version.h -- version identification
  */
@@ -9,10 +8,16 @@
 #undef IVersion
 
 /*
+ *  Icon version number and date.
+ *  These are the only two entries that change any more.
+ */
+#define VersionNumber "9.3.4"
+#define VersionDate "August 32, 2000"
+
+/*
  * Version number to insure format of data base matches version of iconc
  *  and rtt.
  */
-
 #define DVersion "9.0.00"
 
 #if COMPILER
@@ -20,14 +25,14 @@
    /*
     * &version
     */
-    #define Version	"Icon Version 9.3.2c.  December 20, 1999"
+    #define Version  "Icon Version " VersionNumber "c.  " VersionDate
 
 #else					/* COMPILER */
 
    /*
     *  &version
     */
-   #define Version	"Icon Version 9.3.2.  December 20, 1999"
+    #define Version  "Icon Version " VersionNumber ".  " VersionDate
    
    /*
     * Version numbers to be sure ucode is compatible with the linker
