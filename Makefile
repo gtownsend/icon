@@ -37,13 +37,13 @@ config/unix/$(name)/status src/h/define.h:
 #
 
 Configure:	config/unix/$(name)/status
-		make Clean
+		make Pure
 		cp config/unix/Common/Makefile config/unix/$(name)/
 		cd config/unix/$(name);	$(MAKE) 
 		rm -f config/unix/$(name)/Makefile
 
 X-Configure:	config/unix/$(name)/status
-		make Clean
+		make Pure
 		cp config/unix/Common/Makefile config/unix/$(name)/
 		cd config/unix/$(name);	$(MAKE) X-Icon
 		rm -f config/unix/$(name)/Makefile

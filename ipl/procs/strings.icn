@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     November 16, 2000
+#	Date:     May 18, 2001
 #
 ############################################################################
 #
@@ -333,17 +333,19 @@ procedure extend(s, n)			#: extend string
 end
 
 procedure fchars(s)			#: characters in order of frequency
-   local tbl, result, klist
+   local counts, clist, bins, blist, result
 
-   tbl := table(0)
+   counts := table(0)
+   every counts[!s] +:= 1
+   clist := sort(counts, 4)
 
-   every tbl[!s] +:= 1
-
-   klist := lreverse(sortkeys(sort(tbl, 4)))
+   bins := table('')
+   while bins[pull(clist)] ++:= pull(clist)
+   blist := sort(bins, 3)
 
    result := ""
-
-   every result ||:= !klist
+   while result ||:= pull(blist) do
+      pull(blist)
 
    return result
 

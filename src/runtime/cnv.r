@@ -1114,6 +1114,8 @@ register long len;
    return (len + p + 1);
    }
 
+double dblZero = 0.0;
+
 /*
  * rtos - convert the real number n into a string using s as a buffer and
  *  making a descriptor for the resulting string.
@@ -1124,7 +1126,7 @@ dptr dp;
 char *s;
    {
    s++; 				/* leave room for leading zero */
-   sprintf(s, "%.*g", Precision, n + 0.0);  /* format string; +0.0 avoids -0 */
+   sprintf(s, "%.*g", Precision, n + dblZero);   /* format, avoiding -0 */
 
    /*
     * Now clean up possible messes.
