@@ -228,9 +228,10 @@ struct header *hdr;
    {
    static char errmsg[] = "can't read interpreter file header";
 
-#ifdef Header
-
-#ifdef ShellHeader
+#ifdef BinaryHeader
+   if (fseek(fname, (long)MaxHdr, 0) == -1)
+      error(name, errmsg);
+#else					/* BinaryHeader */
    char buf[200];
 
    for (;;) {
@@ -249,11 +250,7 @@ struct header *hdr;
       ;
    getc(fname);
    getc(fname);
-#else					/* ShellHeader */
-   if (fseek(fname, (long)MaxHdr, 0) == -1)
-      error(name, errmsg);
-#endif					/* ShellHeader */
-#endif					/* Header */
+#endif					/* BinaryHeader */
 
    if (fread((char *)hdr, sizeof(char), sizeof(*hdr), fname) != sizeof(*hdr))
       error(name, errmsg);

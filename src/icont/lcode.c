@@ -1343,21 +1343,14 @@ void gentables()
          }
    #endif				/* DeBugLinker */
 
-   #ifdef Header
-      fseek(outfile, hdrsize, 0);
-   #else				/* Header */
-      fseek(outfile, 0L, 0);
-   #endif				/* Header */
-
+   fseek(outfile, hdrsize, 0);
    if (longwrite((char *)&hdr, (long)sizeof(hdr), outfile) < 0)
       quit("cannot write icode file");
 
    if (verbose >= 2) {
       word tsize = sizeof(hdr) + hdr.hsize;
-      #ifdef Header
-         fprintf(stderr, "  bootstrap  %7ld\n", hdrsize);
-         tsize += hdrsize;
-      #endif				/* Header */
+      fprintf(stderr, "  bootstrap  %7ld\n", hdrsize);
+      tsize += hdrsize;
       fprintf(stderr, "  header     %7ld\n", (long)sizeof(hdr));
       fprintf(stderr, "  procedures %7ld\n", (long)hdr.Records);
       fprintf(stderr, "  records    %7ld\n", (long)(hdr.Ftab - hdr.Records));

@@ -11,18 +11,13 @@
 #define ExecSuffix ".exe"
 
 /*
- * Header is used in winnt.h; careful how we define it here
+ * Comment out the follwing line to compile Icon programs to Windows CMD
+ * files. Otherwise, Icon programs will have executable binary headers.
  */
-#define Header header
+#define BinaryHeader
 
-/*
- * Uncomment the following line to compile Icon programs to Windows CMD
- * files. Otherwise, Icon programs will have executable headers.
- */
-/* #define ShellHeader */
-
-#ifdef ShellHeader
-   #define IcodeSuffix ".cmd"
-#else					/* ShellHeader */
+#ifdef BinaryHeader
    #define IcodeSuffix ".exe"
-#endif					/* ShellHeader */
+#else					/* BinaryHeader */
+   #define IcodeSuffix ".cmd"
+#endif					/* BinaryHeader */

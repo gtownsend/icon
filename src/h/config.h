@@ -287,15 +287,6 @@
 #endif					/* COMPILER */
 
 /*
- * Executable methodology.
- */
-#ifndef Header
-   #define Header
-   #undef ShellHeader
-   #define ShellHeader
-#endif					/* Header */
-
-/*
  *  Vsizeof is for use with variable-sized (i.e., indefinite)
  *   structures containing an array of descriptors declared of size 1
  *   to avoid compiler warnings associated with 0-sized arrays.

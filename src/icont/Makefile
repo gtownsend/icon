@@ -57,7 +57,8 @@ lmem.o:		tglobals.h
 lsym.o:		tglobals.h
 opcode.o:	opcode.h ../h/opdefs.h
 
-# hdr.h is always built but not always used
+#  hdr.h is always built, to simplify the Makefile,
+#  but it is only actually used if BinHeader is define.
 hdr.h:		newhdr ixhdr.hdr
 		./newhdr -o hdr.h ixhdr.hdr
 newhdr:		newhdr.c ../h/define.h ../h/config.h ../h/gsupport.h
