@@ -31,7 +31,7 @@ fi
 # find and copy the context switch code.
 # use pthreads version if specified, or as a last resort.
 # first try `uname -p`.[cs] or `uname -m`.[cs] and then rswitch.[cs].
-ARCH=`uname -p`
+ARCH=`uname -p 2>/dev/null || echo unknown`
 if [ "$ARCH" = "unknown" ]; then
    ARCH=`uname -m`
 fi
