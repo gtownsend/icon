@@ -133,7 +133,11 @@
 #endif					/* DeBug */
 
 #ifndef MaxHdr
-   #define MaxHdr 6144
+   /*
+    * Maximum allowable BinaryHeader size.
+    * WARNING: changing this invalidates old BinaryHeader executables.
+    */
+   #define MaxHdr 8192
 #endif					/* MaxHdr */
 
 #ifndef MaxPath

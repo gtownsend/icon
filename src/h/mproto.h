@@ -6,6 +6,7 @@
 
 pointer	alloc		(unsigned int n);
 unsigned short *bitvect	(char *image, int len);
+char	*canonize	(char *path);
 void	clear_sbuf	(struct str_buf *sbuf);
 int	cmp_pre		(char *pre1, char *pre2);
 void	cset_init	(FILE *f, unsigned short *bv);
@@ -20,6 +21,9 @@ struct implement *db_impl  (int oper_typ);
 int	db_open		(char *s, char **lrgintflg);
 char	*db_string	(void);
 int	db_tbl		(char *section, struct implement **tbl);
+char	*findexe	(char *name, char *buf, size_t len);
+char	*findonpath	(char *name, char *buf, size_t len);
+char	*followsym	(char *name, char *buf, size_t len);
 struct fileparts *fparse(char *s);
 void	free_stbl	(void);
 void	id_comment	(FILE *f);
@@ -48,4 +52,3 @@ void	lear_sbuf	(struct str_buf *sbuf);
 #ifndef SysOpt
    int	getopt		(int argc, char * const argv[], const char *optstring);
 #endif					/* NoSysOpt */
-

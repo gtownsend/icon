@@ -13,11 +13,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-static char *findexe(char *name, char *buf, size_t len);
-static char *findonpath(char *name, char *buf, size_t len);
-static char *followsym(char *name, char *buf, size_t len);
-static char *canonize(char *path);
-
 /*
  *  relfile(prog, mod) -- find related file.
  *
@@ -64,7 +59,7 @@ char *relfile(char *prog, char *mod) {
  *  NULL is returned in case of error.
  */
 
-static char *findexe(char *name, char *buf, size_t len) {
+char *findexe(char *name, char *buf, size_t len) {
    int i, n;
    char *s, *t;
    char tbuf[MaxPath];
@@ -98,7 +93,7 @@ static char *findexe(char *name, char *buf, size_t len) {
  *  Searches $PATH (using POSIX 1003.2 rules) for executable name,
  *  writing the resulting path in buf if found.
  */
-static char *findonpath(char *name, char *buf, size_t len) {
+char *findonpath(char *name, char *buf, size_t len) {
    int nlen, plen;
    char *path, *next, *sep, *end;
    struct stat status;
@@ -153,7 +148,7 @@ static char *findonpath(char *name, char *buf, size_t len) {
 
 #define MAX_FOLLOWED_LINKS 24
 
-static char *followsym(char *name, char *buf, size_t len) {
+char *followsym(char *name, char *buf, size_t len) {
    int i, n;
    char *s, tbuf[MaxPath];
 
@@ -204,7 +199,7 @@ static char *followsym(char *name, char *buf, size_t len) {
  *  of the directory containing "foo".
  */
 
-static char *canonize(char *path) {
+char *canonize(char *path) {
    int len;
    char *root, *end, *in, *out, *prev;
 
