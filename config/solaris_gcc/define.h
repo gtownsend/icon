@@ -1,5 +1,5 @@
 /*
- * Icon configuration file for Sun 4 running Solaris 2.x with Cygnus gcc
+ * Icon configuration file for Sun Solaris 2.x using Gnu C compiler
  */
 
 #define UNIX 1
