@@ -1,0 +1,720 @@
+############################################################################
+#
+#	File:     breakout.icn
+#
+#	Subject:  Program for Breakout game
+#
+#	Author:   Nathan J. Ranks
+#
+#	Date:     September 3, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  Breakout game
+#
+#  Infinite balls, Left or Right click to start or restart after losing ball
+#  9 levels - can select any level when not active using 1-9
+#  1 hit, 2 hit, 3 hit, and invincible blocks can be used for levels
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: graphics
+#
+############################################################################
+
+link graphics 
+global sphere, blank     #sphere and blank sphere
+global X, Y              #coordinates of sphere
+global block_positions   #string of whether or not position has block
+global path, angle       #direction of sphere travel
+global wait              #pause interval used with delay()
+global level             #current level
+global hit               #sphere and block contact flag
+global blockclr1, blockclr2, blockclr3, invincclr
+
+procedure main()
+  local e
+  blockclr1 := "dark blue"     #default 1 hit block color
+  blockclr2 := "dark red"      #default 2 hit block color
+  blockclr3 := "dark green"    #default 3 hit block color
+  invincclr := "black"         #default invincible block color
+
+  WOpen("size=293,320") | stop("can't open window") 
+
+  sphere := "3,g16,~0~_
+                   000_
+                   ~0~"        #black sphere
+
+  blank  := "3,g16,~F~_
+                   FFF_
+                   ~F~"        #white sphere to erase
+
+  level := 1                   #default start level
+  create_blocks()              #as the name suggests
+
+  Fg("black")                  #default pad color
+  DrawLine(124,310,158,310)    #default pad position
+  DrawImage(140, 304, sphere)  #default sphere position
+  X := 140                     #default x position
+  Y := 304                     #default y position
+  path := "up_left"            #default sphere direction
+  angle := 60                  #default sphere angle
+  hit := 0
+
+repeat {
+  if e := Event() then {   
+    if ( e === &lpress ) then {
+      Fg("black")
+      DrawLine(124,310,158,310)    #reset default
+      DrawImage(140, 304, sphere)  #reset default
+      Y := 304                     #reset default
+      path := "up_left"            #reset default
+      angle := 60                  #reset default
+      hit := 0
+
+      X := &x
+      DrawImage(140, 304, blank)
+      move_pad()
+      move_sphere()
+    }
+    if ( e === &rpress ) then {
+      Fg("black")
+      DrawLine(124,310,158,310)    #reset default
+      DrawImage(140, 304, sphere)  #reset default
+      Y := 304                     #reset default
+      path := "up_right"           #reset default
+      angle := 60                  #reset default
+      hit := 0
+
+      X := &x
+      DrawImage(140, 304, blank)
+      move_pad()
+      move_sphere()
+    }
+    if ( e === "1" ) then {        #change to level 1
+      level := 1
+      create_blocks()
+    }
+    if ( e === "2" ) then {        #change to level 2
+      level := 2
+      create_blocks()
+    }
+    if ( e === "3" ) then {        #change to level 3
+      level := 3
+      create_blocks()
+    }
+    if ( e === "4" ) then {        #change to level 4
+      level := 4
+      create_blocks()
+    }
+    if ( e === "5" ) then {        #change to level 5
+      level := 5
+      create_blocks()
+    }
+    if ( e === "6" ) then {        #change to level 6
+      level := 6
+      create_blocks()
+    }
+    if ( e === "7" ) then {        #change to level 7
+      level := 7
+      create_blocks()
+    }
+    if ( e === "8" ) then {        #change to level 8
+      level := 8
+      create_blocks()
+    }
+    if ( e === "9" ) then {        #change to level 9
+      level := 9
+      create_blocks()
+    }
+  }
+}
+end
+
+
+
+#this keeps track of where the pad should be according
+#to where the mouse pointer is
+
+procedure move_pad()
+  &x := image(WAttrib("pointerx"))  #get pointer position
+  &y := image(WAttrib("pointery"))  #get pointer position
+  EraseArea(0,310,293,310)          #erease old pad
+  Fg("black")                       #make sure color is correct
+  DrawLine(&x-12,310,&x+12,310)     #draw new pad
+return
+end
+
+
+
+#this keeps track of sphere location and movement within the window.
+#hits on walls will change direction
+#hit on pad will change direction and possibly angle
+
+procedure move_sphere()
+wait := 9
+while ( Y < 312 ) do {
+  if ( path == "up_right" ) then {
+    delay(wait)
+    move_pad()
+    GO_UP_RIGHT()
+    hit := 0
+    if ( X > 285 ) then {
+      path := "up_left"
+    }
+    if ( Y < 0 ) then {
+      path := "down_right"
+    }
+  }
+  if ( path == "up_left" ) then {
+    delay(wait)
+    move_pad()
+    GO_UP_LEFT()
+    hit := 0
+    if ( X < 0 ) then {
+      path := "up_right"
+    }
+    if ( Y < 0 ) then {
+      path := "down_left"
+    }
+  }
+  if ( path == "down_right" ) then {
+    delay(wait)
+    move_pad()
+    GO_DOWN_RIGHT()
+    hit := 0
+    if ( X > 285 ) then {
+      path := "down_left"
+    }
+    if ( (Y = 303) | (Y = 304) | (Y = 305) ) then {
+      if ( ((X+1) < &x+13) & ((X+1) > &x-13) ) then {
+        path := "up_right"
+        if ( (X+1) > &x-13 ) then {
+          angle := 30
+        }
+        if ( (X+1) > &x-6 ) then {
+          angle := 60
+        }
+        if ( (X+1) > &x+6 ) then {
+          angle := 30
+        }
+      }
+    }
+  }
+  if ( path == "down_left" ) then {
+    delay(wait)
+    move_pad()
+    GO_DOWN_LEFT()
+    hit := 0
+    if ( X < 0 ) then {
+      path := "down_right"
+    }
+    if ( (Y = 303) | (Y = 304) | (Y = 305) ) then {
+      if ( ((X+1) < &x+13) & ((X+1) > &x-13) ) then {
+        path := "up_left"
+        if ( (X+1) > &x-13 ) then {
+          angle := 30
+        }
+        if ( (X+1) > &x-6 ) then {
+          angle := 60
+        }
+        if ( (X+1) > &x+6 ) then {
+          angle := 30
+        }
+      }
+    }
+  }
+}
+return
+end
+
+
+#these next 4 procedures move the sphere
+#and then check for block contact
+
+procedure GO_UP_RIGHT()
+  if ( angle = 30 ) then {
+    DrawImage(X, Y, blank)
+    Y := Y - 1
+    DrawImage(X, Y, sphere)
+    DrawImage(X, Y, blank)
+    X := X + 1
+    DrawImage(X, Y, sphere)
+    block_check()
+    if ( hit = 1 ) then {
+      fix_blocks()
+      return
+    }
+    DrawImage(X, Y, blank)
+    X := X + 1
+    DrawImage(X, Y, sphere)
+    block_check()
+    if ( hit = 1 ) then {
+      fix_blocks()
+      return
+    }
+  }
+  if ( angle = 60 ) then {
+    DrawImage(X, Y, blank)
+    Y := Y - 1
+    DrawImage(X, Y, sphere)
+    DrawImage(X, Y, blank)
+    X := X + 1
+    DrawImage(X, Y, sphere)
+    block_check()
+    if ( hit = 1 ) then {
+      fix_blocks()
+      return
+    }
+    DrawImage(X, Y, blank)
+    Y := Y - 1
+    DrawImage(X, Y, sphere)
+    DrawImage(X, Y, blank)
+    X := X + 1
+    DrawImage(X, Y, sphere)
+    block_check()
+    if ( hit = 1 ) then {
+      fix_blocks()
+      return
+    }
+  }
+return
+end
+procedure GO_UP_LEFT()
+  if ( angle = 30 ) then {
+    DrawImage(X, Y, blank)
+    Y := Y - 1
+    DrawImage(X, Y, sphere)
+    DrawImage(X, Y, blank)
+    X := X - 1
+    DrawImage(X, Y, sphere)
+    block_check()
+    if ( hit = 1 ) then {
+      fix_blocks()
+      return
+    }
+    DrawImage(X, Y, blank)
+    X := X - 1
+    DrawImage(X, Y, sphere)
+    block_check()
+    if ( hit = 1 ) then {
+      fix_blocks()
+      return
+    }
+  }
+  if ( angle = 60 ) then {
+    DrawImage(X, Y, blank)
+    Y := Y - 1
+    DrawImage(X, Y, sphere)
+    DrawImage(X, Y, blank)
+    X := X - 1
+    DrawImage(X, Y, sphere)
+    block_check()
+    if ( hit = 1 ) then {
+      fix_blocks()
+      return
+    }
+    DrawImage(X, Y, blank)
+    Y := Y - 1
+    DrawImage(X, Y, sphere)
+    DrawImage(X, Y, blank)
+    X := X - 1
+    DrawImage(X, Y, sphere)
+    block_check()
+    if ( hit = 1 ) then {
+      fix_blocks()
+      return
+    }
+  }
+return
+end
+procedure GO_DOWN_RIGHT()
+  if ( angle = 30 ) then {
+    DrawImage(X, Y, blank)
+    Y := Y + 1
+    DrawImage(X, Y, sphere)
+    DrawImage(X, Y, blank)
+    X := X + 1
+    DrawImage(X, Y, sphere)
+    block_check()
+    if ( hit = 1 ) then {
+      fix_blocks()
+      return
+    }
+    DrawImage(X, Y, blank)
+    X := X + 1
+    DrawImage(X, Y, sphere)
+    block_check()
+    if ( hit = 1 ) then {
+      fix_blocks()
+      return
+    }
+  }
+  if ( angle = 60 ) then {
+    DrawImage(X, Y, blank)
+    Y := Y + 1
+    DrawImage(X, Y, sphere)
+    DrawImage(X, Y, blank)
+    X := X + 1
+    DrawImage(X, Y, sphere)
+    block_check()
+    if ( hit = 1 ) then {
+      fix_blocks()
+      return
+    }
+    DrawImage(X, Y, blank)
+    Y := Y + 1
+    DrawImage(X, Y, sphere)
+    DrawImage(X, Y, blank)
+    X := X + 1
+    DrawImage(X, Y, sphere)
+    block_check()
+    if ( hit = 1 ) then {
+      fix_blocks()
+      return
+    }
+  }
+return
+end
+procedure GO_DOWN_LEFT()
+  if ( angle = 30 ) then {
+    DrawImage(X, Y, blank)
+    Y := Y + 1
+    DrawImage(X, Y, sphere)
+    DrawImage(X, Y, blank)
+    X := X - 1
+    DrawImage(X, Y, sphere)
+    block_check()
+    if ( hit = 1 ) then {
+      fix_blocks()
+      return
+    }
+    DrawImage(X, Y, blank)
+    X := X - 1
+    DrawImage(X, Y, sphere)
+    block_check()
+    if ( hit = 1 ) then {
+      fix_blocks()
+      return
+    }
+  }
+  if ( angle = 60 ) then {
+    DrawImage(X, Y, blank)
+    Y := Y + 1
+    DrawImage(X, Y, sphere)
+    DrawImage(X, Y, blank)
+    X := X - 1
+    DrawImage(X, Y, sphere)
+    block_check()
+    if ( hit = 1 ) then {
+      fix_blocks()
+      return
+    }
+    DrawImage(X, Y, blank)
+    Y := Y + 1
+    DrawImage(X, Y, sphere)
+    DrawImage(X, Y, blank)
+    X := X - 1
+    DrawImage(X, Y, sphere)
+    block_check()
+    if ( hit = 1 ) then {
+      fix_blocks()
+      return
+    }
+  }
+return
+end
+
+
+
+#this draws the play fields according to what the levels
+#are defined as
+
+procedure create_blocks()
+  local x, y, z
+
+  if ( level > 9 ) then {
+    level := 1
+  }
+
+  #different play fields go here
+  if ( level = 1 ) then { #icon-squared
+    block_positions := "000000000000000000000000000000000000000100000000110100110111000001010010101110101101110101000000000000000111000001110010100000101001110000011100000000000000010101110110101110101001010000011101100101100000000100000000000000000000000000"
+  }
+  if ( level = 2 ) then { #alternate rows
+    block_positions := "111111111111100000000000001111111111111000000000000011111111111110000000000000111111111111100000000000001111111111111000000000000011111111111110000000000000111111111111100000000000001111111111111000000000000011111111111110000000000000"
+  }
+  if ( level = 3 ) then { #alternating columns
+    block_positions := "101010101010110101010101011010101010101101010101010110101010101011010101010101101010101010110101010101011010101010101101010101010110101010101011010101010101101010101010110101010101011010101010101101010101010110101010101011010101010101"
+  }
+  if ( level = 4 ) then { #heart
+    block_positions := "000100000100000101000101000100010100010010001010001001000101000100100001000010010000100001000100000001000010000000100001000000010000010000010000001000001000000010001000000000101000000000001000000000000100000000000010000000000000000000"
+  }
+  if ( level = 5 ) then { #checker board
+    block_positions := "101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010"
+  }
+  if ( level = 6 ) then { #filled up
+    block_positions := "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+  }
+  if ( level = 7 ) then { #diamond and a half
+    block_positions := "000001110000000001111100000001111111000001111111110001111111111101111111111111011111111111000111111111000001111111000000011111000000000111000000000001000000000001110000000001111100000001111111000001111111110001111111111101111111111111"
+  }
+  if ( level = 8 ) then { #misc multiple hits
+    block_positions := "11111111111111111111111111313131313131311111111111112121212121212X3X2X3X2X3X2X111111111111111111111111113131313131313111111111111112121212121213X2X3X2X3X2X31111111111111111111111111131313131313132121212121212X3X2X3X2X3X2X1111111111111"
+  }
+  if ( level = 9 ) then { #throw-rug
+    block_positions := "21111111111121211111111121112111111121111121111121111111211121111211112121111212111121111211121123211211111223X322111111223X32211111211232112111211112111121211112121111211112111211111112111112111112111111121112111111111212111111111112"
+  }
+
+
+  z := 1
+  y := 10
+  x := 10
+  while not ( y = 208 ) do {
+    while not ( x = 283 ) do {
+      if ( block_positions[z] == "0" ) then {
+        Fg("white")
+        FillRectangle(x,y,20,10)
+      }
+      if ( block_positions[z] == "1" ) then {
+        Fg(blockclr1)
+        FillRectangle(x,y,20,10)
+      }
+      if ( block_positions[z] == "2" ) then {
+        Fg(blockclr2)
+        FillRectangle(x,y,20,10)
+      }
+      if ( block_positions[z] == "3" ) then {
+        Fg(blockclr3)
+        FillRectangle(x,y,20,10)
+      }
+      if ( block_positions[z] == "X" ) then {
+        Fg(invincclr)
+        FillRectangle(x,y,20,10)
+      }
+      z := z + 1
+      x := x + 21
+    }
+    x := 10
+    y := y + 11
+  }
+return
+end
+
+
+#this checks to see if the sphere contacts an edge
+#of a block, if so, it erases the block and changes
+#the sphere's direction accordingly
+#it also checks if level is finished
+
+procedure block_check()
+  local x, y, z, temp, temp2
+  z := 1
+  y := 10
+  x := 10
+  while not ( y = 208 ) do {
+    while not ( x = 283 ) do {
+      if ( (((X+1)>(x-1))&((X+1)<(x+21)))&(((Y+1)>(y-1))&((Y+1)<(y+11))) ) then {
+        if ( block_positions[z] == "X" ) then {
+          hit := 1
+          Fg(invincclr)
+          FillRectangle(x,y,20,10)
+          if ( path == "up_right" ) then {
+            if ( ((X+1)=x) ) then { #side hit
+              path := "up_left"
+            }
+            if ( ((Y+1)=(y+10)) ) then { #bottom hit
+              path := "down_right"
+            }
+            if ( ((X+1)=x)&((Y+1)=(y+10)) ) then { #diagonal hit
+              path := "down_left"
+            }
+          }
+          else {
+            if ( path == "up_left" ) then {
+              if ( ((X+1)=(x+20)) ) then { #side hit
+                path := "up_right"
+              }
+              if ( ((Y+1)=(y+10)) ) then { #bottom hit
+                path := "down_left"
+              }
+              if ( ((X+1)=(x+20))&((Y+1)=(y+10)) ) then { #diagonal hit
+                path := "down_right"
+              }
+            }
+            else {
+              if ( path == "down_left" ) then {
+                if ( ((X+1)=(x+20)) ) then { #side hit
+                  path := "down_right"
+                }
+                if ( ((Y+1)=y) ) then { #top hit
+                  path := "up_left"
+                }
+                if ( ((X+1)=(x+20))&((Y+1)=y) ) then { #diagonal hit
+                  path := "up_right"
+                }
+              }
+              else {
+                if ( path == "down_right" ) then {
+                  if ( ((X+1)=x) ) then { #side hit
+                    path := "down_left"
+                  }
+                  if ( ((Y+1)=y) ) then { #top hit
+                    path := "up_right"
+                  }
+                  if ( ((X+1)=x)&((Y+1)=y) ) then { #diagonal hit
+                    path := "up_left"
+                  }
+                }
+              }
+            }
+          }
+        }
+        if ( (block_positions[z] == "1") |
+             (block_positions[z] == "2") |
+             (block_positions[z] == "3") ) then {
+          hit := 1
+          if ( block_positions[z] == "1" ) then {
+            Fg("white")
+            FillRectangle(x,y,20,10)
+            block_positions[z] := "0"
+          }
+          if ( block_positions[z] == "2" ) then {
+            Fg(blockclr1)
+            FillRectangle(x,y,20,10)
+            block_positions[z] := "1"
+          }
+          if ( block_positions[z] == "3" ) then {
+            Fg(blockclr2)
+            FillRectangle(x,y,20,10)
+            block_positions[z] := "2"
+          }
+          if ( path == "up_right" ) then {
+            if ( ((X+1)=x) ) then { #side hit
+              path := "up_left"
+            }
+            if ( ((Y+1)=(y+10)) ) then { #bottom hit
+              path := "down_right"
+            }
+            if ( ((X+1)=x)&((Y+1)=(y+10)) ) then { #diagonal hit
+              path := "down_left"
+            }
+          }
+          else {
+            if ( path == "up_left" ) then {
+              if ( ((X+1)=(x+20)) ) then { #side hit
+                path := "up_right"
+              }
+              if ( ((Y+1)=(y+10)) ) then { #bottom hit
+                path := "down_left"
+              }
+              if ( ((X+1)=(x+20))&((Y+1)=(y+10)) ) then { #diagonal hit
+                path := "down_right"
+              }
+            }
+            else {
+              if ( path == "down_left" ) then {
+                if ( ((X+1)=(x+20)) ) then { #side hit
+                  path := "down_right"
+                }
+                if ( ((Y+1)=y) ) then { #top hit
+                  path := "up_left"
+                }
+                if ( ((X+1)=(x+20))&((Y+1)=y) ) then { #diagonal hit
+                  path := "up_right"
+                }
+              }
+              else {
+                if ( path == "down_right" ) then {
+                  if ( ((X+1)=x) ) then { #side hit
+                    path := "down_left"
+                  }
+                  if ( ((Y+1)=y) ) then { #top hit
+                    path := "up_right"
+                  }
+                  if ( ((X+1)=x)&((Y+1)=y) ) then { #diagonal hit
+                    path := "up_left"
+                  }
+                }
+              }
+            }
+          }
+          #check to see if field is clear for next level
+          #reset sphere back to below block height
+          temp := 1
+          temp2 := 0
+          while ( temp < 244 ) do {
+            if ( (block_positions[temp] == "1") |
+                 (block_positions[temp] == "2") |
+                 (block_positions[temp] == "3") ) then {
+              temp2 := 1
+              temp := 243
+            }
+            temp := temp + 1
+          }
+          if ( temp2 = 0 ) then {
+            level := level + 1
+            create_blocks()
+            DrawImage(X,Y,blank)
+            DrawImage(140, 304, sphere)
+            X := 140
+            Y := 304
+            path := "up_right"
+          }
+        }
+      }
+      z := z + 1
+      x := x + 21
+    }
+    x := 10
+    y := y + 11
+  }
+return
+end
+
+
+#this is an extra check to make sure the blocks stay completely filled
+#when the sphere moves out of a block, the DrawImage(X, Y, blank)
+#will draw a white sphere over the old sphere, this fixes blocks
+#periodically by being called every block hit in the 4 move sphere procedures
+
+procedure fix_blocks()
+  local x, y, z
+
+  z := 1
+  y := 10
+  x := 10
+  while not ( y = 208 ) do {
+    while not ( x = 283 ) do {
+      if ( block_positions[z] == "1" ) then {
+        Fg(blockclr1)
+        FillRectangle(x,y,20,10)
+      }
+      if ( block_positions[z] == "2" ) then {
+        Fg(blockclr2)
+        FillRectangle(x,y,20,10)
+      }
+      if ( block_positions[z] == "3" ) then {
+        Fg(blockclr3)
+        FillRectangle(x,y,20,10)
+      }
+      if ( block_positions[z] == "X" ) then {
+        Fg(invincclr)
+        FillRectangle(x,y,20,10)
+      }
+      z := z + 1
+      x := x + 21
+    }
+    x := 10
+    y := y + 11
+  }
+return
+end
