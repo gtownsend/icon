@@ -1,4 +1,4 @@
-#  Makefile for FAQ installation
+#  Makefile for FAQ installation and webpage validation
 #  <<ARIZONA-ONLY>>
 
 
@@ -10,8 +10,8 @@ FFAQ = /cs/ftp/icon/doc/faq.txt
 default:  faq.txt
 
 lint:
-	weblint -x netscape faq.htm
-	weblinks -t faq.htm
+	weblint -x netscape *.htm
+	weblinks -t *.htm
 
 faq.txt:  faq.htm
 	lynx -nolist -dump faq.htm >faq.txt

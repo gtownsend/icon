@@ -1,0 +1,88 @@
+<!doctype html public "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Version 9.4 of Icon</TITLE>
+    <LINK REL="STYLESHEET" TYPE="text/css" HREF="istyle.css">
+</HEAD>
+<BODY>
+
+<IMG SRC="cube128.gif" WIDTH=128 HEIGHT=128 ALT="" ALIGN=RIGHT>
+<H1> Version 9.4 of Icon </H1>
+
+<P> Version 9.4 of Icon is a modified and repackaged version
+based on version 9.3.2. 
+The changes make it easier to maintain, install, and use under Unix. 
+Most notably, the Icon program library is now a treated as a standard
+part of Icon and is included in all Unix distributions.
+
+<P> The language itself is unchanged, and this 9.4 Unix implementation
+remains compatible at the source level with Icon 9.3 for Windows.
+
+<P>
+<IMG SRC="ib80.jpg" ALT="[cover]" WIDTH=60 HEIGHT=80 ALIGN=LEFT>
+The Icon language is defined by
+<BR> <CITE> The Icon Programming Language, Third Edition </CITE>
+<BR> Ralph E. Griswold and Madge T. Griswold 
+<BR> Peer-to-Peer Communications, 1996 
+<BR> ISBN 1-57398-001-3 
+<BR CLEAR=ALL>
+
+<P>
+<IMG SRC="gb80.jpg" ALT="[cover]" WIDTH=60 HEIGHT=80 ALIGN=LEFT>
+Icon's graphics facilities are defined by
+<BR> <CITE> Graphics Programming in Icon </CITE>
+<BR> Ralph E. Griswold, Clinton L. Jeffery, and Gregg M. Townsend 
+<BR> Peer-to-Peer Communications, 1998 
+<BR> ISBN 1-57398-009-9 
+<BR CLEAR=ALL>
+
+<P> Program library documentation is contained within the source code.
+Extracted documentation is available at 
+<A HREF="http://www.cs.arizona.edu/icon/library/ipl.htm">
+http://www.cs.arizona.edu/icon/library/ipl.htm</A>.
+
+<P> Other sources of documentation can be found in
+<A HREF="faq.htm"> the Icon FAQ </A> and on the Icon web site,
+<A HREF="http://www.cs.arizona.edu/icon/">
+http://www.cs.arizona.edu/icon</A>.
+
+<P> A few features have been added since the publication of the Icon books;
+these are described below.
+
+<H2> Reading foreign text files </H2>
+
+<P> The function <CODE>read()</CODE> recognizes
+three kinds of line terminators when reading a file
+opened in translated mode:
+Windows (CR+LF), Macintosh (CR), or Unix (LF).
+Consequently, text files created on one platform can be
+read by an Icon program running on a different platform. 
+
+<H2> Reading directory contents </H2>
+
+<P> The files in a directory can be listed by opening the directory as a file.
+Subsequent reads return the names of the files contained in the directory.
+The names are returned in no particular order, and for Unix, the directories 
+<CODE>"."</CODE> and <CODE>".."</CODE> are included.
+
+<H2> Path searching </H2>
+
+<P> The Icon translator and linker search files specified by the
+<CODE>LPATH</CODE> and <CODE>IPATH</CODE> environment variables
+when looking for <CODE>$include</CODE> and <CODE>link</CODE> files
+respectively.
+Under Unix, colons (<CODE>:</CODE>) may now separate directories
+in these environment variables.
+
+<P> The Icon program library is now searched automatically, but
+<CODE>LPATH</CODE> and <CODE>IPATH</CODE> can still be set to control
+the search order.
+For version 9.4, the the effective path:
+<OL>
+	<LI> the current directory
+	<LI> directories named by the environment variable
+	<LI> the Icon library directory
+</OL>
+
+</BODY>
+</HTML>
