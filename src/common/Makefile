@@ -19,7 +19,7 @@ gpxmaybe:
 
 xpm:
 		cd ../xpm; $(MAKE) libXpm.a
-		cp ../xpm/libXpm.a ../../bin/libIgpx.a
+		cp -p ../xpm/libXpm.a ../../bin/libIgpx.a
 
 wincap:		
 		cd ../wincap; $(MAKE) libWincap.a
