@@ -16,6 +16,19 @@ unset BLKSIZE STRSIZE MSTKSIZE COEXPSIZE TRACE NOERRBUF FPATH IPATH LPATH
 #  Clean out old versions of compiled procedures
 rm -f */*.u[12]
 
+#  Diagnose duplicate filenames among procs and among progs.
+#  (We allow one proc and one prog to have the same filename.)
+for t in procs progs; do
+    ls *$t/*.icn |
+    sed 's=.*/==' |
+    sort |
+    uniq -c |
+    grep -v ' 1' |
+    while read n f; do
+        echo "   DUPLICATE NAME:" *$t/$f
+    done
+done
+
 
 #  Start by building procedures, including cfuncs, needed by programs
 #  Use only include-files guaranteed to be present with each part of library
@@ -44,7 +57,8 @@ rm -f xxx
 #  Define function for silent compilation, echoing name only on error
 function compile {  icont -us $1  ||  echo "         -- failed in $1";  }
 
-#  Build programs from "bipl" portion, using only "bipl" library
+#  Build programs from "bipl" portion, using only "bipl" library.
+#  (For a better check, should really build using non-graphics version of Icon.)
 export LPATH="../incl"
 export IPATH="../procs ../cfuncs"
 (echo progs:; cd progs;  for f in *.icn; do compile $f; done)
