@@ -32,14 +32,15 @@ int main(int argc, char *argv[]) {
    struct fileparts *fp;
 
    /*
-    * Process options.
+    * Process options.  NOTE: Keep Usage definition in sync with getopt() call.
     */
-   while ((c = getopt(argc, argv, IconOptions)) != EOF)
+   #define Usage "[-cstuE] [-f s] [-o ofile] [-v i]"	/* omit -e from doc */
+   while ((c = getopt(argc, argv, "ce:f:o:stuv:EL")) != EOF)
       switch (c) {
          case 'c':			/* -c: compile only (no linking) */
             nolink = 1;
             break;
-         case 'e':			/* -e file: redirect stderr */
+         case 'e':			/* -e file: [undoc] redirect stderr */
             efile = optarg;
             break;
          case 'f':			/* -f features: enable features */
@@ -220,6 +221,6 @@ void report(char *s) {
  *  on the legal options for this system.
  */
 static void usage(void) {
-   fprintf(stderr, "usage: %s %s file ... [-x args]\n", progname, TUsage);
+   fprintf(stderr, "usage: %s %s file ... [-x args]\n", progname, Usage);
    exit(EXIT_FAILURE);
    }

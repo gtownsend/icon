@@ -4,9 +4,10 @@
 
 #define Iconc
 
-#ifdef strlen
-#undef strlen			/* defined in some contexts */
-#endif /* strlen */
+#ifndef CUsage
+   #define CUsage "[-C C-comp] [-E] [-T] [-c] [-f{adelns}] [-n{acest}]\n\
+ [-o ofile] [-p C-opts] [-r runtime] [-s] [-t] [-u] [-v i]"
+#endif				/* CUsage */
 
 #define Abs(n) ((n) >= 0 ? (n) : -(n))
 #define Max(x,y) ((x)>(y)?(x):(y))
