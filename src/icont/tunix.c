@@ -58,9 +58,10 @@ int main(int argc, char *argv[]) {
 
    /*
     * Process options.
-    * IMPORTANT:  When making changes here, also update usage() function.
+    * IMPORTANT:  When making changes here,
+    * also update usage() function and man page.
     */
-   while ((c = getopt(argc, argv, "+ce:f:o:stuv:ELP:VX:")) != EOF)
+   while ((c = getopt(argc, argv, "+ce:f:o:stuv:ELNP:VX:")) != EOF)
       switch (c) {
          case 'c':			/* -c: compile only (no linking) */
             nolink = 1;
@@ -97,15 +98,18 @@ int main(int argc, char *argv[]) {
             break;
          case 'P':			/* -P program: execute from argument */
             txrun(savefile, optarg, &argv[optind]);
-            break;			/*NOTREACHED*/
-         case 'V':
+            break;	/*NOTREACHED*/
+         case 'N':			/* -N: don't embed iconx path */
+            iconxloc = "";
+            break;
+         case 'V':			/* -V: print version information */
             fprintf(stderr, "%s  (%s, %s)\n", Version, Config, __DATE__);
             if (optind == argc)
                exit(0);
             break;
          case 'X':			/* -X srcfile: execute single srcfile */
             txrun(copyfile, optarg, &argv[optind]);
-            break;			/*NOTREACHED*/
+            break;	/*NOTREACHED*/
 
          #ifdef DeBugLinker
             case 'L':			/* -L: enable linker debugging */
@@ -277,7 +281,7 @@ static void usage(void) {
    fprintf(stderr, "usage: icon  sourcefile   [args]\n");
    fprintf(stderr, "       icon  -P 'program' [args]\n");
    fprintf(stderr, "       icont %s\n",
-      "[-cstuEV] [-f s] [-o ofile] [-v i] file ... [-x args]");
+      "[-cstuENV] [-f s] [-o ofile] [-v i] file ... [-x args]");
    exit(EXIT_FAILURE);
    }
 
@@ -413,4 +417,4 @@ static void cleanup(void) {
 
    for (p = rfiles; *p; p++)
       remove(*p);
-}
+   }

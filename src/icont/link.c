@@ -147,8 +147,8 @@ char *outname;
             "IXBIN=", iconxloc,
             "IXLCL=`echo $0 | sed 's=[^/]*$=iconx='`",
             "[ -n \"$ICONX\" ] && exec \"$ICONX\" $0 ${1+\"$@\"}",
-            "[ -x $IXLCL ] && exec $IXLCL $0 ${1+\"$@\"}",
-            "[ -x $IXBIN ] && exec $IXBIN $0 ${1+\"$@\"}",
+            "[ -x \"$IXLCL\" ] && exec \"$IXLCL\" $0 ${1+\"$@\"}",
+            "[ -x \"$IXBIN\" ] && exec \"$IXBIN\" $0 ${1+\"$@\"}",
             "exec iconx $0 ${1+\"$@\"}",
             "[executable Icon binary follows]");
          strcat(script, "        \n\f\n" + ((int)(strlen(script) + 4) % 8));
