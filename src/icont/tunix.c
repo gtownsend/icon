@@ -371,9 +371,16 @@ static char *savefile(FILE *f, char *srcprog) {
  */
 static char *copyfile(FILE *f, char *srcfile) {
    int c;
-   FILE *e = fopen(srcfile, "r");
-   if (e == NULL)
-      quitf("cannot open: %s", srcfile);
+   FILE *e;
+
+   if (strcmp(srcfile, "-") == 0) {
+      e = stdin;
+      srcfile = "stdin";
+      }
+   else {
+      if ((e = fopen(srcfile, "r")) == NULL)
+         quitf("cannot open: %s", srcfile);
+      }
    fprintf(f, "$line 0 \"%s\"\n", srcfile);
    while ((c = getc(e)) != EOF)
       putc(c, f);

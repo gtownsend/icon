@@ -5,35 +5,65 @@
 #  prepend Icon binary directory to path
 PATH=../../bin:$PATH
 
+#  merge stdin and stderr
 exec 2>&1
+
+#  stop on errors
 set -e -x
 
-rm -f hello.u? hello
+#  remove files if left over from before
+test -f olleh    && chmod +rw olleh
+test -f hello    && chmod +rw hello
+test -f hello.u1 && chmod +rw hello.u1
+test -f hello.u2 && chmod +rw hello.u2
+rm -f hello hello.u? olleh
+
+#  simple compile and execute, with no arguments
 icont hello -x
 ./hello north
+rm hello
 
-rm -f hello.u? hello olleh
+#  compile and execute with options
 icont -u -s -o olleh hello.icn -x south
 ./olleh east
+rm olleh
+test ! -f hello
+test ! -f hello.u?
 
-rm -f hello.u? hello olleh
+#  separate compilation
 icont -c -t -s hello
 icont -u -s hello.u -x west
 
-rm -f hello.u? hello
-icont -X hello.icn world
+#  make sure that these files all exist
+#  and that subsequent commands don't touch them
+chmod -rwx hello.u? hello
 
-rm -f hello.u? hello
+#  icont direct execution
+icont -X hello.icn Tucson
+
+#  icon command
+icon hello.icn Pima
+
+#  icon command from standard input
+icon - <hello.icn Arizona
+
+#  shell magic execution (icont)
+chmod +rwx hello
 echo '#!../../bin/icont -X' | cat - hello.icn > hello
-chmod +x hello
+./hello world
+
+#  shell magic execution (icon)
+echo '#!../../bin/icon' | cat - hello.icn > hello
 ./hello galaxy
 
-rm -f hello.u? hello
+#  shell magic execution (/usr/bin/env icon)
 echo '#!/usr/bin/env icon' | cat - hello.icn > hello
-chmod +x hello
 ./hello universe
 
-rm -f hello.u? hello
+#  in-line program
 icon -P 'procedure main(); write("HOWDY!"); end'
 
+#  final file cleanup
+chmod +rw hello.u?
+rm hello.u? hello
 : done
