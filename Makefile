@@ -2,8 +2,20 @@ SHELL=/bin/sh
 MAKE=make
 name=unspecified
 
-help:
-		@echo "See the Icon installation documents for instructions."
+default:	Icon
+
+src/h/define.h:
+	:
+	: To configure Icon, run either
+	:
+	:	make Configure name=xxxx     [for no graphics]
+	: or	make X-Configure name=xxxx   [with graphics]
+	:
+	: where xxxx is one of
+	:
+	@(cd config/unix; ls -d [a-z]*)
+	:
+	@exit 1
 
 ##################################################################
 #
@@ -15,13 +27,13 @@ help:
 
 Configure:
 		make Clean
-		cp config/unix/Common/Makefile config/unix/$(name)
+		cp config/unix/Common/Makefile config/unix/$(name)/
 		cd config/unix/$(name);	$(MAKE) 
 		rm -f config/unix/$(name)/Makefile
 
 X-Configure:
 		make Clean
-		cp config/unix/Common/Makefile config/unix/$(name)
+		cp config/unix/Common/Makefile config/unix/$(name)/
 		cd config/unix/$(name);	$(MAKE) X-Icon
 		rm -f config/unix/$(name)/Makefile
 
@@ -63,11 +75,12 @@ Headers:
 #
 
 #
-# The interpreter.
+# The interpreter: icont and iconx.
 #
 
-Icon:
-		$(MAKE) Icon-icont
+Icon Icon-icont: Common
+		cd src/icont;		$(MAKE)
+		cd src/runtime;		$(MAKE) interp_all
 
 #
 # The compiler: rtt, the run-time system, and iconc.
@@ -77,19 +90,12 @@ Icon:
 Icon-iconc:	Common
 		cd src/runtime;		$(MAKE) comp_all
 		cd src/iconc;		$(MAKE)
-#
-# The interpreter: icont and iconx.
-#
-
-Icon-icont:	Common
-		cd src/icont;		$(MAKE)
-		cd src/runtime;		$(MAKE) interp_all
 
 #
 # Common components.
 #
 
-Common:
+Common:		src/h/define.h
 		cd src/common;		$(MAKE)
 		cd src/rtt;		$(MAKE)
 
