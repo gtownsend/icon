@@ -65,7 +65,7 @@ int fpoll(int argc, descriptor *argv)	/*: await data from file */
 #elif defined(__GLIBC__)
    if (f->__bufp < f->__get_limit)
       RetArg(1);
-#elif __bsdi__ || __FreeBSD__ || __NetBSD__ || __OpenBSD__
+#elif __bsdi__ || __FreeBSD__ || __NetBSD__ || __OpenBSD__ || __CYGWIN__
    if (f->_r > 0)
       RetArg(1);
 #else
