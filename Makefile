@@ -181,10 +181,17 @@ Benchmark-icont:
 #
 # Clean-up.
 #
+# "make Clean" removes intermediate files, leaving executables.
+# "make Pure"  also removes executable binaries and configured files.
 
 Clean:
-		-cd src;		$(MAKE) Clean
-		-cd tests;		$(MAKE) Clean
+		cd src;			$(MAKE) Clean
+		cd tests;		$(MAKE) Clean
+
+Pure:
+		rm -f bin/[a-z]*
+		cd src;			$(MAKE) Pure
+		cd tests;		$(MAKE) Clean
 
 ##################################################################
 # Entries beyond this point are for use at Arizona only.

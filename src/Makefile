@@ -15,6 +15,9 @@ Clean:
 # force full rebuild of runtime system
 		touch h/define.h
 
+Pure:		Clean
+		rm -f common/rswitch.* h/path.h h/define.h */Makefile
+
 # Entries beyond this point are for use at Arizona only.
 #   *** Do not delete the line above; it is used in trimming Makefiles
 #   for distribution ***
@@ -41,6 +44,6 @@ Force-rebuild: Clean
 	cd h; rm -f kdefs.h
 	cd common; rm -f *.o yacctok.h lextab.h icontype.h \
 		doincl fixgram mktoktab patchstr pscript typespec
-	cd icont; rm -f *.o icont iconx.hdr mkkwd trash \
+	cd icont; rm -f *.o icont mkkwd trash \
 		hdr.h keyword.h tgram.g ttoken.h tparse.c
 	cd iconc; rm -f *.o iconc cgram.g ctoken.h cparse.h
