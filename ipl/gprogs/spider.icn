@@ -6,7 +6,7 @@
 #
 #	Author:   William S. Evans
 #
-#	Date:     January 3, 2002
+#	Date:     January 30, 2002
 #
 ############################################################################
 #
@@ -351,6 +351,7 @@ procedure click(maxCards, fromPile, toPile)
     chain := chainPrefix(fromPile) | fail
     chain := chain[1+:maxCards]		# limit chain size (may fail, no effect)
     0 < toPile <= 10 | fail
+    0 < fromPile <= 10 | fail
 
     if fromPile = toPile then {		# find best pile to move to
 	if *chain = 13 then {		# take-off entire suit
