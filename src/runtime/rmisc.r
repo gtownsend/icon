@@ -1610,7 +1610,7 @@ dptr dp;
    /*
     * Check for a cset we recognize using a hardwired decision tree.
     *  In EBCDIC, the neither &lcase nor &ucase is contiguous.
-    *  #%#% THIS CODE HAS NOT YET BEEN TESTED.
+    *  THIS CODE HAS NOT YET BEEN TESTED.
     */
    if (n == 52) {
       if ((Cset32(0x80,*dp) & Cset32(0xC0,*dp)) == 0x03FE03FE

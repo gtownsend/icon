@@ -2,7 +2,7 @@
 
 
 #  configuration parameters
-VER=9.4.f
+VERSION=9.4.0.b1
 name=unspecified
 dest=/must/specify/dest/
 
@@ -110,11 +110,11 @@ Install:
 
 # Bundle up for binary distribution.
 
-DIR=icon.$(VER)
+DIR=icon.$(VERSION)
 Package:
 		rm -rf $(DIR)
 		umask 002; $(MAKE) Install dest=$(DIR)
-		tar cf - icon.$(VER) | gzip -9 >icon.$(VER).tgz
+		tar cf - icon.$(VERSION) | gzip -9 >icon.$(VERSION).tgz
 		rm -rf $(DIR)
 
 
