@@ -25,7 +25,7 @@ config/unix/$(name)/status src/h/define.h:
 	:
 	: where xxxx is one of
 	:
-	@cd config/unix; ls -d [abcdefghijklmnopqrstuvwxyz]*
+	@cd config/unix; ls -d `find * -type d -prune -print`
 	:
 	@exit 1
 

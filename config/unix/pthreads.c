@@ -1,5 +1,5 @@
 /*
- * rswitch.c -- Icon context switch code using POSIX threads and semaphores
+ * pthreads.c -- Icon context switch code using POSIX threads and semaphores
  *
  * This code implements co-expression context switching on any system that
  * provides POSIX threads and semaphores.  It has these drawbacks compared

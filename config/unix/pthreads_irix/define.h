@@ -4,7 +4,6 @@
 
 /* standard Unix and C */
 #define UNIX 1
-#define CoClean
 #define LoadFunc
 
 /* Irix */
