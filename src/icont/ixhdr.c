@@ -12,8 +12,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-static	void	doiconx		(char **s, char *t);
+static	void	doiconx		(char *s[], char *t);
 static	void	hsyserr		(char *av, char *file);
+static	int	findcmd		(char *cmd, char *cnam, char *pvar);
+static	char *	getdir		(char *buf, char *path);
+static	int	chkcmd		(char *file);
 
 static char patchpath[MaxPath + 18] = "%PatchStringHere->";
 
@@ -21,17 +24,15 @@ static char patchpath[MaxPath + 18] = "%PatchStringHere->";
    static char *refpath = RefPath;
 #endif					/* HardWiredPaths */
 
-int main(argc, argv)
-int argc;
-char **argv;
-   {
+int main(int argc, char *argv[]) {
    char fullpath[256];
    char *argvx[1000];
 
    #if CYGWIN
       char name[_POSIX_PATH_MAX + 1];
+      cygwin_conv_to_posix_path(argv[0], name);
    #else				/* CYGWIN */
-      char *name;
+      char *name = argv[0];	/* name of icode file */
    #endif				/* CYGWIN */
 
    /*
@@ -43,12 +44,9 @@ char **argv;
    if (getuid() != geteuid() || getgid() != getegid())
       hsyserr(argv[0], ": cannot run an Icon program setuid/setgid");
 
-   #if CYGWIN
-      cygwin_conv_to_posix_path(argv[0], name);
-   #else				/* CYGWIN */
-      name = argv[0];		/* name of icode file */
-   #endif				/* CYGWIN */
-
+   /*
+    * Shift the argument list to make room for the file name.
+    */
    do 
       argvx[argc+1] = argv[argc];
    while (argc--);
@@ -80,10 +78,7 @@ char **argv;
  *  If THAT doesn't work, try searching $PATH for an "iconx" program.
  *  If nothing works, abort.
  */
-static void doiconx(argv, file)
-char **argv;
-char *file;
-   {
+static void doiconx(char *argv[], char *file) {
    char xcmd[256];
 
 #ifdef HardWiredPaths
@@ -126,20 +121,9 @@ char *file;
 /*
  * hsyserr(s1, s2) - print s1 and s2 on stderr, then abort.
  */
-static void hsyserr(s1, s2)
-char *s1, *s2;
-   {
-   char s[100];
-   /*
-    * Low-level I/O is used here to avoid sucking in a lot of stuff
-    *  that would make iconx.hdr much larger.
-    */
-   strcpy(s, s1);
-   if (s2)
-      strcat(s, s2);
-   strcat(s, "\n");
-   write(2, s, strlen(s));
-   _exit(EXIT_FAILURE);
+static void hsyserr(char *s1, char *s2) {
+   fprintf(stderr, "%s%s\n", s1, s2);
+   exit(EXIT_FAILURE);
    }
 
 /*
@@ -148,11 +132,9 @@ char *s1, *s2;
  * is found its full name is stored in the pointer passed (cmd) and 1 is
  * returned.  If the command isn't found 0 is returned.
  */
-int findcmd(cmd, cnam, pvar)
-char *cmd, *cnam, *pvar;
-   {
+static int findcmd(char *cmd, char *cnam, char *pvar) {
    char *path;
-   char pbuf[1024], *getdir(), *getenv();
+   char pbuf[1024];
 
    /*
     * If the environment variable isn't defined, give up.
@@ -190,11 +172,7 @@ char *cmd, *cnam, *pvar;
  * variable.  A pointer to the remaining directory string is returned so
  * that the entire string can be scanned by the calling function.
  */
-
-char *getdir(dir, path)
-char *dir;	/* the command directory buffer */
-char *path;	/* the string of directories */
-   {
+static char *getdir(char *buf, char *path) {
    char *dp;	/* the original directory pointer */
 
    /* if there is nothing left, return null */
@@ -202,22 +180,22 @@ char *path;	/* the string of directories */
       return NULL;
 
    /* save the original directory pointer */
-   dp = dir;
+   dp = buf;
 
    /* copy up to the next separator or the end of path */
    while (*path && *path != ':')
-      *dir++ = *path++;
+      *buf++ = *path++;
 
-   /* if dir is still empty, use a dot (the current directory */
-   if (dp == dir)
-      *dir++ = '.';
+   /* if buf is still empty, use a dot (the current directory */
+   if (dp == buf)
+      *buf++ = '.';
 
    /* if the directory isn't terminated with a slash, tack one on */
-   if (*(dir-1) != '/')
-      *dir++ = '/';
+   if (*(buf-1) != '/')
+      *buf++ = '/';
 
    /* null terminate the directory */
-   *dir = 0;
+   *buf = 0;
 
    /* if there's still a colon in path */
    if (*path) {
@@ -238,14 +216,13 @@ char *path;	/* the string of directories */
  * This function checks to see if the file name passed exists and is
  * executable.
  */
-int chkcmd(file)
-char *file;
-   {
+static int chkcmd(char *file) {
    unsigned short gid, uid;
    struct stat s;
 
    /* if the file can't be "stat"ed fail */
-   if (stat(file, &s) < 0) return 0;
+   if (stat(file, &s) < 0)
+      return 0;
 
    /* get the effective group and user ids for this user */
    gid = getegid();
