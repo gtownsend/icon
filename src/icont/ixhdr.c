@@ -52,16 +52,16 @@ static void doiconx(char *argv[]) {
       hsyserr("cannot execute $ICONX: ", argv[0]);
       }
 
-   argv[0] = relfile(argv[1], "/../iconx");	/* path to iconx in same dir */
-   execv(argv[0], argv);		/* try exec; just continue on failure */
+   argv[0] = relfile(argv[1], "/../iconx" ExecSuffix);
+   execv(argv[0], argv);  /* try iconx in same dir; just continue if absent */
 
-   if (findonpath("iconx", xcmd, sizeof(xcmd))) {    /* if iconx on $PATH */
+   if (findonpath("iconx" ExecSuffix, xcmd, sizeof(xcmd))) {   
       argv[0] = xcmd;
       execv(xcmd, argv);
       hsyserr("cannot execute ", xcmd);
       }
 
-   hsyserr(argv[1], ": cannot find iconx");
+   hsyserr(argv[1], ": cannot find iconx" ExecSuffix);
    }
 
 /*
