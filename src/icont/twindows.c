@@ -111,9 +111,7 @@ void expand_proj(int *argc, char ***argv)
 void icont(int argc, char **argv);
 #define int_PASCAL int PASCAL
 #define LRESULT_CALLBACK LRESULT CALLBACK
-#undef lstrlen
 #include <windows.h>
-#define lstrlen longstrlen
 #include "../wincap/dibutil.h"
 
 int CmdParamToArgv(char *s, char ***avp)

@@ -100,16 +100,7 @@ struct str_buf *sbuf;
     * The new buffer is larger than the old one to insure that any
     *  size string can be buffered.
     */
-#if IntBits == 16
-   unsigned int oldsize = sbuf->size;
-   sbuf->size += (sbuf->size/2);
-   if (sbuf->size < oldsize) {		/* check for overflow */
-      sbuf->size = MaxBlock;
-      }
-#else					/* IntBits == 16 */
    sbuf->size *= 2;
-#endif					/* IntBits == 16 */
-
    s1 = sbuf->strtimage;
    sbf = alloc(sizeof(struct str_buf_frag) + (sbuf->size - 1));
    sbf->next = sbuf->frag_lst;

@@ -2,6 +2,8 @@
  * mproto.h -- prototypes for functions common to several modules.
  */
 
+#define NewStruct(type) alloc(sizeof(struct type))
+
 pointer	alloc		(unsigned int n);
 unsigned short *bitvect	(char *image, int len);
 void	clear_sbuf	(struct str_buf *sbuf);
@@ -53,13 +55,6 @@ void	lear_sbuf	(struct str_buf *sbuf);
 #ifndef SysOpt
    int	getopt		(int argc, char * const argv[], const char *optstring);
 #endif					/* NoSysOpt */
-
-#if IntBits == 16
-   long	lstrlen		(char *s);
-   void	lqsort		(char *base, int nel, int width, int (*cmp)());
-#endif					/* IntBits == 16 */
-
-#define NewStruct(type) alloc(sizeof(struct type))
 
 #if UNIX
    char *relfile	(char *prog, char *mod);

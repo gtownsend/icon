@@ -760,27 +760,13 @@ word nbytes,stdsize;
    uword minSize = MinAbrSize;
    struct region *rp;
 
-#if IntBits == 16
-   if ((uword)nbytes > (uword)MaxBlock)
-      return NULL;
-   if ((uword)stdsize > (uword)MaxBlock)
-      stdsize = (uword)MaxBlock;
-#endif					/* IntBits == 16 */
-
    if ((uword)nbytes > minSize)
       minSize = (uword)nbytes;
-
    rp = (struct region *)malloc(sizeof(struct region));
    if (rp) {
       rp->size = stdsize;
-#if IntBits == 16
-      if ((rp->size < nbytes) && (nbytes < (unsigned int)MaxBlock))
-         rp->size = Min(nbytes+stdsize,(unsigned int)MaxBlock);
-#else					/* IntBits == 16 */
       if (rp->size < nbytes)
          rp->size = Max(nbytes+stdsize, nbytes);
-#endif					/* IntBits == 16 */
-
       do {
          rp->free = rp->base = (char *)AllocReg(rp->size);
          if (rp->free != NULL) {

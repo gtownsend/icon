@@ -275,6 +275,7 @@ unsigned char allchars[256] = {
  * Run-time error numbers and text.
  */
 struct errtab errtab[] = {
+
    101, "integer expected or out of range",
    102, "numeric expected",
    103, "string expected",
@@ -330,7 +331,6 @@ struct errtab errtab[] = {
    215, "attempt to refresh &main",
    216, "external function not found",
 
-
    301, "evaluation stack overflow",
    302, "memory violation",
    303, "inadequate space for evaluation stack",
@@ -340,11 +340,6 @@ struct errtab errtab[] = {
    307, "inadequate space in block region",
    308, "system stack overflow in co-expression",
 
-#if IntBits == 16
-   316, "interpreter stack too large",
-   318, "co-expression stack too large",
-#endif					/* IntBits == 16 */
-
 #ifndef Coexpr
    401, "co-expressions not implemented",
 #endif					/* Coexpr */
@@ -352,10 +347,6 @@ struct errtab errtab[] = {
 
    500, "program malfunction",		/* for use by runerr() */
    600, "vidget usage error",		/* yeah! */
-
-/*
- * End of operating-system specific code.
- */
 
    0,	""
    };

@@ -43,10 +43,6 @@
 
    #ifdef FieldTableCompression
 
-      #if IntBits == 16
-         #define IVersion "I9.2.00FT/16"
-      #endif				/* IntBits == 16 */
-
       #if IntBits == 32
          #define IVersion "I9.2.00FT/32"
       #endif				/* IntBits == 32 */
@@ -56,10 +52,6 @@
       #endif				/* IntBits == 64 */
 
    #else				/* FieldTableCompression */
-
-      #if IntBits == 16
-         #define IVersion "I9.0.00/16"
-      #endif				/* IntBits == 16 */
 
       #if IntBits == 32
          #define IVersion "I9.0.00/32"

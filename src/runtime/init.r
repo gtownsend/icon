@@ -509,16 +509,8 @@ struct header *hdr;
    /*
     * Convert stack sizes from words to bytes.
     */
-
    stksize *= WordSize;
    mstksize *= WordSize;
-
-#if IntBits == 16
-   if (mstksize > MaxBlock)
-      fatalerr(316, NULL);
-   if (stksize > MaxBlock)
-      fatalerr(318, NULL);
-#endif					/* IntBits == 16 */
 
    /*
     * Allocate memory for various regions.

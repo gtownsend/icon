@@ -15,8 +15,8 @@
 /*
  * Most of the present implementations use 32-bit "words".  Note that
  *  WordBits is the number of bits in an Icon integer, not necessarily
- *  the number of bits in an int (given by IntBits).  For example,
- *  in MS-DOS an Icon integer is a long, not an int.
+ *  the number of bits in an int (given by IntBits).  In some systems
+ *  an Icon integer is a long, not an int.
  *
  *  MaxStrLen must not be so large as to overlap flags.
  */
@@ -113,24 +113,6 @@
    #define Cset32(b,c) (*CsetPtr(b,c))	/* 32 bits of cset */
 #endif					/* IntBits == 32 */
 
-#if IntBits == 16
-   #define LogIntBits	4			/* log of IntBits */
-   #define MaxUnsigned ((unsigned int)0177777)	/* largest unsigned integer */
-   #define MaxInt	077777			/* largest int */
-
-   #ifndef MaxListSlots
-      #define MaxListSlots 8000		/* largest list-element block */
-   #endif				/* MaxListSlots */
-
-   /*
-    * Cset initialization and access macros.
-    */
-   #define cset_display(w0,w1,w2,w3,w4,w5,w6,w7,w8,w9,wa,wb,wc,wd,we,wf) \
-      {w0,w1,w2,w3,w4,w5,w6,w7,w8,w9,wa,wb,wc,wd,we,wf}
-   #define Cset32(b,c) (((unsigned long)(unsigned int)(*CsetPtr((b)+16,c))<<16) | \
-      ((unsigned long)(unsigned int)(*CsetPtr(b,c))))  /* 32 bits of cset */
-#endif					/* IntBits == 16 */
-
 #ifndef LogHuge
    #define LogHuge 309			/* maximum base-10 exp+1 of real */
 #endif					/* LogHuge */
@@ -166,25 +148,16 @@
  */
 
 #ifndef HSlots
-   #if IntBits == 16
-      #define HSlots     4
-      #define LogHSlots  2
-   #else				/* IntBits */
-      #define HSlots     16
-      #define LogHSlots  4
-   #endif				/* IntBits */
+   #define HSlots     16
+   #define LogHSlots  4
 #endif					/* HSlots */
 
 #if ((1 << LogHSlots) != HSlots)
-   Deliberate Syntax Error -- HSlots and LogHSlots are inconsistent
+   #error HSlots and LogHSlots are inconsistent
 #endif					/* HSlots / LogHSlots consistency */
 
 #ifndef HSegs
-   #if IntBits == 16
-      #define HSegs	  6
-   #else				/* IntBits */
-      #define HSegs	 20
-   #endif				/* IntBits */
+   #define HSegs	 20
 #endif					/* HSegs */
 
 #ifndef MinHLoad
@@ -221,11 +194,7 @@
  * Maximum sized block that can be allocated (via malloc() or such).
  */
 #ifndef MaxBlock
-   #if IntBits == 16
-      #define MaxBlock 65000		/* leaves room for malloc header */
-   #else				/* IntBits == 16 */
-      #define MaxBlock MaxUnsigned
-   #endif				/* IntBits == 16 */
+   #define MaxBlock MaxUnsigned
 #endif					/* MaxBlock */
 
 /*
@@ -234,19 +203,11 @@
  */
 
 #ifndef MaxStrSpace
-   #if IntBits == 16
-      #define MaxStrSpace 65000		/* size of the string space in bytes */
-   #else				/* IntBits == 16 */
-      #define MaxStrSpace 500000	/* size of the string space in bytes */
-   #endif				/* IntBits == 16 */
+   #define MaxStrSpace 500000		/* size of the string space in bytes */
 #endif					/* MaxStrSpace */
 
 #ifndef MaxAbrSize
-   #if IntBits == 16
-      #define MaxAbrSize 65000		/* size of the block region in bytes */
-   #else				/* IntBits == 16 */
-      #define MaxAbrSize 500000		/* size of the block region in bytes */
-   #endif				/* IntBits == 16 */
+   #define MaxAbrSize 500000		/* size of the block region in bytes */
 #endif					/* MaxAbrSize */
 
 #ifndef MStackSize

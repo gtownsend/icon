@@ -346,12 +346,6 @@
    #define PPDirectives {"passthru", PpKeep},
 #endif					/* PPDirectives */
 
-#ifndef EventMon
-   #if IntBits == 16
-      #define NoSrcColumnInfo
-   #endif				/* IntBits == 16 */
-#endif					/* EventMon */
-
 #ifndef NoSrcColumnInfo
    #define SrcColumnInfo
 #endif					/* NoSrcColumnInfo */
