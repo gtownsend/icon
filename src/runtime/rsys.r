@@ -240,10 +240,10 @@ char *make_mode (mode_t st_mode)
       return NULL;
    }
 
-   if ( st_mode & _S_IFIFO )      buf[0] = 'f';
-   else if ( st_mode & _S_IFCHR ) buf[0] = 'c';
-   else if ( st_mode & _S_IFDIR ) buf[0] = 'd';
-   else if ( st_mode & _S_IFREG ) buf[0] = '-';
+   if ( st_mode & S_IFIFO )      buf[0] = 'f';
+   else if ( st_mode & S_IFCHR ) buf[0] = 'c';
+   else if ( st_mode & S_IFDIR ) buf[0] = 'd';
+   else if ( st_mode & S_IFREG ) buf[0] = '-';
    else			         buf[0] = '\?';
 
    if (st_mode & S_IREAD)  buf[1] = 'r';  else buf[1] = '-';
