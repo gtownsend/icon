@@ -8,11 +8,14 @@
 
 IC=${IC-icont}
 IC=../../bin/$IC
-IX=../../bin/iconx
+ICONX=../../bin/iconx
 
-unset ICONX IPATH LPATH FPATH
+unset IPATH LPATH FPATH
 unset BLKSIZE BLOCKSIZE HEAPSIZE STRSIZE
 unset MSTKSIZE COEXPSIZE QLSIZE
+
+# may be needed if ShellHeaders is not defined
+export ICONX
 
 # echo system environment
 echo ""
@@ -23,7 +26,7 @@ case $IC in
    *icont)
       ls ../../bin/icont ../../bin/iconx >/dev/null || exit 0
       echo "icont:  `$IC -V 2>&1`"
-      echo "iconx:  `$IX -V 2>&1`"
+      echo "iconx:  `$ICONX -V 2>&1`"
       ;;
    *iconc)
       ls -l ../../bin/iconc ../../bin/rt.* || exit 0
@@ -44,16 +47,21 @@ for F in $*; do
    rm -f $F.out
    echo "Testing $F"
    if $IC -s $F.icn; then
-      if test -r $F.dat; then
-         ./$F <$F.dat >$F.out 2>&1
+      if test -x $F.exe; then
+         EXE=$F.exe
       else
-         ./$F </dev/null >$F.out 2>&1
+         EXE=$F
+      fi
+      if test -r $F.dat; then
+         ./$EXE <$F.dat >$F.out 2>&1
+      else
+         ./$EXE </dev/null >$F.out 2>&1
       fi
       diff $F.std $F.out || FAILED="$FAILED $F"
    else
       FAILED="$FAILED $F"
    fi
-   rm -f $F
+   rm -f $EXE
 done
 
 echo ""
