@@ -92,7 +92,7 @@ int ef;
     *  of 1024.
     */
 
-#ifdef NetBSD
+#ifdef __NetBSD__
    hdr.a_midmag = ZMAGIC;
 #else
    hdr.a_magic = ZMAGIC;
