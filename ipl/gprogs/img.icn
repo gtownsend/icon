@@ -2,32 +2,41 @@
 #
 #	File:     img.icn
 #
-#	Subject:  Program to create images
+#	Subject:  Program to create and edit tiny images
 #
-#	Author:   Gregg M. Townsend
+#	Authors:  Gregg M. Townsend and Nolan Clayton
 #
-#	Date:     January 3, 1995
-#
-############################################################################
-#
-#   This file is in the public domain.
+#	Date:     April 9, 2004
 #
 ############################################################################
 #
-#  img is a simple editor of Icon images.
+#  This file is in the public domain.
 #
-#  usage:  img [-cn | -gn] [width [height]]
+############################################################################
+#
+#  img is a simple editor of Icon image strings and other tiny images.
+#  An image size of 64 x 64 pixels is around the practical maximum.
+#
+#  usage:  img [-cn | -gn] [filename | width [height]]
 #
 #  -c or -g specifies a palette; the default is -c1.
-#  The default image size is 32 x 32.
+#
+#  An input file may contain an image string or an image readable by Icon.
+#  If no filename is given, a new image (default size 16 x 16) is created.
 #
 #  img brings up a window within which:
+#
 #	-- clicking on the color palette sets the color of that mouse button
 #	-- clicking on the cell grid sets the color of a cell
+#	-- shift-clicking on the cell grid sets the button color from the cell
+#
 #	-- pressing "W" writes the image string to standard output
 #	-- pressing "Q" writes the image string and then exits
-#	-- pressing "Z" clears all cells to white
+#	-- pressing "Z" clears all cells to the color of the left mouse button
 #	-- pressing "O" or "L" toggles palette outlining or labeling
+#	-- pressing "T" sets the left mouse button to '~' the transparent color
+#	-- pressing "R" changes pixels matching the right button color
+#		to be the color of the left button
 #
 ############################################################################
 #
@@ -39,10 +48,10 @@
 #
 ############################################################################
 
-# To Do:
-#  need a way to READ an image!
+#  To Do:
+#  clearer display of transparent button & pixels
+#  add "save as" function to write GIF (or whatever) file
 #  use standard utils for row<->image translation
-#  make shift-click in image pick up the color
 
 
 link graphics, imscolor
@@ -69,7 +78,8 @@ procedure main(args)
    local wwidth, wheight
    local hcells, vcells, cellsize, x0, y0
    local black, white
-   local i, j, x, y, k, e
+   local i, j, x, y, k, e, c
+   local imgstr, imgtemp, L
 
    Window(args)
    wwidth := WAttrib("width")			# window width
@@ -81,11 +91,24 @@ procedure main(args)
       get(args)
       }
 
-   hcells := integer(args[1]) | 16		# cells horizontally
-   vcells := integer(args[2]) | hcells		# cells vertically
+   if *args > 0 & not integer(args[1]) then {	# if filename supplied
+      imgstr := readicon(args[1])
+      palette := imspalette(imgstr)
+      hcells := imswidth(imgstr)              	# cells horizontally
+      vcells := imsheight(imgstr)		# cells vertically
+      }
+   else {
+      hcells := integer(args[1]) | 16		# cells horizontally
+      vcells := integer(args[2]) | hcells	# cells vertically
+      c := PaletteKey(palette, "white")
+      imgstr := hcells || "," || palette || "," || repl(c, vcells * hcells)
+      }
+
    cellsize := MaxCell				# cell size on window
    cellsize >:= wheight / (vcells + 4)
    cellsize >:= (wwidth - LMar) / (hcells + 4)
+   if cellsize < 2 then
+      stop("image is too large for this window")
 
    palx := Border
    paly := Border + vcells + Border
@@ -108,7 +131,29 @@ procedure main(args)
    setbutton(&mpress, black)
    setbutton(&rpress, white)
 
-   rows := list(vcells, repl(white, hcells))	# list of row values
+   imgtemp := imgstr[find(imspalette(imgstr), imgstr) : 0]
+   imgtemp := imgtemp[find(',', imgtemp) + 1 : 0]
+
+   rows := []			# list of row values
+   L := ""
+
+   every y := 1 to vcells do {
+      every x := 1 to hcells do {
+         k := imgtemp[((y - 1) * hcells) + x]
+         L ||:= k
+         Fg(PaletteColor(palette, k))
+         FillRectangle(x0 + ((x - 1) * cellsize),
+            y0 + ((y - 1) * cellsize), cellsize, cellsize)
+         }
+      put(rows, L)
+      L :=""
+      }
+
+   Fg("gray")
+   every x := x0 to x0 + (hcells - 1) * cellsize by cellsize do
+      every y := y0 to y0 + (vcells - 1) * cellsize by cellsize do
+         DrawRectangle(x, y, cellsize, cellsize)
+
    newimage()
 
    repeat case e := Event() of {
@@ -132,6 +177,18 @@ procedure main(args)
             next
          x := x0 + j * cellsize + 1
          y := y0 + i * cellsize + 1
+
+         # if shifted, pick color from grid 
+         if &shift then {
+            k := rows[i + 1, j + 1]
+            case e of {
+               &lpress | &ldrag:  setbutton(&lpress, k)
+               &mpress | &mdrag:  setbutton(&mpress, k)
+               &rpress | &rdrag:  setbutton(&rpress, k)
+               }
+            next
+            }
+
          case e of {
             &lpress | &ldrag:  k := buttons[&lpress]
             &mpress | &mdrag:  k := buttons[&mpress]
@@ -158,12 +215,44 @@ procedure main(args)
       !"wW": {				# W: write pattern to stdout
          imswrite(, imspec)
          }
-      !"zZ": {				# Z: clear pattern
-         rows := list(vcells, repl(white, hcells))
-         newimage()
+
+      !"tT": {				# T: set left mouse button transparent
+         setbutton(&lpress, '~')
+         }
+
+      !"rR": {				# R: replace colors
+         colorreplace(buttons[&rpress], buttons[&lpress])
+
+         every y := 1 to vcells do {
+            every x := 1 to hcells do {
+               k := rows[y][x]
+               Fg(PaletteColor(palette, k))
+               FillRectangle(x0 + ((x - 1) * cellsize),
+                  y0 + ((y - 1) * cellsize), cellsize, cellsize)
+               }
+            }
+
+         Fg("gray")
          every x := x0 to x0 + (hcells - 1) * cellsize by cellsize do
             every y := y0 to y0 + (vcells - 1) * cellsize by cellsize do
-               EraseArea(x + 1, y + 1, cellsize - 1, cellsize - 1)
+               DrawRectangle(x, y, cellsize, cellsize)
+         }
+
+
+      !"zZ": {				# Z: clear pattern
+
+         k := buttons[&lpress]
+         Fg(PaletteColor(palette, k))
+         rows := list(vcells, repl(k, hcells))
+
+         FillRectangle(x0, y0, hcells * cellsize, vcells * cellsize)
+         Fg("gray")
+         every x := x0 to x0 + (hcells - 1) * cellsize by cellsize do
+            every y := y0 to y0 + (vcells - 1) * cellsize by cellsize do
+               DrawRectangle(x, y, cellsize, cellsize)
+
+         newimage()
+
          }
       }
 end
@@ -210,4 +299,60 @@ procedure rowstoims(pal, rows)
       im ||:= s
       }
    return im
+end
+
+
+# replacecolor(color1, color2) -- replace color1 with color2
+
+procedure colorreplace(color1, color2)
+   local i, j
+
+   every i := 1 to *rows do
+      while j := find(color1, rows[i]) do
+         rows[i][j] := color2
+
+   newimage()
+
+end
+
+
+#  readicon(fname) -- read image, returning image string
+
+procedure readicon(fname)
+   local res, f, x
+
+   f := open(fname) | stop("cannot open " || fname)
+
+   res := ""
+
+   while x := read(f) do {
+      x ? {
+         if ="#" then
+            next
+
+         ="\""
+         res ||:= tab(0)
+         }
+
+      if res[-1] == "_" then
+            res[-1] := ""
+      else
+         break
+      }
+   close(f)
+
+   #
+   # Check for reasonably valid image
+   #
+   if imsheight(res) then
+      return res
+   else {
+      if f := open(fname, "g", "image=" || fname, "canvas=hidden") then {
+         res := Capture(f, palette)
+         close(f)
+         if imsheight(res) then return res
+         }
+      stop("invalid image: " || fname)
+      }
+
 end
