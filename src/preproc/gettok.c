@@ -99,7 +99,7 @@ struct token *next_tok()
           */
          t = mac_tok();
          break;
-         
+
       case TokLst:
          /*
           * Tokens from a macro argument.

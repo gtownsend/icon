@@ -78,7 +78,7 @@
    #include <sys/types.h>
    #include <sys/stat.h>
    #include <fcntl.h>
-   
+
    #ifdef MSWindows
       #define int_PASCAL int PASCAL
       #define LRESULT_CALLBACK LRESULT CALLBACK
@@ -92,7 +92,7 @@
       #include "../wincap/dibutil.h"
    #endif				/* MSWindows */
    #include <setjmp.h>
-   #define Type(d) (int)((d).dword & TypeMask) 
+   #define Type(d) (int)((d).dword & TypeMask)
    #undef lst1
    #undef lst2
 #endif					/* MSDOS */

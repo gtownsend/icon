@@ -22,7 +22,7 @@
  *
  *  See ../h/features.h for the set of predefined symbols.
  */
- 
+
 #include "../h/gsupport.h"
 
 #define HTBINS 256			/* number of hash bins */
@@ -148,7 +148,7 @@ int m4;
 #include "../h/features.h"
 
    /*
-    * initialize variables and open source file 
+    * initialize variables and open source file
     */
    lpath = inclpath;
    curfile = &nofile;			/* init file struct pointer */
@@ -185,7 +185,7 @@ int m4;
    if (f == NULL) {
       return 0;
       }
-   fs = (infile *)alloc((unsigned int)sizeof(infile));
+   fs = alloc(sizeof(infile));
    fs->prev = curfile;
    fs->fp = f;
    fs->fname = salloc(fname);
@@ -206,7 +206,7 @@ char *filename;
 #if ARM || UNIX
       {
       FILE *f;
-      char *s = alloc((unsigned int)(4 + strlen(filename)));
+      char *s = alloc(4 + strlen(filename));
       sprintf(s, "m4 %s", filename);
       f = popen(s, ReadText);
       free(s);
@@ -334,7 +334,7 @@ int ppch()
          bfree = b;
          continue;				/* loop to preprocess */
          }
-   
+
       /*
        * There's nothing at all in memory.  Read a new line.
        */
@@ -360,7 +360,7 @@ int ppch()
             bstop = bnxt;			/* no chars scanned yet */
             }
          }
-   
+
       else {
          /*
           * The read hit EOF.
@@ -378,14 +378,14 @@ int ppch()
 
 #if ARM || UNIX
          if (fs->m4flag) {			/* if m4 preprocessing */
-	    void quit();
+            void quit();
             if (pclose(fs->fp) != 0)		/* close pipe */
                quit("m4 terminated abnormally");
             }
          else
 #endif					/* ARM || UNIX */
             fclose(fs->fp);		/* close current file */
-           
+
          free((char *)fs->fname);
          free((char *)fs);
          if (curfile == &nofile)	/* if at outer level, return EOF */
@@ -785,7 +785,7 @@ int doelse, report;
          return;
          }
       }
-     
+
    /*
     *  At EOF, just return; main loop will report unterminated $if.
     */

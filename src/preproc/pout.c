@@ -27,7 +27,7 @@ FILE *out_file;
     */
    trail_nl = 1;
    blank_ln = 1;
-   
+
    while ((t = preproc()) != NULL) {
       if (t->flag & LineChk) {
          /*

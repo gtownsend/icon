@@ -54,7 +54,6 @@ char *p;
    #endif				/* HIGHC_386 || NT */
 #endif					/* ATARI_ST || MSDOS || OS2 ... */
 
-
 #if MACINTOSH
    #if LSC
       /* cannot do */

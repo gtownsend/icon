@@ -174,8 +174,8 @@ extern int abs_ret; /* type from abstract return statement */
 #define AbstrNd  15 /* abstract type computation */
 #define IcnTypNd 16 /* name of an Icon type */
 
-#define NewNode(size) (struct node *)alloc((unsigned int)\
-    (sizeof(struct node) + (size-1) * sizeof(union field)))
+#define NewNode(size) (struct node *)alloc(\
+    sizeof(struct node) + (size-1) * sizeof(union field))
 
 union field {
    struct node *child;

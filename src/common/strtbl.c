@@ -7,7 +7,7 @@
 /*
  * Prototype for static function.
  */
-static int streq  (int len,char *s1,char *s2);
+static int streq  (int len, char *s1, char *s2);
 
 /*
  * Entry in string table.
@@ -30,8 +30,7 @@ void init_str()
    int h;
 
    if (str_tbl == NULL) {
-      str_tbl = (struct str_entry **)alloc((unsigned int)(StrTblSz *
-         sizeof(struct str_entry *)));
+      str_tbl = alloc(StrTblSz * sizeof(struct str_entry *));
       for (h = 0; h < StrTblSz; ++h)
          str_tbl[h] = NULL;
       }
@@ -62,8 +61,7 @@ void init_sbuf(sbuf)
 struct str_buf *sbuf;
    {
    sbuf->size = SBufSize;
-   sbuf->frag_lst = (struct str_buf_frag *)alloc((unsigned int)
-       (sizeof(struct str_buf_frag) + (SBufSize - 1)));
+   sbuf->frag_lst = alloc(sizeof(struct str_buf_frag) + (SBufSize - 1));
    sbuf->frag_lst->next = NULL;
    sbuf->strtimage = sbuf->frag_lst->s;
    sbuf->endimage = sbuf->strtimage;
@@ -113,8 +111,7 @@ struct str_buf *sbuf;
 #endif					/* IntBits == 16 */
 
    s1 = sbuf->strtimage;
-   sbf = (struct str_buf_frag *)alloc((unsigned int)
-       (sizeof(struct str_buf_frag) + (sbuf->size - 1)));
+   sbf = alloc(sizeof(struct str_buf_frag) + (sbuf->size - 1));
    sbf->next = sbuf->frag_lst;
    sbuf->frag_lst = sbf;
    sbuf->strtimage = sbf->s;
@@ -139,9 +136,9 @@ char *s;
    h = 0;
    l = 1;
    for (s1 = s; *s1 != '\0'; ++s1) {
-     h += *s1 & 0377;
-     ++l;
-     }
+      h += *s1 & 0377;
+      ++l;
+      }
    h %= StrTblSz;
    for (se = str_tbl[h]; se != NULL; se = se->next)
       if (l == se->length && streq(l, s, se->s))
@@ -177,7 +174,7 @@ struct str_buf *sbuf;
     */
    h = 0;
    while (s < e)
-     h += *s++ & 0377;
+      h += *s++ & 0377;
    h %= StrTblSz;
    s = sbuf->strtimage;
    l = e - s;

@@ -171,7 +171,7 @@ void MSStartup(HINSTANCE hInstance, HINSTANCE hPrevInstance)
    WNDCLASS wc;
    #ifdef ConsoleWindow
       extern FILE *flog;
-   
+
       /*
        * Select log file name.  Might make this a command-line option.
        * Default to "WICON.LOG".  The log file is used by Wi to report
@@ -182,7 +182,7 @@ void MSStartup(HINSTANCE hInstance, HINSTANCE hPrevInstance)
       remove(lognam);
       lognam = strdup(lognam);
       flog = fopen(tmpnam(tmplognam), "w");
-   
+
       if (flog == NULL) {
          syserr("unable to open logfile");
          }
@@ -256,7 +256,7 @@ char **argv;
       for(i=0;p[i];i++)
 	 if (p[i] == ' ')
 	    j++;
-      new_argv = (char **)malloc((argc + j) * sizeof(char *));
+      new_argv = malloc((argc + j) * sizeof(char *));
       new_argv[0] = argv[0];
       for (i=0; p[i]; ) {
 	 new_argv[k++] = p+i;
@@ -447,7 +447,7 @@ int *ip;
          t2++;
          len++;
          }
-   
+
       /*
        * if argv[0] is not a reference to our interpreter, take it as the
        * name of the icode file, and back up for it.

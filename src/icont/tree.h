@@ -19,7 +19,7 @@ struct node {
    union field n_field[1];      /* variable-content fields */
    };
 
-#define NewNode(size) (struct node *)alloc((unsigned int)\
+#define NewNode(size) (struct node *)alloc(\
     (sizeof(struct node) + (size-1) * sizeof(union field)))
 
 /*
@@ -100,10 +100,10 @@ extern struct node tok_loc;     /* "model" token holding current location */
  * Macros for constructing basic nodes.
  */
 
-#define CsetNode(a,b)		i_str_leaf(N_Cset,&tok_loc,a,b) 
-#define IdNode(a)		c_str_leaf(N_Id,&tok_loc,a) 
-#define IntNode(a)		c_str_leaf(N_Int,&tok_loc,a) 
-#define OpNode(a)		int_leaf(N_Op,&tok_loc,optab[a].tok.t_type) 
-#define RealNode(a)		c_str_leaf(N_Real,&tok_loc,a) 
-#define ResNode(a)		int_leaf(N_Res,&tok_loc,a) 
-#define StrNode(a,b)		i_str_leaf(N_Str,&tok_loc,a,b) 
+#define CsetNode(a,b)		i_str_leaf(N_Cset,&tok_loc,a,b)
+#define IdNode(a)		c_str_leaf(N_Id,&tok_loc,a)
+#define IntNode(a)		c_str_leaf(N_Int,&tok_loc,a)
+#define OpNode(a)		int_leaf(N_Op,&tok_loc,optab[a].tok.t_type)
+#define RealNode(a)		c_str_leaf(N_Real,&tok_loc,a)
+#define ResNode(a)		int_leaf(N_Res,&tok_loc,a)
+#define StrNode(a,b)		i_str_leaf(N_Str,&tok_loc,a,b)

@@ -20,7 +20,7 @@
 
 #ifdef MSWindows
 #include "rmswin.ri"
-#endif  				/* MSWindows */
+#endif					/* MSWindows */
 
 #else					/* Graphics */
 static char junk;		/* avoid empty module */

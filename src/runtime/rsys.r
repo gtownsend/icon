@@ -446,10 +446,10 @@ char *make_mode (unsigned short st_mode)
    if (st_mode & S_IEXEC) buf[9] = 'x';
    else    buf[9] = '-';
 #endif					/* MSDOS */
- 
+
    buf[10] = '\0';
 
-   return buf;     
+   return buf;
 }
 
 #endif					/* FAttrib */

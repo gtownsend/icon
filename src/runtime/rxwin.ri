@@ -579,7 +579,7 @@ int x, y;		/* current mouse position */
 {
    int status;
    STDLOCALS(w);
-   
+
    /* if a pixmap image has been specified, load it */
    if (ws->initicon.width) {
       ws->iconpix = XCreatePixmap(stddpy, DefaultRootWindow(stddpy),
@@ -968,7 +968,7 @@ char *val;
    if (ws->iconlabel != NULL) free(ws->iconlabel);
    if ((ws->iconlabel = salloc(val)) == NULL)
       ReturnErrNum(305, Error);
-   
+
    if (stddpy && stdwin) {
       XSetIconName(stddpy, stdwin, w->window->iconlabel);
       if (ws->iconic == IconicState && !ws->iconpix && ws->iconwin) {
@@ -1858,7 +1858,7 @@ int height;
 	 XSetFillStyle(stddpy, stdgc, FillSolid);
       if (wc->clipw >= 0)
 	 unsetclip(w);
-	   
+
       if (width > x) {
 	 XFillRectangle(stddpy, p, stdgc, x, 0, width-x, ws->pixheight);
 	 if (stdwin != (Window) NULL)
@@ -2281,7 +2281,7 @@ int n;
 		0, 0, animwidth, animheight, p[i].x, p[i].y);
       XFlush(stddpy);
       for (j = 0; j < tics; j++);
-/*     
+/*
  * erase the whole box approach:
  *      XCopyArea(stddpy, stdpix, stdwin, stdgc,
  *                0, 0, animwidth, animheight, p[i].x, p[i].y);
@@ -2320,7 +2320,7 @@ char *prog, *opt, *answer;
    char *p;
    STDLOCALS(w);
 
-   
+
    if ((p = XGetDefault(stddpy,prog,opt)) == NULL)
       return Failed;
    strcpy(answer, p);
@@ -2477,7 +2477,7 @@ int mute_index;
       if (dp->colors[i].type == MUTABLE && dp->colors[i].c == - mute_index - 1)
             break;
    if (i != DMAXCOLORS)
-      free_xcolor(w, dp->colors[i].c); 
+      free_xcolor(w, dp->colors[i].c);
    }
 
 
@@ -2701,7 +2701,7 @@ unsigned char *data;
    im = getximage(w, x, y, width, height, 1);
    if (!im)
       return 0;
-   
+
    if (im->depth <= 8) {
 
       /*
@@ -2850,7 +2850,7 @@ struct imgmem *imem;
    imem->im = XGetImage(stddpy, stdpix,
 			imem->x, imem->y, imem->width, imem->height,
 		  (1 << DefaultDepth(stddpy, wd->screen))-1, XYPixmap);
-   
+
    if (imem->im == NULL) return Failed;
    return Succeeded;
    }
@@ -3031,7 +3031,7 @@ int len;
    if (wc->patternname == NULL) ReturnErrNum(305, Error);
    strncpy(wc->patternname, name, len);
    wc->patternname[len] = '\0';
-   
+
    /*
     * If the pattern starts with a number it is a width , bits encoding
     */
@@ -3395,7 +3395,7 @@ int *status;
       a.npixels = 0;
       a.colormap = wd->cmap;
       a.valuemask = XpmReturnPixels | XpmColormap;
-      
+
       *status = XpmReadFileToPixmap(stddpy, DefaultRootWindow(stddpy),
 			    filename, &p2, &dummy, &a);
 
@@ -3565,12 +3565,12 @@ wbp w;
    return Succeeded;
    }
 
-int walert(w, volume) 
+int walert(w, volume)
 wbp w;
 int volume;
 {
   STDLOCALS(w);
-  XBell(stddpy, volume);    
+  XBell(stddpy, volume);
   XFlush(stddpy);
   return Succeeded;
   }

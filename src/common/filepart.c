@@ -208,7 +208,7 @@ char *s;
     */
    p = s1 + strlen(s1);
    fp.name = 0;
-   
+
    while (--p > s1)
    {
          if (*p != '.')
@@ -426,7 +426,6 @@ char *s, *t;
       }
    }
 
-
 #if MSDOS
 #if NT
 #include <sys/stat.h>
@@ -484,8 +483,6 @@ int pathFind(char target[], char buf[], int n)
    }
 #endif					/* MSDOS */
 
-
-
 #if MSDOS || OS2
 FILE *pathOpen(fname, mode)
    char *fname;
@@ -513,11 +510,11 @@ FILE *pathOpen(fname, mode)
       use the PATH */
 
 #if OS2
-   if (use && DosSearchPath(SEARCH_CUR_DIRECTORY | SEARCH_ENVIRONMENT, 
+   if (use && DosSearchPath(SEARCH_CUR_DIRECTORY | SEARCH_ENVIRONMENT,
                             "PATH", fname, buf, 260))
 #else					/* OS2 */
    if (use && !pathFind(fname, buf, 150))
-#endif 					/* OS2 */
+#endif					/* OS2 */
        return 0;
 
    return fopen(buf, mode);

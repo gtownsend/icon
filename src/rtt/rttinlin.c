@@ -5,7 +5,7 @@
 #include "rtt.h"
 
 /*
- * prototypes for static functions. 
+ * prototypes for static functions.
  */
 static struct il_code *abstrcomp (struct node *n, int indx_stor,
                                     int chng_stor, int escapes);
@@ -80,13 +80,12 @@ struct node *n;
    if (ntend == 0)
       cur_impl->tnds = NULL;
    else
-      cur_impl->tnds = (struct tend_var *)alloc((unsigned int)
-         (sizeof(struct tend_var) * ntend));
+      cur_impl->tnds = alloc(ntend * sizeof(struct tend_var));
    cur_impl->ntnds = ntend;
    i = 0;
 
    /*
-    * Go back through the declarations and fill in the array for the 
+    * Go back through the declarations and fill in the array for the
     *  tended part of the data base symbol table. Array entries contain
     *  an indication of the type of tended declaration, the C code to
     *  initialize the variable if there is any, and, for block pointer
@@ -117,8 +116,7 @@ struct node *n;
    nvars += il_indx;  /* compute number of entries in this part of table */
    cur_impl->nvars = nvars;
    if (nvars > 0) {
-      cur_impl->vars = (struct ord_var *)alloc((unsigned int)
-         (sizeof(struct ord_var) * nvars));
+      cur_impl->vars = alloc(nvars * sizeof(struct ord_var));
       i = 0;
       for (sym = decl_lst; sym != NULL; sym = sym->u.declare_var.next) {
          cur_impl->vars[i].name = sym->image;
@@ -514,7 +512,7 @@ struct node *n;
                   for (n2 = sel->u[0].child; n2 != NULL; n2 = n2->u[0].child)
                      n_typ++;
                   il->u[n_fld++].n = n_typ;
-                  typ_vect = (int *)alloc((unsigned int)(sizeof(int) * n_typ));
+                  typ_vect = alloc(n_typ * sizeof(int));
                   il->u[n_fld++].vect = typ_vect;
                   n_typ = 0;
                   for (n2 = sel->u[0].child; n2 != NULL; n2 = n2->u[0].child)
@@ -750,14 +748,14 @@ int escapes;
                 */
                il = new_il(IL_VarTyp, 1);
                il->u[0].fld = il_var(n->u[0].child);
-               break; 
+               break;
             case Store:
                /*
                 * store[ <type> ]
                 */
                il = new_il(IL_Store, 1);
                il->u[0].fld = abstrcomp(n->u[0].child, 1, 0, 0);
-               break; 
+               break;
             }
          break;
       case PstfxNd:
@@ -774,10 +772,10 @@ int escapes;
                   errt3(t, typecompnt[cmpntcd].id,
                     " component is an internal reference type.\n",
                     "\t\tuse store[<type>.<component>] to \"dereference\" it");
-               break; 
+               break;
             case All_fields:
                il->u[1].n = CM_Fields;
-               break; 
+               break;
             }
          break;
       case IcnTypNd:
@@ -848,7 +846,7 @@ int escapes;
                 * Create the "new" construct for the data base with its type
                 *  code and arguments.
                 */
-               il = new_il(IL_New, 2 + nargs); 
+               il = new_il(IL_New, 2 + nargs);
                il->u[0].n = typcd;
                il->u[1].n = nargs;
                while (nargs > 1) {
@@ -909,7 +907,7 @@ int chng_stor;
 
 /*
  * body_anlz - walk the syntax tree for the C code in a body statment,
- *  analyzing the code to determine the interface needed by the C function 
+ *  analyzing the code to determine the interface needed by the C function
  *  which will implement it. Also determine how many buffers are needed.
  *  The value returned indicates whether it is possible for execution
  *  to fall through the the code.
@@ -930,7 +928,7 @@ int all;          /* input flag: need all information about operation */
    static int may_brnchto;
 
    if (n == NULL)
-      return 1; 
+      return 1;
 
    t =  n->tok;
 
@@ -1312,7 +1310,7 @@ struct node *n;
    struct sym_entry *sym;
 
    if (n == NULL)
-      return; 
+      return;
 
    /*
     * Walk the syntax tree until a block with declarations is found.
@@ -1484,7 +1482,7 @@ struct node *n;
       err2("cannot open output file ", cname);
    else
       addrmlst(cname, out_file);
-      
+
    prologue(); /* output standard comments and preprocessor directives */
 
    /*
@@ -1738,7 +1736,7 @@ struct node *n;
       if (by_ref)
          sym->id_type |= ByRef;
       }
-   
+
    if (fall_thru) {
       /*
        * Write declarations for any needed buffer parameters.

@@ -1,6 +1,6 @@
 /*
  * Operator definitions.
- *  
+ *
  * Fields are:
  *    name
  *    number of arguments

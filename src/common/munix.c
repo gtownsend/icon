@@ -30,9 +30,9 @@ char *relfile(char *prog, char *mod) {
 
    if (baseloc[0] == 0) {		/* if argv[0] not already found */
       if (findexe(prog, baseloc, sizeof(baseloc)) == NULL) {
-	 fprintf(stderr, "cannot find location of %s\n", prog);
+         fprintf(stderr, "cannot find location of %s\n", prog);
          exit(EXIT_FAILURE);
-	 }
+         }
       if (followsym(baseloc, buf, sizeof(buf)) != NULL)
          strcpy(baseloc, buf);
    }
@@ -64,7 +64,7 @@ static char *findexe(char *name, char *buf, size_t len) {
    /* if name does not contain a slash, search $PATH for file */
    if (strchr(name, '/') != NULL)
       strcpy(buf, name);
-   else if (findonpath(name, buf, len) == NULL) 
+   else if (findonpath(name, buf, len) == NULL)
       return NULL;
 
    /* if path is not absolute, prepend working directory */
@@ -185,9 +185,9 @@ static char *canonize(char *path) {
    char *root, *end, *in, *out, *prev;
 
    /* initialize */
-   root = path;			/* set barrier for trimming by ".." */
+   root = path;				/* set barrier for trimming by ".." */
    end = path + strlen(path);		/* set end of input marker */
-   while (*root == '/')		/* preserve all leading slashes */
+   while (*root == '/')			/* preserve all leading slashes */
       root++;
    in = root;				/* input pointer */
    out = root;				/* output pointer */
@@ -220,10 +220,10 @@ static char *canonize(char *path) {
             }
          }
       else {
-         memmove(out, in, len);	/* copy component verbatim */
+         memmove(out, in, len);		/* copy component verbatim */
          out += len;
          in += len;
-         *out++ = '/';		/* add output separator */
+         *out++ = '/';			/* add output separator */
          }
 
       while (in < end && *in == '/')	/* consume input separators */
@@ -236,10 +236,10 @@ static char *canonize(char *path) {
    if (out == path)
       *out++ = '.';			/* change null path to "." */
    *out++ = '\0';
-   return path;			/* return result */
+   return path;				/* return result */
    }
 
-#else                                  /* UNIX */
+#else					/* UNIX */
 
 static char junk;		/* avoid empty module */
 

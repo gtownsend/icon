@@ -163,7 +163,7 @@ char *pre;
 
    pre[0] = '0';
    pre[1] = '0';
-   for (hashval = 0; hashval < IHSize; ++hashval) 
+   for (hashval = 0; hashval < IHSize; ++hashval)
       for (ptr = tbl[hashval]; ptr != NULL; ptr = ptr->blink) {
          empty = 0;
          /*
@@ -252,7 +252,7 @@ char *dbname;
    int ary_sz;
    int i;
 
- 
+
 #if MVS
    /*
     * Avoid problems with MVS line length restrictions.
@@ -291,8 +291,7 @@ char *dbname;
    ary_sz = Max(num_fnc, num_op);
    ary_sz = Max(ary_sz, num_key);
    if (ary_sz > 0)
-      sort_ary = (struct implement**)alloc((unsigned int)(ary_sz *
-           sizeof(struct implement*)));
+      sort_ary = alloc(ary_sz * sizeof(struct implement*));
    else
       sort_ary = NULL;
 
@@ -424,7 +423,7 @@ int (*cmp)();
        *  statement. The number of tended variables is printed followed
        *  by an entry for each variable. Each entry consists of the
        *  type of the declaration
-       * 
+       *
        *     struct descrip  -> desc
        *     char *          -> str
        *     struct b_xxx *  -> blkptr b_xxx
@@ -670,7 +669,7 @@ struct il_code *il;
          break;
       case IL_Block:
          /*
-          * A block of in-line code. 
+          * A block of in-line code.
           */
          fprintf(db, "block ");
          if (il->u[0].n)
@@ -1125,8 +1124,7 @@ FILE *db;
     */
    num = 0;
    if (num_src > 0) {
-      sort_ary = (struct srcfile **)alloc((unsigned int)(num_src *
-         sizeof(struct srcfile *)));
+      sort_ary = alloc(num_src * sizeof(struct srcfile *));
       for (hashval = 0; hashval < DHSize; ++hashval)
          for (sfile = dhash[hashval]; sfile != NULL; sfile = sfile->next)
             sort_ary[num++] = sfile;
@@ -1351,7 +1349,7 @@ struct implement *ptr;
        */
       nargs = params->u.param_info.param_num + 1;
       ptr->nargs = nargs;
-      ptr->arg_flgs = (int *)alloc((unsigned int)(sizeof(int) * nargs));
+      ptr->arg_flgs = alloc(nargs * sizeof(int));
       for (i = 0; i < nargs; ++i)
          ptr->arg_flgs[i] = 0;
       for (sym = params; sym != NULL; sym = sym->u.param_info.next)
@@ -1407,7 +1405,7 @@ struct token *name;
       ++num_op;
       }
 
-   /* 
+   /*
     * Put the entry and operation type in global variables for
     *  later access.
     */

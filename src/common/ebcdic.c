@@ -1,5 +1,5 @@
 #include "../h/gsupport.h"
- 
+
 #if EBCDIC
  /*
   * These tables are defined to provide translations between
@@ -75,14 +75,14 @@ char FromEBCDIC[256] = {        /* EBCDIC->ASCII translation */
         0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
         0x38, 0x39, 0xb3, 0xdb, 0xdc, 0xd9, 0xda, 0x9f
  };
- 
+
 int tonum(c)
 int c;
 {
-#if SASC 
+#if SASC
    const static char *alphanum = "0123456789abcdefghijklmnopqrstuvwxyz" ;
    char *where;
- 
+
    where = memchr(alphanum, tolower(c), 36);
    if (where == 0) return -1;
    return where - alphanum;

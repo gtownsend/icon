@@ -35,7 +35,7 @@ extern struct b_proc Bfield;
 extern struct b_proc Blimit;
 extern struct b_proc Bllist;
 
- 
+
 
 
 struct b_proc *opblks[] = {
@@ -243,7 +243,7 @@ struct b_real realzero = {T_Real, 0.0};
 struct descrip kywd_err = {D_Integer};  /* &error */
 struct descrip kywd_pos = {D_Integer};	/* &pos */
 struct descrip kywd_prog;		/* &progname */
-struct descrip k_subject; 		/* &subject */
+struct descrip k_subject;		/* &subject */
 struct descrip kywd_ran = {D_Integer};	/* &random */
 struct descrip kywd_trc = {D_Integer};	/* &trace */
 struct descrip k_eventcode = {D_Null};	/* &eventcode */
@@ -266,8 +266,8 @@ struct descrip trashcan;		/* descriptor that is never read */
  * Various constant descriptors.
  */
 
-struct descrip blank; 			/* one-character blank string */
-struct descrip emptystr; 		/* zero-length empty string */
+struct descrip blank;			/* one-character blank string */
+struct descrip emptystr;		/* zero-length empty string */
 struct descrip lcase;			/* string of lowercase letters */
 struct descrip letr;			/* "r" */
 struct descrip nulldesc = {D_Null};	/* null value */

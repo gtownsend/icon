@@ -19,9 +19,9 @@
 
 static struct	tgentry *alcglob
    (struct tgentry *blink, char *name,int flag,int nargs);
-static struct	tcentry *alclit	
+static struct	tcentry *alclit
    (struct tcentry *blink, char *name, int len,int flag);
-static struct	tlentry *alcloc	
+static struct	tlentry *alcloc
    (struct tlentry *blink, char *name,int flag);
 static struct	tcentry *clookup	(char *id,int flag);
 static struct	tgentry *glookup	(char *id);
@@ -337,7 +337,7 @@ void cdump()
 
 /*
  * alcloc allocates a local symbol table entry, fills in fields with
- *  specified values and returns the new entry.  
+ *  specified values and returns the new entry.
  */
 static struct tlentry *alcloc(blink, name, flag)
 struct tlentry *blink;
@@ -365,7 +365,7 @@ int flag;
 
 /*
  * alcglob allocates a global symbol table entry, fills in fields with
- *  specified values and returns offset of new entry.  
+ *  specified values and returns offset of new entry.
  */
 static struct tgentry *alcglob(blink, name, flag, nargs)
 struct tgentry *blink;
@@ -394,7 +394,7 @@ int flag, nargs;
 
 /*
  * alclit allocates a constant symbol table entry, fills in fields with
- *  specified values and returns the new entry.  
+ *  specified values and returns the new entry.
  */
 static struct tcentry *alclit(blink, name, len, flag)
 struct tcentry *blink;
@@ -493,7 +493,7 @@ FILE *fd;
    int n;
    struct lfile *lfl;
    struct invkl *ivl;
-   
+
    if (uwarn)
       name = "error";
    else
@@ -501,7 +501,7 @@ FILE *fd;
    writecheck(fprintf(fd, "impl\t%s\n", name));
    if (trace)
       writecheck(fprintf(fd, "trace\n"));
-   
+
    lfl = lfiles;
    while (lfl) {
 

@@ -195,7 +195,7 @@ int order(dp)
 dptr dp;
    {
    if (Qual(*dp))
-      return 3; 	     /* string */
+      return 3;			     /* string */
    switch (Type(*dp)) {
       case T_Null:
 	 return 0;

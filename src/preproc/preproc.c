@@ -49,7 +49,7 @@ struct token *t;
          errt2(t1, "expecting end of line following argument to #", t->image);
       free_t(t1);
       }
- 
+
    /*
     * look for the branch of the conditional inclusion to take or #endif.
     */
@@ -69,7 +69,7 @@ struct token *t;
              */
             ++nesting;
             break;
- 
+
          case PpEndif:
             /*
              * #endif found. See if this is this the end of a nested
@@ -90,7 +90,7 @@ struct token *t;
                return;
                }
             break;
-  
+
          case PpElif:
             /*
              * #elif found. If this is not a nested conditional, see if
@@ -103,7 +103,7 @@ struct token *t;
                condition = eval(t);
                }
             break;
- 
+
          case PpElse:
             /*
              * #else found. If this is not a nested conditional, take
@@ -309,7 +309,7 @@ struct token *t;
    nxt_non_wh(&mname);
    if (mname->tok_id != Identifier)
       errt2(mname, "syntax error in #", t->image);
-   
+
    /*
     * Determine if this macro takes arguments.
     */
@@ -468,10 +468,8 @@ struct macro *m;
           * Allocate an array for both raw and macro-expanded token lists
           *  for the arguments.
           */
-         args = (struct tok_lst **)alloc((unsigned int)(sizeof(struct tok_lst *)
-             * nparm));
-         exp_args = (struct tok_lst **)alloc((unsigned int)(
-             sizeof(struct tok_lst *) * nparm));
+         args = alloc(nparm * sizeof(struct tok_lst *));
+         exp_args = alloc(nparm * sizeof(struct tok_lst *));
 
          /*
           * Gather the tokens for each argument.
@@ -643,7 +641,7 @@ struct token *interp_dir()
          case PpIfndef:      /* #endif */
             start_select(t);
             break;
-            
+
          case PpElif:        /* #elif */
          case PpElse:        /* #else */
          case PpEndif:       /* #endif */
@@ -682,7 +680,7 @@ struct token *interp_dir()
          case PpLine:        /* #line */
             /* this directive is handled in next_tok() */
             break;
- 
+
          case PpError:       /* #error */
             /*
              * Create an error message out of the rest of the tokens
@@ -754,7 +752,7 @@ struct token *interp_dir()
 
 
 /*
- * See if compiler used to build the preprocessor recognizes '\a' 
+ * See if compiler used to build the preprocessor recognizes '\a'
  *  as the bell character.
  */
 #if '\a' == Bell
@@ -930,7 +928,7 @@ struct token *preproc()
                       */
                      escape_seq = s;
                      i = 1;
-                     while (i <= 3 && *s >= '0' && *s <= '7') { 
+                     while (i <= 3 && *s >= '0' && *s <= '7') {
                         ++i;
                         ++s;
                         }

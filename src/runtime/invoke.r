@@ -41,7 +41,7 @@ continuation succ_cont;
          RunErr(106, &callee);
       return (*(proc)->ccode)(nargs, args, rslt, succ_cont);
       }
-   else 
+   else
       RunErr(106, &callee);
    }
 
@@ -73,11 +73,11 @@ continuation succ_cont;
           * Copy the arguments from the list into an tended array of descriptors.
           */
          nargs = BlkLoc(dstrct)->list.size + 1;
-         tnd_args = (struct tend_desc *)malloc((sizeof(struct tend_desc)
-            + (nargs - 1) * sizeof(struct descrip)));
+         tnd_args = malloc(sizeof(struct tend_desc)
+            + (nargs - 1) * sizeof(struct descrip));
          if (tnd_args == NULL)
             RunErr(305, NULL);
-      
+
          tnd_args->d[0] = *callee;
          indx = 1;
          for (ep = BlkLoc(dstrct)->list.listhead;
@@ -97,9 +97,9 @@ continuation succ_cont;
          tnd_args->num = nargs;
          tnd_args->previous = tend;
          tend = tnd_args;
-      
+
          signal = invoke(indx, tnd_args->d, rslt, succ_cont);
-      
+
          tend = tnd_args->previous;
          free(tnd_args);
          return signal;
@@ -110,11 +110,11 @@ continuation succ_cont;
           * of descriptors.
           */
          nargs = BlkLoc(dstrct)->record.recdesc->proc.nfields;
-         tnd_args = (struct tend_desc *)malloc((sizeof(struct tend_desc)
-            + (nargs - 1) * sizeof(struct descrip)));
+         tnd_args = malloc(sizeof(struct tend_desc)
+            + (nargs - 1) * sizeof(struct descrip));
          if (tnd_args == NULL)
             RunErr(305, NULL);
-      
+
          tnd_args->d[0] = *callee;
          indx = 1;
          ep = BlkLoc(dstrct);
@@ -123,9 +123,9 @@ continuation succ_cont;
          tnd_args->num = nargs;
          tnd_args->previous = tend;
          tend = tnd_args;
-      
+
          signal = invoke(indx, tnd_args->d, rslt, succ_cont);
-      
+
          tend = tnd_args->previous;
          free(tnd_args);
          return signal;
@@ -144,7 +144,7 @@ continuation succ_cont;
 
 
 /*
- * invoke -- Perform setup for invocation.  
+ * invoke -- Perform setup for invocation.
  */
 int invoke(nargs,cargp,n)
 dptr *cargp;
@@ -172,7 +172,7 @@ int nargs, *n;
    xargp = newargp;
 
    Deref(newargp[0]);
-   
+
    /*
     * See what course the invocation is to take.
     */
@@ -217,7 +217,7 @@ int nargs, *n;
 	 newargp[0].dword = D_Proc;
 	 }
       }
-   
+
    /*
     * newargp[0] is now a descriptor suitable for invocation.  Dereference
     *  the supplied arguments.
@@ -227,7 +227,7 @@ int nargs, *n;
    if (proc->nstatic >= 0)	/* if negative, don't reference arguments */
       for (i = 1; i <= nargs; i++)
          Deref(newargp[i]);
-      
+
    /*
     * Adjust the argument list to conform to what the routine being invoked
     *  expects (proc->nparam).  If nparam is less than 0, the number of
@@ -320,7 +320,7 @@ int nargs, *n;
     * nothing for invocation in a co-expression other than &main.
     */
    if (BlkLoc(k_current) == BlkLoc(k_main) &&
-      ((char *)sp + PerilDelta) > (char *)stackend) 
+      ((char *)sp + PerilDelta) > (char *)stackend)
          fatalerr(301, NULL);
 #endif					/* MultiThread */
 
@@ -348,12 +348,12 @@ int nargs, *n;
 
    /*
     * If tracing is on, use ctrace to generate a message.
-    */   
+    */
    if (k_trace) {
       k_trace--;
       ctrace(&(proc->pname), nargs, &newargp[1]);
       }
-   
+
    /*
     * Point ipc at the icode entry point of the procedure being invoked.
     */

@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
       iconxloc = relfile(argv[0], "/../iconx");	/* otherwise infer it */
 
    /*
-    * Process options. 
+    * Process options.
     * IMPORTANT:  When making changes here, also update usage() function.
     */
    while ((c = getopt(argc, argv, "+ce:f:o:stuv:ELP:VX:")) != EOF)
@@ -122,9 +122,9 @@ int main(int argc, char *argv[]) {
     * Allocate space for lists of file names.
     */
    n = argc - optind + 1;
-   tptr = tfiles = (char **)alloc((unsigned int)(n * sizeof(char *)));
-   lptr = lfiles = (char **)alloc((unsigned int)(n * sizeof(char *)));
-   rptr = rfiles = (char **)alloc((unsigned int)(2 * n * sizeof(char *)));
+   tptr = tfiles = alloc(n * sizeof(char *));
+   lptr = lfiles = alloc(n * sizeof(char *));
+   rptr = rfiles = alloc(2 * n * sizeof(char *));
 
    /*
     * Scan file name arguments.
@@ -217,7 +217,7 @@ static void execute(char *ofile, char *efile, char *args[]) {
 
    for (n = 0; args[n] != NULL; n++)	/* count arguments */
       ;
-   p = argv = (char **)alloc((unsigned int)((n + 5) * sizeof(char *)));
+   p = argv = alloc((n + 5) * sizeof(char *));
 
    *p++ = ofile;			/* pass icode file name */
    while ((*p++ = *args++) != 0)	/* copy args into argument vector */
@@ -371,5 +371,5 @@ static void cleanup(void) {
    char **p;
 
    for (p = rfiles; *p; p++)
-      remove(*p);			
+      remove(*p);
 }

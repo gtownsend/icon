@@ -19,8 +19,8 @@
 void bigprint(f, da)
 FILE *f;
 dptr da;
-{
-}
+   {
+   }
 
 /*
  *  bignum -> real
@@ -107,7 +107,7 @@ dptr da, db;
 
 /*
  *  ?da -> dx
- */  
+ */
 int bigrand(da, dx)
 dptr da, dx;
    {
@@ -160,7 +160,7 @@ dptr da, dx;
 
 /*
  *  da - db -> dx
- */ 
+ */
 int bigsub(da, db, dx)
 dptr da, db, dx;
    {

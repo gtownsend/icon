@@ -12,7 +12,7 @@
  */
 Global int cmask;			/* mask for constant table hash */
 Global int fmask;			/* mask for field table hash */
-Global int gmask;			/* mask for global table hash */	
+Global int gmask;			/* mask for global table hash */
 Global int imask;			/* mask for identifier table hash */
 Global int lmask;			/* mask for local table hash */
 

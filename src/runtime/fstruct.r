@@ -295,7 +295,7 @@ function{1} list(n, x)
       nslots = size = n;
 
       /*
-       * Ensure that the size is positive and that the list-element block 
+       * Ensure that the size is positive and that the list-element block
        *  has at least MinListSlots slots.
        */
       if (size < 0) {
@@ -456,7 +456,7 @@ dptr val;
     */
    bp = (struct b_lelem *) BlkLoc(*l)->list.listhead;
 
-#ifdef EventMon 	/* initialize i so it's 0 if first list-element */
+#ifdef EventMon		/* initialize i so it's 0 if first list-element */
    i = 0;			/* block isn't full */
 #endif				/* EventMon */
 
@@ -553,7 +553,7 @@ function{1} push(x, vals[n])
 	 hp = (struct b_list *) BlkLoc(x);
 	 bp = (struct b_lelem *) hp->listhead;
 
-#ifdef EventMon 	/* initialize i so it's 0 if first list-element */
+#ifdef EventMon		/* initialize i so it's 0 if first list-element */
 	 i = 0;			/* block isn't full */
 #endif				/* EventMon */
 
@@ -636,8 +636,8 @@ struct descrip *val;
     *  list-element block.
     */
    bp = (struct b_lelem *) BlkLoc(*l)->list.listtail;
-   
-#ifdef EventMon 	/* initialize i so it's 0 if last list-element */
+
+#ifdef EventMon		/* initialize i so it's 0 if last list-element */
    i = 0;			/* block isn't full */
 #endif				/* EventMon */
 
@@ -732,8 +732,8 @@ function{1} put(x, vals[n])
 
 	 hp = (struct b_list *)BlkLoc(x);
 	 bp = (struct b_lelem *) hp->listtail;
-   
-#ifdef EventMon 	/* initialize i so it's 0 if last list-element */
+
+#ifdef EventMon		/* initialize i so it's 0 if last list-element */
 	 i = 0;			/* block isn't full */
 #endif				/* EventMon */
 
@@ -895,7 +895,7 @@ function{1} table(x)
       }
    inline {
       union block *bp;
-   
+
       bp = hmake(T_Table, (word)0, (word)0);
       if (bp == NULL)
          runerr(0);

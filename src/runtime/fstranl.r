@@ -17,7 +17,7 @@
    abstract {
       return integer
       }
-   
+
    if is:null(s) then {
       inline {
          s = k_subject;

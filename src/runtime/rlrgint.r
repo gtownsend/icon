@@ -125,7 +125,7 @@ static word bigcmpi	(dptr da, word i);
 static DIGIT add1	(DIGIT *u, DIGIT *v, DIGIT *w, word n);
 static word sub1	(DIGIT *u, DIGIT *v, DIGIT *w, word n);
 static void mul1	(DIGIT *u, DIGIT *v, DIGIT *w, word n, word m);
-static int div1	
+static int div1
    (DIGIT *a, DIGIT *b, DIGIT *q, DIGIT *r, word m, word n, struct b_bignum *b1, struct b_bignum *b2);
 static void compl1	(DIGIT *u, DIGIT *w, word n);
 static word cmp1	(DIGIT *u, DIGIT *v, word n);
@@ -210,7 +210,7 @@ dptr dx;
       *DIG(x,0) = d;
       x->sign = 1;
       }
-            
+
    while (i != 0) {
       x->msd--;
       *DIG(x,0) = lo(i);
@@ -222,7 +222,7 @@ dptr dx;
 }
 
 /*
- *  string -> bignum 
+ *  string -> bignum
  */
 
 word bigradix(sign, r, s, end_s, result)
@@ -347,7 +347,7 @@ dptr da, dx;
       *DIG(b,i) = d;
       x -= d;
       }
-     
+
    b->sign = sgn;
    return mkdesc(b, dx);
 }
@@ -401,7 +401,7 @@ dptr da, dx;
 }
 
 /*
- *  bignum -> file 
+ *  bignum -> file
  */
 
 void bigprint(f, da)
@@ -585,7 +585,7 @@ dptr dx;
 
 /*
  *  da - db -> dx
- */ 
+ */
 
 int bigsub(da, db, dx)
 dptr da, db, dx;
@@ -754,7 +754,7 @@ dptr da, db, dx;
       itobig(IntVal(*da), (struct b_bignum *)tdigits, &td);
       return bigsubi(&td, IntVal(*db), dx);
       }
-      
+
 }
 
 /*
@@ -797,7 +797,7 @@ dptr da, db, dx;
 /*
  *  da / db -> dx
  */
- 
+
 int bigdiv(da, db, dx)
 dptr da, db, dx;
 {
@@ -1086,7 +1086,7 @@ dptr da, db, dx;
          if (b->sign)
 	    compl1(bd, bd, xlen);
          }
-        
+
       for (i = 0; i < xlen; i++)
          *DIG(x,i) =
             ad[i] & bd[i];
@@ -1130,7 +1130,7 @@ dptr da, db, dx;
          if (b->sign)
 	    compl1(bd, bd, xlen);
          }
-        
+
       for (i = 0; i < xlen; i++)
          *DIG(x,i) =
             ad[i] & bd[i];
@@ -1174,7 +1174,7 @@ dptr da, db, dx;
          if (b->sign)
 	    compl1(bd, bd, xlen);
          }
-        
+
       for (i = 0; i < xlen; i++)
          *DIG(x,i) =
             ad[i] & bd[i];
@@ -1236,7 +1236,7 @@ dptr da, db, dx;
          if (b->sign)
 	    compl1(bd, bd, xlen);
          }
-        
+
       for (i = 0; i < xlen; i++)
          *DIG(x,i) =
             ad[i] | bd[i];
@@ -1280,7 +1280,7 @@ dptr da, db, dx;
          if (b->sign)
 	    compl1(bd, bd, xlen);
          }
-        
+
       for (i = 0; i < xlen; i++)
          *DIG(x,i) =
             ad[i] | bd[i];
@@ -1324,7 +1324,7 @@ dptr da, db, dx;
          if (b->sign)
 	    compl1(bd, bd, xlen);
          }
-        
+
       for (i = 0; i < xlen; i++)
          *DIG(x,i) =
             ad[i] | bd[i];
@@ -1568,7 +1568,7 @@ dptr da, db;
 {
    struct b_bignum *a = LrgInt(da);
    struct b_bignum *b = LrgInt(db);
-   word alen, blen; 
+   word alen, blen;
 
    if (Type(*da) == T_Lrgint && Type(*db) == T_Lrgint) {
       if (a->sign != b->sign)
@@ -1595,7 +1595,7 @@ dptr da, db;
 
 /*
  *  ?da -> dx
- */  
+ */
 
 int bigrand(da, dx)
 dptr da, dx;
@@ -1615,7 +1615,7 @@ dptr da, dx;
       rval = RandVal;
       d[i] = rval * B;
       }
-    
+
    Protect(tu = alcbignum(alen + 2), return Error);
    Protect(tv = alcbignum(alen), return Error);
    if (div1(d, DIG(a,0),
@@ -1638,9 +1638,9 @@ static int bigaddi(da, i, dx)
 dptr da, dx;
 word i;
 {
-   tended struct b_bignum *a; 
-   struct b_bignum *x; 
-   word alen; 
+   tended struct b_bignum *a;
+   struct b_bignum *x;
+   word alen;
 
    if (i < 0 && i > MinLong)
       return bigsubi(da, -i, dx);
@@ -1682,8 +1682,8 @@ static int bigsubi(da, i, dx)
 dptr da, dx;
 word i;
 {
-   tended struct b_bignum *a; 
-   struct b_bignum *x; 
+   tended struct b_bignum *a;
+   struct b_bignum *x;
    word alen;
 
    if (i < 0 && i > MinLong)
@@ -1726,8 +1726,8 @@ static int bigmuli(da, i, dx)
 dptr da, dx;
 word i;
 {
-   tended struct b_bignum *a; 
-   struct b_bignum *x; 
+   tended struct b_bignum *a;
+   struct b_bignum *x;
    word alen;
 
    if (i <= -B || i >= B) {
@@ -1764,8 +1764,8 @@ static int bigdivi(da, i, dx)
 dptr da, dx;
 word i;
 {
-   tended struct b_bignum *a; 
-   struct b_bignum *x; 
+   tended struct b_bignum *a;
+   struct b_bignum *x;
    word alen;
 
    if (i <= -B || i >= B) {
@@ -1837,7 +1837,7 @@ dptr da, dx;
 word i;
 {
    int n = WordBits;
-   
+
    if (i > 0) {
       /* scan bits left to right.  skip leading 1. */
       while (--n >= 0)
@@ -1914,9 +1914,9 @@ dptr dx;
             else {
                itobig(x, (struct b_bignum *)tdigits, &td);
                if (bigmul(&td, &td, dx) == Error)
-   	          return Error;
+	          return Error;
                isbig = (Type(*dx) == T_Lrgint);
-               } 
+               }
             }
          if (i & ((word)1 << n)) {
             if (isbig) {
@@ -1930,7 +1930,7 @@ dptr dx;
                else {
                   itobig(x, (struct b_bignum *)tdigits, &td);
                   if (bigmuli(&td, a, dx) == Error)
-   		  return Error;
+		  return Error;
                   isbig = (Type(*dx) == T_Lrgint);
                   }
                }
@@ -1947,8 +1947,8 @@ dptr dx;
  *  negative if da < i
  *  zero if da == i
  *  positive if da > i
- */  
-  
+ */
+
 static word bigcmpi(da, i)
 dptr da;
 word i;
@@ -1992,7 +1992,7 @@ static DIGIT add1(u, v, w, n)
 DIGIT *u, *v, *w;
 word n;
 {
-   uword dig, carry; 
+   uword dig, carry;
    word i;
 
    carry = 0;
@@ -2014,7 +2014,7 @@ static word sub1(u, v, w, n)
 DIGIT *u, *v, *w;
 word n;
 {
-   uword dig, carry; 
+   uword dig, carry;
    word i;
 
    carry = 0;
@@ -2095,7 +2095,7 @@ struct b_bignum *tu, *tv;
          qhat -= 1;
          rhat += v[0];
          }
-            
+
       /* D4 */
       carry = 0;
       for (i = n; i > 0; i--) {
@@ -2182,7 +2182,7 @@ word n;
 {
    uword dig, carry;
    word i;
-    
+
    carry = k;
    for (i = n; --i >= 0; ) {
       dig = (uword)u[i] + carry;
@@ -2206,7 +2206,7 @@ word n;
 {
    uword dig, carry;
    word i;
-    
+
    carry = -k;
    for (i = n; --i >= 0; ) {
       dig = (uword)u[i] + carry;
@@ -2268,7 +2268,7 @@ word n;
  *  ((u,n) << k) + c -> (w,n)
  *
  *  k in 0 .. NB-1
- *  c in 0 .. B-1 
+ *  c in 0 .. B-1
  *  returns carry, 0 .. B-1
  */
 
@@ -2284,7 +2284,7 @@ word n;
       bdcopy(u, w, n);
       return 0;
       }
-    
+
    for (i = n; --i >= 0; ) {
       dig = ((uword)u[i] << k) + c;
       w[i] = lo(dig);

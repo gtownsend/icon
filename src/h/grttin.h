@@ -200,7 +200,7 @@ typedef int clock_t, time_t, fd_set;
       typedef int *Display, Cursor, GC, Window, Pixmap, Visual, KeySym;
       typedef int WidgetClass, XImage, XpmAttributes;
    #endif				/* XWindows */
-      
+
    #ifdef MSWindows
       typedef int clock_t, jmp_buf, MINMAXINFO, OSVERSIONINFO, BOOL_CALLBACK;
       typedef int int_PASCAL, LRESULT_CALLBACK, MSG, BYTE, WORD, DWORD;
@@ -239,26 +239,26 @@ typedef int clock_t, time_t, fd_set;
     * Convenience macros to make up for RTL's long-windedness.
     */
    #begdef CnvCShort(desc, s)
-	{
-	C_integer tmp;
-	if (!cnv:C_integer(desc,tmp) || tmp > 0x7FFF || tmp < -0x8000)
-	   runerr(101,desc);
-	s = (short) tmp;
-	}
+      {
+      C_integer tmp;
+      if (!cnv:C_integer(desc,tmp) || tmp > 0x7FFF || tmp < -0x8000)
+         runerr(101,desc);
+      s = (short) tmp;
+      }
    #enddef				/* CnvCShort */
-   
+
    #define CnvCInteger(d,i) \
-     if (!cnv:C_integer(d,i)) runerr(101,d);
-   
+      if (!cnv:C_integer(d,i)) runerr(101,d);
+
    #define DefCInteger(d,default,i) \
-     if (!def:C_integer(d,default,i)) runerr(101,d);
-   
+      if (!def:C_integer(d,default,i)) runerr(101,d);
+
    #define CnvString(din,dout) \
-     if (!cnv:string(din,dout)) runerr(103,din);
-   
+      if (!cnv:string(din,dout)) runerr(103,din);
+
    #define CnvTmpString(din,dout) \
-     if (!cnv:tmp_string(din,dout)) runerr(103,din);
-   
+      if (!cnv:tmp_string(din,dout)) runerr(103,din);
+
    /*
     * conventions supporting optional initial window arguments:
     *
@@ -271,39 +271,39 @@ typedef int clock_t, time_t, fd_set;
    #begdef OptWindow(w)
       if (argc>warg && is:file(argv[warg])) {
          if ((BlkLoc(argv[warg])->file.status & Fs_Window) == 0)
-	    runerr(140,argv[warg]);
+            runerr(140,argv[warg]);
          if ((BlkLoc(argv[warg])->file.status & (Fs_Read|Fs_Write)) == 0)
-	    runerr(142,argv[warg]);
+            runerr(142,argv[warg]);
          (w) = (wbp)BlkLoc(argv[warg])->file.fd;
          if (ISCLOSED(w))
-	    runerr(142,argv[warg]);
+            runerr(142,argv[warg]);
          warg++;
          }
       else {
          if (!(is:file(kywd_xwin[XKey_Window]) &&
-	      (BlkLoc(kywd_xwin[XKey_Window])->file.status & Fs_Window)))
-	    runerr(140,kywd_xwin[XKey_Window]);
-         if (!(BlkLoc(kywd_xwin[XKey_Window])->file.status & (Fs_Read|Fs_Write)))
-	    runerr(142,kywd_xwin[XKey_Window]);
+            (BlkLoc(kywd_xwin[XKey_Window])->file.status & Fs_Window)))
+               runerr(140,kywd_xwin[XKey_Window]);
+         if (!(BlkLoc(kywd_xwin[XKey_Window])->file.status&(Fs_Read|Fs_Write)))
+            runerr(142,kywd_xwin[XKey_Window]);
          (w) = (wbp)BlkLoc(kywd_xwin[XKey_Window])->file.fd;
          if (ISCLOSED(w))
-	    runerr(142,kywd_xwin[XKey_Window]);
+            runerr(142,kywd_xwin[XKey_Window]);
          }
    #enddef				/* OptWindow */
-   
+
    #begdef ReturnWindow
          if (!warg) return kywd_xwin[XKey_Window];
          else return argv[0]
    #enddef				/* ReturnWindow */
-   
+
    #begdef CheckArgMultiple(mult)
-   {
-     if ((argc-warg) % (mult)) runerr(146);
-     n = (argc-warg)/mult;
-     if (!n) runerr(146);
-   }
+      {
+      if ((argc-warg) % (mult)) runerr(146);
+      n = (argc-warg)/mult;
+      if (!n) runerr(146);
+      }
    #enddef				/* CheckArgMultiple */
-   
+
    /*
     * calloc to make sure uninit'd entries are zeroed.
     */
@@ -314,7 +314,7 @@ typedef int clock_t, time_t, fd_set;
          var->refcount = 1;
       } while(0)
    #enddef				/* GRFX_ALLOC */
-   
+
    #begdef GRFX_LINK(var, chain)
       do {
          var->next = chain;
@@ -323,7 +323,7 @@ typedef int clock_t, time_t, fd_set;
          chain = var;
       } while(0)
    #enddef				/* GRFX_LINK */
-   
+
    #begdef GRFX_UNLINK(var, chain)
       do {
          if (var->previous) var->previous->next = var->next;
@@ -332,5 +332,5 @@ typedef int clock_t, time_t, fd_set;
          free(var);
       } while(0)
    #enddef				/* GRFX_UNLINK */
-   
+
 #endif					/* Graphics */

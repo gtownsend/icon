@@ -1,4 +1,4 @@
-/* 
+/*
  * Grammar for RTL. The C portion of the grammar is based on
  *  the ANSI Draft Standard - 3rd review.
  */
@@ -15,7 +15,7 @@
    }
 
 %token <t> Identifier StrLit LStrLit FltConst DblConst LDblConst
-%token <t> CharConst LCharConst IntConst UIntConst LIntConst ULIntConst 
+%token <t> CharConst LCharConst IntConst UIntConst LIntConst ULIntConst
 %token <t> Arrow Incr Decr LShft RShft Leq Geq Equal Neq
 %token <t> And Or MultAsgn DivAsgn ModAsgn PlusAsgn
 %token <t> MinusAsgn LShftAsgn RShftAsgn AndAsgn
@@ -27,7 +27,7 @@
 
 %token <t> Case Default If Else Switch While Do For Goto Continue Break Return
 
-%token <t> '%' '&' '(' ')' '*' '+' ',' '-' '.' '/' '{' '|' '}' '~' '[' ']' 
+%token <t> '%' '&' '(' ')' '*' '+' ',' '-' '.' '/' '{' '|' '}' '~' '[' ']'
 %token <t> '^' ':' ';' '<' '=' '>' '?' '!' '@' '\\'
 
 %token <t> Runerr Is Cnv Def Exact Empty_type IconType Component Variable
@@ -39,7 +39,7 @@
 %type <t> unary_op assign_op struct_or_union typedefname
 %type <t> identifier op_name key_const union attrb_name
 
-%type <n> any_ident storage_class_spec type_qual 
+%type <n> any_ident storage_class_spec type_qual
 %type <n> primary_expr postfix_expr arg_expr_lst unary_expr cast_expr
 %type <n> multiplicative_expr additive_expr shift_expr relational_expr
 %type <n> equality_expr and_expr exclusive_or_expr inclusive_or_expr
@@ -493,7 +493,7 @@ tqual_lst
    ;
 
 param_type_lst
-   : param_lst 
+   : param_lst
    | param_lst ',' Ellipsis {$$ = node2(CommaNd, $2, $1, node0(PrimryNd, $3));}
    ;
 
@@ -686,7 +686,7 @@ jump_stmt
    ;
 
 translation_unit
-   : 
+   :
    | extrn_decltn_lst
    ;
 
@@ -698,7 +698,7 @@ extrn_decltn_lst
 external_dcltion
    : function_definition
    | dcltion                {dclout($1);}
-   | definition 
+   | definition
    ;
 
 function_definition
@@ -723,7 +723,7 @@ label
    ;
 
 typedefname
-   : TypeDefName 
+   : TypeDefName
    | C_Integer /* hack to allow C_integer to be defined with typedef */
    | C_Double  /* for consistency with C_integer */
    | C_String  /* for consistency with C_integer */
@@ -1067,7 +1067,7 @@ basic_type
                                          free_t($3); free_t($5);}
    | Store '[' type ']'                 {$$ = node1(PrefxNd, $1, $3);
                                          free_t($2); free_t($4);}
-   | basic_type '.' attrb_name          {$$ = node1(PstfxNd, $3, $1); 
+   | basic_type '.' attrb_name          {$$ = node1(PstfxNd, $3, $1);
                                          free_t($2);}
    | '(' type ')'                       {$$ = $2; free_t($1); free_t($3);}
    ;

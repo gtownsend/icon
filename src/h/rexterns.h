@@ -149,7 +149,7 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
    /*
     * External declarations for the interpreter.
     */
-   
+
    extern inst ipc;			/* interpreter program counter */
    extern int ilevel;			/* interpreter level */
    extern int ntended;			/* number of active tended descriptors*/
@@ -166,14 +166,14 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
    extern word *sp;			/* interpreter stack pointer */
    extern word *stack;			/* interpreter stack base */
    extern word *stackend;		/* end of evaluation stack */
-   
+
    extern struct pstrnm pntab[];
    extern int pnsize;
-   
+
    #ifdef ExecImages
       extern int dumped;		/* the interpreter has been dumped */
    #endif				/* ExecImages */
-   
+
    #ifdef MultiThread
       extern struct progstate *curpstate;
       extern struct progstate rootpstate;
@@ -194,10 +194,10 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
       #endif				/* FieldTableCompression */
       extern dptr xargp;
       extern word xnargs;
-      
+
       extern word lastop;
    #endif				/* MultiThread */
-   
+
 #else					/* COMPILER */
 
    extern struct descrip statics[];	/* array of static variables */
@@ -213,7 +213,7 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
  * graphics
  */
 #ifdef Graphics
-   
+
    extern stringint attribs[], drawops[];
    extern wbp wbndngs;
    extern wcp wcntxts;

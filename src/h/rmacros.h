@@ -48,17 +48,17 @@
 
 #ifdef Graphics
    #define Fs_Window   0400	/* reading/writing on a window */
-   
+
    #define XKey_Window 0
    #define XKey_Fg 1
-   
+
    #ifndef SHORT
       #define SHORT int
    #endif				/* SHORT */
    #ifndef LONG
       #define LONG int
    #endif				/* LONG */
-   
+
    /*
     * Perform a "C" return, not processed by RTT
     */
@@ -230,16 +230,16 @@
  * Construct an integer descriptor.
  */
 #define MakeInt(i,dp)		do { \
-                 	 (dp)->dword = D_Integer; \
-                         IntVal(*dp) = (word)(i); \
+			 (dp)->dword = D_Integer; \
+			 IntVal(*dp) = (word)(i); \
 			 } while (0)
 
 /*
  * Construct a string descriptor.
  */
 #define MakeStr(s,len,dp)      do { \
-                 	 StrLoc(*dp) = (s); \
-                         StrLen(*dp) = (len); \
+			 StrLoc(*dp) = (s); \
+			 StrLen(*dp) = (len); \
 			 } while (0)
 
 /*
@@ -269,7 +269,7 @@
 /*
  * Definitions and declarations used for storage management.
  */
-#define F_Mark		0100000 	/* bit for marking blocks */
+#define F_Mark		0100000		/* bit for marking blocks */
 
 /*
  * Argument values for the built-in Icon user function "collect()".
@@ -420,7 +420,7 @@
  *  being used.
  */
 #define PFDebug(pf) ((struct debug *)((char *)(pf).tend.d +\
-    sizeof(struct descrip) * ((pf).tend.num ? (pf).tend.num : 1)))
+   sizeof(struct descrip) * ((pf).tend.num ? (pf).tend.num : 1)))
 
 /*
  * Macro for initialized procedure block.
@@ -440,19 +440,19 @@
 #define blkfree  (curblock->free)
 
 #if COMPILER
-   
+
    #ifdef Graphics
       #define Poll() if (!pollctr--) pollctr = pollevent()
    #else				/* Graphics */
       #define Poll()
    #endif				/* Graphics */
-   
+
 #else					/* COMPILER */
-   
+
    /*
     * Definitions for the interpreter.
     */
-   
+
    /*
     * Codes returned by invoke to indicate action.
     */
@@ -460,7 +460,7 @@
    #define I_Fail	202	/* goal-directed evaluation failed */
    #define I_Continue	203	/* Continue execution in the interp loop */
    #define I_Vararg	204	/* A function with a variable number of args */
-   
+
    /*
     * Generator types.
     */
@@ -469,146 +469,146 @@
    #define G_Psusp		3
    #define G_Fsusp		4
    #define G_Osusp		5
-   
+
    /*
     * Evaluation stack overflow margin
     */
    #define PerilDelta 100
-   
+
    /*
     * Macro definitions related to descriptors.
     */
-   
+
    /*
     * The following code is operating-system dependent [@rt.01].  Define
     *  PushAval for computers that store longs and pointers differently.
     */
-   
+
    #if PORT
       #define PushAVal(x) PushVal(x)
       Deliberate Syntax Error
    #endif				/* PORT */
-   
+
    #if AMIGA || ARM || ATARI_ST || MACINTOSH || MVS || UNIX || VM || VMS
       #define PushAVal(x) PushVal(x)
    #endif				/* AMIGA || ARM || ATARI_ST ... */
-   
+
    #if MSDOS || OS2
       #if HIGHC_386 || ZTC_386 || INTEL_386 || WATCOM || BORLAND_386 || SCCX_MX
          #define PushAVal(x) PushVal(x)
       #else				/* HIGHC_386 || ZTC_386 || ... */
          static union {
-                pointer stkadr;
-                word stkint;
+               pointer stkadr;
+               word stkint;
             } stkword;
-         
+
          #define PushAVal(x)  {sp++; \
-         			stkword.stkadr = (char *)(x); \
-         			*sp = stkword.stkint;}
+				stkword.stkadr = (char *)(x); \
+				*sp = stkword.stkint;}
       #endif				/* HIGHC_386 || ZTC_386 || ... */
    #endif				/* MSDOS || OS2 */
-   
+
    /*
     * End of operating-system specific code.
     */
-   
+
    /*
     * Macros for pushing values on the interpreter stack.
     */
-   
+
    /*
     * Push descriptor.
     */
    #define PushDesc(d)	{*++sp = ((d).dword); sp++;*sp =((d).vword.integr);}
-   
+
    /*
     * Push null-valued descriptor.
     */
    #define PushNull	{*++sp = D_Null; sp++; *sp = 0;}
-   
+
    /*
     * Push word.
     */
    #define PushVal(v)	{*++sp = (word)(v);}
-   
+
    /*
     * Macros related to function and operator definition.
     */
-   
+
    /*
     * Procedure block for a function.
     */
-   
+
    #if VMS
       #define FncBlock(f,nargs,deref) \
-      	struct b_iproc Cat(B,f) = {\
-      	T_Proc,\
-      	Vsizeof(struct b_proc),\
-      	Cat(Y,f),\
-      	nargs,\
-      	-1,\
-      	deref, 0,\
-      	{sizeof(Lit(f))-1,Lit(f)}};
+         struct b_iproc Cat(B,f) = {\
+         T_Proc,\
+         Vsizeof(struct b_proc),\
+         Cat(Y,f),\
+         nargs,\
+         -1,\
+         deref, 0,\
+         {sizeof(Lit(f))-1,Lit(f)}};
    #else				/* VMS */
       #define FncBlock(f,nargs,deref) \
-      	struct b_iproc Cat(B,f) = {\
-      	T_Proc,\
-      	Vsizeof(struct b_proc),\
-      	Cat(Z,f),\
-      	nargs,\
-      	-1,\
-      	deref, 0,\
-      	{sizeof(Lit(f))-1,Lit(f)}};
+         struct b_iproc Cat(B,f) = {\
+         T_Proc,\
+         Vsizeof(struct b_proc),\
+         Cat(Z,f),\
+         nargs,\
+         -1,\
+         deref, 0,\
+         {sizeof(Lit(f))-1,Lit(f)}};
    #endif				/* VMS */
-   
+
    /*
     * Procedure block for an operator.
     */
    #define OpBlock(f,nargs,sname,xtrargs)\
-   	struct b_iproc Cat(B,f) = {\
-   	T_Proc,\
-   	Vsizeof(struct b_proc),\
-   	Cat(O,f),\
-   	nargs,\
-   	-1,\
-   	xtrargs,\
-   	0,\
-   	{sizeof(sname)-1,sname}};
-   
+      struct b_iproc Cat(B,f) = {\
+      T_Proc,\
+      Vsizeof(struct b_proc),\
+      Cat(O,f),\
+      nargs,\
+      -1,\
+      xtrargs,\
+      0,\
+      {sizeof(sname)-1,sname}};
+
    /*
     * Operator declaration.
     */
    #define OpDcl(nm,n,pn) OpBlock(nm,n,pn,0) Cat(O,nm)(cargp) register dptr cargp;
-   
+
    /*
     * Operator declaration with extra working argument.
     */
    #define OpDclE(nm,n,pn) OpBlock(nm,-n,pn,0) Cat(O,nm)(cargp) register dptr cargp;
-   
+
    /*
     * Agent routine declaration.
     */
    #define AgtDcl(nm) Cat(A,nm)(cargp) register dptr cargp;
-   
+
    /*
     * Macros to access Icon arguments in C functions.
     */
-   
+
    /*
     * n-th argument.
     */
-   #define Arg(n)	 	(cargp[n])
-   
+   #define Arg(n)	(cargp[n])
+
    /*
     * Type field of n-th argument.
     */
    #define ArgType(n)	(cargp[n].dword)
-   
+
    /*
     * Value field of n-th argument.
     */
    #define ArgVal(n)	(cargp[n].vword.integr)
-   
+
    /*
     * Specific arguments.
     */
@@ -621,11 +621,11 @@
    #define Arg6	(cargp[6])
    #define Arg7	(cargp[7])
    #define Arg8	(cargp[8])
-   
+
    /*
     * Miscellaneous macro definitions.
     */
-   
+
    #ifdef MultiThread
       #define glbl_argp (curpstate->Glbl_argp)
       #define kywd_err  (curpstate->Kywd_err)
@@ -668,7 +668,7 @@
       #define ilines (curpstate->Ilines)
       #define elines (curpstate->Elines)
       #define current_line_ptr (curpstate->Current_line_ptr)
-      
+
       #ifdef Graphics
          #define amperX   (curpstate->AmperX)
          #define amperY   (curpstate->AmperY)
@@ -684,35 +684,35 @@
          #define xmod_shift (curpstate->Xmod_Shift)
          #define xmod_meta (curpstate->Xmod_Meta)
       #endif				/* Graphics */
-      
+
       #ifdef EventMon
          #define linenum  (curpstate->Linenum)
          #define column   (curpstate->Column)
          #define lastline (curpstate->Lastline)
          #define lastcol  (curpstate->Lastcol)
       #endif				/* EventMon */
-      
+
       #define coexp_ser (curpstate->Coexp_ser)
       #define list_ser  (curpstate->List_ser)
       #define set_ser   (curpstate->Set_ser)
       #define table_ser (curpstate->Table_ser)
-      
+
       #define curstring (curpstate->stringregion)
       #define curblock  (curpstate->blockregion)
       #define strtotal  (curpstate->stringtotal)
       #define blktotal  (curpstate->blocktotal)
-      
+
       #define coll_tot  (curpstate->colltot)
       #define coll_stat (curpstate->collstat)
       #define coll_str  (curpstate->collstr)
       #define coll_blk  (curpstate->collblk)
-      
+
       #define lastop    (curpstate->Lastop)
       #define lastopnd  (curpstate->Lastopnd)
-      
+
       #define xargp     (curpstate->Xargp)
       #define xnargs    (curpstate->Xnargs)
-      
+
       #define k_current     (curpstate->K_current)
       #define k_errornumber (curpstate->K_errornumber)
       #define k_errortext   (curpstate->K_errortext)
@@ -721,15 +721,15 @@
       #define t_errornumber (curpstate->T_errornumber)
       #define t_have_val    (curpstate->T_have_val)
       #define t_errorvalue  (curpstate->T_errorvalue)
-      
+
       #define k_main        (curpstate->K_main)
       #define k_errout      (curpstate->K_errout)
       #define k_input       (curpstate->K_input)
       #define k_output      (curpstate->K_output)
-      
+
       #define ENTERPSTATE(p) if (((p)!=NULL)) { curpstate = (p); }
    #endif				/* MultiThread */
-   
+
 #endif					/* COMPILER */
 
 /*

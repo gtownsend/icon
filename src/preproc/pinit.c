@@ -7,7 +7,7 @@
 #include "../preproc/ptoken.h"
 
 /*
- * The following code is operating-system dependent [@p_init.01]. 
+ * The following code is operating-system dependent [@p_init.01].
  *  #includes and #defines.
  */
 
@@ -38,11 +38,11 @@ Deliberate Syntax Error
 #define Strng(s) #s
 #define StrMBody(m) Strng(m)
 #define CBufSz 200
-#endif 					/* TURBO || BORLAND_286 ... */
+#endif					/* TURBO || BORLAND_286 ... */
 #endif					/* MSDOS */
- 
+
 #if MVS
-#if SASC 
+#if SASC
 char *_style = "tso:";
 #endif                                  /* SASC */
 #endif                                  /* MVS */
@@ -139,11 +139,11 @@ Deliberate Syntax Error
    char *undef_model = "#undef M_I86SM\n#undef M_I86CM\n#undef M_I86MM\n"
        "#undef M_I86LM\n#undef M_I86HM\n";
    char *cl_var;
-   
+
    do_directive("#define MSDOS 1\n");
    do_directive("#define M_I86 1\n");
    do_directive("#define M_I86SM 1\n");  /* small memory model */
-   
+
    /*
     * Process all applicable options from the CL environment variable.
     */
@@ -155,7 +155,7 @@ Deliberate Syntax Error
             switch (*cl_var) {
                case 'U':
                   /*
-                   * Undefine a specific identifier. Find the identifier 
+                   * Undefine a specific identifier. Find the identifier
                    *  by skipping white space then locating its end.
                    */
                   ++cl_var;
@@ -172,7 +172,7 @@ Deliberate Syntax Error
                   do_directive("#undef MSDOS\n");
                   do_directive("#undef M_I86\n");
                   do_directive("#undef NO_EXT_KEYS\n");
-                  do_directive("#undef _CHAR_UNSIGED\n"); 
+                  do_directive("#undef _CHAR_UNSIGED\n");
                   break;
                case 'D':
                   /*
@@ -245,7 +245,7 @@ Deliberate Syntax Error
                      }
                   break;
                case 'J':
-                   do_directive("#undef _CHAR_UNSIGED\n"); 
+                   do_directive("#undef _CHAR_UNSIGED\n");
                    do_directive("#define _CHAR_UNSIGNED 1\n");
                    break;
                }
@@ -257,12 +257,12 @@ Deliberate Syntax Error
 
 #if ZTC_386
    char *undef_model = "#undef M_I86SM\n#undef M_I86CM\n#undef M_I86MM\n"
-				"#undef M_I86LM\n#undef M_I86VM\n";
-   char *undef_model2 = 
-   				"#undef __SMALL__\n#undef __MEDIUM__\n"
-				"#undef __COMPACT__\n#undef __LARGE__\n#undef __VCM__\n";
-   char *undef_machine = 
-   				"#undef M_I8086\n#undef M_I286\n#undef M_I386\n#undef M_I486\n";
+      "#undef M_I86LM\n#undef M_I86VM\n";
+   char *undef_model2 =
+      "#undef __SMALL__\n#undef __MEDIUM__\n"
+      "#undef __COMPACT__\n#undef __LARGE__\n#undef __VCM__\n";
+   char *undef_machine =
+      "#undef M_I8086\n#undef M_I286\n#undef M_I386\n#undef M_I486\n";
    char *cl_var;
    int ms_syms = 1;			/* allow Microsoft memory and machine symbols	*/
 
@@ -304,20 +304,20 @@ Deliberate Syntax Error
                   break;
 	         case 'W':
 	             do_directive("#undef _WINDOWS\n");
-    	         do_directive("#define _WINDOWS 1\n");
-    	         break;
+                     do_directive("#define _WINDOWS 1\n");
+                     break;
 	         case 'J':
-    	         do_directive("#undef _CHAR_UNSIGNED\n");
+                     do_directive("#undef _CHAR_UNSIGNED\n");
 	             do_directive("#define _CHAR_UNSIGNED 1\n");
 	             break;
 	         case 'A':
 	             do_directive(undef_model);
-    	         do_directive(undef_machine);
-                 do_directive("#undef M_I86\n");
+                     do_directive(undef_machine);
+                     do_directive("#undef M_I86\n");
 	             do_directive("#undef __STDC__\n");
-    	         do_directive("#define __STDC__ 1\n");
-    	         ms_syms = 0;
-    	         break;
+                     do_directive("#define __STDC__ 1\n");
+                     ms_syms = 0;
+                     break;
 	         case 'm':
 	            switch (*opt_args[i]) {
 	               case 'p':
@@ -326,15 +326,15 @@ Deliberate Syntax Error
 	                  do_directive("#define DOS386 1\n");
                       do_directive(undef_machine);
 					  do_directive("#undef __I86__\n");
-	  	              do_directive("#define __I86__ 3\n");
-	  	              if (ms_syms)
+		              do_directive("#define __I86__ 3\n");
+		              if (ms_syms)
 	                     do_directive("#define M_I386 1\n");
-	  	              /* fall through	*/
+		              /* fall through	*/
 	               case 't':
 	               case 's':
 	                  do_directive(undef_model);
 	                  do_directive(undef_model2);
-	  	              if (ms_syms)
+		              if (ms_syms)
 	                     do_directive("#define M_I86SM 1\n");
 	                  do_directive("#define __SMALL__ 1\n");
 	                  break;
@@ -348,7 +348,7 @@ Deliberate Syntax Error
 	               case 'm':
 	                  do_directive(undef_model);
 	                  do_directive(undef_model2);
-	  	              if (ms_syms)
+		              if (ms_syms)
                          do_directive("#define M_I86MM 1\n");
 	                  do_directive("#define __MEDIUM__ 1\n");
 	                  break;
@@ -358,10 +358,10 @@ Deliberate Syntax Error
 	                  do_directive("#define DOS16RM 1\n");
                       do_directive(undef_machine);
 					  do_directive("#undef __I86__\n");
-	  	              do_directive("#define __I86__ 2\n");
-	  	              if (ms_syms)
+		              do_directive("#define __I86__ 2\n");
+		              if (ms_syms)
                          do_directive("#define M_I286 1\n");
-	  	              /* fall through */
+		              /* fall through */
 	               case 'l':
 	                  do_directive(undef_model);
 	                  do_directive(undef_model2);
@@ -377,7 +377,7 @@ Deliberate Syntax Error
 	                  do_directive("#define __VCM__ 1\n");
 	                  break;
 	               }
-    	        break;
+                    break;
 	         case '2':
                  do_directive(undef_machine);
 	             do_directive("#undef __I86__\n");
@@ -427,13 +427,13 @@ Deliberate Syntax Error
    FILE *cfg_file;
    char cbuf[CBufSz];
    int c;
-    
+
    do_directive("#define __MSDOS__ 1\n");
    do_directive("#define __SMALL__ 1\n");
    do_directive("#define __CDECL__ 1\n");
    sprintf(dir_buf, "#define __TURBOC__ %s\n", StrMBody(__TURBOC__));
    do_directive(dir_buf);
-    
+
    /*
     * Process all applicable options from the configuration file.
     */
@@ -441,9 +441,9 @@ Deliberate Syntax Error
    if (cfg_fname != NULL && (cfg_file = fopen(cfg_fname, "r")) != NULL) {
       c = getc(cfg_file);
       while (c != EOF) {
-      	  if (c == '-') {
-             c = getc(cfg_file);
-             switch (c) {
+         if (c == '-') {
+            c = getc(cfg_file);
+            switch (c) {
                 case 'U':
                   /*
                    * Undefine a specific identifier. Locate the identifier's
@@ -522,15 +522,15 @@ Deliberate Syntax Error
           }
        fclose(cfg_file);
        }
-#endif 					/* TURBO || BORLAND_286 ... */
+#endif					/* TURBO || BORLAND_286 ... */
 
 #if HIGHC_386 || INTEL_386 || WATCOM
    /* something may be needed */
 #endif					/* HIGHC_386 || INTEL_386 || ... */
 #endif					/* MSDOS */
- 
+
 #if MVS || VM
-#if SASC 
+#if SASC
    do_directive("#define I370 1\n");
    {
       char sascbuf[sizeof("#define __SASC__ nnnn\n")];
@@ -663,7 +663,7 @@ Deliberate Syntax Error
             }
             break;
          case 'J':
-             do_directive("#undef _CHAR_UNSIGED\n"); 
+             do_directive("#undef _CHAR_UNSIGED\n");
              do_directive("#define _CHAR_UNSIGNED 1\n");
              break;
 #endif					/* MICROSOFT */
@@ -696,7 +696,7 @@ Deliberate Syntax Error
                   do_directive("#define __I86__ 3\n");
                   if (ms_syms)
                      do_directive("#define M_I386 1\n");
-  	              /* fall through */
+                  /* fall through */
                case 't':
                case 's':
                   do_directive(undef_model);
@@ -728,7 +728,7 @@ Deliberate Syntax Error
                   do_directive("#define __I86__ 2\n");
                   if (ms_syms)
                      do_directive("#define M_I286 1\n");
-  	              /* fall through */
+                  /* fall through */
                case 'l':
                   do_directive(undef_model);
                   do_directive(undef_model2);
@@ -830,7 +830,7 @@ Deliberate Syntax Error
    /* something may be needed */
 #endif					/* HIGHC_386 || INTEL_386 || ZTC_386 */
 #endif					/* MSDOS */
- 
+
 #if MVS || VM
    /* ??? we'll see... */
 #endif                                  /* MVS || VM */
@@ -889,7 +889,7 @@ char *s;
    while (interp_dir() != NULL)
       ;
    }
-   
+
 /*
  * undef_opt - take the argument to a -U option and, if it is valid,
  *  undefine it.
@@ -962,7 +962,7 @@ struct token *dflt;
          free_t(t);
          t = next_tok();
          }
-            
+
 
       /*
        * Construct the token list for body of macro. Keep track of trailing
@@ -981,7 +981,7 @@ struct token *dflt;
          ptlst = &(*ptlst)->next;
          t = next_tok();
          }
-     
+
       /*
        * strip trailing white space
        */
@@ -991,7 +991,7 @@ struct token *dflt;
          }
       }
    else {
-      /* 
+      /*
        * There is no '=' after the macro name; use the supplied
        *  default value for the macro definition.
        */

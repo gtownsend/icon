@@ -73,7 +73,7 @@ dptr argp;
       ConsoleStringBufPtr = ConsoleStringBuf;
 #endif					/* PresentationManager */
       arg = &((dptr)pfp)[-(pfp->pf_nargs) - 1];
-      cproc = (struct b_proc *)BlkLoc(arg[0]);    
+      cproc = (struct b_proc *)BlkLoc(arg[0]);
       /*
        * The ipc in the procedure frame points after the "invoke n".
        */
@@ -102,7 +102,7 @@ dptr argp;
 #endif					/* PresentationManager */
          break;
          }
- 
+
       pfp = (struct pf_marker *)(pfp->pf_efp);
       }
 #endif					/* COMPILER */
@@ -120,7 +120,7 @@ int pline;
 char *pfile;
    {
 
-#ifndef PresentationManager 
+#ifndef PresentationManager
    fprintf(stderr, "   ");
 #endif					/* PresentationManager */
    if (bp == NULL)
@@ -145,7 +145,7 @@ char *pfile;
           }
        putc(')', stderr);
        }
-	 
+
    if (pline != 0)
       fprintf(stderr, " from line %d in %s", pline, pfile);
    putc('\n', stderr);
@@ -235,7 +235,7 @@ int get_name(dp1,dp0)
             }
          else
             syserr("name: unknown integer keyword variable");
-            
+
       kywdevent:
 #ifdef MultiThread
          if (VarLoc(*dp1) == &curpstate->eventsource) {
@@ -253,7 +253,7 @@ int get_name(dp1,dp0)
          else
 #endif					/* MultiThread */
             syserr("name: unknown event keyword variable");
-            
+
       kywdwin: {
          StrLen(*dp0) = 7;
          StrLoc(*dp0) = "&window";
@@ -281,7 +281,7 @@ int get_name(dp1,dp0)
              */
             dp = VarLoc(*dp1);		 /* get address of variable */
             if (InRange(globals,dp,eglobals)) {
-               *dp0 = gnames[dp - globals]; 		/* global */
+               *dp0 = gnames[dp - globals];		/* global */
 	       return GlobalName;
 	       }
             else if (InRange(statics,dp,estatics)) {
@@ -310,7 +310,7 @@ int get_name(dp1,dp0)
             blkptr = (union block *)VarLoc(*dp1);
             varptr = (dptr)((word *)VarLoc(*dp1) + Offset(*dp1));
             switch ((int)BlkType(blkptr)) {
-               case T_Lelem: 		/* list */
+               case T_Lelem:		/* list */
                   i = varptr - &blkptr->lelem.lslots[blkptr->lelem.first] + 1;
                   if (i < 1)
                      i += blkptr->lelem.nslots;
@@ -332,7 +332,7 @@ int get_name(dp1,dp0)
                   Protect(StrLoc(*dp0) = alcstr(sbuf,i), return Error);
                   StrLen(*dp0) = i;
                   break;
-               case T_Record: 		/* record */
+               case T_Record:		/* record */
                   i = varptr - blkptr->record.fields;
                   proc = &blkptr->record.recdesc->proc;
 
@@ -349,7 +349,7 @@ int get_name(dp1,dp0)
                   Protect(StrLoc(*dp0) = alcstr(sbuf,i), return Error);
                   StrLen(*dp0) = i;
                   break;
-               case T_Telem: 		/* table */
+               case T_Telem:		/* table */
                   t = keyref(blkptr,dp0);
                   if (t == Error)
                       return Error;
@@ -377,7 +377,7 @@ int get_name(dp1,dp0)
    proc = PFDebug(*pfp)->proc; /* get address of procedure block */
    putstr(stderr, &proc->pname);
 #enddef
- 
+
 /*
  * ctrace - a procedure is being called; produce a trace message.
  */
@@ -465,7 +465,7 @@ static int keyref(bp, dp)
    int len;
 
    if (getimage(&(bp->telem.tref),dp) == Error)
-      return Error;	
+      return Error;
 
    /*
     * Allocate space, and copy the image surrounded by "table_n[" and "]"
@@ -744,7 +744,7 @@ static void ttrace()
 #endif					/* EBCDIC != 1 */
          break;
 
-   
+
       default:
 
          bp = opblks[lastop];
@@ -757,14 +757,14 @@ static void ttrace()
             putc(' ', stderr);
             putstr(stderr, &(bp->pname));
             putc(' ', stderr);
-   	    }
+	    }
          else
 oneop:
          putstr(stderr, &(bp->pname));
          outimage(stderr, ++xargp, 0);
          putc('}', stderr);
       }
-	 
+
    if (ipc.opnd != NULL)
       fprintf(stderr, " from line %d in %s", findline(ipc.opnd),
          findfile(ipc.opnd));

@@ -137,7 +137,7 @@ struct macro {
 struct char_src {
    FILE *f;               /* file, if the chars come directly from a file */
    char *fname;		  /* name of file */
-   int bufsize;		  /* size of character buffer */  
+   int bufsize;		  /* size of character buffer */
    int *char_buf;         /* pointer to character buffer */
    int *line_buf;	  /* buffer of lines characters come from */
    int *next_char;	  /* next unprocessed character in buffer */
@@ -175,7 +175,7 @@ union src_ref {
    struct tok_lst *tlst;     /* source is token list (a macro argument) */
    struct paste_lsts *plsts; /* source is token lists for token pasting */
    };
-   
+
 /*
  * Types of token sources:
  */

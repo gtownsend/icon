@@ -55,7 +55,7 @@ word *sp = NULL;		/* Stack pointer */
 
 
 #ifdef EventMon
-extern union { 			/* clock ticker -- keep in sync w/ fmonitor.r */
+extern union {			/* clock ticker -- keep in sync w/ fmonitor.r */
    unsigned short s[16];	/* 16 counters */
    unsigned long l[8];		/* 8 longs are easier to check */
 } ticker;
@@ -249,7 +249,7 @@ dptr cargp;
     * nothing for invocation in a co-expression other than &main.
     */
    if (BlkLoc(k_current) == BlkLoc(k_main) &&
-      ((char *)sp + PerilDelta) > (char *)stackend) 
+      ((char *)sp + PerilDelta) > (char *)stackend)
          fatalerr(301, NULL);
 #endif					/* MultiThread */
 
@@ -351,7 +351,7 @@ dptr cargp;
                pollctr = pollevent();
 	       EntInterp;
 	       if (pollctr == -1) fatalerr(141, NULL);
-	       }	       
+	       }
 #endif					/* Polling */
 #endif				/* LineCodes */
 
@@ -361,7 +361,7 @@ dptr cargp;
 	       current_line_ptr[1].ipc < ipc_offset &&
 	       ipc_offset < current_line_ptr[2].ipc) {
 	       current_line_ptr ++;
-	       } 
+	       }
 	    else {
 	       current_line_ptr = ilines;
 	       size = DiffPtrs((char *)elines, (char *)ilines) /
@@ -477,7 +477,7 @@ Deliberate Syntax Error
 	    PushAVal(opnd);
 	    break;
 
-	 case Op_Acset: 	/* cset, absolute address */
+	 case Op_Acset:		/* cset, absolute address */
 	    PushVal(D_Cset);
 	    PushAVal(GetWord);
 	    break;
@@ -496,7 +496,7 @@ Deliberate Syntax Error
 	    PutWord(opnd);
 	    break;
 
-	 case Op_Areal: 	/* real, absolute address */
+	 case Op_Areal:		/* real, absolute address */
 	    PushVal(D_Real);
 	    PushAVal(GetWord);
 	    break;
@@ -540,7 +540,7 @@ Deliberate Syntax Error
 	    PushAVal(GetWord);
 	    break;
 
-	 case Op_Local: 	/* local */
+	 case Op_Local:		/* local */
 	    PushVal(D_Var);
 	    PushAVal(&pfp->pf_locals[GetWord]);
 	    break;
@@ -563,7 +563,7 @@ Deliberate Syntax Error
 
 				/* Unary operators */
 
-	 case Op_Compl: 	/* ~e */
+	 case Op_Compl:		/* ~e */
 	 case Op_Neg:		/* -e */
 	 case Op_Number:	/* +e */
 	 case Op_Refresh:	/* ^e */
@@ -572,7 +572,7 @@ Deliberate Syntax Error
 	    DerefArg(1);
 	    Call_Cond;
 
-	 case Op_Value: 	/* .e */
+	 case Op_Value:		/* .e */
             Setup_Op(1);
             DerefArg(1);
             Call_Cond;
@@ -604,28 +604,28 @@ Deliberate Syntax Error
 	 case Op_Cat:		/* e1 || e2 */
 	 case Op_Diff:		/* e1 -- e2 */
 	 case Op_Div:		/* e1 / e2 */
-	 case Op_Inter: 	/* e1 ** e2 */
+	 case Op_Inter:		/* e1 ** e2 */
 	 case Op_Lconcat:	/* e1 ||| e2 */
-	 case Op_Minus: 	/* e1 - e2 */
+	 case Op_Minus:		/* e1 - e2 */
 	 case Op_Mod:		/* e1 % e2 */
 	 case Op_Mult:		/* e1 * e2 */
-	 case Op_Power: 	/* e1 ^ e2 */
+	 case Op_Power:		/* e1 ^ e2 */
 	 case Op_Unions:	/* e1 ++ e2 */
 	 case Op_Plus:		/* e1 + e2 */
 	 case Op_Eqv:		/* e1 === e2 */
-	 case Op_Lexeq: 	/* e1 == e2 */
-	 case Op_Lexge: 	/* e1 >>= e2 */
-	 case Op_Lexgt: 	/* e1 >> e2 */
-	 case Op_Lexle: 	/* e1 <<= e2 */
-	 case Op_Lexlt: 	/* e1 << e2 */
-	 case Op_Lexne: 	/* e1 ~== e2 */
+	 case Op_Lexeq:		/* e1 == e2 */
+	 case Op_Lexge:		/* e1 >>= e2 */
+	 case Op_Lexgt:		/* e1 >> e2 */
+	 case Op_Lexle:		/* e1 <<= e2 */
+	 case Op_Lexlt:		/* e1 << e2 */
+	 case Op_Lexne:		/* e1 ~== e2 */
 	 case Op_Neqv:		/* e1 ~=== e2 */
-	 case Op_Numeq: 	/* e1 = e2 */
-	 case Op_Numge: 	/* e1 >= e2 */
-	 case Op_Numgt: 	/* e1 > e2 */
-	 case Op_Numle: 	/* e1 <= e2 */
-	 case Op_Numne: 	/* e1 ~= e2 */
-	 case Op_Numlt: 	/* e1 < e2 */
+	 case Op_Numeq:		/* e1 = e2 */
+	 case Op_Numge:		/* e1 >= e2 */
+	 case Op_Numgt:		/* e1 > e2 */
+	 case Op_Numle:		/* e1 <= e2 */
+	 case Op_Numne:		/* e1 ~= e2 */
+	 case Op_Numlt:		/* e1 < e2 */
 	    Setup_Op(2);
 	    DerefArg(1);
 	    DerefArg(2);
@@ -640,17 +640,17 @@ Deliberate Syntax Error
 	    Setup_Op(3);
 	    Call_Cond;
 
-	 case Op_Subsc: 	/* e1[e2] */
+	 case Op_Subsc:		/* e1[e2] */
 	    PushNull;
 	    Setup_Op(3);
 	    Call_Cond;
 				/* Generative binary operators */
 
-	 case Op_Rasgn: 	/* e1 <- e2 */
+	 case Op_Rasgn:		/* e1 <- e2 */
 	    Setup_Op(2);
 	    Call_Gen;
 
-	 case Op_Rswap: 	/* e1 <-> e2 */
+	 case Op_Rswap:		/* e1 <-> e2 */
 	    PushNull;
 	    Setup_Op(3);
 	    Call_Gen;
@@ -679,7 +679,7 @@ Deliberate Syntax Error
                pollctr = pollevent();
 	       EntInterp;
 	       if (pollctr == -1) fatalerr(141, NULL);
-	       }	       
+	       }
 #endif					/* Polling */
 
 
@@ -710,7 +710,7 @@ Deliberate Syntax Error
                pollctr = pollevent();
 	       EntInterp;
 	       if (pollctr == -1) fatalerr(141, NULL);
-	       }	       
+	       }
 #endif					/* Polling */
 
 
@@ -725,7 +725,7 @@ Deliberate Syntax Error
 
 				/* ---String Scanning--- */
 
-	 case Op_Bscan: 	/* prepare for scanning */
+	 case Op_Bscan:		/* prepare for scanning */
 	    PushDesc(k_subject);
 	    PushVal(D_Integer);
 	    PushVal(k_pos);
@@ -735,7 +735,7 @@ Deliberate Syntax Error
 
 	    goto C_rtn_term;
 
-	 case Op_Escan: 	/* exit from scanning */
+	 case Op_Escan:		/* exit from scanning */
 	    Setup_Arg(1);
 
 	    signal = Oescan(1,rargp);
@@ -833,7 +833,7 @@ invokej:
                   pollctr = pollevent();
 	          EntInterp;
 	          if (pollctr == -1) fatalerr(141, NULL);
-	          }	       
+	          }
 #endif					/* Polling */
 
 #ifdef EventMon
@@ -887,7 +887,7 @@ invokej:
 	    }
 	    }
 
-	 case Op_Keywd: 	/* keyword */
+	 case Op_Keywd:		/* keyword */
 
             PushNull;
             opnd = GetWord;
@@ -896,7 +896,7 @@ invokej:
 	    signal = (*(keytab[(int)opnd]))(rargp);
 	    goto C_rtn_term;
 
-	 case Op_Llist: 	/* construct list */
+	 case Op_Llist:		/* construct list */
 	    opnd = GetWord;
 
 #ifdef EventMon
@@ -932,7 +932,7 @@ invokej:
 	    newefp->ef_failure.opnd = (word *)opnd;
 	    goto mark;
 
-	 case Op_Amark: 	/* mark with absolute fipc */
+	 case Op_Amark:		/* mark with absolute fipc */
 	    newefp = (struct ef_marker *)(rsp + 1);
 	    newefp->ef_failure.opnd = (word *)GetWord;
 mark:
@@ -944,7 +944,7 @@ mark:
 	    gfp = 0;
 	    break;
 
-	 case Op_Mark0: 	/* create expression frame with 0 ipl */
+	 case Op_Mark0:		/* create expression frame with 0 ipl */
 mark0:
 	    newefp = (struct ef_marker *)(rsp + 1);
 	    newefp->ef_failure.opnd = 0;
@@ -1313,7 +1313,7 @@ Pret_uw:
 
 	       return A_Pret_uw;
 	       }
-	   
+
 #ifdef EventMon
 	   if (!is:proc(oldargp) && is:proc(unwinder))
 	      oldargp = unwinder;
@@ -1525,7 +1525,7 @@ Pfail_uw:
 	    }
 				/* ---Odds and Ends--- */
 
-	 case Op_Ccase: 	/* case clause */
+	 case Op_Ccase:		/* case clause */
 	    PushNull;
 	    PushVal(((word *)efp)[-2]);
 	    PushVal(((word *)efp)[-1]);
@@ -1544,7 +1544,7 @@ Pfail_uw:
 	    rsp += 2;
 	    break;
 
-	 case Op_Field: 	/* e1.e2 */
+	 case Op_Field:		/* e1.e2 */
 	    PushVal(D_Integer);
 	    PushVal(GetWord);
 	    Setup_Arg(2);
@@ -1561,7 +1561,7 @@ Pfail_uw:
 	    ipc.opnd = (word *)opnd;
 	    break;
 
-	 case Op_Agoto: 	/* goto absolute address */
+	 case Op_Agoto:		/* goto absolute address */
 	    opnd = GetWord;
 	    ipc.opnd = (word *)opnd;
 	    break;
@@ -1579,7 +1579,7 @@ Pfail_uw:
 	    ipc.opnd = (word *)opnd;
 	    break;
 
-	 case Op_Limit: 	/* limit */
+	 case Op_Limit:		/* limit */
 	    Setup_Arg(0);
 
 	    if (Olimit(0,rargp) == A_Resume) {
@@ -1602,12 +1602,12 @@ Pfail_uw:
 	    goto mark0;
 
 #ifdef TallyOpt
-	 case Op_Tally: 	/* tally */
+	 case Op_Tally:		/* tally */
 	    tallybin[GetWord]++;
 	    break;
 #endif					/* TallyOpt */
 
-	 case Op_Pnull: 	/* push null descriptor */
+	 case Op_Pnull:		/* push null descriptor */
 	    PushNull;
 	    break;
 
@@ -1615,7 +1615,7 @@ Pfail_uw:
 	    rsp -= 2;
 	    break;
 
-	 case Op_Push1: 	/* push integer 1 */
+	 case Op_Push1:		/* push integer 1 */
 	    PushVal(D_Integer);
 	    PushVal(1);
 	    break;

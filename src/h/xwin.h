@@ -31,7 +31,7 @@
 
 #define TEXTWIDTH(w,s,n) XTextWidth((w)->context->font->fsp, s, n)
 #define SCREENDEPTH(w)\
-	DefaultDepth((w)->window->display->display, w->window->display->screen)
+        DefaultDepth((w)->window->display->display, w->window->display->screen)
 #define ASCENT(w) ((w)->context->font->fsp->ascent)
 #define DESCENT(w) ((w)->context->font->fsp->descent)
 #define LEADING(w) ((w)->context->leading)
@@ -39,9 +39,9 @@
 #define FWIDTH(w) ((w)->context->font->fsp->max_bounds.width)
 #define LINEWIDTH(w) ((w)->context->linewidth)
 #define DISPLAYHEIGHT(w)\
-	DisplayHeight(w->window->display->display, w->window->display->screen)
+        DisplayHeight(w->window->display->display, w->window->display->screen)
 #define DISPLAYWIDTH(w)\
-	DisplayWidth(w->window->display->display, w->window->display->screen)
+        DisplayWidth(w->window->display->display, w->window->display->screen)
 #define FS_SOLID FillSolid
 #define FS_STIPPLE FillStippled
 #define hidecrsr(x) /* noop */

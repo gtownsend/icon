@@ -27,7 +27,7 @@ char *_PortName;
  * this ToolType will become obsolete.)  The priority is set to 400 so
  * this will run before the stdio initialization (_iob.c).  The code in
  * _iob.c sets up the default console window according to the ToolWindow
- * specification, provided it is not NULL. 
+ * specification, provided it is not NULL.
  */
 
 int __stdargs _STI_400_WBstartup(void) {
@@ -64,7 +64,7 @@ int __stdargs _STI_400_WBstartup(void) {
               NameFromLock(wba->wa_Lock, buf, sizeof(buf)) != 0) {
          AddPart(buf, wba->wa_Name, sizeof(buf));
          _WBargv[_WBargc] = (char *)malloc(strlen(buf) + 1);
-         if (_WBargv[_WBargc] == NULL) return 1; 
+         if (_WBargv[_WBargc] == NULL) return 1;
          strcpy(_WBargv[_WBargc], buf);
          _WBargc++;
          }
@@ -85,7 +85,7 @@ void _STI_10000_OpenPort(void) {
    char  buf[256];
 
    if( GetProgramName(buf, 256) == 0) {
-     if (_WBargv == NULL) return; 
+     if (_WBargv == NULL) return;
      else strcpy(buf, _WBargv[0]);
      }
 
@@ -93,7 +93,7 @@ void _STI_10000_OpenPort(void) {
    _PortName = malloc(strlen(name) + 2);
    strcpy(_PortName, name);
    end = _PortName + strlen(_PortName);
-   /* In case there are many of us */ 
+   /* In case there are many of us */
    while ( FindPort(_PortName) != NULL ) {
       sprintf(end, "%d", n++);
       if (n > 9) return;
@@ -136,7 +136,7 @@ void PostClip(char *file, int line, int number, char *text) {
          ARG2(rxmsg) = (unsigned char *)(strlen(value) + 1);
          Forbid();
          rexxport = FindPort("REXX");
-         if ( rexxport ) { 
+         if ( rexxport ) {
             PutMsg(rexxport, (struct Message *)rxmsg);
             WaitPort(_IconPort);
             }
@@ -168,7 +168,7 @@ void CallARexx(char *script) {
          if (FillRexxMsg(rxmsg,1,0) ) {
             Forbid();
             rexxport = FindPort("REXX");
-            if ( rexxport ) { 
+            if ( rexxport ) {
                PutMsg(rexxport, (struct Message *)rxmsg);
                WaitPort(_IconPort);
                }

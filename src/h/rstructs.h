@@ -182,8 +182,7 @@ struct b_external {		/* external block */
    };
 
 struct astkblk {		  /* co-expression activator-stack block */
-   int nactivators;		  /*   number of valid activator entries in
-				   *    this block */
+   int nactivators;		  /*   valid activator entries in this block */
    struct astkblk *astk_nxt;	  /*   next activator block */
    struct actrec {		  /*   activator record */
       word acount;		  /*     number of calls by this activator */
@@ -201,7 +200,6 @@ struct hgstate {		/* hashed-structure generator state */
    word sgmask[HSegs];		/* mask in use when the segment was created */
    uword sghash[HSegs];		/* hashnum in process when seg was created */
    };
-
 
 /*
  * Structure for chaining tended descriptors.
@@ -244,10 +242,9 @@ struct region {
     * Data type the same size as a double but without alignment requirements.
     */
    struct size_dbl {
-       char s[sizeof(double)];
-       };
+      char s[sizeof(double)];
+      };
 #endif					/* Double */
-
 
 #if COMPILER
 
@@ -388,7 +385,7 @@ struct progstate {
       uword Xmod_Control, Xmod_Shift, Xmod_Meta;	/* control,shift,meta */
       struct descrip Kywd_xwin[2];			/* &window + ... */
    #endif				/* Graphics */
-   
+
    #ifdef EventMon
       word Linenum, Column, Lastline, Lastcol;
    #endif				/* EventMon */
@@ -484,7 +481,7 @@ struct gf_smallmarker {		/* generator frame marker */
  *  the pname field which is a sdescrip (simple/string descriptor) instead
  *  of a descrip.  This is done because unions cannot be initialized.
  */
-	
+
 struct b_iproc {		/* procedure block */
    word ip_title;		/*   T_Proc */
    word ip_blksize;		/*   size of block */

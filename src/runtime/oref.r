@@ -26,7 +26,7 @@ operator{*} ! bang(underef x -> dx)
          for (i = 1; i <= StrLen(dx); i++) {
             suspend tvsubs(&x, i, (word)1);
             deref(&x, &dx);
-            if (!is:string(dx)) 
+            if (!is:string(dx))
                runerr(103, dx);
             }
          }
@@ -89,9 +89,9 @@ operator{*} ! bang(underef x -> dx)
              *	and suspend the newly allocated string.
              */
             fd = BlkLoc(dx)->file.fd;
-   
+
             status = BlkLoc(dx)->file.status;
-            if ((status & Fs_Read) == 0) 
+            if ((status & Fs_Read) == 0)
                runerr(212, dx);
 
 #ifdef ReadDirectory
@@ -224,7 +224,7 @@ operator{*} ! bang(underef x -> dx)
                   EVValD(&eventdesc, E_Rsub);
 #endif					/* EventMon */
 
-               suspend struct_var(&BlkLoc(dx)->record.fields[i], 
+               suspend struct_var(&BlkLoc(dx)->record.fields[i],
                   (struct b_record *)BlkLoc(dx));
                }
             }
@@ -254,7 +254,7 @@ operator{*} ! bang(underef x -> dx)
    inline {
       fail;
       }
-end      
+end
 
 
 #define RandVal (RanScale*(k_random=(RandA*k_random+RandC)&0x7FFFFFFFL))
@@ -544,7 +544,7 @@ operator{0,1} ? random(underef x -> dx)
             /*
              * x is an integer, be sure that it's non-negative.
              */
-            if (v < 0) 
+            if (v < 0)
                runerr(205, dx);
 
             /*
@@ -652,14 +652,14 @@ operator{0,1} [:] sect(underef x -> dx, i, j)
          j = cvpos((long)j, (long)StrLen(dx));
          if (j == CvtFail)
             fail;
-         if (i > j) { 			/* convert section to substring */
+         if (i > j) {			/* convert section to substring */
             t = i;
             i = j;
             j = t - j;
             }
          else
             j = j - i;
-   
+
          if (use_trap) {
             return tvsubs(&x, i, j);
             }

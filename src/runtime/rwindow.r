@@ -706,7 +706,7 @@ long *r, *g, *b;
  *                  pale         moderate
  *                  light        strong
  *          [[very] medium ]   [ vivid    ]   [color[ish]]   color
- *                  dark 
+ *                  dark
  *                  deep
  *
  *  where "color" is any of:
@@ -726,7 +726,7 @@ long *r, *g, *b;
  */
 
 static int colorphrase(buf, r, g, b)
-char *buf; 
+char *buf;
 long *r, *g, *b;
    {
    int len, very;
@@ -831,7 +831,7 @@ long *r, *g, *b;
    /* interpolate hls specs */
    if (blend > 0) {
       bl2 = 1.0 - blend;
-   
+
       if (s1 == 0.0)
          ; /* use h2 unchanged */
       else if (s2 == 0.0)
@@ -844,7 +844,7 @@ long *r, *g, *b;
          h2 = blend * h1 + bl2 * h2;
       if (h2 < 0)
          h2 += 360;
-   
+
       l2 = blend * l1 + bl2 * l2;
       s2 = blend * s1 + bl2 * s2;
       }
@@ -938,7 +938,7 @@ static	void	gfput		(int b);
 
 static	int	gfwrite		(wbp w, char *filename,
 				   int x, int y, int width, int height);
-static	void	gfpack		(unsigned char *data, long len, 
+static	void	gfpack		(unsigned char *data, long len,
 				   struct palentry *paltbl);
 static	void	gfmktree	(lzwnode *tree);
 static	void	gfout		(int tcode);
@@ -1435,7 +1435,7 @@ int x, y, width, height;
    gf_free = gf_eoi + 1;
    gf_lzwbits = gf_cdsize + 1;
 
-   /* 
+   /*
     * Write the header, global color table, and image descriptor.
     */
 
@@ -1636,7 +1636,7 @@ char c4list[] =
 /*
  * cgrays -- lists of grayscales contained within color palettes
  */
-static char *cgrays[] = { "0123456", "kxw", "@abMcdZ", "0$%&L*+-g/?@}", 
+static char *cgrays[] = { "0123456", "kxw", "@abMcdZ", "0$%&L*+-g/?@}",
 "\0}~\177\200\37\201\202\203\204>\205\206\207\210]\211\212\213\214|",
 "\0\330\331\332\333\334+\335\336\337\340\341V\342\343\344\345\346\201\
 \347\350\351\352\353\254\354\355\356\357\360\327" };
@@ -1646,7 +1646,7 @@ static char *cgrays[] = { "0123456", "kxw", "@abMcdZ", "0$%&L*+-g/?@}",
  *
  * This is 10x10x10 cube (A Thousand Points of Light).
  */
-#define C1Side 10  			/* length of one side of C1 cube */
+#define C1Side 10			/* length of one side of C1 cube */
 static char c1cube[] = {
    '0', '0', 'w', 'w', 'w', 'W', 'W', 'W', 'J', 'J', '0', '0', 'v', 'v', 'v',
    'W', 'W', 'W', 'J', 'J', 's', 't', 't', 'v', 'v', 'V', 'V', 'V', 'V', 'J',
@@ -1875,7 +1875,7 @@ int p;
       palsetup_palette[i].valid = palsetup_palette[i].transpt = 0;
    palsetup_palette[TCH1].transpt = 1;
    palsetup_palette[TCH2].transpt = 1;
-   
+
    if (p < 0) {				/* grayscale palette */
       n = -p;
       if (n <= 64)
@@ -1913,7 +1913,7 @@ int p;
       case  3:  s = (unsigned char *)c3list;	break;	/* c3 */
       case  4:  s = (unsigned char *)c4list;	break;	/* c4 */
       case  5:  s = allchars;			break;	/* c5 */
-      case  6:  s = allchars; 			break;	/* c6 */
+      case  6:  s = allchars;			break;	/* c6 */
       }
    m = 1.0 / (p - 1);
    for (r = 0; r < p; r++) {
@@ -1956,7 +1956,7 @@ double r, g, b;
    double m;
    char *s;
 
-   if (p > 0) { 			/* color */
+   if (p > 0) {				/* color */
       if (r == g && g == b) {
          if (p == 1)
             m = 6;
@@ -2086,7 +2086,7 @@ int *size;
             return 0;			/* if conflicting sizes given */
          *size = tmp;			/* integer value is a size */
          }
-         
+
       else {				/* otherwise it's a style attribute */
          tmp = si_s2i(fontwords, attr);	/* look up in table */
          if (tmp != -1) {		/* if recognized */
@@ -2127,7 +2127,7 @@ C_integer *bits;
       }
    if ((len <= 1) || (*s != ',')) return Error;
    len--; s++;					/* skip over ',' */
-   
+
    if (*s == '#') {
       /*
        * get remaining bits as hex constant
@@ -2258,7 +2258,7 @@ char * abuf;
    midend = s + len;
    for (mid = s; mid < midend; mid++)
       if (*mid == '=') break;
-      
+
    if (mid < midend) {
       /*
        * set an attribute
@@ -2334,22 +2334,22 @@ char * abuf;
 	 ws->x = COLTOX(w, tmp) + wc->dx;
 	 break;
 	 }
-      case A_CANVAS: { 
+      case A_CANVAS: {
 	 AttemptAttr(setcanvas(w,val));
-	 break; 
+	 break;
 	 }
-      case A_ICONIC: { 
+      case A_ICONIC: {
 	 AttemptAttr(seticonicstate(w,val));
-	 break; 
+	 break;
 	 }
       case A_ICONIMAGE: {
 	 if (!val[0]) return Failed;
 	 AttemptAttr(seticonimage(w, &d));
          break;
 	 }
-      case A_ICONLABEL: { 
+      case A_ICONLABEL: {
 	 AttemptAttr(seticonlabel(w, val));
-	 break; 
+	 break;
 	 }
       case A_ICONPOS: {
 	 AttemptAttr(seticonpos(w,val));
@@ -2472,7 +2472,7 @@ char * abuf;
          UpdateCursorPos(ws, wc);	/* tell system where to blink it */
 	 break;
 	 }
-      case A_LEADING: { 
+      case A_LEADING: {
 	 if (!cnv:C_integer(d, tmp))
 	    return Failed;
 	 setleading(w, tmp);
@@ -2659,11 +2659,11 @@ char * abuf;
       case A_FG:
 	 getfg(w, abuf);
 	 MakeStr(abuf, strlen(abuf), answer);
-	 break; 
+	 break;
       case A_BG:
 	 getbg(w, abuf);
 	 MakeStr(abuf, strlen(abuf), answer);
-         break; 
+         break;
       case A_GAMMA:
          Protect(BlkLoc(*answer) = (union block *)alcreal(wc->gamma),
             return Error);
@@ -2713,7 +2713,7 @@ char * abuf;
       case A_FONT:
 	 getfntnam(w, abuf);
 	 MakeStr(abuf, strlen(abuf), answer);
-	 break; 
+	 break;
       case A_X:  MakeInt(ws->x - wc->dx, answer); break;
       case A_Y:  MakeInt(ws->y - wc->dy, answer); break;
       case A_DX: MakeInt(wc->dx, answer); break;
@@ -3028,9 +3028,9 @@ void (*helper)	(wbp, XPoint [], int);
 
       if (steps+4 > npoints) {
          if (thepoints != NULL) free(thepoints);
-	 thepoints = (XPoint *)malloc((steps+4) * sizeof(XPoint));
+	 thepoints = malloc((steps+4) * sizeof(XPoint));
 	 npoints = steps+4;
-         }      
+         }
 
       stepsize = 1.0/steps;
       stepsize2 = stepsize * stepsize;
@@ -3214,7 +3214,7 @@ int Consolefprintf(FILE *file, char *format, ...)
 #endif					/* BORLAND_286 */
 	}
       }
-   else 
+   else
       retval = vfprintf(file, format, list);
    va_end(list);
    return retval;
@@ -3250,7 +3250,7 @@ int Consoleprintf(char *format, ...)
 #endif					/* BORLAND_286 */
 	}
       }
-   else 
+   else
       retval = vfprintf(file, format, list);
    va_end(list);
    return retval;
@@ -3268,7 +3268,7 @@ int Consoleputc(int c, FILE *f)
       *ConsoleStringBufPtr = '\0';
       return 1;
       }
-   if ((f == stdout && !(ConsoleFlags & StdOutRedirect)) || 
+   if ((f == stdout && !(ConsoleFlags & StdOutRedirect)) ||
        (f == stderr && !(ConsoleFlags & StdErrRedirect))) {
       if (flog) fputc(c, flog);
       console = (wbp)OpenConsole();
@@ -3289,7 +3289,7 @@ int Consolefflush(FILE *f)
 {
    wbp console;
    extern int fflush(FILE *);
-   if ((f == stdout && !(ConsoleFlags & StdOutRedirect)) || 
+   if ((f == stdout && !(ConsoleFlags & StdOutRedirect)) ||
        (f == stderr && !(ConsoleFlags & StdErrRedirect))) {
       if (flog) fflush(flog);
       console = (wbp)OpenConsole();

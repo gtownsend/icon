@@ -55,13 +55,13 @@ extern int MPWFlush(FILE *f);
 "fattrib(str, att) - get the attribute of a file "
 
 function{*} fattrib (fname, att[argc])
- 
+
    if !cnv:C_string(fname) then
         runerr(103, fname)
 
    abstract {
       return string ++ integer
-      }  
+      }
 
    body {
       tended char *s;
@@ -80,7 +80,7 @@ function{*} fattrib (fname, att[argc])
       char *retval;
       char *temp;
       long l;
-   
+
          if ( stat(fname, &fs) == -1 )
             fail;
 	 for(i=0; i<argc; i++) {
@@ -95,7 +95,7 @@ function{*} fattrib (fname, att[argc])
 	    l = strlen(temp);
             Protect(retval = alcstr(temp,l), runerr(0));
 	    free(temp);
-            suspend string(l, retval); 
+            suspend string(l, retval);
             }
 #if UNIX
          else if ( !strcasecmp("owner", s) ) {
@@ -116,21 +116,21 @@ function{*} fattrib (fname, att[argc])
          else if ( !strcasecmp("m_time", s) ) {
 	    temp = ctime(&(fs.st_mtime));
 	    l = strlen(temp);
-  	    if (temp[l-1] == '\n') l--;
+	    if (temp[l-1] == '\n') l--;
 	    Protect(temp = alcstr(temp, l), runerr(0));
             suspend string(l, temp);
             }
          else if ( !strcasecmp("a_time", s) ) {
 	    temp = ctime(&(fs.st_atime));
 	    l = strlen(temp);
-  	    if (temp[l-1] == '\n') l--;
+	    if (temp[l-1] == '\n') l--;
 	    Protect(temp = alcstr(temp, l), runerr(0));
             suspend string(l, temp);
             }
          else if ( !strcasecmp("c_time", s) ) {
 	    temp = ctime(&(fs.st_ctime));
 	    l = strlen(temp);
-  	    if (temp[l-1] == '\n') l--;
+	    if (temp[l-1] == '\n') l--;
 	    Protect(temp = alcstr(temp, l), runerr(0));
             suspend string(l, temp);
             }
@@ -250,7 +250,7 @@ function{0,1} getenv(s)
 	 Protect(p = alcstr(p,l),runerr(0));
 	 return string(l,p);
 	 }
-      else 				/* fail if not in environment */
+      else				/* fail if not in environment */
 	 fail;
 
       }
@@ -1225,7 +1225,7 @@ end
       }
 #ifdef PresentationManager
     /* must be writing to a window, then, if it is not the console,
-       we have to set the background mix mode of the character bundle 
+       we have to set the background mix mode of the character bundle
        back to LEAVEALONE so the background is no longer clobbered */
     else if (f != ConsoleBinding) {
       /* have to set the background mode back to leave-alone */

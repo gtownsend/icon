@@ -62,7 +62,7 @@ function{1} abs(n)
          }
       inline {
 
-#if SASC 
+#if SASC
          return C_double __builtin_fabs(n);
 #else
          return C_double Abs(n);
@@ -210,7 +210,7 @@ function{0,1} proc(x,i)
             irunerr(205, i);
             errorfail;
             }
-         }   
+         }
 
       abstract {
          return proc

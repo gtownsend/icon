@@ -56,39 +56,39 @@
 #define Op_Bscan	 44
 #define Op_Ccase	 45
 #define Op_Chfail	 46
-#define Op_Coact 	 47
+#define Op_Coact	 47
 #define Op_Cofail	 48
-#define Op_Coret 	 49
+#define Op_Coret	 49
 #define Op_Create	 50
-#define Op_Cset  	 51
-#define Op_Dup   	 52
-#define Op_Efail 	 53
-#define Op_Eret  	 54
-#define Op_Escan 	 55
-#define Op_Esusp 	 56
-#define Op_Field 	 57
-#define Op_Goto  	 58
-#define Op_Init  	 59
-#define Op_Int   	 60
+#define Op_Cset		 51
+#define Op_Dup		 52
+#define Op_Efail	 53
+#define Op_Eret		 54
+#define Op_Escan	 55
+#define Op_Esusp	 56
+#define Op_Field	 57
+#define Op_Goto		 58
+#define Op_Init		 59
+#define Op_Int		 60
 #define Op_Invoke	 61
-#define Op_Keywd 	 62
-#define Op_Limit 	 63
-#define Op_Line  	 64
-#define Op_Llist 	 65
-#define Op_Lsusp 	 66
-#define Op_Mark  	 67
-#define Op_Pfail 	 68
-#define Op_Pnull 	 69
-#define Op_Pop   	 70
-#define Op_Pret  	 71
-#define Op_Psusp 	 72
-#define Op_Push1 	 73
-#define Op_Pushn1 	 74
-#define Op_Real   	 75
-#define Op_Sdup   	 76
-#define Op_Str    	 77
-#define Op_Unmark 	 78
-#define Op_Var    	 80
+#define Op_Keywd	 62
+#define Op_Limit	 63
+#define Op_Line		 64
+#define Op_Llist	 65
+#define Op_Lsusp	 66
+#define Op_Mark		 67
+#define Op_Pfail	 68
+#define Op_Pnull	 69
+#define Op_Pop		 70
+#define Op_Pret		 71
+#define Op_Psusp	 72
+#define Op_Push1	 73
+#define Op_Pushn1	 74
+#define Op_Real		 75
+#define Op_Sdup		 76
+#define Op_Str		 77
+#define Op_Unmark	 78
+#define Op_Var		 80
 #define Op_Arg		 81
 #define Op_Static	 82
 #define Op_Local	 83
@@ -113,9 +113,7 @@
 #define Op_Agoto	 95
 #define Op_Amark	 96
 
-
 #define Op_Noop		 98
-
 
 #define Op_Colm		108		/* column number */
 
@@ -138,5 +136,5 @@
 #define Op_Impl		106
 #define Op_Error	107
 #define Op_Trace	108
-#define Op_Lab   	109
+#define Op_Lab		109
 #define Op_Invocable	110

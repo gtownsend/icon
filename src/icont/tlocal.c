@@ -144,7 +144,6 @@ OSType type,creator;
    return;
    }
 
-
 /* Routine to quote strings for MPW
 */
 
@@ -192,7 +191,6 @@ char *s;
       }
    return q;
    }
-
 
 /*
  * SortOptions -- sorts icont options so that options and file names can
@@ -270,7 +268,7 @@ char *argv[];
 pointer xmalloc(n)
    long n;
    {
-   return calloc((size_t)n,sizeof(char));
+   return calloc(n, sizeof(char));
    }
 #endif					/* MICROSOFT */
 

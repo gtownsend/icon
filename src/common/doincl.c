@@ -54,7 +54,7 @@ char *fname;
    {
    FILE *f;
    char line[MAXLINE], newname[MAXLINE], *p;
-   
+
    fprintf(outfile, "\n\n/****************************************");
    fprintf(outfile, "  from %s:  */\n\n", fname);
    if ((f = fopen(fname, "r")) != NULL) {

@@ -25,7 +25,7 @@ int n;
    struct invkl *p;
 
    if (n == 1) {			/* if identifier, must be "all" */
-      if (strcmp(name,"all") != 0) {
+      if (strcmp(name, "all") != 0) {
          tfatal("invalid operand to invocable", name);
          return;
          }
@@ -35,7 +35,7 @@ int n;
    else if (!isalpha(name[0]) && (name[0] != '_'))
       return;				/* if operator, ignore */
 
-   p = (struct invkl *) alloc(sizeof(struct invkl));
+   p = alloc(sizeof(struct invkl));
    if (!p)
       tsyserr("not enough memory for invocable list");
    p->iv_name = salloc(name);
@@ -51,8 +51,8 @@ static struct lfile *alclfile(name)
 char *name;
    {
    struct lfile *p;
-   
-   p = (struct lfile *) alloc(sizeof(struct lfile));
+
+   p = alloc(sizeof(struct lfile));
    if (!p)
       tsyserr("not enough memory for file list");
    p->lf_link = NULL;
@@ -66,9 +66,9 @@ char *name;
  */
 void addlfile(name)
 char *name;
-{
+   {
    struct lfile *nlf, *p;
-   
+
    nlf = alclfile(name);
    if (lfiles == NULL) {
       lfiles = nlf;
@@ -80,4 +80,4 @@ char *name;
          }
       p->lf_link = nlf;
       }
-}
+   }

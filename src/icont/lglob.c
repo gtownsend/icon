@@ -39,10 +39,7 @@ void readglob()
       fprintf(stderr,"version mismatch in ucode file %s\n",inname);
       fprintf(stderr,"\tucode version: %s\n",&lsspace[id]);
       fprintf(stderr,"\texpected version: %s\n",UVersion);
-
-
       exit(EXIT_FAILURE);
-
       }
    while ((op = getopc(&name)) != EOF) {
       switch (op) {

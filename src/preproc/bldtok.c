@@ -461,7 +461,7 @@ struct token *tokenize()
       AppChar(tknize_sbuf, c);
       return pp_number();
       }
-  
+
    /*
     * Check for character constant.
     */
@@ -506,7 +506,7 @@ struct token *tokenize()
             }
          else
             return new_token('.', str_install(&tknize_sbuf), fname, line);
- 
+
       case '+':
          c = *next_char;
          if (c == '+') {
@@ -527,7 +527,7 @@ struct token *tokenize()
             }
          else
             return new_token('+', str_install(&tknize_sbuf), fname, line);
- 
+
       case '-':
          c = *next_char;
          if (c == '>') {
@@ -557,7 +557,7 @@ struct token *tokenize()
             }
          else
             return new_token('-', str_install(&tknize_sbuf), fname, line);
- 
+
       case '<':
          c = *next_char;
          if (c == '<') {
@@ -588,7 +588,7 @@ struct token *tokenize()
             }
          else
             return new_token('<', str_install(&tknize_sbuf), fname, line);
- 
+
       case '>':
          c = *next_char;
          if (c == '>') {
@@ -619,7 +619,7 @@ struct token *tokenize()
             }
          else
             return new_token('>', str_install(&tknize_sbuf), fname, line);
- 
+
       case '=':
          if (*next_char == '=') {
             /*
@@ -631,7 +631,7 @@ struct token *tokenize()
             }
          else
             return new_token('=', str_install(&tknize_sbuf), fname, line);
- 
+
       case '!':
          if (*next_char == '=') {
             /*
@@ -643,7 +643,7 @@ struct token *tokenize()
             }
          else
             return new_token('!', str_install(&tknize_sbuf), fname, line);
- 
+
       case '&':
          c = *next_char;
          if (c == '&') {
@@ -664,7 +664,7 @@ struct token *tokenize()
             }
          else
             return new_token('&', str_install(&tknize_sbuf), fname, line);
- 
+
       case '|':
          c = *next_char;
          if (c == '|') {
@@ -685,7 +685,7 @@ struct token *tokenize()
             }
          else
             return new_token('|', str_install(&tknize_sbuf), fname, line);
- 
+
       case '*':
          if (*next_char == '=') {
             /*
@@ -709,7 +709,7 @@ struct token *tokenize()
             }
          else
             return new_token('/', str_install(&tknize_sbuf), fname, line);
- 
+
       case '%':
          if (*next_char == '=') {
             /*
@@ -721,7 +721,7 @@ struct token *tokenize()
             }
          else
             return new_token('%', str_install(&tknize_sbuf), fname, line);
- 
+
       case '^':
          if (*next_char == '=') {
             /*
@@ -733,7 +733,7 @@ struct token *tokenize()
             }
          else
             return new_token('^', str_install(&tknize_sbuf), fname, line);
- 
+
       case '#':
          /*
           * Token pasting or stringizing operator.

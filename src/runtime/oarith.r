@@ -426,7 +426,7 @@ end
 
 #if COMPILER || !(defined LargeInts)
 /*
- * iipow - raise an integer to an integral power. 
+ * iipow - raise an integer to an integral power.
  */
 C_integer iipow(n1, n2)
 C_integer n1, n2;
@@ -480,7 +480,7 @@ dptr drslt;
    {
    double retval;
 
-   if (r == 0.0 && n <= 0) 
+   if (r == 0.0 && n <= 0)
       ReturnErrNum(204, Error);
    if (n < 0) {
       /*
@@ -492,7 +492,7 @@ dptr drslt;
       r = 1.0 / r;
       retval = r;
       }
-   else 	
+   else
       retval = 1.0;
 
    /* multiply retval by r ^ n */

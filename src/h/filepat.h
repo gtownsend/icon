@@ -26,7 +26,6 @@
  * match, the original pattern.
  */
 
-
 #if WildCards
 
 #if NT
@@ -44,7 +43,7 @@ typedef struct _FINDFILE_TAG {
 #define FILENAME(pfd)	( (pfd)->fileinfo.name )
 #define FINDCLOSE(pfd)	_findclose( (pfd)->handle )
 
-#endif 					/* NT */
+#endif					/* NT */
 
 #if BORLAND_286 || BORLAND_386
 

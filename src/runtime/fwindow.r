@@ -22,7 +22,7 @@
 int pollctr;
 FILE *ConsoleBinding = NULL;
 /*
- * the global buffer used as work space for printing string, etc 
+ * the global buffer used as work space for printing string, etc
  */
 char ConsoleStringBuf[MaxReadStr * 48];
 char *ConsoleStringBufPtr = ConsoleStringBuf;
@@ -234,12 +234,12 @@ function{0,1} Color(argv[argc])
             if (set_mutable(w, n, srcname) == Failed) fail;
             strcpy(colorname, srcname);
             }
-   
+
          else {					/* specified by name */
             tended char *tmp;
             if (!cnv:C_string(argv[i+1],tmp))
                runerr(103,argv[i+1]);
-   
+
             if (set_mutable(w, n, tmp) == Failed) fail;
             strcpy(colorname, tmp);
             }
@@ -265,7 +265,7 @@ function{0,1} ColorValue(argv[argc])
       char tmp[24], *t;
 
       if (is:file(argv[0]) && (BlkLoc(argv[0])->file.status & Fs_Window)) {
-         w = (wbp)BlkLoc(argv[0])->file.fd;		/* explicit window */	
+         w = (wbp)BlkLoc(argv[0])->file.fd;		/* explicit window */
          warg = 1;
          }
       else if (is:file(kywd_xwin[XKey_Window]) &&
@@ -384,7 +384,7 @@ function{0,1} Couple(w,w2)
 	    if (rebind(wb_new, (wbp)(BlkLoc(w2)->file.fd)) == Failed) fail;
 	    wb_new->context->refcount++;
 	    }
-	 else 
+	 else
 	    runerr(140, w2);
 
 	 /* bump up refcount to ws */
@@ -501,7 +501,7 @@ function{1} DrawCircle(argv[argc])
          ReturnWindow;
       else if (r >= argc - warg)
          runerr(146);
-      else 
+      else
          runerr(102, argv[warg + r]);
       }
 end
@@ -667,14 +667,14 @@ function{0,1} DrawImage(argv[argc])
       /*
        * Scan the image to see which colors are needed.
        */
-      e = palsetup(p); 
+      e = palsetup(p);
       if (e == NULL)
          runerr(305);
       for (i = 0; i < 256; i++)
          e[i].used = 0;
       nchars = 0;
       for (t = s; t < z; t++) {
-         c = *t; 
+         c = *t;
          e[c].used = 1;
          if (e[c].valid || e[c].transpt)
             nchars++;			/* valid color, or transparent */
@@ -725,7 +725,7 @@ function{1} DrawLine(argv[argc])
          if (j==MAXXOBJS) {
 	    drawlines(w, points, MAXXOBJS);
 	    points[0] = points[MAXXOBJS-1];
-   	    j = 1;
+	    j = 1;
             }
          CnvCShort(argv[base], points[j].x);
          CnvCShort(argv[base + 1], points[j].y);
@@ -1123,7 +1123,7 @@ function{1} FillCircle(argv[argc])
          ReturnWindow;
       else if (r >= argc - warg)
          runerr(146);
-      else 
+      else
          runerr(102, argv[warg + r]);
       }
 end
@@ -1448,7 +1448,7 @@ function{0,1} PaletteColor(argv[argc])
          runerr(103, argv[warg + 1]);
       if (StrLen(d) != 1)
          runerr(205, d);
-      e = palsetup(p); 
+      e = palsetup(p);
       if (e == NULL)
          runerr(305);
       e += *StrLoc(d) & 0xFF;
@@ -1476,7 +1476,7 @@ function{0,1} PaletteKey(argv[argc])
       long r, g, b;
 
       if (is:file(argv[0]) && (BlkLoc(argv[0])->file.status & Fs_Window)) {
-         w = (wbp)BlkLoc(argv[0])->file.fd;		/* explicit window */	
+         w = (wbp)BlkLoc(argv[0])->file.fd;		/* explicit window */
          warg = 1;
          }
       else if (is:file(kywd_xwin[XKey_Window]) &&
@@ -1834,7 +1834,7 @@ function{1} TextWidth(argv[argc])
       if (warg == argc) runerr(103,nulldesc);
       else if (!cnv:tmp_string(argv[warg],argv[warg]))
 	 runerr(103,argv[warg]);
-       
+
       i = TEXTWIDTH(w, StrLoc(argv[warg]), StrLen(argv[warg]));
       return C_integer i;
       }
@@ -1917,7 +1917,7 @@ function{*} WAttrib(argv[argc])
                /*
                 * Convert the argument to a string
                 */
-               if (!cnv:tmp_string(argv[n], sbuf)) 
+               if (!cnv:tmp_string(argv[n], sbuf))
                   runerr(109, argv[n]);
                /*
                 * Various parts of the code can't handle long attributes.
@@ -1987,10 +1987,10 @@ function{*} WAttrib(argv[argc])
 		  /*
 		   * Turn assignments into queries.
 		   */
- 		  for( stmp = StrLoc(sbuf), 
- 		      stmp2 = stmp + StrLen(sbuf); stmp < stmp2; stmp++)
- 		     if (*stmp == '=') break;
- 		  if (stmp < stmp2)
+		  for( stmp = StrLoc(sbuf),
+		      stmp2 = stmp + StrLen(sbuf); stmp < stmp2; stmp++)
+		     if (*stmp == '=') break;
+		  if (stmp < stmp2)
 		     StrLen(sbuf) = stmp - StrLoc(sbuf);
 
 		  switch (wattrib(w, StrLoc(sbuf), StrLen(sbuf),

@@ -31,7 +31,7 @@ var->title = t_code;
 struct descrip nulldesc = {D_Null};	/* null value */
 struct descrip nullptr =
    {F_Ptr | F_Nqual};	                /* descriptor with null block pointer */
-struct descrip emptystr; 		/* zero-length empty string */
+struct descrip emptystr;		/* zero-length empty string */
 struct descrip kywd_prog;		/* &progname */
 struct descrip kywd_err = {D_Integer};  /* &error */
 
@@ -289,8 +289,8 @@ struct descrip *val;
     *  list-element block.
     */
    bp = (struct b_lelem *) BlkLoc(*l)->list.listtail;
-   
-#ifdef EventMon 	/* initialize i so it's 0 if last list-element */
+
+#ifdef EventMon		/* initialize i so it's 0 if last list-element */
    i = 0;			/* block isn't full */
 #endif				/* EventMon */
 
@@ -507,9 +507,9 @@ double n;
 dptr dp;
 char *s;
    {
-   s++; 				/* leave room for leading zero */
+   s++;					/* leave room for leading zero */
    sprintf(s, "%.*g", Precision, n + 0.0);  /* format string; +0.0 avoids -0 */
-   
+
    /*
     * Now clean up possible messes.
     */
@@ -847,7 +847,7 @@ C_integer *d;
 
 
 /*
- * the global buffer used as work space for printing string, etc 
+ * the global buffer used as work space for printing string, etc
  */
 char ConsoleStringBuf[512 * 48];
 char *ConsoleStringBufPtr = ConsoleStringBuf;

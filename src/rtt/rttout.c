@@ -61,7 +61,7 @@ static int     typ_case      (struct node *var, struct node *slct_lst,
 static void untend        (int indent);
 
 extern char *progname;
- 
+
 #if MVS
 extern char *src_file_nm;
 #endif                                  /* MVS */
@@ -116,7 +116,7 @@ int nxt_line;
 char *new_fname;
    {
    char *s;
- 
+
    /*
     * Make sure line directives are desired in the output. Normally,
     *  blank lines surround the directive for readability. However,`
@@ -533,7 +533,7 @@ struct token *tok;
    else
       return icontypes[typcd].cap_id;
    /*NOTREACHED*/
-   return 0; 	/* avoid gcc warning */
+   return 0;			/* avoid gcc warning */
    }
 
 /*
@@ -658,7 +658,7 @@ int indent;
       }
    err1("rtt internal error detected in function retval_dcltor()");
    /*NOTREACHED*/
-   return 0; 	/* avoid gcc warning */
+   return 0;			/* avoid gcc warning */
    }
 
 /*
@@ -1858,7 +1858,7 @@ int brace;
             }
       }
    /*NOTREACHED*/
-   return 0; 	/* avoid gcc warning */
+   return 0;			/* avoid gcc warning */
    }
 
 /*
@@ -1893,8 +1893,7 @@ struct parminfo *new_prmloc()
    if (params == NULL)
       return NULL;
    nparams = params->u.param_info.param_num + 1;
-   parminfo = (struct parminfo *)alloc((unsigned)nparams *
-     sizeof(struct parminfo));
+   parminfo = alloc(nparams * sizeof(struct parminfo));
    for (i = 0; i < nparams; ++i) {
       parminfo[i].cur_loc = 0;
       parminfo [i].parm_mod = 0;
@@ -2028,7 +2027,7 @@ int indent;
       select = lst->u[1].child;
       fnd_slctrs = 0; /* flag: found type selections for clause for this pass */
       /*
-       * A selection clause may include several types. 
+       * A selection clause may include several types.
        */
       for (slctor = select->u[0].child; slctor != NULL; slctor =
         slctor->u[0].child) {
@@ -2051,7 +2050,7 @@ int indent;
                prt_str("if (", indent);
                fnd_slctrs = 1;
                }
-            
+
             /*
              * Output type check
              */
@@ -2142,7 +2141,7 @@ int indent;
          select = lst->u[1].child;
          fnd_slctrs = 0;
          /*
-          * A selection clause may include several types. 
+          * A selection clause may include several types.
           */
          for (slctor = select->u[0].child; slctor != NULL; slctor =
            slctor->u[0].child) {
@@ -2361,7 +2360,7 @@ int brace;
                /*
                 * RTL code: { <actions> }
                 */
-               if (brace) 
+               if (brace)
                   tok_line(t, indent); /* just synch file name and line num */
                else
                   prt_tok(t, indent);  /* { */
@@ -2542,8 +2541,8 @@ int brace;
                end_prms = new_prmloc();
 
                n1 = n->u[0].child;
-               if (!(n1->u[0].sym->id_type & VArgLen)) 
-	          errt1(t, "len_case must select on length of vararg"); 
+               if (!(n1->u[0].sym->id_type & VArgLen))
+	          errt1(t, "len_case must select on length of vararg");
                /*
                 * The len_case statement is implemented as a C switch
                 *  statement.
@@ -2811,7 +2810,7 @@ struct sym_entry *op_params; /* operation parameters or NULL */
          2 * IndentInc);
       ForceNl();
       prt_str("", 3 * IndentInc);
-      fprintf(out_file, "+ (r_nargs + %d) * sizeof(struct descrip)));", 
+      fprintf(out_file, "+ (r_nargs + %d) * sizeof(struct descrip)));",
          ntend - 2 - op_params->u.param_info.param_num);
       ForceNl();
       prt_str("if (r_tendp == NULL) {", 2 * IndentInc);
@@ -3113,7 +3112,7 @@ struct node *n;
     */
    if (dcl_lst == NULL)
       return 0;
-   
+
    if (only_proto(dcl_lst))
       return 0;
 
@@ -3233,7 +3232,7 @@ struct node *block;
    c_walk(prm_dcl, 0, 0);
    prt_str(" ", 0);
 
-   /* 
+   /*
     * Handle outer block.
     */
    prt_tok(block->tok, IndentInc);          /* { */
@@ -3391,7 +3390,7 @@ struct node *n;
          err2("cannot open output file", cname);
       else
          addrmlst(cname, out_file);
-         
+
       prologue(); /* output standard comments and preprocessor directives */
 
       /*
@@ -3580,7 +3579,7 @@ struct node *n;
        */
       switch (op_type) {
          case TokFunction:
-            fprintf(out_file, "FncBlock(%s, %d, %d)\n\n", name, nparms, 
+            fprintf(out_file, "FncBlock(%s, %d, %d)\n\n", name, nparms,
                (has_underef ? -1 : 0));
             ++line;
             break;
@@ -3612,7 +3611,7 @@ struct node *n;
    ++line;
    ForceNl();
    prt_str("{", IndentInc);
-      
+
    /*
     * Output ordinary declarations from the declare clause.
     */
@@ -3785,17 +3784,17 @@ struct token *t;
        * For the compiler, make an entry in the data base for the keyword.
        */
       cur_impl->use_rslt = 0;
-   
+
       il = new_il(IL_Const, 2);
       switch (t->tok_id) {
          case StrLit:
             il->u[0].n = str_typ;
-            il->u[1].s = (char *)alloc((unsigned int)(strlen(t->image) + 3));
+            il->u[1].s = alloc(strlen(t->image) + 3);
             sprintf(il->u[1].s, "\"%s\"", t->image);
             break;
          case CharConst:
             il->u[0].n = cset_typ;
-            il->u[1].s = (char *)alloc((unsigned int)(strlen(t->image) + 3));
+            il->u[1].s = alloc(strlen(t->image) + 3);
             sprintf(il->u[1].s, "'%s'", t->image);
             break;
          case DblConst:

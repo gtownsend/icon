@@ -21,7 +21,7 @@ char typech[MaxType+1];	/* output character for each type */
 
 int noMTevents;			/* don't produce events in EVAsgn */
 
-union { 			/* clock ticker -- keep in sync w/ interp.r */
+union {				/* clock ticker -- keep in sync w/ interp.r */
    unsigned short s[16];	/* four counters */
    unsigned long l[8];		/* two longs are easier to check */
 } ticker;

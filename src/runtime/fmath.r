@@ -72,7 +72,7 @@ function{1} atan(x,y)
    #define atan2(x,y) atan(x/y)
 #endif					/* AZTEC_C */
 #endif					/* AMIGA */
-   
+
       return C_double atan2(x,y);
       }
 end
@@ -115,7 +115,7 @@ function{1} log(x,b)
             }
 	 x = log(x) / divisor;
          return C_double x;
-         }  
+         }
       }
 end
 

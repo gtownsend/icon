@@ -555,7 +555,7 @@ dptr s, d;
       return 1;
       }
    if (tmp_str(sbuf, s, &tmpstr)) {
-      for (l = 0; l < CsetSize; l++) 
+      for (l = 0; l < CsetSize; l++)
           cbuf->bits[l] = 0;
       d->dword = D_Cset;
       BlkLoc(*d) = (union block *)cbuf;
@@ -669,7 +669,7 @@ dptr s, d;
 /*
  * getdbl - return as a double the value inside a real block.
  */
-double getdbl(dp) 
+double getdbl(dp)
 dptr dp;
    {
    double d;
@@ -718,7 +718,7 @@ dptr d;
    }
 
 /*
- * dp_pnmcmp - do a string comparison of a descriptor to the procedure 
+ * dp_pnmcmp - do a string comparison of a descriptor to the procedure
  *   name in a pstrnm struct; used in call to qsearch().
  */
 int dp_pnmcmp(pne,dp)
@@ -1136,7 +1136,7 @@ double n;
 dptr dp;
 char *s;
    {
-   s++; 				/* leave room for leading zero */
+   s++;					/* leave room for leading zero */
    sprintf(s, "%.*g", Precision, n + dblZero);   /* format, avoiding -0 */
 
    /*

@@ -234,7 +234,7 @@ void gencode()
             k = klookup(&lsspace[id]);
             switch (k) {
                case 0:
-                  lfatal(&lsspace[id],"invalid keyword");	
+                  lfatal(&lsspace[id],"invalid keyword");
                   break;
                case K_FAIL:
                   lemit(Op_Efail,"efail");
@@ -300,7 +300,7 @@ void gencode()
              *
              * lemitn(op, (word)lineno, name);
              */
-            
+
             newline();
 
 
@@ -341,7 +341,7 @@ void gencode()
             cp = &lctable[k];
             lemitin(op, cp->c_val.sval, cp->c_length, name);
             break;
-        
+
          case Op_Tally:
             k = getdec();
             newline();
@@ -417,7 +417,7 @@ void gencode()
 
                j = getdec();		/* number of characters in integer */
                m = getint(j,&s_indx);	/* convert if possible */
-               if (m < 0) { 		/* negative indicates integer too big */
+               if (m < 0) {		/* negative indicates integer too big */
                   gg.sval = s_indx;	/* convert to a string */
                   putconst(k, F_StrLit, j, pc, &gg);
                   }
@@ -746,7 +746,7 @@ int nargs, ndyn, nstat, fstat;
    outword(T_Proc);
    outword(size);
    outword(pc + size - 2*WordSize); /* Have to allow for the two words
-                			that we've already output. */
+					that we've already output. */
    outword(nargs);
    outword(ndyn);
    outword(nstat);
@@ -890,7 +890,7 @@ void gentables()
                          * This internal error should never occur
                          */
                         fprintf(stderr,"found rec %d field %d already!!\n",
-                        	gp->g_procid, i);
+                           gp->g_procid, i);
                         fflush(stderr);
                         exit(1);
                         }
@@ -1525,7 +1525,7 @@ static void shortout(short oint)
       short i;
       char c[2];
       } u;
- 
+
    CodeCheck(2);
    u.i = oint;
 

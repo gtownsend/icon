@@ -359,7 +359,7 @@ int region;
       case Strings:
          coll_str++;
          break;
-      case Blocks:  
+      case Blocks:
          coll_blk++;
          break;
       }
@@ -577,7 +577,7 @@ dptr dp;
 #ifdef CRAY
    if (strbase <= StrLoc(*dp) && StrLoc(*dp) < (strfree + 1)) {
 #else					/* CRAY */
-   if (InRange(strbase,StrLoc(*dp),strfree + 1)) { 
+   if (InRange(strbase,StrLoc(*dp),strfree + 1)) {
 #endif					/* CRAY */
 
       /*
@@ -588,7 +588,7 @@ dptr dp;
       if (qualfree >= equallist) {
 
 	 /* reallocate a new qualifier list that's twice as large */
-	 newqual = (char *)realloc((char *)quallist, 2 * qualsize);
+	 newqual = realloc(quallist, 2 * qualsize);
 	 if (newqual) {
 	    quallist = (dptr *)newqual;
 	    qualfree = (dptr *)(newqual + qualsize);

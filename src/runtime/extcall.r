@@ -212,6 +212,6 @@ int *ip;
 
 #else					/* ExternalFunctions */
 static char x;			/* prevent empty module */
-#endif 					/* ExternalFunctions */
+#endif					/* ExternalFunctions */
 #endif					/* !COMPILER */
 #endif					/* OS2 */

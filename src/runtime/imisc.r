@@ -32,7 +32,7 @@ LibDcl(field,2,".")
    /*
     * Arg1 must be a record and Arg2 must be a field number.
     */
-   if (!is:record(Arg1)) 
+   if (!is:record(Arg1))
       RunErr(107, &Arg1);
    if (IntVal(Arg2) == -1)	/* if was known bad at ilink time */
       RunErr(207, &Arg1);	/* was warning then, now it's fatal */
@@ -103,7 +103,7 @@ LibDcl(field,2,".")
       }
    else
 #endif					/* FieldTableCompression */
-   if (fnum < 0) 
+   if (fnum < 0)
       RunErr(207, &Arg1);
 
    EVValD(&Arg1, E_Rref);
@@ -183,7 +183,7 @@ LibDcl(limit,2,BackSlash)
       RunErr(101, &Arg0);
    MakeInt(tmp,&Arg0);
 
-   if (IntVal(Arg0) < 0) 
+   if (IntVal(Arg0) < 0)
       RunErr(205, &Arg0);
    if (IntVal(Arg0) == 0)
       Fail;
@@ -315,7 +315,7 @@ LibDcl(escan,1,"escan")
    k_pos = IntVal(tmp);
 
    /*
-    * If we are returning to the scanning environment of the current 
+    * If we are returning to the scanning environment of the current
     *  procedure call, indicate that it is no longed in a saved state.
     */
    if (pfp->pf_scan == VarLoc(Arg1))

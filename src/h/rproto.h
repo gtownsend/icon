@@ -8,7 +8,7 @@
 void		EVInit		(void);
 int		activate	(dptr val, struct b_coexpr *ncp, dptr result);
 word		add		(word a,word b);
-void		addmem 	(struct b_set *ps,struct b_selem *pe, union block **pl);
+void		addmem (struct b_set *ps, struct b_selem *pe, union block **pl);
 struct astkblk	*alcactiv	(void);
 struct b_cset	*alccset	(void);
 struct b_file	*alcfile	(FILE *fd,int status,dptr name);
@@ -92,7 +92,7 @@ union block	*hgnext		(union block*b,struct hgstate*s,union block *e);
 union block	*hmake		(int tcode,word nslots,word nelem);
 void		icon_init	(char *name, int *argcp, char *argv[]);
 void		iconhost	(char *hostname);
-int		idelay		(int n); 
+int		idelay		(int n);
 int		interp		(int fsig,dptr cargp);
 void		inttrap		(void);
 void		irunerr		(int n, C_integer v);
@@ -114,7 +114,7 @@ int		putstr		(FILE *f,dptr d);
 char		*qsearch	(char *key, char *base, int nel, int width,
 				   int (*cmp)());
 int		qtos		(dptr dp,char *sbuf);
-int    		 radix		(int sign, register int r, register char *s,
+int		 radix		(int sign, register int r, register char *s,
 				   register char *end_s, union numeric *result);
 char		*reserve	(int region, word nbytes);
 void		retderef		(dptr valp, word *low, word *high);
@@ -169,8 +169,6 @@ void		xmfree		(void);
    int		bigrand		(dptr da, dptr dx);
 #endif					/* LargeInts */
 
-
-
 #if !HIGHC_386
    int dup2(int h1, int h2);
 #endif					/* !HIGHC_386 */
@@ -207,8 +205,6 @@ void		xmfree		(void);
    #endif				/* FAttrib */
 #endif					/* MSWindows */
 
-
-
 #ifdef Graphics
    /*
     * portable graphics routines in rwindow.r and rwinrsc.r
@@ -233,7 +229,7 @@ void		xmfree		(void);
    void	qevent		(wsp ws, dptr e, int x, int y, uword t, long f);
    int	readGIF		(char *fname, int p, struct imgdata *d);
    int	rectargs	(wbp w, int argc, dptr argv, int i,
-   			   word *px, word *py, word *pw, word *ph);
+			   word *px, word *py, word *pw, word *ph);
    char	*rgbkey		(int p, double r, double g, double b);
    int	setsize		(wbp w, char *s);
    char	*si_i2s		(siptr sip, int i);
@@ -248,9 +244,9 @@ void		xmfree		(void);
    int	wlongread	(char *s, int elsize, int nelem, FILE *f);
    void	wputstr		(wbp w, char *s, int len);
    int	writeGIF	(wbp w, char *filename,
-   			  int x, int y, int width, int height);
+			  int x, int y, int width, int height);
    int	xyrowcol	(dptr dx);
-   
+
    /*
     * graphics implementation routines supplied for each platform
     * (excluding those defined as macros for X-windows)
@@ -259,7 +255,7 @@ void		xmfree		(void);
    int	SetPatternBits	(wbp w, int width, C_integer *bits, int nbits);
    int	allowresize	(wbp w, int on);
    int	blimage		(wbp w, int x, int y, int wd, int h,
-   			  int ch, unsigned char *s, word len);
+			  int ch, unsigned char *s, word len);
    wcp	clone_context	(wbp w);
    int	copyArea	(wbp w,wbp w2,int x,int y,int wd,int h,int x2,int y2);
    int	do_config	(wbp w, int status);
@@ -283,7 +279,7 @@ void		xmfree		(void);
    void	geticonic	(wbp w, char *answer);
    int	geticonpos	(wbp w, char *s);
    int	getimstr	(wbp w, int x, int y, int width, int hgt,
-   			  struct palentry *ptbl, unsigned char *data);
+			  struct palentry *ptbl, unsigned char *data);
    void	getlinestyle	(wbp w, char *answer);
    int	getpixel_init	(wbp w, struct imgmem *imem);
    int	getpixel_term	(wbp w, struct imgmem *imem);
@@ -296,13 +292,13 @@ void		xmfree		(void);
    int	lowerWindow	(wbp w);
    int	mutable_color	(wbp w, dptr argv, int ac, int *retval);
    int	nativecolor	(wbp w, char *s, long *r, long *g, long *b);
-   
+
    #ifndef PresentationManager
       /* Exclude those functions defined as macros */
       int pollevent	(void);
       void wflush	(wbp w);
    #endif				/* PresentationManager */
-   
+
    int	query_pointer	(wbp w, XPoint *pp);
    int	query_rootpointer (XPoint *pp);
    int	raiseWindow	(wbp w);
@@ -344,14 +340,14 @@ void		xmfree		(void);
    int	wputc		(int ci, wbp w);
    void	wsync		(wbp w);
    void	xdis		(wbp w, char *s, int n);
-   
+
    #ifdef ConsoleWindow
       FILE* OpenConsole		(void);
       int   Consolefprintf	(FILE *file, char *format, ...);
       int   Consoleputc		(int c, FILE *file);
       int   Consolefflush	(FILE *file);
    #endif				/* ConsoleWindow */
-   
+
    #ifdef MacGraph
       /*
        * Implementation routines specific to Macintosh
@@ -381,16 +377,16 @@ void		xmfree		(void);
          { 0x303C, 0x0305, 0xAA68 };
       pascal OSErr SetDialogTracksCursor (DialogPtr theDialog, Boolean tracks) =
          { 0x303C, 0x0306, 0xAA68 };
-      
+
       void drawarcs(wbinding *wb, XArc *arcs, int narcs);
-      void drawlines(wbinding *wb, XPoint *points, int npoints);  
-      void drawpoints(wbinding *wb, XPoint *points, int npoints);  
+      void drawlines(wbinding *wb, XPoint *points, int npoints);
+      void drawpoints(wbinding *wb, XPoint *points, int npoints);
       void drawrectangles(wbp wb, XRectangle *recs, int nrecs);
       void drawsegments(wbinding *wb, XSegment *segs, int nsegs);
       void fillarcs(wbp wb, XArc *arcs, int narcs);
-      void fillpolygon(wbp wb, XPoint *pts, int npts);  
+      void fillpolygon(wbp wb, XPoint *pts, int npts);
    #endif				/* MacGraph */
-   
+
    #ifdef XWindows
       /*
        * Implementation routines specific to X-Windows
@@ -401,7 +397,7 @@ void		xmfree		(void);
       int	resetfg			(wbp w);
       int	setfgrgb		(wbp w, int r, int g, int b);
       int	setbgrgb		(wbp w, int r, int g, int b);
-      
+
       XColor	xcolor			(wbp w, LinearColor clr);
       LinearColor	lcolor		(wbp w, XColor color);
       int	pixmap_open		(wbp w, dptr attribs, int argc);
@@ -427,7 +423,7 @@ void		xmfree		(void);
       int	resizePixmap		(wbp w, int width, int height);
       void	wflushall		(void);
    #endif				/* XWindows */
-   
+
    #ifdef MSWindows
       /*
        * Implementation routines specific to MS Windows
@@ -447,7 +443,7 @@ void		xmfree		(void);
       HDC CreateWinDC		(wbp);
       HDC CreatePixDC		(wbp, HDC);
       HBITMAP loadimage	(wbp wb, char *filename, unsigned int *width,
-      			unsigned int *height, int atorigin, int *status);
+			unsigned int *height, int atorigin, int *status);
       void wfreersc();
       int getdepth(wbp w);
       HBITMAP CreateBitmapFromData(char *data);
@@ -464,9 +460,9 @@ void		xmfree		(void);
       void drawsegments(wbinding *wb, XSegment *segs, int nsegs);
       void drawstrng(wbinding *wb, int x, int y, char *s, int slen);
       void unsetclip(wbp w);
-      
+
    #endif				/* MSWindows */
-   
+
    #ifdef PresentationManager
       /*
        * Implementation routines specific to OS/2 Presentation Manager
@@ -484,14 +480,14 @@ void		xmfree		(void);
       int LoadFont(wbp wb, char *family, LONG attr, ULONG fontsize);
       void FreeIdTable(void);
       void FreeLocalID(LONG id);
-      
+
       /* -- not needed because of macro definitions
       void SetCharContext(wbp wb, wsp ws, wcp wc);
       void SetAreaContext(wbp wb, wsp ws, wcp wc);
       void SetLineContext(wbp wb, wsp ws, wcp wc);
       void SetImageContext(wbp wb, wsp ws, wcp wc);
          -- */
-      
+
       void SetClipContext(wbp wb, wsp ws, wcp wc);
       void UnsetContext(wcp wc, void (*f)(wcp, wsp));
       void UCharContext(wcp wc, wsp ws);
@@ -525,11 +521,10 @@ void		xmfree		(void);
       FILE *PMOpenConsole(void);
       void UpdateCursorConfig(wsp ws, wcp wc);
       void UpdateCursorPos(wsp ws, wcp wc);
-      
-   #endif				/* PresentationManager */
-   
-#endif					/* Graphics */
 
+   #endif				/* PresentationManager */
+
+#endif					/* Graphics */
 
 /*
  * Prototypes for the run-time system.
@@ -603,7 +598,7 @@ void	varargs		(dptr argp, int nargs, dptr rslt);
    int	xdisp			(struct p_frame *fp, dptr dp, int n, FILE *f);
 
 #else					/* COMPILER */
-   
+
    struct b_refresh *alcrefresh	(word *e, int nl, int nt);
    void	atrace			(dptr dp);
    void	ctrace			(dptr dp, int nargs, dptr arg);
@@ -613,7 +608,7 @@ void	varargs		(dptr argp, int nargs, dptr rslt);
    void	strace			(dptr dp, dptr rval);
    void	tracebk			(struct pf_marker *lcl_pfp, dptr argp);
    int	xdisp			(struct pf_marker *fp, dptr dp, int n, FILE *f);
-   
+
    #define Fargs dptr cargp
    int	Obscan			(int nargs, Fargs);
    int	Ocreate			(word *entryp, Fargs);
@@ -628,5 +623,5 @@ void	varargs		(dptr argp, int nargs, dptr rslt);
    #else				/* MultiThread */
       void	initalloc	(word codesize);
    #endif				/* MultiThread */
-   
+
 #endif					/* COMPILER */

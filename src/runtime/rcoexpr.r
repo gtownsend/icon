@@ -154,7 +154,7 @@ int first;
 {
 #ifndef Coexpr
    syserr("co_chng() called, but co-expressions not implemented");
-#else        				/* Coexpr */
+#else					/* Coexpr */
    register struct b_coexpr *ccp;
    static int coexp_act;     /* used to pass signal across activations */
                              /* back to whomever activates, if they care */
@@ -191,7 +191,7 @@ int first;
 	    }
 	 break;
       }
-#endif        				/* EventMon */
+#endif					/* EventMon */
 #endif					/* COMPILER */
 
    /*
@@ -201,7 +201,7 @@ int first;
 
 #if !COMPILER
       /*
-       * Determine if we need to dereference the transmitted value. 
+       * Determine if we need to dereference the transmitted value.
        */
       if (Var(*valloc))
          retderef(valloc, (word *)glbl_argp, sp);
@@ -266,7 +266,7 @@ int first;
     * Enter the program state of the co-expression being activated
     */
    ENTERPSTATE(ncp->program);
-#endif        				/* MultiThread */
+#endif					/* MultiThread */
 #endif					/* COMPILER */
 
    glbl_argp = ncp->es_argp;
@@ -287,7 +287,7 @@ int first;
    coexp_act = swtch_typ;
    coswitch(ccp->cstate, ncp->cstate,first);
    return coexp_act;
-#endif        				/* Coexpr */
+#endif					/* Coexpr */
    }
 
 #ifdef Coexpr

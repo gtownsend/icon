@@ -2037,7 +2037,7 @@ yyparse()
 	*/
 	switch( yytmp )
 	{
-		
+
 case 1:
 # line 81 "rttgram.y"
 {yyval.n = sym_node(yypvt[-0].t);} break;
@@ -2979,7 +2979,7 @@ case 473:
                                          free_t(yypvt[-2].t); free_t(yypvt[-0].t);} break;
 case 474:
 # line 1070 "rttgram.y"
-{yyval.n = node1(PstfxNd, yypvt[-0].t, yypvt[-2].n); 
+{yyval.n = node1(PstfxNd, yypvt[-0].t, yypvt[-2].n);
                                          free_t(yypvt[-1].t);} break;
 case 475:
 # line 1072 "rttgram.y"

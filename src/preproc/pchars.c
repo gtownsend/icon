@@ -70,7 +70,7 @@ void fill_cbuf()
       /*
        * The first phase of input translation is done here: trigraph
        *  translation and the deletion of backslash-newline pairs.
-       */  
+       */
       changes = 1;
       while (changes) {
          changes = 0;
@@ -80,7 +80,7 @@ void fill_cbuf()
          if (c1 == '?' && c2 == '?') {
             c = ' ';
             switch (c3) {
-       	    case '=':
+               case '=':
                   c = '#';
                   break;
                case '(':
@@ -119,7 +119,7 @@ void fill_cbuf()
                changes = 1;
                }
             }
-      
+
          /*
           * delete backslash-newline pairs
           */

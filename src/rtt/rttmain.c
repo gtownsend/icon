@@ -290,8 +290,8 @@ char **argv;
     *  that are passed along to the preprocessor initialization routine.
     *  Their number is at most the number of arguments to rtt.
     */
-   opt_lst = (char *)alloc((unsigned)argc);
-   opt_args = (char **)alloc((unsigned)(sizeof (char *)) * argc);
+   opt_lst = alloc(argc);
+   opt_args = alloc(argc * sizeof (char *));
    nopts = 0;
 
    /*
@@ -299,7 +299,7 @@ char **argv;
     */
    while ((c = getopt(argc, argv, ostr)) != EOF)
       switch (c) {
-	 case 'E': /* run preprocessor only */
+         case 'E': /* run preprocessor only */
             pp_only = 1;
             if (whsp_image == NoSpelling)
                whsp_image = NoComment;
@@ -314,9 +314,9 @@ char **argv;
             dbname = optarg;
             break;
 #ifdef ConsoleWindow
-	 case 'q':
- 	    ConsolePause = 0;
-	    break;
+         case 'q':
+            ConsolePause = 0;
+            break;
 #endif					/* ConsoleWindow */
          case 'r':  /* -r path: location of include files */
             refpath = optarg;
@@ -358,12 +358,10 @@ char **argv;
       compiler_def = "#define COMPILER 0\n";
    else
       compiler_def = "#define COMPILER 1\n";
-   in_header = (char *)alloc((unsigned)strlen(refpath) +
-      (unsigned)strlen(grttin_path) + 1);
+   in_header = alloc(strlen(refpath) + strlen(grttin_path) + 1);
    strcpy(in_header, refpath);
    strcat(in_header, grttin_path);
-   inclname = (char *)alloc((unsigned)strlen(refpath) +
-      (unsigned)strlen(rt_path) + 1);
+   inclname = alloc(strlen(refpath) + strlen(rt_path) + 1);
    strcpy(inclname, refpath);
    strcat(inclname, rt_path);
 

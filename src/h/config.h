@@ -339,7 +339,7 @@
 #ifndef KeyboardFncs
    #if UNIX
       #ifndef NoKeyboardFncs
-	  #define KeyboardFncs
+         #define KeyboardFncs
       #endif				/* NoKeyboardFncs */
    #endif				/* UNIX */
 #endif					/* KeyboardFncs */
@@ -680,5 +680,5 @@ Deliberate Syntax Error
  */
 
 #define Wsizeof(x)	((sizeof(x) + sizeof(word) - 1) / sizeof(word))
-#define Vwsizeof(x)	((sizeof(x) - sizeof(struct descrip) +\
-			   sizeof(word) - 1) / sizeof(word))
+#define Vwsizeof(x) \
+   ((sizeof(x) - sizeof(struct descrip) + sizeof(word) - 1) / sizeof(word))

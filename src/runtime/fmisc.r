@@ -58,17 +58,17 @@ function{1} callout(x[nargs])
          if (retval == NULL)
             runerr(signal);
          else
-            runerr(signal, *retval); 
+            runerr(signal, *retval);
          }
       if (retval != NULL) {
          return *retval;
          }
-      else 
+      else
          fail;
       }
 end
 
-#endif 					/* ExternalFunctions */
+#endif					/* ExternalFunctions */
 #endif					/* !COMPILER */
 
 
@@ -97,7 +97,7 @@ end
 function{1} collect(region, bytes)
 
    if !def:C_integer(region, (C_integer)0) then
-      runerr(101, region) 
+      runerr(101, region)
    if !def:C_integer(bytes, (C_integer)0) then
       runerr(101, bytes)
 
@@ -278,7 +278,7 @@ function{1} copy(x)
              * then allocate new block and copy the data.
              */
             op = BlkLoc(x);
-            n = (op->externl.blksize - (sizeof(struct b_external) - 
+            n = (op->externl.blksize - (sizeof(struct b_external) -
                  sizeof(word))) / sizeof(word);
             Protect(bp = (union block *)alcextrnl(n), runerr(0));
             while (n--)
@@ -344,7 +344,7 @@ function{1} display(i,f)
        * Produce error if file cannot be written.
        */
       std_f = BlkLoc(f)->file.fd;
-      if ((BlkLoc(f)->file.status & Fs_Write) == 0) 
+      if ((BlkLoc(f)->file.status & Fs_Write) == 0)
          runerr(213, f);
 
       /*
@@ -646,7 +646,7 @@ function{} runerr(i,x[n])
          irunerr(205,i);
          errorfail;
          }
-      if (n == 0) 
+      if (n == 0)
          runerr((int)i);
       else
          runerr((int)i, x[0]);
@@ -1428,7 +1428,7 @@ function{0,1} variable(s)
 #endif						/* MultiThread */
 
       rv = getvar(s, &result);
-   
+
 #ifdef MultiThread
       if (is:coexpr(c)) {
 	 ENTERPSTATE(savedprog);
@@ -1529,7 +1529,7 @@ function{*} localnames(ce,i)
       struct pf_marker *thePfp = BlkLoc(d)->coexpr.es_pfp;
 
       if (thePfp == NULL) fail;
-      
+
       /*
        * Produce error if i is negative
        */
@@ -1544,7 +1544,7 @@ function{*} localnames(ce,i)
          }
 
       arg = &((dptr)thePfp)[-(thePfp->pf_nargs) - 1];
-      cproc = (struct b_proc *)BlkLoc(arg[0]);    
+      cproc = (struct b_proc *)BlkLoc(arg[0]);
       for(j = 0; j < cproc->ndynam; j++) {
 	 result = cproc->lnames[j + cproc->nparam];
 	 suspend result;
@@ -1608,7 +1608,7 @@ function{*} staticnames(ce,i)
          }
 
       arg = &((dptr)thePfp)[-(thePfp->pf_nargs) - 1];
-      cproc = (struct b_proc *)BlkLoc(arg[0]);    
+      cproc = (struct b_proc *)BlkLoc(arg[0]);
       for(j=0; j < cproc->nstatic; j++) {
 	 result = cproc->lnames[j + cproc->nparam + cproc->ndynam];
 	 suspend result;
@@ -1671,7 +1671,7 @@ function{1,*} paramnames(ce,i)
          }
 
       arg = &((dptr)thePfp)[-(thePfp->pf_nargs) - 1];
-      cproc = (struct b_proc *)BlkLoc(arg[0]);    
+      cproc = (struct b_proc *)BlkLoc(arg[0]);
       for(j = 0; j < cproc->nparam; j++) {
 	 result = cproc->lnames[j];
 	 suspend result;

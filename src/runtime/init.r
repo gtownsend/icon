@@ -54,9 +54,9 @@ int _fmode = 0;				/* force CR-LF on std.. files */
 char modname[256];			/* Character string for module name */
 #passthru HMODULE modhandle;		/* Handle of loaded module */
 char loadmoderr[256];			/* Error message if loadmodule fails */
-#define RT_ICODE 0x4843 		/* Resource type id is 'IC' */
+#define RT_ICODE 0x4843			/* Resource type id is 'IC' */
 unsigned long icoderesid;		/* Resource ID from caller */
-char *icoderes; 			/* Pointer to the icode resource data */
+char *icoderes;				/* Pointer to the icode resource data */
 int use_resource = 0;			/* Set to TRUE if using a resource */
 int stubexe;				/* TRUE if resource attached to executable */
 #endif					/* OS2 */
@@ -226,7 +226,7 @@ int dumped = 0;				/* non-zero if reloaded from dump */
 #endif					/* ExecImages */
 
 word *stack;				/* Interpreter stack */
-word *stackend; 			/* End of interpreter stack */
+word *stackend;				/* End of interpreter stack */
 
 
 #ifdef MultipleRuns
@@ -1054,7 +1054,7 @@ Deliberate Syntax Error
       chkbreak++;
    if (WBstrsize != 0 && WBstrsize <= MaxBlock) ssize = WBstrsize;
    if (WBblksize != 0 && WBblksize <= MaxBlock) abrsize = WBblksize;
-   if (WBmstksize != 0 && WBmstksize <= (uword) MaxUnsigned) mstksize = WBmstksize; 
+   if (WBmstksize != 0 && WBmstksize <= (uword) MaxUnsigned) mstksize = WBmstksize;
 #endif					/* AMIGA */
 
 #if ARM || ATARI_ST || MACINTOSH || MSDOS || MVS || OS2 || UNIX || VM || VMS

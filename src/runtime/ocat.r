@@ -1,7 +1,7 @@
 /*
  * File: ocat.r -- caterr, lconcat
  */
-"x || y - concatenate strings x and y." 
+"x || y - concatenate strings x and y."
 
 operator{1} || cater(x, y)
 

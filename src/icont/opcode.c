@@ -10,9 +10,7 @@ struct opentry optable[] = {
    "asgn",	Op_Asgn,
    "bang",	Op_Bang,
 
-
    "bscan",	Op_Bscan,
-
 
    "cat",	Op_Cat,
    "ccase",	Op_Ccase,
@@ -38,7 +36,6 @@ struct opentry optable[] = {
    "esusp",	Op_Esusp,
    "field",	Op_Field,
    "filen",	Op_Filen,
-
 
    "global",	Op_Global,
    "goto",	Op_Goto,

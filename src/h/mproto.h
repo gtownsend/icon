@@ -23,8 +23,8 @@ void	free_stbl	(void);
 void	id_comment	(FILE *f);
 void	init_sbuf	(struct str_buf *sbuf);
 void	init_str	(void);
-long	longwrite	(char *s,long len,FILE *file);
-char	*makename	(char *dest,char *d,char *name,char *e);
+long	longwrite	(char *s, long len, FILE *file);
+char	*makename	(char *dest, char *d, char *name, char *e);
 long	millisec	(void);
 struct il_code *new_il	(int il_type, int size);
 void	new_sbuf	(struct str_buf *sbuf);
@@ -37,11 +37,11 @@ int	ppinit		(char *fname, char *inclpath, int m4flag);
 int	prt_i_str	(FILE *f, char *s, int len);
 int	redirerr	(char *p);
 char	*salloc		(char *s);
-int	smatch		(char *s,char *t);
+int	smatch		(char *s, char *t);
 char	*spec_str	(char *s);
 char	*str_install	(struct str_buf *sbuf);
 int	tonum		(int c);
-void 	lear_sbuf	(struct str_buf *sbuf);
+void	lear_sbuf	(struct str_buf *sbuf);
 
 #ifdef ConsoleWindow
    int Consolefprintf(FILE *file, char *format, ...);
@@ -59,8 +59,7 @@ void 	lear_sbuf	(struct str_buf *sbuf);
    void	lqsort		(char *base, int nel, int width, int (*cmp)());
 #endif					/* IntBits == 16 */
 
-#define NewStruct(type)\
-   (struct type *)alloc((unsigned int) sizeof (struct type))
+#define NewStruct(type) alloc(sizeof(struct type))
 
 #if UNIX
    char *relfile	(char *prog, char *mod);

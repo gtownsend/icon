@@ -27,10 +27,10 @@ int getopt(int nargc, char *const nargv[], const char *ostr)
 
    if(!*place) {			/* update scanning pointer */
       if(optind >= nargc || *(place = nargv[optind]) != '-' || !*++place)
-         return(EOF);
+         return EOF;
       if (*place == '-') {		/* found "--" */
          ++optind;
-         return(EOF);
+         return EOF;
          }
       }					/* option letter okay? */
 
@@ -52,9 +52,9 @@ int getopt(int nargc, char *const nargv[], const char *ostr)
       place = EMSG;
       ++optind;
       }
-   return(optopt);			/* dump back option letter */
+   return optopt;			/* dump back option letter */
    }
 
 #else					/* SysOpt */
-static char junk; 			/* prevent empty file */
+static char junk;			/* prevent empty file */
 #endif					/* SysOpt */

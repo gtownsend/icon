@@ -26,21 +26,21 @@
  */
 
 #if WordBits == 64
-   
+
    #ifndef MinLong
       #define MinLong  ((long int)0x8000000000000000) /* smallest long int */
    #endif
-   
+
    #ifndef MaxLong
       #define MaxLong  ((long int)0x7fffffffffffffff) /* largest long integer */
    #endif
-   
+
    #define MaxStrLen 017777777777L		/* maximum string length */
-   
+
    #ifndef MaxNegInt
       #define MaxNegInt "-9223372036854775808"
    #endif
-   
+
    #ifndef F_Nqual
       #define F_Nqual 0x8000000000000000	/* set if NOT string qualifier*/
    #endif				/* F_Nqual */
@@ -56,7 +56,7 @@
    #ifndef F_Typecode
       #define F_Typecode  0x2000000000000000	/* set if dword incls typecode*/
    #endif				/* F_Typecode */
-   
+
 #endif					/* WordBits == 64 */
 
 /*
@@ -64,14 +64,14 @@
  */
 
 #if WordBits == 32
-   
+
    #define MaxLong  ((long int)017777777777L)   /* largest long integer */
    #define MinLong  ((long int)020000000000L)   /* smallest long integer */
-   
+
    #define MaxNegInt "-2147483648"
-   
+
    #define MaxStrLen 0777777777		/* maximum string length */
-   
+
    #define F_Nqual	0x80000000	/* set if NOT string qualifier */
    #define F_Var	0x40000000	/* set if variable */
    #define F_Ptr	0x10000000	/* set if value field is pointer */
@@ -92,10 +92,10 @@
     * Cset initialization and access macros.
     */
    #define fwd(w0, w1, w2, w3) \
-    (((w0)&0xffff) | (((unsigned)(w1)&0xffff)<<16) | \
-    (((unsigned)(w2)&0xffff)<<32) | (((unsigned)(w3)&0xffff)<<48))
+      (((w0) & 0xffff) | (((unsigned)(w1) & 0xffff) << 16) | \
+      (((unsigned)(w2) & 0xffff) << 32) | (((unsigned)(w3) & 0xffff) << 48))
    #define cset_display(w0,w1,w2,w3,w4,w5,w6,w7,w8,w9,wa,wb,wc,wd,we,wf) \
-    {fwd(w0,w1,w2,w3),fwd(w4,w5,w6,w7),fwd(w8,w9,wa,wb),fwd(wc,wd,we,wf)}
+      {fwd(w0,w1,w2,w3),fwd(w4,w5,w6,w7),fwd(w8,w9,wa,wb),fwd(wc,wd,we,wf)}
    #define Cset32(b,c) (*CsetPtr(b,c)>>(32*CsetOff((b)>>5)))  /* 32b of cset */
 #endif					/* IntBits == 64 */
 
@@ -117,11 +117,11 @@
    #define LogIntBits	4			/* log of IntBits */
    #define MaxUnsigned ((unsigned int)0177777)	/* largest unsigned integer */
    #define MaxInt	077777			/* largest int */
-   
+
    #ifndef MaxListSlots
       #define MaxListSlots 8000		/* largest list-element block */
    #endif				/* MaxListSlots */
-   
+
    /*
     * Cset initialization and access macros.
     */
@@ -211,7 +211,7 @@
 #define MaxDigits	30
 
 /*
- * Memory sizing. 
+ * Memory sizing.
  */
 #ifndef AlcMax
    #define AlcMax 25

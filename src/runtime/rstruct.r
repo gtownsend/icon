@@ -363,7 +363,7 @@ struct hgstate *s;
  *  the time of the split and checking past history when starting to process
  *  a new chain.
  *
- *  Elements inserted or deleted between calls may or may not be generated. 
+ *  Elements inserted or deleted between calls may or may not be generated.
  *
  *  We assume that no structure *shrinks* after its initial creation; they
  *  can only *grow*.
@@ -399,12 +399,12 @@ union block *ep;
       hn = ep->telem.hashnum;
       for (i = 1; i < HSegs; i++)
          if ((((word)HSlots) << (i - 1)) > s->tmask) {
-   	 /*
-   	  * For the newly created segments only, save the mask and
-   	  *  hash number being processed at time of creation.
-   	  */
-   	 s->sgmask[i] = s->tmask;
-   	 s->sghash[i] = hn;
+	 /*
+	  * For the newly created segments only, save the mask and
+	  *  hash number being processed at time of creation.
+	  */
+	 s->sgmask[i] = s->tmask;
+	 s->sghash[i] = hn;
          }
       s->tmask = bp->table.mask;
       /*
@@ -537,7 +537,7 @@ union block *bp;
                }
             }
 #ifdef TableFix
-         if ( BlkType(bp) == T_Table ) 
+         if ( BlkType(bp) == T_Table )
 	    *tp0 = *tp1 = bp;
          else
             *tp0 = *tp1 = NULL;

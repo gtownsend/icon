@@ -10,13 +10,13 @@
  * Prototypes.
  */
 
-static struct 	fentry *alcfhead
-   (struct fentry *blink,word name, int fid, struct rentry *rlist);
-static struct 	rentry *alcfrec	
-   (struct rentry *link,struct gentry *gp, int fnum);
-static struct 	gentry *alcglobal
-   (struct gentry *blink, word name, int flag,int nargs,int procid);
-static struct 	ientry *alcident	(char *nam,int len);
+static struct	fentry *alcfhead
+   (struct fentry *blink, word name, int fid, struct rentry *rlist);
+static struct	rentry *alcfrec
+   (struct rentry *link, struct gentry *gp, int fnum);
+static struct	gentry *alcglobal
+   (struct gentry *blink, word name, int flag, int nargs, int procid);
+static struct	ientry *alcident	(char *nam, int len);
 
 int dynoff;			/* stack offset counter for locals */
 int argoff;			/* stack offset counter for arguments */
@@ -88,11 +88,13 @@ int len, install;
     * If the identifier hasn't been installed, install it.
     */
    if ((ip = lihash[hash]) != NULL) {	 /* collision */
-      for (;;) { /* work down i_blink chain until id is found or the
-                     end of the chain is reached */
+      for (;;) {
+         /*
+          * follow i_blink chain until id is found or end of chain reached
+          */
          if (l == ip->i_length && lexeql(l, s, &lsspace[ip->i_name]))
-            return (ip->i_name); /* id is already installed, return it */
-         if (ip->i_blink == NULL) { /* end of chain */
+            return ip->i_name;		/* id is already installed, return it */
+         if (ip->i_blink == NULL) {	/* end of chain */
             if (install == 0)
                return -1;
             ip->i_blink = alcident(s, l);
@@ -172,7 +174,7 @@ word procname;
       } p;
 
    if (n >= lsize)
-      lltable  = (struct lentry *) trealloc(lltable, NULL, &lsize,
+      lltable  = (struct lentry *)trealloc(lltable, NULL, &lsize,
          sizeof(struct lentry), 1, "local symbol table");
    if (n > nlocal)
       nlocal = n;
@@ -192,7 +194,7 @@ word procname;
 
       else {					/* implicit local */
          if (imperror)
-            lwarn(&lsspace[id], "undeclared identifier, procedure ", 
+            lwarn(&lsspace[id], "undeclared identifier, procedure ",
                &lsspace[procname]);
          lp->l_flag = F_Dynamic;
          lp->l_val.offset = ++dynoff;
@@ -248,7 +250,7 @@ union xval *valp;
    {
    register struct centry *p;
    if (n >= csize)
-      lctable  = (struct centry *) trealloc(lctable, NULL, &csize,
+      lctable  = (struct centry *)trealloc(lctable, NULL, &csize,
          sizeof(struct centry), 1, "constant table");
    if (nconst < n)
       nconst = n;
@@ -267,19 +269,20 @@ union xval *valp;
       p->c_length = len;
       }
    else	if (flags & F_RealLit)
-
-#ifdef Double
-/* access real values one word at a time */
-    {  int *rp, *rq;	
-       rp = (int *) &(p->c_val.rval);
-       rq = (int *) &(valp->rval);
-       *rp++ = *rq++;
-       *rp   = *rq;
-    }
-#else					/* Double */
-      p->c_val.rval = valp->rval;
-#endif					/* Double */
-
+      #ifdef Double
+         {
+            /*
+             *  Access real values one word at a time.
+             */
+            int *rp, *rq;
+            rp = (int *) &(p->c_val.rval);
+            rq = (int *) &(valp->rval);
+            *rp++ = *rq++;
+            *rp   = *rq;
+         }
+      #else					/* Double */
+         p->c_val.rval = valp->rval;
+      #endif					/* Double */
    else
       fprintf(stderr, "putconst: bad flags: %06o %011lo\n", flags, valp->ival);
    }

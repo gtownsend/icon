@@ -27,9 +27,8 @@
             return integer
             }
          inline {
-            if (big_ ## c_op (x,y)) {
+            if (big_ ## c_op (x,y))
                return y;
-   	    }
             fail;
             }
          }
@@ -104,7 +103,7 @@ operator{0,1} icon_op func_name(x,y)
       }
    if !cnv:tmp_string(x) then
       runerr(103,x)
-   if !is:string(y) then 
+   if !is:string(y) then
       if cnv:tmp_string(y) then
           inline {
              temp_str = 1;
@@ -133,10 +132,10 @@ operator{0,1} icon_op func_name(x,y)
 end
 #enddef
 
-StrComp(==,  lexeq, (StrLen(x) == StrLen(y)) &&, ==, Equal, equal to) 
+StrComp(==,  lexeq, (StrLen(x) == StrLen(y)) &&, ==, Equal, equal to)
 StrComp(~==, lexne, (StrLen(x) != StrLen(y)) ||, !=, Equal, not equal to)
 
-StrComp(>>=, lexge, , !=, Less,    greater than or equal to) 
+StrComp(>>=, lexge, , !=, Less,    greater than or equal to)
 StrComp(>>,  lexgt, , ==, Greater, greater than)
 StrComp(<<=, lexle, , !=, Greater, less than or equal to)
 StrComp(<<,  lexlt, , ==, Less,    less than)

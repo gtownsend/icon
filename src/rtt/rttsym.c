@@ -292,7 +292,7 @@ int lvl;
       tnd->t_indx = tend_lst->t_indx + 1;
    tnd->init_typ = typ;
    /*
-    * The initialization from the declaration will only be used to 
+    * The initialization from the declaration will only be used to
     *  set up the tended location if the declaration is in the outermost
     *  "block". Otherwise a generic initialization will be done during
     *  the set up and the one from the declaration will be put off until
@@ -376,7 +376,7 @@ struct node *dcltor;
     * find the identifier within the declarator.
     */
    for (;;) {
-      switch (dcltor->nd_id) { 
+      switch (dcltor->nd_id) {
          case BinryNd:
             /* ')' or '[' */
             dcltor = dcltor->u[0].child;
@@ -436,7 +436,7 @@ struct node *init;
       case TndStr:
       case TndBlk:
          /*
-          * Tended variables are either simple identifiers or pointers to 
+          * Tended variables are either simple identifiers or pointers to
           *  simple identifiers.
           */
          chld0 = dcltor->u[0].child;
@@ -458,7 +458,7 @@ struct node *init;
             if (chld0 == NULL || chld0->nd_id != PrimryNd)
                errt1(chld1->tok, "unsupported tended declaration");
             }
-   
+
          /*
           * This is a legal tended declaration, make a symbol table entry
           *  for it and allocated a tended slot. Add the symbol table
@@ -563,7 +563,7 @@ struct token *ident;
     *  but not both.
     */
    sym = params->u.param_info.next;
-   if (sym != NULL && sym->u.param_info.param_num == 
+   if (sym != NULL && sym->u.param_info.param_num ==
       params->u.param_info.param_num)
          errt1(ident, "only one version of variable parameter list allowed");
    params->id_type |= VarPrm;
@@ -638,7 +638,7 @@ struct node *tqual;
       }
    part_dcltor = dcltor;
    for (;;) {
-      switch (part_dcltor->nd_id) { 
+      switch (part_dcltor->nd_id) {
          case BinryNd:
             /* ')' or '[' */
             part_dcltor = part_dcltor->u[0].child;

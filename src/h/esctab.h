@@ -36,7 +36,7 @@ static unsigned char esctab[] = {
    0350,  0351,  0352,  0353,  0354,  0355,  0356,  0357,
    0360,  0361,  0362,  0363,  0364,  0365,  0366,  0367,
    0370,  0371,  0372,  0373,  0374,  0375,  0376,  0377,
-  };
+   };
 #else                                   /* EBCDIC */
 /*
  *  This is the EBCDIC table for handling escapes.
@@ -75,4 +75,4 @@ static char esctab[] = {
    0,   1,   2,   3,     4,     5,     6,     7,
    8,   9,   0xfa,   0xfb,  0xfc,  0xfd,  0xfe,  0xff,
    };
-#endif              			/* EBCDIC */
+#endif					/* EBCDIC */

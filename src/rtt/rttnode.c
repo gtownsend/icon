@@ -107,7 +107,7 @@ struct token *tok;
    struct node *n;
 
    sym = sym_lkup(tok->image);
-   if (sym != NULL) { 
+   if (sym != NULL) {
       n = NewNode(1);
       n->nd_id = SymNd;
       n->tok = tok;
@@ -197,7 +197,7 @@ struct token *tok;
    int typcd;
 
    n = sym_node(tok);
-   typcd = n->u[0].sym->u.typ_indx; 
+   typcd = n->u[0].sym->u.typ_indx;
    if (typcd != int_typ && typcd != str_typ && typcd != cset_typ &&
       typcd != real_typ)
       errt2(tok, "cannot convert to ", tok->image);

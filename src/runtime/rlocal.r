@@ -187,7 +187,7 @@ FILE *popen (char *command, char *mode)
 
          while (*s && !isspace(*s))
             ++s;
-         
+
          n = sprintf(cmd, "%.*s > %s%s",
             s - command, command, name, s);
       }
@@ -528,7 +528,7 @@ int pclose (FILE *current)
 
 			while (*s && !isspace(*s))
 				++s;
-			
+
 			n = sprintf(cmd, "%.*s < %s%s",
 				s - command, command, pipes[i].name, s);
 		}
@@ -822,7 +822,7 @@ char *p;
 SetFileToMPWText(const char *fname) {
    FInfo info;
    int needToSet = 0;
- 
+
    if (getfinfo(fname,0,&info) == 0) {
       if (info.fdType == 0) {
 	 info.fdType = 'TEXT';
@@ -978,7 +978,7 @@ msize incr;
       curr = base = (pointer)rout.w.eax;
       endofmem = (pointer)((char *)base + rin.w.ebx);
       }
-	
+
    if ((char *)curr + incr > (char *)endofmem)
       return (pointer)-1;
    result = curr;
@@ -1010,17 +1010,17 @@ extern unsigned _stklen = 16 * 1024;
 /********************************* MVS || VM ********************************/
 
 #if MVS || VM
-#if SASC 
+#if SASC
 #passthru #include <options.h>
 char _linkage = _OPTIMIZE;
- 
+
 #if MVS
 char *_style = "tso:";          /* use dsnames as file names */
 #define SYS_OSVS
 #else                                   /* MVS */
 #define SYS_CMS
 #endif                                  /* MVS */
- 
+
 #passthru #define RES_SIGNAL
 #passthru #define RES_COPROC
 #passthru #define RES_IOUTIL
@@ -1029,9 +1029,9 @@ char *_style = "tso:";          /* use dsnames as file names */
 #passthru #define RES_UNITREC
 #passthru #define RES_TSOENVVAR
 #passthru #define ALLOW_TRANSIENT /* temporary */
- 
+
 #passthru #include <resident.h>
- 
+
 #endif                                  /* SASC */
 #endif                                  /* MVS || VM */
 

@@ -69,7 +69,6 @@ KeySym *k;
       return 0;			/* other (e.g. function key) */
 }
 
-
 stringint drawops[] = {
    { 0, 16},
    {"and",		GXand},

@@ -60,7 +60,7 @@ char **id;
  * getopc - get an opcode from infile, return the opcode number (via
  * sequential search of opcode table) and point id at the name of the opcode.
  */
- 
+
 int getopc(id)
 char **id;
    {
@@ -68,7 +68,7 @@ char **id;
    register struct opentry *p;
    register int test;
    word indx;
- 
+
    indx = getstr();
    if (indx == -1)
       return EOF;
@@ -244,7 +244,7 @@ long getint(j,wp)
    if (lsfree + j >= stsize)
       lsspace = (char *)trealloc(lsspace, NULL, &stsize, 1, j, "string space");
    indx = lsfree;
-   
+
    while ((c = getc(infile)) >= '0' && c <= '9') {
       lsspace[indx++] = c;
       result = result * 10 + (c - '0');

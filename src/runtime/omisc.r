@@ -253,13 +253,13 @@ operator{1} [...] llist(elems[n])
       nslots = n;
       if (nslots == 0)
          nslots = MinListSlots;
-   
+
       /*
        * Allocate the list and a list block.
        */
       Protect(hp = alclist(n), runerr(0));
       Protect(bp = alclstb(nslots, (word)0, n), runerr(0));
-   
+
       /*
        * Make the list block just allocated into the first and last blocks
        *  for the list.

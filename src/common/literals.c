@@ -2,14 +2,14 @@
 #include "../h/esctab.h"
 
 #if (MVS || VM) && SASC
-    #include <lctype.h>
+   #include <lctype.h>
 #endif                                  /* SASC */
 
 /*
  * Prototypes.
  */
-unsigned short	*bitvect	(char *image,int len);
-static int escape               (char **str_ptr,int *nchars_ptr);
+unsigned short	*bitvect	(char *image, int len);
+static int escape               (char **str_ptr, int *nchars_ptr);
 
 /*
  * Within translators, csets are internally implemented as a bit vector made
@@ -25,8 +25,6 @@ static int escape               (char **str_ptr,int *nchars_ptr);
  */
 #define NextChar(c) ((*nchars_ptr)--, c = *(*str_ptr)++)
 #define isoctal(c) ((c)>='0'&&(c)<='7')	/* macro to test for octal digit */
-
-
 
 /*
  * escape - translate the character sequence following a '\' into the
@@ -64,11 +62,11 @@ int *nchars_ptr;
       for (i = 1; *nchars_ptr > 0 && isxdigit(**str_ptr) && i <= 2; ++i) {
          NextChar(nc);
          if (nc >= 'a' && nc <= 'f')
-             nc -= 'a' - 10;
+            nc -= 'a' - 10;
          else if (nc >= 'A' && nc <= 'F')
             nc -= 'A' - 10;
          else if (isdigit(nc))
-             nc -= '0';
+            nc -= '0';
          c = (c << 4) | nc;
          }
       return c;
@@ -87,7 +85,6 @@ int *nchars_ptr;
       return esctab[c];
    }
 
-
 /*
  * bitvect - convert cset literal into a bitvector
  */
@@ -99,10 +96,9 @@ int len;
    register unsigned short *bv;
    register int i;
 
-   bv =
-    (unsigned short *)alloc((unsigned int)((BVectSize)*sizeof(unsigned short)));
+   bv = alloc(BVectSize * sizeof(unsigned short));
    for (i = 0; i < BVectSize; ++i)
-       bv[i] = 0;
+      bv[i] = 0;
    while (len-- > 0) {
       c = *image++;
       if (c == '\\')

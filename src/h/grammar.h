@@ -10,7 +10,7 @@
 
 program	: decls EOFX {Progend($1,$2);} ;
 
-decls	: ;	
+decls	: ;
 	| decls decl ;
 
 decl	: record {Recdcl($1);} ;

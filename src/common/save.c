@@ -41,7 +41,7 @@ int ef;
     bzero (&opthdr, sizeof opthdr);
     bzero (&texthdr, sizeof texthdr);
     bzero (&datahdr, sizeof datahdr);
-    
+
     filehdr.h_magic = SOFF_MAGIC;
     filehdr.h_nscns = 2;
     filehdr.h_scnptr = toffs;
@@ -166,7 +166,7 @@ wrtexec(ExecFile)
 
   /* Close the file. */
   close(ExecFile);
-  
+
   return Status;
 }
 
@@ -293,7 +293,7 @@ int ef;
    int tsize, dsize;
 
    hdrp = (struct exec *)PAGSIZ;
-	
+
    /*
     * This code only handles the ZMAGIC format...
     */

@@ -14,7 +14,7 @@ Deliberate Syntax Error
 #endif					/* PORT */
 
 #if AMIGA
-   /* Amiga paths are not converted. 
+   /* Amiga paths are not converted.
     *  Absolute paths have the form Volume:dir/dir/.../file
     */
 #define IsRelPath(fname) (strchr(fname, ':') == NULL)
@@ -38,7 +38,7 @@ char *FileNameMacConvert(char *(*func)(char *),char *fn);
 #endif					/* MICROSOFT || INTEL_386 || ... */
 #if TURBO || BORLAND_286 || BORLAND_386
 #include <dir.h>
-#endif 					/* TURBO || BORLAND_286 ... */
+#endif					/* TURBO || BORLAND_286 ... */
 #define IsRelPath(fname) (fname[0] != '/')
 #endif					/* MSDOS */
 
@@ -97,7 +97,7 @@ Deliberate Syntax Error
 
 #if MSDOS
    char *s;
-   
+
    /*
     * Convert back slashes to slashes for internal consistency.
     */
@@ -133,14 +133,14 @@ char *fname;
    if (strcmp(fname, "-") == 0)
       file_src("<stdin>", stdin);
    else {
-      if ((f = fopen(fname, "r")) == NULL) 
+      if ((f = fopen(fname, "r")) == NULL)
          err2("cannot open ", fname);
       file_src(fname, f);
       }
    }
 
 /*
- * include - open the file named fname and make it the current input file. 
+ * include - open the file named fname and make it the current input file.
  */
 void include(trigger, fname, system)
 struct token *trigger;
@@ -180,7 +180,7 @@ int system;
                   for (s = cs->fname; *s != '\0'; ++s)
                      if (*s == '/')
                         end_prfx = s;
-                  if (end_prfx != NULL) 
+                  if (end_prfx != NULL)
 #if MACINTOSH
 		     /*
 		      * For Mac-style names, don't include the file
@@ -208,7 +208,7 @@ int system;
          }
       /*
        * Search in the locations for the system include files.
-       */   
+       */
       prefix = incl_search;
       while (f == NULL && *prefix != NULL) {
          for (s = *prefix; *s != '\0'; ++s)
@@ -282,7 +282,7 @@ char **opt_args;
    int n_paths = 0;
    int i, j;
    char *s, *s1;
-  
+
 /*
  * The following code is operating-system dependent [@files.03].
  *  Determine the number of standard locations to search for
@@ -300,7 +300,7 @@ Deliberate Syntax Error
    int  vmsi;
 
    n_paths = vmsi = 0;
-   syspaths = (char **)alloc((unsigned int)(sizeof(char *) * 2));
+   syspaths = alloc(2 * sizeof(char *));
    if (syspaths[n_paths] = getenv("VAXC$INCLUDE")) {
       n_paths++;
       vmsi++;
@@ -346,7 +346,7 @@ Deliberate Syntax Error
    char *syspath;
    char *cl_var;
    char *incl_var;
-   
+
    incl_var = getenv("INCLUDE");
    cl_var = getenv("CL");
    n_paths = 0;
@@ -395,7 +395,7 @@ Deliberate Syntax Error
    char *syspath;
    char *cl_var;
    char *incl_var;
-   
+
    incl_var = getenv("INCLUDE");
    cl_var = getenv("CFLAGS");
    n_paths = 0;
@@ -415,7 +415,7 @@ Deliberate Syntax Error
                   ++s;
                while (*s != ' ' && *s != '\t' && *s != '\0') {
                   if (*s == ';')
-                  	++n_paths;
+                     ++n_paths;
                   ++s;
                   }
                }
@@ -463,7 +463,7 @@ Deliberate Syntax Error
              c = getc(cfg_file);
           }
        }
-#endif 					/* TURBO || BORLAND_286 ... */
+#endif					/* TURBO || BORLAND_286 ... */
 
 #if HIGHC_386 || INTEL_386 || WATCOM
    /* something may be needed */
@@ -490,9 +490,9 @@ Deliberate Syntax Error
    /*
     * Set up the array of standard locations to search for header files.
     */
-   incl_search = (char **)alloc((unsigned int)(sizeof(char *)*(n_paths + 1)));
+   incl_search = alloc((n_paths + 1) * sizeof(char *));
    j = 0;
-  
+
 /*
  * The following code is operating-system dependent [@files.04].
  *  Establish the standard locations to search before the -I options
@@ -530,7 +530,7 @@ Deliberate Syntax Error
                   while (cl_var[i] != ' ' && cl_var[i] != '\t' &&
                     cl_var[i] != '\0')
                      ++i;
-                  s1 = (char *) alloc((unsigned int)(i + 1));
+                  s1 = alloc(i + 1);
                   strncpy(s1, cl_var, i);
                   s1[i] = '\0';
                   /*
@@ -567,7 +567,7 @@ Deliberate Syntax Error
                      while (cl_var[i] != ' ' && cl_var[i] != '\t' &&
                        cl_var[i] != ';' && cl_var[i] != '\0')
                         ++i;
-                     s1 = (char *) alloc((unsigned int)(i + 1));
+                     s1 = alloc(i + 1);
                      strncpy(s1, cl_var, i);
                      s1[i] = '\0';
                      /*
@@ -609,9 +609,9 @@ Deliberate Syntax Error
    for (i = 0; opt_lst[i] != '\0'; ++i)
       if (opt_lst[i] == 'I') {
          s = opt_args[i];
-         s1 = (char *) alloc((unsigned int)(strlen(s)+1));
+         s1 = alloc(strlen(s) + 1);
          strcpy(s1, s);
-         
+
 /*
  * The following code is operating-system dependent [@files.05].
  *  Insure that path syntax is in Unix format for internal consistency
@@ -653,7 +653,7 @@ Deliberate Syntax Error
 /*
  * End of operating-system specific code.
  */
-         
+
          incl_search[j++] = s1;
          }
 
@@ -730,7 +730,7 @@ Deliberate Syntax Error
        rel_sbuf(sbuf);
        fclose(cfg_file);
        }
-#endif 					/* TURBO || BORLAND_286 ... */
+#endif					/* TURBO || BORLAND_286 ... */
 
 #if HIGHC_386 || INTEL_386 || WATCOM
   /* something is needed */
@@ -765,7 +765,7 @@ char *
 FileNameUnixToMac(char *fn) {
   char *q,*e,*r;
   int full;
-  
+
   if (strchr(fn,'/') == NULL) return fn;
   e = fn + strlen(fn);
   r = FileName_newfn;
@@ -796,7 +796,7 @@ FileNameUnixToMac(char *fn) {
 char *
 FileNameMacToUnix(char *fn) {
   char *q,*e,*r;
-  
+
   if (strchr(fn,':') == NULL) return fn;
   r = FileName_newfn;
   if (*fn == ':') ++fn;

@@ -24,7 +24,7 @@
 void	report		(char *filename);
 void	patchstr	(char *filename, char *newstring);
 int	findpattern	(FILE *f);
-int	oldval 		(FILE *f, char *buf);
+int	oldval		(FILE *f, char *buf);
 
 /* guard pattern; first character must not reappear later */
 #define PATTERN "%PatchStringHere->"
@@ -90,7 +90,7 @@ char *fname;
       exitcode = 1;
       }
    }
-   
+
 /*
  * patchstr (filename, newstring) -- patch a file
  */
@@ -179,7 +179,7 @@ char buf[MAXLEN+2];
    {
    int n;
    char *e, *p;
-   
+
    n = fread(buf, 1, MAXLEN+1, f);	/* read up to MAXLEN + null char */
    e = buf + n;				/* note end of read area */
    n = strlen(buf);			/* count string length proper */

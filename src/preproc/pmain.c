@@ -10,7 +10,7 @@ char *progname = "pp";
 
 #if PORT
 static char *ostr = "CPD:I:U:o:";
-static char *options = 
+static char *options =
    "[-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath] [-ofile] [files]";
    /* may need more options */
 Deliberate Syntax Error
@@ -18,7 +18,7 @@ Deliberate Syntax Error
 
 #if AMIGA || ATARI_ST || MACINTOSH
 static char *ostr = "CPD:I:U:o:";
-static char *options = 
+static char *options =
    "[-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath] [-ofile] [files]";
    /* may need more options */
 Deliberate Syntax Error
@@ -28,26 +28,26 @@ Deliberate Syntax Error
 #if MICROSOFT || INTEL_386 || HIGHC_386 || WATCOM
    /* this really isn't right for anything but Microsoft */
 static char *ostr = "CPD:I:U:o:A:Z:J";
-static char *options = 
+static char *options =
    "[-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath] [-ofile]\n    \
 [-A(S|C|M|L|H)] [-Za] [-J] [files]";
 #endif					/* MICROSOFT || INTEL_386 || ...  */
 
-#if ZTC_386 
+#if ZTC_386
 static char *ostr = "CPD:I:U:o:m:AuJWf234";
-static char *options = 
+static char *options =
    "[-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath[;path...]] [-ofile]\n    \
 [-m(t|s|c|m|l|v|r|p|x|z)] [-A] [-u] [-J] [-W] [-f] [-(2|3|4)] [files]";
 #endif					/* ZTC_386 */
 
-#if TURBO || BORLAND_286 || BORLAND_386 
+#if TURBO || BORLAND_286 || BORLAND_386
 static char *ostr = "CPD:I:U:o:m:p";
-static char *options = 
+static char *options =
    "[-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath] [-ofile]\n    \
 [-m(t|s|m|c|l|h)] [-p] [files]";
 #endif					/* TURBO || BORLAND_286 ... */
 #endif					/* MSDOS */
- 
+
 #if VM || MVS
 static char *ostr = "CPD:I:U:o:";
 static char *options =
@@ -57,7 +57,7 @@ static char *options =
 
 #if UNIX || VMS
 static char *ostr = "+CPD:I:U:o:";
-static char *options = 
+static char *options =
    "[-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath] [-ofile] [files]";
 #endif					/* UNIX || VMS */
 
@@ -96,8 +96,8 @@ char **argv;
     *  of the preprocessor are at most as large as the entire option
     *  list.
     */
-   opt_lst = (char *)alloc((unsigned int)argc);
-   opt_args = (char **)alloc((unsigned int)((sizeof (char *)) * argc));
+   opt_lst = alloc(argc);
+   opt_args = alloc(argc * sizeof (char *));
    nopts = 0;
    out_file = stdout;
 
@@ -113,7 +113,7 @@ char **argv;
             line_cntrl = 0;
             break;
          case 'D': /* -D<id><definition> - predefine an identifier */
-         case 'I': /* -I<path> - location to search for standard header files */ 
+         case 'I': /* -I<path> - location to search for standard header files */
          case 'U': /* -U<id> - undefine predefined identifier */
 
 /*
@@ -150,7 +150,7 @@ Deliberate Syntax Error
          case '4':
 #endif					/* ZTC_386 */
 
-#if TURBO || BORLAND_286 || BORLAND_386 
+#if TURBO || BORLAND_286 || BORLAND_386
          case 'm':
          case 'p':
 #endif					/* TURBO || BORLAND_286 ... */

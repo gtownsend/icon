@@ -7,20 +7,12 @@
 #include "tglobals.h"
 #include "tree.h"
 
-
 extern int optind;
-
 extern char *ofile;
-
 
 /*
  * Information about Icon functions.
  */
-
-/*
- * Number of arguments.
- */
-
 
 /*
  * Names of Icon functions.
@@ -33,17 +25,17 @@ char *ftable[] = {
 #undef FncDefV
    };
 
-int ftbsize = sizeof(ftable)/sizeof(char *);
+int ftbsize = sizeof(ftable) / sizeof(char *);
 
 /*
  * tcalloc - allocate and zero m*n bytes
  */
-pointer tcalloc(m,n)
+pointer tcalloc(m, n)
 unsigned int m, n;
    {
    pointer a;
 
-   if ((a = calloc(m,n)) == 0 )
+   if ((a = calloc(m, n)) == 0)
       quit("out of memory");
    return a;
    }
@@ -72,22 +64,22 @@ char *tbl_name;     /* name of the table */
    num_bytes = new_size * unit_size;
 
 #if IntBits == 16
-    {
-    word max_bytes = 64000;
+   {
+   word max_bytes = 64000;
 
-    if (num_bytes > max_bytes) {
-       new_size = max_bytes / unit_size;
-       num_bytes = new_size * unit_size;
-       if (new_size - *size < min_units)
-          quitf("out of memory for %s", tbl_name);
-       }
-    }
+   if (num_bytes > max_bytes) {
+      new_size = max_bytes / unit_size;
+      num_bytes = new_size * unit_size;
+      if (new_size - *size < min_units)
+         quitf("out of memory for %s", tbl_name);
+      }
+   }
 #endif					/* IntBits == 16 */
 
    if (tblfree != NULL)
       free_offset = DiffPtrs(*(char **)tblfree,  (char *)table);
 
-   if ((new_tbl = (char *)realloc(table, (unsigned)num_bytes)) == 0)
+   if ((new_tbl = realloc(table, (unsigned)num_bytes)) == 0)
       quitf("out of memory for %s", tbl_name);
 
    for (i = *size * unit_size; i < num_bytes; ++i)

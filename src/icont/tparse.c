@@ -1411,7 +1411,7 @@ yyparse()
 	*/
 	switch( yytmp )
 	{
-		
+
 case 1:
 # line 179 "tgram.g"
 {gout(globfile);} break;

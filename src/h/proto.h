@@ -18,10 +18,10 @@
    #if __SASC
       /* GLOBAL and STATIC are defined in tparse.c as well as
       in <exec/types.h>, which is included in <dos.h>. */
-      #undef GLOBAL        
+      #undef GLOBAL
       #undef STATIC
       #include <dos.h>
-      #undef GLOBAL        
+      #undef GLOBAL
       #undef STATIC
       /* From tparse.c */
       # define GLOBAL 273

@@ -478,7 +478,7 @@ char **s;
          flags |= FONTFLAG_PROPORTIONAL + FONTFLAG_SERIF;
          }
       else stdfam = NULL;
-   
+
       if (stdfam) {
          /*
           * Standard name: first try preferred family, then generalize.
@@ -493,7 +493,7 @@ char **s;
           */
          rv = findfont(w, family, size, flags);
          }
-   
+
       if (rv != NULL)
          return rv;
       }
@@ -614,7 +614,7 @@ int size, flags;
       XFreeFontNames(fontlist);
       return NULL;			/* nothing acceptable */
       }
-   for (challenger = champ + 1; challenger < n; challenger++) 
+   for (challenger = champ + 1; challenger < n; challenger++)
       if (okfont(fontlist[challenger], size, flags)
       && fontcmp(fontlist[challenger], fontlist[champ], bestsize, flags) < 0)
          champ = challenger;
@@ -747,7 +747,7 @@ char *s;
     * load a new font
     */
    GRFX_ALLOC(rv, _wfont);
-   rv->name = (char *)malloc((int)strlen(s)+1);
+   rv->name = malloc(strlen(s) + 1);
    if (rv->name == NULL) ReturnErrNum(305, NULL);
    strcpy(rv->name, s);
    rv->fsp = XLoadQueryFont(wd->display, rv->name);
@@ -867,7 +867,7 @@ wbp w;
 wsp alc_winstate()
    {
    wsp ws;
-   
+
    GRFX_ALLOC(ws, _wstate);
    ws->serial = ++canvas_serial;
    ws->bits = 1024;				/* echo ON; others OFF */

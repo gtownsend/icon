@@ -279,7 +279,6 @@ register nodeptr t;
 	 free(Tree1(t));
 	 break;
 
-
       case N_Id:			/* identifier */
 	 emitn("var", (int)Val0(t));
 	 break;
@@ -311,7 +310,6 @@ register nodeptr t;
       case N_Int:			/* integer literal */
 	 emitn("int", (int)Val0(t));
 	 break;
-
 
       case N_Apply:			/* application */
          traverse(Tree0(t));
@@ -521,7 +519,6 @@ register nodeptr t;
 	 loopsp->markcount = 0;
 	 casesp = casestk;
 	 creatsp = creatstk;
-
 
 	 writecheck(fprintf(codefile, "proc %s\n", Str0(Tree0(t))));
 	 lout(codefile);
@@ -1029,7 +1026,6 @@ nodeptr n;
       }
 #endif					/* SrcColumnInfo */
 
-
    }
 
 #ifdef MultipleRuns
@@ -1081,7 +1077,6 @@ int a;
    {
    writecheck(fprintf(codefile, "\t%s\t%d\n", s, a));
    }
-
 
 static void emits(s, a)
 char *s, *a;

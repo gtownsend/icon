@@ -7,7 +7,7 @@
       char magicText[4];
       int  value;
    } setint_t;
-#endif 					/* SCCX_MX */
+#endif					/* SCCX_MX */
 
 /*
  * typdefs for the run-time system.
@@ -61,7 +61,7 @@ typedef int (*continuation) (void);
    /*
     * Typedefs for the interpreter.
     */
-   
+
    /*
     * Icode consists of operators and arguments.  Operators are small integers,
     *  while arguments may be pointers.  To conserve space in icode files on
@@ -78,21 +78,21 @@ typedef int (*continuation) (void);
     * For the moment, the dubious coding is isolated under control of the
     *  size of integers.
     */
-   
+
    #if IntBits != WordBits
-   
+
       typedef union {
          int *op;
          word *opnd;
          } inst;
-      
+
       #else				/* IntBits != WordBits */
-      
+
       typedef union {
          word *op;
          word *opnd;
          } inst;
-      
+
    #endif				/* IntBits != WordBits */
-      
+
 #endif					/* COMPILER */

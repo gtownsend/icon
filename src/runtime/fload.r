@@ -24,14 +24,14 @@
 
 #ifdef FreeBSD
    /*
-    * If DL_GETERRNO exists, this is an FreeBSD 1.1.5 or 2.0 
+    * If DL_GETERRNO exists, this is an FreeBSD 1.1.5 or 2.0
     * which lacks dlerror(); supply a substitute.
     */
    #passthru #ifdef DL_GETERRNO
       char *dlerror(void)
       {
          int no;
-   
+
          if (0 == dlctl(NULL, DL_GETERRNO, &no))
             return(strerror(no));
          else
@@ -61,7 +61,7 @@ function{0,1} loadfunc(filename,funcname)
       static char *curfile;
       static void *handle;
       char *funcname2;
-   
+
       /*
        * Get a library handle, reusing it over successive calls.
        */

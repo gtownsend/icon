@@ -52,7 +52,8 @@ struct str_buf {
 #define AppChar(sbuf, c) do {\
    if ((sbuf).endimage >= (sbuf).end)\
       new_sbuf(&(sbuf));\
-   *((sbuf).endimage)++ = (c); } while (0)
+   *((sbuf).endimage)++ = (c);\
+   } while (0)
 
 /*
  * implement contains information about the implementation of an operation.
@@ -108,7 +109,7 @@ struct implement {
 
 /*
  * Flags to indicate what types are returned from the function implementing
- *  a body. These are unsed in determining the calling conventions 
+ *  a body. These are unsed in determining the calling conventions
  *  of the function.
  */
 #define RetInt   1  /* body/function returns a C_integer */
@@ -233,7 +234,7 @@ struct il_c {
    char *s;
    struct il_c *next;
    };
-   
+
 /*
  * The parameter value of a run-time operation may be in one of several
  *  different locations depending on what conversions have been done to it.

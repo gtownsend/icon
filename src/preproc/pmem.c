@@ -109,8 +109,8 @@ int bufsize;
    struct char_src *cs;
 
    cs = NewStruct(char_src);
-   cs->char_buf = (int *)alloc((unsigned int)(sizeof(int) * bufsize));
-   cs->line_buf = (int *)alloc((unsigned int)(sizeof(int) * bufsize));
+   cs->char_buf = alloc(bufsize * sizeof(int));
+   cs->line_buf = alloc(bufsize * sizeof(int));
    cs->bufsize = bufsize;
    cs->fname = fname;
    cs->f = f;
@@ -192,7 +192,7 @@ union src_ref *ref;
    sp->next = src_stack;
    src_stack = sp;
    }
-   
+
 /*
  * free_t - free a token.
  */
@@ -215,7 +215,7 @@ struct tok_lst *tlst;
    free_t_lst(tlst->next);
    free((char *)tlst);
    }
-   
+
 /*
  * free_id_lst - free an identifier list.
  */
@@ -227,7 +227,7 @@ struct id_lst *ilst;
    free_id_lst(ilst->next);
    free((char *)ilst);
    }
-   
+
 /*
  * free_m - if there are no more pointers to this macro entry, free it
  *  and other associated storage.

@@ -58,7 +58,7 @@
 	       }
 #endif					/* Graphics */
 	    }
-      kywdint: 
+      kywdint:
 	 {
          /*
           * No side effect in the type realm - keyword x is still an int.
@@ -215,7 +215,7 @@ operator{0,1+} <-> rswap(underef x -> dx, underef y -> dy)
          bp_x = BlkLoc(x);
          bp_y = BlkLoc(y);
          if (VarLoc(bp_x->tvsubs.ssvar) == VarLoc(bp_y->tvsubs.ssvar) &&
-   	  Offset(bp_x->tvsubs.ssvar) == Offset(bp_y->tvsubs.ssvar)) {
+	  Offset(bp_x->tvsubs.ssvar) == Offset(bp_y->tvsubs.ssvar)) {
             /*
              * x and y are both substrings of the same string, set
              *  adj1 and adj2 for use in locating the substrings after
@@ -228,7 +228,7 @@ operator{0,1+} <-> rswap(underef x -> dx, underef y -> dy)
                adj1 = bp_x->tvsubs.sslen - bp_y->tvsubs.sslen;
             else if (bp_y->tvsubs.sspos > bp_x->tvsubs.sspos)
                adj2 = bp_y->tvsubs.sslen - bp_x->tvsubs.sslen;
-   	    }
+	    }
          }
 
    /*
@@ -316,7 +316,7 @@ operator{0,1} :=: swap(underef x -> dx, underef y -> dy)
          bp_x = BlkLoc(x);
          bp_y = BlkLoc(y);
          if (VarLoc(bp_x->tvsubs.ssvar) == VarLoc(bp_y->tvsubs.ssvar) &&
-   	  Offset(bp_x->tvsubs.ssvar) == Offset(bp_y->tvsubs.ssvar)) {
+	  Offset(bp_x->tvsubs.ssvar) == Offset(bp_y->tvsubs.ssvar)) {
             /*
              * x and y are both substrings of the same string, set
              *  adj1 and adj2 for use in locating the substrings after
@@ -329,7 +329,7 @@ operator{0,1} :=: swap(underef x -> dx, underef y -> dy)
                adj1 = bp_x->tvsubs.sslen - bp_y->tvsubs.sslen;
             else if (bp_y->tvsubs.sspos > bp_x->tvsubs.sspos)
                adj2 = bp_y->tvsubs.sslen - bp_x->tvsubs.sslen;
-   	    }
+	    }
          }
 
    /*
@@ -514,7 +514,7 @@ const dptr src;
       te->hashnum = bp->hashnum;
       te->tref = bp->tref;
       te->tval = tval;
-      
+
       if (TooCrowded(tp))		/* grow hash table if now too full */
          hgrow((union block *)tp);
       }

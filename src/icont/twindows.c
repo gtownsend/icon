@@ -374,7 +374,7 @@ char **argv;
 
 #ifdef ConsoleWindow
 	 case 'q':
- 	    ConsolePause = 0;
+	    ConsolePause = 0;
 	    break;
 #endif					/* ConsoleWindow */
 

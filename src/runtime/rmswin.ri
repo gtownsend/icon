@@ -582,7 +582,7 @@ void handle_child(wbp wb, UINT msg, WPARAM wp, LPARAM lp)
    case EN_SETFOCUS: case EN_KILLFOCUS: case EN_CHANGE: case EN_UPDATE:
    case EN_ERRSPACE: case EN_MAXTEXT: case EN_HSCROLL: case EN_VSCROLL: {
 	return;
-      }      
+      }
    default: { /* scrollbar */
       x = y = msg;
       }
@@ -717,7 +717,7 @@ LRESULT_CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
       closelogfile();
       }
    else if (!wb) {
-      /* 
+      /*
        * doesn't look like its for one of our windows, pass it to
        * DefWindowProc and hope for the best.
        */
@@ -804,7 +804,7 @@ LRESULT_CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
       for(n=0; n < ws->nChildren && ws->child[n].win != (HWND)LOWORD(lp); n++){
          }
       if (n == ws->nChildren) break;
-      i = GetScrollPos(ws->child[n].win, SB_CTL);      
+      i = GetScrollPos(ws->child[n].win, SB_CTL);
       GetScrollRange(ws->child[n].win, SB_CTL, &imin, &imax);
       switch (LOWORD(wp)) {
       case SB_PAGEDOWN :
@@ -840,7 +840,7 @@ LRESULT_CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
       default : /* potentially a problem here */
          break;
       }
-      i = GetScrollPos(ws->child[n].win, SB_CTL);      
+      i = GetScrollPos(ws->child[n].win, SB_CTL);
       handle_child(wb, i, n+1, -1);
       break;
    case WM_COMMAND:
@@ -1006,7 +1006,7 @@ int n;
       TextOut(pixdc, ws->x, ws->y - ASCENT(w), s, n);
       }
    ws->x += dc_textwidth(pixdc, s, n);
-   
+
    FREE_STDLOCALS(w);
    }
 /*
@@ -1059,7 +1059,7 @@ int wputc(int ci, wbp w)
    case '\177':
    case '\010': {
       int i = 0, pre_x;
- 
+
       /*
        * Start with the last character queued up.
        */
@@ -1368,7 +1368,7 @@ HFONT mkfont(char *s)
 	 flags |= FONTFLAG_PROPORTIONAL + FONTFLAG_SERIF;
 	 }
       else stdfam = NULL;
-   
+
       if (stdfam) {
 	 /*
 	  * Standard name: first try preferred family, then generalize.
@@ -2201,7 +2201,7 @@ int on_icon;
       FREE_STDLOCALS(w);
       return -1;
       }
-   
+
    bmih = &(bmi->bmiHeader);
    palbg = PALCLR(wc->bg);
    if (on_icon) {
@@ -2602,7 +2602,7 @@ int dumpimage(wbp w, char *filename, unsigned int x, unsigned int y,
       dumppix  = CreateCompatibleBitmap(stddc, width, height);
       destdc   = CreateCompatibleDC(stddc);
       oldpix = SelectObject(destdc, dumppix);
-      BitBlt(destdc, 0, 0, width, height, pixdc, x, y, SRCCOPY);   
+      BitBlt(destdc, 0, 0, width, height, pixdc, x, y, SRCCOPY);
       }
    else dumppix = ws->pix;
    dib = BitmapToDIB(dumppix, palette);
@@ -2721,7 +2721,7 @@ char *get_mutable_name(wbp w, int mute_index)
    {
    char *tmp;
    PALETTEENTRY pe;
-   
+
    if (-mute_index > numColors || scp[-mute_index].type != MUTABLE) {
       return NULL;
       }
@@ -2921,7 +2921,7 @@ void drawlines(wbinding *wb, XPoint *points, int npoints)
 
 
 /*
- * drawpoints() - 
+ * drawpoints() -
  *  Parameters - the window binding for output, an array of points (assumed
  *               to be fixed up for bitmap) and the number of points
  */
@@ -3015,7 +3015,7 @@ void drawstrng(wbinding *wb, int x, int y, char *s, int slen)
    if (wc->fg != RGB(0, 0, 0)) SetTextColor(pixdc, PALCLR(wc->fg));
    if (wc->bg != RGB(255, 255, 255)) SetBkColor(pixdc, PALCLR(wc->bg));
    TextOut(pixdc, x, y - ASCENT(wb), s, slen);
- 
+
    FREE_STDLOCALS(wb);
    return;
    }
@@ -3024,7 +3024,7 @@ void drawstrng(wbinding *wb, int x, int y, char *s, int slen)
 /*
  * fillarcs
  */
-void fillarcs(wbp wb, XArc *arcs, int narcs) 
+void fillarcs(wbp wb, XArc *arcs, int narcs)
    {
    register XArc *arc = arcs;
    int i, diff, bheight;
@@ -3050,10 +3050,10 @@ void fillarcs(wbp wb, XArc *arcs, int narcs)
           * from SDK reference: Ellipse() draws up to but not including
           * the right and bottom coordinates.  Add +1 to compensate.
           */
-	 if (stdwin) 
-	    Ellipse(stddc, arc->x, arc->y, 
+	 if (stdwin)
+	    Ellipse(stddc, arc->x, arc->y,
 		    arc->x + arc->width + 1, arc->y + arc->height + 1);
-	 Ellipse(pixdc, arc->x, arc->y, 
+	 Ellipse(pixdc, arc->x, arc->y,
 		 arc->x + arc->width + 1, arc->y + arc->height + 1);
 	 }
       else {
@@ -3317,7 +3317,7 @@ wsp alc_winstate()
    {
    int i;
    wsp ws;
-   
+
    GRFX_ALLOC(ws, _wstate);
    ws->bits = 1024;                             /* echo ON; others OFF */
    ws->filep = nulldesc;
@@ -3463,7 +3463,7 @@ int len;
    wc->patternname = malloc(len+1);
    strncpy(wc->patternname, name, len);
    wc->patternname[len] = '\0';
-   
+
    /*
     * If the pattern starts with a number it is a width , bits encoding
     */
@@ -3496,7 +3496,7 @@ int len;
 	 wc->brush.lbStyle = BS_PATTERN;
 	 wc->brush.lbColor = PALCLR(wc->fg);
 	 wc->brush.lbHatch = (LONG)p;
-	 }     
+	 }
       return Succeeded;
       }
    ReturnErrNum(145, Error);
@@ -3559,7 +3559,7 @@ int nbits;
       wc->brush.lbStyle = BS_PATTERN;
       wc->brush.lbColor = PALCLR(wc->fg);
       wc->brush.lbHatch = (LONG)p;
-      }     
+      }
    return Succeeded;
    }
 
@@ -3670,7 +3670,7 @@ DWORD playMIDIfile(HWND hWndNotify, LPSTR s)
 
    mciPlayParms.dwCallback = (DWORD) hWndNotify;
    if (dwReturn = mciSendCommand(wDeviceID, MCI_PLAY, MCI_NOTIFY,
-    				 (DWORD)(LPVOID) &mciPlayParms)) {
+         (DWORD)(LPVOID) &mciPlayParms)) {
       mciSendCommand(wDeviceID, MCI_CLOSE, 0, (DWORD)NULL);
       return dwReturn;
       }
@@ -3775,7 +3775,7 @@ int resizePixmap(wbp w, int width, int height)
    ReleaseDC(ws->iconwin, hdc);
    if (ws->pix) DeleteObject(ws->pix);
    DeleteObject(hb);
-   ws->pix = newpix;   
+   ws->pix = newpix;
    return 1;
    }
 
@@ -4164,11 +4164,11 @@ int nativefontdialog(wbp w, char *buf, int flags, int fheight)
       }
 
    if (flags & FONTFLAG_BOLD) lf.lfWeight = FW_BOLD;
-   else 
+   else
       lf.lfWeight = FW_DONTCARE;
    if (flags & FONTFLAG_ITALIC) lf.lfItalic = 1;
    lf.lfUnderline = lf.lfStrikeOut = 0;
-   lf.lfCharSet = 
+   lf.lfCharSet =
 	 ((MAXBYTESPERCHAR==1)?ANSI_CHARSET:DEFAULT_CHARSET);
    lf.lfOutPrecision = OUT_DEFAULT_PRECIS;
    lf.lfClipPrecision = CLIP_DEFAULT_PRECIS;
@@ -4236,7 +4236,7 @@ char *nativecolordialog(wbp w, long r, long g, long b, char *buf)
    sprintf(buf, "%d,%d,%d", (RED(cc.rgbResult)<<8) | 0xFF,
       (GREEN(cc.rgbResult) << 8) | 0xFF,
       (BLUE(cc.rgbResult) << 8) | 0xFF);
-   return buf;   
+   return buf;
 }
 
 
@@ -4297,7 +4297,7 @@ char *nativeselectdialog(wbp w, struct b_list *L, char *s)
 		  (ws->win ? ws->win : ws->iconwin)),
            s, " ",
           okflag | yesnoflag | retryflag
-          | (strchr(s, '!') ? MB_ICONEXCLAMATION : 
+          | (strchr(s, '!') ? MB_ICONEXCLAMATION :
 	     (strchr(s, '?') ? MB_ICONQUESTION : MB_ICONASTERISK)));
 
    switch (j) {

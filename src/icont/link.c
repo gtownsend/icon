@@ -28,7 +28,6 @@
 
 static	void	setexe	(char *fname);
 
-
 /*
  * The following code is operating-system dependent [@link.01].  Include
  *  system-dependent files and declarations.
@@ -107,8 +106,6 @@ int ilink(ifiles,outname)
 char **ifiles;
 char *outname;
    {
-
-
    int i;
    struct lfile *lf,*lfls;
    char *filename;			/* name of current input file */
@@ -433,10 +430,8 @@ char *outname;
          quitf("cannot open %s", inname);
       gencode();
 
-
       fclose(infile);
       }
-
 
    gentables();		/* Generate record, field, global, global names,
 			   static, and identifier tables. */
@@ -560,7 +555,7 @@ Deliberate Syntax Error
    #if __SASC
       if (fname != NULL) {
       struct DiskObject *dob;
-   
+
       chmod(fname,S_ISCRIPT|S_IREAD|S_IWRITE|S_IEXECUTE|S_IDELETE);
       /* Create a WorkBench Icon if necessary. */
       dob = GetDiskObject(fname);

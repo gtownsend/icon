@@ -1,5 +1,5 @@
 /*
- * Group of include files for translators, etc. 
+ * Group of include files for translators, etc.
  */
 
 #include "../h/define.h"

@@ -86,7 +86,7 @@
  */
 
 #define ISINITIAL(w)    ((w)->window->bits & 1)
-#define ISINITIALW(ws)   ((ws)->bits & 1)
+#define ISINITIALW(ws)  ((ws)->bits & 1)
 #define ISCURSORON(w)   ((w)->window->bits & 2)
 #define ISCURSORONW(ws) ((ws->bits) & 2)
 #define ISMAPPED(w)	((w)->window->bits & 4)
@@ -128,7 +128,7 @@
 
 #ifdef PresentationManager
    #define ISMINPEND(w)    ((w)->window->bits & 2048)
-   #define ISMINPENDW(ws)   ((ws)->bits & 2048)
+   #define ISMINPENDW(ws)  ((ws)->bits & 2048)
    #define SETINITIAL(w)   ((w)->window->bits |= 1)
    #define SETMINPEND(w)   ((w)->window->bits |= 2048)
    #define CLRINITIAL(w)   ((w)->window->bits &= ~1)
@@ -139,11 +139,9 @@
 
 #ifdef MSWindows
    #define ISTOBEHIDDEN(ws)  ((ws)->bits & 4096)
-   #define SETTOBEHIDDEN(ws)  ((ws)->bits |= 4096)
-   #define CLRTOBEHIDDEN(ws)  ((ws)->bits &= ~4096)
+   #define SETTOBEHIDDEN(ws) ((ws)->bits |= 4096)
+   #define CLRTOBEHIDDEN(ws) ((ws)->bits &= ~4096)
 #endif					/* MSWindows */
-
-
 
 /*
  * Window Resources
@@ -153,41 +151,39 @@
  * These data structures are simple sets of pointers
  * into internal window system structures.
  */
-
 
-
 /*
  * Fonts are allocated within displays.
  */
 typedef struct _wfont {
-  int		refcount;
-  int		serial;			/* serial # */
-  struct _wfont *previous, *next;
+   int		refcount;
+   int		serial;			/* serial # */
+   struct _wfont *previous, *next;
 #ifdef MacGraph
-  short     fontNum;
-  Style     fontStyle;
-  int       fontSize;
-  FontInfo  fInfo;			/* I-173 */
+   short     fontNum;
+   Style     fontStyle;
+   int       fontSize;
+   FontInfo  fInfo;			/* I-173 */
 #endif					/* MacGraph */
 #ifdef XWindows
-  char	      *	name;			/* name for WAttrib and fontsearch */
-  int		height;			/* font height */
-  XFontStruct *	fsp;			/* X font pointer */
+   char	      *	name;			/* name for WAttrib and fontsearch */
+   int		height;			/* font height */
+   XFontStruct *fsp;			/* X font pointer */
 #endif					/* XWindows */
 #ifdef PresentationManager
    /* XXX replace this HUGE structure with single fields later - when we know
       conclusively which ones we need */
-  FONTMETRICS	metrics;		/* more than you ever wanted to know */
+   FONTMETRICS	metrics;		/* more than you ever wanted to know */
 #endif					/* PresentationManager */
 #ifdef MSWindows
-  char		*name;			/* name for WAttrib and fontsearch */
-  HFONT		font;
-  LONG		ascent;
-  LONG		descent;
-  LONG		charwidth;
-  LONG		height;
+   char		*name;			/* name for WAttrib and fontsearch */
+   HFONT	font;
+   LONG		ascent;
+   LONG		descent;
+   LONG		charwidth;
+   LONG		height;
 #endif					/* MSWindows */
-} wfont, *wfp;
+   } wfont, *wfp;
 
 /*
  * These structures and definitions are used for colors and images.
@@ -224,8 +220,7 @@ struct imgmem {
 #define PCH1 ' '			/* punctuation character */
 #define PCH2 ','			/* punctuation character */
 
-
-#ifdef MacGraph 
+#ifdef MacGraph
 typedef struct _wctype {
    Pattern bkPat;
    Pattern fillPat;
@@ -240,30 +235,29 @@ typedef struct _wctype {
    Fixed spExtra;
    RGBColor fgColor;
    RGBColor bgColor;
-} ContextType, *ContextPtrType;
+   } ContextType, *ContextPtrType;
 #endif					/* MacGraph */
-
 
 #ifdef XWindows
 /*
  * Displays are maintained in a global list in rwinrsc.r.
  */
 typedef struct _wdisplay {
-  int		refcount;
-  int		serial;			/* serial # */
-  char		name[MAXDISPLAYNAME];
-  Display *	display;
-  GC		icongc;
-  Colormap	cmap;
-  double	gamma;
-  int		screen;
-  int		numFonts;
-  wfp		fonts;
-  int           numColors;		/* allocated color info */
-  struct wcolor	colors[DMAXCOLORS];
-  Cursor	cursors[NUMCURSORSYMS];
-  struct _wdisplay *previous, *next;
-} *wdp;
+   int		refcount;
+   int		serial;			/* serial # */
+   char		name[MAXDISPLAYNAME];
+   Display *	display;
+   GC		icongc;
+   Colormap	cmap;
+   double	gamma;
+   int		screen;
+   int		numFonts;
+   wfp		fonts;
+   int           numColors;		/* allocated color info */
+   struct wcolor colors[DMAXCOLORS];
+   Cursor	cursors[NUMCURSORSYMS];
+   struct _wdisplay *previous, *next;
+   } *wdp;
 #endif					/* XWindows */
 
 #ifdef PresentationManager
@@ -282,18 +276,17 @@ typedef struct _wdisplay {
 #define IS_MARKER               4               /* unused for now */
 
 typedef struct _lclIdentifier {
-   SHORT idtype;         /* type of the id, either font or pattern */
-   SHORT refcount;       /* reference count, when < 1, deleted */
+   SHORT idtype;	/* type of the id, either font or pattern */
+   SHORT refcount;	/* reference count, when < 1, deleted */
    union {
-      wfont font;    /* font info */
-      HBITMAP   hpat;    /* pattern bitmap handle */
+      wfont font;	/* font info */
+      HBITMAP   hpat;	/* pattern bitmap handle */
       } u;
-   struct _lclIdentifier *next,          /* dbl linked list */
-                        *previous;
-} lclIdentifier;
+   struct _lclIdentifier *next;          /* dbl linked list */
+   struct _lclIdentifier *previous;
+   } lclIdentifier;
 
 #endif					/* PresentationManager */
-
 
 /*
  * "Context" comprises the graphics context, and the font (i.e. text context).
@@ -330,7 +323,7 @@ typedef struct _wcontext {
    LINEBUNDLE	lineBundle;		/* line/arc attributes */
    AREABUNDLE	areaBundle;		/* polygon attributes... */
    IMAGEBUNDLE	imageBundle;		/* attributes use in blit of mono bms */
-   LONG 	fntLeading;		/* external leading for font - user */
+   LONG		fntLeading;		/* external leading for font - user */
    SHORT	currPattern;		/* id of current pattern */
    LONG		numDeps;		/* number of window dependants */
    LONG		maxDeps;		/* max number of deps in curr table */
@@ -347,7 +340,7 @@ typedef struct _wcontext {
    char		*fgname, *bgname;
    int		leading, bkmode;
 #endif					/* MSWindows*/
-} wcontext, *wcp;
+   } wcontext, *wcp;
 
 /*
  * Native facilities include the following child controls (windows) that
@@ -362,7 +355,7 @@ typedef struct childcontrol {
    HWND win;				/* child window handle */
    HFONT font;
    char *id;				/* child window string id */
-} childcontrol;
+   } childcontrol;
 #endif					/* MSWindows */
 
 /*
@@ -372,107 +365,107 @@ typedef struct childcontrol {
  * first WMAXCOLORS colors they allocate, and deallocate them on clearscreen.
  */
 typedef struct _wstate {
-  int		refcount;		/* reference count */
-  int		serial;			/* serial # */
-  struct _wstate *previous, *next;
-  int		pixheight;		/* backing pixmap height, in pixels */
-  int		pixwidth;		/* pixmap width, in pixels */
-  char		*windowlabel;		/* window label */
-  char		*iconimage;		/* icon pixmap file name */
-  char		*iconlabel;		/* icon label */
-  struct imgdata initimage;		/* initial image data */
-  struct imgdata initicon;		/* initial icon image data */
-  int		y, x;			/* current cursor location, in pixels*/
-  int		pointery,pointerx;	/* current mouse location, in pixels */
-  int		posy, posx;		/* desired upper lefthand corner */
-  unsigned int	height;			/* window height, in pixels */
-  unsigned int	width;			/* window width, in pixels */
-  int		bits;			/* window bits */
-  int		theCursor;		/* index into cursor table */
-  word		timestamp;		/* last event time stamp */
-  char		eventQueue[EQUEUELEN];  /* queue of cooked-mode keystrokes */
-  int		eQfront, eQback;
-  char		*cursorname;
-  struct descrip filep, listp;		/* icon values for this window */
+   int		refcount;		/* reference count */
+   int		serial;			/* serial # */
+   struct _wstate *previous, *next;
+   int		pixheight;		/* backing pixmap height, in pixels */
+   int		pixwidth;		/* pixmap width, in pixels */
+   char		*windowlabel;		/* window label */
+   char		*iconimage;		/* icon pixmap file name */
+   char		*iconlabel;		/* icon label */
+   struct imgdata initimage;		/* initial image data */
+   struct imgdata initicon;		/* initial icon image data */
+   int		y, x;			/* current cursor location, in pixels*/
+   int		pointery, pointerx;	/* current mouse location, in pixels */
+   int		posy, posx;		/* desired upper lefthand corner */
+   unsigned int	height;			/* window height, in pixels */
+   unsigned int	width;			/* window width, in pixels */
+   int		bits;			/* window bits */
+   int		theCursor;		/* index into cursor table */
+   word		timestamp;		/* last event time stamp */
+   char		eventQueue[EQUEUELEN];  /* queue of cooked-mode keystrokes */
+   int		eQfront, eQback;
+   char		*cursorname;
+   struct descrip filep, listp;		/* icon values for this window */
 #ifdef MacGraph
-  WindowPtr theWindow;			/* pointer to the window */
-  PicHandle windowPic;			/* handle to backing pixmap */
-  GWorldPtr offScreenGWorld;		/* offscreen graphics world */
-  CGrafPtr   origPort;
-  GDHandle  origDev;
-  PixMapHandle offScreenPMHandle;
-  Rect      sourceRect;
-  Rect      destRect;
-  Rect      GWorldRect;
-  Boolean   lockOK;
-  Boolean   visible;
+   WindowPtr theWindow;			/* pointer to the window */
+   PicHandle windowPic;			/* handle to backing pixmap */
+   GWorldPtr offScreenGWorld;		/* offscreen graphics world */
+   CGrafPtr  origPort;
+   GDHandle  origDev;
+   PixMapHandle offScreenPMHandle;
+   Rect      sourceRect;
+   Rect      destRect;
+   Rect      GWorldRect;
+   Boolean   lockOK;
+   Boolean   visible;
 #endif					/* MacGraph */
 #ifdef XWindows
-  wdp		display;
-  Window	win;			/* X window */
-  Pixmap	pix;			/* current screen state */
-  Pixmap	initialPix;		/* an initial image to display */
-  Window        iconwin;		/* icon window */
-  Pixmap	iconpix;		/* icon pixmap */
-  int		normalx, normaly;	/* pos to remember when maximized */
-  int		normalw, normalh;	/* size to remember when maximized */
-  int           numColors;		/* allocated color info */
-  short		*theColors;		/* indices into display color table */
-  int           numiColors;		/* allocated color info for the icon */
-  short		*iconColors;		/* indices into display color table */
-  int		iconic;			/* window state; icon, window or root*/
-  int		iconx, icony;           /* location of icon */
-  unsigned int	iconw, iconh;		/* width and height of icon */
-  long		wmhintflags;		/* window manager hints */
+   wdp		display;
+   Window	win;			/* X window */
+   Pixmap	pix;			/* current screen state */
+   Pixmap	initialPix;		/* an initial image to display */
+   Window	iconwin;		/* icon window */
+   Pixmap	iconpix;		/* icon pixmap */
+   int		normalx, normaly;	/* pos to remember when maximized */
+   int		normalw, normalh;	/* size to remember when maximized */
+   int		numColors;		/* allocated color info */
+   short	*theColors;		/* indices into display color table */
+   int		numiColors;		/* allocated color info for the icon */
+   short		*iconColors;		/* indices into display color table */
+   int		iconic;			/* window state; icon, window or root*/
+   int		iconx, icony;		/* location of icon */
+   unsigned int	iconw, iconh;		/* width and height of icon */
+   long		wmhintflags;		/* window manager hints */
 #endif					/* XWindows */
 #ifdef PresentationManager
-  HWND		hwnd;			/* handle to the window (client) */
-  HWND		hwndFrame;		/* handle to the frame window */
-  HMTX		mutex;			/* window access mutex sem */
-  HDC		hdcWin;			/* handle to window device context */
-  HPS		hpsWin;			/* pres space for window */
-  HPS		hpsBitmap;		/* pres space for the backing bitmap */
-  HBITMAP	hBitmap;		/* handle to the backing bitmap */
-  HDC		hdcBitmap;		/* handle to the bit, memory DC */
-  wcontext	*charContext;		/* context currently loaded in PS's */
-  wcontext	*lineContext;		
-  wcontext 	*areaContext;
-  wcontext	*imageContext;
-  wcontext	*clipContext;
-  LONG 		winbg;			/* window background color */
-  HBITMAP	hInitialBitmap;		/* the initial image to display */
-  HPOINTER	hPointer;		/* handle to window's current pointer*/
-  CURSORINFO	cursInfo;		/* cursor information stored on lose focus */
-  LONG		numDeps;		/* number of context dependants */
-  LONG		maxDeps;
-  wcontext      **depContexts;          /* array of context dependants */
-  /* XXX I don't like this next line, but it will do for now - until I figure
-     out something better.  Following the charContext pointer to find the
-     descender value is not enough as it could be NULL */
-  SHORT         lastDescender;          /* the font descender value from last wc */
-  HRGN		hClipWindow;		/* clipping regions */
-  HRGN		hClipBitmap;
-  BYTE		winState;               /* window state: icon, window, maximized */
-  HBITMAP       hIconBitmap;            /* bitmap to display when iconized */
+   HWND		hwnd;			/* handle to the window (client) */
+   HWND		hwndFrame;		/* handle to the frame window */
+   HMTX		mutex;			/* window access mutex sem */
+   HDC		hdcWin;			/* handle to window device context */
+   HPS		hpsWin;			/* pres space for window */
+   HPS		hpsBitmap;		/* pres space for the backing bitmap */
+   HBITMAP	hBitmap;		/* handle to the backing bitmap */
+   HDC		hdcBitmap;		/* handle to the bit, memory DC */
+   wcontext	*charContext;		/* context currently loaded in PS's */
+   wcontext	*lineContext;
+   wcontext	*areaContext;
+   wcontext	*imageContext;
+   wcontext	*clipContext;
+   LONG		winbg;			/* window background color */
+   HBITMAP	hInitialBitmap;		/* the initial image to display */
+   HPOINTER	hPointer;		/* handle to window's current pointer*/
+   CURSORINFO	cursInfo;		/* cursor info stored on lose focus */
+   LONG		numDeps;		/* number of context dependants */
+   LONG		maxDeps;
+   wcontext	**depContexts;		/* array of context dependants */
+   /* XXX I don't like this next line, but it will do for now - until I figure
+      out something better.  Following the charContext pointer to find the
+      descender value is not enough as it could be NULL */
+   SHORT	lastDescender;		/* font descender value from last wc */
+   HRGN		hClipWindow;		/* clipping regions */
+   HRGN		hClipBitmap;
+   BYTE		winState;		/* win state: icon, window, maximized */
+   HBITMAP	hIconBitmap;		/* bitmap to display when iconized */
 #endif					/* PresentationManager */
 #ifdef MSWindows
-  HWND		win;			/* client window */
-  HWND		iconwin;		/* client window when iconic */
-  HBITMAP	pix;			/* backing bitmap */
-  HBITMAP	iconpix;		/* backing bitmap */
-  HBITMAP	initialPix;		/* backing bitmap */
-  HBITMAP	theOldPix;
-  int		hasCaret;
-  HCURSOR	curcursor;
-  HCURSOR	savedcursor;
-  HMENU		menuBar;
-  int		nmMapElems;
-  char **       menuMap;
-  HWND		focusChild;
-  int           nChildren;
-  childcontrol *child;
+   HWND		win;			/* client window */
+   HWND		iconwin;		/* client window when iconic */
+   HBITMAP	pix;			/* backing bitmap */
+   HBITMAP	iconpix;		/* backing bitmap */
+   HBITMAP	initialPix;		/* backing bitmap */
+   HBITMAP	theOldPix;
+   int		hasCaret;
+   HCURSOR	curcursor;
+   HCURSOR	savedcursor;
+   HMENU		menuBar;
+   int		nmMapElems;
+   char **	menuMap;
+   HWND		focusChild;
+   int		nChildren;
+   childcontrol *child;
 #endif					/* MSWindows */
-} wstate, *wsp;
+   } wstate, *wsp;
 
 /*
  * Icon window file variables are actually pointers to "bindings"
@@ -480,31 +473,28 @@ typedef struct _wstate {
  * array in rwinrsrc.c.  There is one binding per Icon window value.
  */
 typedef struct _wbinding {
-  int refcount;
-  int serial;
-  struct _wbinding *previous, *next;
-  wcp context;
-  wsp window;
-} wbinding, *wbp;
+   int refcount;
+   int serial;
+   struct _wbinding *previous, *next;
+   wcp context;
+   wsp window;
+   } wbinding, *wbp;
 
 #ifdef MacGraph
-typedef struct  
-   {
-   Boolean wasDown; 
-   uword when; 
-   Point where; 
-   int whichButton; 
-   int modKey; 
+typedef struct {
+   Boolean wasDown;
+   uword when;
+   Point where;
+   int whichButton;
+   int modKey;
    wsp ws;
    } MouseInfoType;
 #endif					/* MacGraph */
-
 
-
 typedef struct {
-  char *s;
-  int i;
-} stringint, *siptr;
+   char *s;
+   int i;
+   } stringint, *siptr;
 
 /*
  * Gamma Correction value to compensate for nonlinear monitor color response
@@ -579,7 +569,7 @@ typedef struct {
 
 #define XICONSLEEP	20 /* milliseconds */
 
-/* 
+/*
  * flags for ConsoleFlags
  */
 /* I/O redirection flags */

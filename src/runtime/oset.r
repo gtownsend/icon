@@ -25,7 +25,7 @@ operator{1} ~ compl(x)
        */
       Protect(cp = alccset(), runerr(0));
       cpx = (struct b_cset *)BlkLoc(x);      /* must come after alccset() */
-      for (i = 0; i < CsetSize; i++) 
+      for (i = 0; i < CsetSize; i++)
           cp->bits[i] = ~cpx->bits[i];
       return cset(cp);
       }

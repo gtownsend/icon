@@ -1,7 +1,7 @@
 /*
  * File: rmisc.r
  *  Contents: deref, eq, getvar, hash, outimage,
- *  qtos, pushact, popact, topact, [dumpact], 
+ *  qtos, pushact, popact, topact, [dumpact],
  *  findline, findipc, findfile, doimage, getimage
  *  printable, sig_rsm, cmd_line, varargs.
  *
@@ -18,7 +18,7 @@ static void	printimage	(FILE *f,int c,int q);
 static char *	csname		(dptr dp);
 
 
-/* 
+/*
  * eq - compare two Icon strings for equality
  */
 int eq(d1, d2)
@@ -32,7 +32,7 @@ dptr d1, d2;
 	s1 = StrLoc(*d1);
 	s2 = StrLoc(*d2);
 	for (i = 0; i < StrLen(*d1); i++)
-	   if (*s1++ != *s2++) 
+	   if (*s1++ != *s2++)
 	      return 0;
 	return 1;
 }
@@ -53,7 +53,7 @@ int getvar(s,vp)
 #if COMPILER
    struct descrip sdp;
 
-   if (!debug_info) 
+   if (!debug_info)
       fatalerr(402,NULL);
 
    StrLoc(sdp) = s;
@@ -145,7 +145,7 @@ int getvar(s,vp)
     *  parameters, and static names in each Icon procedure frame on the
     *  stack. If not found among the locals, check the global variables.
     *  If a variable with name is found, variable() returns a variable
-    *  descriptor that points to the corresponding value descriptor. 
+    *  descriptor that points to the corresponding value descriptor.
     *  If no such variable exits, it fails.
     */
 
@@ -164,7 +164,7 @@ int getvar(s,vp)
 #else					/* COMPILER */
    bp = (struct b_proc *)BlkLoc(*dp);	/* get address of procedure block */
 #endif					/* COMPILER */
-   
+
    np = bp->lnames;		/* Check the formal parameter names. */
 
    for (i = abs((int)bp->nparam); i > 0; i--) {
@@ -297,7 +297,7 @@ dptr dp;
 	    {
 	    struct b_bignum *b = &BlkLoc(*dp)->bignumblk;
 
-	    i = ((b->lsd - b->msd) << 16) ^ 
+	    i = ((b->lsd - b->msd) << 16) ^
 		(b->digits[b->msd] << 8) ^ b->digits[b->lsd];
 	    }
 	    break;
@@ -349,7 +349,7 @@ dptr dp;
          case T_Record:
             i = (13255 * BlkLoc(*dp)->record.id) >> 10;
             break;
- 
+
 	 case T_Proc:
 	    dp = &(BlkLoc(*dp)->proc.pname);
 	    goto hashstring;
@@ -698,10 +698,10 @@ int noimage;
          outimage(f, VarLoc(*dp), noimage);
          }
 
-      default: { 
+      default: {
          if (is:variable(*dp)) {
             /*
-             * *d is a variable.  Print "variable =", dereference it, and 
+             * *d is a variable.  Print "variable =", dereference it, and
              *  call outimage to handle the value.
              */
             fprintf(f, "(variable = ");
@@ -1044,7 +1044,7 @@ struct b_coexpr *topact(ce)
 struct b_coexpr *ce;
 {
    struct astkblk *abp = ce->es_actstk;
-   
+
 #ifdef MultiThread
    return abp->arec[0].activator;
 #else					/* MultiThread */
@@ -1334,7 +1334,7 @@ dptr dp1, dp2;
             struct b_bignum *blk = &BlkLoc(source)->bignumblk;
 
             slen = blk->lsd - blk->msd;
-            dlen = slen * NB * 0.3010299956639812 	/* 1 / log2(10) */
+            dlen = slen * NB * 0.3010299956639812	/* 1 / log2(10) */
                + log((double)blk->digits[blk->msd]) * 0.4342944819032518 + 0.5;
 							/* 1 / ln(10) */
             if (dlen >= MaxDigits) {
@@ -1417,7 +1417,7 @@ dptr dp1, dp2;
 	       s = ((wbp)(BlkLoc(source)->file.fd))->window->windowlabel;
 	       len = strlen(s);
                Protect (reserve(Strings, (len << 2) + 16), return Error);
-	       sprintf(sbuf, "window_%d:%d(", 
+	       sprintf(sbuf, "window_%d:%d(",
 		       ((wbp)BlkLoc(source)->file.fd)->window->serial,
 		       ((wbp)BlkLoc(source)->file.fd)->context->serial
 		       );
@@ -1552,7 +1552,7 @@ dptr dp1, dp2;
       default:
         if (Type(*dp1) == T_External) {
            /*
-            * For now, just produce "external(n)". 
+            * For now, just produce "external(n)".
             */
            sprintf(sbuf, "external(%ld)", (long)BlkLoc(*dp1)->externl.blksize);
            len = strlen(sbuf);
@@ -1576,7 +1576,7 @@ dptr dp;
    register int n;
 
    n = BlkLoc(*dp)->cset.size;
-   if (n < 0) 
+   if (n < 0)
       n = cssize(dp);
 
 #if EBCDIC != 1
@@ -1791,7 +1791,7 @@ word a, b;
 
       default:
 	 /* First, we make b positive */
-      	 if ( b < 0 ) b = -b;	
+	 if ( b < 0 ) b = -b;
 
 	 /* Make sure retval should have the same sign as 'a' */
 	 retval = a % b;

@@ -59,7 +59,6 @@
     */
 #define E_Tick		'\056'		/* Clock tick */
 
-
    /*
     * Code-location event
     */
@@ -133,7 +132,6 @@
 
 #define E_Assign	'\347'		/* Assignment */
 #define	E_Value		'\350'		/* Value assigned */
-
 
    /*
     * Sub-string assignment

@@ -143,8 +143,8 @@ void init_macro()
     */
    time(&tv);
    tval = ctime(&tv);
-   date_buf = (char *)alloc((unsigned int)12);
-   time_buf = (char *)alloc((unsigned int)9);
+   date_buf = alloc(12);
+   time_buf = alloc(9);
    s = date_buf;
    for (i = 4; i <= 10; ++i)
       *s++ = tval[i];
@@ -309,7 +309,7 @@ struct str_buf *sbuf;
    {
    register char *s;
 
-   for (s = ldelim; *s != '\0'; ++s) 
+   for (s = ldelim; *s != '\0'; ++s)
       AppChar(*sbuf, *s);
 
    for (s = image; *s != '\0'; ++s) {
@@ -318,7 +318,7 @@ struct str_buf *sbuf;
       AppChar(*sbuf, *s);
       }
 
-   for (s = rdelim; *s != '\0'; ++s) 
+   for (s = rdelim; *s != '\0'; ++s)
       AppChar(*sbuf, *s);
    }
 
@@ -334,13 +334,13 @@ struct mac_expand *me;
    struct str_buf *sbuf;
    char *s;
    int indx;
-   
+
    /*
     * Get the next token from the macro body. It must be a macro parameter;
     *  retrieve the raw tokens for the corresponding argument.
     */
    if (me->rest_bdy == NULL)
-      errt1(trigger, "the # operator must have an argument"); 
+      errt1(trigger, "the # operator must have an argument");
    t = me->rest_bdy->t;
    me->rest_bdy = me->rest_bdy->next;
    if (t->tok_id == Identifier)
@@ -348,7 +348,7 @@ struct mac_expand *me;
    else
       indx = -1;
    if (indx == -1)
-      errt1(t, "the # operator may only be applied to a macro argument"); 
+      errt1(t, "the # operator may only be applied to a macro argument");
    arg = me->args[indx];
 
    /*
@@ -542,7 +542,7 @@ struct token *paste()
       (int)strlen(t->image) + (int)strlen(t1->image) + 7);
    push_src(CharSrc, &ref);
    s = cpy_image(t, ref.cs->char_buf);
-   s = cpy_image(t1, s); 
+   s = cpy_image(t1, s);
    *s = EOF;
 
    /*

@@ -52,25 +52,25 @@ FORCE:
 #  needed, it is run by changing ../icont/Makefile and/or ../iconc/Makefile;
 #  see the comments there for details.  icont must be in the search path
 #  for this section to work.
- 
+
 gfiles:			lextab.h yacctok.h fixgram pscript
- 
+
 lextab.h yacctok.h:	tokens.txt op.txt mktoktab
-			./mktoktab 
- 
+			./mktoktab
+
 mktoktab:		mktoktab.icn
 			icont -s mktoktab.icn
- 
+
 fixgram:		fixgram.icn
 			icont -s fixgram.icn
- 
+
 pscript:		pscript.icn
 			icont -s pscript.icn
- 
- 
- 
+
+
+
 #  The following section is commented out because it does not need to be
-#  performed unless changes are made to typespec.txt. Such changes 
+#  performed unless changes are made to typespec.txt. Such changes
 #  and are not part of the installation process.  However, if the
 #  distribution files are unloaded in a fashion such that their dates
 #  are not set properly, the following section would be attempted.

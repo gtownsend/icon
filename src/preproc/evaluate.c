@@ -197,8 +197,8 @@ struct token *trigger;
                case 'r':  e1 = (long) '\r'; break;
                case 't':  e1 = (long) '\t'; break;
                case 'v':  e1 = (long) '\v'; break;
-   
-               case 'x': 
+
+               case 'x':
                   ++s;
                   is_hex_char = 1;
                   while (is_hex_char) {
@@ -220,7 +220,7 @@ struct token *trigger;
                      }
                   e1 = (long)(char)e1;
                   break;
-   
+
                default:
                   e1 = (long) *s;
                }
