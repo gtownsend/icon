@@ -28,7 +28,8 @@
 #  window indicate that you can press Enter for the next screenful.
 #  Solid triangles appear when there are no more images; press Q to exit.
 #
-#  At either of those pauses, the clicking the left mouse button on an
+#  At either of those pauses, pressing 'S' brings up a dialog for saving
+#  a snapshot of the window.  Clicking the left mouse button on an
 #  image displays a popup window with information about the image.  A
 #  second click dismisses the popup, as does the space bar or Enter key.
 #  The right mouse button activates the same popup momentarily until
@@ -58,7 +59,7 @@
 #
 ############################################################################
 #
-#  Links: graphics, imscolor, options, io, random, cfunc
+#  Links: graphics, imscolor, interact, options, io, random, cfunc
 #
 ############################################################################
 
@@ -70,6 +71,7 @@
 
 link graphics
 link imscolor
+link interact
 link options
 link io
 link random
@@ -245,6 +247,7 @@ procedure main(args)
 
    while e := Event() do case e of {		# wait for event
       QuitEvents():		exit()		# quit on "q" etc
+      !"sS":			snapshot()	# save window shapshot
       &lpress | &rpress:	info(e)		# display info about image
       }
 end
@@ -294,6 +297,7 @@ procedure pause()
    while e := Event() do case e of {		# wait for event
       QuitEvents():		exit()		# quit on "q" etc
       !" \t\r\n":		break		# continue on "\r" etc
+      !"sS":			snapshot()	# save window shapshot
       &lpress | &rpress:	info(e)		# display info about image
       }
    return
