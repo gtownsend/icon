@@ -10,10 +10,7 @@ for d in *_*; do
    cat <<'==EOF=='
 
 #  CC       C compiler
-#  CFCOMM   flags for building common utility functions
-#  CFTRAN   flags for building Icon translator
-#  CFRTT    flags for building run-time translator
-#  CFRUN    flags for building run-time system
+#  CFLAGS   flags for building C files
 #  LDRUN    flags for linking run-time system
 #  MATH     math library to link with run-time system
 #  RSWITCH  source code file of context switch code
@@ -23,10 +20,7 @@ for d in *_*; do
 
 ==EOF==
    grep CC= runtime.hdr
-   grep CFLAGS common.hdr | sed s/CFLAGS/CFCOMM/
-   grep CFLAGS icont.hdr | sed s/CFLAGS/CFTRAN/
-   grep CFLAGS rtt.hdr | sed s/CFLAGS/CFRTT/
-   grep CFLAGS runtime.hdr | sed s/CFLAGS/CFRUN/
+   grep CFLAGS rtt.hdr
    grep LDFLAGS runtime.hdr | sed s/LDFLAGS/LDRUN/
    grep LIBS runtime.hdr | sed s/LIBS/MATH/
    grep XINCL runtime.hdr

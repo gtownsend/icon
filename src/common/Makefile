@@ -1,5 +1,4 @@
 include ../../Makedefs
-CFLAGS = $(CFCOMM)
 
 
 OBJS =	long.o getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\

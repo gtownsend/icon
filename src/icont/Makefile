@@ -1,7 +1,6 @@
 #  Makefile for the Icon translator, icont.
 
 include ../../Makedefs
-CFLAGS = $(CFTRAN)
 
 
 HFILES =	../h/define.h ../h/config.h ../h/cpuconf.h ../h/gsupport.h \

@@ -2,19 +2,18 @@
 # This file is a simplification of XPM's standard Makefile.
 
 include ../../Makedefs
-CFLAGS = $(CFRUN) $(XI)
-
-RM = rm -f
 
 ## if your system doesn't provide strcasecmp add -DNEED_STRCASECMP
 ## if your system doesn't provide pipe remove -DZPIPE
+
+RM = rm -f
 AR = ar qc
 OBJS1 = data.o create.o misc.o rgb.o scan.o parse.o hashtable.o \
 	  XpmWrFFrP.o XpmRdFToP.o XpmCrPFData.o XpmCrDataFP.o \
 	  XpmWrFFrI.o XpmRdFToI.o XpmCrIFData.o XpmCrDataFI.o
 
 .c.o:
-	$(CC) -c $(CFLAGS) $(XPMDEFS) $*.c
+	$(CC) -c $(CFLAGS) $(XI) $(XPMDEFS) $*.c
 
 
 libXpm.a: $(OBJS1)

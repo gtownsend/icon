@@ -2,7 +2,6 @@
 #  which is used to build the Icon run-time system.
 
 include ../../Makedefs
-CFLAGS = $(CFRTT)
 
 
 ROBJS = rttparse.o rttmain.o rttlex.o rttsym.o rttnode.o rttout.o rttmisc.o\

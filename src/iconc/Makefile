@@ -3,7 +3,6 @@
 #  This is no longer supported and may not work.
 
 include ../../Makedefs
-CFLAGS = $(CFTRAN)
 
 
 OBJS =		cmain.o clocal.o ctrans.o dbase.o clex.o\
