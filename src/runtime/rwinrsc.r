@@ -16,10 +16,6 @@ wsp wstates = NULL;
 wbp wbndngs = NULL;
 int win_highwater = -1;
 
-#ifdef MacGraph
-#include "rmacrsc.ri"
-#endif					/* MacGraph */
-
 #ifdef XWindows
 #include "rxrsc.ri"
 #endif					/* XWindows */
@@ -50,6 +46,4 @@ wbp w;
       }
    }
 
-#else					/* Graphics */
-static char x;			/* avoid empty module */
 #endif					/* Graphics */

@@ -269,8 +269,5 @@ void mmrefresh()
       EVVal(DiffPtrs(strfree, strbase), E_String);	/* string region */
       }
    }
-
 
-#else					/* EventMon */
-static char xjunk;			/* avoid empty module */
 #endif					/* EventMon */

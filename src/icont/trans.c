@@ -88,11 +88,11 @@ char *filename, *tgtdir;
     *  Write the ucode version number to the .u2 file.
     */
    makename(oname1, tgtdir, filename, U1Suffix);
-   codefile = fopen(oname1, WriteText);
+   codefile = fopen(oname1, "w");
    if (codefile == NULL)
       quitf("cannot create %s", oname1);
    makename(oname2, tgtdir, filename, U2Suffix);
-   globfile = fopen(oname2, WriteText);
+   globfile = fopen(oname2, "w");
    if (globfile == NULL)
       quitf("cannot create %s", oname2);
    writecheck(fprintf(globfile,"version\t%s\n",UVersion));

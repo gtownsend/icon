@@ -356,11 +356,14 @@ typedef struct _wbinding {
    wsp window;
    } wbinding, *wbp;
 
-
+/*
+ * Table entry for string <-> integer mapping.
+ */
 typedef struct {
    char *s;
    int i;
    } stringint, *siptr;
+
 
 /*
  * Gamma Correction value to compensate for nonlinear monitor color response
@@ -372,7 +375,6 @@ typedef struct {
 /*
  * Attributes
  */
-
 #define A_ASCENT	1
 #define A_BG		2
 #define A_CANVAS	3

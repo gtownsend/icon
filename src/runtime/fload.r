@@ -19,7 +19,7 @@
 #ifdef LoadFunc
 
 #ifndef RTLD_LAZY	/* normally from <dlfcn.h> */
-#define RTLD_LAZY 1
+   #define RTLD_LAZY 1
 #endif					/* RTLD_LAZY */
 
 #ifdef FreeBSD
@@ -218,6 +218,4 @@ dptr dargv;
 
 #endif						/* COMPILER */
 
-#else						/* LoadFunc */
-static char junk;			/* avoid empty module */
 #endif						/* LoadFunc */

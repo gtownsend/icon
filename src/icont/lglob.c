@@ -290,7 +290,7 @@ char *filename;
    struct gentry *gp, **rp;
 
    makename(inname, SourceDir, filename, U1Suffix);
-   infile = fopen(inname, ReadText);
+   infile = fopen(inname, "r");
    if (infile == NULL)
       quitf("cannot open %s", inname);
 

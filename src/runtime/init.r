@@ -211,7 +211,7 @@ struct header *hdr;
 #if MSDOS
    if (n >= 4 && !stricmp(".exe", name + n - 4)) {
       thisIsAnExeFile = 1;
-      fname = pathOpen(name, ReadBinary);
+      fname = pathOpen(name, "rb");
          /*
           * ixhdr's code for calling iconx from an .exe passes iconx the
           * full path of the .exe, so using pathOpen() seems redundant &
@@ -235,9 +235,9 @@ struct header *hdr;
       strcat(tname,IcodeSuffix);
 
 #if MSDOS
-      fname = pathOpen(tname,ReadBinary);	/* try to find path */
+      fname = pathOpen(tname,"rb");	/* try to find path */
 #else					/* MSDOS */
-      fname = fopen(tname, ReadBinary);
+      fname = fopen(tname, "rb");
 #endif					/* MSDOS */
 
 #if NT
@@ -247,11 +247,11 @@ struct header *hdr;
     if (fname == NULL) {
        strcpy(tname,name);
        strcat(tname,".bat");
-       fname = pathOpen(tname, ReadBinary);
+       fname = pathOpen(tname, "rb");
        if (fname == NULL) {
           strcpy(tname,name);
           strcat(tname,".cmd");
-          fname = pathOpen(tname, ReadBinary);
+          fname = pathOpen(tname, "rb");
           }
       }
 #endif					/* NT */
@@ -261,9 +261,9 @@ struct header *hdr;
    if (fname == NULL)			/* try the name as given */
 
 #if MSDOS
-      fname = pathOpen(name, ReadBinary);
+      fname = pathOpen(name, "rb");
 #else					/* MSDOS */
-      fname = fopen(name, ReadBinary);
+      fname = fopen(name, "rb");
 #endif					/* MSDOS */
 
 #if MSDOS
@@ -280,8 +280,6 @@ struct header *hdr;
 
 #if MSDOS && !NT
    #error
-   deliberate syntax error
-
   /*
    * The MSDOS .exe-handling code assumes & requires that the executable
    * .exe be followed immediately by the icode itself (actually header.h).
@@ -698,20 +696,20 @@ void envset()
 
    if ((p = getenv("NOERRBUF")) != NULL)
       noerrbuf++;
-   env_int(TRACE, &k_trace, 0, (uword)0);
-   env_int(COEXPSIZE, &stksize, 1, (uword)MaxUnsigned);
-   env_int(STRSIZE, &ssize, 1, (uword)MaxBlock);
-   env_int(HEAPSIZE, &abrsize, 1, (uword)MaxBlock);
+   env_int("TRACE", &k_trace, 0, (uword)0);
+   env_int("COEXPSIZE", &stksize, 1, (uword)MaxUnsigned);
+   env_int("STRSIZE", &ssize, 1, (uword)MaxBlock);
+   env_int("HEAPSIZE", &abrsize, 1, (uword)MaxBlock);
    #ifndef BSD_4_4_LITE
-      env_int(BLOCKSIZE, &abrsize, 1, (uword)MaxBlock);    /* synonym */
+      env_int("BLOCKSIZE", &abrsize, 1, (uword)MaxBlock);    /* synonym */
    #endif				/* BSD_4_4_LITE */
-   env_int(BLKSIZE, &abrsize, 1, (uword)MaxBlock);      /* synonym */
-   env_int(MSTKSIZE, &mstksize, 1, (uword)MaxUnsigned);
-   env_int(QLSIZE, &qualsize, 1, (uword)MaxBlock);
+   env_int("BLKSIZE", &abrsize, 1, (uword)MaxBlock);      /* synonym */
+   env_int("MSTKSIZE", &mstksize, 1, (uword)MaxUnsigned);
+   env_int("QLSIZE", &qualsize, 1, (uword)MaxBlock);
    env_int("IXCUSHION", &memcushion, 1, (uword)100);	/* max 100 % */
    env_int("IXGROWTH", &memgrowth, 1, (uword)10000);	/* max 100x growth */
 
-   if ((p = getenv(ICONCORE)) != NULL && *p != '\0') {
+   if ((p = getenv("ICONCORE")) != NULL && *p != '\0') {
       /*
        * ICONCORE is set.  Reset traps to allow dump after abnormal termination.
        */

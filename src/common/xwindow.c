@@ -16,6 +16,7 @@ typedef struct {
    #include <X11/Xlib.h>
    #include <X11/Xutil.h>
 #endif					/* XpmFormat */
+
 #include <X11/Xos.h>
 #include <X11/Xatom.h>
 #include <X11/cursorfont.h>
@@ -155,6 +156,4 @@ stringint cursorsyms[] = {
   {"num glyphs",	XC_num_glyphs},
 };
 
-#else					/* XWindows */
-  static char x;
 #endif					/* XWindows */

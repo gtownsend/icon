@@ -2717,6 +2717,4 @@ function{0,1} WinSaveDialog(argv[argc])
 end
 #endif					/* MSWindows */
 
-#else					/* Graphics */
-static char x;			/* avoid empty module */
 #endif					/* Graphics */

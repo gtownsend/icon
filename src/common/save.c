@@ -62,6 +62,4 @@ int ef;
 }
 #endif					/* GenericBSD */
 
-#else					/* ExecImages */
-static char junk;
 #endif					/* ExecImages */

@@ -562,23 +562,23 @@ char **argv;
       strcpy(tmp+strlen(tmp)-4, ".bat");
       rename(ofile, tmp);
 #ifdef MSWindows
-      if ((f = pathOpen("wiconx.exe", ReadBinary)) == NULL) {
+      if ((f = pathOpen("wiconx.exe", "rb")) == NULL) {
 	 report("Tried to open wiconx to build .exe, but couldn't\n");
          errors++;
          }
 #else					/* MS Windows */
-      if ((f = pathOpen("nticonx.exe", ReadBinary)) == NULL) {
+      if ((f = pathOpen("nticonx.exe", "rb")) == NULL) {
 	 report("Tried to open wiconx to build .exe, but couldn't\n");
 	 errors++;
          }
 #endif					/* MS Windows */
       else {
-         f2 = fopen(ofile, WriteBinary);
+         f2 = fopen(ofile, "wb");
 	 while ((c = fgetc(f)) != EOF) {
 	    fputc(c, f2);
 	    }
 	 fclose(f);
-	 if ((f = fopen(tmp, ReadBinary)) == NULL) {
+	 if ((f = fopen(tmp, "rb")) == NULL) {
 	    report("tried to read .bat to append to .exe, but couldn't\n");
 	    errors++;
 	    }

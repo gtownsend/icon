@@ -54,7 +54,4 @@ int getopt(int nargc, char *const nargv[], const char *ostr)
       }
    return optopt;			/* dump back option letter */
    }
-
-#else					/* SysOpt */
-static char junk;			/* prevent empty file */
 #endif					/* SysOpt */

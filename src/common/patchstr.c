@@ -70,7 +70,7 @@ char *fname;
    int n;
    char buf[MAXLEN+2];
 
-   if (!(f = fopen(fname, ReadBinary))) {	/* open read-only */
+   if (!(f = fopen(fname, "rb"))) {	/* open read-only */
       perror(fname);
       exit(1);
       }
@@ -102,7 +102,7 @@ char *fname, *newstr;
    int n;
    char buf[MAXLEN+2];
 
-   if (!(f = fopen(fname, ReadEndBinary))) {	/* open for read-and-update */
+   if (!(f = fopen(fname, "r+b"))) {	/* open for read-and-update */
       perror(fname);
       exit(1);
       }

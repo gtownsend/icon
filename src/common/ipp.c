@@ -181,7 +181,7 @@ int m4;
       fname = "stdin";
       }
    else
-      f = fopen(fname, ReadText);
+      f = fopen(fname, "r");
    if (f == NULL) {
       return 0;
       }
@@ -207,7 +207,7 @@ char *filename;
       FILE *f;
       char *s = alloc(4 + strlen(filename));
       sprintf(s, "m4 %s", filename);
-      f = popen(s, ReadText);
+      f = popen(s, "r");
       free(s);
       return f;
    #else					/* UNIX */

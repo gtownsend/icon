@@ -66,11 +66,6 @@
    #define MultiThread
 #endif					/* Eve */
 
-#ifndef NoStrInvoke
-   #undef StrInvoke
-   #define StrInvoke
-#endif					/* NoStrInvoke */
-
 #ifndef NoLargeInts
    #undef LargeInts
    #define LargeInts
@@ -85,55 +80,6 @@
    #undef ExternalFunctions
    #define ExternalFunctions
 #endif					/* NoExternalFunctions */
-
-/*
- * Names for standard environment variables.
- * The standard names are used unless they are overridden.
- */
-
-#ifndef NOERRBUF
-   #define NOERRBUF "NOERRBUF"
-#endif
-
-#ifndef TRACE
-   #define TRACE "TRACE"
-#endif
-
-#ifndef COEXPSIZE
-   #define COEXPSIZE "COEXPSIZE"
-#endif
-
-#ifndef STRSIZE
-   #define STRSIZE "STRSIZE"
-#endif
-
-#ifndef HEAPSIZE
-   #define HEAPSIZE "HEAPSIZE"
-#endif
-
-#ifndef BLOCKSIZE
-   #define BLOCKSIZE "BLOCKSIZE"
-#endif
-
-#ifndef BLKSIZE
-   #define BLKSIZE "BLKSIZE"
-#endif
-
-#ifndef MSTKSIZE
-   #define MSTKSIZE "MSTKSIZE"
-#endif
-
-#ifndef QLSIZE
-   #define QLSIZE "QLSIZE"
-#endif
-
-#ifndef ICONCORE
-   #define ICONCORE "ICONCORE"
-#endif
-
-#ifndef IPATH
-   #define IPATH "IPATH"
-#endif
 
 /*
  * Graphics definitions.
@@ -279,42 +225,6 @@
 #define Cat(x,y) x##y
 #define Lit(x) #x
 #define Bell '\a'
-
-/*
- * Customize output if not pre-defined.
- */
-
-#ifndef TraceOut
-   #define TraceOut(s) fprintf(stderr,s)
-#endif					/* TraceOut */
-
-/*
- * File opening modes.
- */
-
-#ifndef WriteBinary
-   #define WriteBinary "wb"
-#endif					/* WriteBinary */
-
-#ifndef ReadBinary
-   #define ReadBinary "rb"
-#endif					/* ReadBinary */
-
-#ifndef ReadWriteBinary
-   #define ReadWriteBinary "wb+"
-#endif					/* ReadWriteBinary */
-
-#ifndef ReadEndBinary
-   #define ReadEndBinary "r+b"
-#endif					/* ReadEndBinary */
-
-#ifndef WriteText
-   #define WriteText "w"
-#endif					/* WriteText */
-
-#ifndef ReadText
-   #define ReadText "r"
-#endif					/* ReadText */
 
 /*
  * Miscellaney.

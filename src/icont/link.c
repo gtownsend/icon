@@ -77,7 +77,7 @@ char *outname;
       filename = lf->lf_name;
       makename(inname, SourceDir, filename, U2Suffix);
       makename(icnname, TargetDir, filename, SourceSuffix);
-      infile = fopen(inname, ReadText);
+      infile = fopen(inname, "r");
       if (infile == NULL)
          quitf("cannot open %s",inname);
       readglob();
@@ -93,7 +93,7 @@ char *outname;
    /*
     * Open the output file.
     */
-   outfile = fopen(outname, WriteBinary);
+   outfile = fopen(outname, "wb");
 
    if (outfile == NULL) {		/* may exist, but can't open for "w" */
       ofile = NULL;			/* so don't delete if it's there */
@@ -248,7 +248,7 @@ char *outname;
        */
       if (Dflag) {
          makename(dbgname, TargetDir, llfiles->lf_name, ".ux");
-         dbgfile = fopen(dbgname, WriteText);
+         dbgfile = fopen(dbgname, "w");
          if (dbgfile == NULL)
             quitf("cannot create %s", dbgname);
          }
@@ -262,7 +262,7 @@ char *outname;
       filename = lf->lf_name;
       makename(inname, SourceDir, filename, U1Suffix);
       makename(icnname, TargetDir, filename, SourceSuffix);
-      infile = fopen(inname, ReadText);
+      infile = fopen(inname, "r");
       if (infile == NULL)
          quitf("cannot open %s", inname);
       gencode();

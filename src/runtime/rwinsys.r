@@ -6,18 +6,12 @@
 
 #ifdef Graphics
 
-#ifdef MacGraph
-#include "rmac.ri"
-#endif					/* MacGraph */
+   #ifdef XWindows
+      #include "rxwin.ri"
+   #endif				/* XWindows */
 
-#ifdef XWindows
-#include "rxwin.ri"
-#endif					/* XWindows */
+   #ifdef MSWindows
+      #include "rmswin.ri"
+   #endif				/* MSWindows */
 
-#ifdef MSWindows
-#include "rmswin.ri"
-#endif					/* MSWindows */
-
-#else					/* Graphics */
-static char junk;		/* avoid empty module */
 #endif					/* Graphics */

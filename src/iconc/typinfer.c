@@ -279,12 +279,12 @@ void typeinfer()
       if (trcname[0] == '|') {
          FILE *popen();
 
-         trcfile = popen(trcname+1, WriteText);
+         trcfile = popen(trcname+1, "w");
          }
       else
 #endif					/* UNIX */
 
-      trcfile = fopen(trcname, WriteText);
+      trcfile = fopen(trcname, "w");
 
       if (trcfile == NULL) {
          fprintf(stderr, "TYPTRC: cannot open %s\n", trcname);

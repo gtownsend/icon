@@ -109,7 +109,7 @@ char *buf, *dir, *name, *extn;
    {
    FILE *f;
    makename(buf, dir, name, extn);
-   if ((f = fopen(buf, ReadText)) != NULL) {
+   if ((f = fopen(buf, "r")) != NULL) {
       fclose(f);
       return buf;
       }

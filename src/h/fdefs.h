@@ -3,7 +3,6 @@
  */
 
 #undef exit		/* may be defined under ConsoleWindow */
-#undef getenv		/* may be defined under AMIGA */
 
 FncDef(abs,1)
 FncDef(acos,1)
