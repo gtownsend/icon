@@ -194,7 +194,7 @@ Clean:
 		cd tests;		$(MAKE) Clean
 
 Pure:
-		rm -f bin/[a-z]*
+		rm -f bin/[a-z]* NoRanlib
 		cd ipl;			$(MAKE) Clean
 		cd src;			$(MAKE) Pure
 		cd tests;		$(MAKE) Clean
