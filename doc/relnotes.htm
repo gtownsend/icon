@@ -16,7 +16,7 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 <BR> <SMALL> The University of Arizona </SMALL>
 
 <P> <SMALL> www.cs.arizona.edu/icon/v940/relnotes.htm
-<BR> Last updated May 1, 2001 </SMALL>
+<BR> Last updated May 17, 2001 </SMALL>
 <!-- $Id$ -->
 
 
@@ -61,17 +61,18 @@ The names are returned in no particular order, and for Unix, the directories
 <SMALL> (new with Version 9.4 of Icon) </SMALL>
 
 <P> Under Unix, colons (<CODE>:</CODE>) may now separate directories in the
-<CODE>LPATH</CODE> and <CODE>IPATH</CODE> environment variables.
+<CODE>LPATH</CODE> and <CODE>IPATH</CODE> environment variables as an
+alternative to spaces.
 The Icon translator and linker search these paths when looking for
 <CODE>$include</CODE> and <CODE>link</CODE> files respectively.
 
 <P> The Icon program library is now searched automatically, but
 <CODE>LPATH</CODE> and <CODE>IPATH</CODE> can still be set to control
 the search order.
-For version 9.4, the effective path is:
+For version 9.4, the effective path in each case is:
 <OL>
 	<LI> the current directory
-	<LI> directories named by the environment variable
+	<LI> any directories named by the environment variable
 	<LI> the Icon library directory
 </OL>
 
@@ -90,14 +91,14 @@ and some obsolete configurations have been removed.
 <P> With one clearly marked exception, programs in the standard
 test suite now generate reproducible output.
 
-<P> The following bug-fixes have been applied:
+<P> The following problems have been corrected:
 <UL>
-<LI> Don't lose sign bit when converting real to large integer.
-<LI> Don't crash on duplicate close(f).
-<LI> Consistently give runerr for coordinate value too large for X.
-<LI> Give runerr instead segfault for window attribute over 127 chars long.
-<LI> Exit instead of looping on segfault during traceback of segfault.
-<LI> Work around gcc 2.96 file inclusion bug.
+<LI> The sign bit was lost when converting a real to a large integer.
+<LI> A duplicate close(f) could crash the interpreter.
+<LI> Very large coordinate values were silently mishandled.
+<LI> Window attributes over 127 characters long caused a segfault.
+<LI> A segfault during traceback could produce an infinite loop.
+<LI> A file inclusion bug in gcc 2.96 prevented Icon from building.
 </UL>
 
 
