@@ -133,7 +133,7 @@
 #endif					/* DeBug */
 
 #ifndef MaxHdr
-   #define MaxHdr 4096
+   #define MaxHdr 6144
 #endif					/* MaxHdr */
 
 #ifndef MaxPath

@@ -24,5 +24,4 @@
    #define IcodeSuffix ".cmd"
 #else					/* ShellHeader */
    #define IcodeSuffix ".exe"
-   #define MaxHdr 5120
 #endif					/* ShellHeader */
