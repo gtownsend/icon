@@ -6,7 +6,7 @@ for d in *_*; do
    echo $d 1>&2
    cd $d
    (
-   echo "#  Makefile definitions for $d configuration"
+   echo "#  Makefile definitions from config/unix/$d"
    cat <<'==EOF=='
 
 #  CC       C compiler
@@ -16,9 +16,10 @@ for d in *_*; do
 #  CFRUN    flags for building run-time system
 #  LDRUN    flags for linking run-time system
 #  MATH     math library to link with run-time system
-#  XLIB     graphics library to link with run-time system
-#  XPMDEFS  definitions for building XPM library
 #  RSWITCH  source code file of context switch code
+#  XINCL    include path for graphics
+#  XLINK    linking arguments for graphics
+#  XPMDEFS  definitions for building XPM library
 
 ==EOF==
    grep CC= runtime.hdr
@@ -28,7 +29,8 @@ for d in *_*; do
    grep CFLAGS runtime.hdr | sed s/CFLAGS/CFRUN/
    grep LDFLAGS runtime.hdr | sed s/LDFLAGS/LDRUN/
    grep LIBS runtime.hdr | sed s/LIBS/MATH/
-   grep XLIB runtime.hdr | sed s/LIBS/XLIB/
+   grep XINCL runtime.hdr
+   grep XLIB xiconx.mak | sed s/XLIB/XLINK/
    grep XPMDEFS xpm.hdr
    grep RSWITCH= common.hdr
    ) | sed >Makedefs '

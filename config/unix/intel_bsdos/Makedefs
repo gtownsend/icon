@@ -1,4 +1,4 @@
-#  Makefile definitions for intel_bsdos configuration
+#  Makefile definitions from config/unix/intel_bsdos
 
 #  CC       C compiler
 #  CFCOMM   flags for building common utility functions
@@ -7,16 +7,19 @@
 #  CFRUN    flags for building run-time system
 #  LDRUN    flags for linking run-time system
 #  MATH     math library to link with run-time system
-#  XLIB     graphics library to link with run-time system
-#  XPMDEFS  definitions for building XPM library
 #  RSWITCH  source code file of context switch code
+#  XINCL    include path for graphics
+#  XLINK    linking arguments for graphics
+#  XPMDEFS  definitions for building XPM library
 
 CC = cc
-CFCOMM = -O -I/usr/X11R6/include
-CFTRAN = -O -I/usr/X11R6/include
-CFRTT = -O -I/usr/X11R6/include
-CFRUN = -I/usr/X11R6/include
-LDRUN = -L/usr/X11R6/lib -Wl,-E
+CFCOMM = -O
+CFTRAN = -O
+CFRTT = -O
+CFRUN = 
+LDRUN = 
 MATH = -lm -ldl
+XINCL = -I/usr/X11R6/include
+XLINK = -L/usr/X11R6/lib -Wl,-E -lX11
 XPMDEFS = -DZPIPE -I/usr/X11R6/include
 RSWITCH = rswitch.c

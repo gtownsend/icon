@@ -1,4 +1,4 @@
-#  Makefile definitions for sun_sunc configuration
+#  Makefile definitions from config/unix/sun_sunc
 
 #  CC       C compiler
 #  CFCOMM   flags for building common utility functions
@@ -7,16 +7,19 @@
 #  CFRUN    flags for building run-time system
 #  LDRUN    flags for linking run-time system
 #  MATH     math library to link with run-time system
-#  XLIB     graphics library to link with run-time system
-#  XPMDEFS  definitions for building XPM library
 #  RSWITCH  source code file of context switch code
+#  XINCL    include path for graphics
+#  XLINK    linking arguments for graphics
+#  XPMDEFS  definitions for building XPM library
 
 CC = cc
 CFCOMM = -O -I/usr/openwin/include
 CFTRAN = -O -I/usr/openwin/include
 CFRTT = -Xc -O
-CFRUN = -w -O -I/usr/openwin/include 
+CFRUN = -w -O
 LDRUN = -ldl
 MATH = -lm
+XINCL = -I/usr/openwin/include 
+XLINK = -L /usr/openwin/lib -R/usr/openwin/lib -lX11
 XPMDEFS = -DZPIPE -DSYSV
 RSWITCH = rswitch.c

@@ -1,7 +1,7 @@
 #  Makefile for the Icon run-time system.
 
 include ../../Makedefs
-CFLAGS = $(CFRUN)
+CFLAGS = $(CFRUN) $(XI)
 
 
 HDRS = ../h/define.h ../h/config.h ../h/typedefs.h ../h/monitor.h\
@@ -39,8 +39,8 @@ XOBJS =	xcnv.o xdata.o xdef.o xerrmsg.o xextcall.o xfconv.o xfload.o xfmath.o\
 OBJS =	$(XOBJS) $(COBJS)
 
 iconx: $(OBJS)
-	cd ../common; $(MAKE) $(XPM)
-	$(CC) $(LDRUN) -o iconx  $(OBJS) $(XPMLIB) $(XLIB) $(MATH)
+	cd ../common; $(MAKE)
+	$(CC) $(LDRUN) -o iconx  $(OBJS) $(XL) $(MATH)
 	cp iconx ../../bin
 	strip ../../bin/iconx
 

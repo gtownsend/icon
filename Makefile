@@ -35,18 +35,12 @@ config/unix/$(name)/status src/h/define.h:
 # Configure the code for a specific system.
 
 Configure:	config/unix/$(name)/status
-		make Pure
-		cd config/unix; $(MAKE) Setup name=$(name)
-
-#%#%		cp config/unix/Common/Makefile config/unix/$(name)/
-#%#%		cd config/unix/$(name);	$(MAKE) 
-#%#%		rm -f config/unix/$(name)/Makefile
+		make Pure >/dev/null
+		cd config/unix; $(MAKE) Setup-NoGraphics name=$(name)
 
 X-Configure:	config/unix/$(name)/status
-		make Pure
-		cp config/unix/Common/Makefile config/unix/$(name)/
-		cd config/unix/$(name);	$(MAKE) X-Icon
-		rm -f config/unix/$(name)/Makefile
+		make Pure >/dev/null
+		cd config/unix; $(MAKE) Setup-Graphics name=$(name)
 
 
 # Get the status information for a specific system.

@@ -6,7 +6,7 @@ OBJS =	long.o getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
 	munix.o literals.o rswitch.o alloc.o long.o getopt.o time.o\
 	save.o rswitch.o redirerr.o xwindow.o dlrgint.o ipp.o
 
-common:		doincl patchstr $(OBJS)
+common:		doincl patchstr $(OBJS) xpmaybe
 
 doincl:		doincl.c
 		$(CC) $(CFLAGS) -o doincl doincl.c
@@ -15,6 +15,9 @@ doincl:		doincl.c
 patchstr:	patchstr.c
 		$(CC) $(CFLAGS) -o patchstr patchstr.c
 		cp patchstr ../../bin
+
+xpmaybe:
+		-if [ "$(XL)" != "" ]; then $(MAKE) xpm; fi
 
 xpm:
 		cd ../xpm; $(MAKE) libXpm.a
