@@ -1,3 +1,6 @@
+/*  msasc.c -- special common code for Amiga SAS/C  */
+
+
 #include "../h/gsupport.h"
 
 #if AMIGA && __SASC
