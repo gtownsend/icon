@@ -6,7 +6,7 @@
 #
 #	Authors:  Ralph E. Griswold and Robert J. Alexander
 #
-#	Date:     March 25, 2002
+#	Date:     March 4, 2003
 #
 ############################################################################
 #
@@ -188,6 +188,8 @@
 #
 #   TrinopPDCO{op,e2,e2,e3}
 #			produces the result of applying op to e1, e2, and e3
+#
+#   UndulantPDCO{e}	produces the undulant for e.
 #
 #   UniquePDCO{e}	produces the unique results of e in the order
 #			they first appear
@@ -1086,6 +1088,51 @@ procedure TrinopPDCO(L)		#: PDCO to apply trinary operator to sequences
        x := @L[2] & y := @L[3] & z := @L[4] | fail
       suspend op(x, y, z)
       }
+
+end
+
+procedure UndulantPDCO(L)	#: PDCO to produce undulant
+   local i, j, dir
+
+   i := @L[1] | fail
+
+   suspend i			# first value always is in undulant
+
+   j := i			# last term in undulant
+
+   while i := @L[1] do {	# get initial direction
+      if i > j then {
+         dir := -1
+         break
+         }
+      else if i < j then {
+         dir := 1
+         break
+         }
+     } 
+
+   j := i
+
+   while i := @L[1] do {
+      if i < j then  {
+         if dir = -1 then {
+            suspend j
+            j := i
+            dir := 1
+            }
+         else j := i
+         }
+      if i > j then {
+         if dir = 1 then {
+            suspend j
+            j := i
+            dir := -1
+            }
+         else j := i
+         }
+      }
+
+   fail
 
 end
 

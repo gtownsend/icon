@@ -1,12 +1,12 @@
 ############################################################################
 #
-#	File:     dd2res.icn
+#	File:     pattread.icn
 #
-#	Subject:  Program to compute loom resources needed from drawdown
+#	Subject:  Procedure to read pattern
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     July 8, 2002
+#	Date:     December 10, 2001
 #
 ############################################################################
 #
@@ -14,26 +14,29 @@
 #
 ############################################################################
 #
-#  This program reads a pattern in row or BLP format.
-#
-#  The number of shafts and treadles required is written to standard
-#  output.
+#  Reads BLP or row file and produces pattern in row form
 #
 ############################################################################
 #
-#  Links:  pattread, patutils, patxform
+#  Links:  patutils
 #
 ############################################################################
 
-link pattread
 link patutils
-link patxform
 
-procedure main()
-   local rows, row
+procedure pattread(file)
+   local line, rows
 
-   rows := pattread()
+   line := read(file) | fail
 
-   write(*set(protate(rows)), "x", *set(rows))
+   line ? {
+      if upto("#", line) then rows := pat2rows(line)
+      else {
+         rows := [line]
+         while put(rows, read(file))	# read in row pattern
+         }
+      }
+
+   return rows
 
 end

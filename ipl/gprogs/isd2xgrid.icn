@@ -1,16 +1,12 @@
 ############################################################################
 #
-#	File:     isd2grid.icn
+#	File:     isd2xgrid.icn
 #
 #	Subject:  Program to create grid plots for ISDs
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     May 25, 2002
-#
-############################################################################
-#
-#  This file is in the public domain.
+#	Date:     July 4, 2002
 #
 ############################################################################
 #
@@ -21,13 +17,15 @@
 #  The option -n s allows a basename to be specified for the image file.
 #  It defaults to the name in the ISD.
 #
-############################################################################
-#
-#  Requires:  Version 9 graphics and large integers
+#  This version is for ISDs without explicit thread-color information.
 #
 ############################################################################
 #
-#  Links:  isdplot, options, wopen, xcode
+# Requires:  Version 9 graphics and large integers
+#
+############################################################################
+#
+#  Links:  isdxplot, options, wopen, xcode
 #
 ############################################################################
 #
@@ -35,7 +33,7 @@
 #
 ############################################################################
 
-link isdplot
+link isdxplot
 link options
 link wopen
 link xcode
@@ -51,12 +49,10 @@ procedure main(args)
 
    draft.name := \opts["n"]
 
-   win := plot(draft) | stop("*** plot() failed")
+   &dump := 1
+   win := plot(draft, "clip") | stop("*** plot() failed")
+   &dump := 0
 
-   WAttrib(win, "canvas=normal")
+   WriteImage(win, draft.name || "_d.gif")
 
-   repeat case Event(win) of {		# process low-level user events
-      !"qQ" :  exit()
-      "s"   :  WriteImage(win, draft.name || "_d.gif")
-      }
 end

@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     December 18, 1997
+#	Date:     July 14, 2002
 #
 ############################################################################
 #
@@ -20,6 +20,7 @@
 #
 #	-s	read image strings from standard input; default, use
 #		  image file names given on command line
+#	-p	read BLPs from standard input; default as for -s
 #	-w i	window width, default 640
 #	-h i	window height, default 480
 #	-g r	gamma; default to Icon default
@@ -56,10 +57,11 @@ link xio
 procedure main(args)
    local opts, w, h, hold, names, name, prefix, images, count, number
    local lines, ims, bad, Hold, mir, background, e, gamma, tmp1, tmp2
+   local rows, blp
 
    Hold := Event
 
-   opts := options(args, "w+h+g.ma+lisn:bvM")
+   opts := options(args, "w+h+g.ma+lispn:bvM")
    w := \opts["w"] | 640
    h := \opts["h"] | 480
    mir := \opts["M"]
@@ -84,7 +86,7 @@ procedure main(args)
 
    if \background then Hold()
 
-   if \opts["s"] then {
+   if \opts["s"] then {		# image strings
       while ims := readims() do {
          tileims(&window, ims) | {
             write(&errout, "*** cannot draw image")
@@ -95,6 +97,25 @@ procedure main(args)
          if \lines then write(number +:= 1)
          if Event === 1 then delay(hold) else {
             if Event() === !&letters then write(ims)
+            }
+         EraseArea()
+         }
+      }
+   else if \opts["p"] then {	# BLPs
+      while blp := read() do {
+         rows := pat2rows(blp)
+         ims := *rows[1] || ",g2,"
+         every ims ||:= !rows
+         tileims(&window, ims) | {
+            write(&errout, "*** cannot draw image")
+            /bad := open("bad.ims", "a") | stop("*** cannot open bad.ims")
+            write(bad, ims)
+            }
+         WFlush()
+         if \lines then write(number +:= 1)
+         if Event === 1 then delay(hold) else {
+            e := Event()
+            write(!&letters === e, ":", blp)
             }
          EraseArea()
          }
@@ -125,5 +146,18 @@ procedure main(args)
       FillRectangle()
       Hold()
       }
+
+end
+#
+#  Produce a list of the rows of a pattern
+
+procedure pat2rows(pattern)
+   local rlist
+
+   rlist := []
+
+   every put(rlist, rowbits(pattern))
+
+   return rlist
 
 end

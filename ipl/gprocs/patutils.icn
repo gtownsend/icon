@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     June 13, 1999
+#	Date:     July 8, 2002
 #
 ############################################################################
 #
@@ -25,6 +25,7 @@
 #	DrawRows(win, xoff, yoff, rows, magnif, mode)
 #	bits2hex(s)
 #	decspec(pattern)
+#	eqpats(prws, rows2)
 #	getpatt(line)
 #	getpattnote(line)
 #	hex2bits(s)
@@ -203,6 +204,18 @@ procedure decspec(pattern)
       }
 
    return dec[1:-1]
+
+end
+
+procedure eqpats(rows1, rows2)		#: test row patterns for equality
+   local i
+
+   if (*rows1 ~= *rows2) | (*rows1[1] ~= *rows2[1]) then fail
+
+   every i := 1 to *rows1 do
+      if rows1[i] ~== rows2[i] then fail
+
+   return rows2
 
 end
 

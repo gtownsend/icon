@@ -1,0 +1,103 @@
+############################################################################
+#
+#	File:     unitgenr.icn
+#
+#	Subject:  Program to produce unit generators of patterna
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 13, 2002
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  BLPs are read from standard input and their unit generators written
+#  to standard output.
+#
+#  The following command line option is supported:
+#
+#	-c	assume complete repeats; default, do not
+#
+############################################################################
+#
+#  Links:  factors, options, patutils, patxform
+#
+############################################################################
+
+link factors
+link options
+link patutils
+link patxform
+
+global switch
+
+procedure main(args)
+   local opts, oldpat, pattern
+
+   opts := options(args, "c")
+   switch := if /opts["c"] then 1 else &null
+
+   while oldpat := read() do {
+      every 1 to 10 do { 			# SAFETY!
+          pattern := rows2pat(unit(pat2rows(oldpat)))
+          if pattern == oldpat then break
+          oldpat := pattern
+          }
+      write(pattern)
+      }
+      
+end
+
+procedure unit(grid)
+
+   grid := grepeat(grid)
+
+   grid := grepeat(protate(grid))
+
+   return protate(grid, -90)
+
+end
+
+procedure grepeat(grid)		#: reduce grid to smallest repeat
+   local i, width, j, periods
+
+   grid := copy(grid)
+
+   periods := []
+
+   width := *grid[1]
+
+   if /switch then {		# assume no partial repeats
+      every i := 1 to *grid do
+         put(periods, xperiod(grid[i]) | width)
+      width >:= lcml ! periods
+      every i := 1 to *grid do
+         grid[i] := left(grid[i], width)
+      return grid
+      }
+   else {
+      every i := 1 to width do {
+         every j := 1 to *grid do {
+            grid[j] == extend(grid[j][1+:i], width) | break next
+            }
+         break
+         }
+      every j := 1 to *grid do
+         grid[j] := left(grid[j], i)
+      return grid
+      }
+         
+end
+
+procedure xperiod(s)
+   local i
+
+   every i := 1 | divisors(*s) do
+      if extend(s[1+:i], *s) == s then return i
+
+   fail
+
+end

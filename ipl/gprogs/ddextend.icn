@@ -1,0 +1,80 @@
+############################################################################
+#
+#	File:     ddextend.icn
+#
+#	Subject:  Program to extend pattern to a minimum size
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 11, 2002
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program reads a drawdown from standard input in the form of
+#  rows of zeros and ones, in which ones indicate places where the
+#  warp thread is on top and zeros where the weft thread is on top.
+#  It also accepts a BLP as input.
+#
+#  At present, the minimum size is 16, built in.  This should be changed
+#  to a value that could be specified as an option.
+#
+#  It outputs a BLP.
+#
+############################################################################
+#
+#  Links:  patutils, patxform
+#
+############################################################################
+
+link patutils
+link patxform
+
+$define Minimum 16
+
+procedure main()
+   local line, rows, q, r, new_rows
+
+   rows := []
+
+   line := read() | stop("empty file")
+
+   if upto("#", line) then rows := pat2rows(line)
+   else {
+      rows := [line]
+      while put(rows, read())	# read in row pattern
+      }
+
+   while put(rows, read())
+
+   # extend width if necessary
+
+   if *rows[1] < Minimum then {
+      q := Minimum / *rows[1]
+      r := Minimum % *rows[1]
+      if r ~= 0 then q +:= 1		# extension factor
+      new_rows := copy(rows)
+      every 2 to q do
+         new_rows := pcaten(new_rows, rows, "h") 
+      rows := new_rows
+      }
+
+   # extend height if necessary
+
+   if *rows < Minimum then {
+      q := Minimum / *rows
+      r := Minimum % *rows
+      if r ~= 0 then q +:= 1		# extension factor
+      new_rows := copy(rows)
+      every 2 to q do
+         new_rows := pcaten(new_rows, rows, "v") 
+      rows := new_rows
+      }
+
+   write(rows2pat(rows))
+
+
+end

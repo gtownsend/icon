@@ -1,12 +1,12 @@
 ############################################################################
 #
-#	File:     dd2res.icn
+#	File:     rows2blp.icn
 #
-#	Subject:  Program to compute loom resources needed from drawdown
+#	Subject:  Program to convert row file to bi-level pattern
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     July 8, 2002
+#	Date:     October 30, 2001
 #
 ############################################################################
 #
@@ -14,26 +14,27 @@
 #
 ############################################################################
 #
-#  This program reads a pattern in row or BLP format.
 #
-#  The number of shafts and treadles required is written to standard
-#  output.
 #
 ############################################################################
 #
-#  Links:  pattread, patutils, patxform
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  patutils
 #
 ############################################################################
 
-link pattread
 link patutils
-link patxform
 
 procedure main()
-   local rows, row
+   local rows
 
-   rows := pattread()
+   rows := []
 
-   write(*set(protate(rows)), "x", *set(rows))
+   while put(rows, read())
+
+   write(rows2pat(rows))
 
 end

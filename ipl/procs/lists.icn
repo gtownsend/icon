@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     October 22, 2001
+#	Date:     December 13, 2002
 #
 ############################################################################
 #
@@ -133,6 +133,8 @@
 #	lrtrim(L, S)	list right trimming
 #
 #	lshift(L, i)	shift list terms
+#
+#	lst2str(L)	string from concatenated values in L
 #
 #	lswap(L)	list element swap
 #
@@ -346,10 +348,13 @@ procedure imag2lst(seqimage)		#: convert limage() output to list
    seq := []
 
    seqimage[2:-1] ? {
-      while term := tab(upto(',') | 0) do {
+      if pos(0) then return seq
+      tab(many(' '))
+      while term := tab(bal(',', '[', ']') | 0) do {
          term := numeric(term)			# special interest
          put(seq, term)
          move(1) | break
+         tab(many(' '))
          }
       }
 
@@ -1243,6 +1248,17 @@ procedure lshift(L, i)			#: shift list terms
    every !L +:= i
 
    return L
+
+end
+
+procedure lst2str(L)			#: convert list to string
+   local str
+
+   str := ""
+
+   every str ||:= !L
+
+   return str
 
 end
 

@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     May 11, 2001
+#	Date:     July 15, 2002
 #
 ############################################################################
 #
@@ -14,59 +14,53 @@
 #
 ############################################################################
 #
-#  This program analyzes the floats in a drawdown given as an image
-#  string from standard input.
+#  This program analyzes the floats in a drawdown as a BLP or row file
+#  from standard input.
 #
 ############################################################################
 #
-#  Links:  imrutils
+#  Links:  pattread, patxform
 #
 ############################################################################
 
-link imrutils
+link pattread
+link patxform
 
 procedure main()
    local front, back, black, white
 
-   front := imstoimr(read()) | stop("cannot create image record")
+   front := pattread()
    
-   black := cset(PaletteKey(front.palette, "black"))
-   white := cset(PaletteKey(front.palette, "white"))
+   back := pinvert(front)
 
-   back := imrcopy(front)
-   back.pixels := map(back.pixels, white || black, black || white)
+   analyze("Front weft floats", front, "0")
 
-   analyze("Front weft floats", front, white)
+   front := protate(front)
 
-   front := imrrot90cw(front)
+   analyze("Front warp floats", front, "1")
+   analyze("Back weft floats", back, "0")
 
-   analyze("Front warp floats", front, black)
-   analyze("Back weft floats", back, white)
+   back := protate(back)
 
-
-   back := imrrot90cw(back)
-
-   analyze("Back warp floats", back, black)
+   analyze("Back warp floats", back, "1")
 
 end
 
-procedure analyze(caption, imr, color)
+procedure analyze(caption, rows, color)
    local counts, length, row
 
    counts := table(0)
 
-   imr.pixels ? {
-      while row := move(imr.width) do {
+   every row := !rows do {
          row ? {
             while tab(upto(color)) do {
                length := *tab(many(color))
-               if length > 1 then counts[length] +:= 1
-               }
+            if length > 2 then counts[length] +:= 1
             }
          }
       }
 
-   if *counts = 0 then writes("No ")
+   if *counts = 0 then return
 
    write(caption)
 
@@ -74,7 +68,6 @@ procedure analyze(caption, imr, color)
 
    write()
 
-#  while write(right(get(counts), 6), right(get(counts), 6))
    while write("\t", get(counts), "\t", get(counts))
 
    write()

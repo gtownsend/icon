@@ -1,0 +1,87 @@
+############################################################################
+#
+#	File:     dd2unit.icn
+#
+#	Subject:  Program to get dimensions of unit motif of pattern
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 12, 2002
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  The following command line option is supported:
+#
+#	-p	assume partial repeats may occur at edges of pattern;
+#		default complete repeats 
+#
+############################################################################
+#
+#  Links:  options, patutils, seqops
+#
+############################################################################
+
+link options
+link patutils
+link seqops
+
+global switch
+
+procedure main(args)
+   local rows, opts
+
+   opts := options(args, "p")
+   switch := opts["p"]
+
+   rows := unit(pat2rows(read()))
+   write(*rows[1], "x", *rows)
+
+end
+
+procedure rot90(rows)		# rotate pattern 90 degrees clockwise
+   local columns, i, j
+
+   columns := list(*rows[1], "")
+
+   every i := 1 to *rows do
+      every j := 1 to *columns do
+         columns[j] ||:= rows[i][j]
+
+   return columns
+
+end
+
+procedure unit(grid)
+
+   grid := grepeat(grid)
+
+   grid := grepeat(rot90(grid))
+
+   return rot90(grid)
+
+end
+
+procedure grepeat(grid)		#: reduce grid to smallest repeat
+   local periods, i, width
+
+   grid := copy(grid)
+
+   periods := []
+
+   width := *grid[1]
+
+   every i := 1 to *grid do
+      put(periods, speriod(str2lst(grid[i]), switch) | width)
+
+   width >:= lcml ! periods
+
+   every i := 1 to *grid do
+      grid[i] := left(grid[i], width)
+
+   return grid
+
+end

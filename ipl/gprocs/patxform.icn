@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     February 1, 2000
+#	Date:     June 26, 2002
 #
 ############################################################################
 #
@@ -24,6 +24,7 @@
 #	phalve(rows, dir, choice)
 #	pinvert(rows)
 #	pminim(rows)
+#	por(rows1, rows2)
 #	protate(rows, dir)
 #	pscramble(rows, dir)
 #	pshift(rows, shift, dir)
@@ -82,6 +83,8 @@ end
 procedure pcaten(rows1, rows2, dir)	#: concatenate patterns
    local rows, i
 
+   # if art is nonnull, delete duplicate line at boundary
+
    if (*rows1 ~= *rows2) | (*rows1[1] ~= *rows2[1]) then
       stop("nonconformal patterns in pcaten()")
 
@@ -94,6 +97,45 @@ procedure pcaten(rows1, rows2, dir)	#: concatenate patterns
             put(rows, rows1[i] || rows2[i])
          }
       "v"  :  {
+         rows := copy(rows1)
+         every put(rows, !rows2)
+         }
+      default:  stop("invalid direction specification in pcaten()")
+      }
+
+   return rows
+
+end
+
+#
+#  Concatenate patterns pattern style
+
+procedure pcatenp(rows1, rows2, dir)
+   local rows, i
+
+   if (*rows1 ~= *rows2) | (*rows1[1] ~= *rows2[1]) then
+      stop("nonconformal patterns in pcaten()")
+
+   /dir := "h"
+
+   rows2 := copy(rows2)		# may delete row or column
+
+   case dir of {
+      "h"  :  {
+         repeat {
+            every i := 1 to *rows1 do
+               if rows1[i][-1] ~== rows2[i][1] then break break 	
+            every i := 1 to *rows2 do
+               rows2[i][1] := ""
+            break
+            }
+         rows := []
+         every i := 1 to *rows1 do
+            put(rows, rows1[i] || rows2[i])
+         }
+      "v"  :  {
+         if rows1[-1] == rows2[1] then	# eliminate duplicate
+            get(rows2)
          rows := copy(rows1)
          every put(rows, !rows2)
          }
@@ -307,6 +349,29 @@ procedure pminim(rows)			#: minimize pattern
       every i := 1 to halfh do			# truncate rows
          rows[i] := rows[i][1+:halfw]
    
+      }
+
+   return rows
+
+end
+
+#  For the logical "or" of two row bit patterns
+
+procedure por(rows1, rows2)		#: "or" patterns
+   local rows, i
+
+   if *rows1 ~= *rows2 then fail	# nonconformal
+   if *rows1[1] ~= *rows2[1] then fail	# nonconformal
+
+   rows := copy(rows1)
+
+   every i := 1 to *rows do {
+      rows2[i] ? {			# overlay 1s of row2 on row1
+         while tab(upto('1')) do {
+            rows[i][&pos] := "1"
+            move(1) | break
+            }
+         }
       }
 
    return rows

@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     April 18, 2000
+#	Date:     July 4, 2002
 #
 ############################################################################
 #
@@ -14,114 +14,129 @@
 #
 ############################################################################
 #
-#  This program reads a drawdown in the form of strings of zeros and ones
-#  that represent the drawdown.  The output is a WIF.
+#  This program reads BLPs that represent drawdowns.  The names of BLP
+#  files are given on the command line.  WIF files are output.
+#
+#  The following option is supported:
+#
+#	-w	make Web page; default don't
+#
+#  If Web pages are being produced, the extension "html" is used; otherwise
+#  "wif".
+#
+############################################################################
+#
+#  Links:  basename, options, pattread, patutils
 #
 ############################################################################
 
-procedure main()
-   local rows, cols, treadling, threading, count, tieup
-   local shafts, treadles, i, tie_line, row, treadle, draft
+link basename
+link options
+link pattread
+link patutils
 
-   rows := []			# start with empty list
+procedure main(args)
+   local rows, cols, treadling, threading, count, tieup, line, opts, lt, ext
+   local shafts, treadles, i, tie_line, row, treadle, draft, title, web
+   local name, input, output
 
-   while put(rows, read())	# append rows from input
+   opts := options(args, "w")
 
-   cols := rot(rows)		# rotate to get columns
+   title := \opts["t"] | "example"
+   web := \opts["w"]
 
-   treadles := examine(rows)	# get treadles
-   shafts := examine(cols)	# get shafts
-
-   treadling := []		# construct treadling sequence
-   every put(treadling, treadles[!rows])
-
-   threading := []		# construct threading sequence
-   every put(threading, shafts[!cols])
-
-   tieup := table()
-
-   every row := key(treadles) do {		# get unique rows
-      treadle := treadles[row]			# assigned treadle number
-      tie_line := repl("0", *shafts)		# blank tie-up line
-      every i := 1 to *row do			# go through row
-         if row[i] == "1" then			#    if warp on top
-            tie_line[threading[i]] := "1"	#       mark shaft position
-      tieup[treadle] := tie_line		# add line to tie-up
+   if \web then {			# make Web page
+      lt := "<BR>"
+      ext := ".html"
       }
+   else ext := ".wif"
 
-   #  Now output the WIF.
-
-   write("[WIF]")
-   write("Version=1.1")
-   write("Date=" || &dateline)
-   write("Developers=ralph@cs.arizona.edu")
-   write("Source Program=dd2wif.icn")
-
-   write("[CONTENTS]")
-   write("Color Palette=yes")
-   write("Text=yes")
-   write("Weaving=yes")
-   write("Tieup=yes")
-   write("Color Table=yes")
-   write("Threading=yes")
-   write("Treadling=yes")
-   write("Warp colors=yes")
-   write("Weft colors=yes")
-   write("Warp=yes")
-   write("Weft=yes")
-
-   write("[COLOR PALETTE]")
-   write("Entries=2")
-   write("Form=RGB")
-   write("Range=0," || 2 ^ 16 - 1)
-
-   write("[TEXT]")
-   write("Title=example")
-   write("Author=Ralph E. Griswold")
-   write("Address=5302 E. 4th St., Tucson, AZ 85711-2304")
-   write("EMail=ralph@cs.arizona.edu")
-   write("Telephone=520-881-1470")
-   write("FAX=520-325-3948")
-
-   write("[WEAVING]")
-   write("Shafts=", *cols)
-   write("Treadles=", *rows)
-   write("Rising shed=yes")
-
-   write("[WARP]")
-   write("Threads=", *threading)
-   write("Units=Decipoints")
-   write("Thickness=10")
-   write("Color=1")
-
-   write("[WEFT]")
-   write("Threads=", *treadling)
-   write("Units=Decipoints")
-   write("Thickness=10")
-   write("Color=2")
-
-   #  These are provided to produce better initial configurations when
-   #  WIFs are imported to some weaving programs.
-
-   write("[WARP THICKNESS]")
-   write("[WEFT THICKNESS]")
-
-   write("[COLOR TABLE]")
-
-   write("1=0,0,0")
-   write("2=65535,65535,65535")
-
-   write("[THREADING]")
-   every i := 1 to *threading do
-      write(i, "=", threading[i])
-
-   write("[TREADLING]")
-   every i := 1 to *treadling do
-      write(i, "=", treadling[i])
-
-   write("[TIEUP]")
-   every i := 1 to *tieup do
-      write(i, "=", tromp(tieup[i]))
+   every name := !args do {
+      input := open(name) | stop("Cannot open ", name)
+      rows := pattread(input)
+      close(input)
+      output := open(basename(name, ".blp") || ext, "w") |
+         stop("Cannot open file for writing.")
+      write(output, "<HTML>")
+      write(output, "<BODY>")
+      cols := rot(rows)		# rotate to get columns
+      treadles := examine(rows)	# get treadles
+      shafts := examine(cols)	# get shafts
+      treadling := []		# construct treadling sequence
+      every put(treadling, treadles[!rows])
+      threading := []		# construct threading sequence
+      every put(threading, shafts[!cols])
+      tieup := table()
+      every row := key(treadles) do {		# get unique rows
+         treadle := treadles[row]			# assigned treadle number
+         tie_line := repl("0", *shafts)		# blank tie-up line
+         every i := 1 to *row do			# go through row
+            if row[i] == "1" then			#    if warp on top
+               tie_line[threading[i]] := "1"	#       mark shaft position
+         tieup[treadle] := tie_line		# add line to tie-up
+         }
+      write(output, "[WIF]", lt)
+      write(output, "Version=1.1", lt)
+      write(output, "Date=" || &dateline, lt)
+      write(output, "Developers=ralph@cs.arizona.edu", lt)
+      write(output, "Source Program=dd2wif.icn", lt)
+      write(output, "[CONTENTS]", lt)
+      write(output, "Color Palette=yes", lt)
+      write(output, "Text=yes", lt)
+      write(output, "Weaving=yes", lt)
+      write(output, "Tieup=yes", lt)
+      write(output, "Color Table=yes", lt)
+      write(output, "Threading=yes", lt)
+      write(output, "Treadling=yes", lt)
+      write(output, "Warp colors=yes", lt)
+      write(output, "Weft colors=yes", lt)
+      write(output, "Warp=yes", lt)
+      write(output, "Weft=yes", lt)
+      write(output, "[COLOR PALETTE]", lt)
+      write(output, "Entries=2", lt)
+      write(output, "Form=RGB", lt)
+      write(output, "Range=0," || 2 ^ 16 - 1, lt)
+      write(output, "[TEXT]", lt)
+      write(output, "Title=", basename(name, ".blp"), lt)
+      write(output, "Author=Ralph E. Griswold", lt)
+      write(output, "Address=5302 E. 4th St., Tucson, AZ 85711-2304", lt)
+      write(output, "EMail=ralph@cs.arizona.edu", lt)
+      write(output, "Telephone=520-881-1470", lt)
+      write(output, "FAX=520-325-3948", lt)
+      write(output, "[WEAVING]", lt)
+      write(output, "Shafts=", *shafts, lt)
+      write(output, "Treadles=", *treadles, lt)
+      write(output, "Rising shed=yes", lt)
+      write(output, "[WARP]", lt)
+      write(output, "Threads=", *threading, lt)
+      write(output, "Units=Decipoints", lt)
+      write(output, "Thickness=10", lt)
+      write(output, "Color=1", lt)
+      write(output, "[WEFT]", lt)
+      write(output, "Threads=", *treadling, lt)
+      write(output, "Units=Decipoints", lt)
+      write(output, "Thickness=10", lt)
+      write(output, "Color=2", lt)
+      write(output, "[WARP THICKNESS]", lt)
+      write(output, "[WEFT THICKNESS]", lt)
+      write(output, "[COLOR TABLE]", lt)
+      write(output, "1=0,0,0", lt)
+      write(output, "2=65535,65535,65535", lt)
+      write(output, "[THREADING]", lt)
+      every i := 1 to *threading do
+         write(output, i, "=", threading[i], lt)
+      write(output, "[TREADLING]", lt)
+      every i := 1 to *treadling do
+         write(output, i, "=", treadling[i], lt)
+      write(output, "[TIEUP]", lt)
+      every i := 1 to *tieup do
+         write(output, i, "=", tromp(tieup[i]), lt)
+      if \web then {
+         write(output, "</BODY>")
+         write(output, "</HTML>")
+         }
+      close(output)
+      }
 
 end
 
@@ -138,7 +153,7 @@ procedure tromp(treadle)
 
 end
 
-procedure examine(array)
+procedure examine(array) 
    local count, lines, line
 
    lines := table()			# table to be keyed by line patterns

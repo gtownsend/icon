@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     March 25, 2002
+#	Date:     March 4, 2003
 #
 ############################################################################
 #
@@ -169,7 +169,7 @@ procedure arithseq(i, j)	#: arithmetic sequence
    /i := 1
    /j := 0
 
-   suspend seq(i + j)
+   suspend seq(i) + j
 
 end
 
@@ -260,20 +260,22 @@ procedure dietzseq(str)
 
 end
 
-procedure dressseq(i)		#: dress sequence
-   local s, t
+procedure dressseq(i)
+   local seq, seq1, n
 
    /i := 1
 
-   s := [0]
+   seq := [0]
 
-   suspend !s
+   suspend seq[1]
 
    repeat {
-      t := []
-      every put(t, !s + i)
-      suspend !t
-      s |||:= t
+      seq1 := copy(seq)
+      every n := !seq + i do {
+         suspend n
+         put(seq1, n)
+         }
+      seq := seq1
       }
 
 end

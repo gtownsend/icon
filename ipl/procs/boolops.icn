@@ -1,0 +1,185 @@
+############################################################################
+#
+#	File:     boolops.icn
+#
+#	Subject:  Procedure to perform Boolean operations on row patterns
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 26, 2002
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  Limitation:  Assumes square patterns.
+#
+############################################################################
+#
+#  Links:  convert
+#
+############################################################################
+
+link convert
+
+procedure b0000(n, m)
+   local blank
+
+   blank := []
+
+   every 1 to n do
+      put(blank, repl("0", m))
+
+   return blank
+
+end
+
+procedure b0001(rows1, rows2)
+
+   return b01(b1110(rows1, rows2))
+
+end
+
+procedure b0010(rows1, rows2)
+
+   return b01(b1101(rows1, rows2))
+
+end
+
+procedure b0011(rows1, rows2)
+
+   return b01(b1100(rows1, rows2))
+
+end
+
+procedure b01(rows)		#: complement pattern
+   local new_rows, i
+
+   new_rows := copy(rows)
+
+   every i := 1 to *rows do
+      new_rows[i] := map(rows[i], "01", "10")
+
+   return new_rows
+
+end
+
+procedure b0100(rows1, rows2)
+
+   return b01(b1011(rows1, rows2))
+
+end
+
+procedure b0101(rows1, rows2)
+
+   return b01(b1010(rows1, rows2))
+
+end
+
+procedure b0110(rows1, rows2)	#:  "xor" of two patterns
+   local pixels1, pixels2
+
+   pixels1 := inbase10(rows2pixels(rows1), 2)
+   pixels2 := inbase10(rows2pixels(rows2), 2)
+
+   return pixels2rows(right(exbase10(ixor(pixels1, pixels2), 2),
+      *rows1 ^ 2, "0"), *rows1)
+
+end
+
+procedure b0111(rows1, rows2)
+
+   return b01(b1000(rows1, rows2))
+
+end
+
+procedure b1000(rows1, rows2)	#:  "and" of two patterns
+   local pixels1, pixels2
+
+   pixels1 := inbase10(rows2pixels(rows1), 2)
+   pixels2 := inbase10(rows2pixels(rows2), 2)
+
+   return pixels2rows(right(exbase10(iand(pixels1, pixels2), 2),
+      *rows1 ^ 2, "0"), *rows1)
+
+end
+
+procedure b1001(rows1, rows2)
+
+   return b01(b0110(rows1, rows2))
+
+end
+
+procedure b1010(rows1, rows2)
+
+   return copy(rows2)
+
+end
+
+procedure b1011(rows1, rows2)
+
+   return b1110(b01(rows1), rows2)
+
+end
+
+procedure b1100(rows1, rows2)
+
+   return copy(rows1)
+
+end
+
+procedure b1101(rows1, rows2)
+
+   return b1110(rows1, b01(rows2))
+
+end
+
+procedure b1110(rows1, rows2)	#: "or" of two patterns
+   local pixels1, pixels2
+
+   pixels1 := inbase10(rows2pixels(rows1), 2)
+   pixels2 := inbase10(rows2pixels(rows2), 2)
+
+   return pixels2rows(right(exbase10(ior(pixels1, pixels2), 2),
+      *rows1 ^ 2, "0"), *rows1)
+
+end
+
+procedure b1111(n, m)
+   static all
+
+   initial {
+      all := []
+      every 1 to n do
+         put(all, repl("1", m))
+      }
+
+   return all
+
+end
+
+procedure pixels2rows(pixels, n)
+   local rows
+
+   rows := []
+
+   pixels ? {
+      while put(rows, move(n))
+      }
+
+   return rows
+
+end
+
+procedure rows2pixels(rows)
+   local pixels
+
+   pixels := ""
+
+   every pixels ||:= !rows
+
+   return pixels
+
+end

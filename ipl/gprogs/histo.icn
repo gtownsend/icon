@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     November 26, 1996
+#	Date:     December 21, 2002
 #
 ############################################################################
 #
@@ -19,13 +19,16 @@
 #
 #  The following options are supported:
 #
-#	s r	horizontal scale factors, default 1.0
-#	w i	bar width in pixels, default 5
-#	g i	gap between bars, default 1
-#	m	minimal; set width to 1, gap to 0.
+#	-s r	horizontal scale factors, default 1.0
+#	-w i	bar width in pixels, default 5
+#	-g i	gap between bars, default 1
+#	-m	minimal; set width to 1, gap to 0.
+#-	n s	name for image file, default "untitled"
 #
 #  Note: If there is too much input, there may not be resources to
 #  open a window, and even if there is, parts may be off-screen.
+#
+#  The histogram is written to <name>.gif
 #
 #  The window is dismissed by a user q event.
 #
@@ -45,7 +48,7 @@ link wopen
 
 procedure main(args)
    local height, window_height, y, window_width, numbers, opts, scale
-   local number, gap, bar
+   local number, gap, bar, name
 
    opts := options(args, "s.w+g+m")
 
@@ -56,6 +59,7 @@ procedure main(args)
       bar := 1
       gap := 0
       }
+   name := \opts["n"] | "untitled"
    
    height := bar + gap
 
@@ -85,6 +89,8 @@ procedure main(args)
    WAttrib("canvas=normal")
 
    until WQuit()
+
+   WriteImage(name || ".gif")
 
    WClose()
 

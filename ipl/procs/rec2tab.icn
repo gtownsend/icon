@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     February 23, 2001
+#	Date:     July 6, 2002
 #
 ############################################################################
 #
@@ -20,12 +20,16 @@
 #
 ############################################################################
 
-procedure rec2tab(x)
-   local i
+procedure rec2tab(rec, output)
+   local i, x
 
-   i := *x - 1
-   every writes(map(\!x, "\n", "\v"),"\t") \ i
-   write(map(\x[-1], "\n", "\v")) | write()
+   i := *rec - 1
+   every i := 1 to *rec - 1 do {
+      x := rec[i]
+      /x := ""
+      writes(output, map(x, "\n", "\v"),"\t")
+      }
+   write(output, map(\rec[-1], "\n", "\v")) | write(output)
 
    return
 

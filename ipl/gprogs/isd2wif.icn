@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     April 20, 2000
+#	Date:     April 14, 2002
 #
 ############################################################################
 #
@@ -18,10 +18,11 @@
 #
 ############################################################################
 #
-#  Links:  weavutil, xcode
+#  Links:  patxform, weavutil, xcode
 #
 ############################################################################
 
+link patxform
 link weavutil
 link xcode
 
@@ -36,11 +37,12 @@ procedure main()
    write("Version=1.1")
    write("Date=" || &dateline)
    write("Developers=ralph@cs.arizona.edu")
-   write("Source Program=isd2wif.icn")
+   write("Source Program=seqdraft.icn")
 
    write("[CONTENTS]")
    write("Color Palette=yes")
    write("Text=yes")
+   write("Notes=yes")
    write("Weaving=yes")
    write("Tieup=yes")
    write("Color Table=yes")
@@ -63,6 +65,10 @@ procedure main()
    write("EMail=ralph@cs.arizona.edu")
    write("Telephone=520-881-1470")
    write("FAX=520-325-3948")
+
+   write("[NOTES]")
+   write("1=")
+
 
    write("[WEAVING]")
    write("Shafts=", draft.shafts)
@@ -105,6 +111,8 @@ procedure main()
    write("[WEFT COLORS]")
    every i := 1 to *draft.weft_colors do
       write(i, "=", draft.weft_colors[i])
+
+   draft.tieup := protate(draft.tieup)
 
    write("[TIEUP]")
    every i := 1 to *draft.tieup do

@@ -1,0 +1,81 @@
+############################################################################
+#
+#	File:     blp2grid.icn
+#
+#	Subject:  Program to convert BLP drawdown to grid image
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 26, 2002
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  The following options are supported:
+#
+#	-s i	size of cells; default 5
+#	-c s	color for filling cells; default black
+#
+#  Also handles row files.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  basename, cells, convert, options, patutils, wopen
+#
+############################################################################
+
+link basename
+link cells
+link convert
+link options
+link patutils
+link wopen
+
+procedure main(args)
+   local rows, panel, input, line, name, opts, size, file, color
+
+   opts := options(args, "s+c:")
+
+   size := \opts["s"] | 5
+   color := \opts["c"] | "black"
+
+   while file := get(args) do {
+      input := open(file) | stop("*** cannot open pattern file")
+      rows := []
+      line := read(input) | stop("empty file")
+      if upto("#", line) then rows := pat2rows(line)
+      else {
+         rows := [line]
+         while put(rows, read(input))	# read in row pattern
+         }
+      panel := matrixpanel(rows, size)
+      fill_cells(panel, rows, color)
+      name := basename(file, ".blp")
+      name := basename(name, ".rows")
+      WriteImage(panel.window, name || "_grid.gif")
+      WClose(panel.window)
+      close(input)
+      }
+
+end
+
+procedure fill_cells(panel, rows, cellcolor)
+   local i, j, color
+
+   every i := 1 to *rows do {
+      every j := 1 to *rows[1] do {
+         color := if rows[i, j] == "1" then cellcolor else "white"
+         colorcell(panel, j, i, color)
+         } 
+      }
+
+   return
+
+end

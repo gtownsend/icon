@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     January 10, 2002
+#	Date:     March 4, 2003
 #
 ############################################################################
 #
@@ -44,6 +44,7 @@
 #   scollate(xargs[])	 sequence collation
 #   scompress(xargs[])	 compact sequence
 #   sconcat(xargs[])	 concatenate sequences
+#   sconcatp(xargs[])	 concatenate sequences, pattern style
 #   scpal(xargs[])	 closed sequence palindrome
 #   sdecimate(xargs[])	 decimate sequence
 #   sdecollate(order, x) decollate sequence
@@ -69,9 +70,10 @@
 #   sopal(xargs[])	 create open sequence palindrome
 #   sorder(x)		 positions of first occurrence
 #   sparity(xargs[])	 adjust parity
-#   speriod(s)		 sequence period
+#   speriod(s, i)	 sequence period
 #   splace(xargs[])	 place motif along a path
 #   splaceg(xargs[])	 generalized motifs along a path
+#   splacep(xargs[])	 place motif along a path
 #   ssplitdupl(xargs[])	 split duplicate adjacent terms
 #   spositions(x1, x2)	 shaft positions
 #   spromote(x)		 promote term to sequence
@@ -491,6 +493,22 @@ procedure sconcat(xargs[])		#: concatenate sequences
    lseq := []
 
    every lseq |||:= spromote(!xargs)
+
+   return lseq
+
+end
+
+procedure sconcatp(xargs[])		#: concatenate sequences as pattern
+   local lseq, nseq
+
+   if \node_gen then return node("sconcat", xargs)
+
+   lseq := []
+
+   every nseq := spromote(!xargs) do {
+      if nseq[1] === lseq[-1] then get(nseq)
+      lseq |||:= nseq
+      }
 
    return lseq
 
@@ -953,15 +971,23 @@ procedure sparity(xargs[])		#: adjust parity
 
 end
 
-procedure speriod(seq)			#: period of sequence
+procedure speriod(seq, k)			#: period of sequence
    local i, segment
 
+   if /k then {					# assume full repeats
    every i := 1 | divisors(*seq) do {	# if repeats came out even
       segment := seq[1+:i]
       if sequiv(sextend(segment, *seq), seq) then return i
       }
-
    fail
+      }
+   else {					# assume partial repeat at edge
+      every i := 1 to *seq do {
+         segment := seq[1+:i]
+         if sequiv(sextend(segment, *seq), seq) then return i
+         }
+      fail					# should not happen
+      }
 
 end
 
@@ -977,6 +1003,26 @@ procedure splace(xargs[])		#: place motif along a path
 
    every i := !x2 do
       every put(lseq, !x1 + i - 1)
+
+   return lseq
+
+end
+
+procedure splacep(xargs[])		#: place motif along a path
+   local lseq, i, x1, x2, j
+
+   if \node_gen then return node("splace", xargs)
+
+   x1 := copy(spromote(xargs[1]))
+   x2:= spromote(xargs[2])
+
+   lseq := []
+
+   every i := !x2 do {
+      j := x1[1]
+      if j ~= lseq[-1] then put(lseq, j)
+      every put(lseq, x1[2 to * x1] + i - 1)
+      }
 
    return lseq
 

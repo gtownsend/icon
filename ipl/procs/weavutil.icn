@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     November 17, 2001
+#	Date:     April 13, 2002
 #
 ############################################################################
 #
@@ -153,6 +153,8 @@ procedure write_spec(name, spec, opt, mode)	#: write weaving include file
    write(output, "$define Shafts (", spec.shafts, ")")
    write(output, "$define Treadles (", spec.treadles, ")")
    write(output, "$define Tieup ", image(spec.tieup))
+   write(output, "$define Threads ", spec.links[1])
+   write(output, "$define Treads ", spec.links[2])
    
    every n := !keylist(spec.defns) do
       write(output, "$define ", n, " ", spec.defns[n])
@@ -196,6 +198,8 @@ procedure write_spec1(name, spec, opt, mode, defns)	#: weaving include file
    write(output, "$define Shafts (", spec.shafts, ")")
    write(output, "$define Treadles (", spec.treadles, ")")
    write(output, "$define Tieup ", spec.tieup)
+   write(output, "$define Threads ", spec.links[1])
+   write(output, "$define Treads ", spec.links[2])
    
    every n := !keylist(spec.defns) do
       write(output, "$define ", n, " ", spec.defns[n])
@@ -243,6 +247,8 @@ procedure write_spec2(name, spec, opt, mode, defns)	#: weaving include file
    write(output, "$define Shafts (", spec.shafts, ")")
    write(output, "$define Treadles (", spec.treadles, ")")
    write(output, "$define Tieup ", spec.tieup)
+   write(output, "$define Threads ", spec.links[1])
+   write(output, "$define Treads ", spec.links[2])
    
    every n := !keylist(spec.defns) do
       write(output, "$define ", n, " ", spec.defns[n])
