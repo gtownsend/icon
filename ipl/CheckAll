@@ -1,6 +1,8 @@
 #!/bin/ksh -p
 #
-#  Test-build all IPL components and run other sanity checks
+#  CheckAll -- Test-build all IPL components and run other sanity checks
+#
+#  Assumes that there are binaries of Icon in ../bin
 
 
 #  Combine stderr with stdout so both can be redirected together.
@@ -44,7 +46,7 @@ done
 
 
 #  Check for undeclared identifiers or insufficient links in the core modules.
-echo checking core modules:
+echo core modules:
 (cd procs;  IPATH=         icont -us -fs core.u2)
 (cd gprocs; IPATH=../procs icont -us -fs graphics.u2)
 
@@ -54,7 +56,7 @@ IPATH=./cfuncs
 rm -f xxx
 for d in procs gprocs mprocs; do
     export IPATH="$IPATH ./$d"
-    echo checking linkage in $d:
+    echo $d linkage:
     for f in `cd $d; ls *.icn`; do
 	b=${f%.icn}
 	# allow undeclared identifiers in main() for use with code generators

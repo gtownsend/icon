@@ -15,10 +15,10 @@ Undef:
 Strays:
 	for d in *procs *progs *incl; do (cd $$d; pwd; gcomp CVS *.icn); done
 
-# build all programs including packs, to verify that they do build,
+# verify that all procedures and programs build, including packs,
 # and perform some other sanity checks
 Check:
-	./BuildAll
+	./CheckAll
 
 # clean up
 Clean:
