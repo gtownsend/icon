@@ -16,7 +16,7 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 <BR> <SMALL> The University of Arizona </SMALL>
 
 <P> <SMALL> www.cs.arizona.edu/icon/v941/relnotes.htm
-<BR> Last updated January 16, 2002 </SMALL>
+<BR> Last updated January 30, 2002 </SMALL>
 <!-- $Id$ -->
 
 
@@ -110,32 +110,36 @@ With this version, the limit has been raised to around
 44 million elements, making much larger sets and tables
 feasible.
 
+<H3> Automatic hardware configuration </H3>
+
+<P> The configuration parameters <CODE>IntBits</CODE>, <CODE>WordBits</CODE>,
+<CODE>Double</CODE>, and <CODE>UpStack</CODE> are now configured automatically.
+This allows the same <CODE>linux</CODE> configuration to be used 
+on x86, Itanium, and Alpha architectures, and presumably on others.
+The set of configurations has been consolidated, and some
+obsolete configurations removed.
+
 <H3> Pthreads configurations </H3>
 
 <P> Co-expression support requires specialized code for context switching
 that until now has been hardware-dependent.
 A new, portable set of context switching functions has been developed
 using POSIX threads and semaphores.
-The new functions have been tested under Linux, Solaris, Irix, and Digital
-Unix, and on several hardware architectures including the Intel Itanium.
+The new functions have been tested under
+Linux, FreeBSD, Solaris, Irix, and Digital Unix,
+and on several hardware architectures including the Intel Itanium.
 
 <P> These pthreads configurations are more sensitive than others
 to the accumulation of uncollected co-expressions under heavy usage.
-Accordingly they have been provided as a set of alternate configurations.
-
-<H3> Automatic hardware configuration </H3>
-
-<P> The configuration parameters <CODE>IntBits</CODE>, <CODE>WordBits</CODE>,
-<CODE>Double</CODE>, and <CODE>UpStack</CODE> are now configured automatically.
-This allows the same <CODE>pthreads_linux</CODE> configuration to be used 
-on x86, Itanium, and Alpha architectures, and presumably on others.
+Consequently, they are not used by default when platform-specific
+code is available.
 
 <H3> Library Changes </H3>
 
 <P> As usual, several files in the Icon program library
 have been added, edited, or moved.
 No significant changes were made to the core files.
-The most notable new addition is a nice double-deck solitaire game,
+The most notable addition is a nice double-deck solitaire game,
 <CODE>gprogs/spider.icn</CODE>, contributed by Will Evans.
 
 <H3> Minor changes </H3>
@@ -144,9 +148,6 @@ The most notable new addition is a nice double-deck solitaire game,
 
 <LI> Added <CODE>icont -P</CODE> to print the Icon version
 and configuration.
-
-<LI> Added new configurations for GNU Hurd and Debian Linux
-(in addition to pthreads configurations).
 
 <LI> Edited Makefiles and shell scripts to work even in a non-POSIX locale.
 
