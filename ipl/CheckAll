@@ -43,8 +43,12 @@ done
 (echo mprocs:; cd mprocs; LPATH="../incl ../gincl ../mincl" icont -usc *icn)
 
 
-#  Check that link directives are sufficient for each procedure file
-#  Also catches a few undeclared identifiers  (to see all, use "icont -fs")
+#  Check for undeclared identifiers or insufficient links in the core modules.
+echo checking core modules:
+(cd procs;  IPATH=         icont -us -fs core.u2)
+(cd gprocs; IPATH=../procs icont -us -fs graphics.u2)
+
+#  Check linkages for all procedure files, ignoring most undeclared identifiers.
 
 IPATH=./cfuncs
 rm -f xxx

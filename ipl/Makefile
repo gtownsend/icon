@@ -18,7 +18,7 @@ Strays:
 # build all programs including packs, to verify that they do build,
 # and perform some other sanity checks
 Check:
-	BuildAll
+	./BuildAll
 
 # clean up
 Clean:
