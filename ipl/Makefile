@@ -1,6 +1,9 @@
 #  Makefile for the Icon Program Library
 
 
+All:	Ilib Ibin
+
+
 #  Make a library distribution (portable ucode and include files).
 
 Ilib:	../bin/libcfunc.so
@@ -23,7 +26,7 @@ Cfuncs:
 #  for ../bin, given that ../lib is ready
 
 Ibin:	../bin/vib
-../bin/vib:  ../bin/icont
+../bin/vib:  ../bin/icont ../bin/libcfunc.so
 	MAKE=$(MAKE) ./BuildBin
 
 
@@ -71,6 +74,7 @@ ZipFiles:  Ilib
 #  Clean up.
 
 Clean Pure:
+	-rm -f ../bin/vib ../bin/libcfunc.so
 	-rm -rf ilib iexe *.zip */*.u[12] */*.zip
 	-rm -f xx `find *procs *progs -type f -perm -100 -print`
 	for d in cfuncs *packs/[abcdefghijklmnopqrstuvwxyz]*; do \

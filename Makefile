@@ -83,7 +83,7 @@ Common:		src/h/define.h
 # The Icon program library.
 
 Ilib:		bin/icont
-		cd ipl;			$(MAKE)
+		cd ipl;			$(MAKE) Ilib
 
 Ibin:		bin/icont
 		cd ipl;			$(MAKE) Ibin
