@@ -453,9 +453,9 @@ char *argv[];
 #endif					/* COMPILER */
 
    {
+   int delete_icode = 0;
 #if !COMPILER
    FILE *fname = NULL;
-   int delete_icode = 0;
    word cbread, longread();
 #endif					/* COMPILER */
 
