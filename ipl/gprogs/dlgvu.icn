@@ -373,7 +373,6 @@ $define PINTERVAL 100			# progress interval
 $define PSQUARES 8			# number of progress squares
 $define PSQSIZE 10			# size of progress squares
 $define PSQGAP 2			# size of gap between squares
-$define XSIZE 30			# size of X on maps not loaded
 
 # PostScript output parameters
 $define PSSCALE 10			# scaling from pixels to PS units
@@ -385,7 +384,7 @@ $define PSLWI 120			# linewidth scaling factor
 record arg (		# command-line argument, excluding options
    name,		# file or directory name
    type,		# "dir", "zip", or "txt"
-   wanted,		# if a wanted layer (null if suppresed by -t option)
+   wanted,		# if a wanted layer (null if suppressed by -t option)
    ltable,		# table of layer records, indexed by layer code
    pcount		# progress bar counter
    )
@@ -400,7 +399,8 @@ record layer (		# one layer in one directory (or zip file)
    ellipsoid,		# inferred geodetic ellipsoid
    icorners,		# map corners in input terms
    ocorners,		# map corners as projected to lat,lon
-   px, py		# progress reporting coordinates
+   px, py,		# progress reporting coordinates
+   wd			# width of layer in screen units
    )
 
 record attrec (		# line drawing attributes:
@@ -1418,8 +1418,13 @@ procedure alllabels(p)
 
    setdraw(attrib["n"])
    every a := !arglist do {
-      if \a.wanted then
+      if \a.wanted then {
          drawlabel(!a.ltable)		# pick any layer
+         if \opts["c"] then {
+            drawcoverage(a)
+            setdraw(attrib["n"])
+         }
+      }
       if *(\p)() > 0 then
          break
       }
@@ -1430,7 +1435,7 @@ end
 
 #  drawlabel(r) -- draw label for layer r in current color
 #
-#  sets r.px, r.py to progress bar position
+#  sets r.px, r.py to progress bar position and r.wd to layer width
 
 procedure drawlabel(r)
    local x, y, w, h, n, d, u, s, tw, tmax, v, wproj
@@ -1489,6 +1494,7 @@ procedure drawlabel(r)
 
    r.px := integer(x)
    r.py := integer(y + 0.75 * WAttrib("fheight"))
+   r.wd := w
    return
 end
 
@@ -1505,6 +1511,30 @@ procedure progress(r)
    FillRectangle(x, r.py, PSQSIZE - PSQGAP, PSQSIZE - PSQGAP)
    if (a.pcount / PSQUARES) % 2 = 1 then
       EraseArea(x + 1, r.py + 1, PSQSIZE - PSQGAP - 2, PSQSIZE - PSQGAP - 2)
+   return
+end
+
+
+
+#  drawcoverage(a) -- draw coverage indicators for arg entry a
+
+procedure drawcoverage(a)
+   local c, r, x, y, w
+
+   r := \!a.ltable | return
+   w := r.wd / *DLG_LAYERS
+   w >:= PSQSIZE
+   w <:= 2
+   x := r.px - (w * *DLG_LAYERS) / 2
+   y := r.py
+
+   every c := !cset(DLG_LAYERS) do {
+      if r := \a.ltable[c] then {
+         setdraw(attrib[r.lcode])
+         FillRectangle(x, y, w, w)
+      }
+      x +:= w
+   }
    return
 end
 
