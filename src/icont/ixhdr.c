@@ -41,8 +41,8 @@ int main(int argc, char *argv[]) {
  *  To find the interpreter, first check the environment variable ICONX.
  *  If it defines a path, it had better work, else we abort.
  *
- *  If there's no $ICONX, search $PATH for an "iconx" program.
- *  Use it if possible.  If no iconx, then abort.
+ *  Failing that, check the directory containing the icode file,
+ *  and if that doesn't work, search $PATH.
  */
 static void doiconx(char *argv[]) {
    char xcmd[256];
@@ -51,6 +51,9 @@ static void doiconx(char *argv[]) {
       execv(argv[0], argv);		/* exec file specified by $ICONX */
       hsyserr("cannot execute $ICONX: ", argv[0]);
       }
+
+   argv[0] = relfile(argv[1], "/../iconx");	/* path to iconx in same dir */
+   execv(argv[0], argv);		/* try exec; just continue on failure */
 
    if (findonpath("iconx", xcmd, sizeof(xcmd))) {    /* if iconx on $PATH */
       argv[0] = xcmd;
