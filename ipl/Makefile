@@ -1,7 +1,7 @@
 #  make library distribution (portable ucode and include files)
 Ilib:	.ldone
 .ldone:
-	cp incl/*.icn gincl/*.icn mincl/*.icn ../lib
+	cp incl/*.icn gincl/*.icn mincl/*.icn cfuncs/icall.h ../lib
 	cd procs;  LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
 	cd gprocs; LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
 	cd mprocs; LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
