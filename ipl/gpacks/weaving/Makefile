@@ -1,18 +1,27 @@
-#  The programs listed in this Makefile (there are more in the directory)
-#  are known to build cleanly.
+#  The programs listed in this Makefile (there are more in the
+#  directory) are those that are not labeled AD HOC that have
+#  been verified to build cleanly.
 
-PROGS = randweav showrav unravel heddle \
-   mtrxedit
+
+PROCS = cells.u2 tdialog.u2 tieutils.u2 tpath.u2 \
+   weavegif.u2 weaving.u2 weavutil.u2 wifcvt.u2
+
+PROGS = comb draw2gmr drawdown drawup gif2geom gif2html heddle lindpath \
+   mtrxedit pfd2gif pfd2gmr pfd2ill pfd2wif plexity randweav \
+   seqdraft shadow shadpapr showrav tieimage unravel wallpapr weaver wif2pfd
+
 
 IC = icont
+IFLAGS = -us
 
-.SUFFIXES: .icn
+.SUFFIXES: 	.icn .u2
+.icn.u2:        ; $(IC) $(IFLAGS) -c $<
+.icn:		; $(IC) $(IFLAGS) $<
 
-.icn:	; $(IC) -us $<
 
+all:		$(PROGS)
 
-
-all:	$(PROGS)
+$(PROGS): 	$(PROCS)
 
 clean:	
-	rm -f *.u? `find . -type f -perm -100`
+		rm -f $(PROGS) *.u?
