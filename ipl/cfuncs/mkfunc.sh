@@ -20,7 +20,7 @@ cat <<ENDHDR
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     September 17, 1997
+#	Date:     June 8, 2001
 #
 ############################################################################
 #
@@ -31,8 +31,9 @@ cat <<ENDHDR
 #  the arguments and returns a result (or fails).  Subsequent calls
 #  go straight to the C function without involving the Icon stub.
 #
-#     C functions are loaded from a file "$LIB" that is found
-#  by searching \$FPATH.  The default \$FPATH is ". /usr/local/lib/icon".
+#     C functions are loaded from a file "$LIB" that is found by
+#  searching \$FPATH.  The default \$FPATH is set by iconx to include
+#  this library.
 #
 ############################################################################
 #
