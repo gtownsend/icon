@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+#  <ARIZONA-ONLY> <#%#%#%#%# TEMPORARY #%#%#%#%>
+
+if [ "$1" = "" ]; then
+   FILES="*_*/*.hdr *_*/*.mak"
+else
+   FILES="$1/*.hdr $1/*.mak"
+fi
+
+cat $FILES |
+sed 's/[ 	]*$//' |
+grep -v '^#' |
+sort |
+uniq -c |
+sort -b +1
