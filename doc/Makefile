@@ -16,10 +16,10 @@ MANPAGE = ../man/man1/icont.1
 default:  $(MADE)
 
 icont.txt: $(MANPAGE) clnroff.sed
-	nroff -man $(MANPAGE) | sed -f clnroff.sed | uniq >icont.txt
+	nroff -Tascii -man $(MANPAGE) | sed -f clnroff.sed | uniq >icont.txt
 
 faq.txt:  faq.htm
-	lynx -nolist -dump faq.htm >faq.txt
+	lynx -nolist -dump -justify=off faq.htm >faq.txt
 
 lint:
 	weblint -x netscape *.htm
