@@ -1,4 +1,4 @@
-#  Makefile for FAQ installation and webpage validation
+#  Makefile for FAQ/doc installation and webpage validation
 #  <<ARIZONA-ONLY>>
 
 

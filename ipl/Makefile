@@ -1,7 +1,8 @@
-#  Makefile for Icon Program Library
+#  Makefile for the Icon Program Library
 
 
-#  make library distribution (portable ucode and include files)
+#  Make a library distribution (portable ucode and include files).
+
 Ilib:	../bin/libcfunc.so
 ../bin/libcfunc.so:  ../bin/icont
 	cp incl/*.icn gincl/*.icn cfuncs/icall.h ../lib
@@ -11,36 +12,45 @@ Ilib:	../bin/libcfunc.so
 	mv cfuncs/*.u? ../lib
 	mv cfuncs/libcfunc.so ../bin
 
-# make selected program binaries (platform-dependent icode) for ../bin,
-# given that ../lib is ready
+
+#  Make selected program binaries (platform-dependent icode) for ../bin,
+#  given that ../lib is ready
+
 Ibin:	../bin/ipatch
 ../bin/ipatch:  ../bin/icont
 	./BuildBin
 
 
-# make full set of program binaries (not usually done) in ./iexe,
-# given that ../lib is ready
+#  Make a full set of program binaries (not usually done) in ./iexe,
+#  given that ../lib is ready
+
 Iexe:
 	rm -f iexe/*
 	./BuildExe
 
-# check for undefined identifiers in ../lib
-# (a few are expected: to Mp, program, init, goal)
+
+#  Check for undefined identifiers in ../lib.
+#  (A few are expected: references to Mp, program, init, goal).
 
 Undef:
 	cd ../lib; for f in *.u2; do (echo $$f; icont -us -fs $$f); done
 
-# check for stray files
+
+#  Check for stray files
+
 Strays:
 	for d in *procs *progs *incl; do (cd $$d; pwd; gcomp CVS *.icn); done
 
-# verify that all procedures and programs build, including packs,
-# and perform some other sanity checks
+
+#  Verify that all procedures and programs build, including packs,
+#  and perform some other sanity checks
+
 Check:
 	./CheckAll
 
 
-# clean up
+#  Clean up.
+
 Clean Pure:
 	rm -rf iexe */*.u[12] */*.zip
 	rm -f `find *procs *progs -type f -perm -100`

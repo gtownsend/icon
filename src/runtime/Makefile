@@ -1,3 +1,5 @@
+#  Makefile for the Icon run-time system.
+
 include ../../Makedefs
 CFLAGS = $(CFRUN)
 

@@ -1,7 +1,8 @@
-#  Makefile for dynamically loaded C function library
+#  Makefile for the dynamically loaded C function library.
 #
 #  If building with the compiler (instead of the interpreter)
 #  use the "-fs" option to avoid problems.
+
 
 include ../../Makedefs
 CFLAGS = $(CFCOMM)
@@ -19,12 +20,16 @@ CSRC = $(FUNCS:.o=.c)
 
 default:	cfunc.u2 $(FUNCLIB)
 
+
 # library
+
 $(FUNCLIB):	$(FUNCS) mklib.sh
 		CC="$(CC)" CFLAGS="$(CFLAGS)" sh mklib.sh $(FUNCLIB) $(FUNCS)
 $(FUNCS):	icall.h
 
+
 # Icon interface
+
 cfunc.u2:	cfunc.icn
 		$(ICONT) $(IFLAGS) -c cfunc.icn
 cfunc.icn:	$(CSRC) mkfunc.sh
@@ -32,5 +37,6 @@ cfunc.icn:	$(CSRC) mkfunc.sh
 
 
 # cleanup
+
 clean Clean:
 		rm -f $(FUNCLIB) *.o *.u? *.so so_locations cfunc.icn

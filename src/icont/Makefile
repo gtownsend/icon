@@ -1,3 +1,5 @@
+#  Makefile for the Icon translator, icont.
+
 include ../../Makedefs
 CFLAGS = $(CFTRAN)
 

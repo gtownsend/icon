@@ -1,3 +1,6 @@
+#  Makefile for Version 9.4 of Icon
+
+
 #  configuration parameters
 VER=9.4.f
 name=unspecified
@@ -7,7 +10,6 @@ dest=/must/specify/dest/
 ##################################################################
 #
 # Default targets.
-#
 
 default:	Icon Ilib Ibin
 
@@ -29,9 +31,8 @@ config/unix/$(name)/status src/h/define.h:
 #
 # Code configuration.
 
-#
+
 # Configure the code for a specific system.
-#
 
 Configure:	config/unix/$(name)/status
 		make Pure
@@ -47,71 +48,41 @@ X-Configure:	config/unix/$(name)/status
 		cd config/unix/$(name);	$(MAKE) X-Icon
 		rm -f config/unix/$(name)/Makefile
 
-#
-# Check to see what systems have configuration information.
-#
 
-Supported:
-		@echo "There is configuration information for"
-		@echo " the following systems:"
-		@echo ""
-		@cd config/unix;		ls -d [a-z]*
-
-#
 # Get the status information for a specific system.
-#
 
 Status:
 		@cat config/unix/$(name)/status
 
-#
-# Build a prototype configuration for a new system.
-#
-
-Platform:
-		mkdir config/unix/$(name)
-		cp config/unix/Common/* config/unix/$(name)
-
-#
-# Copy default header files.
-#
-
-Headers:
-		cp config/unix/Common/*.hdr config/unix/$(name)
 
 ##################################################################
 #
 # Compilation.
-#
 
-#
+
 # The interpreter: icont and iconx.
-#
 
 Icon Icon-icont bin/icont: Common
 		cd src/icont;		$(MAKE)
 		cd src/runtime;		$(MAKE) 
 
-#
+
 # The compiler: rtt, the run-time system, and iconc.
 # (NO LONGER SUPPORTED OR MAINTAINED.)
-#
 
 Icon-iconc:	Common
 		cd src/runtime;		$(MAKE) comp_all
 		cd src/iconc;		$(MAKE)
 
-#
+
 # Common components.
-#
 
 Common:		src/h/define.h
 		cd src/common;		$(MAKE)
 		cd src/rtt;		$(MAKE)
 
-#
-# Library.
-#
+
+# The Icon program library.
 
 Ilib:		bin/icont
 		cd ipl;			$(MAKE)
@@ -119,14 +90,14 @@ Ilib:		bin/icont
 Ibin:		bin/icont
 		cd ipl;			$(MAKE) Ibin
 
+
 ##################################################################
 #
 # Installation and packaging.
-#
 
-#
+
 # Installation:  "make Install dest=new-parent-directory"
-#
+
 D=$(dest)
 Install:
 		test -d $D || mkdir $D
@@ -142,31 +113,20 @@ Install:
 		cp doc/*.* $D/doc
 		cp man/man1/icont.1 $D/man/man1
 
-#
-# Package for binary distribution.
-#
+
+# Bundle up for binary distribution.
+
 DIR=icon.$(VER)
 Package:
 		rm -rf $(DIR)
 		umask 002; $(MAKE) Install dest=$(DIR)
 		tar cf - icon.$(VER) | gzip -9 >icon.$(VER).tgz
 		rm -rf $(DIR)
-		
 
-
-##################################################################
-#
-# 
-#
-
-CopyLib:
-		cp bin/dlrgint.o bin/rt.db bin/rt.h bin/*.a $(Target)
-		-(test -f NoRanlib) || (ranlib $(Target)/*.a)
 
 ##################################################################
 #
 # Tests.
-#
 
 Test    Test-icont:	; cd tests; $(MAKE) Test
 Samples Samples-icont:	; cd tests; $(MAKE) Samples
@@ -175,11 +135,9 @@ Test-iconc:		; cd tests; $(MAKE) Test-iconc
 Samples-iconc:		; cd tests; $(MAKE) Samples-iconc
 
 
-
 #################################################################
 #
 # Run benchmarks.
-#
 
 Benchmark:
 		$(MAKE) Benchmark-icont
@@ -193,7 +151,7 @@ Benchmark-icont:
 
 ##################################################################
 #
-# Clean-up.
+# Cleanup.
 #
 # "make Clean" removes intermediate files, leaving executables and library.
 # "make Pure"  also removes binaries, library, and configured files.

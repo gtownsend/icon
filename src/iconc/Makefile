@@ -1,3 +1,7 @@
+#  Makefile for the Icon compiler, iconc.
+#
+#  This is no longer supported and may not work.
+
 include ../../Makedefs
 CFLAGS = $(CFTRAN)
 

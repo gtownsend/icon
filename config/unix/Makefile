@@ -1,3 +1,7 @@
+#  Makefile for configuring a Unix build.
+#
+#  (make Setup name=xxx_yyy)
+
 name = undefined
 TOP = ../..
 SRC = $(TOP)/src
