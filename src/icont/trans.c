@@ -30,15 +30,9 @@ int trans(ifiles, tgtdir)
 char **ifiles;
 char *tgtdir;
    {
-   tmalloc();			/* allocate memory for translation */
-
    afatals = 0;
 
-#ifdef MultipleRuns
-   yylexinit();			/* initialize lexical analyser */
-   tcodeinit();			/* initialize code generator */
-#endif					/* Multiple Runs */
-
+   tmalloc();			/* allocate memory for translation */
    while (*ifiles) {
       trans1(*ifiles++, tgtdir);	/* translate each file in turn */
       afatals += tfatals;
@@ -89,7 +83,6 @@ char *filename, *tgtdir;
       return;
       }
 
-#ifndef VarTran
    /*
     * Form names for the .u1 and .u2 files and open them.
     *  Write the ucode version number to the .u2 file.
@@ -103,7 +96,6 @@ char *filename, *tgtdir;
    if (globfile == NULL)
       quitf("cannot create %s", oname2);
    writecheck(fprintf(globfile,"version\t%s\n",UVersion));
-#endif					/* VarTran */
 
    tok_loc.n_file = filename;
    in_line = 1;
@@ -114,12 +106,8 @@ char *filename, *tgtdir;
    /*
     * Close the output files.
     */
-
-#ifndef VarTran
    if (fclose(codefile) != 0 || fclose(globfile) != 0)
       quit("cannot close ucode file");
-#endif					/* VarTran */
-
    if (tfatals) {
       remove(oname1);
       remove(oname2);

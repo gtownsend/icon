@@ -32,8 +32,8 @@ XOBJS =	xcnv.o xdata.o xdef.o xerrmsg.o xextcall.o xfconv.o xfload.o xfmath.o\
 	xfwindow.o ximain.o ximisc.o xinit.o xinterp.o xinvoke.o\
 	xkeyword.o xlmisc.o xoarith.o xoasgn.o xocat.o xocomp.o\
 	xomisc.o xoref.o xoset.o xovalue.o xralc.o xrcoexpr.o xrcomp.o\
-	xrdebug.o xrlocal.o xrlrgint.o xrmemmgt.o xrmisc.o xrstruct.o xrsys.o\
-	xrwinrsc.o xrgfxsys.o xrwinsys.o xrwindow.o xfxtra.o
+	xrdebug.o xrlrgint.o xrmemmgt.o xrmisc.o xrstruct.o xrsys.o\
+	xrwinrsc.o xrwinsys.o xrwindow.o xfxtra.o
 
 OBJS =	$(XOBJS) $(COBJS)
 
@@ -218,11 +218,6 @@ xrdebug.o: rdebug.r $(HDRS)
 	$(CC) -c $(CFLAGS) xrdebug.c
 	rm xrdebug.c
 
-xrlocal.o: rlocal.r $(HDRS)
-	../../bin/rtt -x rlocal.r
-	$(CC) -c $(CFLAGS) xrlocal.c
-	rm xrlocal.c
-
 xrlrgint.o: rlrgint.r $(HDRS)
 	../../bin/rtt -x rlrgint.r
 	$(CC) -c $(CFLAGS) xrlrgint.c
@@ -252,11 +247,6 @@ xrwinrsc.o: rwinrsc.r $(HDRS) $(GRAPHICSHDRS) rxrsc.ri
 	../../bin/rtt -x rwinrsc.r
 	$(CC) -c $(CFLAGS) xrwinrsc.c
 	rm xrwinrsc.c
-
-xrgfxsys.o: rgfxsys.r $(HDRS) $(GRAPHICSHDRS)
-	../../bin/rtt -x rgfxsys.r
-	$(CC) -c $(CFLAGS) xrgfxsys.c
-	rm xrgfxsys.c
 
 xrwinsys.o: rwinsys.r $(HDRS) $(GRAPHICSHDRS) rxwin.ri
 	../../bin/rtt -x rwinsys.r
@@ -294,8 +284,8 @@ rt.db: $(HDRS)
 	  fsys.r fwindow.r init.r invoke.r keyword.r\
 	  lmisc.r oarith.r oasgn.r ocat.r ocomp.r omisc.r\
 	  oref.r oset.r ovalue.r ralc.r rcoexpr.r rcomp.r\
-	  rdebug.r rlrgint.r rlocal.r rmemmgt.r rmisc.r rstruct.r\
-	  rsys.r rwinrsc.r rgfxsys.r rwinsys.r rwindow.r fxtra.r
+	  rdebug.r rlrgint.r rmemmgt.r rmisc.r rstruct.r\
+	  rsys.r rwinrsc.r rwinsys.r rwindow.r fxtra.r
 	$(CC) -c $(CFLAGS) `sed 's/$$/.c/' rttcur.lst`
 	rm `sed 's/$$/.c/' rttcur.lst`
 
@@ -303,8 +293,8 @@ rt.a: ../common/rswitch.o ../common/long.o ../common/time.o\
       cnv.o data.o def.o errmsg.o fconv.o fload.o fmath.o fmisc.o fmonitr.o \
       fscan.o fstr.o fstranl.o fstruct.o fsys.o fwindow.o init.o invoke.o\
       keyword.o lmisc.o oarith.o oasgn.o ocat.o ocomp.o omisc.o oref.o oset.o\
-      ovalue.o ralc.o rcoexpr.o rcomp.o rdebug.o rlrgint.o rlocal.o rmemmgt.o\
-      rmisc.o rstruct.o rsys.o rwinrsc.o rgfxsys.o rwinsys.o fxtra.o\
+      ovalue.o ralc.o rcoexpr.o rcomp.o rdebug.o rlrgint.o rmemmgt.o\
+      rmisc.o rstruct.o rsys.o rwinrsc.o rwinsys.o fxtra.o\
       rwindow.o ../common/xwindow.o ../common/alloc.o
 	rm -f rt.a
 	ar qc rt.a `sed 's/$$/.o/' rttfull.lst` ../common/rswitch.o\
@@ -473,11 +463,6 @@ rlrgint.o: rlrgint.r $(HDRS)
 	$(CC) -c $(CFLAGS) `sed 's/$$/.c/' rttcur.lst`
 	rm `sed 's/$$/.c/' rttcur.lst`
 
-rlocal.o: rlocal.r $(HDRS)
-	../../bin/rtt rlocal.r
-	$(CC) -c $(CFLAGS) `sed 's/$$/.c/' rttcur.lst`
-	rm `sed 's/$$/.c/' rttcur.lst`
-
 rmemmgt.o: rmemmgt.r $(HDRS)
 	../../bin/rtt rmemmgt.r
 	$(CC) -c $(CFLAGS) `sed 's/$$/.c/' rttcur.lst`
@@ -500,11 +485,6 @@ rsys.o: rsys.r $(HDRS)
 
 rwinrsc.o: rwinrsc.r $(HDRS) $(GRAPHICSHDRS)
 	../../bin/rtt rwinrsc.r
-	$(CC) -c $(CFLAGS) `sed 's/$$/.c/' rttcur.lst`
-	rm `sed 's/$$/.c/' rttcur.lst`
-
-rgfxsys.o: rgfxsys.r $(HDRS) $(GRAPHICSHDRS)
-	../../bin/rtt rgfxsys.r
 	$(CC) -c $(CFLAGS) `sed 's/$$/.c/' rttcur.lst`
 	rm `sed 's/$$/.c/' rttcur.lst`
 

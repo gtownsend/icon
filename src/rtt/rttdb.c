@@ -243,10 +243,11 @@ char *srcname;
 void dumpdb(dbname)
 char *dbname;
    {
-#ifdef Rttx
-   fprintf(stdout, "rtt was compiled to only support the intepreter, use -x\n");
-   exit(EXIT_FAILURE);
-#else					/* Rttx */
+   #ifdef Rttx
+      fprintf(stdout,
+         "rtt was compiled to only support the intepreter, use -x\n");
+      exit(EXIT_FAILURE);
+   #else				/* Rttx */
    FILE *db;
    struct implement **sort_ary;
    int ary_sz;
@@ -302,7 +303,7 @@ char *dbname;
    prt_dpnd(db);
    if (fclose(db) != 0)
      err2("cannot close ", dbname);
-#endif					/* Rttx */
+   #endif				/* Rttx */
    }
 
 #ifndef Rttx

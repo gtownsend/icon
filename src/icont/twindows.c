@@ -10,12 +10,6 @@
 #include "../h/gsupport.h"
 #include "tproto.h"
 
-#if SCCX_MX
-   #include "../h/filepat.h"
-   /* This sets the stack size so it runs in a Windows DOS box */
-   unsigned _stack = 100000;
-#endif      /* SCCX_MX */
-
 #ifdef MSWindows
    #ifdef NTConsole
       #define int_PASCAL int PASCAL
@@ -39,10 +33,6 @@ static	void	execute	(char *ofile,char *efile,char * *args);
 static	void	rmfiles (char **p);
 static	void	usage (void);
 
-#if MSDOS
-   char pathToIconDOS[129];
-#endif					/* MSDOS */
-
 /*
  *  Define global variables.
  */
@@ -50,6 +40,8 @@ static	void	usage (void);
 #define Global
 #define Init(v) = v
 #include "tglobals.h"
+
+char pathToIconDOS[129];
 
 char *ofile = NULL;			/* linker output file name */
 
@@ -252,9 +244,6 @@ int_PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
    ncmdShow = nCmdShow;
    argc = CmdParamToArgv(GetCommandLine(), &argv);
    MSStartup(argc, argv, hInstance, hPrevInstance);
-#if BORLAND_286
-   _InitEasyWin();
-#endif					/* BORLAND_286 */
    if (setjmp(mark_sj) == 0)
       icont(argc,argv);
    while (--argc>=0)
@@ -340,20 +329,11 @@ char **argv;
 
 #if MSDOS
          case 'X':			/* -X */
-#if ZTC_386
-            fprintf(stderr, "Warning: -X option is not available\n");
-#else					/* ZTC_386 */
             makeExe = 1;
-#endif					/* ZTC_386 */
             break;
          case 'I':			/* -C */
             makeExe = 0;
             break;
-#ifdef SCCX_MX
-         case 'A':
-            makeExe = 2;
-            break;
-#endif                  /* SCCX_MX */
 #endif					/* MSDOS */
 
          case 'c':			/* -c: compile only (no linking) */
@@ -700,14 +680,7 @@ char *ofile, *efile, **args;
       /* No special handling is needed for an .exe files, since iconx
        * recognizes it from the extension andfrom internal .exe data.
        */
-#if MICROSOFT || TURBO || BORLAND_286 || BORLAND_386
       execvp(iconxloc,argv);	/* execute with path search */
-#endif					/* MICROSOFT || ... */
-
-#if INTEL_386 || ZTC_386 || HIGHC_386 || WATCOM || SCCX_MX
-      fprintf(stderr,"-x not supported\n");
-      fflush(stderr);
-#endif					/* INTEL_386 || ... */
 #endif					/* MSDOS */
 
    quitf("could not run %s",iconxloc);

@@ -160,10 +160,6 @@
  */
 typedef int clock_t, time_t, fd_set;
 
-#if OS2_32
-   typedef int HFILE, ULONG;
-#endif					/* OS2_32 */
-
 #if WildCards
    typedef int FINDDATA_T;
 #endif					/* WildCards */
@@ -181,15 +177,6 @@ typedef int clock_t, time_t, fd_set;
    typedef int siptr, stringint;
    typedef int XRectangle, XPoint, XSegment, XArc, SysColor, LinearColor;
    typedef int LONG, SHORT;
-
-   #ifdef MacGraph
-      typedef int Str255, Point, StandardFileReply, SFTypeList, Ptr, PixMap;
-      typedef int Boolean, Rect, PolyHandle, EventRecord, wsp, MouseInfoType;
-      typedef int Handle, MenuHandle, OSErr, WindowPtr, GWorldFlags;
-      typedef int PaletteHandle, BitMap, RgnHandle, QDErr, GWorldPtr;
-      typedef int GrafPtr, GDHandle, PixMapHandle, OSType, FInfo;
-      typedef int IOParam, DialogPtr, ControlHandle, StringHandle, Size;
-   #endif				/* MacGraph */
 
    #ifdef XWindows
       typedef int Atom, Time, XSelectionEvent, XErrorEvent, XErrorHandler;
@@ -217,23 +204,6 @@ typedef int clock_t, time_t, fd_set;
          typedef int HFILE, OFSTRUCT, FILETIME, SYSTEMTIME;
       #endif				/* FAttrib */
    #endif				/* MSWindows */
-
-   #ifdef PresentationManager
-      /* OS/2 PM specifics */
-      typedef int HAB, HPS, QMSG, HMQ, HWND, USHORT, MRESULT, ULONG, MPARAM;
-      typedef int PFNWP, HMODULE, SHORT, BOOL, TID, RECTL, ERRORID;
-      typedef int MRESULT_N_EXPENTRY, SIZEL, HDC, POINTL, HMTX, HBITMAP;
-      typedef int VOID_APIENTRY, UCHAR, HEV, LINEBUNDLE, BUTMAPARRAYFILEHEADER;
-      typedef int LONG, BITMAPINFOHEADER2, PBITMAPINFO2, PSZ, RGB2, BITMAPINFO2;
-      typedef int FONTMETRICS, PRECTL, PCHARBUNDLE, PLINEBUNDLE, PIMAGEBUNDLE;
-      typedef int AREABUNDLE, PAREABUNDLE, PPOINTL, POLYGON, CHARBUNDLE;
-      typedef int lclIdentifier, BYTE, PBYTE, PRGB2, FATTRS, PFATTRS, PULONG;
-      typedef int PBITMAPINFOHEADER2, BITMAPFILEHEADER2, BITMAPARRAYFILEHEADER2;
-      typedef int colorEntry, ARCPARAMS, threadargs, HPOINTER, CURSORINFO;
-      typedef int PCURSORINFO, DEVOPENSTRUCT, PDEVOPENDATA, SIZEF, HRGN, PSWP;
-      typedef int va_list, BITMAPINFOHEADER, BITMAPFILEHEADER;
-      typedef int PBITMAPINFOHEADER, MinBitmapHeader, RGB;
-   #endif				/* PresentationManager */
 
    /*
     * Convenience macros to make up for RTL's long-windedness.

@@ -95,18 +95,12 @@ void	yyerror			(int tok,struct node *lval,int state);
 int	yylex			(void);
 int	yyparse			(void);
 
-#ifdef MultipleRuns
-void	tcodeinit		(void);
-void yylexinit		(void);
-#endif					/* MultipleRuns */
-
-
 #ifdef DeBugTrans
-void	cdump			(void);
-void	gdump			(void);
-void	ldump			(void);
+   void	cdump			(void);
+   void	gdump			(void);
+   void	ldump			(void);
 #endif					/* DeBugTrans */
 
 #ifdef DeBugLinker
-void	idump			(char *c);
+   void	idump			(char *c);
 #endif					/* DeBugLinker */

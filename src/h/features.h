@@ -18,49 +18,17 @@
 
    Feature(1, "_V9", 0)			/* Version 9 (unconditional) */
 
-#if AMIGA
-   Feature(1, "_AMIGA", "Amiga")
-#endif					/* AMIGA */
-
-#if ARM
-   Feature(1, "_ACORN", "Acorn Archimedes")
-#endif					/* ARM */
-
-#if MACINTOSH
-   Feature(1, "_MACINTOSH", "Macintosh")
-#endif					/* MACINTOSH */
-
 #if MSDOS
-#if INTEL_386 || HIGHC_386 || WATCOM || ZTC_386 || BORLAND_386 || SCCX_MX
-   Feature(1, "_MSDOS_386", "MS-DOS/386")
-#else					/* INTEL_386 || HIGHC_386 ... */
-#if NT
-   Feature(1, "_MS_WINDOWS_NT", "MS Windows NT")
-#else					/* NT */
-#if BORLAND_286
-   Feature(1, "_MSDOS_286", "MS-DOS/286")
-#else					/* BORLAND_286 */
-   Feature(1, "_MSDOS", "MS-DOS")
-#endif					/* BORLAND_286 */
-#endif					/* NT */
-#endif					/* INTEL_386 || HIGHC_386 ... */
+   #if NT
+      Feature(1, "_MS_WINDOWS_NT", "MS Windows NT")
+   #else				/* NT */
+      Feature(1, "_MSDOS", "MS-DOS")
+   #endif				/* NT */
 #endif					/* MSDOS */
-
-#if OS2
-   Feature(1, "_OS2", "OS/2")
-#endif					/* OS2 */
-
-#if PORT
-   Feature(1, "_PORT", "PORT")
-#endif					/* PORT */
 
 #if UNIX
    Feature(1, "_UNIX", "UNIX")
 #endif					/* UNIX */
-
-#if VMS
-   Feature(1, "_VMS", "VMS")
-#endif					/* VMS */
 
    Feature(1, "_ASCII", "ASCII")
 
@@ -110,21 +78,9 @@
 
 #ifdef MSWindows
    Feature(1, "_MS_WINDOWS", "MS Windows")
-#if NT
-   Feature(1, "_WIN32", "Win32")
-#else					/* NT */
-   Feature(1, "_WIN16", "Win16")
-#endif					/* NT */
+   #if NT
+      Feature(1, "_WIN32", "Win32")
+   #else				/* NT */
+      Feature(1, "_WIN16", "Win16")
+   #endif				/* NT */
 #endif					/* MSWindows */
-
-#ifdef PresentationManager
-   Feature(1, "_PRESENTATION_MGR", "Presentation Manager")
-#endif					/* PresentationManager */
-
-#ifdef ArmFncs
-   Feature(1, "_ARM_FUNCTIONS", "Archimedes extensions")
-#endif					/* ArmFncs */
-
-#ifdef DosFncs
-   Feature(1, "_DOS_FUNCTIONS", "MS-DOS extensions")
-#endif					/* DosFncs */

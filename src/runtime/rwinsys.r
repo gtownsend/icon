@@ -10,10 +10,6 @@
 #include "rmac.ri"
 #endif					/* MacGraph */
 
-#ifdef PresentationManager
-#include "rpmwin.ri"
-#endif					/* PresentationManager */
-
 #ifdef XWindows
 #include "rxwin.ri"
 #endif					/* XWindows */

@@ -36,14 +36,8 @@ int cnv_c_dbl(s, d)
 dptr s;
 double *d;
    {
-
-#ifdef LargeInts
-   tended	/* need to be tended if ston allocates largeint blocks */
-#endif					/* LargeInts */
-
-   struct descrip result, cnvstr;
+   tended struct descrip result, cnvstr;
    char sbuf[MaxCvtLen];
-
    union numeric numrc;
 
    type_case *s of {
@@ -106,12 +100,7 @@ int cnv_c_int(s, d)
 dptr s;
 C_integer *d;
    {
-
-#ifdef LargeInts
-   tended  /* tended since ston now allocates blocks */
-#endif						/* LargeInts */
-
-   struct descrip cnvstr, result;			/* not tended */
+   tended struct descrip cnvstr, result;
    union numeric numrc;
    char sbuf[MaxCvtLen];
 
@@ -259,12 +248,7 @@ int cnv_ec_int(s, d)
 dptr s;
 C_integer *d;
    {
-
-#ifdef LargeInts
-   tended  /* tended since ston now allocates blocks */
-#endif						/* LargeInts */
-
-   struct descrip cnvstr;			/* not tended */
+   tended struct descrip cnvstr;
    union numeric numrc;
    char sbuf[MaxCvtLen];
 
@@ -309,12 +293,7 @@ C_integer *d;
 int cnv_eint(s, d)
 dptr s, d;
    {
-
-#ifdef LargeInts
-   tended  /* tended since ston now allocates blocks */
-#endif						/* LargeInts */
-
-   struct descrip cnvstr;			/* not tended */
+   tended struct descrip cnvstr;
    char sbuf[MaxCvtLen];
    union numeric numrc;
 
@@ -361,12 +340,7 @@ dptr s, d;
 int cnv_int(s, d)
 dptr s, d;
    {
-
-#ifdef LargeInts
-   tended   /* tended since ston now allocates blocks */
-#endif						/* LargeInts */
-
-   struct descrip cnvstr;			/* not tended */
+   tended struct descrip cnvstr;
    char sbuf[MaxCvtLen];
    union numeric numrc;
 

@@ -118,11 +118,9 @@ register nodeptr t;
 	 loopsp->markcount++;
 	 traverse(Tree0(t));		/* evaluate first alternative */
 	 loopsp->markcount--;
-
-#ifdef EventMon
-         setloc(t);
-#endif					/* EventMon */
-
+         #ifdef EventMon
+            setloc(t);
+         #endif				/* EventMon */
 	 emit("esusp");                 /*  and suspend with its result */
 	 emitl("goto", lab+1);
 	 emitlab(lab);
@@ -1022,40 +1020,25 @@ nodeptr n;
 static void emitline(n)
 nodeptr n;
    {
-#ifdef SrcColumnInfo
-   /*
-    * if either line or column has changed, emit location information
-    */
-   if (((Col(n) << 16) + Line(n)) != lastlin) {
-      lastlin = (Col(n) << 16) + Line(n);
-      emitn("line",Line(n));
-      emitn("colm",Col(n));
-      }
-#else					/* SrcColumnInfo */
-   /*
-    * if line has changed, emit line information
-    */
-   if (Line(n) != lastlin) {
-      lastlin = Line(n);
-      emitn("line", lastlin);
-      }
-#endif					/* SrcColumnInfo */
+   #ifdef SrcColumnInfo
+      /*
+       * if either line or column has changed, emit location information
+       */
+      if (((Col(n) << 16) + Line(n)) != lastlin) {
+         lastlin = (Col(n) << 16) + Line(n);
+         emitn("line",Line(n));
+         emitn("colm",Col(n));
+         }
+   #else				/* SrcColumnInfo */
+      /*
+       * if line has changed, emit line information
+       */
+      if (Line(n) != lastlin) {
+         lastlin = Line(n);
+         emitn("line", lastlin);
+         }
+   #endif				/* SrcColumnInfo */
    }
-
-#ifdef MultipleRuns
-/*
- * Reinitialize last file name and line number for repeated runs.
- */
-void tcodeinit()
-   {
-   lastfiln = NULL;
-
-   #ifdef EventMon
-      lastcol = 0;
-   #endif				/* EventMon */
-
-   }
-#endif					/* Multiple Runs */
 
 /*
  * The emit* routines output ucode to codefile.  The various routines are:

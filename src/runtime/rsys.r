@@ -20,28 +20,16 @@ struct b_file *fbp;
 
    fd = fbp->fd;
 
-#if AMIGA
-#if LATTICE
-   /* This code is special for Lattice 4.0.  It was different for
-    *  Lattice 3.10 and probably won't work for other C compilers.
-    */
-   extern struct UFB _ufbs[];
-
-   if (IsInteractive(_ufbs[fileno(fd)].ufbfh))
-      return read(fileno(fd),buf,maxi);
-#endif					/* LATTICE */
-#endif					/* AMIGA */
-
-#ifdef XWindows
-   if (isatty(fileno(fd))) wflushall();
-#endif					/* XWindows */
+   #ifdef XWindows
+      if (isatty(fileno(fd))) wflushall();
+   #endif				/* XWindows */
 
    l = 0;
    while (1) {
 
-#ifdef Graphics
-      /* insert non-blocking read/code to service windows here */
-#endif					/* Graphics */
+      #ifdef Graphics
+         /* insert non-blocking read/code to service windows here */
+      #endif				/* Graphics */
 
       if ((c = fgetc(fd)) == '\n')	/* \n terminates line */
 	 break;
@@ -77,14 +65,6 @@ char *hostname;
     * The string constant HostStr contains the host name.
     */
    strcpy(hostname,HostStr);
-#elif VMS				/* HostStr */
-   /*
-    * VMS has its own special logic.
-    */
-   char *h;
-   if (!(h = getenv("ICON_HOST")) && !(h = getenv("SYS$NODE")))
-      h = "VAX/VMS";
-   strcpy(hostname,h);
 #else					/* HostStr */
    {
    /*
@@ -165,51 +145,15 @@ dptr d;
 	(f == stderr && !(ConsoleFlags & StdErrRedirect))) {
       if (ConsoleBinding == NULL)
          ConsoleBinding = OpenConsole();
-#if BORLAND_286
-      goto Lab1;
-#else
       { int i; for(i=0;i<l;i++) Consoleputc(s[i], f); }
-#endif
       return Succeeded;
       }
-Lab1:
 #endif					/* ConsoleWindow */
 #endif					/* MSWindows */
-#ifdef PresentationManager
-   if (ConsoleFlags & OutputToBuf) {
-      /* check for overflow */
-      if (MaxReadStr * 4 - ((int)ConsoleStringBufPtr - (int)ConsoleStringBuf) < l + 1)
-	 return Failed;
-      /* big enough */
-      memcpy(ConsoleStringBufPtr, s, l);
-      ConsoleStringBufPtr += l;
-      *ConsoleStringBufPtr = '\0';
-      } /* End of if - push to buffer */
-   else if ((f == stdout && !(ConsoleFlags & StdOutRedirect)) ||
-	    (f == stderr && !(ConsoleFlags & StdErrRedirect)))
-      wputstr((wbinding *)PMOpenConsole(), s, l);
-   return Succeeded;
-#endif					/* PresentationManager */
-#if VMS
-   /*
-    * This is to get around a bug in VMS C's fwrite routine.
-    */
-   {
-      int i;
-      for (i = 0; i < l; i++)
-         if (putc(s[i], f) == EOF)
-            break;
-      if (i == l)
-         return Succeeded;
-      else
-         return Failed;
-   }
-#else					/* VMS */
    if (longwrite(s,l,f) < 0)
       return Failed;
    else
       return Succeeded;
-#endif					/* VMS */
    }
 
 /*
@@ -218,82 +162,109 @@ Lab1:
 int idelay(n)
 int n;
    {
+   #if UNIX
+      struct timeval t;
+      t.tv_sec = n / 1000;
+      t.tv_usec = (n % 1000) * 1000;
+      select(1, NULL, NULL, NULL, &t);
+      return Succeeded;
+   #endif					/* UNIX */
+
+   #if MSDOS
+      #if NT
+         #ifdef MSWindows
+            Sleep(n);
+            return Succeeded;
+         #else					/* MSWindows */
+            /* ? should be a way for NT console apps to sleep... */
+            return Failed;
+         #endif					/* MSWindows */
+      #else					/* NT */
+         return Failed;
+      #endif					/* NT */
+   #endif					/* MSDOS */
+   }
+
+#ifdef KeyboardFncs
+#if UNIX
 
 /*
- * The following code is operating-system dependent [@fsys.01].
+ * Documentation notwithstanding, the Unix versions of the keyboard functions
+ * read from standard input and not necessarily from the keyboard (/dev/tty).
  */
-#if OS2
-#if OS2_32
-   DosSleep(n);
-   return Succeeded;
-#else					/* OS2_32 */
-   return Failed;
-#endif					/* OS2_32 */
-#endif					/* OS2 */
+#define STDIN 0
 
-#if VMS
-   delay_vms(n);
-   return Succeeded;
-#endif					/* VMS */
+/*
+ * int getch() -- read character without echoing
+ * int getche() -- read character with echoing
+ *
+ * Read and return a character from standard input in non-canonical
+ * ("cbreak") mode.  Return -1 for EOF.
+ *
+ * Reading is done even if stdin is not a tty;
+ * the tty get/set functions are just rejected by the system.
+ */
 
-#if UNIX
-   struct timeval t;
-   t.tv_sec = n / 1000;
-   t.tv_usec = (n % 1000) * 1000;
-   select(1, NULL, NULL, NULL, &t);
-   return Succeeded;
+int rchar(int with_echo);
+
+int getch(void)		{ return rchar(0); }
+int getche(void)	{ return rchar(1); }
+
+int rchar(int with_echo)
+{
+   struct termios otty, tty;
+   char c;
+   int n;
+
+   tcgetattr(STDIN, &otty);		/* get current tty attributes */
+
+   tty = otty;
+   tty.c_lflag &= ~ICANON;
+   if (with_echo)
+      tty.c_lflag |= ECHO;
+   else
+      tty.c_lflag &= ~ECHO;
+   tcsetattr(STDIN, TCSANOW, &tty);	/* set temporary attributes */
+
+   n = read(STDIN, &c, 1);		/* read one char from stdin */
+
+   tcsetattr(STDIN, TCSANOW, &otty);	/* reset tty to original state */
+
+   if (n == 1)				/* if read succeeded */
+      return c & 0xFF;
+   else
+      return -1;
+}
+
+/*
+ * kbhit() -- return nonzero if characters are available for getch/getche.
+ */
+int kbhit(void)
+{
+   struct termios otty, tty;
+   fd_set fds;
+   struct timeval tv;
+   int rv;
+
+   tcgetattr(STDIN, &otty);		/* get current tty attributes */
+
+   tty = otty;
+   tty.c_lflag &= ~ICANON;		/* disable input batching */
+   tcsetattr(STDIN, TCSANOW, &tty);	/* set attribute temporarily */
+
+   FD_ZERO(&fds);			/* initialize fd struct */
+   FD_SET(STDIN, &fds);			/* set STDIN bit */
+   tv.tv_sec = tv.tv_usec = 0;		/* set immediate return */
+   rv = select(STDIN + 1, &fds, NULL, NULL, &tv);
+
+   tcsetattr(STDIN, TCSANOW, &otty);	/* reset tty to original state */
+
+   return rv;				/* return result */
+}
+
 #endif					/* UNIX */
-
-#if MSDOS
-#if SCCX_MX
-   msleep(n);
-   return Succeeded;
-#else					/* SCCX_MX */
-#if NT
-#ifdef MSWindows
-   Sleep(n);
-#else					/* MSWindows */
-   /* ? should be a way for NT console apps to sleep... */
-   return Failed;
-#endif					/* MSWindows */
-   return Succeeded;
-#else					/* NT */
-#if BORLAND_286
-   /* evil busy wait */
-    clock_t start = clock();
-    while ((double)((clock() - start) / CLK_TCK) / 1000 < n);
-    return Succeeded;
-#else					/* BORLAND_286 */
-   return Failed;
-#endif					/* BORLAND_286 */
-#endif					/* NT */
-#endif					/* SCCX_MX */
-#endif					/* MSDOS */
-
-#if MACINTOSH
-   void MacDelay(int n);
-   MacDelay(n);
-   return Succeeded;
-#endif					/* MACINTOSH */
-
-#if AMIGA
-#if __SASC
-   Delay(n/20);
-   return Succeeded;
-#else					/* __SASC */
-   return Failed
-#endif                                  /* __SASC */
-#endif					/* AMIGA */
-
-#if PORT || ARM
-   return Failed;
-#endif					/* PORT || ARM */
-
-   /*
-    * End of operating-system dependent code.
-    */
-   }
-
+#endif					/* KeyboardFncs */
+
 #ifdef MSWindows
 #ifdef FAttrib
 /*

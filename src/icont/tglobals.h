@@ -3,8 +3,8 @@
  */
 
 #ifndef Global
-#define Global extern
-#define Init(v)
+   #define Global extern
+   #define Init(v)
 #endif					/* Global */
 
 /*
@@ -42,13 +42,9 @@ Global unsigned int lhsize	Init(128);	/* local hash table */
 Global char *progname	Init("icont");	/* program name for diagnostics */
 
 #if MSDOS
-#if ZTC_386
-Global int makeExe	Init(0);	/* -I: create .icx instead of .exe */
-#else					/* ZTC_386 */
-Global int makeExe	Init(1);	/* -X: create .exe instead of .icx */
-#endif					/* ZTC_386 */
-Global long fileOffsetOfStuffThatGoesInICX
-			Init(0);	/* remains 0 -f -X is not used */
+   Global int makeExe	Init(1);	/* -X: create .exe instead of .icx */
+   Global long fileOffsetOfStuffThatGoesInICX Init(0);
+					/* remains 0 -f -X is not used */
 #endif					/* MSDOS */
 
 					/* set in link.c; used in lcode.c */
@@ -60,13 +56,8 @@ Global int pponly	Init(0);	/* -E: preprocess only */
 Global int strinv	Init(0);	/* -f s: allow full string invocation */
 Global int verbose	Init(1);	/* -v n: verbosity of commentary */
 
-
-#if OS2
-Global int noexe	Init(0);	/* -i: stop with .ICX file */
-#endif
-
 #ifdef DeBugLinker
-Global int Dflag	Init(0);	/* -L: linker debug (write .ux file) */
+   Global int Dflag	Init(0);	/* -L: linker debug (write .ux file) */
 #endif					/* DeBugLinker */
 
 /*

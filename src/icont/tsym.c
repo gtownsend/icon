@@ -8,10 +8,7 @@
 #include "ttoken.h"
 #include "tsym.h"
 #include "keyword.h"
-
-#ifndef VarTran
 #include "lfile.h"
-#endif					/* VarTran */
 
 /*
  * Prototypes.
@@ -30,14 +27,12 @@ static void	putglob
    (char *id,int id_type, int n_args);
 
 #ifdef DeBugTrans
-void	cdump	(void);
-void	gdump	(void);
-void	ldump	(void);
+   void	cdump	(void);
+   void	gdump	(void);
+   void	ldump	(void);
 #endif					/* DeBugTrans */
 
 
-#ifndef VarTran
-
 /*
  * Keyword table.
  */
@@ -522,4 +517,3 @@ FILE *fd;
       writecheck(fprintf(fd, "\t%d,%06o,%s,%d\n", gp->g_index, gp->g_flag,
          gp->g_name, gp->g_nargs));
    }
-#endif					/* VarTran */

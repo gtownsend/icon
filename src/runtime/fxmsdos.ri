@@ -12,7 +12,7 @@ int	getlist	(struct b_lelem *bp,unsigned int *vals, int limit);
 
 "Int86(a) - perform an interrupt"
 
-#if MICROSOFT || TURBO || ZTC_386 || BORLAND_286 || BORLAND_386 || SCCX_MX
+#if MICROSOFT
 function{1} Int86(a)
    /*
     * Make sure that a is a list
@@ -25,16 +25,6 @@ function{1} Int86(a)
    body {
        union  REGS inreg,outreg;
        struct SREGS insreg,outsreg;
-
-#if BORLAND_386
-#define ax eax
-#define bx ebx
-#define cx ecx
-#define dx edx
-#define si esi
-#define di edi
-#define int86x int386x
-#endif					/* BORLAND_386 */
 
        unsigned int vals[9];
        unsigned int flag;
@@ -63,20 +53,6 @@ function{1} Int86(a)
        inreg.x.si = vals[5];
        inreg.x.di = vals[6];
        segread(&insreg);
-#if BORLAND_286 || BORLAND_386
-       /*
-        * Only set segment registers if caller provided a non-zero value.
-        * This probably should be done for all protected-mode versions, and
-        * instruct user to specify 0 for ds/es to use default ds/es.
-        * Unlike PharLap, Borland does not publish known selector values
-        * to use in ds or es.  Loading a garbage value will result in a
-        * trap.
-        */
-       if (vals[7])
-          insreg.es = vals[7];
-       if (vals[8])
-          insreg.ds = vals[8];
-#endif					/* BORLAND_286 || BORLAND_386 */
 
    /*  flag = int86x(flag,&inreg,&outreg,&insreg); */
 
@@ -112,7 +88,7 @@ function{1} Int86(a)
       return result;
       }
 end
-#endif					/* MICROSOFT || TURBO || ZTC_386 ... */
+#endif					/* MICROSOFT */
 
 
 "Peek(addr,len) - read from memory"

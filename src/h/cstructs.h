@@ -10,9 +10,6 @@ struct fileparts {			/* struct of file name parts */
    char *dir;				/* directory */
    char *name;				/* name */
    char *ext;				/* extension */
-   #if VMS
-      char *version;
-   #endif					/* VMS */
    };
 
 /*

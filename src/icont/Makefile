@@ -10,7 +10,7 @@ TRANS =		trans.o tcode.o tlex.o lnklist.o tparse.o tsym.o tmem.o tree.o
 
 LINKR =		link.o lglob.o lcode.o llex.o lmem.o lsym.o opcode.o
 
-OBJS =		tunix.o tglobals.o util.o tlocal.o $(TRANS) $(LINKR)
+OBJS =		tunix.o tglobals.o util.o $(TRANS) $(LINKR)
 
 COBJS =		../common/long.o ../common/getopt.o ../common/alloc.o \
 		   ../common/filepart.o ../common/strtbl.o ../common/ipp.o \

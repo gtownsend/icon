@@ -13,10 +13,6 @@ static	int	sicmp		(siptr sip1, siptr sip2);
 
 int canvas_serial, context_serial;
 
-#ifdef PresentationManager
-extern LONG ScreenBitsPerPel;
-#endif					/* PresentationManager */
-
 #ifndef MultiThread
 struct descrip amperX = {D_Integer};
 struct descrip amperY = {D_Integer};
@@ -67,24 +63,24 @@ dptr res;
    if (wstates != NULL && wstates->next != NULL		/* if multiple windows*/
    && (BlkLoc(w->window->listp)->list.size == 0)) {	/* & queue is empty */
       while (BlkLoc(w->window->listp)->list.size == 0) {
-#ifdef MSWindows
-	 if (ISCURSORON(w) && w->window->hasCaret == 0) {
-	    wsp ws = w->window;
-	    CreateCaret(ws->iconwin, NULL, FWIDTH(w), FHEIGHT(w));
-	    SetCaretBlinkTime(500);
-	    SetCaretPos(ws->x, ws->y - ASCENT(w));
-	    ShowCaret(ws->iconwin);
-	    ws->hasCaret = 1;
-	    }
-#endif					/* MSWindows */
+         #ifdef MSWindows
+	    if (ISCURSORON(w) && w->window->hasCaret == 0) {
+	       wsp ws = w->window;
+	       CreateCaret(ws->iconwin, NULL, FWIDTH(w), FHEIGHT(w));
+	       SetCaretBlinkTime(500);
+	       SetCaretPos(ws->x, ws->y - ASCENT(w));
+	       ShowCaret(ws->iconwin);
+	       ws->hasCaret = 1;
+	       }
+         #endif				/* MSWindows */
 	 if (pollevent() < 0)				/* poll all windows */
 	    break;					/* break on error */
-#if UNIX || VMS || OS2_32
-         idelay(XICONSLEEP);
-#endif					/* UNIX || VMS || OS2_32 */
-#ifdef MSWindows
-	 Sleep(20);
-#endif					/* MSWindows */
+         #if UNIX
+            idelay(XICONSLEEP);
+         #endif				/* UNIX */
+         #ifdef MSWindows
+	    Sleep(20);
+         #endif				/* MSWindows */
 	 }
       }
 
@@ -160,12 +156,8 @@ dptr res;
       return i;
    i = *StrLoc(*res);
    if ((0 <= i) && (i <= 127) && (ISECHOON(w))) {
-#ifndef PresentationManager
       wputc(i, w);
       if (i == '\r') wputc((int)'\n', w); /* CR -> CR/LF */
-#else					/* PresentationManager */
-     wputc(((i == '\r') ? '\n' : i), w);
-#endif					/* PresentationManager */
       }
    return 1;
    }
@@ -259,12 +251,12 @@ wsp getactivewindow()
 	    next = j;
 	    return ws;
 	    }
-#if UNIX || VMS || OS2_32
       /*
        * couldn't find a pending event - wait awhile
        */
-      idelay(XICONSLEEP);
-#endif					/* UNIX || VMS || OS2_32 */
+      #if UNIX
+         idelay(XICONSLEEP);
+      #endif					/* UNIX */
       }
    }
 
@@ -3012,16 +3004,7 @@ void (*helper)	(wbp, XPoint [], int);
 #define max(x,y) ((x>y)?x:y)
 #endif
 
-#if VMS
-      {
-      int tmp1 = abs(p[i-1].x - p[i-2].x);
-      int tmp2 = abs(p[i-1].y - p[i-2].y);
-      steps = max(tmp1, tmp2) + 10;
-      }
-#else						/* VMS */
       steps = max(abs(p[i-1].x - p[i-2].x), abs(p[i-1].y - p[i-2].y)) + 10;
-#endif						/* VMS */
-
       if (steps+4 > npoints) {
          if (thepoints != NULL) free(thepoints);
 	 thepoints = malloc((steps+4) * sizeof(XPoint));
@@ -3093,17 +3076,12 @@ void wattr(FILE *w, char *s, int len)
 void waitkey(FILE *w)
 {
    struct descrip answer;
-#if BORLAND_286
-    while(kbhit()) ;
-    getch();
-#else
    /* throw away pending events */
    while (BlkLoc(((wbp)w)->window->listp)->list.size > 0) {
       wgetevent((wbp)w, &answer);
       }
    /* wait for an event */
    wgetevent((wbp)w, &answer);
-#endif
 }
 
 FILE *flog;
@@ -3117,10 +3095,6 @@ FILE *OpenConsole()
    int eindx;
 
    if (!ConsoleBinding) {
-#if BORLAND_286
-      _InitEasyWin();
-      ConsoleBinding = stdout;
-#else					/* BORLAND_286 */
       char ConsoleTitle[256];
       tended struct b_list *hp;
       tended struct b_lelem *bp;
@@ -3172,7 +3146,6 @@ FILE *OpenConsole()
       ConsoleTitle[StrLen(kywd_prog)] = '\0';
       strcat(ConsoleTitle, " - console");
       ConsoleBinding = wopen(ConsoleTitle, hp, attrs, 3, &eindx);
-#endif					/* BORLAND_286 */
       }
    return ConsoleBinding;
    }
@@ -3202,12 +3175,7 @@ int Consolefprintf(FILE *file, char *format, ...)
            int i;
 	   for(i=0;i<len;i++) fputc(ConsoleStringBuf[i], flog);
 	   }
-#if BORLAND_286
-        ConsoleStringBuf[len] = '\0';
-        retval = fputs(ConsoleStringBuf, stdout);
-#else					/* BORLAND_286 */
         wputstr(console, ConsoleStringBuf, len);
-#endif					/* BORLAND_286 */
 	}
       }
    else
@@ -3238,12 +3206,7 @@ int Consoleprintf(char *format, ...)
            int i;
 	   for(i=0;i<len;i++) fputc(ConsoleStringBuf[i], flog);
 	   }
-#if BORLAND_286
-        ConsoleStringBuf[len] = '\0';
-        retval = fputs(ConsoleStringBuf, stdout);
-#else					/* BORLAND_286 */
         wputstr(console, ConsoleStringBuf, len);
-#endif					/* BORLAND_286 */
 	}
       }
    else
@@ -3269,11 +3232,7 @@ int Consoleputc(int c, FILE *f)
       if (flog) fputc(c, flog);
       console = (wbp)OpenConsole();
       if (console == NULL) return 0;
-#if BORLAND_286
-      return fputc(c, console);
-#else					/* BORLAND_286 */
       return wputc(c, console);
-#endif					/* BORLAND_286 */
       }
    return fputc(c, f);
    }
@@ -3290,11 +3249,7 @@ int Consolefflush(FILE *f)
       if (flog) fflush(flog);
       console = (wbp)OpenConsole();
       if (console == NULL) return 0;
-#if BORLAND_286
-      return fflush(console);
-#else					/* BORLAND_286 */
       return wflush(console);
-#endif					/* BORLAND_286 */
       }
   return fflush(f);
 }

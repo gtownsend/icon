@@ -11,12 +11,7 @@
  *  to operating systems.  Examples are:
  *
  *	MSDOS		MS-DOS for PCs
- *	UNIX		any UNIX system; also set for BeOS
- *	VMS		VMS for the VAX
- *
- *  These are defined to be 1 or 0 depending on which operating system
- *  the installation is being done under.  They are all defined and only
- *  one is defined to be 1.  (They are used in the form #if VAX || MSDOS.)
+ *	UNIX		any UNIX system; also set for BeOS or Mac (Darwin)
  *
  *  There also are definitions of symbols for specific computers and
  *  versions of operating systems.  These include:
@@ -36,52 +31,6 @@
 #ifndef COMPILER
    #define COMPILER 0
 #endif
-
-/*
- * The following definitions insure that all the symbols for operating
- * systems that are not relevant are defined to be 0 -- so that they
- * can be used in logical expressions in #if directives.
- */
-
-#ifndef PORT
-   #define PORT 0
-#endif					/* PORT */
-
-#ifndef AMIGA
-   #define AMIGA 0
-#endif					/* AMIGA */
-
-#ifndef ARM
-   #define ARM 0
-#endif					/* ARM */
-
-#ifndef MACINTOSH
-   #define MACINTOSH 0
-#endif					/* MACINTOSH */
-
-#ifndef MSDOS
-   #define MSDOS 0
-#endif					/* MSDOS */
-
-#ifndef SCCX_MX
-   #define SCCX_MX 0
-#endif					/* SCCX_MX */
-
-#ifndef OS2
-   #define OS2 0
-#endif					/* OS2 */
-
-#ifndef OS2_32
-   #define OS2_32 0
-#endif					/* OS32 */
-
-#ifndef UNIX
-   #define UNIX 0
-#endif					/* UNIX */
-
-#ifndef VMS
-   #define VMS 0
-#endif					/* VMS */
 
 /*
  * The following definitions serve to cast common conditionals is
@@ -197,16 +146,6 @@
    #endif				/* NTConsole */
 #endif					/* MSWindows */
 
-#ifdef MacGraph
-   #undef Graphics
-   #define Graphics 1
-#endif					/* MacGraph */
-
-#ifdef PresentationManager
-   #define Graphics 1
-   #define ConsoleWindow 1
-#endif					/* PresentationManager */
-
 #ifdef Graphics
    #ifndef NoXpmFormat
       #if UNIX
@@ -216,12 +155,8 @@
    #endif				/* NoXpmFormat */
 
    #ifndef MSWindows
-      #ifndef PresentationManager
-         #ifndef MacGraph
-            #undef XWindows
-            #define XWindows 1
-         #endif				/* MacGraph */
-      #endif				/* PresentationManager */
+      #undef XWindows
+      #define XWindows 1
    #endif				/* MSWindows */
 
    #undef LineCodes
@@ -229,10 +164,6 @@
 
    #undef Polling
    #define Polling
-
-   #ifndef NoIconify
-      #define Iconify
-   #endif				/* NoIconify */
 
    #ifndef ICONC_XLIB
       #define ICONC_XLIB "-L/usr/X11R6/lib -lX11"
@@ -307,18 +238,15 @@
 /*
  * Features enabled by default under certain systems
  */
-
 #ifndef Pipes
-   #if ARM || OS2 || UNIX || VMS
+   #if UNIX
       #define Pipes
-   #endif				/* ARM || OS2 || UNIX || VMS */
+   #endif				/* UNIX */
 #endif					/* Pipes */
 
 #ifndef KeyboardFncs
    #if UNIX
-      #ifndef NoKeyboardFncs
-         #define KeyboardFncs
-      #endif				/* NoKeyboardFncs */
+      #define KeyboardFncs
    #endif				/* UNIX */
 #endif					/* KeyboardFncs */
 
@@ -334,6 +262,16 @@
    #endif				/* UNIX*/
 #endif					/* SysOpt */
 
+#ifndef NoWildCards
+   #if NT
+      #define WildCards 1
+   #else				/* NT || ... */
+      #define WildCards 0
+   #endif				/* NT || ... */
+#else					/* NoWildCards */
+   #define WildCards 0
+#endif					/* NoWildCards */
+
 /*
  *  The following definitions assume ANSI C.
  */
@@ -348,6 +286,10 @@
 #ifndef TraceOut
    #define TraceOut(s) fprintf(stderr,s)
 #endif					/* TraceOut */
+
+/*
+ * File opening modes.
+ */
 
 #ifndef WriteBinary
    #define WriteBinary "wb"
@@ -374,114 +316,7 @@
 #endif					/* ReadText */
 
 /*
- * The following code is operating-system dependent [@config.01].
- *  Any configuration stuff that has to be done at this point.
- */
-
-#if PORT
-   /* Probably nothing is needed. */
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if VMS
-   #define ExecSuffix ".exe"
-   #define ObjSuffix ".obj"
-   #define LibSuffix ".olb"
-#endif					/* VMS */
-
-#if AMIGA || ARM || MACINTOSH
-#endif					/* AMIGA || ARM || ... */
-
-#if MSDOS || OS2
-
-   /*
-    *  Define compiler-specific symbols to be zero if not already
-    *  defined.
-    */
-
-   #ifndef MICROSOFT
-      #define MICROSOFT 0
-   #endif				/* MICROSOFT */
-
-   #ifndef CSET2
-      #define CSET2 0
-   #endif				/* CSet/2 */
-
-   #ifndef CSET2V2
-      #define CSET2V2 0
-   #endif				/* CSet/2 version 2 */
-
-   #ifndef TURBO
-      #define TURBO 0
-   #endif				/* TURBO */
-
-   #ifndef HIGHC_386
-      #define HIGHC_386 0
-   #endif				/* HIGHC_386 */
-
-   #ifndef INTEL_386
-      #define INTEL_386 0
-   #endif				/* INTEL_386 */
-
-   #ifndef WATCOM
-      #define WATCOM 0
-   #endif				/* WATCOM */
-
-   #ifndef ZTC_386
-      #define ZTC_386 0
-   #endif				/* ZTC_386 */
-
-   #ifndef NT
-      #define NT 0
-   #endif				/* NT */
-
-   #ifndef BORLAND_286
-      #define BORLAND_286 0
-   #endif				/* BORLAND_286 (16-bit protected mode)*/
-
-   #ifndef BORLAND_386
-      #define BORLAND_386 0
-   #endif				/* BORLAND_386 (32-bit protected mode)*/
-
-   #if HIGHC_386
-      /*
-       * MetaWare's HighC 386 macro putc doesn't handle putc('\n') correctly -
-       * sometimes a CR is not written out before the LF.  So, redefine
-       * macro putc to actually issue an fputc.
-       */
-      #undef putc
-      #define putc(c,f) fputc(c,f)
-   #endif				/* HIGHC_386 */
-#endif					/* MSDOS || OS2 */
-
-#if MACINTOSH
-   #if LSC
-      /*
-       * LightSpeed C requires that #define tokens appear after prototypes
-       */
-      #define malloc mlalloc
-   #endif				/* LSC */
-#endif					/* MACINTOSH */
-
-#if MACINTOSH && MPW
-   #ifndef NoHeader
-      #undef Header
-      #define Header
-   #endif				/* NoHeader */
-#endif					/* MACINTOSH && MPW */
-
-#ifndef NoWildCards
-   #if NT || BORLAND_286 || BORLAND_386 || MICROSOFT || SCCX_MX
-      #define WildCards 1
-   #else				/* NT || ... */
-      #define WildCards 0
-   #endif				/* NT || ... */
-#else					/* NoWildCards */
-   #define WildCards 0
-#endif					/* NoWildCards */
-
-/*
- * End of operating-system specific code.
+ * Miscellaney.
  */
 
 #ifndef DiffPtrs
@@ -590,6 +425,10 @@ Deliberate Syntax Error
 
 #endif					/* COMPILER */
 
+/*
+ * Executable methodology.
+ */
+
 #if UNIX
    #undef Header
    #define Header
@@ -597,10 +436,10 @@ Deliberate Syntax Error
    #define ShellHeader
 #endif					/* UNIX */
 
-#if (MSDOS || OS2) && !NT
+#if MSDOS && !NT
    #undef DirectExecution
    #define DirectExecution
-#endif					/* (MSDOS || OS2) && !NT */
+#endif					/* MSDOS && !NT */
 
 #ifdef Header
    #undef DirectExecution

@@ -66,13 +66,6 @@ function{1} atan(x,y)
    if !cnv:C_double(y) then
       runerr(102, y)
    inline {
-
-#if AMIGA
-#if AZTEC_C
-   #define atan2(x,y) atan(x/y)
-#endif					/* AZTEC_C */
-#endif					/* AMIGA */
-
       return C_double atan2(x,y);
       }
 end

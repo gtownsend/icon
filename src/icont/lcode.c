@@ -39,17 +39,13 @@ static void	setfile		(void);
 static void	wordout		(word oword);
 
 #ifdef FieldTableCompression
-static void	charout		(unsigned char oint);
-static void	shortout	(short oint);
+   static void	charout		(unsigned char oint);
+   static void	shortout	(short oint);
 #endif					/* FieldTableCompression */
 
 #ifdef DeBugLinker
    static void	dumpblock	(char *addr,int count);
 #endif					/* DeBugLinker */
-
-#if AMIGA
-   #include <fcntl.h>
-#endif					/* AMIGA */
 
 #if MSDOS
    extern long fileOffsetOfStuffThatGoesInICX;
@@ -252,11 +248,10 @@ void gencode()
          case Op_Lab:
             lab = getlab();
             newline();
-
-#ifdef DeBugLinker
-            if (Dflag)
-               fprintf(dbgfile, "L%d:\n", lab);
-#endif					/* DeBugLinker */
+            #ifdef DeBugLinker
+               if (Dflag)
+                  fprintf(dbgfile, "L%d:\n", lab);
+            #endif			/* DeBugLinker */
             backpatch(lab);
             break;
 
@@ -267,29 +262,29 @@ void gencode()
              */
             lineno = getdec();
 
-#ifndef SrcColumnInfo
-            /*
-             * Enter the value in the line number table
-             *  that is stored in the icode file and used during error
-             *  handling and execution monitoring.  One can generate a VM
-             *  instruction for these changes, but since the numbers are not
-             *  saved and restored during backtracking, it is more accurate
-             *  to check for line number changes in-line in the interpreter.
-             *  Fortunately, the in-line check is about as fast as executing
-             *  Op_Line instructions.  All of this is complicated by the use
-             *  of Op_Line to generate Noop instructions when enabled by the
-             *  LineCodes #define.
-             *
-             * If SrcColumnInfo is required, this code is duplicated,
-             *  with changes, in the Op_Colm case below.
-             */
-            if (lnfree >= &lntable[nsize])
-               lntable  = (struct ipc_line *)trealloc(lntable, &lnfree, &nsize,
-                  sizeof(struct ipc_line), 1, "line number table");
-            lnfree->ipc = pc;
-            lnfree->line = lineno;
-            lnfree++;
-#endif					/* SrcColumnInfo */
+            #ifndef SrcColumnInfo
+               /*
+                * Enter the value in the line number table
+                *  that is stored in the icode file and used during error
+                *  handling and execution monitoring.  One can generate a VM
+                *  instruction for these changes, but since the numbers are not
+                *  saved and restored during backtracking, it is more accurate
+                *  to check for line number changes in-line in the interpreter.
+                *  Fortunately, the in-line check is about as fast as executing
+                *  Op_Line instructions.  All of this is complicated by the use
+                *  of Op_Line to generate Noop instructions when enabled by the
+                *  LineCodes #define.
+                *
+                * If SrcColumnInfo is required, this code is duplicated,
+                *  with changes, in the Op_Colm case below.
+                */
+               if (lnfree >= &lntable[nsize])
+                  lntable  = (struct ipc_line *)trealloc(lntable,&lnfree,&nsize,
+                     sizeof(struct ipc_line), 1, "line number table");
+               lnfree->ipc = pc;
+               lnfree->line = lineno;
+               lnfree++;
+            #endif			/* SrcColumnInfo */
 
             /*
              * Could generate an Op_Line for monitoring, but don't anymore:
@@ -299,26 +294,25 @@ void gencode()
 
             newline();
 
-
-#ifdef LineCodes
-   #ifndef EventMon
-            lemit(Op_Noop,"noop");
-   #endif				/* EventMon */
-#endif					/* LineCodes */
+            #ifdef LineCodes
+               #ifndef EventMon
+                  lemit(Op_Noop,"noop");
+               #endif			/* EventMon */
+            #endif			/* LineCodes */
 
             break;
 
          case Op_Colm:			/* always recognize, maybe ignore */
 
             colmno = getdec();
-#ifdef SrcColumnInfo
-            if (lnfree >= &lntable[nsize])
-               lntable  = (struct ipc_line *)trealloc(lntable, &lnfree, &nsize,
-                  sizeof(struct ipc_line), 1, "line number table");
-            lnfree->ipc = pc;
-            lnfree->line = lineno + (colmno << 16);
-            lnfree++;
-#endif					/* SrcColumnInfo */
+            #ifdef SrcColumnInfo
+               if (lnfree >= &lntable[nsize])
+                  lntable  = (struct ipc_line *)trealloc(lntable,&lnfree,&nsize,
+                     sizeof(struct ipc_line), 1, "line number table");
+               lnfree->ipc = pc;
+               lnfree->line = lineno + (colmno << 16);
+               lnfree++;
+            #endif			/* SrcColumnInfo */
             break;
 
          case Op_Mark:
@@ -379,10 +373,10 @@ void gencode()
                implicit = gp->g_flag & F_ImpError;
                nargs = gp->g_nargs;
 	       align();
-#ifdef DeBugLinker
-               if (Dflag)
-                  fprintf(dbgfile, "\n# procedure %s\n", &lsspace[lsfree]);
-#endif					/* DeBugLinker */
+               #ifdef DeBugLinker
+                  if (Dflag)
+                     fprintf(dbgfile, "\n# procedure %s\n", &lsspace[lsfree]);
+               #endif			/* DeBugLinker */
                }
             else {
                /*
@@ -500,10 +494,10 @@ int op;
 char *name;
    {
 
-#ifdef DeBugLinker
-   if (Dflag)
-      fprintf(dbgfile, "%ld:\t%d\t\t\t\t# %s\n", (long)pc, op, name);
-#endif					/* DeBugLinker */
+   #ifdef DeBugLinker
+      if (Dflag)
+         fprintf(dbgfile, "%ld:\t%d\t\t\t\t# %s\n", (long)pc, op, name);
+   #endif				/* DeBugLinker */
 
    outop(op);
    }
@@ -514,10 +508,10 @@ char *name;
    {
    misalign();
 
-#ifdef DeBugLinker
-   if (Dflag)
-      fprintf(dbgfile, "%ld:\t%d\tL%d\t\t\t# %s\n", (long)pc, op, lab, name);
-#endif					/* DeBugLinker */
+   #ifdef DeBugLinker
+      if (Dflag)
+         fprintf(dbgfile, "%ld:\t%d\tL%d\t\t\t# %s\n", (long)pc, op, lab, name);
+   #endif				/* DeBugLinker */
 
    if (lab >= maxlabels)
       labels  = (word *) trealloc(labels, NULL, &maxlabels, sizeof(word),
@@ -538,11 +532,11 @@ char *name;
    {
    misalign();
 
-#ifdef DeBugLinker
-   if (Dflag)
-      fprintf(dbgfile, "%ld:\t%d\t%ld\t\t\t# %s\n", (long)pc, op, (long)n,
-         name);
-#endif					/* DeBugLinker */
+   #ifdef DeBugLinker
+      if (Dflag)
+         fprintf(dbgfile, "%ld:\t%d\t%ld\t\t\t# %s\n", (long)pc, op, (long)n,
+            name);
+   #endif				/* DeBugLinker */
 
    outop(op);
    outword(n);
@@ -558,16 +552,16 @@ char *name;
 
    loc -= pc + ((IntBits/ByteBits) + WordSize);
 
-#ifdef DeBugLinker
-   if (Dflag) {
-      if (loc >= 0)
-         fprintf(dbgfile, "%ld:\t%d\t*+%ld\t\t\t# %s\n",(long) pc, op,
-            (long)loc, name);
-      else
-         fprintf(dbgfile, "%ld:\t%d\t*-%ld\t\t\t# %s\n",(long) pc, op,
-            (long)-loc, name);
-      }
-#endif					/* DeBugLinker */
+   #ifdef DeBugLinker
+      if (Dflag) {
+         if (loc >= 0)
+            fprintf(dbgfile, "%ld:\t%d\t*+%ld\t\t\t# %s\n",(long) pc, op,
+               (long)loc, name);
+         else
+            fprintf(dbgfile, "%ld:\t%d\t*-%ld\t\t\t# %s\n",(long) pc, op,
+               (long)-loc, name);
+         }
+   #endif				/* DeBugLinker */
 
    outop(op);
    outword(loc);
@@ -580,11 +574,11 @@ char *name;
    {
    misalign();
 
-#ifdef DeBugLinker
-   if (Dflag)
-      fprintf(dbgfile, "%ld:\t%d\t%d,S+%ld\t\t\t# %s\n", (long)pc, op, n,
-         (long)offset, name);
-#endif					/* DeBugLinker */
+   #ifdef DeBugLinker
+      if (Dflag)
+         fprintf(dbgfile, "%ld:\t%d\t%d,S+%ld\t\t\t# %s\n", (long)pc, op, n,
+            (long)offset, name);
+   #endif				/* DeBugLinker */
 
    outop(op);
    outword(n);
@@ -605,10 +599,10 @@ char *name;
    {
    misalign();
 
-#ifdef DeBugLinker
-   if (Dflag)
-      fprintf(dbgfile,"%ld:\t%d\t%ld\t\t\t# %s\n",(long)pc,op,(long)i,name);
-#endif					/* DeBugLinker */
+   #ifdef DeBugLinker
+      if (Dflag)
+         fprintf(dbgfile,"%ld:\t%d\t%ld\t\t\t# %s\n",(long)pc,op,(long)i,name);
+   #endif				/* DeBugLinker */
 
    outop(op);
    outword(i);
@@ -628,37 +622,36 @@ register int k;
 
    if (lctable[k].c_flag & F_RealLit) {
 
-#ifdef Double
-/* access real values one word at a time */
-      {  int *rp, *rq;
+      #ifdef Double
+         /* access real values one word at a time */
+         int *rp, *rq;
          rp = (int *) &(x.f);
          rq = (int *) &(lctable[k].c_val.rval);
          *rp++ = *rq++;
-         *rp	= *rq;
-      }
-#else					/* Double */
-      x.f = lctable[k].c_val.rval;
-#endif					/* Double */
+         *rp = *rq;
+      #else				/* Double */
+         x.f = lctable[k].c_val.rval;
+      #endif				/* Double */
 
-#ifdef DeBugLinker
-      if (Dflag) {
-         fprintf(dbgfile, "%ld:\t%d\t\t\t\t# real(%g)", (long)pc, T_Real, x.f);
-         dumpblock(x.ovly,sizeof(double));
-         }
-#endif					/* DeBugLinker */
+      #ifdef DeBugLinker
+         if (Dflag) {
+            fprintf(dbgfile,"%ld:\t%d\t\t\t\t# real(%g)",(long)pc,T_Real, x.f);
+            dumpblock(x.ovly,sizeof(double));
+            }
+      #endif				/* DeBugLinker */
 
       outword(T_Real);
 
-#ifdef Double
-   #if WordBits != 64
-      /* fill out real block with an empty word */
-      outword(0);
-      #ifdef DeBugLinker
-         if (Dflag)
-	    fprintf(dbgfile,"\t0\t\t\t\t\t# padding\n");
-      #endif				/* DeBugLinker */
-   #endif				/* WordBits != 64 */
-#endif					/* Double */
+      #ifdef Double
+         #if WordBits != 64
+            /* fill out real block with an empty word */
+            outword(0);
+            #ifdef DeBugLinker
+               if (Dflag)
+	          fprintf(dbgfile,"\t0\t\t\t\t\t# padding\n");
+            #endif			/* DeBugLinker */
+         #endif				/* WordBits != 64 */
+      #endif				/* Double */
 
       outblock(x.ovly,sizeof(double));
       }
@@ -677,21 +670,21 @@ register int k;
            j++;
          }
 
-#ifdef DeBugLinker
-      if (Dflag) {
-         fprintf(dbgfile, "%ld:\t%d\n",(long) pc, T_Cset);
-         fprintf(dbgfile, "\t%d\n",j);
-         }
-#endif					/* DeBugLinker */
+      #ifdef DeBugLinker
+         if (Dflag) {
+            fprintf(dbgfile, "%ld:\t%d\n",(long) pc, T_Cset);
+            fprintf(dbgfile, "\t%d\n",j);
+            }
+      #endif				/* DeBugLinker */
 
       outword(T_Cset);
       outword(j);		   /* cset size */
       outblock((char *)csbuf,sizeof(csbuf));
 
-#ifdef DeBugLinker
-      if (Dflag)
-         dumpblock((char *)csbuf,CsetSize);
-#endif					/* DeBugLinker */
+      #ifdef DeBugLinker
+         if (Dflag)
+            dumpblock((char *)csbuf,CsetSize);
+      #endif				/* DeBugLinker */
 
       }
    }
@@ -711,19 +704,19 @@ int nargs, ndyn, nstat, fstat;
    size = (9*WordSize) + (2*WordSize) * (abs(nargs)+ndyn+nstat);
 
    p = &lsspace[name];
-#ifdef DeBugLinker
-   if (Dflag) {
-      fprintf(dbgfile, "%ld:\t%d\n", (long)pc, T_Proc); /* type code */
-      fprintf(dbgfile, "\t%d\n", size);			/* size of block */
-      fprintf(dbgfile, "\tZ+%ld\n",(long)(pc+size));	/* entry point */
-      fprintf(dbgfile, "\t%d\n", nargs);		/* # arguments */
-      fprintf(dbgfile, "\t%d\n", ndyn);			/* # dynamic locals */
-      fprintf(dbgfile, "\t%d\n", nstat);		/* # static locals */
-      fprintf(dbgfile, "\t%d\n", fstat);		/* first static */
-      fprintf(dbgfile, "\t%d\tS+%ld\t\t\t# %s\n",	/* name of procedure */
-         (int)strlen(p), (long)(name), p);
+   #ifdef DeBugLinker
+      if (Dflag) {
+         fprintf(dbgfile, "%ld:\t%d\n", (long)pc, T_Proc); /* type code */
+         fprintf(dbgfile, "\t%d\n", size);		/* size of block */
+         fprintf(dbgfile, "\tZ+%ld\n",(long)(pc+size));	/* entry point */
+         fprintf(dbgfile, "\t%d\n", nargs);		/* # arguments */
+         fprintf(dbgfile, "\t%d\n", ndyn);		/* # dynamic locals */
+         fprintf(dbgfile, "\t%d\n", nstat);		/* # static locals */
+         fprintf(dbgfile, "\t%d\n", fstat);		/* first static */
+         fprintf(dbgfile, "\t%d\tS+%ld\t\t\t# %s\n",	/* name of procedure */
+            (int)strlen(p), (long)(name), p);
       }
-#endif					/* DeBugLinker */
+   #endif				/* DeBugLinker */
 
    outword(T_Proc);
    outword(size);
@@ -745,11 +738,11 @@ int nargs, ndyn, nstat, fstat;
          s_indx = lltable[i].l_name;
          p = &lsspace[s_indx];
 
-#ifdef DeBugLinker
-         if (Dflag)
-            fprintf(dbgfile, "\t%d\tS+%ld\t\t\t# %s\n", (int)strlen(p),
-               (long)s_indx, p);
-#endif					/* DeBugLinker */
+         #ifdef DeBugLinker
+            if (Dflag)
+               fprintf(dbgfile, "\t%d\tS+%ld\t\t\t# %s\n", (int)strlen(p),
+                  (long)s_indx, p);
+         #endif				/* DeBugLinker */
 
          outword(strlen(p));
          outword(s_indx);
@@ -764,11 +757,11 @@ int nargs, ndyn, nstat, fstat;
          s_indx = lltable[i].l_name;
          p = &lsspace[s_indx];
 
-#ifdef DeBugLinker
-         if (Dflag)
-            fprintf(dbgfile, "\t%d\tS+%ld\t\t\t# %s\n", (int)strlen(p),
-               (long)s_indx, p);
-#endif					/* DeBugLinker */
+         #ifdef DeBugLinker
+            if (Dflag)
+               fprintf(dbgfile, "\t%d\tS+%ld\t\t\t# %s\n", (int)strlen(p),
+                  (long)s_indx, p);
+         #endif				/* DeBugLinker */
 
          outword(strlen(p));
          outword(s_indx);
@@ -783,11 +776,11 @@ int nargs, ndyn, nstat, fstat;
          s_indx = lltable[i].l_name;
          p = &lsspace[s_indx];
 
-#ifdef DeBugLinker
-         if (Dflag)
-            fprintf(dbgfile, "\t%d\tS+%ld\t\t\t# %s\n", (int)strlen(p),
-               (long)s_indx, p);
-#endif					/* DeBugLinker */
+         #ifdef DeBugLinker
+            if (Dflag)
+               fprintf(dbgfile, "\t%d\tS+%ld\t\t\t# %s\n", (int)strlen(p),
+                  (long)s_indx, p);
+         #endif				/* DeBugLinker */
 
          outword(strlen(p));
          outword(s_indx);
@@ -815,12 +808,13 @@ void gentables()
    align();
    hdr.Records = pc;
 
-#ifdef DeBugLinker
-   if (Dflag) {
-      fprintf(dbgfile,"\n\n# global tables\n");
-      fprintf(dbgfile,"\n%ld:\t%d\t\t\t\t# record blocks\n",(long)pc,nrecords);
-      }
-#endif					/* DeBugLinker */
+   #ifdef DeBugLinker
+      if (Dflag) {
+         fprintf(dbgfile, "\n\n# global tables\n");
+         fprintf(dbgfile, "\n%ld:\t%d\t\t\t\t# record blocks\n",
+	    (long)pc, nrecords);
+         }
+   #endif				/* DeBugLinker */
 
    outword(nrecords);
    for (gp = lgfirst; gp != NULL; gp = gp->g_next) {
@@ -828,21 +822,20 @@ void gentables()
          s = &lsspace[gp->g_name];
          gp->g_pc = pc;
 
-#ifdef DeBugLinker
-         if (Dflag) {
-            fprintf(dbgfile, "%ld:\n", pc);
-            fprintf(dbgfile, "\t%d\n", T_Proc);
-            fprintf(dbgfile, "\t%d\n", RkBlkSize(gp));
-            fprintf(dbgfile, "\t_mkrec\n");
-            fprintf(dbgfile, "\t%d\n", gp->g_nargs);
-            fprintf(dbgfile, "\t-2\n");
-            fprintf(dbgfile, "\t%d\n", gp->g_procid);
-            fprintf(dbgfile, "\t1\n");
-            fprintf(dbgfile, "\t%d\tS+%ld\t\t\t# %s\n", (int)strlen(s),
-               (long)gp->g_name, s);
-            }
-
-#endif					/* DeBugLinker */
+         #ifdef DeBugLinker
+            if (Dflag) {
+               fprintf(dbgfile, "%ld:\n", pc);
+               fprintf(dbgfile, "\t%d\n", T_Proc);
+               fprintf(dbgfile, "\t%d\n", RkBlkSize(gp));
+               fprintf(dbgfile, "\t_mkrec\n");
+               fprintf(dbgfile, "\t%d\n", gp->g_nargs);
+               fprintf(dbgfile, "\t-2\n");
+               fprintf(dbgfile, "\t%d\n", gp->g_procid);
+               fprintf(dbgfile, "\t1\n");
+               fprintf(dbgfile, "\t%d\tS+%ld\t\t\t# %s\n", (int)strlen(s),
+                  (long)gp->g_name, s);
+               }
+         #endif				/* DeBugLinker */
 
          outword(T_Proc);		/* type code */
          outword(RkBlkSize(gp));
@@ -872,12 +865,12 @@ void gentables()
                         fflush(stderr);
                         exit(1);
                         }
-#ifdef DeBugLinker
-                     if (Dflag)
-                        fprintf(dbgfile, "\t%d\tS+%ld\t\t\t# %s\n",
-                           (int)strlen(&lsspace[fp->f_name]),
-                           fp->f_name, &lsspace[fp->f_name]);
-#endif					/* DeBugLinker */
+                     #ifdef DeBugLinker
+                        if (Dflag)
+                           fprintf(dbgfile, "\t%d\tS+%ld\t\t\t# %s\n",
+                              (int)strlen(&lsspace[fp->f_name]),
+                              fp->f_name, &lsspace[fp->f_name]);
+                     #endif		/* DeBugLinker */
                      outword(strlen(&lsspace[fp->f_name]));
                      outword(fp->f_name);
                      foundit++;
@@ -897,280 +890,264 @@ void gentables()
          }
       }
 
-   /*
-    * Output record/field table.
-    */
-#ifndef FieldTableCompression
-   hdr.Ftab = pc;
-   #ifdef DeBugLinker
-      if (Dflag)
-         fprintf(dbgfile, "\n%ld:\t\t\t\t\t# record/field table\n", (long)pc);
-   #endif				/* DeBugLinker */
-#else					/* FieldTableCompression */
-   hdr.Fo = pc;
-   /*
-    * Compute the field width required for this binary;
-    * it is determined by the maximum # of fields in any one record.
-    */
-   {
-   long ct = 0;
-   for (gp = lgfirst; gp != NULL; gp = gp->g_next) {
-      if ((gp->g_flag & F_Record) && gp->g_procid > 0) {
-         if (gp->g_nargs > ct) ct=gp->g_nargs;
-	 }
-      }
-   if (ct > 65535L) hdr.FtabWidth = 4;
-   else if (ct > 254) hdr.FtabWidth = 2; /* 255 is (not present) */
-   else hdr.FtabWidth = 1;
-   }
-
-
-{
-   int counter = 0, f_num, first, begin, end, entries;
-   int *f_fo, *f_row, *f_tabp;
-
-   char *f_bm;
-   int pointer, first_avail = 0, inserted, bytes;
-
-   /* Find out how many field names there are. */
-   hdr.Nfields = 0;
-   for (fp = lffirst; fp != NULL; fp = fp->f_nextentry)
-      hdr.Nfields++;
-
-   entries = hdr.Nfields * nrecords / 4 + 1;
-   f_tabp = malloc (entries * sizeof (int));
-   for (i = 0; i < entries; i++)
-      f_tabp[i] = -1;
-   f_fo = malloc (hdr.Nfields * sizeof (int));
-
-   bytes = nrecords / 8;
-   if (nrecords % 8 != 0)
-      bytes++;
-   f_bm = calloc (hdr.Nfields, bytes);
-
-   f_row = malloc (nrecords * sizeof (int));
-
-   f_num = 0;
-#endif					/* FieldTableCompression */
-
-   for (fp = lffirst; fp != NULL; fp = fp->f_nextentry) {
-
-#ifndef FieldTableCompression
-   #ifdef DeBugLinker
-      if (Dflag)
-         fprintf(dbgfile, "%ld:\t\t\t\t\t# %s\n", (long)pc,
-            &lsspace[fp->f_name]);
-   #endif				/* DeBugLinker */
-#endif					/* FieldTableCompression */
-
-      rp = fp->f_rlist;
-
-#ifdef FieldTableCompression
-      first = 1;
-      for (i = 0; i < nrecords; i++) {
-#else					/* FieldTableCompression */
-      for (i = 1; i <= nrecords; i++) {
-#endif					/* FieldTableCompression */
-
-         while (rp != NULL && rp->r_gp->g_procid < 0)
-	    rp = rp->r_link;		/* skip unreferenced constructor */
-
-#ifdef FieldTableCompression
-         if (rp != NULL && rp->r_gp->g_procid == i + 1) {
-            if (first) {
-               first = 0;
-               begin = end = i;
-            }
-            else
-               end = i;
-
-            f_row[i] = rp->r_fnum;
-#else					/* FieldTableCompression */
-         if (rp != NULL && rp->r_gp->g_procid == i) {
-
-#ifdef DeBugLinker
-            if (Dflag)
-                fprintf(dbgfile, "\t%d\n", rp->r_fnum);
-#endif					/* DeBugLinker */
-
-            outop(rp->r_fnum);
-#endif					/* FieldTableCompression */
-
-            rp = rp->r_link;
-	    }
-         else {
-
-#ifdef FieldTableCompression
-            f_row[i] = -1;
-#else					/* FieldTableCompression */
-   #ifdef DeBugLinker
-            if (Dflag)
-                fprintf(dbgfile, "\t-1\n");
-   #endif					/* DeBugLinker */
-
-            outop(-1);
-#endif					/* FieldTableCompression */
-
-         }
-
-#ifndef FieldTableCompression
-   #ifdef DeBugLinker
-         if (Dflag && (i == nrecords || (i & 03) == 0))
-            putc('\n', dbgfile);
-   #endif					/* DeBugLinker */
-#endif					/* FieldTableCompression */
-
-      }
-
-#ifdef FieldTableCompression
-      inserted = 0;
-      pointer = first_avail;
-      while (!inserted) {
-         inserted = 1;
-         for (i = begin; i <= end; i++) {
-            if (pointer + (end - begin) >= entries) {
-               int j;
-               int old_entries = entries;
-               entries *= 2;
-               f_tabp = realloc (f_tabp, entries * sizeof (int));
-               for (j = old_entries; j < entries; j++)
-                  f_tabp[j] = -1;
-            }
-            if (f_row[i] != -1)
-               if (f_tabp[pointer + (i - begin)] != -1) {
-                  inserted = 0;
-                  break;
-               }
-         }
-         pointer++;
-      }
-      pointer--;
-
-      /* Create bitmap */
-      for (i = 0; i < nrecords; i++) {
-         int index = f_num * bytes + i / 8;
-				/* Picks out byte within bitmap row */
-
-         if (f_row[i] != -1) {
-            f_bm[index] |= 01;
-	    }
-         if (i % 8 != 7)
-            f_bm [index] <<= 1;
-	 }
-      if (nrecords%8)
-         f_bm[(f_num + 1) * bytes - 1] <<= 7 - (nrecords % 8);
-
-      f_fo[f_num++] = pointer - begin;
-      /* So that f_fo[] points to the first bit */
-
-      for (i = begin; i <= end; i++)
-         if (f_row[i] != -1)
-            f_tabp[pointer + (i - begin)] = f_row[i];
-      if (pointer + (end - begin) >= counter)
-         counter = pointer + (end - begin + 1);
-      while ((f_tabp[first_avail] != -1) && (first_avail <= counter))
-         first_avail++;
-#endif					/* FieldTableCompression */
-
-   }
-
-#ifdef FieldTableCompression
-   /* Write out the arrays. */
-   #ifdef DeBugLinker
-      if (Dflag)
-         fprintf (dbgfile, "\n%ld:\t\t\t\t\t# field offset array\n", (long)pc);
-   #endif					/* DeBugLinker */
+   #ifndef FieldTableCompression
 
       /*
-       * Compute largest value stored in fo array
+       * Output record/field table (not compressed).
        */
-   { word maxfo = 0;
-   for (i = 0; i < hdr.Nfields; i++) {
-      if (f_fo[i] > maxfo) maxfo = f_fo[i];
-      }
-   if (maxfo < 254)
-      hdr.FoffWidth = 1;
-   else if (maxfo < 65535L)
-      hdr.FoffWidth = 2;
-   else
-      hdr.FoffWidth = 4;
-     }
+      hdr.Ftab = pc;
+      #ifdef DeBugLinker
+         if (Dflag)
+            fprintf(dbgfile,"\n%ld:\t\t\t\t\t# record/field table\n",(long)pc);
+      #endif				/* DeBugLinker */
 
-   for (i = 0; i < hdr.Nfields; i++) {
-#ifdef DeBugLinker
-      if (Dflag)
-         fprintf (dbgfile, "\t%d\n", f_fo[i]);
-#endif					/* DeBugLinker */
-      if (hdr.FoffWidth == 1) {
-	 outchar(f_fo[i]);
-	 }
-      else if (hdr.FoffWidth == 2)
-	 outshort(f_fo[i]);
-      else
-      outop (f_fo[i]);
-      }
-
-#ifdef DeBugLinker
-   if (Dflag)
-      fprintf (dbgfile, "\n%ld:\t\t\t\t\t# Bit maps array\n", (long)pc);
-#endif					/* DeBugLinker */
-   for (i = 0; i < hdr.Nfields; i++) {
-#ifdef DeBugLinker
-      if (Dflag) {
-         int ct, index = i * bytes;
-         unsigned char this_bit = 0200;
-
-         fprintf (dbgfile, "\t");
-         for (ct = 0; ct < nrecords; ct++) {
-            if ((f_bm[index] | this_bit) == f_bm[index])
-               fprintf (dbgfile, "1");
-            else
-               fprintf (dbgfile, "0");
-
-            if (ct % 8 == 7) {
-               fprintf (dbgfile, " ");
-               index++;
-               this_bit = 0200;
+      for (fp = lffirst; fp != NULL; fp = fp->f_nextentry) {
+         #ifdef DeBugLinker
+            if (Dflag)
+               fprintf(dbgfile, "%ld:\t\t\t\t\t# %s\n", (long)pc,
+                  &lsspace[fp->f_name]);
+         #endif				/* DeBugLinker */
+         rp = fp->f_rlist;
+         for (i = 1; i <= nrecords; i++) {
+            while (rp != NULL && rp->r_gp->g_procid < 0)
+	       rp = rp->r_link;		/* skip unreferenced constructor */
+            if (rp != NULL && rp->r_gp->g_procid == i) {
+               #ifdef DeBugLinker
+                  if (Dflag)
+                      fprintf(dbgfile, "\t%d\n", rp->r_fnum);
+               #endif			/* DeBugLinker */
+               outop(rp->r_fnum);
+               rp = rp->r_link;
+	       }
+            else {
+               #ifdef DeBugLinker
+                  if (Dflag)
+                      fprintf(dbgfile, "\t-1\n");
+               #endif			/* DeBugLinker */
+               outop(-1);
                }
-            else
-               this_bit >>= 1;
+            #ifdef DeBugLinker
+               if (Dflag && (i == nrecords || (i & 03) == 0))
+                  putc('\n', dbgfile);
+            #endif			/* DeBugLinker */
             }
-         fprintf (dbgfile, "\n");
          }
-#endif					/* DeBugLinker */
-      for (pointer = i * bytes; pointer < (i + 1) * bytes; pointer++) {
-         outchar (f_bm[pointer]);
-	 }
-      }
 
-   align();
+   #else				/* FieldTableCompression */
 
-#ifdef DeBugLinker
-   if (Dflag)
-      fprintf (dbgfile, "\n%ld:\t\t\t\t\t# record/field array\n", (long)pc);
-#endif					/* DeBugLinker */
-   hdr.Ftab = pc;
-   for (i = 0; i < counter; i++) {
-#ifdef DeBugLinker
-      if (Dflag)
-         fprintf (dbgfile, "\t%d\t%d\n", i, f_tabp[i]);
-#endif					/* DeBugLinker */
-      if (hdr.FtabWidth == 1)
-	 outchar(f_tabp[i]);
-      else if (hdr.FtabWidth == 2)
-	 outshort(f_tabp[i]);
-      else
-      outop (f_tabp[i]);
-   }
+      /*
+       * Output record/field table (compressed).
+       * This code has not been tested recently.
+       */
+      {
+      int counter = 0, f_num, first, begin, end, entries;
+      int *f_fo, *f_row, *f_tabp;
+      char *f_bm;
+      int pointer, first_avail = 0, inserted, bytes;
+      hdr.Fo = pc;
 
-   /* Free memory allocated by Jigsaw. */
-   free (f_fo);
-   free (f_bm);
-   free (f_tabp);
-   free (f_row);
-}
+      /*
+       * Compute the field width required for this binary;
+       * it is determined by the maximum # of fields in any one record.
+       */
+      long ct = 0;
+      for (gp = lgfirst; gp != NULL; gp = gp->g_next)
+         if ((gp->g_flag & F_Record) && gp->g_procid > 0)
+            if (gp->g_nargs > ct) ct=gp->g_nargs;
+      if (ct > 65535L) hdr.FtabWidth = 4;
+      else if (ct > 254) hdr.FtabWidth = 2; /* 255 is (not present) */
+      else hdr.FtabWidth = 1;
 
-#endif					/* FieldTableCompression */
+      /* Find out how many field names there are. */
+      hdr.Nfields = 0;
+      for (fp = lffirst; fp != NULL; fp = fp->f_nextentry)
+         hdr.Nfields++;
+
+      entries = hdr.Nfields * nrecords / 4 + 1;
+      f_tabp = malloc (entries * sizeof (int));
+      for (i = 0; i < entries; i++)
+         f_tabp[i] = -1;
+      f_fo = malloc (hdr.Nfields * sizeof (int));
+   
+      bytes = nrecords / 8;
+      if (nrecords % 8 != 0)
+         bytes++;
+      f_bm = calloc (hdr.Nfields, bytes);
+      f_row = malloc (nrecords * sizeof (int));
+      f_num = 0;
+
+      for (fp = lffirst; fp != NULL; fp = fp->f_nextentry) {
+         rp = fp->f_rlist;
+         first = 1;
+         for (i = 0; i < nrecords; i++) {
+            while (rp != NULL && rp->r_gp->g_procid < 0)
+   	    rp = rp->r_link;		/* skip unreferenced constructor */
+            if (rp != NULL && rp->r_gp->g_procid == i + 1) {
+               if (first) {
+                  first = 0;
+                  begin = end = i;
+                  }
+               else
+                  end = i;
+               f_row[i] = rp->r_fnum;
+               rp = rp->r_link;
+   	       }
+            else {
+               f_row[i] = -1;
+               }
+            }
+
+         inserted = 0;
+         pointer = first_avail;
+         while (!inserted) {
+            inserted = 1;
+            for (i = begin; i <= end; i++) {
+               if (pointer + (end - begin) >= entries) {
+                  int j;
+                  int old_entries = entries;
+                  entries *= 2;
+                  f_tabp = realloc (f_tabp, entries * sizeof (int));
+                  for (j = old_entries; j < entries; j++)
+                     f_tabp[j] = -1;
+                  }
+               if (f_row[i] != -1)
+                  if (f_tabp[pointer + (i - begin)] != -1) {
+                     inserted = 0;
+                     break;
+                     }
+               }
+            pointer++;
+            }
+         pointer--;
+
+         /* Create bitmap */
+         for (i = 0; i < nrecords; i++) {
+            int index = f_num * bytes + i / 8;
+   				/* Picks out byte within bitmap row */
+            if (f_row[i] != -1) {
+               f_bm[index] |= 01;
+   	       }
+            if (i % 8 != 7)
+               f_bm [index] <<= 1;
+   	    }
+
+         if (nrecords%8)
+            f_bm[(f_num + 1) * bytes - 1] <<= 7 - (nrecords % 8);
+
+         f_fo[f_num++] = pointer - begin;
+         /* So that f_fo[] points to the first bit */
+
+         for (i = begin; i <= end; i++)
+            if (f_row[i] != -1)
+               f_tabp[pointer + (i - begin)] = f_row[i];
+         if (pointer + (end - begin) >= counter)
+            counter = pointer + (end - begin + 1);
+         while ((f_tabp[first_avail] != -1) && (first_avail <= counter))
+            first_avail++;
+         }
+
+         /* Write out the arrays. */
+         #ifdef DeBugLinker
+            if (Dflag)
+            fprintf (dbgfile, "\n%ld:\t\t\t\t\t# field offset array\n",
+	       (long)pc);
+         #endif				/* DeBugLinker */
+
+         /*
+          * Compute largest value stored in fo array
+          */
+         {
+	 word maxfo = 0;
+         for (i = 0; i < hdr.Nfields; i++) {
+            if (f_fo[i] > maxfo) maxfo = f_fo[i];
+            }
+         if (maxfo < 254)
+            hdr.FoffWidth = 1;
+         else if (maxfo < 65535L)
+            hdr.FoffWidth = 2;
+         else
+            hdr.FoffWidth = 4;
+         }
+
+         for (i = 0; i < hdr.Nfields; i++) {
+            #ifdef DeBugLinker
+               if (Dflag)
+                  fprintf (dbgfile, "\t%d\n", f_fo[i]);
+            #endif			/* DeBugLinker */
+            if (hdr.FoffWidth == 1) {
+	       outchar(f_fo[i]);
+	       }
+            else if (hdr.FoffWidth == 2)
+	       outshort(f_fo[i]);
+            else
+            outop (f_fo[i]);
+            }
+
+         #ifdef DeBugLinker
+            if (Dflag)
+               fprintf (dbgfile, "\n%ld:\t\t\t\t\t# Bit maps array\n",
+	          (long)pc);
+         #endif				/* DeBugLinker */
+
+         for (i = 0; i < hdr.Nfields; i++) {
+            #ifdef DeBugLinker
+               if (Dflag) {
+                  int ct, index = i * bytes;
+                  unsigned char this_bit = 0200;
+
+                  fprintf (dbgfile, "\t");
+                  for (ct = 0; ct < nrecords; ct++) {
+                     if ((f_bm[index] | this_bit) == f_bm[index])
+                        fprintf (dbgfile, "1");
+                     else
+                        fprintf (dbgfile, "0");
+
+                     if (ct % 8 == 7) {
+                        fprintf (dbgfile, " ");
+                        index++;
+                        this_bit = 0200;
+                        }
+                     else
+                        this_bit >>= 1;
+                     }
+                  fprintf (dbgfile, "\n");
+                  }
+            #endif			/* DeBugLinker */
+            for (pointer = i * bytes; pointer < (i + 1) * bytes; pointer++) {
+               outchar (f_bm[pointer]);
+	       }
+            }
+
+         align();
+
+         #ifdef DeBugLinker
+            if (Dflag)
+               fprintf (dbgfile, "\n%ld:\t\t\t\t\t# record/field array\n",
+	          (long)pc);
+         #endif				/* DeBugLinker */
+
+         hdr.Ftab = pc;
+         for (i = 0; i < counter; i++) {
+            #ifdef DeBugLinker
+               if (Dflag)
+                  fprintf (dbgfile, "\t%d\t%d\n", i, f_tabp[i]);
+            #endif			/* DeBugLinker */
+            if (hdr.FtabWidth == 1)
+               outchar(f_tabp[i]);
+            else if (hdr.FtabWidth == 2)
+               outshort(f_tabp[i]);
+            else
+               outop (f_tabp[i]);
+            }
+
+         /* Free memory allocated by Jigsaw. */
+         free (f_fo);
+         free (f_bm);
+         free (f_tabp);
+         free (f_row);
+         }
+
+      #endif				/* FieldTableCompression */
 
    /*
     * Output descriptors for field names.
@@ -1180,16 +1157,15 @@ void gentables()
    for (fp = lffirst; fp != NULL; fp = fp->f_nextentry) {
       s = &lsspace[fp->f_name];
 
-#ifdef DeBugLinker
-      if (Dflag)
-         fprintf(dbgfile, "%ld:\t%d\tS+%ld\t\t\t# %s\n",
-            (long)pc, (int)strlen(s), (long)fp->f_name, s);
-#endif					/* DeBugLinker */
+      #ifdef DeBugLinker
+         if (Dflag)
+            fprintf(dbgfile, "%ld:\t%d\tS+%ld\t\t\t# %s\n",
+               (long)pc, (int)strlen(s), (long)fp->f_name, s);
+      #endif				/* DeBugLinker */
 
       outword(strlen(s));      /* name of field: length & offset */
       outword(fp->f_name);
    }
-
 
    /*
     * Output global variable descriptors.
@@ -1197,46 +1173,38 @@ void gentables()
    hdr.Globals = pc;
    for (gp = lgfirst; gp != NULL; gp = gp->g_next) {
       if (gp->g_flag & F_Builtin) {		/* function */
-
-#ifdef DeBugLinker
-         if (Dflag)
-            fprintf(dbgfile, "%ld:\t%06lo\t%d\t\t\t# %s\n",
-                (long)pc, (long)D_Proc, -gp->g_procid, &lsspace[gp->g_name]);
-#endif					/* DeBugLinker */
-
+         #ifdef DeBugLinker
+            if (Dflag)
+               fprintf(dbgfile, "%ld:\t%06lo\t%d\t\t\t# %s\n",
+                   (long)pc, (long)D_Proc, -gp->g_procid, &lsspace[gp->g_name]);
+         #endif				/* DeBugLinker */
          outword(D_Proc);
          outword(-gp->g_procid);
          }
       else if (gp->g_flag & F_Proc) {		/* Icon procedure */
-
-#ifdef DeBugLinker
-         if (Dflag)
-            fprintf(dbgfile, "%ld:\t%06lo\tZ+%ld\t\t\t# %s\n",
-                (long)pc,(long)D_Proc, (long)gp->g_pc, &lsspace[gp->g_name]);
-#endif					/* DeBugLinker */
-
+         #ifdef DeBugLinker
+            if (Dflag)
+               fprintf(dbgfile, "%ld:\t%06lo\tZ+%ld\t\t\t# %s\n",
+                   (long)pc,(long)D_Proc, (long)gp->g_pc, &lsspace[gp->g_name]);
+         #endif				/* DeBugLinker */
          outword(D_Proc);
          outword(gp->g_pc);
          }
       else if (gp->g_flag & F_Record) {		/* record constructor */
-
-#ifdef DeBugLinker
-         if (Dflag)
-            fprintf(dbgfile, "%ld:\t%06lo\tZ+%ld\t\t\t# %s\n",
-                (long)pc, (long)D_Proc, (long)gp->g_pc, &lsspace[gp->g_name]);
-#endif					/* DeBugLinker */
-
+         #ifdef DeBugLinker
+            if (Dflag)
+               fprintf(dbgfile, "%ld:\t%06lo\tZ+%ld\t\t\t# %s\n", (long) pc,
+                   (long)D_Proc, (long)gp->g_pc, &lsspace[gp->g_name]);
+         #endif				/* DeBugLinker */
          outword(D_Proc);
          outword(gp->g_pc);
          }
-      else {					/* simple global variable */
-
-#ifdef DeBugLinker
-         if (Dflag)
-            fprintf(dbgfile, "%ld:\t%06lo\t0\t\t\t# %s\n",(long)pc,
-               (long)D_Null, &lsspace[gp->g_name]);
-#endif					/* DeBugLinker */
-
+      else {				/* simple global variable */
+         #ifdef DeBugLinker
+            if (Dflag)
+               fprintf(dbgfile, "%ld:\t%06lo\t0\t\t\t# %s\n",(long)pc,
+                  (long)D_Null, &lsspace[gp->g_name]);
+         #endif				/* DeBugLinker */
          outword(D_Null);
          outword(0);
          }
@@ -1248,12 +1216,12 @@ void gentables()
    hdr.Gnames = pc;
    for (gp = lgfirst; gp != NULL; gp = gp->g_next) {
 
-#ifdef DeBugLinker
-      if (Dflag)
-         fprintf(dbgfile, "%ld:\t%d\tS+%ld\t\t\t# %s\n",
-            (long)pc, (int)strlen(&lsspace[gp->g_name]), (long)(gp->g_name),
-               &lsspace[gp->g_name]);
-#endif					/* DeBugLinker */
+      #ifdef DeBugLinker
+         if (Dflag)
+            fprintf(dbgfile, "%ld:\t%d\tS+%ld\t\t\t# %s\n",
+               (long)pc, (int)strlen(&lsspace[gp->g_name]), (long)(gp->g_name),
+                  &lsspace[gp->g_name]);
+      #endif				/* DeBugLinker */
 
       outword(strlen(&lsspace[gp->g_name]));
       outword(gp->g_name);
@@ -1265,10 +1233,10 @@ void gentables()
    hdr.Statics = pc;
    for (i = lstatics; i > 0; i--) {
 
-#ifdef DeBugLinker
-      if (Dflag)
-         fprintf(dbgfile, "%ld:\t0\t0\n", (long)pc);
-#endif					/* DeBugLinker */
+      #ifdef DeBugLinker
+         if (Dflag)
+            fprintf(dbgfile, "%ld:\t0\t0\n", (long)pc);
+      #endif				/* DeBugLinker */
 
       outword(D_Null);
       outword(0);
@@ -1286,19 +1254,19 @@ void gentables()
       outfile) < 0)
          quit("cannot write icode file");
 
-#ifdef DeBugLinker
-   if (Dflag) {
-      int k = 0;
-      struct ipc_fname *ptr;
-      for (ptr = fnmtbl; ptr < fnmfree; ptr++) {
-         fprintf(dbgfile, "%ld:\t%03d\tS+%03d\t\t\t# %s\n",
-            (long)(pc + k), ptr->ipc, ptr->fname, &lsspace[ptr->fname]);
-         k = k + 8;
+   #ifdef DeBugLinker
+      if (Dflag) {
+         int k = 0;
+         struct ipc_fname *ptr;
+         for (ptr = fnmtbl; ptr < fnmfree; ptr++) {
+            fprintf(dbgfile, "%ld:\t%03d\tS+%03d\t\t\t# %s\n",
+               (long)(pc + k), ptr->ipc, ptr->fname, &lsspace[ptr->fname]);
+            k = k + 8;
+            }
+         putc('\n', dbgfile);
          }
-      putc('\n', dbgfile);
-      }
 
-#endif					/* DeBugLinker */
+   #endif				/* DeBugLinker */
 
    pc += (char *)fnmfree - (char *)fnmtbl;
 
@@ -1307,48 +1275,47 @@ void gentables()
       outfile) < 0)
          quit("cannot write icode file");
 
-#ifdef DeBugLinker
-   if (Dflag) {
-      int k = 0;
-      struct ipc_line *ptr;
-      for (ptr = lntable; ptr < lnfree; ptr++) {
-         fprintf(dbgfile, "%ld:\t%03d\t%03d\n", (long)(pc + k),
-            ptr->ipc, ptr->line);
-         k = k + 8;
+   #ifdef DeBugLinker
+      if (Dflag) {
+         int k = 0;
+         struct ipc_line *ptr;
+         for (ptr = lntable; ptr < lnfree; ptr++) {
+            fprintf(dbgfile, "%ld:\t%03d\t%03d\n", (long)(pc + k),
+               ptr->ipc, ptr->line);
+            k = k + 8;
+            }
+         putc('\n', dbgfile);
          }
-      putc('\n', dbgfile);
-      }
 
-#endif					/* DeBugLinker */
+   #endif				/* DeBugLinker */
 
    pc += (char *)lnfree - (char *)lntable;
 
    hdr.Strcons = pc;
-#ifdef DeBugLinker
-   if (Dflag) {
-      int c, j, k;
-      j = k = 0;
-      for (s = lsspace; s < &lsspace[lsfree]; ) {
-         fprintf(dbgfile, "%ld:\t%03o", (long)(pc + k), *s++ & 0377);
-         k = k + 8;
-         for (i = 7; i > 0; i--) {
-            if (s >= &lsspace[lsfree])
-               fprintf(dbgfile,"    ");
-            else
-               fprintf(dbgfile, " %03o", *s++ & 0377);
+   #ifdef DeBugLinker
+      if (Dflag) {
+         int c, j, k;
+         j = k = 0;
+         for (s = lsspace; s < &lsspace[lsfree]; ) {
+            fprintf(dbgfile, "%ld:\t%03o", (long)(pc + k), *s++ & 0377);
+            k = k + 8;
+            for (i = 7; i > 0; i--) {
+               if (s >= &lsspace[lsfree])
+                  fprintf(dbgfile,"    ");
+               else
+                  fprintf(dbgfile, " %03o", *s++ & 0377);
+               }
+            fprintf(dbgfile, "   ");
+            for (i = 0; i < 8; i++)
+               if (j < lsfree) {
+                  c = lsspace[j++];
+                  putc(isprint(c & 0377) ? c : ' ', dbgfile);
+   	       }
+            putc('\n', dbgfile);
             }
-         fprintf(dbgfile, "   ");
-         for (i = 0; i < 8; i++)
-            if (j < lsfree) {
-               c = lsspace[j++];
-               putc(isprint(c & 0377) ? c : ' ', dbgfile);
-	       }
-         putc('\n', dbgfile);
          }
-      }
 
-#endif					/* DeBugLinker */
-
+   #endif				/* DeBugLinker */
 
    if (longwrite(lsspace, (long)lsfree, outfile) < 0)
          quit("cannot write icode file");
@@ -1363,43 +1330,43 @@ void gentables()
    hdr.trace = trace;
 
 
-#ifdef DeBugLinker
-   if (Dflag) {
-      fprintf(dbgfile, "\n");
-      fprintf(dbgfile, "size:	 %ld\n", (long)hdr.hsize);
-      fprintf(dbgfile, "trace:	 %ld\n", (long)hdr.trace);
-      fprintf(dbgfile, "records: %ld\n", (long)hdr.Records);
-      fprintf(dbgfile, "ftab:	 %ld\n", (long)hdr.Ftab);
-      fprintf(dbgfile, "fnames:  %ld\n", (long)hdr.Fnames);
-      fprintf(dbgfile, "globals: %ld\n", (long)hdr.Globals);
-      fprintf(dbgfile, "gnames:  %ld\n", (long)hdr.Gnames);
-      fprintf(dbgfile, "statics: %ld\n", (long)hdr.Statics);
-      fprintf(dbgfile, "strcons:   %ld\n", (long)hdr.Strcons);
-      fprintf(dbgfile, "filenms:   %ld\n", (long)hdr.Filenms);
-      fprintf(dbgfile, "linenums:   %ld\n", (long)hdr.linenums);
-      fprintf(dbgfile, "config:   %s\n", hdr.config);
-      }
-#endif					/* DeBugLinker */
+   #ifdef DeBugLinker
+      if (Dflag) {
+         fprintf(dbgfile, "\n");
+         fprintf(dbgfile, "size:	 %ld\n", (long)hdr.hsize);
+         fprintf(dbgfile, "trace:	 %ld\n", (long)hdr.trace);
+         fprintf(dbgfile, "records: %ld\n", (long)hdr.Records);
+         fprintf(dbgfile, "ftab:	 %ld\n", (long)hdr.Ftab);
+         fprintf(dbgfile, "fnames:  %ld\n", (long)hdr.Fnames);
+         fprintf(dbgfile, "globals: %ld\n", (long)hdr.Globals);
+         fprintf(dbgfile, "gnames:  %ld\n", (long)hdr.Gnames);
+         fprintf(dbgfile, "statics: %ld\n", (long)hdr.Statics);
+         fprintf(dbgfile, "strcons:   %ld\n", (long)hdr.Strcons);
+         fprintf(dbgfile, "filenms:   %ld\n", (long)hdr.Filenms);
+         fprintf(dbgfile, "linenums:   %ld\n", (long)hdr.linenums);
+         fprintf(dbgfile, "config:   %s\n", hdr.config);
+         }
+   #endif				/* DeBugLinker */
 
-#ifdef Header
-   fseek(outfile, hdrsize, 0);
-#else                                   /* Header */
-   #if MSDOS
-      fseek(outfile, fileOffsetOfStuffThatGoesInICX, 0);
-   #else				/* MSDOS */
-      fseek(outfile, 0L, 0);
-   #endif				/* MSDOS */
-#endif                                  /* Header */
+   #ifdef Header
+      fseek(outfile, hdrsize, 0);
+   #else				/* Header */
+      #if MSDOS
+         fseek(outfile, fileOffsetOfStuffThatGoesInICX, 0);
+      #else				/* MSDOS */
+         fseek(outfile, 0L, 0);
+      #endif				/* MSDOS */
+   #endif				/* Header */
 
    if (longwrite((char *)&hdr, (long)sizeof(hdr), outfile) < 0)
       quit("cannot write icode file");
 
    if (verbose >= 2) {
       word tsize = sizeof(hdr) + hdr.hsize;
-#ifdef Header
-      fprintf(stderr, "  bootstrap  %7ld\n", hdrsize);
-      tsize += hdrsize;
-#endif					/* Header */
+      #ifdef Header
+         fprintf(stderr, "  bootstrap  %7ld\n", hdrsize);
+         tsize += hdrsize;
+      #endif				/* Header */
       fprintf(stderr, "  header     %7ld\n", (long)sizeof(hdr));
       fprintf(stderr, "  procedures %7ld\n", (long)hdr.Records);
       fprintf(stderr, "  records    %7ld\n", (long)(hdr.Ftab - hdr.Records));
@@ -1528,23 +1495,23 @@ int count;
    }
 
 #ifdef DeBugLinker
-/*
- * dumpblock(a,i) dump contents of i bytes at address a, used only
- *  in conjunction with -L.
- */
-static void dumpblock(addr, count)
-char *addr;
-int count;
-   {
-   int i;
-   for (i = 0; i < count; i++) {
-      if ((i & 7) == 0)
-         fprintf(dbgfile,"\n\t");
-      fprintf(dbgfile," %03o",(0377 & (unsigned)addr[i]));
+   /*
+    * dumpblock(a,i) dump contents of i bytes at address a, used only
+    *  in conjunction with -L.
+    */
+   static void dumpblock(addr, count)
+   char *addr;
+   int count;
+      {
+      int i;
+      for (i = 0; i < count; i++) {
+         if ((i & 7) == 0)
+            fprintf(dbgfile,"\n\t");
+         fprintf(dbgfile," %03o",(0377 & (unsigned)addr[i]));
+         }
+      putc('\n',dbgfile);
       }
-   putc('\n',dbgfile);
-   }
-#endif					/* DeBugLinker */
+   #endif				/* DeBugLinker */
 
 /*
  * flushcode - write buffered code to the output file.
@@ -1600,14 +1567,14 @@ int lab;
    }
 
 #ifdef DeBugLinker
-void idump(s)		/* dump code region */
-   char *s;
-   {
-   int *c;
+   void idump(s)		/* dump code region */
+      char *s;
+      {
+      int *c;
 
-   fprintf(stderr,"\ndump of code region %s:\n",s);
-   for (c = (int *)codeb; c < (int *)codep; c++)
-       fprintf(stderr,"%ld: %d\n",(long)c, (int)*c);
-   fflush(stderr);
-   }
-#endif					/* DeBugLinker */
+      fprintf(stderr,"\ndump of code region %s:\n",s);
+      for (c = (int *)codeb; c < (int *)codep; c++)
+          fprintf(stderr,"%ld: %d\n",(long)c, (int)*c);
+      fflush(stderr);
+      }
+   #endif				/* DeBugLinker */

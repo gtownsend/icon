@@ -1558,36 +1558,7 @@ dptr dp;
 int printable(c)
 int c;
    {
-
-/*
- * The following code is operating-system dependent [@rmisc.01].
- *  Determine if a character is "printable".
- */
-
-#if PORT
-   return isprint(c);
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA || MSDOS || OS2 || UNIX || VMS
    return (isascii(c) && isprint(c));
-#endif					/* AMIGA || ... */
-
-#if ARM
-   return (c >= 0x00 && c <= 0x7F && isprint(c));
-#endif					/* ARM */
-
-#if MACINTOSH
-#if MPW
-   return (isascii(c) && isprint(c));
-#else					/* MPW */
-   return isprint(c);
-#endif					/* MPW */
-#endif					/* MACINTOSH */
-
-/*
- * End of operating-system specific code.
- */
    }
 
 #ifndef AsmOver

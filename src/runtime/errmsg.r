@@ -2,16 +2,6 @@
  * errmsg.r -- err_msg, irunerr, drunerr
  */
 
-#ifdef PresentationManager
-extern MRESULT_N_EXPENTRY RuntimeErrorDlgProc(HWND, ULONG, MPARAM, MPARAM);
-HAB HInterpAnchorBlock;
-#endif					/* PresentationManager */
-
-#if AMIGA && __SASC
-extern void PostClip(char *file, int line, int number, char *text);
-extern void CallARexx(char *script);
-#endif					/* AMIGA && __SASC */
-
 extern struct errtab errtab[];		/* error numbers and messages */
 
 /*
@@ -23,9 +13,6 @@ int n;
 dptr v;
 {
    register struct errtab *p;
-#ifdef PresentationManager
-   HMODULE modhand;
-#endif
 
    if (n == 0) {
       k_errornumber = t_errornumber;
@@ -53,7 +40,6 @@ dptr v;
 
    EVVal((word)k_errornumber,E_Error);
 
-#ifndef PresentationManager
    if (pfp != NULL) {
       if (IntVal(kywd_err) == 0 || !err_conv) {
          fprintf(stderr, "\nRun-time error %d\n", k_errornumber);
@@ -92,41 +78,9 @@ dptr v;
    fprintf(stderr, "Traceback:\n");
    tracebk(pfp, glbl_argp);
    fflush(stderr);
-
-
    if (dodump)
       abort();
-
-#if AMIGA && __SASC
-   PostClip(findfile(ipc.opnd), findline(ipc.opnd), k_errornumber, k_errortext);
-   CallARexx(IconxRexx);
-#endif					/* AMIGA && __SASC */
-
    c_exit(EXIT_FAILURE);
-#else					/* PresentationManager */
-
-  if (pfp != NULL) {
-     if (IntVal(kywd_err) == 0 || !err_conv) {
-	 DosQueryModuleHandle("xiconxdl.dll",&modhand);
-	 if (WinDlgBox(HWND_DESKTOP, HWND_DESKTOP, RuntimeErrorDlgProc, modhand,
-		IDD_RUNERR, NULL) == DID_ERROR) {
-
-	  WinMessageBox(HWND_DESKTOP, HWND_DESKTOP,
-		  "An Error occurred, but the dialog cannot be loaded.\nExecution halting.",
-		  "Icon Runtime System", 0, MB_OK|MB_ICONHAND|MB_MOVEABLE);
-	 }
-     }
-     else {
-	IntVal(kywd_err)--;
-	return;
-     }
-  }
-
-  if (dodump)
-    abort();
-
-  c_exit(EXIT_FAILURE);
-#endif					/* PresentationManager */
 }
 
 /*

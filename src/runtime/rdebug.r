@@ -17,24 +17,14 @@ static void xtrace
 /*
  * tracebk - print a trace of procedure calls.
  */
-#ifdef PresentationManager
-/* have to add COMPILER support too */
-void tracebk(void *foo, dptr argp, HWND hwndMLE)
-#else					/* PresentationManager */
-void tracebk(lcl_pfp, argp)
 
 #if COMPILER
-struct p_frame *lcl_pfp;
-#else					/* COMPILER */
-struct pf_marker *lcl_pfp;
-#endif					/* COMPILER */
 
+void tracebk(lcl_pfp, argp)
+struct p_frame *lcl_pfp;
 dptr argp;
-#endif					/* PresentationManager */
    {
    struct b_proc *cproc;
-
-#if COMPILER
 
    struct debug *debug;
    word nparam;
@@ -46,8 +36,15 @@ dptr argp;
    cproc = debug->proc;
    xtrace(cproc, (word)abs((int)cproc->nparam), argp, debug->old_line,
       debug->old_fname);
+   }
 
 #else					/* COMPILER */
+
+void tracebk(lcl_pfp, argp)
+struct pf_marker *lcl_pfp;
+dptr argp;
+   {
+   struct b_proc *cproc;
 
    struct pf_marker *origpfp = pfp;
    dptr arg;
@@ -68,10 +65,6 @@ dptr argp;
     */
 
    while (pfp) {
-#ifdef PresentationManager
-      /* point at the beginning of the string */
-      ConsoleStringBufPtr = ConsoleStringBuf;
-#endif					/* PresentationManager */
       arg = &((dptr)pfp)[-(pfp->pf_nargs) - 1];
       cproc = (struct b_proc *)BlkLoc(arg[0]);
       /*
@@ -83,30 +76,19 @@ dptr argp;
 
       xtrace(cproc, pfp->pf_nargs, &arg[0], findline(cipc.opnd),
          findfile(cipc.opnd));
-#ifdef PresentationManager
-      /* insert the text in the MLE */
-      WinSendMsg(hwndMLE, MLM_INSERT, MPFROMP(ConsoleStringBuf), (MPARAM)0);
-#endif					/* PresentationManager */
       /*
        * On the last call, show both the call and the offending expression.
        */
       if (pfp == origpfp) {
-#ifdef PresentationManager
-         /* make sure we are at the beginning of the buffer */
-         ConsoleStringBufPtr = ConsoleStringBuf;
          ttrace();
-         /* add it to the MLE */
-         WinSendMsg(hwndMLE, MLM_INSERT, MPFROMP(ConsoleStringBuf), (MPARAM)0);
-#else					/* PresentationManager */
-         ttrace();
-#endif					/* PresentationManager */
          break;
          }
 
       pfp = (struct pf_marker *)(pfp->pf_efp);
       }
-#endif					/* COMPILER */
    }
+
+#endif					/* COMPILER */
 
 /*
  * xtrace - procedure *bp is being called with nargs arguments, the first
@@ -120,9 +102,6 @@ int pline;
 char *pfile;
    {
 
-#ifndef PresentationManager
-   fprintf(stderr, "   ");
-#endif					/* PresentationManager */
    if (bp == NULL)
       fprintf(stderr, "????");
    else {
@@ -596,11 +575,6 @@ static void ttrace()
    {
    struct b_proc *bp;
    word nargs;
-
-#ifndef PresentationManager
-   fprintf(stderr, "   ");
-#endif					/* PresentationManager */
-
    switch ((int)lastop) {
 
       case Op_Keywd:
@@ -721,9 +695,6 @@ oneop:
    if (ipc.opnd != NULL)
       fprintf(stderr, " from line %d in %s", findline(ipc.opnd),
          findfile(ipc.opnd));
-#ifndef PresentationManager
-   putc('\n', stderr);
-#endif					/* PresentationManager */
    fflush(stderr);
    }
 

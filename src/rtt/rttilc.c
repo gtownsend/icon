@@ -1386,17 +1386,17 @@ int ilc;
             return;         /* Don't output these declaration elements */
          default:
             c_walk(typ, indent, 0);
-#ifndef Rttx
-            if (ilc)
-               ilc_walk(typ, 0, 0);
-#endif					/* Rttx */
+            #ifndef Rttx
+               if (ilc)
+                  ilc_walk(typ, 0, 0);
+            #endif			/* Rttx */
          }
       }
    else {
       c_walk(typ, indent, 0);
-#ifndef Rttx
-      if (ilc)
-         ilc_walk(typ, 0, 0);
-#endif					/* Rttx */
+      #ifndef Rttx
+         if (ilc)
+            ilc_walk(typ, 0, 0);
+      #endif				/* Rttx */
       }
    }

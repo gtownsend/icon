@@ -8,42 +8,6 @@
 #define BadCode
 #endif					/* MICROSOFT */
 
-/*
- * The following code is operating-system dependent [@fsys.01]. Include
- *  system-dependent files and declarations.
- */
-
-#if PORT
-   /* nothing to do */
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA
-#if __SASC
-   /* Undefine macros from fcntl.h and stdlib.h that collide with
-      function names in this module. */
-#passthru #undef close
-#passthru #undef open
-#passthru #undef read
-#passthru #undef write
-#passthru #undef getenv
-#endif __SASC                           /* __SASC */
-extern FILE *popen(const char *, const char *);
-extern int pclose(FILE *);
-#endif AMIGA                            /* AMIGA */
-
-#if MSDOS || OS2 || UNIX || VMS
-   /* nothing to do */
-#endif					/* MSDOS ... */
-
-#if MACINTOSH && MPW
-extern int MPWFlush(FILE *f);
-#define fflush(f) MPWFlush(f)
-#endif					/* MACINTOSH && MPW*/
-
-/*
- * End of operating-system specific code.
- */
 
 
 #ifdef MSWindows
@@ -161,52 +125,46 @@ function{1} close(f)
       if ((status & (Fs_Read | Fs_Write)) == 0)
 	 return f;			/* if already closed */
 
-      /*
-       * Close f, using fclose, pclose, or wclose as appropriate.
-       */
+      #ifdef Graphics
+         pollctr >>= 1;
+         pollctr++;
+         if (BlkLoc(f)->file.status & Fs_Window) {
+            /*
+             * Close a window.
+             */
+   	    BlkLoc(f)->file.status = Fs_Window;	/* clears read and write */
+   	    SETCLOSED((wbp) fp);
+   	    wclose((wbp) fp);
+   	    return f;
+   	 }
+      #endif				/* Graphics */
 
-#ifdef Graphics
-      /*
-       * Close window if windows are supported.
-       */
-
-      pollctr >>= 1;
-      pollctr++;
-      if (BlkLoc(f)->file.status & Fs_Window) {
-	 if (BlkLoc(f)->file.status != Fs_Window) { /* not already closed? */
-	    BlkLoc(f)->file.status = Fs_Window;
-	    SETCLOSED((wbp) fp);
-	    wclose((wbp) fp);
+      #ifdef ReadDirectory
+         if (BlkLoc(f)->file.status & Fs_Directory) {
+	    /*
+	     * Close a directory.
+	     */
+            closedir((DIR*) fp);
+	    BlkLoc(f)->file.status = 0;
+	    return f;
 	    }
-	 return f;
-	 }
-      else
-#endif					/* Graphics */
+      #endif					/* ReadDirectory */
+      
+      #ifdef Pipes
+         if (BlkLoc(f)->file.status & Fs_Pipe) {
+            /*
+             * Close a pipe.  (Returns pclose status, contrary to doc.)
+             */
+	    BlkLoc(f)->file.status = 0;
+	    return C_integer((pclose(fp) >> 8) & 0377);
+	    }
+      #endif				/* Pipes */
 
-#ifdef ReadDirectory
-      if (BlkLoc(f)->file.status & Fs_Directory)
-         closedir((DIR*) fp);
-      else
-#endif					/* ReadDirectory */
-
-#if AMIGA || ARM || OS2 || UNIX || VMS
       /*
-       * Close pipe if pipes are supported.
+       * Close a simple file.
        */
-
-      if (BlkLoc(f)->file.status & Fs_Pipe) {
-	 BlkLoc(f)->file.status = 0;
-	 return C_integer((pclose(fp) >> 8) & 0377);
-	 }
-      else
-#endif					/* AMIGA || ARM || OS2 || ... */
-
       fclose(fp);
       BlkLoc(f)->file.status = 0;
-
-      /*
-       * Return the closed file.
-       */
       return f;
       }
 end
@@ -301,32 +259,6 @@ function{0,1} open(fname, spec)
       tended struct b_lelem *bp;
 #endif					/* Graphics */
 
-/*
- * The following code is operating-system dependent [@fsys.02].  Make
- *  declarations as needed for opening files.
- */
-
-#if PORT
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA || MACINTOSH || MSDOS || OS2
-   /* nothing is needed */
-#endif					/* AMIGA || ... */
-
-#if ARM
-      extern FILE *popen(const char *, const char *);
-      extern int pclose(FILE *);
-#endif					/* ARM */
-
-#if OS2 || UNIX || VMS
-      extern FILE *popen();
-#endif					/* OS2 || UNIX || VMS */
-
-/*
- * End of operating-system specific code.
- */
-
       /*
        * get a C string for the file name
        */
@@ -372,12 +304,12 @@ Deliberate Syntax Error
 	       status |= Fs_Untrans;
 	       continue;
 
-#if AMIGA || ARM || OS2 || UNIX || VMS
+            #ifdef Pipes
 	    case 'p':
 	    case 'P':
 	       status |= Fs_Pipe;
 	       continue;
-#endif					/* AMIGA || ARM || OS2 || UNIX || VMS */
+            #endif			/* Pipes */
 
 	    case 'x':
 	    case 'X':
@@ -414,44 +346,10 @@ Deliberate Syntax Error
       else
 	 mode[0] = 'w';
 
-/*
- * The following code is operating-system dependent [@fsys.05].  Handle open
- *  modes.
- */
-
-#if PORT
       if ((status & (Fs_Read|Fs_Write)) == (Fs_Read|Fs_Write))
 	 mode[1] = '+';
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA || ARM || UNIX || VMS
-      if ((status & (Fs_Read|Fs_Write)) == (Fs_Read|Fs_Write))
-	 mode[1] = '+';
-#endif					/* AMIGA || ARM || UNIX || VMS */
-
-#if MACINTOSH
-      /* nothing to do */
-#endif					/* MACINTOSH */
-
-#if MSDOS || OS2
-      if ((status & (Fs_Read|Fs_Write)) == (Fs_Read|Fs_Write)) {
-	 mode[1] = '+';
-#if CSET2
-         /* we don't have the 't' in C Set/2 */
-         if ((status & Fs_Untrans) != 0) mode[2] = 'b';
-         } /* End of if - open file for reading or writing */
-      else if ((status & Fs_Untrans) != 0) mode[1] = 'b';
-#else					/* CSET2 */
-	 mode[2] = ((status & Fs_Untrans) != 0) ? 'b' : 't';
-	 }
-      else mode[1] = ((status & Fs_Untrans) != 0) ? 'b' : 't';
-#endif					/* CSET2 */
-#endif					/* MSDOS || OS2 */
-
-/*
- * End of operating-system specific code.
- */
+      if ((status & Fs_Untrans) != 0)
+         strcat(mode, "b");
 
       /*
        * Open the file with fopen or popen.
@@ -488,14 +386,14 @@ Deliberate Syntax Error
 	 } else
 #endif					/* Graphics */
 
-#if AMIGA || ARM || OS2 || UNIX || VMS
+#ifdef Pipes
       if (status & Fs_Pipe) {
 	 if (status != (Fs_Read|Fs_Pipe) && status != (Fs_Write|Fs_Pipe))
 	    runerr(209, spec);
 	 f = popen(fnamestr, mode);
 	 }
       else
-#endif					/* AMIGA || ARM || OS2 || ... */
+#endif					/* Pipes */
 
          {
 #ifdef ReadDirectory
@@ -554,17 +452,6 @@ Deliberate Syntax Error
 	 fail;
 #endif					/* MSWindows */
 	 }
-
-#if MACINTOSH
-#if MPW
-      {
-	 void SetFileToMPWText(const char *fname);
-
-	 if (status & Fs_Write)
-	    SetFileToMPWText(fnamestr);
-      }
-#endif					/* MPW */
-#endif					/* MACINTOSH */
 
       /*
        * Return the resulting file value.
@@ -791,32 +678,6 @@ function{0,1} reads(f,i)
       Protect(StrLoc(s) = alcstr(NULL, i), runerr(0));
       StrLen(s) = 0;
 
-#if AMIGA
-#if LATTICE
-      /*
-       * The following code is special for Lattice 4.0 -- it was different
-       *  for Lattice 3.10.  It probably won't work correctly with other
-       *  C compilers.
-       */
-      if (IsInteractive(_ufbs[fileno(fp)].ufbfh)) {
-	 if ((i = read(fileno(fp),StrLoc(s),i)) <= 0)
-	    fail;
-	 StrLen(s) = i;
-	 /*
-	  * We may not have used the entire amount of storage we reserved.
-	  */
-	 nbytes = DiffPtrs(StrLoc(s) + i, strfree);
-	 if (nbytes < 0)
-	    EVVal(-nbytes, E_StrDeAlc);
-	 else
-	    EVVal(nbytes, E_String);
-	 strtotal += nbytes;
-	 strfree = StrLoc(s) + i;
-	 return s;
-	 }
-#endif					/* LATTICE */
-#endif					/* AMIGA */
-
 #ifdef Graphics
       pollctr >>= 1;
       pollctr++;
@@ -980,27 +841,8 @@ function{0,1} seek(f,o)
 	    fail;
 	 }
       else {
-
-#if CSET2
-/* unreliable seeking from the end in CSet/2 on a text stream, so
-   we will fixup seek-from-end to seek-from-beginning */
-	long size;
-	long save_pos;
-
-	/* save the position in case we have to reset it */
-	save_pos = ftell(fd);
-	/* seek to the end and get the file size */
-	fseek(fd, 0, SEEK_END);
-	size = ftell(fd);
-	/* try to accomplish the fixed-up seek */
-	if (fseek(fd, size + o, SEEK_SET)) {
-	   fseek(fd, save_pos, SEEK_SET);
-	   fail;
-	   }  /* End of if - seek failed, reset position */
-#else
 	 if (fseek(fd, o, SEEK_END) != 0)
 	    fail;
-#endif					/* CSET2 */
 	 }
       BlkLoc(f)->file.status &= ~(Fs_Reading | Fs_Writing);
       return f;
@@ -1143,17 +985,6 @@ end
 
 #ifdef Graphics
       }
-#ifdef PresentationManager
-    /* must be writing to a window, then, if it is not the console,
-       we have to set the background mix mode of the character bundle
-       back to LEAVEALONE so the background is no longer clobbered */
-    else if (f != ConsoleBinding) {
-      /* have to set the background mode back to leave-alone */
-      ((wbp)f)->context->charBundle.usBackMixMode = BM_LEAVEALONE;
-      /* force the reload on next use */
-      ((wbp)f)->window->charContext = NULL;
-      } /* End of else if - not the console window we're writing to */
-#endif					/* PresentationManager */
 #endif					/* Graphics */
 
 
@@ -1272,16 +1103,6 @@ function {1} name(x[nargs])
 		     }
 #endif					/* nl */
 
-#ifdef PresentationManager
-                 /* have to put the background mix back on the current file */
-                 if (f != NULL && (status & Fs_Window) && f != ConsoleBinding) {
-                   /* set the background back to leave-alone */
-                   ((wbp)f)->context->charBundle.usBackMixMode = BM_LEAVEALONE;
-                   /* unload the context from this window */
-                   ((wbp)f)->window->charContext = NULL;
-                   }
-#endif					/* PresentationManager */
-
 		  /*
 		   * Switch the current file to the file named by the current
 		   * argument providing it is a file.
@@ -1297,17 +1118,6 @@ function {1} name(x[nargs])
                      status = Fs_Read | Fs_Write | Fs_Window;
                      }
 #endif					/* ConsoleWindow */
-#ifdef PresentationManager
-                  if (status & Fs_Window) {
-                     /*
-		      * have to set the background to overpaint - the one
-                      * difference between DrawString and write(s)
-		      */
-                    ((wbp)f)->context->charBundle.usBackMixMode = BM_OVERPAINT;
-                    /* unload the context from the window so it will be reloaded */
-                    ((wbp)f)->window->charContext = NULL;
-                    }
-#endif					/* PresentationManager */
 		  }
 	       else {
 		  /*
@@ -1399,35 +1209,15 @@ function{0,1} chdir(s)
       return null
       }
    inline {
-
-/*
- * The following code is operating-system dependent [@fsys.01].
- *  Change directory.
- */
-
-#if PORT
-   Deliberate Syntax Error
-#endif					/* PORT */
-
-#if ARM || MACINTOSH
-      runerr(121);
-#endif					/* ARM || MACINTOSH ... */
-
-#if AMIGA || MSDOS || OS2 || UNIX || VMS
-   #if NT
-      int nt_chdir(char *);
-      if (nt_chdir(s) != 0)
-	 fail;
-   #else					/* NT */
-      if (chdir(s) != 0)
-	 fail;
-   #endif					/* NT */
+      #if NT
+         int nt_chdir(char *);
+         if (nt_chdir(s) != 0)
+	    fail;
+      #else					/* NT */
+         if (chdir(s) != 0)
+	    fail;
+      #endif					/* NT */
       return nulldesc;
-#endif					/* AMIGA || MSDOS || ... */
-
-/*
- * End of operating-system specific code.
- */
    }
 end
 
@@ -1497,16 +1287,11 @@ function{1} flush(f)
 #ifdef Graphics
       pollctr >>= 1;
       pollctr++;
-
-#ifndef PresentationManager
-      if (BlkLoc(f)->file.status & Fs_Window)
-	 wflush((wbp)fp);
-      else
-#else
-       if (!(BlkLoc(f)->file.status & Fs_Window))
-#endif					/* PresentationManager */
-#endif					/* Graphics */
+      if (!(BlkLoc(f)->file.status & Fs_Window))
 	 fflush(fp);
+#else					/* Graphics */
+      fflush(fp);
+#endif					/* Graphics */
 
       /*
        * Return the flushed file.

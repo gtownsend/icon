@@ -268,21 +268,20 @@ union xval *valp;
       p->c_val.sval = valp->sval;
       p->c_length = len;
       }
-   else	if (flags & F_RealLit)
+   else	if (flags & F_RealLit) {
       #ifdef Double
-         {
-            /*
-             *  Access real values one word at a time.
-             */
-            int *rp, *rq;
-            rp = (int *) &(p->c_val.rval);
-            rq = (int *) &(valp->rval);
-            *rp++ = *rq++;
-            *rp   = *rq;
-         }
-      #else					/* Double */
+         /*
+          *  Access real values one word at a time.
+          */
+         int *rp, *rq;
+         rp = (int *) &(p->c_val.rval);
+         rq = (int *) &(valp->rval);
+         *rp++ = *rq++;
+         *rp   = *rq;
+      #else				/* Double */
          p->c_val.rval = valp->rval;
-      #endif					/* Double */
+      #endif				/* Double */
+      }
    else
       fprintf(stderr, "putconst: bad flags: %06o %011lo\n", flags, valp->ival);
    }

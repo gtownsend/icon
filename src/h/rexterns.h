@@ -74,21 +74,15 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
    extern struct b_real realzero;	/* real zero block */
 #endif					/* EventMon */
 
-#ifdef DosFncs
-   extern char *zptr;
-#endif					/* DosFncs */
-
 /*
  * Externals conditional on multithreading.
  */
+   extern struct region rootstring;
+   extern struct region rootblock;
 #ifndef MultiThread
    extern dptr glbl_argp;		/* argument pointer */
    extern struct region *curstring;
    extern struct region *curblock;
-#endif					/* MultiThread */
-   extern struct region rootstring;
-   extern struct region rootblock;
-#ifndef MultiThread
    extern struct descrip k_current;	/* &current */
    extern char *k_errortext;		/* value of &errortext */
    extern int have_errval;		/* &errorvalue has a legal value */
@@ -109,18 +103,9 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
    extern struct descrip k_eventsource;	/* &eventsource */
    extern struct descrip k_eventvalue;	/* &eventvalue */
    extern struct descrip k_main;	/* value of &main */
-#endif					/* MultiThread */
-
-#ifndef MultiThread
    extern struct descrip t_errorvalue;	/* tentative k_errorvalue value */
-#endif					/* MultiThread */
-
-#ifndef MultiThread
    extern uword blktotal;		/* cumul total of all block allocs */
    extern uword strtotal;		/* cumul total of all string allocs */
-#endif					/* MultiThread */
-
-#ifndef MultiThread
    extern word coll_tot;		/* total number of collections */
    extern word coll_stat;		/* collections from static reqests */
    extern word coll_str;		/* collections from string requests */
@@ -130,9 +115,6 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
    extern dptr gnames;			/* start of global variable names */
    extern dptr egnames;			/* end of global variable names */
    extern dptr estatics;		/* end of static variables */
-#endif					/* MultiThread */
-
-#ifndef MultiThread
    extern int n_globals;		/* number of global variables */
    extern int n_statics;		/* number of static variables */
    extern struct b_coexpr *mainhead;	/* &main */
@@ -240,28 +222,6 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
       extern HINSTANCE mswinInstance;
       extern int ncmdShow;
    #endif				/* MSWindows */
-
-   #ifdef PresentationManager
-      /* this is the handle to the interpreter thread's anchor block */
-      extern HAB HInterpAnchorBlock;
-      extern HAB HMainAnchorBlock;
-      extern HMQ HInterpMessageQueue;
-      extern HMQ HMainMessageQueue;
-      extern lclIdentifier *LocalIds;
-      extern stringint siMixModes[];
-      extern stringint siLineTypes[];
-      extern stringint siColorNames[];
-      extern stringint siCursorSyms[];
-      extern LONG ScreenWidth;
-      extern LONG ScreenHeight;
-      extern LONG NumWindows;
-      extern LONG MaxPSColors;
-      extern colorEntry *ColorTable;
-      extern ULONG areaAttrs;
-      extern ULONG lineAttrs;
-      extern ULONG charAttrs;
-      extern ULONG imageAttrs;
-   #endif				/* PresentationManager */
 
    #ifdef ConsoleWindow
       extern FILE *ConsoleBinding, *flog;

@@ -69,20 +69,6 @@ void tmfree()
    {
    struct tgentry *gp, *gp1;
 
-#ifndef VarTran
-   loc_init();            /* free constant and local table entries */
-
-   /*
-    * Free global table entries.
-    */
-   for (gp = gfirst; gp != NULL; gp = gp1) {
-      gp1 = gp->g_next;
-      free((char *)gp);
-      }
-   gfirst = NULL;
-   glast = NULL;
-#endif					/* VarTran */
-
    free((char *) chash);   chash = NULL;
    free((char *) ghash);   ghash = NULL;
    free((char *) lhash);   lhash = NULL;

@@ -24,10 +24,6 @@ int win_highwater = -1;
 #include "rxrsc.ri"
 #endif					/* XWindows */
 
-#ifdef PresentationManager
-#include "rpmrsc.ri"
-#endif					/* PresentationManager */
-
 /*
  * allocate a window binding structure
  */

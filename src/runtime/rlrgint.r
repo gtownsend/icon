@@ -77,8 +77,7 @@ extern int over_flow;
 
 /* DIG(struct b_bignum *b, word i): pointer to ith most significant digit */
 /*  (NOTE: This macro expansion often results in a very long string,
- *   that has been known to cause problems with the C compiler under VMS.
- *   So when DIG is used, keep it to one use per line.)
+ *   so when DIG is used, keep it to one use per line.)
  */
 
 #define DIG(b,i)     (&(b)->digits[(b)->msd+(i)])
@@ -371,24 +370,12 @@ dptr da, dx;
           DIG(temp,0),
           alen);
    p = q += slen;
-#ifdef VMS
-   {
-      DIGIT *tempdg;
-      for (;;) {
-         tempdg = DIG(temp,0);
-         if (!cmpi1(tempdg, (word)0, alen))
-            break;
-         *--p = '0' + divi1(tempdg, (word)10, tempdg, alen);
-      }
-   }
-#else
    while (cmpi1(DIG(temp,0),
                 (word)0, alen))
       *--p = '0' + divi1(DIG(temp,0),
                          (word)10,
                          DIG(temp,0),
                          alen);
-#endif			/* VMS */
    if (a->sign)
       *--p = '-';
    StrLen(*dx) = q - p;

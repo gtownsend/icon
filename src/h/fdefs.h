@@ -20,6 +20,7 @@ FncDef(collect,2)
 FncDef(copy,1)
 FncDef(cos,1)
 FncDef(cset,1)
+FncDef(delay,1)
 FncDef(delete,2)
 FncDefV(detab)
 FncDef(dtor,1)
@@ -87,10 +88,6 @@ FncDef(where,1)
 FncDefV(write)
 FncDefV(writes)
 
-#if AMIGA || UNIX || VMS || OS2_32 || NT || SCCX_MX
-   FncDef(delay,1)
-#endif					/* AMIGA || UNIX || VMS || OS2_32... */
-
 #ifdef Graphics
    FncDefV(open)
 #else					/* Graphics */
@@ -138,30 +135,6 @@ FncDefV(writes)
    FncDef(getche,0)
    FncDef(kbhit,0)
 #endif					/* KeyboardFncs */
-
-/*
- * Functions for MS-DOS.
- */
-#ifdef DosFncs
-   FncDef(Int86,1)
-   FncDef(Peek,1)
-   FncDef(Poke,1)
-   FncDef(GetSpace,1)
-   FncDef(FreeSpace,1)
-   FncDef(InPort,1)
-   FncDef(OutPort,1)
-#endif					/* DosFncs */
-
-/*
- * Functions for the Archimedes.
- */
-#ifdef ArmFncs
-   FncDef(Swi,2)
-   FncDef(Peek,2)
-   FncDef(Poke,2)
-   FncDef(GetSpace,1)
-   FncDef(FreeSpace,1)
-#endif					/* ArmFncs */
 
 /*
  * Event processing functions.

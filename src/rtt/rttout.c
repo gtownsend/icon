@@ -1393,29 +1393,29 @@ int brace;
                 *  is returned.
                 */
                if (iconx_flg) {
-#ifdef EventMon
+                  #ifdef EventMon
 		  switch (op_type) {
-		  case TokFunction:
+		     case TokFunction:
+		        prt_str(
+		        "if ((signal = interp(G_Fsusp, r_args)) != A_Resume) {",
+		           indent);
+		        break;
+		     case Operator:
+		     case Keyword:
+		        prt_str(
+		        "if ((signal = interp(G_Osusp, r_args)) != A_Resume) {",
+		           indent);
+		        break;
+		     default:
+		        prt_str(
+		        "if ((signal = interp(G_Csusp, r_args)) != A_Resume) {",
+			   indent);
+		     }
+                  #else			/* EventMon */
 		     prt_str(
-		       "if ((signal = interp(G_Fsusp, r_args)) != A_Resume) {",
-			     indent);
-		     break;
-		  case Operator:
-		  case Keyword:
-		     prt_str(
-		       "if ((signal = interp(G_Osusp, r_args)) != A_Resume) {",
-			     indent);
-		     break;
-		  default:
-		     prt_str(
-		       "if ((signal = interp(G_Csusp, r_args)) != A_Resume) {",
-			     indent);
-		  }
-#else					/* EventMon */
-		  prt_str(
-		    "if ((signal = interp(G_Csusp, r_args)) != A_Resume) {",
-			  indent);
-#endif					/* EventMon */
+		        "if ((signal = interp(G_Csusp, r_args)) != A_Resume) {",
+		           indent);
+                  #endif		/* EventMon */
 		  }
                else {
                   prt_str("if (r_s_cont == (continuation)NULL) {", indent);
@@ -3307,10 +3307,11 @@ struct node *n;
 static void comp_def(n)
 struct node *n;
    {
-#ifdef Rttx
-   fprintf(stdout, "rtt was compiled to only support the interpreter, use -x\n");
-   exit(EXIT_FAILURE);
-#else					/* Rttx */
+   #ifdef Rttx
+      fprintf(stdout,
+         "rtt was compiled to only support the interpreter, use -x\n");
+      exit(EXIT_FAILURE);
+   #else				/* Rttx */
    struct sym_entry *sym;
    struct node *n1;
    FILE *f_save;
@@ -3525,13 +3526,7 @@ struct node *n;
     */
    switch (op_type) {
       case TokFunction:
-
-#if VMS
-         letter = 'Y';
-#else					/* VMS */
          letter = 'Z';
-#endif					/* VMS */
-
          break;
       case Keyword:
          letter = 'K';

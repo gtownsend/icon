@@ -930,9 +930,7 @@ int i;
       pollevent();
       }
 
-#if !MACINTOSH
    #undef exit
-#endif					/* MACINTOSH */
    exit(i);
 }
 

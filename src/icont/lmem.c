@@ -14,10 +14,6 @@ static struct	lfile *alclfile	(char *name);
 
 void dumplfiles(void);
 
-#ifdef MultipleRuns
-   static void	freelfile	(struct lfile *p);
-#endif					/* MultipleRuns */
-
 /*
  * Memory initialization
  */
@@ -44,14 +40,6 @@ struct fentry *lffirst;		/* first field table entry */
 struct fentry *lflast;		/* last field table entry */
 struct gentry *lgfirst;		/* first global table entry */
 struct gentry *lglast;		/* last global table entry */
-
-#ifdef MultipleRuns
-   extern word pc;
-   extern int fatals;
-   extern int nlflag;
-   extern int lstatics;
-   extern int nfields;
-#endif					/* MultipleRuns */
 
 /*
  * linit - scan the command line arguments and initialize data structures.
@@ -100,24 +88,6 @@ void linit()
    for (fp = lfhash; fp < &lfhash[fhsize]; fp++)
       *fp = NULL;
 
-#ifdef MultipleRuns
-   /*
-    * Initializations required for repeated program runs.
-    */
-   pc = 0;				/* In lcode.c	*/
-   nrecords = 0;			/* In lglob.c	*/
-
-   #ifdef EventMon
-      colmno = 0;			/* In link.c	*/
-   #endif				/* EventMon */
-
-   lineno = 0;				/* In link.c	*/
-   fatals = 0;				/* In link.c	*/
-   nlflag = 0;				/* In llex.c	*/
-   lstatics = 0;			/* In lsym.c	*/
-   nfields = 0;				/* In lsym.c	*/
-#endif					/* MultipleRuns */
-
    /*
     * Install "main" as a global variable in order to insure that it
     *  is the first global variable.  iconx/start.s depends on main
@@ -127,20 +97,19 @@ void linit()
    }
 
 #ifdef DeBugLinker
-/*
- * dumplfiles - print the list of files to link.  Used for debugging only.
- */
+   /*
+    * dumplfiles - print the list of files to link.  Used for debugging only.
+    */
+   void dumplfiles()
+      {
+      struct lfile *p,*lfls;
 
-void dumplfiles()
-   {
-   struct lfile *p,*lfls;
-
-   fprintf(stderr,"lfiles:\n");
-   lfls = llfiles;
-   while (p = getlfile(&lfls))
-       fprintf(stderr,"'%s'\n",p->lf_name);
-   fflush(stderr);
-   }
+      fprintf(stderr,"lfiles:\n");
+      lfls = llfiles;
+      while (p = getlfile(&lfls))
+          fprintf(stderr,"'%s'\n",p->lf_name);
+      fflush(stderr);
+      }
 #endif					/* DeBugLinker */
 
 /*
@@ -207,18 +176,6 @@ char *name;
    return p;
    }
 
-#ifdef MultipleRuns
-/*
- * freelfile - free memory of an lfile structure.
- */
-static void freelfile(p)
-struct lfile *p;
-   {
-   free((char *)p->lf_name);
-   free((char *) p);
-   }
-#endif					/* MultipleRuns */
-
 /*
  * lmfree - free memory used by the linker
  */
@@ -264,13 +221,4 @@ void lmfree()
       }
    lgfirst = NULL;
    lglast = NULL;
-
-#ifdef MultipleRuns
-   for (lf = llfiles; lf != NULL; lf = nlf) {
-      nlf = lf->lf_link;
-      freelfile(lf);
-      }
-   llfiles = NULL;
-#endif					/* MultipleRuns */
-
    }

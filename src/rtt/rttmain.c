@@ -1,16 +1,9 @@
 #include "rtt.h"
 
 #if !NT
-#include "../h/filepat.h"		/* added for filepat change */
+   #include "../h/filepat.h"		/* added for filepat change */
 #endif					/* NT */
 
-#if MACINTOSH
-#include <console.h>
-#endif					/* MACINTOSH */
-
-#if SCCX_MX
-unsigned _stack = 100000;
-#endif
 /*
  * prototypes for static functions.
  */
@@ -29,52 +22,27 @@ char patchpath[MaxPath+18] = "%PatchStringHere->";
    char *refpath = "";
 #endif					/* RefPath */
 
-/*
- * The following code is operating-system dependent [@rttmain.02].
- * The relative path to grttin.h and rt.h depends on whether they are
- *  interpreted as relative to where rtt.exe is or where rtt.exe is
- *  invoked.
- */
-
-#if PORT
-   /* something is needed */
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA
-char *grttin_path = "/src/h/grttin.h";
-char *rt_path = "/src/h/rt.h";
-#endif					/* AMIGA */
-
-#if MACINTOSH
-char *grttin_path = "::h:grttin.h";
-char *rt_path = "::h:rt.h";
-#endif					/* MACINTOSH */
-
-#if MSDOS || OS2
-char *grttin_path = "..\\h\\grttin.h";
-char *rt_path = "..\\h\\rt.h";
-#endif					/* MSDOS || OS2 */
-
-#if VMS
-char *grttin_path = "grttin.h";
-char *rt_path = "rt.h";
-#endif                                  /* VMS */
-
-#if UNIX
-char *grttin_path = "../src/h/grttin.h";
-char *rt_path = "../src/h/rt.h";
-#endif					/* UNIX */
-
-/*
- * End of operating-system specific code.
- */
-
 static char *ostr = "+ECPD:I:U:d:cir:st:x";
 
 static char *options =
    "[-E] [-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath] [-dfile]\n    \
 [-rpath] [-tname] [-x] [files]";
+
+/*
+ * The relative path to grttin.h and rt.h depends on whether they are
+ *  interpreted as relative to where rtt.exe is or where rtt.exe is
+ *  invoked.
+ */
+
+#if MSDOS
+    char *grttin_path = "..\\h\\grttin.h";
+    char *rt_path = "..\\h\\rt.h";
+#endif					/* MSDOS */
+
+#if UNIX
+    char *grttin_path = "../src/h/grttin.h";
+    char *rt_path = "../src/h/rt.h";
+#endif					/* UNIX */
 
 /*
  *  Note: rtt presently does not process system include files. If this
@@ -122,108 +90,96 @@ extern int optind;		/* index into parent argv vector */
 extern int optopt;		/* character checked for validity */
 extern char *optarg;		/* argument associated with option */
 
-#if TURBO
-unsigned _stklen = 30000;
-#endif					/* TURBO */
-
-#if ZTC_386
-#ifndef DOS386
-int _stack = 32 * 1024;		/* need large stack	*/
-#endif				/* DOS386 */
-#endif				/* ZTC_386 */
-
 #ifdef ConsoleWindow
-int ConsolePause = 1;
+   int ConsolePause = 1;
 #endif					/* ConsoleWindow */
 
 #ifndef NTConsole
-#ifdef MSWindows
-int rtt(int argc, char **argv);
-#define int_PASCAL int PASCAL
-#define LRESULT_CALLBACK LRESULT CALLBACK
-#undef Reset
-#include <windows.h>
-#include "../wincap/dibutil.h"
+   #ifdef MSWindows
+      int rtt(int argc, char **argv);
+      #define int_PASCAL int PASCAL
+      #define LRESULT_CALLBACK LRESULT CALLBACK
+      #undef Reset
+      #include <windows.h>
+      #include "../wincap/dibutil.h"
 
-int CmdParamToArgv(char *s, char ***avp)
-   {
-   char *t, *t2;
-   int rv=0;
-   t = salloc(s);
-   t2 = t;
-   while (*t2) {
-      while (*t2 && isspace(*t2)) t2++;
-      if (!*t2) break;
-      rv++;
-      while (*t2 && !isspace(*t2)) t2++;
+      int CmdParamToArgv(char *s, char ***avp)
+         {
+         char *t, *t2;
+         int rv=0;
+         t = salloc(s);
+         t2 = t;
+         while (*t2) {
+            while (*t2 && isspace(*t2)) t2++;
+            if (!*t2) break;
+            rv++;
+            while (*t2 && !isspace(*t2)) t2++;
+            }
+         rv++; /* make room for "iconx" at front */
+         *avp = (char **)alloc(rv * sizeof(char *));
+         rv = 0;
+         (*avp)[rv++] = salloc("iconx.exe");
+         t2 = t;
+         while (*t2) {
+            while (*t2 && isspace(*t2)) t2++;
+            if (!*t2) break;
+            (*avp)[rv++] = t2;
+            while (*t2 && !isspace(*t2)) t2++;
+            if (*t2) *t2++ = '\0';
+            }
+         return rv;
+         }
+      
+      LRESULT_CALLBACK WndProc	(HWND, UINT, WPARAM, LPARAM);
+      
+      void MSStartup(int argc, char **argv,
+      HINSTANCE hInstance, HINSTANCE hPrevInstance)
+         {
+         WNDCLASS wc;
+         if (!hPrevInstance) {
+            #if NT
+               wc.style = CS_HREDRAW | CS_VREDRAW;
+            #else			/* NT */
+               wc.style = 0;
+            #endif			/* NT */
+            #ifdef NTConsole
+               wc.lpfnWndProc = DefWindowProc;
+            #else			/* NTConsole */
+               wc.lpfnWndProc = WndProc;
+            #endif			/* NTConsole */
+            wc.cbClsExtra = 0;
+            wc.cbWndExtra = 0;
+            wc.hInstance  = hInstance;
+            wc.hIcon      = NULL;
+            wc.hCursor    = LoadCursor(NULL, IDC_ARROW);
+            wc.hbrBackground = GetStockObject(WHITE_BRUSH);
+            wc.lpszMenuName = NULL;
+            wc.lpszClassName = "iconx";
+            RegisterClass(&wc);
+            }
+         }
+      
+      HANDLE mswinInstance;
+      int ncmdShow;
+      
+      
+      int_PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
+                         LPSTR lpszCmdParam, int nCmdShow)
+         {
+         int argc;
+         char **argv;
+      
+         mswinInstance = hInstance;
+         ncmdShow = nCmdShow;
+         argc = CmdParamToArgv(lpszCmdParam, &argv);
+         MSStartup(argc, argv, hInstance, hPrevInstance);
+         (void)rtt(argc, argv);
+         fclose(stderr);
+         fclose(fopen("icont.fin","w"));
       }
-   rv++; /* make room for "iconx" at front */
-   *avp = (char **)alloc(rv * sizeof(char *));
-   rv = 0;
-   (*avp)[rv++] = salloc("iconx.exe");
-   t2 = t;
-   while (*t2) {
-      while (*t2 && isspace(*t2)) t2++;
-      if (!*t2) break;
-      (*avp)[rv++] = t2;
-      while (*t2 && !isspace(*t2)) t2++;
-      if (*t2) *t2++ = '\0';
-      }
-   return rv;
-   }
-
-LRESULT_CALLBACK WndProc	(HWND, UINT, WPARAM, LPARAM);
-
-void MSStartup(int argc, char **argv, HINSTANCE hInstance, HINSTANCE hPrevInstance)
-   {
-   WNDCLASS wc;
-   if (!hPrevInstance) {
-#if NT
-      wc.style = CS_HREDRAW | CS_VREDRAW;
-#else					/* NT */
-      wc.style = 0;
-#endif					/* NT */
-#ifdef NTConsole
-      wc.lpfnWndProc = DefWindowProc;
-#else					/* NTConsole */
-      wc.lpfnWndProc = WndProc;
-#endif					/* NTConsole */
-      wc.cbClsExtra = 0;
-      wc.cbWndExtra = 0;
-      wc.hInstance  = hInstance;
-      wc.hIcon      = NULL;
-      wc.hCursor    = LoadCursor(NULL, IDC_ARROW);
-      wc.hbrBackground = GetStockObject(WHITE_BRUSH);
-      wc.lpszMenuName = NULL;
-      wc.lpszClassName = "iconx";
-      RegisterClass(&wc);
-      }
-   }
-
-HANDLE mswinInstance;
-int ncmdShow;
-
-
-int_PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
-                   LPSTR lpszCmdParam, int nCmdShow)
-   {
-   int argc;
-   char **argv;
-
-   mswinInstance = hInstance;
-   ncmdShow = nCmdShow;
-   argc = CmdParamToArgv(lpszCmdParam, &argv);
-   MSStartup(argc, argv, hInstance, hPrevInstance);
-#if BORLAND_286
-   _InitEasyWin();
-#endif					/* BORLAND_286 */
-   (void)rtt(argc, argv);
-   fclose(stderr);
-   fclose(fopen("icont.fin","w"));
-}
-
-#define main rtt
-#endif					/* MSWindows */
+      
+      #define main rtt
+   #endif				/* MSWindows */
 #endif					/* NTConsole */
 
 int main(argc, argv)
@@ -241,10 +197,10 @@ char **argv;
     */
    if ((int)strlen(patchpath) > 18)
       refpath = patchpath+18;
-#if UNIX
-   else
-      refpath = relfile(argv[0], "/../");
-#endif					/* UNIX */
+   #if UNIX
+      else
+         refpath = relfile(argv[0], "/../");
+   #endif				/* UNIX */
 
    /*
     * Initialize the string table and indicate that File must be treated
@@ -260,10 +216,6 @@ char **argv;
     */
    whsp_image = NoSpelling;
    line_cntrl = 1;
-
-#if MACINTOSH
-   argc = ccommand(&argv);
-#endif					/* MACINTOSH */
 
    /*
     * opt_lst and opt_args are the options and corresponding arguments
@@ -293,11 +245,13 @@ char **argv;
           case 'd': /* -d name: name of data base */
             dbname = optarg;
             break;
-#ifdef ConsoleWindow
-         case 'q':
-            ConsolePause = 0;
-            break;
-#endif					/* ConsoleWindow */
+
+         #ifdef ConsoleWindow
+            case 'q':
+               ConsolePause = 0;
+               break;
+         #endif				/* ConsoleWindow */
+
          case 'r':  /* -r path: location of include files */
             refpath = optarg;
             break;
@@ -307,10 +261,10 @@ char **argv;
          case 'x':  /* produce code for interpreter rather than compiler */
             iconx_flg = 1;
             break;
+
          case 'D':  /* define preprocessor symbol */
          case 'I':  /* path to search for preprocessor includes */
          case 'U':  /* undefine preprocessor symbol */
-
             /*
              * Save these options for the preprocessor initialization routine.
              */
@@ -322,17 +276,13 @@ char **argv;
             show_usage();
          }
 
-#if MACINTOSH
-   iconx_flg = 1;     /* Produce interpreter code */
-#endif					/* MACINTOSH */
-
-#ifdef Rttx
-   if (!iconx_flg) {
-      fprintf(stdout,
-         "rtt was compiled to only support the intepreter, use -x\n");
-      exit(EXIT_FAILURE);
-      }
-#endif					/* Rttx */
+   #ifdef Rttx
+      if (!iconx_flg) {
+         fprintf(stdout,
+            "rtt was compiled to only support the intepreter, use -x\n");
+         exit(EXIT_FAILURE);
+         }
+   #endif				/* Rttx */
 
    if (iconx_flg)
       compiler_def = "#define COMPILER 0\n";
@@ -382,40 +332,40 @@ char **argv;
     */
    while (optind < argc)  {
 
-#if PatternMatch
-      FINDDATA_T fd;
+      #if PatternMatch
+         FINDDATA_T fd;
 
-      if (!FINDFIRST(argv[optind], &fd)) {
-         fprintf(stderr,"File %s: no match\n", argv[optind]);
-	 fflush(stderr);
-	 exit(EXIT_FAILURE);
-         }
-      do {
-      argv[optind] = FILENAME(&fd);
-#endif					/* PatternMatch */
-      trans(argv[optind]);
-#if PatternMatch
-      } while (FINDNEXT(&fd));
-      FINDCLOSE(&fd);
-#endif					/* PatternMatch */
+         if (!FINDFIRST(argv[optind], &fd)) {
+            fprintf(stderr,"File %s: no match\n", argv[optind]);
+	    fflush(stderr);
+	    exit(EXIT_FAILURE);
+            }
+         do {
+            argv[optind] = FILENAME(&fd);
+         } while (FINDNEXT(&fd));
+         FINDCLOSE(&fd);
+      #else				/* PatternMatch */
+         trans(argv[optind]);
+      #endif				/* PatternMatch */
+
       optind++;
       }
 
-#ifndef Rttx
-   /*
-    * Unless the user just requested the preprocessor be run, we
-    *   have created C files and updated the in-memory data base.
-    *   If this is the compiler's run-time system, we must dump
-    *   to data base to a file and create a list of all output files
-    *   produced in all runs of rtt that created the data base.
-    */
-   if (!(pp_only || iconx_flg)) {
-      if (fclose(curlst) != 0)
-         err2("cannot close ", curlst_nm);
-      dumpdb(dbname);
-      full_lst("rttfull.lst");
-      }
-#endif					/* Rttx */
+   #ifndef Rttx
+      /*
+       * Unless the user just requested the preprocessor be run, we
+       *   have created C files and updated the in-memory data base.
+       *   If this is the compiler's run-time system, we must dump
+       *   to data base to a file and create a list of all output files
+       *   produced in all runs of rtt that created the data base.
+       */
+      if (!(pp_only || iconx_flg)) {
+         if (fclose(curlst) != 0)
+            err2("cannot close ", curlst_nm);
+         dumpdb(dbname);
+         full_lst("rttfull.lst");
+         }
+   #endif				/* Rttx */
 
    return EXIT_SUCCESS;
    }

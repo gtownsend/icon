@@ -112,18 +112,7 @@ void readglob()
 
          case Op_Link:		/* link the named file */
             name = &lsspace[getrest()];	/* get the name and */
-
-            #if ARM
-               {
-                char *flipname (char *);
-
-                /* put it on the list of files to link */
-                alsolink(flipname(name));
-               }
-            #else			/* ARM */
-               alsolink(name);	/*  put it on the list of files to link */
-            #endif			/* ARM */
-
+            alsolink(name);	/*  put it on the list of files to link */
             newline();
             break;
 

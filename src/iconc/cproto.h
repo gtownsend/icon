@@ -154,7 +154,6 @@ int               yyparse    (void);
 #ifdef OptimizeType
 void         xfer_packed_types (struct typinfo *type);
 #endif					/* OptimizeType */
-pointer		xmalloc	(long n);
 
 #ifdef DeBug
 void symdump (void);
@@ -164,4 +163,3 @@ void cdump   (void);
 void fdump   (void);
 void rdump   (void);
 #endif					/* DeBug */
-

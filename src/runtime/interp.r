@@ -19,28 +19,6 @@ static void           vanq_proc (struct ef_marker *efp_v,
                                      struct gf_marker *gfp_v);
 #endif					/* EventMon */
 
-/*
- * The following code is operating-system dependent [@interp.01]. Declarations.
- */
-
-#if PORT
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA
-#if LATTICE
-extern int chkbreak;
-#endif					/* LATTICE */
-#endif					/* AMIGA */
-
-#if ARM || MACINTOSH || MSDOS || OS2 || UNIX || VMS
-   /* nothing needed */
-#endif					/* ARM || ... */
-
-/*
- * End of operating-system specific code.
- */
-
 #ifndef MultiThread
 word lastop;			/* Last operator evaluated */
 #endif					/* MultiThread */
@@ -180,35 +158,7 @@ word xnargs;
 #define PushDesc(d)   {*++rsp=((d).dword); *++rsp=((d).vword.integr);}
 #define PushNull   {*++rsp = D_Null; *++rsp = 0;}
 #define PushVal(v)   {*++rsp = (word)(v);}
-
-/*
- * The following code is operating-system dependent [@interp.02].  Define
- *  PushAVal for computers that store longs and pointers differently.
- */
-
-#if PORT
 #define PushAVal(x) PushVal(x)
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA || ARM || MACINTOSH || UNIX || VMS
-#define PushAVal(x) PushVal(x)
-#endif					/* AMIGA || ARM || ... */
-
-#if MSDOS || OS2
-#if HIGHC_386 || ZTC_386 || INTEL_386 || WATCOM || BORLAND_386 || SCCX_MX
-#define PushAVal(x) PushVal(x)
-#else					/* HIGHC_386 || ZTC_386 || ... */
-#define PushAVal(x) {rsp++; \
-		       stkword.stkadr = (char *)(x); \
-		       *rsp = stkword.stkint; \
-		       }
-#endif					/* HIGH_386 || ZTC_386 || ... */
-#endif					/* MSDOS || OS2 */
-
-/*
- * End of operating-system specific code.
- */
 
 
 /*
@@ -395,51 +345,6 @@ dptr cargp;
 #endif					/* EventMon */
 
       lastop = GetOp;		/* Instruction fetch */
-
-#ifdef StackPic
-      ExInterp;
-      stkdump((int)lastop);
-      EntInterp;
-#endif					/* StackPic */
-
-/*
- * The following code is operating-system dependent [@interp.03].  Check
- *  for external event.
- */
-#if PORT
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA
-#if LATTICE
-      ExInterp;
-      if (chkbreak > 0)
-	 chkabort();			/* check for CTRL-C or CTRL-D break */
-      EntInterp;
-#endif					/* LATTICE */
-#endif					/* AMIGA */
-
-#if ARM || MSDOS || OS2 || UNIX || VMS
-   /* nothing to do */
-#endif					/* ARM || ... */
-
-#if MACINTOSH
-#if MPW
-   {
-      #define CursorCheckInterval 800 /* virtual machine instructions */
-      void RotateTheCursor(void);
-      static short cursorcount = 1;
-      if (--cursorcount == 0) {
-	 RotateTheCursor();
-	 cursorcount = CursorCheckInterval;
-	 }
-   }
-#endif					/* MPW */
-#endif					/* MACINTOSH */
-
-/*
- * End of operating-system specific code.
- */
 
 #ifdef EventMon
       /*
@@ -1801,95 +1706,6 @@ interp_quit:
    /*NOTREACHED*/
    return 0;	/* avoid gcc warning */
    }
-
-#ifdef StackPic
-/*
- * The following code is operating-system dependent [@interp.04].
- *  Diagnostic stack pictures for debugging/monitoring.
- */
-
-#if PORT
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA || MACINTOSH || VMS
-   /* not included */
-#endif					/* AMIGA || ... */
-
-#if ARM
-void stkdump(op)
-   int op;
-   {
-   word *stk;
-   word *i;
-   stk = (word *)BlkLoc(k_current);
-   stk += Wsizeof(struct b_coexpr);
-   fprintf(stderr,">  stack:  %.8x\n", (word)stk);
-   fprintf(stderr,">  sp:     %.8x\n", (word)sp);
-   fprintf(stderr,">  pfp:    %.8x\n", (word)pfp);
-   fprintf(stderr,">  efp:    %.8x\n", (word)efp);
-   fprintf(stderr,">  gfp:    %.8x\n", (word)gfp);
-   fprintf(stderr,">  ipc:    %.8x\n", (word)ipc.op);
-   fprintf(stderr,">  argp:   %.8x\n", (word)glbl_argp);
-   fprintf(stderr,">  ilevel: %.8x\n", (word)ilevel);
-   fprintf(stderr,">  op:     %d\n",    (int)op);
-   for (i = stk; i <= (word *)sp; i++)
-      fprintf(stderr,"> %.8x\n",(word)*i);
-   fprintf(stderr,"> ----------\n");
-   fflush(stderr);
-   }
-#endif					/* ARM */
-
-#if MSDOS || OS2
-#if MICROSOFT || TURBO || BORLAND_286 || BORLAND_386
-void stkdump(op)
-   int op;
-   {
-   word far *stk;
-   word far *i;
-   stk = (word far *)BlkLoc(k_current);
-   stk += Wsizeof(struct b_coexpr);
-   fprintf(stderr,">  stack:  %08lx\n", (word)stk);
-   fprintf(stderr,">  sp:     %08lx\n", (word)sp);
-   fprintf(stderr,">  pfp:    %08lx\n", (word)pfp);
-   fprintf(stderr,">  efp:    %08lx\n", (word)efp);
-   fprintf(stderr,">  gfp:    %08lx\n", (word)gfp);
-   fprintf(stderr,">  ipc:    %08lx\n", (word)ipc.op);
-   fprintf(stderr,">  argp:   %08lx\n", (word)glbl_argp);
-   fprintf(stderr,">  ilevel: %08lx\n", (word)ilevel);
-   fprintf(stderr,">  op:     %d\n",    (int)op);
-   for (i = stk; i <= (word far *)sp; i++)
-      fprintf(stderr,"> %08lx\n",(word)*i);
-   fprintf(stderr,"> ----------\n");
-   fflush(stderr);
-   }
-#endif					/* MICROSOFT || TURBO ... */
-#endif					/* MSDOS || OS2 */
-
-#if UNIX || VMS
-void stkdump(op)
-   int op;
-   {
-   word *i;
-   fprintf(stderr,"\001stack: %lx\n",(long)(stack + Wsizeof(struct b_coexpr)));
-   fprintf(stderr,"\001pfp: %lx\n",(long)pfp);
-   fprintf(stderr,"\001efp: %lx\n",(long)efp);
-   fprintf(stderr,"\001gfp: %lx\n",(long)gfp);
-   fprintf(stderr,"\001ipc: %lx\n",(long)ipc.op);
-   fprintf(stderr,"\001argp: %lx\n",(long)glbl_argp);
-   fprintf(stderr,"\001ilevel: %lx\n",(long)ilevel);
-   fprintf(stderr,"\001op: \%d\n",(int)op);
-   for (i = stack + Wsizeof(struct b_coexpr); i <= sp; i++)
-      fprintf(stderr,"\001%lx\n",*i);
-   fprintf(stderr,"\001----------\n");
-   fflush(stderr);
-   }
-#endif					/* UNIX || VMS */
-
-/*
- * End of operating-system specific code.
- */
-#endif					/* StackPic */
 
 #ifdef EventMon
 /*

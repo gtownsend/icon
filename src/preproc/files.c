@@ -3,53 +3,10 @@
  *  files. It contains code to handle the search for include files.
  */
 #include "../preproc/preproc.h"
-/*
- * The following code is operating-system dependent [@files.01].
- *  System header files needed for handling paths.
- */
-
-#if PORT
-   /* something may be needed */
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA
-   /* Amiga paths are not converted.
-    *  Absolute paths have the form Volume:dir/dir/.../file
-    */
-#define IsRelPath(fname) (strchr(fname, ':') == NULL)
-#endif					/* AMIGA */
-
-#if MACINTOSH
-char *FileNameMacToUnix(char *fn);
-char *FileNameUnixToMac(char *fn);
-char *FileNameMacConvert(char *(*func)(char *),char *fn);
-#define IsRelPath(fname) (fname[0] != '/')
-#endif					/* MACINTOSH */
-
-#if MSDOS
-#if MICROSOFT || INTEL_386 || HIGHC_386 || ZTC_386 || WATCOM
-   /* nothing is needed */
-#endif					/* MICROSOFT || INTEL_386 || ... */
-#if TURBO || BORLAND_286 || BORLAND_386
-#include <dir.h>
-#endif					/* TURBO || BORLAND_286 ... */
-#define IsRelPath(fname) (fname[0] != '/')
-#endif					/* MSDOS */
-
-#if UNIX || VMS
-#define IsRelPath(fname) (fname[0] != '/')
-#endif					/* UNIX || VMS */
-
-/*
- * End of operating-system specific code.
- */
-
 #include "../preproc/pproto.h"
 
-/*
- * Prototype for static function.
- */
+#define IsRelPath(fname) (fname[0] != '/')
+
 static void file_src (char *fname, FILE *f);
 
 static char **incl_search; /* standard locations to search for header files */
@@ -64,46 +21,17 @@ FILE *f;
    {
    union src_ref ref;
 
-/*
- * The following code is operating-system dependent [@files.02].
- *  Insure that path syntax is in Unix format for internal consistency
- *  (note, this may not work well on all systems).
- *  In particular, relative paths may begin with a / in AmigaDOS, where
- *  /filename is equivalent to the UNIX path ../filename.
- */
+   #if MSDOS
+      char *s;
 
-#if PORT
-   /* something may be needed */
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA
-   /* nothing is needed */
-#endif					/* AMIGA */
-
-#if MACINTOSH
-   fname = FileNameMacConvert(FileNameMacToUnix,fname);
-#endif					/* MACINTOSH */
-
-#if MSDOS
-   char *s;
-
-   /*
-    * Convert back slashes to slashes for internal consistency.
-    */
-   fname = (char *)strdup(fname);
-   for (s = fname; *s != '\0'; ++s)
-      if (*s == '\\')
-         *s = '/';
-#endif					/* MSDOS */
-
-#if UNIX || VMS
-   /* nothing is needed */
-#endif					/* UNIX || VMS */
-
-/*
- * End of operating-system specific code.
- */
+      /*
+       * Convert back slashes to slashes for internal consistency.
+       */
+      fname = (char *)strdup(fname);
+      for (s = fname; *s != '\0'; ++s)
+         if (*s == '\\')
+            *s = '/';
+   #endif				/* MSDOS */
 
    ref.cs = new_cs(fname, f, CBufSize);
    push_src(CharSrc, &ref);
@@ -170,25 +98,11 @@ int system;
                      if (*s == '/')
                         end_prfx = s;
                   if (end_prfx != NULL)
-#if MACINTOSH
-		     /*
-		      * For Mac-style names, don't include the file
-		      * separator character in the prefix.
-		      */
-                     for (s = cs->fname; s < end_prfx; ++s)
-#else					/* MACINTOSH */
                      for (s = cs->fname; s <= end_prfx; ++s)
-#endif					/* MACINTOSH */
                         AppChar(*sbuf, *s);
                   for (s = fname; *s != '\0'; ++s)
                      AppChar(*sbuf, *s);
                   path = str_install(sbuf);
-#if MACINTOSH
-		  /*
-		   * Convert UNIX-style path to Mac-style.
-		   */
-		  path = FileNameMacConvert(FileNameUnixToMac,path);
-#endif					/* MACINTOSH */
                   f = fopen(path, "r");
                   }
                }
@@ -207,12 +121,6 @@ int system;
          for (s = fname; *s != '\0'; ++s)
             AppChar(*sbuf, *s);
          path = str_install(sbuf);
-#if MACINTOSH
-	 /*
-	  * Convert UNIX-style path to Mac-style.
-	  */
-	 path = FileNameMacConvert(FileNameUnixToMac,path);
-#endif					/* MACINTOSH */
          f = fopen(path, "r");
          prefix = ++prefix;
          }
@@ -240,66 +148,13 @@ char **opt_args;
    int i, j;
    char *s, *s1;
 
-/*
- * The following code is operating-system dependent [@files.03].
- *  Determine the number of standard locations to search for
- *  header files and provide any declarations needed for the code
- *  that establishes these search locations.
- */
-
-#if PORT
-   /* probably needs something */
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if VMS
-   char **syspaths;
-   int  vmsi;
-
-   n_paths = vmsi = 0;
-   syspaths = alloc(2 * sizeof(char *));
-   if (syspaths[n_paths] = getenv("VAXC$INCLUDE")) {
-      n_paths++;
-      vmsi++;
-      }
-   if (syspaths[n_paths] = getenv("SYS$LIBRARY")) {
-      n_paths++;
-      vmsi++;
-      }
-#endif					/* VMS */
-
-#if AMIGA
-   static char *sysdir = "include:";
-
-   n_paths = 1;
-#endif					/* AMIGA */
-
-#if MACINTOSH && !MPW && !THINK_C
-   /* probably needs something */
-Deliberate Syntax Error
-#endif					/* MACINTOSH && ... */
-
-#if MACINTOSH
-#if THINK_C
-   char *sysdir = FileNameMacConvert(FileNameMacToUnix, "MacintoshHD:THINK C:THINK C:Standard Libraries:C headers");
-   n_paths = 1;
-#endif
-#if MPW
    /*
-    * For MPW, environment variable CIncludes says where to look.
+    *  Determine the number of standard locations to search for
+    *  header files and provide any declarations needed for the code
+    *  that establishes these search locations.
     */
-   char *sysdir = FileNameMacConvert(FileNameMacToUnix,getenv("CIncludes"));
-   n_paths = 1;
-#endif					/* MPW */
-#endif					/* MACINTOSH */
 
-#if MSDOS
-#if HIGHC_386 || INTEL_386 || WATCOM
-   /* punt for now */
-   n_paths = 0;
-#endif					/* HIGHC_386 || INTEL_386 || ... */
-
-#if MICROSOFT || NT
+   #if MSDOS
    char *syspath;
    char *cl_var;
    char *incl_var;
@@ -346,96 +201,12 @@ Deliberate Syntax Error
          if (*incl_var++ == ';' && *incl_var != '\0')
             ++n_paths;
       }
-#endif					/* MICROSOFT || NT */
+   #endif				/* MSDOS */
 
-#if ZTC_386
-   char *syspath;
-   char *cl_var;
-   char *incl_var;
-
-   incl_var = getenv("INCLUDE");
-   cl_var = getenv("CFLAGS");
-   n_paths = 0;
-
-   /*
-    * Check the CFLAGS environment variable for -I options.
-    */
-   if (cl_var != NULL) {
-      s = cl_var;
-      while (*s != '\0') {
-         if (*s == '/' || *s == '-') {
-            ++s;
-            if (*s == 'I') {
-               ++n_paths;
-               ++s;
-               while (*s == ' ' || *s == '\t')
-                  ++s;
-               while (*s != ' ' && *s != '\t' && *s != '\0') {
-                  if (*s == ';')
-                     ++n_paths;
-                  ++s;
-                  }
-               }
-            }
-         if (*s != '\0')
-            ++s;
-         }
-      }
-
-   /*
-    * Check the INCLUDE environment variable for standard places to
-    *  search.
-    */
-   if (incl_var == NULL)
-      syspath = "";
-   else {
-      syspath = (char *)strdup(incl_var);
-      if (*incl_var != '\0')
-         ++n_paths;
-      while (*incl_var != '\0')
-         if (*incl_var++ == ';' && *incl_var != '\0')
-            ++n_paths;
-      }
-#endif					/* ZTC_386 */
-
-#if TURBO || BORLAND_286 || BORLAND_386
-    char *cfg_fname;
-    FILE *cfg_file = NULL;
-    struct str_buf *sbuf;
-    int c;
-
-    /*
-     * Check the configuration files for -I options.
-     */
-    n_paths = 0;
-    cfg_fname = searchpath("turboc.cfg");
-    if (cfg_fname != NULL && (cfg_file = fopen(cfg_fname, "r")) != NULL) {
-       c = getc(cfg_file);
-       while (c != EOF) {
-          if (c == '-') {
-             if ((c = getc(cfg_file)) == 'I')
-                ++n_paths;
-             }
-          else
-             c = getc(cfg_file);
-          }
-       }
-#endif					/* TURBO || BORLAND_286 ... */
-
-#if HIGHC_386 || INTEL_386 || WATCOM
-   /* something may be needed */
-#endif					/* HIGHC_386 || INTEL_386 || ... */
-#endif					/* MSDOS */
-
-#if UNIX
-   static char *sysdir = "/usr/include/";
-
-   n_paths = 1;
-#endif					/* UNIX */
-
-/*
- * End of operating-system specific code.
- */
+   #if UNIX
+      static char *sysdir = "/usr/include/";
+      n_paths = 1;
+   #endif				/* UNIX */
 
    /*
     * Count the number of -I options to the preprocessor.
@@ -450,25 +221,12 @@ Deliberate Syntax Error
    incl_search = alloc((n_paths + 1) * sizeof(char *));
    j = 0;
 
-/*
- * The following code is operating-system dependent [@files.04].
- *  Establish the standard locations to search before the -I options
- *  on the preprocessor.
- */
 
-#if PORT
-   /* something may be needed */
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA
-   /* nothing is needed */
-#endif					/* AMIGA */
-
-#if MSDOS
-#if MICROSOFT
+   #if MSDOS
    /*
-    * Get locations from -I options from the CL environment variable.
+    * Establish the standard locations to search before the -I options
+    *  on the preprocessor.
+    *  Get locations from -I options from the CL environment variable.
     */
    if (cl_var != NULL)
       while (*cl_var != '\0') {
@@ -498,62 +256,7 @@ Deliberate Syntax Error
          if (*cl_var != '\0')
             ++cl_var;
          }
-#endif					/* MICROSOFT */
-
-#if ZTC_386
-   /*
-    * Get locations from -I options from the CL environment variable.
-    * Each -I may have multiple options separated by semi-colons.
-    */
-   if (cl_var != NULL)
-      while (*cl_var != '\0') {
-         if (*cl_var == '/' || *cl_var == '-') {
-            ++cl_var;
-            if (*cl_var == 'I') {
-                  ++cl_var;
-                  while (*cl_var == ' ' || *cl_var == '\t')
-                     ++cl_var;
-                  i = 0;
-                  while (cl_var[i] != ' ' && cl_var[i] != '\t' &&
-                    cl_var[i] != '\0') {
-                     while (cl_var[i] != ' ' && cl_var[i] != '\t' &&
-                       cl_var[i] != ';' && cl_var[i] != '\0')
-                        ++i;
-                     s1 = alloc(i + 1);
-                     strncpy(s1, cl_var, i);
-                     s1[i] = '\0';
-                     /*
-                      * Convert back slashes to slashes for internal consistency.
-                      */
-                     for (s = s1; *s != '\0'; ++s)
-                        if (*s == '\\')
-                           *s = '/';
-                     incl_search[j++] = s1;
-                     if (cl_var[i] == ';') {
-		                 cl_var += (i + 1);
-		                 i = 0;
-		                 }
-                     }
-                  cl_var += i;
-               }
-            }
-         if (*cl_var != '\0')
-            ++cl_var;
-         }
-#endif					/* ZTC_386 */
-
-#if HIGHC_386 || INTEL_386 || WATCOM
-   /* something is needed */
-#endif					/* HIGHC_386 || INTEL_386 || ... */
-#endif					/* MSDOS */
-
-#if UNIX || VMS || MACINTOSH
-   /* nothing is needed */
-#endif					/* UNIX || VMS || MACINTOSH */
-
-/*
- * End of operating-system specific code.
- */
+   #endif				/* MSDOS */
 
    /*
     * Get the locations from the -I options to the preprocessor.
@@ -564,224 +267,48 @@ Deliberate Syntax Error
          s1 = alloc(strlen(s) + 1);
          strcpy(s1, s);
 
-/*
- * The following code is operating-system dependent [@files.05].
- *  Insure that path syntax is in Unix format for internal consistency
- *  (note, this may not work well on all systems).
- *  In particular, Amiga paths are left intact.
- */
-
-#if PORT
-   /* something might be needed */
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA
-   /* nothing is needed */
-#endif					/* AMIGA */
-
-#if MACINTOSH
-   s1 = FileNameMacConvert(FileNameMacToUnix,s);
-#endif					/* MACINTOSH */
-
-#if MSDOS
-         /*
-          * Convert back slashes to slashes for internal consistency.
-          */
-         for (s = s1; *s != '\0'; ++s)
-            if (*s == '\\')
-               *s = '/';
-#endif					/* MSDOS */
-
-#if UNIX || VMS
-   /* nothing is needed */
-#endif					/* UNIX || VMS */
-
-/*
- * End of operating-system specific code.
- */
+         #if MSDOS
+            /*
+             * Convert back slashes to slashes for internal consistency.
+             */
+            for (s = s1; *s != '\0'; ++s)
+               if (*s == '\\')
+                  *s = '/';
+         #endif				/* MSDOS */
 
          incl_search[j++] = s1;
          }
 
-/*
- * The following code is operating-system dependent [@files.06].
- *  Establish the standard locations to search after the -I options
- *  on the preprocessor.
- */
-
-#if PORT
-   /* probably needs something */
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if VMS
-   for ( ; vmsi; vmsi--)
-      incl_search[n_paths - vmsi] = syspaths[vmsi-1];
-#endif					/* VMS */
-
-#if AMIGA
-   incl_search[n_paths - 1] = sysdir;
-#endif					/* AMIGA */
-
-#if MSDOS
-#if MICROSOFT
    /*
-    * Get the locations from the INCLUDE environment variable.
+    *  Establish the standard locations to search after the -I options
+    *  on the preprocessor.
     */
-   s = syspath;
-   if (*s != '\0')
-      incl_search[j++] = s;
-   while (*s != '\0') {
-      if (*s == ';') {
-         *s = '\0';
-         ++s;
-         if (*s != '\0')
-            incl_search[j++] = s;
+   
+   #if MSDOS
+      /*
+       * Get the locations from the INCLUDE environment variable.
+       */
+      s = syspath;
+      if (*s != '\0')
+         incl_search[j++] = s;
+      while (*s != '\0') {
+         if (*s == ';') {
+            *s = '\0';
+            ++s;
+            if (*s != '\0')
+               incl_search[j++] = s;
+            }
+         else {
+            if (*s == '\\')
+               *s = '/';
+            ++s;
+            }
          }
-      else {
-         if (*s == '\\')
-            *s = '/';
-         ++s;
-         }
-      }
-#endif					/* MICROSOFT */
+   #endif				/* MSDOS */
 
-#if TURBO || BORLAND_286 || BORLAND_386
-    /*
-     * Get the locations from the -I options in the configuration file.
-     */
-    if (cfg_file != NULL) {
-       rewind(cfg_file);
-       sbuf = get_sbuf();
-       c = getc(cfg_file);
-       while (c != EOF) {
-          if (c == '-') {
-             if ((c = getc(cfg_file)) == 'I') {
-                c = getc(cfg_file);
-                while (c != ' ' && c != '\t' && c != '\n' && c != EOF) {
-                   AppChar(*sbuf, c);
-                   c = getc(cfg_file);
-                   }
-                incl_search[j++] = str_install(sbuf);
-                }
-             }
-          else
-             c = getc(cfg_file);
-          }
-       rel_sbuf(sbuf);
-       fclose(cfg_file);
-       }
-#endif					/* TURBO || BORLAND_286 ... */
-
-#if HIGHC_386 || INTEL_386 || WATCOM
-  /* something is needed */
-#endif					/* HIGHC_386 || INTEL_386 || ... */
-#endif					/* MSDOS */
-
-#if UNIX || MACINTOSH
-   incl_search[n_paths - 1] = sysdir;
-#endif					/* UNIX || MACINTOSH */
-
-/*
- * End of operating-system specific code.
- */
+   #if UNIX
+      incl_search[n_paths - 1] = sysdir;
+   #endif				/* UNIX */
 
    incl_search[n_paths] = NULL;
    }
-
-#if MACINTOSH
-#if MPW || THINK_C
-/*
- * Extra functions specific to the Macintosh MPW implementation:
- *  functions to convert a UNIX-type file name to Mac-type
- *  and vice versa.
- *
- *  Result is pointer to a static string, or maybe a pointer
- *  to the input string if it is unchanged.
- */
-
-static char FileName_newfn[100];
-
-char *
-FileNameUnixToMac(char *fn) {
-  char *q,*e,*r;
-  int full;
-
-  if (strchr(fn,'/') == NULL) return fn;
-  e = fn + strlen(fn);
-  r = FileName_newfn;
-  if (*fn == '/') {
-    full = 1;
-    ++fn;
-  }
-  else full = 0;
-  for (;;) {
-    (q = strchr(fn,'/')) || (q = e);
-    if (fn == q || q - fn == 1 && *fn == '.') {}
-    else if (q - fn == 2 && *fn == '.' && *(fn + 1) == '.')
-        *r++ = ':';
-    else {
-      *r++ = ':';
-      memcpy(r,fn,q - fn);
-      r += q - fn;
-    }
-    if (q == e) break;
-    fn = q + 1;
-  }
-  if (*(r - 1) == ':') *r++ = ':';
-  else if (*(e - 1) == '/') *r++ = ':';
-  *r = '\0';
-  return full ? FileName_newfn + 1 : FileName_newfn;
-}
-
-char *
-FileNameMacToUnix(char *fn) {
-  char *q,*e,*r;
-
-  if (strchr(fn,':') == NULL) return fn;
-  r = FileName_newfn;
-  if (*fn == ':') ++fn;
-  else *r++ = '/';
-  q = fn;
-  e = fn + strlen(fn);
-  for (;;) {
-    while (*fn == ':') {
-      ++fn;
-      memcpy(r,"../",3);
-      r += 3;
-    }
-    if (fn == e) break;
-    (q = strchr(fn,':')) || (q = e);
-    memcpy(r,fn,q - fn);
-    r += q - fn;
-    *r++ = '/';
-    if (q == e) break;
-    fn = q + 1;
-  }
-  *--r = '\0';
-  return FileName_newfn;
-}
-
-/*
- *  Helper function to make filename conversions more convenient.
- *
- *  This function calls either of the two above filename conversion functions
- *  and returns the resulting filename in allocated memory.  Ownership of
- *  the allocated memory is transferred to the caller -- i.e. it is the
- *  caller's responsibility to eventually free it.
- *
- *  Example:  FileNameMacConvert(FileNameMacToUnix,":MyDir:MyFile")
- */
-char *
-FileNameMacConvert(char *(*func)(char *),char *fn) {
-   char *newfp, *newmem;
-
-   newfp = (*func)(fn);
-   newmem = (char *)malloc(strlen(newfp) + 1);
-   if (newmem == NULL) return NULL;
-   strcpy(newmem,newfp);
-   return newmem;
-}
-#endif					/* MPW || THINK_C */
-#endif					/* MACINTOSH */

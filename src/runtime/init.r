@@ -12,62 +12,12 @@
 static	FILE	*readhdr	(char *name, struct header *hdr);
 #endif					/* !COMPILER */
 
-#if SCCX_MX
-extern  int         thisIsIconx;
-extern  char        settingsname[];
-extern  setint_t    sizevar;
-#endif  /* SCCX_MX */
-
 /*
  * Prototypes.
  */
 
 static void	env_err		(char *msg, char *name, char *val);
 FILE		*pathOpen       (char *fname, char *mode);
-
-/*
- * The following code is operating-system dependent [@init.01].  Declarations
- *   that are system-dependent.
- */
-
-#if PORT
-   /* probably needs something more */
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA
-int chkbreak;				/* if nonzero, check for ^C */
-  /* These override environment variables if set from ToolTypes. */
-uword WBstrsize = 0;
-uword WBblksize = 0;
-uword WBmstksize = 0;
-#endif					/* AMIGA */
-
-#if MSDOS
-#if HIGHC_386
-int _fmode = 0;				/* force CR-LF on std.. files */
-#endif					/* HIGHC_386 */
-#endif					/* MSDOS */
-
-#if OS2
-
-char modname[256];			/* Character string for module name */
-#passthru HMODULE modhandle;		/* Handle of loaded module */
-char loadmoderr[256];			/* Error message if loadmodule fails */
-#define RT_ICODE 0x4843			/* Resource type id is 'IC' */
-unsigned long icoderesid;		/* Resource ID from caller */
-char *icoderes;				/* Pointer to the icode resource data */
-int use_resource = 0;			/* Set to TRUE if using a resource */
-int stubexe;				/* TRUE if resource attached to executable */
-#endif					/* OS2 */
-
-#if ARM || MACINTOSH || UNIX || VMS
-   /* nothing needed */
-#endif					/* ARM || MACINTOSH ... */
-
-/*
- * End of operating-system specific code.
- */
 
 char *prog_name;			/* name of icode file */
 
@@ -229,13 +179,6 @@ word *stack;				/* Interpreter stack */
 word *stackend;				/* End of interpreter stack */
 
 
-#ifdef MultipleRuns
-extern word coexp_ser;
-extern word list_ser;
-extern word set_ser;
-extern word table_ser;
-extern int first_time;
-#endif					/* MultipleRuns */
 #endif					/* COMPILER */
 
 #if !COMPILER
@@ -255,23 +198,10 @@ struct header *hdr;
    char bytesThatBeginEveryExe[2] = {0,0};
    unsigned short originalExeBytesMod512, originalExePages;
    unsigned long originalExeBytes;
-#if SCCX_MX
-   char drive[260];
-   char dir[260];
-   char file[260];
-   char ext[260];
-   FILE*   setPtr;
-   int     i, c;
-#endif                                  /* SCCX_MX */
 #endif					/* MSDOS */
 
    if (!name)
-
-#ifdef PresentationManager
-      error(NULL, "An icode file was not specified.\nExecution can't proceed.");
-#else					/* PresentationManager */
       error(name, "No interpreter file supplied");
-#endif					/* PresentationManager */
 
    /*
     * Try adding the suffix if the file name doesn't end in it.
@@ -279,11 +209,7 @@ struct header *hdr;
    n = strlen(name);
 
 #if MSDOS
-#if ZTC_386
-   if (n >= 4 && !strcmp(".exe", name + n - 4)) {
-#else					/* ZTC_386 */
    if (n >= 4 && !stricmp(".exe", name + n - 4)) {
-#endif					/* ZTC_386 */
       thisIsAnExeFile = 1;
       fname = pathOpen(name, ReadBinary);
          /*
@@ -308,11 +234,11 @@ struct header *hdr;
       strcpy(tname,name);
       strcat(tname,IcodeSuffix);
 
-#if MSDOS || OS2
+#if MSDOS
       fname = pathOpen(tname,ReadBinary);	/* try to find path */
-#else					/* MSDOS || OS2 */
+#else					/* MSDOS */
       fname = fopen(tname, ReadBinary);
-#endif					/* MSDOS || OS2 */
+#endif					/* MSDOS */
 
 #if NT
     /*
@@ -334,11 +260,11 @@ struct header *hdr;
 
    if (fname == NULL)			/* try the name as given */
 
-#if MSDOS || OS2
+#if MSDOS
       fname = pathOpen(name, ReadBinary);
-#else					/* MSDOS || OS2 */
+#else					/* MSDOS */
       fname = fopen(name, ReadBinary);
-#endif					/* MSDOS || OS2 */
+#endif					/* MSDOS */
 
 #if MSDOS
       } /* end if (n >= 4 && !stricmp(".exe", name + n - 4)) */
@@ -396,13 +322,6 @@ struct header *hdr;
 #if MSDOS && !NT
    if (thisIsAnExeFile) {
         static char exe_errmsg[] = "can't read MS-DOS .exe header";
-#if SCCX_MX
-        if( thisIsIconx)
-        {
-            originalExeBytes = sizevar.value;
-        }
-        else
-#endif                                  /* SCCX_MX */
         {
             fread (&bytesThatBeginEveryExe,
                     sizeof bytesThatBeginEveryExe, 1, fname);
@@ -440,16 +359,16 @@ struct header *hdr;
 #endif					/* !COMPILER */
 
 #if COMPILER
-void init(name, argcp, argv, trc_init)
-char *name;
-int *argcp;
-char *argv[];
-int trc_init;
+   void init(name, argcp, argv, trc_init)
+   char *name;
+   int *argcp;
+   char *argv[];
+   int trc_init;
 #else					/* COMPILER */
-void icon_init(name, argcp, argv)
-char *name;
-int *argcp;
-char *argv[];
+   void icon_init(name, argcp, argv)
+   char *name;
+   int *argcp;
+   char *argv[];
 #endif					/* COMPILER */
 
    {
@@ -458,50 +377,6 @@ char *argv[];
    FILE *fname = NULL;
    word cbread, longread();
 #endif					/* COMPILER */
-
-#if OS2
-   char *p1, *p2;
-   int rc;
-
-   /* Determine if we are to load from a resource or not */
-   if (stubexe || name[0] == '(' ) {
-	use_resource = 1;
-	if (name[0] == '(') {
-	   /* Extract module name */
-	   for(p1 = &name[1],p2 = modname; *p1 && *p1 != ':'; p1++, p2++)
-	      *p2 = *p1;
-	   *(p2+1) = '\0';
-
-	   /* Extract resource id */
-	   p1++;			/* Skip colon */
-	   while(isspace(*p1)) p1++;
-
-	   icoderesid = atol(p1);	/* convert to numeric value */
-
-	   if (strcmp("*",modname) != 0) {
-	      rc = DosLoadModule(loadmoderr,sizeof(loadmoderr),
-				 modname,&modhandle);
-	      }
-	   else {
-	      modhandle = 0;
-	      }
-	   }
-	else {				/* Direct executable */
-	    modhandle = 0;
-	    icoderesid = 1;
-	   }
-	rc = DosGetResource(modhandle,RT_ICODE,icoderesid,&icoderes);
-
-	prog_name = argv[0];
-    }
-    else {
-	use_resource = 0;
-	prog_name = name;
-    }
-#if PresentationManager
-    PMInitialize();
-#endif
-#else					/* OS2 */
 
    prog_name = name;			/* Set icode file name */
 
@@ -520,8 +395,6 @@ char *argv[];
          }
       }
 #endif					/* UNIX */
-
-#endif					/* OS2 */
 
 #if COMPILER
    curstring = &rootstring;
@@ -598,56 +471,10 @@ char *argv[];
     * Catch floating-point traps and memory faults.
     */
 
-/*
- * The following code is operating-system dependent [@init.02].  Set traps.
- */
-
-#if PORT
-   /* probably needs something */
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA
    signal(SIGFPE, fpetrap);
-#endif					/* AMIGA */
-
-#if ARM
-   signal(SIGFPE, fpetrap);
-   signal(SIGSEGV, segvtrap);
-#endif					/* ARM */
-
-#if MACINTOSH
-#if MPW
-   {
-      void MacInit(void);
-      void SetFloatTrap(void (*fpetrap)());
-      void fpetrap();
-
-      MacInit();
-      SetFloatTrap(fpetrap);
-   }
-#endif					/* MPW */
-#endif					/* MACINTOSH */
-
-#if MSDOS
-#if MICROSOFT || TURBO || ZTC_386 || SCCX_MX
-   signal(SIGFPE, fpetrap);
-#endif					/* MICROSOFT || TURBO || ZTC_386 || SCCX_MX */
-#endif					/* MSDOS */
-
-#if OS2 || BORLAND_286 || BORLAND_386
-   signal(SIGFPE, fpetrap);
-   signal(SIGSEGV, segvtrap);
-#endif					/* OS2 || BORLAND_286 ... */
-
-#if UNIX || VMS
-   signal(SIGSEGV, segvtrap);
-   signal(SIGFPE, fpetrap);
-#endif					/* UNIX || VMS */
-
-/*
- * End of operating-system specific code.
- */
+   #if UNIX
+      signal(SIGSEGV, segvtrap);
+   #endif				/* UNIX */
 
 #if !COMPILER
 #ifdef ExecImages
@@ -666,35 +493,14 @@ Deliberate Syntax Error
 
    datainit();
 
-#if COMPILER
-   IntVal(kywd_trc) = trc_init;
-#endif					/* COMPILER */
-
-#if !COMPILER
-#if OS2
-   if (use_resource)
-	memcpy(&hdr,icoderes,sizeof(hdr));
-   else {
-       fname = readhdr(name,&hdr);
-       if (fname == NULL) {
-#ifdef PresentationManager
-	   ConsoleFlags |= OutputToBuf;
-	   fprintf(stderr, "Cannot locate the icode file: %s.\n", name);
-	   error(NULL, "Execution cannot proceed.");
-#else					/* PresentationManager */
-	   error(name, "cannot open interpreter file");
-#endif					/* PresentationManager */
-       }
-#else					/* OS2 */
-   fname = readhdr(name,&hdr);
-   if (fname == NULL) {
-      error(name, "cannot open interpreter file");
-#endif					/* OS2 */
-      }
-
-   k_trace = hdr.trace;
-
-#endif					/* COMPILER */
+   #if COMPILER
+      IntVal(kywd_trc) = trc_init;
+   #else				/* COMPILER */
+      fname = readhdr(name,&hdr);
+      if (fname == NULL)
+         error(name, "cannot open interpreter file");
+      k_trace = hdr.trace;
+   #endif				/* COMPILER */
 
    /*
     * Examine the environment and make appropriate settings.    [[I?]]
@@ -818,30 +624,6 @@ Deliberate Syntax Error
    /*
     * Read the interpretable code and data into memory.
     */
-#if OS2
-   if (use_resource) {
-	memcpy(code,icoderes+sizeof(hdr),hdr.hsize);
-	DosFreeResource(icoderes);
-	if (modhandle) DosFreeModule(modhandle);
-   }
-   else {
-       if ((cbread = longread(code, sizeof(char), (long)hdr.hsize, fname)) !=
-	  hdr.hsize) {
-#ifdef PresentationManager
-	  ConsoleFlags |= OutputToBuf;
-	  fprintf(stderr, "Invalid icode file: %s.\n", name);
-	  fprintf(stderr,"Could only read %ld (of %ld) bytes of code.\n",
-		  (long)cbread, (long)hdr.hsize);
-	  error(NULL, NULL);
-#else					/* PresentationManager */
-	  fprintf(stderr,"Tried to read %ld bytes of code, got %ld\n",
-	    (long)hdr.hsize,(long)cbread);
-	  error(name, "bad icode file");
-#endif					/* PresentationManager */
-	  }
-       fclose(fname);
-    }
-#else					/* OS2 */
    if ((cbread = longread(code, sizeof(char), (long)hdr.hsize, fname)) !=
       hdr.hsize) {
       fprintf(stderr,"Tried to read %ld bytes of code, got %ld\n",
@@ -849,29 +631,17 @@ Deliberate Syntax Error
       error(name, "bad icode file");
       }
    fclose(fname);
-#endif					/* OS2 */
-
    if (delete_icode)		/* delete icode file if flag set earlier */
       remove(name);
 
 /*
  * Make sure the version number of the icode matches the interpreter version.
  */
-
    if (strcmp((char *)hdr.config,IVersion)) {
-#ifdef PresentationManager
-      ConsoleFlags |= OutputToBuf;
-      fprintf(stderr, "Icode version mismatch in \'%s\':\n", name);
-      fprintf(stderr, "    actual version: %s\n",(char *)hdr.config);
-      fprintf(stderr, "    expected version: %s\n",IVersion);
-      fprintf(stderr, "Execution of \'%s\' cannot proceed.", name);
-      error(NULL, NULL);
-#else					/* PresentationManager */
       fprintf(stderr,"icode version mismatch in %s\n", name);
       fprintf(stderr,"\ticode version: %s\n",(char *)hdr.config);
       fprintf(stderr,"\texpected version: %s\n",IVersion);
       error(name, "cannot run");
-#endif					/* PresentationManager */
       }
 #endif					/* !COMPILER */
 
@@ -882,18 +652,6 @@ Deliberate Syntax Error
 #ifdef EventMon
    EVInit();
 #endif					/* EventMon */
-
-   /*
-    * Check command line for redirected standard I/O.
-    *  Assign a channel to the terminal if KeyboardFncs are enabled on VMS.
-    */
-
-#if VMS
-   redirect(argcp, argv, 0);
-#ifdef KeyboardFncs
-   assign_channel_to_terminal();
-#endif					/* KeyboardFncs */
-#endif					/* VMS */
 
 #if !COMPILER
    /*
@@ -912,22 +670,9 @@ btinit:
 #endif					/* ExecImages */
 #endif					/* COMPILER */
 
-/*
- * The following code is operating-system dependent [@init.03].  Allocate and
- *  assign a buffer to stderr if possible.
- */
-
-#if PORT
-   /* probably nothing */
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA
-   /* not done */
-#endif					/* AMIGA */
-
-#if ARM || MACINTOSH || UNIX || OS2 || VMS
-
+   /*
+    * Allocate and assign a buffer to stderr if possible.
+    */
 
    if (noerrbuf)
       setbuf(stderr, NULL);
@@ -936,33 +681,9 @@ Deliberate Syntax Error
 
       buf = (char *)malloc(BUFSIZ);
       if (buf == NULL)
-	 fatalerr(305, NULL);
+         fatalerr(305, NULL);
       setbuf(stderr, buf);
       }
-#endif					/* ARM || MACINTOSH ... */
-
-#if MSDOS
-#if !HIGHC_386
-   if (noerrbuf)
-      setbuf(stderr, NULL);
-   else {
-#ifdef MSWindows
-      char buf[BUFSIZ];
-#else					/* MSWindows */
-      char *buf;
-
-      buf = (char *)malloc(BUFSIZ);
-      if (buf == NULL)
-	 fatalerr(305, NULL);
-#endif					/* MSWindows */
-      setbuf(stderr, buf);
-      }
-#endif					/* !HIGHC_386 */
-#endif					/* MSDOS */
-
-/*
- * End of operating-system specific code.
- */
 
    /*
     * Start timing execution.
@@ -990,75 +711,28 @@ void envset()
    env_int(COEXPSIZE, &stksize, 1, (uword)MaxUnsigned);
    env_int(STRSIZE, &ssize, 1, (uword)MaxBlock);
    env_int(HEAPSIZE, &abrsize, 1, (uword)MaxBlock);
-#ifndef BSD_4_4_LITE
-   env_int(BLOCKSIZE, &abrsize, 1, (uword)MaxBlock);    /* synonym */
-#endif					/* BSD_4_4_LITE */
+   #ifndef BSD_4_4_LITE
+      env_int(BLOCKSIZE, &abrsize, 1, (uword)MaxBlock);    /* synonym */
+   #endif				/* BSD_4_4_LITE */
    env_int(BLKSIZE, &abrsize, 1, (uword)MaxBlock);      /* synonym */
    env_int(MSTKSIZE, &mstksize, 1, (uword)MaxUnsigned);
    env_int(QLSIZE, &qualsize, 1, (uword)MaxBlock);
    env_int("IXCUSHION", &memcushion, 1, (uword)100);	/* max 100 % */
    env_int("IXGROWTH", &memgrowth, 1, (uword)10000);	/* max 100x growth */
 
-/*
- * The following code is operating-system dependent [@init.04].  Check any
- *  system-dependent environment variables.
- */
-
-#if PORT
-   /* nothing to do */
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA
-   if ((p = getenv("CHECKBREAK")) != NULL)
-      chkbreak++;
-   if (WBstrsize != 0 && WBstrsize <= MaxBlock) ssize = WBstrsize;
-   if (WBblksize != 0 && WBblksize <= MaxBlock) abrsize = WBblksize;
-   if (WBmstksize != 0 && WBmstksize <= (uword) MaxUnsigned) mstksize = WBmstksize;
-#endif					/* AMIGA */
-
-#if ARM || MACINTOSH || MSDOS || OS2 || UNIX || VMS
-   /* nothing to do */
-#endif					/* ARM || ... */
-
-/*
- * End of operating-system specific code.
- */
-
    if ((p = getenv(ICONCORE)) != NULL && *p != '\0') {
 
-/*
- * The following code is operating-system dependent [@init.05].  Set trap to
- *  give dump on abnormal termination if ICONCORE is set.
- */
+      /*
+       * Set trap to give dump on abnormal termination if ICONCORE is set.
+       */
+      #if MSDOS
+         signal(SIGFPE, SIG_DFL);
+      #endif				/* MSDOS */
 
-#if PORT
-   /* can't handle */
-Deliberate Syntax Error
-#endif					/* PORT */
+      #if UNIX
+         signal(SIGSEGV, SIG_DFL);
+      #endif				/* UNIX */
 
-#if AMIGA || MACINTOSH
-   /* can't handle */
-#endif					/* AMIGA || ... */
-
-#if ARM || OS2
-      signal(SIGSEGV, SIG_DFL);
-      signal(SIGFPE, SIG_DFL);
-#endif					/* ARM || OS2 */
-
-#if MSDOS
-#if TURBO || BORLAND_286 || BORLAND_386
-      signal(SIGFPE, SIG_DFL);
-#endif					/* TURBO || BORLAND_286 ... */
-#endif					/* MSDOS */
-
-#if UNIX || VMS
-      signal(SIGSEGV, SIG_DFL);
-#endif					/* UNIX || VMS */
-
-/*
- * End of operating-system specific code.
- */
       dodump++;
       }
    }
@@ -1158,29 +832,11 @@ void segvtrap(int sig)
 void error(s1, s2)
 char *s1, *s2;
    {
-
-#ifdef PresentationManager
-   ConsoleFlags |= OutputToBuf;
-   if (!s1 && s2)
-      fprintf(stderr, s2);
-   else if (s1 && s2)
-      fprintf(stderr, "%s: %s\n", s1, s2);
-#else					/* PresentationManager */
    if (!s1)
       fprintf(stderr, "error in startup code\n%s\n", s2);
    else
       fprintf(stderr, "error in startup code\n%s: %s\n", s1, s2);
-#endif					/* PresentationManager */
-
    fflush(stderr);
-
-#ifdef PresentationManager
-   /* bring up the message box to display the error we constructed */
-   WinMessageBox(HWND_DESKTOP, HWND_DESKTOP, ConsoleStringBuf,
-		"Icon Runtime Initialization", 0,
-		MB_OK|MB_ICONHAND|MB_MOVEABLE);
-#endif					/* PresentationManager */
-
    if (dodump)
       abort();
    c_exit(EXIT_FAILURE);
@@ -1192,11 +848,6 @@ char *s1, *s2;
 void syserr(s)
 char *s;
    {
-
-
-#ifdef PresentationManager
-   ConsoleFlags |= OutputToBuf;
-#endif					/* PresentationManager */
    fprintf(stderr, "System error");
    if (pfp == NULL)
       fprintf(stderr, " in startup code");
@@ -1209,11 +860,7 @@ char *s;
 	 findfile(ipc.opnd));
 #endif					/* COMPILER */
       }
-  fprintf(stderr, "\n%s\n", s);
-#ifdef PresentationManager
-  error(NULL, NULL);
-#endif					/* PresentationManager */
-
+   fprintf(stderr, "\n%s\n", s);
    fflush(stderr);
    if (dodump)
       abort();
@@ -1296,23 +943,11 @@ int i;
       xdisp(pfp,glbl_argp,k_level,stderr);
       }
 
-#ifdef MultipleRuns
-   /*
-    * Free allocated memory so application can continue.
-    */
-
-   xmfree();
-#endif					/* MultipleRuns */
-
-
 #ifdef ConsoleWindow
    /*
     * if the console was used for anything, pause it
     */
    if (ConsoleBinding) {
-#if BORLAND_286
-      fputs(msg, ConsoleBinding);
-#else
       char label[256], tossanswer[256];
       struct descrip answer;
 
@@ -1324,7 +959,6 @@ int i;
       strcat(tossanswer, " - execution terminated");
       wattrib((wbp)ConsoleBinding, tossanswer, strlen(tossanswer),
               &answer, tossanswer);
-#endif
       waitkey(ConsoleBinding);
       }
 /* undo the #define exit c_exit */
@@ -1340,19 +974,7 @@ int i;
    while (wstates != NULL) pollevent();
 #endif					/* MSWindows */
 
-#if TURBO || BORLAND_286 || BORLAND_386
-   flushall();
-   _exit(i);
-#else					/* TURBO || BORLAND_286 ... */
-#ifdef PresentationManager
-   /* tell thread 1 to shut down */
-   WinPostQueueMsg(HMainMessageQueue, WM_QUIT, (MPARAM)0, (MPARAM)0);
-   /* bye, bye */
-   InterpThreadShutdown();
-#else					/* PresentationManager */
    exit(i);
-#endif					/* PresentationManager */
-#endif					/* TURBO || BORLAND_286 ... */
 
 }
 
@@ -1473,59 +1095,12 @@ void datainit()
 
 #endif					/* EventMon */
 
-
    maps2 = nulldesc;
    maps3 = nulldesc;
 
-#if !COMPILER
-   qsort((char *)pntab,pnsize,sizeof(struct pstrnm), (int(*)())pstrnmcmp);
-
-#ifdef MultipleRuns
-   /*
-    * Initializations required for repeated program runs
-    */
-					/* In this module:	*/
-   k_level = 0;				/* &level */
-   k_errornumber = 0;			/* &errornumber */
-   k_errortext = "";			/* &errortext */
-   currend = NULL;			/* current end of memory region */
-
-
-   mstksize = MStackSize;		/* initial size of main stack */
-   stksize = StackSize;			/* co-expression stack size */
-   ssize = MaxStrSpace;			/* initial string space size (bytes) */
-   abrsize = MaxAbrSize;		/* initial size of allocated block
-					     region (bytes) */
-   qualsize = QualLstSize;		/* size of quallist for fixed regions */
-
-   dodump = 0;				/* produce dump on error */
-
-#ifdef ExecImages
-   dumped = 0;				/* This is a dumped image. */
-#endif					/* ExecImages */
-
-					/* In module interp.r:	*/
-   pfp = 0;				/* Procedure frame pointer */
-   sp = NULL;				/* Stack pointer */
-
-
-					/* In module rmemmgt.r:	*/
-   coexp_ser = 2;
-   list_ser = 1;
-   set_ser = 1;
-   table_ser = 1;
-
-   coll_stat = 0;
-   coll_str = 0;
-   coll_blk = 0;
-   coll_tot = 0;
-
-					/* In module time.c: */
-   first_time = 1;
-
-
-#endif					/* MultipleRuns */
-#endif					/* COMPILER */
+   #if !COMPILER
+      qsort((char *)pntab,pnsize,sizeof(struct pstrnm), (int(*)())pstrnmcmp);
+   #endif				/* COMPILER */
 
    }
 

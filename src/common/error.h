@@ -12,10 +12,6 @@
 
 static	char	*mapterm	(int typ,struct node *val);
 
-#if AMIGA && __SASC
-   extern void PostClip(char *file, int line, int number, char *text);
-#endif				/* AMIGA && __SASC */
-
 /*
  * yyerror produces syntax error messages.  tok is the offending token
  *  (yychar), lval is yylval, and state is the parser's state.
@@ -30,9 +26,9 @@ nodeptr lval;
    {
    register struct errmsg *p;
    int line;
-#ifdef ConsoleWindow
-   extern int silent;
-#endif					/* ConsoleWindow */
+   #ifdef ConsoleWindow
+      extern int silent;
+   #endif				/* ConsoleWindow */
 
    if (lval == NULL)
       line = 0;
@@ -52,9 +48,6 @@ nodeptr lval;
          fprintf(stderr, "\"%s\": ", mapterm(tok,lval));
       for (p = errtab; p->e_state != state && p->e_state >= 0; p++) ;
       fprintf(stderr, "%s\n", p->e_mesg);
-#if AMIGA && __SASC
-      if (tok_loc.n_file) PostClip(tok_loc.n_file, line, 0, p->e_mesg);
-#endif				/* AMIGA && __SASC */
       }
 #ifdef ConsoleWindow
       }
@@ -115,17 +108,6 @@ char *s1, *s2;
    if (s2)
       fprintf(stderr, "\"%s\": ", s2);
    fprintf(stderr, "%s\n", s1);
-
-#if AMIGA && __SASC
-   if (tok_loc.n_file) {
-      char text[512];
-      if (s2)
-         sprintf(text, "\"%s\": ", s2);
-      strcat(text, s1);
-      PostClip(tok_loc.n_file, tok_loc.n_line, 0, text);
-      }
-#endif				/* AMIGA && __SASC */
-
    tfatals++;
    nocode++;
    }
@@ -146,17 +128,6 @@ char *s1, *s2;
    if (s2)
       fprintf(stderr, "\"%s\": ", s2);
    fprintf(stderr, "%s\n", s1);
-
-#if AMIGA && __SASC
-   if (n != NULL) {
-      char text[512];
-      if (s2)
-         sprintf(text, "\"%s\": ", s2);
-      strcat(text, s1);
-      PostClip(File(n), Line(n), 0, text);
-      }
-#endif				/* AMIGA && __SASC */
-
    tfatals++;
    nocode++;
    }
@@ -212,20 +183,19 @@ char *msg;
 void quitf(msg,arg)
 char *msg, *arg;
    {
-
-
    extern char *progname;
+
    fprintf(stderr,"%s: ",progname);
    fprintf(stderr,msg,arg);
    fprintf(stderr,"\n");
 
-#if !defined(VarTran) && !defined(Iconc)
-   {
+   #if !defined(Iconc)
+      {
       extern char *ofile;
       if (ofile)
 	 remove(ofile);			/* remove bad icode file */
-   }
-#endif					/* !VarTran && !Iconc */
+      }
+   #endif				/* !Iconc */
 
    exit(EXIT_FAILURE);
    }

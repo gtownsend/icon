@@ -4,59 +4,21 @@
 char *progname = "pp";
 
 /*
- * The following code is operating-system dependent [@pmain.01]. Establish
- *  command-line options.
+ * Establish command-line options.
  */
 
-#if PORT
-static char *ostr = "CPD:I:U:o:";
-static char *options =
-   "[-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath] [-ofile] [files]";
-   /* may need more options */
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA || MACINTOSH
-static char *ostr = "CPD:I:U:o:";
-static char *options =
-   "[-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath] [-ofile] [files]";
-   /* may need more options */
-Deliberate Syntax Error
-#endif					/* AMIGA || ... */
+#if UNIX
+   static char *ostr = "+CPD:I:U:o:";
+   static char *options =
+      "[-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath] [-ofile] [files]";
+#endif					/* UNIX */
 
 #if MSDOS
-#if MICROSOFT || INTEL_386 || HIGHC_386 || WATCOM
-   /* this really isn't right for anything but Microsoft */
-static char *ostr = "CPD:I:U:o:A:Z:J";
-static char *options =
-   "[-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath] [-ofile]\n    \
+   static char *ostr = "CPD:I:U:o:A:Z:J";
+   static char *options =
+      "[-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath] [-ofile]\n    \
 [-A(S|C|M|L|H)] [-Za] [-J] [files]";
-#endif					/* MICROSOFT || INTEL_386 || ...  */
-
-#if ZTC_386
-static char *ostr = "CPD:I:U:o:m:AuJWf234";
-static char *options =
-   "[-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath[;path...]] [-ofile]\n    \
-[-m(t|s|c|m|l|v|r|p|x|z)] [-A] [-u] [-J] [-W] [-f] [-(2|3|4)] [files]";
-#endif					/* ZTC_386 */
-
-#if TURBO || BORLAND_286 || BORLAND_386
-static char *ostr = "CPD:I:U:o:m:p";
-static char *options =
-   "[-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath] [-ofile]\n    \
-[-m(t|s|m|c|l|h)] [-p] [files]";
-#endif					/* TURBO || BORLAND_286 ... */
 #endif					/* MSDOS */
-
-#if UNIX || VMS
-static char *ostr = "+CPD:I:U:o:";
-static char *options =
-   "[-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath] [-ofile] [files]";
-#endif					/* UNIX || VMS */
-
-/*
- * End of operating-system specific code.
- */
 
 extern line_cntrl;
 
@@ -99,77 +61,34 @@ char **argv;
     */
    while ((c = getopt(argc, argv, ostr)) != EOF)
       switch (c) {
+
          case 'C':  /* -C - retan comments */
             whsp_image = FullImage;
             break;
-          case 'P': /* -P - do not output #line directives */
+
+         case 'P': /* -P - do not output #line directives */
             line_cntrl = 0;
             break;
+
          case 'D': /* -D<id><definition> - predefine an identifier */
          case 'I': /* -I<path> - location to search for standard header files */
          case 'U': /* -U<id> - undefine predefined identifier */
-
-/*
- * The following code is operating-system dependent [@pmain.02]. Accept
- *  system specific options.
- */
-
-#if PORT
-   /* may need something */
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA || MACINTOSH
-   /* may need something */
-Deliberate Syntax Error
-#endif					/* AMIGA || ... */
-
-#if MSDOS
-#if MICROSOFT
-         case 'A':
-         case 'J':
-         case 'Z':
-#endif					/* MICROSOFT */
-
-#if ZTC_386
-         case 'm':
-         case 'A':
-         case 'u':
-         case 'J':
-         case 'W':
-         case 'f':
-         case '2':
-         case '3':
-         case '4':
-#endif					/* ZTC_386 */
-
-#if TURBO || BORLAND_286 || BORLAND_386
-         case 'm':
-         case 'p':
-#endif					/* TURBO || BORLAND_286 ... */
-
-#if HIGHC_386 || INTEL_386 || WATCOM
-   /* something is needed */
-#endif					/* HIGHC_386 || INTEL_386 || ... */
-#endif					/* MSDOS */
-
-#if UNIX || VMS
-   /* nothing is needed */
-#endif					/* UNIX || VMS */
-
-/*
- * End of operating-system specific code.
- */
-
+         #if MSDOS
+            case 'A':
+            case 'J':
+            case 'Z':
+         #endif				/* MSDOS */
             opt_lst[nopts] = c;
             opt_args[nopts] = optarg;
             ++nopts;
             break;
+
          case 'o': /* -o<file> - write output to this file */
             out_file = fopen(optarg, "w");
             if (out_file == NULL)
                err2("cannot open output file ", optarg);
             break;
+
          default:
             show_usage();
          }

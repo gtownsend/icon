@@ -352,10 +352,5 @@ int yylex()
          errt2(yylval.t, "invalid character: ", yylval.t->image);
       }
 
-#if EBCDIC
-   if (yylval.t->tok_id < 256)
-      return FromEBCDIC[yylval.t->tok_id];
-#endif
-
    return yylval.t->tok_id;
    }

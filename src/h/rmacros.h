@@ -439,41 +439,21 @@
    #define PerilDelta 100
 
    /*
-    * Macro definitions related to descriptors.
+    * Define PushAVal for computers that store longs and pointers differently.
     */
 
-   /*
-    * The following code is operating-system dependent [@rt.01].  Define
-    *  PushAval for computers that store longs and pointers differently.
-    */
-
-   #if PORT
+   #if !MSDOS
       #define PushAVal(x) PushVal(x)
-      Deliberate Syntax Error
-   #endif				/* PORT */
+   #else				/* MSDOS */
+      static union {
+         pointer stkadr;
+         word stkint;
+         } stkword;
 
-   #if AMIGA || ARM || MACINTOSH || UNIX || VMS
-      #define PushAVal(x) PushVal(x)
-   #endif				/* AMIGA || ARM || ... */
-
-   #if MSDOS || OS2
-      #if HIGHC_386 || ZTC_386 || INTEL_386 || WATCOM || BORLAND_386 || SCCX_MX
-         #define PushAVal(x) PushVal(x)
-      #else				/* HIGHC_386 || ZTC_386 || ... */
-         static union {
-               pointer stkadr;
-               word stkint;
-            } stkword;
-
-         #define PushAVal(x)  {sp++; \
+      #define PushAVal(x)  {sp++; \
 				stkword.stkadr = (char *)(x); \
 				*sp = stkword.stkint;}
-      #endif				/* HIGHC_386 || ZTC_386 || ... */
-   #endif				/* MSDOS || OS2 */
-
-   /*
-    * End of operating-system specific code.
-    */
+   #endif				/* MSDOS */
 
    /*
     * Macros for pushing values on the interpreter stack.
@@ -502,27 +482,15 @@
     * Procedure block for a function.
     */
 
-   #if VMS
-      #define FncBlock(f,nargs,deref) \
-         struct b_iproc Cat(B,f) = {\
-         T_Proc,\
-         Vsizeof(struct b_proc),\
-         Cat(Y,f),\
-         nargs,\
-         -1,\
-         deref, 0,\
-         {sizeof(Lit(f))-1,Lit(f)}};
-   #else				/* VMS */
-      #define FncBlock(f,nargs,deref) \
-         struct b_iproc Cat(B,f) = {\
-         T_Proc,\
-         Vsizeof(struct b_proc),\
-         Cat(Z,f),\
-         nargs,\
-         -1,\
-         deref, 0,\
-         {sizeof(Lit(f))-1,Lit(f)}};
-   #endif				/* VMS */
+   #define FncBlock(f,nargs,deref) \
+      struct b_iproc Cat(B,f) = {\
+      T_Proc,\
+      Vsizeof(struct b_proc),\
+      Cat(Z,f),\
+      nargs,\
+      -1,\
+      deref, 0,\
+      {sizeof(Lit(f))-1,Lit(f)}};
 
    /*
     * Procedure block for an operator.
@@ -727,11 +695,11 @@
 #define CsetPtr(b,c)	(BlkLoc(c)->cset.bits + (((b)&0377) >> LogIntBits))
 
 #if MSDOS
-   #if (MICROSOFT && defined(M_I86HM)) || (TURBO && defined(__HUGE__))
+   #if MICROSOFT && defined(M_I86HM)
       #define ptr2word(x) ((uword)((char huge *)x - (char huge *)zptr))
       #define word2ptr(x) ((char huge *)((char huge *)zptr + (uword)x))
-   #else				/* MICROSOFT ... */
+   #else				/* MICROSOFT && M_I86HM */
       #define ptr2word(x) (uword)x
       #define word2ptr(x) ((char *)x)
-   #endif				/* MICROSOFT ... */
+   #endif				/* MICROSOFT && M_I86HM */
 #endif					/* MSDOS */

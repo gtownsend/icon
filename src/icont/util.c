@@ -63,18 +63,18 @@ char *tbl_name;     /* name of the table */
       new_size = *size + min_units;
    num_bytes = new_size * unit_size;
 
-#if IntBits == 16
-   {
-   word max_bytes = 64000;
+   #if IntBits == 16
+      {
+      word max_bytes = 64000;
 
-   if (num_bytes > max_bytes) {
-      new_size = max_bytes / unit_size;
-      num_bytes = new_size * unit_size;
-      if (new_size - *size < min_units)
-         quitf("out of memory for %s", tbl_name);
+      if (num_bytes > max_bytes) {
+         new_size = max_bytes / unit_size;
+         num_bytes = new_size * unit_size;
+         if (new_size - *size < min_units)
+            quitf("out of memory for %s", tbl_name);
+         }
       }
-   }
-#endif					/* IntBits == 16 */
+   #endif				/* IntBits == 16 */
 
    if (tblfree != NULL)
       free_offset = DiffPtrs(*(char **)tblfree,  (char *)table);

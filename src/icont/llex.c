@@ -9,13 +9,6 @@
 
 int nlflag = 0;		/* newline last seen */
 
-#if MACINTOSH
-   #if MPW
-      #include <CursorCtl.h>
-      #define CURSORINTERVAL 100
-   #endif				/* MPW */
-#endif					/* MACINTOSH */
-
 #define tonum(c)	(isdigit(c) ? (c - '0') : ((c & 037) + 9))
 
 /*
@@ -75,33 +68,11 @@ word getstr()
    register int c;
    register word indx;
 
-#if MACINTOSH
-   #if MPW
-      {
-      static short cursorcount = CURSORINTERVAL;
-      if (--cursorcount == 0) {
-         RotateCursor(-32);
-         cursorcount = CURSORINTERVAL;
-         }
-      }
-   #endif					/* MPW */
-#endif					/* MACINTOSH */
-
    indx = lsfree;
    while ((c = getc(infile)) == ' ' || c == '\t') ;
    if (c == EOF)
       return -1;
-
-#if MSDOS && INTEL_386
-   /*
-    * Code Builder lets carriage returns through sometimes.
-    */
-   while (c != ' ' && c != '\t' && c != '\n' && c != '\r' && c != ',' &&
-      c != EOF) {
-#else					/* MSDOS && INTEL_386 */
    while (c != ' ' && c != '\t' && c != '\n' && c != ',' && c != EOF) {
-#endif					/* MSDOS && INTEL_386 */
-
       if (indx >= stsize)
          lsspace = (char *)trealloc(lsspace, NULL, &stsize, 1, 1,
             "string space");
@@ -126,16 +97,7 @@ word getrest()
    register word indx;
 
    indx = lsfree;
-
-#if MSDOS && INTEL_386
-   /*
-    * Code Builder lets carriage returns through on occasion
-    */
-   while ((c = getc(infile)) != '\n' && c != '\r' && c != EOF) {
-#else					/* MSDOS && INTEL_386 */
    while ((c = getc(infile)) != '\n' && c != EOF) {
-#endif					/* MSDOS && INTEL_386 */
-
       if (indx >= stsize)
          lsspace = (char *)trealloc(lsspace, NULL, &stsize, 1, 1,
             "string space");

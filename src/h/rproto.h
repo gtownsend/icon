@@ -168,21 +168,6 @@ void		xmfree		(void);
    int		bigrand		(dptr da, dptr dx);
 #endif					/* LargeInts */
 
-#if !HIGHC_386
-   int dup2(int h1, int h2);
-#endif					/* !HIGHC_386 */
-
-#if HIGHC_386
-   int	brk(char *p);
-#endif					/* HIGHC_386 */
-
-#if MACINTOSH
-   #if MPW
-      char *brk(char *addr);
-      char *sbrk(int incr);
-   #endif				/* MPW */
-#endif					/* MACINTOSH */
-
 #ifdef MSWindows
    #ifdef FAttrib
       #if MSDOS
@@ -281,11 +266,8 @@ void		xmfree		(void);
    int	mutable_color	(wbp w, dptr argv, int ac, int *retval);
    int	nativecolor	(wbp w, char *s, long *r, long *g, long *b);
 
-   #ifndef PresentationManager
-      /* Exclude those functions defined as macros */
-      int pollevent	(void);
-      void wflush	(wbp w);
-   #endif				/* PresentationManager */
+   int pollevent	(void);
+   void wflush		(wbp w);
 
    int	query_pointer	(wbp w, XPoint *pp);
    int	query_rootpointer (XPoint *pp);
@@ -335,45 +317,6 @@ void		xmfree		(void);
       int   Consoleputc		(int c, FILE *file);
       int   Consolefflush	(FILE *file);
    #endif				/* ConsoleWindow */
-
-   #ifdef MacGraph
-      /*
-       * Implementation routines specific to Macintosh
-       */
-      void hidecrsr (wsp ws);
-      void showcrsr (wsp ws);
-      void UpdateCursorPos(wsp ws, wcp wc);
-      void GetEvents (void);
-      void DoEvent (EventRecord *eventPtr);
-      void DoMouseUp (EventRecord *eventPtr);
-      void DoMouseDown (EventRecord *eventPtr);
-      void DoGrowWindow (EventRecord *eventPtr, WindowPtr whichWindow);
-      void GetLocUpdateRgn (WindowPtr whichWindow, RgnHandle localRgn);
-      void DoKey (EventRecord *eventPtr, WindowPtr whichWindow);
-      void EventLoop(void);
-      void HandleMenuChoice (long menuChoice);
-      void HandleAppleChoice (short item);
-      void HandleFileChoice (short item);
-      void HandleOptionsChoice (short item);
-      void DoUpdate (EventRecord *eventPtr);
-      void DoActivate (WindowPtr whichWindow, Boolean becomingActive);
-      void RedrawWindow (WindowPtr whichWindow);
-      const int ParseCmdLineStr (char *s, char *t, char **argv);
-      pascal OSErr SetDialogDefaultItem (DialogPtr theDialog, short newItem) =
-         { 0x303C, 0x0304, 0xAA68 };
-      pascal OSErr SetDialogCancelItem (DialogPtr theDialog, short newItem) =
-         { 0x303C, 0x0305, 0xAA68 };
-      pascal OSErr SetDialogTracksCursor (DialogPtr theDialog, Boolean tracks) =
-         { 0x303C, 0x0306, 0xAA68 };
-
-      void drawarcs(wbinding *wb, XArc *arcs, int narcs);
-      void drawlines(wbinding *wb, XPoint *points, int npoints);
-      void drawpoints(wbinding *wb, XPoint *points, int npoints);
-      void drawrectangles(wbp wb, XRectangle *recs, int nrecs);
-      void drawsegments(wbinding *wb, XSegment *segs, int nsegs);
-      void fillarcs(wbp wb, XArc *arcs, int narcs);
-      void fillpolygon(wbp wb, XPoint *pts, int npts);
-   #endif				/* MacGraph */
 
    #ifdef XWindows
       /*
@@ -450,67 +393,6 @@ void		xmfree		(void);
       void unsetclip(wbp w);
 
    #endif				/* MSWindows */
-
-   #ifdef PresentationManager
-      /*
-       * Implementation routines specific to OS/2 Presentation Manager
-       */
-      wsp ObtainEvents(wsp ws, SHORT blockflag, ULONG messg, QMSG *msg);
-      void InterpThreadStartup(void *args);
-      void InterpThreadShutdown(void);
-      void DestroyWindow(wsp ws);
-      void LoadDefAttrs(wbinding *wb, wsp ws, wcp wc);
-      void ResizeBackingBitmap(wsp ws, SHORT x, SHORT y);
-      int  moveResizeWindow(wbp w,int x, int y, int width, int height);
-      void moveWindow(wbp w, int x, int y);
-      int  resizeWindow(wbp w,int width,int height);
-      int SetNewBitPattern(wcp wc, PBYTE bits);
-      int LoadFont(wbp wb, char *family, LONG attr, ULONG fontsize);
-      void FreeIdTable(void);
-      void FreeLocalID(LONG id);
-
-      /* -- not needed because of macro definitions
-      void SetCharContext(wbp wb, wsp ws, wcp wc);
-      void SetAreaContext(wbp wb, wsp ws, wcp wc);
-      void SetLineContext(wbp wb, wsp ws, wcp wc);
-      void SetImageContext(wbp wb, wsp ws, wcp wc);
-         -- */
-
-      void SetClipContext(wbp wb, wsp ws, wcp wc);
-      void UnsetContext(wcp wc, void (*f)(wcp, wsp));
-      void UCharContext(wcp wc, wsp ws);
-      void ULineContext(wcp wc, wsp ws);
-      void UAreaContext(wcp wc, wsp ws);
-      void UImageContext(wcp wc, wsp ws);
-      void UClipContext(wcp wc, wsp ws);
-      void UAllContext(wcp wc, wsp ws);
-      void drawpoints(wbp wb, XPoint *pts, int npts);
-      void drawsegments(wbp wb, XSegment *segs, int nsegs);
-      void drawstrng(wbp wb, int x, int y, char *str, int slen);
-      void drawarcs(wbp w, XArc *arcs, int narcs);
-      void drawlines(wbp wb, XPoint *pts, int npts);
-      void drawrectangles(wbp wb, XRectangle *recs, int nrecs);
-      int dumpimage(wbp wb, char *filename, int x, int y, int width, int height);
-      void fillpolygon(wbp wb, XPoint *pts, int npts);
-      HBITMAP loadimage(wbp wb, char *filename, int *width, int *height);
-      void InitializeIdTable(void);
-      void InitializeColorTable(void);
-      void FreeColorTable(void);
-      LONG GetColorIndex(char *buf, double gamma);
-      void AddLocalIdToWindow(wsp ws, LONG id);
-      void ReleaseLocalId(LONG id);
-      void ReleaseColor(LONG indx);
-      void ColorInitPS(wbp wb);
-      void GetColorName(LONG indx, char *buf, int len);
-      void EnsureColorAvailable(LONG indx);
-      int GetTextWidth(wbp wb, char *text, int len);
-      int AddWindowDep(wsp ws, wcp wc);
-      int AddContextDep(wsp ws, wcp wc);
-      FILE *PMOpenConsole(void);
-      void UpdateCursorConfig(wsp ws, wcp wc);
-      void UpdateCursorPos(wsp ws, wcp wc);
-
-   #endif				/* PresentationManager */
 
 #endif					/* Graphics */
 

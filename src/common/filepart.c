@@ -7,8 +7,6 @@ static char *pathelem	(char *s, char *buf);
 static char *tryfile	(char *buf, char *dir, char *name, char *extn);
 
 /*
- * The following code is operating-system dependent [@filepart.01].
- *
  *  Define symbols for building file names.
  *  1. Prefix: the characters that terminate a file name prefix
  *  2. FileSep: the char to insert after a dir name, if any
@@ -16,56 +14,17 @@ static char *tryfile	(char *buf, char *dir, char *name, char *extn);
  *  3. PathSep: allowable IPATH/LPATH separators, if not just " "
  */
 
-#if PORT
-   #define Prefix "/"
-   #define FileSep '/'
-   Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA
-   #define Prefix "/:"
-   #define FileSep '/'
-#endif					/* AMIGA */
-
-#if ARM
-   #define Prefix ".:"
-   #define DefPath "Icon: Lib:Icon."
-#endif					/* ARM */
-
-#if MSDOS || OS2
+#if MSDOS
    #define Prefix "/:\\"
    #define DefPath ";"
-   #if HIGHC_386
-      #define FileSep '\\'
-   #else				/* HIGHC_386 */
-      #define FileSep '/'
-   #endif				/* HIGHC_386 */
-#endif					/* MSDOS || OS2 */
-
-#if MACINTOSH
-   #define Prefix ":"
-   #define FileSep ':'
-   #if MPW || LWC
-      #define DefPath ":"
-   #endif				/* MPW || LSC */
-   #if MPW
-      #define PathSep ","
-   #endif				/* MPW */
-#endif					/* MACINTOSH */
+   #define FileSep '/'
+#endif					/* MSDOS */
 
 #if UNIX
    #define Prefix "/"
    #define FileSep '/'
    #define PathSep " :"
 #endif					/* UNIX */
-
-#if VMS
-   #define Prefix "]:"
-#endif					/* VMS */
-
-/*
- * End of operating-system specific code.
- */
 
 #ifndef DefPath
    #define DefPath ""
@@ -125,15 +84,15 @@ char *s, *buf;
       s++;
       }
 
-#ifdef FileSep
-   /*
-    * We have to append a path separator here.
-    *  Seems like makename should really be the one to do that.
-    */
-   if (!strchr(Prefix, buf[-1])) {	/* if separator not already there */
-      *buf++ = FileSep;
-      }
-#endif					/* FileSep */
+   #ifdef FileSep
+      /*
+       * We have to append a path separator here.
+       *  Seems like makename should really be the one to do that.
+       */
+      if (!strchr(Prefix, buf[-1])) {	/* if separator not already there */
+         *buf++ = FileSep;
+         }
+   #endif				/* FileSep */
 
    *buf = '\0';
    return s;
@@ -170,130 +129,6 @@ char *s;
    int n;
    char *p, *q;
 
-#if ARM
-   static char buf[MaxFileName+2];
-   static struct fileparts fp;
-   char *p;
-   char *ext = 0;
-   char *extend = 0;
-   char *dirend = 0;
-   char *s1;
-   char *bp = buf;
-
-   /* First, skip any filing system prefix */
-   s1 = strchr(s,':');
-   if (s1 == NULL)
-      s1 = s;
-   else
-      ++s1;
-
-   /* Now, scan backwards through the filename, looking for dots.
-    * Record the positions of the final two, for later use.
-    */
-   p = s1 + strlen(s1);
-   fp.name = 0;
-
-   while (--p > s1)
-   {
-         if (*p != '.')
-            continue;
-
-      if (fp.name == NULL)
-      {
-         fp.name = p + 1;
-         extend = p;
-      }
-      else
-      {
-         ext = p + 1;
-         dirend = p;
-         break;
-      }
-   }
-
-   /* This is the simple case. The filename is a simple name, with no
-    * directory part. The extension is therefore null, and the directory
-    * is just the filing system prefix, if any.
-    */
-   if (fp.name == NULL)
-   {
-      fp.name = s1;
-
-      if (s1 == s)
-      {
-         fp.ext = "";
-         fp.dir = "";
-      }
-      else
-      {
-         fp.ext = "";
-         strncpy(buf, s, s1 - s);
-         buf[s1-s] = '\0';
-         fp.dir = buf;
-      }
-
-      return &fp;
-   }
-
-   /* Now worry about the more complicated cases. First, check the
-    * supposed extension, to see if it is one of the valid cases,
-    * SourceSuffix, U1Suffix, U2Suffix, or USuffix. For this code
-    * to work, these four defined values must start with a dot, and
-    * be all in lower case.
-    */
-   *buf = '.';
-   bp = buf + 1;
-
-   for (p = ext ? ext : s1; p < extend; ++p)
-   {
-      *bp++ = tolower(*p);
-   }
-
-   *bp++ = '\0';
-
-   if (strcmp(buf,SourceSuffix) == 0 || strcmp(buf,U1Suffix) == 0
-    || strcmp(buf,U2Suffix) == 0 || strcmp(buf,USuffix) == 0)
-   {
-      fp.ext = buf;
-   }
-   else
-   {
-      fp.ext = "";
-      bp = buf;
-      dirend = extend;
-   }
-
-   /* We now have the name and extension sorted out. So we just need
-    * to copy the directory part into buf (at bp), and set fp.dir.
-    */
-   if (dirend == NULL)
-   {
-      if (s1 == s)
-         fp.dir = "";
-      else
-      {
-         fp.dir = bp;
-
-         while (s < s1)
-            *bp++ = *s++;
-
-         *bp = '\0';
-      }
-   }
-   else
-   {
-      fp.dir = bp;
-
-      while (s <= dirend)
-         *bp++ = *s++;
-
-      *bp = '\0';
-   }
-
-   return &fp;
-
-#else					/* ARM */
-
    q = s;
    fp.ext = p = s + strlen(s);
    while (--p >= s) {
@@ -314,22 +149,7 @@ char *s;
    strncpy(fp.name,q,n);
    fp.name[n] = '\0';
 
-#if VMS
-   /* if a version is included, get separate extension and version */
-   if (p = strchr(fp.ext, ';')) {
-      fp.version = p;
-      p = fp.ext;
-      fp.ext = fp.name + n + 1;
-      n = fp.version - p;
-      strncpy(fp.ext, p, n);
-      fp.ext[n] = '\0';
-      }
-   else
-      fp.version = fp.name + n;		/* point version to '\0' */
-#endif                                  /* VMS */
-
    return &fp;
-#endif					/* ARM */
    }
 
 /*
@@ -344,16 +164,7 @@ char *dest, *d, *name, *e;
       fp.dir = d;
    if (e != NULL)
       fp.ext = e;
-
-#if ARM
-   {
-      char *p = (*fp.ext ? fp.ext + 1 : "");
-      sprintf(dest, "%s%s%s%s", fp.dir, p, (*p ? "." : ""), fp.name);
-   }
-#else					/* ARM */
    sprintf(dest,"%s%s%s",fp.dir,fp.name,fp.ext);
-#endif					/* ARM */
-
    return dest;
    }
 
@@ -378,12 +189,12 @@ char *s, *t;
          return 0;
       }
    }
-
+
 #if MSDOS
-#if NT
-#include <sys/stat.h>
-#include <direct.h>
-#endif					/* NT */
+   #if NT
+      #include <sys/stat.h>
+      #include <direct.h>
+   #endif					/* NT */
 
 /*
  * this version of pathfind, unlike the one above, is looking on
@@ -434,26 +245,15 @@ int pathFind(char target[], char buf[], int n)
       *buf = 0;
    return res == 0;
    }
-#endif					/* MSDOS */
 
-#if MSDOS || OS2
 FILE *pathOpen(fname, mode)
    char *fname;
    char *mode;
    {
-#if OS2
-   char buf[260 + 1];
-#else					/* OS2 */
    char buf[150 + 1];
-#endif					/* OS2 */
    int i, use = 1;
 
-#if SCCX_MX
-   /* Avoid compiler warning */
-   for( i = 0; (buf[i] = fname[i]) != 0; ++i)
-#else
    for( i = 0; buf[i] = fname[i]; ++i)
-#endif					/* SCCX_MX */
 
       /* find out if a path has been given in the file name */
       if (buf[i] == '/' || buf[i] == ':' || buf[i] == '\\')
@@ -462,14 +262,9 @@ FILE *pathOpen(fname, mode)
    /* If a path has been given with the file name, don't bother to
       use the PATH */
 
-#if OS2
-   if (use && DosSearchPath(SEARCH_CUR_DIRECTORY | SEARCH_ENVIRONMENT,
-                            "PATH", fname, buf, 260))
-#else					/* OS2 */
    if (use && !pathFind(fname, buf, 150))
-#endif					/* OS2 */
        return 0;
 
    return fopen(buf, mode);
    }
-#endif					/* MSDOS || OS2 */
+#endif					/* MSDOS */

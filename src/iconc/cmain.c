@@ -17,10 +17,6 @@ static void rmfile  (char *fname);
 static void report  (char *s);
 static void usage   (void);
 
-#ifdef strlen
-#undef strlen				/* pre-defined in some contexts */
-#endif					/* strlen */
-
 #ifdef ExpTools
 char *toolstr = "${TOOLS}";
 #endif					/* ExpTools */
@@ -263,69 +259,37 @@ char **argv;
       else if (strcmp(argv[optind],"-") == 0)
          src_file("-");				/* "-" means standard input */
 
-/*
- * The following code is operating-system dependent [@tmain.02].  Check for
- *  C linker options on the command line.
- */
-
-#if PORT
-   /* something is needed */
-Deliberate Syntax Error
-#endif					/* PORT */
-
 #if UNIX
+   /*
+    * Check for C linker options on the command line.
+    */
       else if (argv[optind][0] == '-')
          addlib(argv[optind]);		/* assume linker option */
-#endif					/* UNIX ... */
-
-#if AMIGA || MACINTOSH || MSDOS || OS2 || VMS
-      /*
-       * Linker options on command line not supported.
-       */
-#endif					/* AMIGA || ... */
-
-/*
- * End of operating-system specific code.
- */
+#endif					/* UNIX */
 
       else {
          fp = fparse(argv[optind]);		/* parse file name */
          if (*fp->ext == '\0' || smatch(fp->ext, SourceSuffix)) {
             makename(buf,SourceDir,argv[optind], SourceSuffix);
-#if VMS
-	    strcat(buf, fp->version);
-#endif					/* VMS */
             src_file(buf);
             }
          else
 
 /*
- * The following code is operating-system dependent [@tmain.03].  Pass
- *  appropriate files on to linker.
+ * Pass appropriate files on to linker.
  */
-
-#if PORT
-   /* something is needed */
-Deliberate Syntax Error
-#endif					/* PORT */
 
 #if UNIX
             /*
              * Assume all files that are not Icon source go to linker.
              */
             addlib(argv[optind]);
-#endif					/* UNIX ... */
-
-#if AMIGA || MACINTOSH || MSDOS || OS2 || VMS
+#else					/* UNIX */
             /*
              * Pass no files to the linker.
              */
             quitf("bad argument %s",argv[optind]);
-#endif					/* AMIGA || ... */
-
-/*
- * End of operating-system specific code.
- */
+#endif					/* UNIX */
 
          }
       optind++;
@@ -430,7 +394,6 @@ static void execute(ofile,efile,args)
 char *ofile, *efile, **args;
    {
 
-#if !(MACINTOSH && MPW)
    int n;
    char **argv, **p;
 
@@ -446,16 +409,8 @@ char *ofile, *efile, **args;
 
    *p++ = ofile;			/* set executable file */
 
-#if AMIGA && LATTICE
-   *p = *args;
-   while (*p++) {
-      *p = *args;
-      args++;
-   }
-#else					/* AMIGA && LATTICE */
    while (*p++ = *args++)		/* copy args into argument vector */
       ;
-#endif					/* AMIGA && LATTICE */
 
    *p = NULL;
 
@@ -464,94 +419,17 @@ char *ofile, *efile, **args;
       fflush(stderr);
       }
 
-/*
- * The following code is operating-system dependent [@tmain.04].  It calls
- *  the Icon program on the way out.
- */
-
-#if PORT
-   /* something is needed */
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA
-#if AZTEC_C
-      execvp(ofile,argv);
-      return;
-#endif					/* AZTEC_C */
-#if LATTICE
-      {
-      struct ProcID procid;
-      if (forkv(ofile,argv,NULL,&procid) == 0) { 
-         wait(&procid);
-         return;
-         }
-      }
-#endif					/* LATTICE */
-#endif					/* AMIGA */
-
-#if MACINTOSH
-      fprintf(stderr,"-x not supported\n"); fflush(stderr);
-#endif					/* MACINTOSH */
-
-#if MSDOS
-#if MICROSOFT || TURBO || BORLAND_286 || BORLAND_386
-      execvp(ofile,argv);
-#endif					/* MICROSOFT || ... */
-#if HIGHC_386 || INTEL_386 || ZTC_386 || WATCOM
-      fprintf(stderr,"-x not supported\n");
-      fflush(stderr);
-#endif					/* HIGHC_386 || ... */
-#endif					/* MSDOS */
-
-#if OS2 || UNIX || VMS
-      execvp(ofile,argv);
-#endif					/* OS2 || UNIX || VMS */
-
-
-/*
- * End of operating-system specific code.
- */
-
+   execvp(ofile,argv);
    quitf("could not run %s",ofile);
-
-#else					/* !(MACINTOSH && MPW) */
-   printf("-x not supported\n");
-#endif					/* !(MACINZTOSH && MPW) */
-
    }
 
+/*
+ * Report phase.
+ */
 static void report(s)
 char *s;
    {
-
-/*
- * The following code is operating-system dependent [@tmain.05].  Report
- *  phase.
- */
-
-#if PORT
    fprintf(stderr,"%s:\n",s);
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA || MSDOS || OS2 || UNIX || VMS
-   fprintf(stderr,"%s:\n",s);
-#endif					/* AMIGA || ... */
-
-#if MACINTOSH
-#if MPW
-   printf("Echo '%s:' > Dev:StdErr\n",s);
-#endif					/* MPW */
-#if LSC
-   fprintf(stderr,"%s:\n",s);
-#endif					/* LSC */
-#endif					/* MACINTOSH */
-
-/*
- * End of operating-system specific code.
- */
-
    }
 
 /*
@@ -561,17 +439,7 @@ Deliberate Syntax Error
 static void rmfile(fname)
 char *fname;
    {
-
-#if MACINTOSH && MPW
-      /*
-       * MPW generates commands rather than doing the actions
-       *  at this time.
-       */
-   fprintf(stdout,"Delete %s\n", fname);
-#else					/* MACINTOSH && MPW */
    remove(fname);
-#endif					/* MACINTOSH && MPW */
-
    }
 
 /*
