@@ -7,7 +7,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     June 9, 2001
+#	Date:     November 27, 2001
 #
 ############################################################################
 #
@@ -59,8 +59,11 @@ int fpoll(int argc, descriptor *argv)	/*: await data from file */
 
    /* check for data already in buffer */
    /* there's no legal way to do this in C; we cheat */
-#ifdef __linux
+#if defined(__GLIBC__) && defined(_STDIO_USES_IOSTREAM)
    if (f->_IO_read_ptr < f->_IO_read_end)
+      RetArg(1);
+#elif defined(__GLIBC__)
+   if (f->__bufp < f->__get_limit)
       RetArg(1);
 #elif __bsdi__ || __FreeBSD__ || __NetBSD__ || __OpenBSD__
    if (f->_r > 0)
