@@ -104,7 +104,7 @@ Install:
 		test -d $D/doc || mkdir $D/doc
 		test -d $D/man || mkdir $D/man
 		test -d $D/man/man1 || mkdir $D/man/man1
-		rm -f $D/bin/icon*
+		rm -f $D/bin/icon* $D/lib/* $D/doc/* $D/man/man1/*
 		cp README $D
 		cp bin/[abcdefghijklmnopqrstuvwxyz]* $D/bin
 		rm -f $D/bin/libXpm* $D/bin/rt* $D/bin/icon
