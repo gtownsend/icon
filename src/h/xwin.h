@@ -71,7 +71,6 @@
  * The following constants define limitations in the system, gradually being
  * removed as this code is rewritten to use dynamic allocation.
  */
-#define DMAXCOLORS	256
 #define WMAXCOLORS	256
 #define MAXCOLORNAME	40
 #define MAXDISPLAYNAME	64
@@ -149,8 +148,7 @@
 #define EVQUEEMPTY(w) (BlkLoc((w)->window->listp)->list.size == 0)
 
 /*
- * Colors.  These are allocated within displays; they are currently
- * statically bounded to DMAXCOLORS colors per display.  Pointers
+ * Colors.  These are allocated within displays. Pointers
  * into the display's color table are also kept on a per-window
  * basis so that they may be (de)allocated when a window is cleared.
  * Colors are aliased by r,g,b value.  Allocations by name and r,g,b

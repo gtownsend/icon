@@ -2272,16 +2272,6 @@ int *retval;
    {
    STDLOCALS(w);
 
-   /*
-    * X11 Bug Warning:  some old versions of the X server, but not X11R5,
-    * will crash sometime after a failed call to XNewColor.  This happens
-    * only if a virtual colormap has been allocated and completely filled
-    * and then XNewColor is called to allocate a new, unshared entry.  The
-    * request fails, as it should, but when the program eventually exits
-    * the X server crashes.  This has been seen on OpenWindows 3.0,
-    * Irix 4.0.1, and HP-UX 7.0.
-    */
-
    if (!XAllocColorCells(stddpy,wd->cmap,False,plane_masks,0,pixels,1)) {
       /*
        * try again with a virtual colormap
@@ -2299,7 +2289,6 @@ int *retval;
       return Failed;
    wd->colrptrs[i]->type = MUTABLE;
    wd->colrptrs[i]->c = pixels[0];
-
 
    /* save color index as "name", followed by a null string for value */
    colorname = wd->colrptrs[i]->name;
