@@ -66,5 +66,5 @@ newsgrp:	newsgrp.icn	; $(ITRAN) newsgrp
 
 # cleanup
 clean Clean:
-	-rm -f $(PROGS) $(FUNCLIB) $(KRLIB) *.o *.so libnames.icn
+	-rm -f $(PROGS) $(FUNCLIB) $(KRLIB) *.o *.so *.u[12] libnames.icn
 	-rm -f `grep -l '^/\*ICONC\*/$$' *.[ch] /dev/null` core so_locations

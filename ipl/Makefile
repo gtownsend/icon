@@ -23,7 +23,6 @@ Strays:
 # clean up
 Clean:
 	rm -rf ilib */*.u[12] */*.zip
-	rm -f `find *packs -name '*.u[12]'`
 	rm -f `find *procs *progs -type f -perm -100`
 	cd cfuncs; $(MAKE) Clean
-	for d in packs/[a-z]*; do (cd $$d; make Clean); done
+	for d in *packs/[a-z]*; do (cd $$d; make Clean); done

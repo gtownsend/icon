@@ -9,4 +9,4 @@ Build:
 	icont -s -u drawtree
 
 Clean:
-	rm *.u* drawtree
+	rm -f *.u* drawtree

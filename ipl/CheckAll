@@ -82,12 +82,12 @@ export IPATH="../procs ../cfuncs ../gprocs"
 # (echo mprogs:; cd mprogs;  for f in *.icn; do compile $f; done)
 
 
-#  Try at least some of the packages
+#  Test-build all the packages
+#  Allow use of graphics within packs, because one loadfunc example needs it
 
 export LPATH="../../incl ../../gincl"
 export IPATH="../../cfuncs ../../procs ../../gprocs"
-
-set -x
-(cd gpacks/vib;     make clean;  make)
-(cd gpacks/tiger;   make clean;  make)
-(cd gpacks/weaving; make clean;  make)
+for d in *packs/[a-z]*; do
+    echo $d:
+    (cd $d; make -s Clean; make -s)
+done
