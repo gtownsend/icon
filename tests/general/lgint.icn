@@ -1,0 +1,218 @@
+#SRC: JCON
+#OPT: -fe
+
+# test large integer calculations
+
+procedure main()
+   local a, b, primes
+   primes := [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37,
+      41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97]
+
+   write(); compiler()
+   write(); boundaries()
+   write(); every fact(1 to 55 by 11)
+   write(); every fib(35 to 341 by 34)
+   write(); every mersenne(61 | 89 | 107 | 127)
+   write(); every perfect(31 | 61 | 89 | 107)
+   write(); every power(11213, 2 to 16)
+   write(); every impower(3, 60 to 75)
+   write(); every minpower(!primes)
+   write(); every bigexp(3 | 6 | -7)
+   write(); every tmul(2 | 3 | 5 | 7 | 10 | 17 | 51 | -3 | -11 | -43)
+   write(); every tmul(3 ^ (2 to 50))
+   write(); every conv(787 ^ (1 to 24) | -5781 ^ (1 to 18))
+   write(); radix()
+   write(); over()
+
+   # test unary and binary operations, including mixed-mode operations
+   a := [37, 5.0, 2 ^ 63, 11 ^ 19, 5 ^ 28]
+   b := [73, 9.0, -7 ^ 23, -(3 ^ 40), 17 ^ 16]
+   write(); every unops(!a | !b)
+   write(); every binops(!a, !b)
+end
+
+procedure compiler()			# test compiler handling of lg constants
+   local a, b, c
+   a :=  1618033988749894848204586834365638117720309
+   b := -2718281828459045235360287471352662497757247
+   c := +3141592653589793238462643383279502884197169
+   write("    a =  ", a)
+   write("    b = ", b)
+   write("    c =  ", c)
+   write("a + b = ", a + b)
+   write("b + c =   ", b + c)
+   write("c + a =  ", c + a)
+   return
+end
+
+procedure boundaries()			# test boundary cases
+   local minint, maxint
+   write("minint = ", minint := -(2^64))
+   write("maxint = ", maxint := 2^64 - 1)
+   write("-minint = ", -minint)
+   write("abs(min) = ", abs(minint))
+   write("minint * -1 = ", minint * -1)
+   write("minint / -1 = ", minint / -1)
+   write("(2^32)^2 = ", (2 ^ 32) ^ 2)
+   return
+end
+
+procedure fact(n)			# factorial
+   local f
+   f := 1
+   every f *:= 2 to n
+   write(n, "! = ", f)
+   return
+end
+
+procedure fib(n)			# fibonacci
+   local a, b, i, t
+   a := b := t := 1
+   every i := 3 to n do {
+      t := a + b
+      a := b
+      b := t
+      }
+   write("F(", n, ") = ", t)
+   return
+end
+
+procedure power(b, n)			# simple power calculation
+   write(b, " ^ ", n, " = ", b ^ n)
+   return
+end
+
+procedure impower(b, n)			# power calculation with image() test
+   write(b, " ^ ", n, " = ", image(b ^ n))
+   return
+end
+
+procedure minpower(b)			# find minimum power that is a large int
+   local e
+   2 ^ 63 <= b ^ (e := seq(1))
+   write(right(b,2), " ^", right(e, 3), " =", right(b ^ e, 22))
+end
+
+procedure bigexp(v)
+   local x
+   &error := -1
+   write("       v = ", v)
+   every x := (-2 to 2) | (-3 to 3) / 2.0 do 
+      write(right(x, 4), " ^ v = ", (x ^ v) | ("error " || &errornumber))
+   &error := 0
+   return
+end
+
+procedure mersenne(m)			# Mersenne numbers
+   write("M(", m, ") = ", 2 ^ m - 1)
+   return
+end
+
+procedure perfect(m)			# Mersenne perfect numbers
+   write("P(", m, ") = ", (2 ^ m - 1) * (2 ^ (m - 1)))
+   return
+end
+
+procedure tmul(x)			# test multiply, divide, real(I)
+   local n, p, q, d, e
+
+   p := 1
+   n := 0
+   while p < 1e25 do {
+      n +:= 1
+      q := p
+      p *:= x
+      d := p / q
+      e := real(p) / real(q)
+      err := abs(e / x - 1)
+      if not (d = x & err < 1.0e-14) then	# 1e-15 for most, 1e-14 for IBM
+         write(x, " ^ ", n, " = ", p, "\td=", d, "\te=", e, "\terr=", err)
+   }
+   write(x, " ^ ", n, " = ", p)
+   return
+end
+
+procedure conv(n)			# test conversion to/from real & string
+   local sn, rn, in, d, r
+
+   sn := string(n)
+   in := integer(sn)
+   if in ~= n then {
+      write("str conv err: n=", n, " sn=", sn, " in=", in)
+      return
+   }
+   rn := real(n)
+   in := integer(rn)
+   d := n - in
+   r := d / rn
+   if abs(r) > 1.0e-14 then		# 1e-15 works for most, need -14 for IBM
+      write("real conv err: n=", n, " rn=", rn, " in=", in, " d=", d, " r=", r)
+   else
+      write("conv ok: ", n)
+   return
+end
+
+procedure unops(n)		# show results of unary ops and compares with 0
+   write("u:  ", n, "  ", -n, "  ", icom(n), compares(n, 0))
+   if abs(n) ~= (if n > 0 then n else -n) then write("  abs failure")
+   return
+end
+
+procedure binops(m, n)		# show results of binary operations
+   write("b:  ", m, "  ", n, compares(m, n))
+   write("    +-   ", m + n, "  ", m - n)
+   write("    */%  ", m * n, "  ", m / n, "  ", m % n)
+   write("    &|!  ", iand(m, n), "  ", ior(m, n), "  ", ixor(m, n))
+   return
+end
+
+procedure compares(m, n)	# return string indicating successful compares
+   local s
+   # == n validates value of comparison expr
+   s := " "
+   if (m < n)  == n then s ||:= " <"
+   if (m <= n) == n then s ||:= " <="
+   if (m = n)  == n then s ||:= " ="
+   if (m ~= n) == n then s ||:= " ~="
+   if (m > n)  == n then s ||:= " >"
+   if (m >= n) == n then s ||:= " >="
+   return s
+end
+
+procedure radix()		# radix conversions
+   local b, s, d, min, n
+   min := 2 ^ 63
+   d := &digits || &lcase
+   every b := 2 to 35 do {
+      n := (min < integer(s := b || "R" || repl(d[b], 1 to 100)))
+      write(s, " = ", n)
+      }
+   every s := "36r" || repl("Z", 10 to 20) do
+      write(s, " = ", integer(s))
+   return
+end
+
+procedure over()		# old "over.icn" test from Icon v9
+   local i
+
+   if not(&features == "large integers") then
+      stop("large integers not supported")
+   i := 100000 + 10000
+   write(i)
+   i +:= 2 ^ 30
+   write(i)
+   i +:= i
+   write(i)
+   i := 100000 * 10000
+   write(i)
+   i +:= 2 ^ 30
+   write(i)
+   i *:= i
+   write(i)
+   i := -100000 - 10000
+   write(i)
+   i +:= -(2 ^ 30)
+   write(i)
+   i -:= 2 ^ 30
+   write(i)
+end
