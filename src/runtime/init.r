@@ -616,20 +616,18 @@ char *argv[];
  * The following code is operating-system dependent [@init.02].  Set traps.
  */
 
-#define SigFncCast (void (*)(int))
-
 #if PORT
    /* probably needs something */
 Deliberate Syntax Error
 #endif					/* PORT */
 
 #if AMIGA
-   signal(SIGFPE, SigFncCast fpetrap);
+   signal(SIGFPE, fpetrap);
 #endif					/* AMIGA */
 
 #if ARM
-   signal(SIGFPE, SigFncCast fpetrap);
-   signal(SIGSEGV, SigFncCast segvtrap);
+   signal(SIGFPE, fpetrap);
+   signal(SIGSEGV, segvtrap);
 #endif					/* ARM */
 
 #if ATARI_ST
@@ -650,24 +648,24 @@ Deliberate Syntax Error
 
 #if MSDOS
 #if MICROSOFT || TURBO || ZTC_386 || SCCX_MX
-   signal(SIGFPE, SigFncCast fpetrap);
+   signal(SIGFPE, fpetrap);
 #endif					/* MICROSOFT || TURBO || ZTC_386 || SCCX_MX */
 #endif					/* MSDOS */
 
 #if MVS || VM
 #if SASC
-   cosignal(SIGFPE, SigFncCast fpetrap);           /* catch in all coprocs */
-   cosignal(SIGSEGV, SigFncCast segvtrap);
+   cosignal(SIGFPE, fpetrap);           /* catch in all coprocs */
+   cosignal(SIGSEGV, segvtrap);
 #endif					/* SASC */
 #endif					/* MVS || VM */
 
 #if OS2 || BORLAND_286 || BORLAND_386
-   signal(SIGFPE, SigFncCast fpetrap);
-   signal(SIGSEGV, SigFncCast segvtrap);
+   signal(SIGFPE, fpetrap);
+   signal(SIGSEGV, segvtrap);
 #endif					/* OS2 || BORLAND_286 ... */
 
 #if UNIX || VMS
-   signal(SIGSEGV, SigFncCast segvtrap);
+   signal(SIGSEGV, segvtrap);
 #ifdef PYRAMID
    {
    struct sigvec a;
@@ -679,7 +677,7 @@ Deliberate Syntax Error
    sigsetmask(1 << SIGFPE);
    }
 #else					/* PYRAMID */
-   signal(SIGFPE, SigFncCast fpetrap);
+   signal(SIGFPE, fpetrap);
 #endif					/* PYRAMID */
 #endif					/* UNIX || VMS */
 
@@ -1185,24 +1183,15 @@ uword limit;
  * Produce run-time error 204 on floating-point traps.
  */
 
-void fpetrap()
+void fpetrap(int sig)
    {
    fatalerr(204, NULL);
    }
 
 /*
- * Produce run-time error 320 on ^C interrupts. Not used at present,
- *  since malfunction may occur during traceback.
- */
-void inttrap()
-   {
-   fatalerr(320, NULL);
-   }
-
-/*
  * Produce run-time error 302 on segmentation faults.
  */
-void segvtrap()
+void segvtrap(int sig)
    {
    static int n = 0;
 
