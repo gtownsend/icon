@@ -178,5 +178,5 @@ Pure:
 #  (This is used at Arizona to prepare source distributions.)
 
 Dist-Clean:
-		rm -rf `find * -type d -name CVS`
-		rm -f `find * -type f | xargs grep -l '<<ARIZONA-[O]NLY>>'`
+		rm -rf xx `find * -type d -name CVS`
+		rm -f  xx `find * -type f | xargs grep -l '<<ARIZONA-[O]NLY>>'`

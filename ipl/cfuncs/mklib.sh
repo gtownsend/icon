@@ -21,7 +21,7 @@ case "$SYS" in
       ld -shared -o $LIBNAME "$@";;
    OSF*)
       ld -shared -expect_unresolved '*' -o $LIBNAME "$@" -lc;;
-   Linux*|BSD/OS*|OpenBSD*|GNU*)
+   Linux*|BSD/OS*|OpenBSD*|NetBSD*|GNU*)
       gcc -shared -o $LIBNAME -fPIC "$@";;
    FreeBSD*)
       ld -Bshareable -o $LIBNAME "$@" -lc;;
