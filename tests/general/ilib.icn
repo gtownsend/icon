@@ -1,0 +1,326 @@
+#  a simple test of many of the core library procedures
+
+link core
+link cfunc
+
+$define LSIZE 16
+$define GENLIMIT 25
+
+procedure main()
+   local L, T
+
+   L := [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
+   T := table("0")
+   T["one"] := 101
+   T["two"] := 22
+   T["three"] := 333
+
+   write()
+   write("strings:")
+   gen(cat, "abc", "def", "ghi")
+   gen(charcnt, "deinstitutionalization", 'aeiou')
+   gen(collate, "abcde", "12345")
+   gen(comb, "abcde", 3)
+   gen(compress,
+      "Mississippi bookkeeper unsuccessfully lobbies heedless committee")
+   gen(csort,    "sphinx of black quartz judge my vow")
+   gen(decollate,"saturday in the park")
+   gen(deletec,  "deinstitutionalization", 'aeiou')
+   gen(deletep,  "deinstitutionalization", [3, 4])
+   gen(deletes,  "deinstitutionalization", "ti")
+   gen(diffcnt,  "deinstitutionalization")
+   gen(extend,   "choco", 60)
+   gen(fchars,   "deinstitutionalization")
+   gen(interleave,"abcde", "123")
+   gen(ispal,    "abcdcba")
+   gen(maxlen,   ["quick", "brown", "fox", "jumped"])
+   gen(meander,  "abcd", 3)
+   gen(multicoll,["quick", "brown", "fox"])
+   gen(ochars,   "deinstitutionalization")
+   gen(odd_even, "31415926535")
+   gen(palins,   "abcd", 3)
+   gen(permute,  "abc")
+   gen(pretrim,  "   And in conclusion...")
+   gen(reflect,  "abc",  , "*")
+   gen(reflect,  "abc", 1, "*")
+   gen(reflect,  "abc", 2, "*")
+   gen(reflect,  "abc", 3, "*")
+   gen(replace,  "deinstitutionalization", "ti", "le")
+   gen(replacem, "deinstitutionalization", "ti", "le", "eon", "ine")
+   gen(replc,    "abc", [3, 1, 2])
+   gen(rotate,   "housecat", -3)
+   gen(schars,   "deinstitutionalization")
+   gen(scramble, "deinstitutionalization")
+   gen(selectp,  "deinstitutionalization", [3, 4, 6, 9, 11, 19])
+   gen(slugs,    "fly.me.to.the.moon.and.let.me.sing.among.the.stars", 11, '.')
+   gen(starseq,  "ab")
+   gen(strcnt,   "ti", "deinstitutionalization")
+   gen(substrings, "deinstitutionalization", 3, 3)
+   gen(transpose, "housecat", "12345678", "61785234")
+   gen(words,    "fly.me.to.the.moon.and.let.me.sing.among.the.stars", '.')
+
+   write()
+   write("scan:")
+
+   write()
+   write("numbers:")
+   gen(adp, 2147483647)
+   gen(adr, 2147483647)
+   gen(amean, 1, 1, 2, 3, 5, 8, 13, 21, 42)
+   gen(ceil, &pi)
+   gen(commas, 2147483647)
+   gen(decimal, 1, 70)				#%#% wrong result
+   gen(decipos, &pi, 6, 10)
+   gen(digprod, 2147483647)
+   gen(digred,  2147483647)
+   gen(digroot, 2147483647)
+   gen(digsum,  2147483647)
+   gen(distseq, 1, GENLIMIT)
+   gen(div, 355, 113)
+   gen(fix, 355, 113, 10, 4)
+   gen(floor, &phi)
+   gen(frn, &pi, 10, 4)
+   gen(gcd, 42, 120)
+   gen(gcdl, 42, 120, 81)
+   gen(gmean, 1, 1, 2, 3, 5, 8, 13, 21, 42)
+   gen(hmean, 1, 1, 2, 3, 5, 8, 13, 21, 42)
+   gen(large, 214748364721474836472147483647)
+   gen(lcm, 20, 24)
+   gen(lcm, 20, 24, 16)
+   gen(mantissa, &e)
+   gen(max, &e, &pi, &phi)
+   gen(mdp, 2147483647)
+   gen(mdr, 2147483647)
+   gen(min, &e, &pi, &phi)
+   gen(mod1, 21, 7)
+   gen(npalins, 2)
+   gen(residue, 21, 7, 14)
+   gen(roman, 1989)
+   gen(round, &e)
+   gen(sign, -47)
+   gen(spell, 47193)				#%#% result not strictly correct
+   gen(sum, 1, 1, 2, 3, 5, 8, 13, 21, 42)
+   gen(trunc, &phi)
+   gen(unroman, "MCMLXXIV")
+
+   write()
+   write("factors:")
+   gen(divisors, 360)
+   gen(factorial, 0)
+   gen(factorial, 6)
+   lst(factors, 360)
+   gen(genfactors, 360)
+   gen(gfactorial, 5, 2)
+   gen(ispower, 81, 4)
+   gen(isprime, 97)
+   gen(nxtprime, 97)
+   lst(pfactors, 360)
+   lst(prdecomp, 360)
+   lst(prdecomp, 504)
+   gen(prime)
+#  gen(primel)		# not testable without data file
+#  gen(primeorial, 12)	# not testable without data file
+   gen(sfactors, 360)
+
+   write("[testing factorizations]")
+   every tfact(1 to 100)
+   write("[testing prime numbers]")
+   tprimes(100)
+
+   write()
+   write("convert:")
+   gen(exbase10, 11213, 8)
+   gen(inbase10, 11213, 8)
+   gen(radcon, 11213, 4, 7)
+
+   write()
+   write("math:")
+   gen(binocoef, 16, 5)
+   gen(cosh, &pi / 3)
+   gen(sinh, &pi / 3)
+   gen(tanh, &pi / 3)
+
+   write()
+   write("random:")
+   gen(rand_num)
+   gen(rand_int, 20)
+   gen(randomize)
+   gen(randrange, 30, 50)
+   gen(randrangeseq, 52, 99)
+   gen(randseq, 1903)
+   gen(rng) 
+   gen(shuffle, "A23456789TJQK")
+
+   write()
+   write("io:")
+   gen(exists, "/foo/bar/baz/not/very/likely")
+   gen(directory, "/tmp")
+   # several others omitted
+
+   write()
+   write("datetime:")
+   HoursFromGmt := 7
+   gen(ClockToSec, "14:27:43")
+   gen(DateLineToSec, "Friday, September 7, 1984  1:07 pm")
+   gen(DateToSec, "1984/09/07")
+   gen(SecToClock, 14 * 3600 + 27 * 60 + 43)
+   gen(SecToDate, 463338000)
+   gen(SecToDateLine, 463385237)
+   gen(SecToUnixDate, 463385237)
+   gen(IsLeapYear, 2004)
+   gen(dayoweek, 7, 9, 1984)
+   gen(julian, 9, 7, 1984)
+   gen(saytime, "15:00:47")
+   # several procedures that return records omitted
+
+   write()
+   write("sort:")
+   lst(isort, "Quoth The Raven: Nevermore", map)
+
+   write()
+   write("lists:")
+   lst(ldelete, copy(L), 3)
+   lst(lequiv, L, copy(L))
+   lst(lextend, L, 20)
+   lst(limage, L)
+   lst(linterl, L, lreverse(L))
+   lst(llpad, L, 14, 0)
+   lst(lltrim, L, set([3]))
+   lst(lpalin, L)
+   lst(lpermute, L)
+   lst(lreflect, L)
+   lst(lremvals, L, 1, 5)
+   lst(lrepl, L, 2)
+   lst(lreverse, L)
+   lst(lrotate, L, 4)
+   lst(lrpad, L, 14, 0)
+   lst(lrtrim, L, set([3, 5]))
+   lst(lswap, L)
+   lst(lunique, L)
+   lst(lmaxlen, L, integer)
+   lst(lminlen, L, integer)
+   lst(sortkeys, L)
+   lst(sortvalues, L)
+   lst(str2lst, "Once upon a midnight dreary", 5)
+   # several others omitted
+
+   write()
+   write("sets:")
+   lst(cset2set, &digits)
+   lst(domain, T)
+   lst(inverse, T)
+   #   pairset, T    returns list of lists
+   lst(range, T)
+   lst(seteq, set([4, 7, 1]), set([7, 1, 4]))
+   lst(setlt, set([4, 7, 1]), set([7, 3, 1, 4]))
+   gen(simage, set(L))
+
+   write()
+   write("tables:")
+   lst(keylist, T)
+   lst(kvallist, T)
+   tbl(tbleq, T, copy(T))
+   tbl(tblunion, T, copy(T))
+   tbl(tblinter, T, copy(T))
+   tbl(tbldiff, T, copy(T))
+   tbl(tblinvrt, T)
+   lst(tbldflt, T)
+   tbl(twt, T)
+   lst(vallist, T)
+
+   write()
+   write("records:")
+   gen(field, DateRec(), 7)
+   gen(fieldnum, DateRec(), "weekday")
+
+   write()
+   write("cfunc:")
+   gen(bitcount, 500)
+   gen(vword, 314159)
+   gen(lgconv, 10^30)
+   gen(unpack, "abcd")
+   gen(pack, 1684234849)
+
+end
+
+procedure gen (p, a[])			#: test simple procedure or generator
+   &random := 4747
+   writes(left(image(p)[11:0], LSIZE - 1))
+   every writes(" ", ((p ! a) \ GENLIMIT) | "\n")
+   return
+end
+
+procedure lst(p, a[])			#: test procedure that returns a list
+   local L
+
+   L := (p ! a) | ["[FAILED]"]
+   writes(left(image(p)[11:0], LSIZE - 1))
+   every writes(" ", (!L \ GENLIMIT) | "\n")
+   return
+end
+
+procedure tbl(p, a[])			#: test procedure that returns a table
+   local k, T
+
+   writes(left(image(p)[11:0] | "", LSIZE - 1))
+   if T := (p ! a) then {
+      every k := key(T) do
+         writes(" ", k, ":", T[k])
+      write()
+      }
+   else
+      write("[FAILED]")
+   return
+end
+
+procedure tfact(n)			#:  test factorization of n
+   local D, F, P, i, v
+
+   F := factors(n)
+   # every writes(" ", (n || ":") | !F | "\n")      # uncomment to show factors
+   v := 1
+   every v *:= !F
+   if v ~= n then
+      write("   ", i, ": PRODUCT OF FACTORS = " ,v)
+
+   F := set(F)
+   P := pfactors(n)
+   if *P ~= *F then
+      write("   ", i, ": PRIME FACTOR COUNT = ", *P)
+   every i := !P do
+      if not member(F, i) then
+         write("   ", i, ": MISSING PRIME FACTOR ", i)
+
+   D := set()
+   every insert(D, divisors(n))
+   every i := 1 to n do
+      if member(D, i) then {
+         if n % i ~= 0 then write ("   ", i, ": BOGUS DIVISOR ", i)
+	 }
+      else {
+         if n % i == 0 then write ("   ", i, ": MISSING DIVISOR ", i)
+	 }
+end
+
+procedure tprimes(n)			#: test first n primes
+   local i, L1, L2, L3
+
+   L1 := []
+   every i := seq() do {
+      if isprime(i) then {
+	 put(L1, i)
+	 if *L1 = n then break
+         }
+      }
+
+   every put(L2 := [], prime() \ n)
+
+   L3 := []
+   i := 1
+   while *L3 < n do
+      put(L3, i := nxtprime(i))
+
+   every i := 1 to n do
+      if not (L1[i] = L2[i] = L3[i]) then
+         write("   PRIME ENTRY ", i, ":   ", L1[i], ", ", L2[i], ", ", L3[i])
+end

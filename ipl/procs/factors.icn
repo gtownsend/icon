@@ -6,7 +6,7 @@
 #
 #	Authors:  Ralph E. Griswold and Gregg M. Townsend
 #
-#	Date:     June 12, 1999
+#	Date:     November 16, 2000
 #
 ############################################################################
 #
@@ -21,8 +21,8 @@
 #
 #	factorial(n)	returns n!.  It fails if n is less than 0.
 #
-#	factors(i, j)	returns a list containing the factors of i limited
-#			to maximum value j; default, no limit.
+#	factors(i, j)	returns a list containing the prime factors of i
+#			limited to maximum value j; default, no limit.
 #
 #	genfactors(i, j)
 #			like factors(), except factors are generated as
@@ -59,7 +59,7 @@
 #
 ############################################################################
 #
-#  Requires:  Large-integer arithmetic and prime.lst for primel().
+#  Requires:  Large-integer arithmetic; prime.lst for primel() and primorial().
 #
 ############################################################################
 #
@@ -74,20 +74,15 @@ procedure divisors(i)		#: divisors of integer
    local divs, count, j, k
 
    i := integer(i)
-
    divs := set(factors(i))
-   delete(divs, 1)
-   delete(divs, i)
+   count := 0
 
-   count := *divs
-
-   repeat {
+   while count <:= *divs do
       every j := !divs do
          every k := j * !divs do
             if i % k = 0 then insert(divs, k)
-      if count = *divs then break else count := *divs
-      }
 
+   insert(divs, 1)
    suspend !sort(divs)
 
 end
@@ -108,48 +103,28 @@ procedure factorial(n)		#: factorial
 end
 
 procedure factors(i, j)		#: factors of integer
-   local facts, p
+   local facts
 
-   i := integer(i)
-
-   /j := i / 2
-
-   facts := []
-
-### needs optimizations
-
-   every p := prime() do {
-      if p > j then break
-      while i % p = 0 do {
-         put(facts, p)
-         i /:= p
-         }
-      if i = 1 then break
-      }
-
-   if i > 1 then put(facts, i)
-
+   every put(facts := [], genfactors(i, j))
    return facts
 
 end
 
-procedure genfactors(i, j)		#: generate factors of integer
+procedure genfactors(i, j)		#: generate prime factors of integer
    local p
 
    i := integer(i)
-
-   /j := i / 2
-
-### needs optimizations
+   /j := i
 
    every p := prime() do {
-      if p > j then break
+      if p > j | p * p > i then break
       while i % p = 0 do {
          suspend p
          i /:= p
          }
       if i = 1 then break
       }
+   if i > 1 then suspend i
 
 end
 
@@ -191,7 +166,7 @@ procedure pfactors(i)		#: primes that divide integer
 end
 
 procedure ispower(i, j)		#: test for integer power
-  local k, n
+   local k, n
 
    k := (n := round(i ^ (1.0 / j))) ^ j
    if k = i then return n else fail
@@ -232,11 +207,11 @@ procedure nxtprime(n)		#: next prime beyond n
    repeat {
       n +:= step[n % 30 + 1]		# step past multiples of 2, 3, 5
       every (d := !div) | |put(div, d := nxtprime(d)) do {  # get test divisors
-	 if n % d = 0 then		# if composite, try a larger candidate
-	    break
-	 if d * d > n then		# if not divisible up to sqrt, is prime
-	    return n
-	 }
+         if n % d = 0 then		# if composite, try a larger candidate
+            break
+         if d * d > n then		# if not divisible up to sqrt, is prime
+            return n
+         }
       }
 
 end

@@ -1,16 +1,16 @@
+unset ICONX IPATH LPATH FPATH
+
 for i in `cat $1.lst`
 do
    rm -f local/$i.out
-   echo Translating $i
-   ../../bin/icont -s $i.icn
-   echo Running $i
+   echo "Testing $i"
+   ../../bin/icont -s $i.icn || continue
    if test -r $i.dat
    then
-      ../../bin/iconx $i <$i.dat >local/$i.out 2>&1
+      ./$i <$i.dat >local/$i.out 2>&1
    else
-      ../../bin/iconx $i >local/$i.out 2>&1
+      ./$i >local/$i.out 2>&1
    fi
-   echo Checking $i
    diff stand/$i.out local/$i.out
    rm -f $i
 done

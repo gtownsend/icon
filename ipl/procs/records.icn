@@ -4,9 +4,9 @@
 #
 #	Subject:  Procedures to manipulate records
 #
-#	Author:   Ralph E. Griswold
+#	Authors:  Ralph E. Griswold and Gregg M. Townsend
 #
-#	Date:     May 28, 1997
+#	Date:     November 16, 2000
 #
 ############################################################################
 #
@@ -16,13 +16,24 @@
 #
 #  field(R, i)	returns the name of the ith field of R.
 #
+#  fieldnum(R, s)  returns the index of the field named s in record R.
+#
 ############################################################################
 
-procedure field(R, i)
+procedure field(R, i)			#: return name of field R[i]
 
    name(R[i]) ? {
       tab(upto('.') + 1)
       return tab(0)
       }
 
+end
+
+procedure fieldnum(R, s)		#: return index of field R.s
+   local i
+
+   R := copy(R)
+   every i := 1 to *R do
+      R[i] := i
+   return R[s]
 end
