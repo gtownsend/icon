@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     June 28, 2002
+#	Date:     March 4, 2003
 #
 ############################################################################
 #
@@ -18,12 +18,12 @@
 #
 ############################################################################
 #
-# Requires:  Version 9 graphics and large integers
+#  Requires:  Version 9 graphics and large integers
 #
 ############################################################################
 #
-#  Links:  cells, convert, expander, weaving, weavutil, lists, mirror,
-#	   tieutils, wopen, numbers, xcode, palettes, patxform
+#  Links:  convert, expander, weaving, weavutil, lists, mirror,
+#	   tieutils, wopen, numbers, palettes, patxform
 #
 ############################################################################
 
@@ -105,7 +105,7 @@ procedure plot(draft, clip)
    every i := 1 to draft.shafts do 		# rows
       every j := 1 to draft.treadles do		# columns
          if matrix[i, j] == "1" then 
-            colorcell(tieup_pane, j,  i, "black") 
+            colorcell(tieup_pane, j, i, "black") 
 
    drawdown_win := WOpen(
       "canvas=hidden",
@@ -160,7 +160,7 @@ procedure plot(draft, clip)
 
    CopyArea(drawdown_win, win, , , , , X_, Y_)
 
-   incr_offset(0,  -(th_h + g_w))
+   incr_offset(0, -(th_h + g_w))
 
    CopyArea(threading_pane.window, win, , , , , X_, Y_)
 
@@ -172,15 +172,15 @@ procedure plot(draft, clip)
 
    CopyArea(warp_colors_pane.window, win, , , , , X_, Y_)
 
-   incr_offset(-(tr_w + g_w),  b_w + thc_h + 2 * g_w)
+   incr_offset(-(tr_w + g_w), b_w + thc_h + 2 * g_w)
 
    CopyArea(tieup_pane.window, win, , , , , X_, Y_)
 
    if \clip then {			# remove color portion
-       CopyArea(win, win, X_ - 10, Y_ - 10, , , 0, 0)
-       WAttrib(win, "width=" || (WAttrib(win, "width") - X_ + g_w))
-       WAttrib(win, "height=" || (WAttrib(win, "height") - Y_ + g_w))
-       }
+      CopyArea(win, win, X_ - 10, Y_ - 10, , , 0, 0)
+      WAttrib(win, "width=" || (WAttrib(win, "width") - X_ + g_w))
+      WAttrib(win, "height=" || (WAttrib(win, "height") - Y_ + g_w))
+      }
 
    every WClose(
       weft_colors_pane.window |
@@ -194,7 +194,7 @@ procedure plot(draft, clip)
       drawdown_win
       )
 
-   return  win
+   return win
 
 end
 
@@ -221,7 +221,7 @@ procedure clear_pane(win, n, m, size)
 end
 
 procedure fillcell(win, n, m, color)
-   local  save_fg
+   local save_fg
 
    save_fg := Fg(win)
    Fg(win, color)
