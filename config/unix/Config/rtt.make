@@ -1,5 +1,3 @@
-SHELL = /bin/sh
-MAKE = make
 
 ROBJS = rttparse.o rttmain.o rttlex.o rttsym.o rttnode.o rttout.o rttmisc.o\
 	  rttdb.o rttinlin.o rttilc.o
@@ -79,7 +77,7 @@ pinit.o: $(PP_DIR)pinit.c $(P_DOT_H)
 # translate this grammar.
 #
 #rttparse.c ltoken.h: rttgram.y
-#	yacc -d $(YFLAGS) rttgram.y
+#	yacc -d rttgram.y
 #	fgrep -v -x "extern char *malloc(), *realloc();" y.tab.c > rttparse.c
 #	rm y.tab.c
 #	mv y.tab.h ltoken.h

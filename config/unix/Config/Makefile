@@ -1,8 +1,3 @@
-CC=cc
-CFLAGS= -DVarTran
-LDFLAGS=
-SHELL=/bin/sh
-MAKE=make
 
 SRC=../../../src
 
@@ -35,7 +30,6 @@ Makefiles:
 		cat rtt.hdr	../Config/rtt.make	>$(SRC)/rtt/Makefile
 		cat common.hdr	../Config/common.make	>$(SRC)/common/Makefile
 		cat iconc.hdr	../Config/iconc.make	>$(SRC)/iconc/Makefile
-		cat preproc.hdr	../Config/preproc.make	>$(SRC)/preproc/Makefile
 		cat icont.hdr	../Config/icont.make	>$(SRC)/icont/Makefile
 		cat runtime.hdr	../Config/runtime.make	>$(SRC)/runtime/Makefile
 

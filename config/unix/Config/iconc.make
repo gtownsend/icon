@@ -1,5 +1,3 @@
-SHELL = /bin/sh
-MAKE = make
 
 OBJS =		cmain.o clocal.o ctrans.o dbase.o clex.o\
 		cparse.o csym.o cmem.o ctree.o ccode.o ccomp.o\
@@ -14,7 +12,7 @@ COBJS =		../common/long.o ../common/getopt.o ../common/time.o\
 
 
 iconc:		$(OBJS) $(COBJS)
-		$(CC) $(LDFLAGS) -o iconc $(OBJS) $(COBJS)
+		$(CC) -o iconc $(OBJS) $(COBJS)
 		cp iconc ../../bin
 		strip ../../bin/iconc
 

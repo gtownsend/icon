@@ -1,0 +1,39 @@
+#!/bin/sh
+#
+#  <ARIZONA-ONLY> <#%#%#%#%# TEMPORARY #%#%#%#%>
+
+for d in *_*; do
+   echo $d 1>&2
+   cd $d
+   (
+   echo "#  Makefile definitions for $d configuration"
+   cat <<'==EOF=='
+
+#  CC       C compiler
+#  CFCOMM   flags for building common utility functions
+#  CFTRAN   flags for building Icon translator
+#  CFRTT    flags for building run-time translator
+#  CFRUN    flags for building run-time system
+#  LDRUN    flags for linking run-time system
+#  MATH     math library to link with run-time system
+#  XLIB     graphics library to link with run-time system
+#  XPMDEFS  definitions for building XPM library
+#  RSWITCH  source code file of context switch code
+
+==EOF==
+   grep CC= runtime.hdr
+   grep CFLAGS common.hdr | sed s/CFLAGS/CFCOMM/
+   grep CFLAGS icont.hdr | sed s/CFLAGS/CFTRAN/
+   grep CFLAGS rtt.hdr | sed s/CFLAGS/CFRTT/
+   grep CFLAGS runtime.hdr | sed s/CFLAGS/CFRUN/
+   grep LDFLAGS runtime.hdr | sed s/LDFLAGS/LDRUN/
+   grep LIBS runtime.hdr | sed s/LIBS/MATH/
+   grep XLIB runtime.hdr | sed s/LIBS/XLIB/
+   grep XPMDEFS xpm.hdr
+   grep RSWITCH= common.hdr
+   ) | sed >Makedefs '
+	s/+=/=/
+	s/ *= */ = /
+   ' >Makedefs
+   cd ..
+done

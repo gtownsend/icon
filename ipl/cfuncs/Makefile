@@ -3,14 +3,14 @@
 #  If building with the compiler (instead of the interpreter)
 #  use the "-fs" option to avoid problems.
 
-FUNCLIB = libcfunc.so
+include ../../Makedefs
+CFLAGS = $(CFCOMM)
 
 ICONT = icont
 IFLAGS = -us
-ITRAN = $(ICONT) $(IFLAGS)
 
-CC = cc
-CFLAGS = -O -w
+FUNCLIB = libcfunc.so
+
 
 FUNCS = bitcount.o files.o fpoll.o internal.o lgconv.o osf.o \
 	pack.o ppm.o process.o tconnect.o
@@ -26,7 +26,7 @@ $(FUNCS):	icall.h
 
 # Icon interface
 cfunc.u2:	cfunc.icn
-		$(ITRAN) -c cfunc.icn
+		$(ICONT) $(IFLAGS) -c cfunc.icn
 cfunc.icn:	$(CSRC) mkfunc.sh
 		sh mkfunc.sh $(FUNCLIB) $(FUNCS) >cfunc.icn
 

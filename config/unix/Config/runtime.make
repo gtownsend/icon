@@ -1,5 +1,3 @@
-SHELL = /bin/sh
-MAKE = make
 
 HDRS = ../h/define.h ../h/config.h ../h/typedefs.h ../h/monitor.h\
 	  ../h/proto.h ../h/cstructs.h ../h/cpuconf.h ../h/grttin.h\

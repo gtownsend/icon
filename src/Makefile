@@ -17,25 +17,7 @@ Clean:
 		touch /dev/null `find h -name define.h`
 
 Pure:		Clean
-		rm -f common/rswitch.* h/define.h */Makefile
-
-# Entries beyond this point are for use at Arizona only.
-#   *** Do not delete the line above; it is used in trimming Makefiles
-#   for distribution ***
-
-Dist-clean:
-		rm -f */Make*
-		cd h; rm -f define.h; rm -rf `gcomp *.[h]`
-		cd iconc; rm -f `gcomp *.[ch] *.icn *.txt`
-		cd runtime; rm -f *.c; rm -f `gcomp *.icn *.[ch] *.r *.ri`
-		cd rtt; rm -f `gcomp *.[chy]`
-		cd common;rm -f rswitch.*; rm -f `gcomp *.[ch] *.icn *.txt`
-		cd preproc; rm -f `gcomp README *.[ch]`
-		cd icont; rm -f y.tab.c\
-		   hdr.h; rm -rf `gcomp *.[ch] *.icn *.txt`
-		rm -rf `gcomp Makefile h iconc rtt preproc common runtime \
-		   icont xpm`
-		cd xpm; rm -f *.o *.a
+		rm -f common/rswitch.* h/define.h
 
 #  The following entry forces rebuilding of everthing from first-generation
 #  files, even files not normally recreated.  Doing this requires uncommenting

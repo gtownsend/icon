@@ -1,5 +1,3 @@
-SHELL = /bin/sh
-MAKE = make
 
 OBJS =	long.o getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
 	munix.o literals.o rswitch.o alloc.o long.o getopt.o time.o\
@@ -8,11 +6,11 @@ OBJS =	long.o getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
 common:		doincl patchstr $(OBJS)
 
 doincl:		doincl.c
-		$(CC) $(CFLAGS) $(LDFLAGS) -o doincl doincl.c
+		$(CC) $(CFLAGS) -o doincl doincl.c
 		-./doincl -o ../../bin/rt.h ../h/rt.h
 
 patchstr:	patchstr.c
-		$(CC) $(CFLAGS) $(LDFLAGS) -o patchstr patchstr.c
+		$(CC) $(CFLAGS) -o patchstr patchstr.c
 		cp patchstr ../../bin
 
 xpm:

@@ -1,5 +1,3 @@
-SHELL = /bin/sh
-MAKE = make
 
 
 HFILES =	../h/define.h ../h/config.h ../h/cpuconf.h ../h/gsupport.h \
@@ -18,7 +16,7 @@ COBJS =		../common/long.o ../common/getopt.o ../common/alloc.o \
 
 
 icont:		$(OBJS) $(COBJS)
-		$(CC) $(CFLAGS) $(LDFLAGS) -o icont $(OBJS) $(COBJS) $(LIBS)
+		$(CC) $(CFLAGS) $(LDFLAGS) -o icont $(OBJS) $(COBJS)
 		cp icont ../../bin
 		strip ../../bin/icont
 

@@ -1,5 +1,5 @@
 #  configuration parameters
-VER=9.4.e
+VER=9.4.f
 name=unspecified
 dest=/must/specify/dest/
 
@@ -38,9 +38,11 @@ config/unix/$(name)/status src/h/define.h:
 
 Configure:	config/unix/$(name)/status
 		make Pure
-		cp config/unix/Common/Makefile config/unix/$(name)/
-		cd config/unix/$(name);	$(MAKE) 
-		rm -f config/unix/$(name)/Makefile
+		cd config/unix; $(MAKE) Setup name=$(name)
+
+#%#%		cp config/unix/Common/Makefile config/unix/$(name)/
+#%#%		cd config/unix/$(name);	$(MAKE) 
+#%#%		rm -f config/unix/$(name)/Makefile
 
 X-Configure:	config/unix/$(name)/status
 		make Pure
@@ -200,16 +202,19 @@ Benchmark-icont:
 # "make Pure"  also removes binaries, library, and configured files.
 
 Clean:
+		touch Makedefs
 		rm -rf icon.*
 		cd src;			$(MAKE) Clean
 		cd ipl;			$(MAKE) Clean
 		cd tests;		$(MAKE) Clean
 
 Pure:
-		rm -f icon.* bin/[a-z]* lib/[a-z]* NoRanlib
-		cd ipl;			$(MAKE) Clean
+		touch Makedefs
+		rm -rf icon.* bin/[a-z]* lib/[a-z]*
+		cd ipl;			$(MAKE) Pure
 		cd src;			$(MAKE) Pure
-		cd tests;		$(MAKE) Clean
+		cd tests;		$(MAKE) Pure
+		cd config/unix; 	$(MAKE) Pure
 
 Dist-Clean:
 		rm -rf `find * -type d -name CVS`
