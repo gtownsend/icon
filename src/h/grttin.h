@@ -239,7 +239,7 @@ typedef int clock_t, time_t, fd_set;
     */
    #begdef CnvCShort(desc, s)
 	{
-	int tmp;
+	C_integer tmp;
 	if (!cnv:C_integer(desc,tmp) || tmp > 0x7FFF || tmp < -0x8000)
 	   runerr(101,desc);
 	s = (short) tmp;
