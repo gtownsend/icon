@@ -4,7 +4,6 @@
  
 #define UNIX 1
 #define LoadFunc
-#define SysOpt
 
 #define IRIS4D
 #define CStateSize 32		/* anything >= 26 should actually do */

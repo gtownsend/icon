@@ -8,7 +8,6 @@
 #define NetBSD			/* This is for NetBSD stuff (save) */
 
 #define LoadFunc
-#define SysOpt
 #define ExecImages
 
 #define MaxStatSize 20480

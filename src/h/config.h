@@ -350,6 +350,12 @@
    #endif				/* UNIX*/
 #endif					/* ReadDirectory */
 
+#ifndef SysOpt
+   #if UNIX
+      #define SysOpt
+   #endif				/* UNIX*/
+#endif					/* SysOpt */
+
 /*
  *  The following definitions assume ANSI C.
  */

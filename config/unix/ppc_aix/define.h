@@ -4,4 +4,3 @@
 
 #define UNIX 1
 #define LoadFunc	/* requires 4.2 or newer */
-#define SysOpt

@@ -5,7 +5,5 @@
 #define UNIX 1
 #define SUN 1
 
-#define SysOpt
-
 #define COpts "-I/usr/openwin/include"
 

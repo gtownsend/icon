@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
     * Process options. 
     * IMPORTANT:  When making changes here, also update usage() function.
     */
-   while ((c = getopt(argc, argv, "ce:f:o:stuv:ELP:VX:")) != EOF)
+   while ((c = getopt(argc, argv, "+ce:f:o:stuv:ELP:VX:")) != EOF)
       switch (c) {
          case 'c':			/* -c: compile only (no linking) */
             nolink = 1;

@@ -6,7 +6,6 @@
 #define SUN
 
 #define LoadFunc
-#define SysOpt
 
 /* use clcc to compile generated code */
 #define CComp "clcc"

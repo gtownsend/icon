@@ -56,7 +56,7 @@ static char *options =
 #endif                                  /* VM || MVS */
 
 #if UNIX || VMS
-static char *ostr = "CPD:I:U:o:";
+static char *ostr = "+CPD:I:U:o:";
 static char *options = 
    "[-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath] [-ofile] [files]";
 #endif					/* UNIX || VMS */

@@ -84,7 +84,7 @@ char *rt_path = "../src/h/rt.h";
  * End of operating-system specific code.
  */
 
-static char *ostr = "ECPD:I:U:d:cir:st:x";
+static char *ostr = "+ECPD:I:U:d:cir:st:x";
 
 #if EBCDIC
 static char *options =

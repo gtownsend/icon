@@ -6,7 +6,6 @@
 #define SUN
 
 #define LoadFunc
-#define SysOpt
 
 /* use gcc to compile generated code */
 #define CComp "gcc"

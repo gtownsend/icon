@@ -104,7 +104,7 @@ char **argv;
    /*
     * Process options.
     */
-   while ((c = getopt(argc,argv,"C:ELS:Tce:f:mn:o:p:r:stuv:x")) != EOF)
+   while ((c = getopt(argc,argv,"+C:ELS:Tce:f:mn:o:p:r:stuv:x")) != EOF)
       switch (c) {
          case 'C':			/* -C C-comp: C compiler*/
             c_comp = optarg;
