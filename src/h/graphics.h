@@ -203,14 +203,16 @@ typedef struct _wdisplay {
    int		serial;			/* serial # */
    char		name[MAXDISPLAYNAME];
    Display *	display;
+   Visual *	visual;
    GC		icongc;
    Colormap	cmap;
    double	gamma;
    int		screen;
    int		numFonts;
    wfp		fonts;
-   int           numColors;		/* allocated color info */
-   struct wcolor colors[DMAXCOLORS];
+   int          numColors;		/* number of allocated color structs */
+   int          cpSize;			/* max number of slots before realloc */
+   struct wcolor **colrptrs;		/* array of pointers to those colors */
    Cursor	cursors[NUMCURSORSYMS];
    struct _wdisplay *previous, *next;
    } *wdp;

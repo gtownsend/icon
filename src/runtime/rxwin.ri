@@ -9,28 +9,25 @@
 /*
  * Global variables specific to X
  */
-XSizeHints size_hints;
+static XSizeHints size_hints;
 
 /*
  * function prototypes
  */
-int                  seticonicstate   (wbp w, char *s);
-int		     seticonpos       (wbp w, char *s);
-int		     handle_misc      (wdp display, wbp w);
-static int	     handle_config    (wbp w, XConfigureEvent *event);
-static int           handle_exposures (wbp w, XExposeEvent *event);
-static void       handle_mouse     (wbp w, XButtonEvent *event);
-static void       handle_keypress  (wbp w, XKeyEvent *event);
-static void	     postcursor       (wbp w);
-static void	     scrubcursor      (wbp w);
-static XImage *	     getximage	      (wbp w, int x, int y,
-					      int width, int height, int init);
-void              moveWindow       (wbp w, int x, int y);
-int                  setdisplay       (wbp w, char *s);
-void              makeIcon         (wbp w, int x, int y);
-int		     wmap	      (wbp w);
-Pixmap		     loadimage	      (wbp w, char *filename, unsigned int *height, unsigned int *width, int atorigin, int *status);
-void unsetclip (wbp w);
+static int	handle_misc	(wdp display, wbp w);
+static int	handle_config	(wbp w, XConfigureEvent *event);
+static int	handle_exposures (wbp w, XExposeEvent *event);
+static void	handle_mouse	(wbp w, XButtonEvent *event);
+static void	handle_keypress (wbp w, XKeyEvent *event);
+static void	postcursor	(wbp w);
+static void	scrubcursor	(wbp w);
+static XImage *	getximage	(wbp w, int x, int y,
+				 int width, int height, int init);
+static void	moveWindow	(wbp w, int x, int y);
+static void	makeIcon	(wbp w, int x, int y);
+static int	wmap		(wbp w);
+static Pixmap	loadimage	(wbp w, char *filename, unsigned int *height,
+				unsigned int *width, int atorigin, int *status);
 
 
 /*
@@ -1212,14 +1209,14 @@ char *s;
 	       }
 	    else if (expect_config) {
 	       moveResizeWindow(w, 0, 0, ws->width, ws->height);
-	       /* XSync is not enough because the window manager gets involved here. */
-	       XFlush(wd->display);			      /* force out request */
-	       XGetWMName(wd->display, ws->win, &textprop);    /* force WM round trip */
+	       /* XSync is not enough because window manager gets involved. */
+	       XFlush(wd->display);			      /* flush req */
+	       XGetWMName(wd->display, ws->win, &textprop);   /* force WM RT */
 	       XSync(wd->display, False);		      /* NOW sync */
 	       if (pollevent() == -1) return Error;
 	       moveWindow(w, -ws->posx, -ws->posy);
-	       XFlush(wd->display);			      /* force out request */
-	       XGetWMName(wd->display, ws->win, &textprop);    /* force WM round trip */
+	       XFlush(wd->display);			      /* flush req */
+	       XGetWMName(wd->display, ws->win, &textprop);   /* force WM RT */
 	       XSync(wd->display, False);		      /* NOW sync */
 	       }
 	    }
@@ -1511,11 +1508,11 @@ int fg;
       r = fg & 255;
       return setfgrgb(w, r * 257, g * 257, b * 257);
       }
-   for (i = 2; i < DMAXCOLORS; i++)
-      if (wd->colors[i].type == MUTABLE && wd->colors[i].c == -fg - 1)
+   for (i = 2; i < wd->numColors; i++)
+      if (wd->colrptrs[i]->type == MUTABLE && wd->colrptrs[i]->c == -fg - 1)
 	 break;
-   if (i == DMAXCOLORS) return Failed;
-   wc->fg = &(wd->colors[i]);
+   if (i == wd->numColors) return Failed;
+   wc->fg = wd->colrptrs[i];
    return resetfg(w);
    }
 
@@ -1564,11 +1561,11 @@ int bg;
       r = bg & 255;
       return setbgrgb(w, r * 257, g * 257, b * 257);
       }
-   for (i = 2; i < DMAXCOLORS; i++)
-      if (wd->colors[i].type == MUTABLE && wd->colors[i].c == -bg - 1)
+   for (i = 2; i < wd->numColors; i++)
+      if (wd->colrptrs[i]->type == MUTABLE && wd->colrptrs[i]->c == -bg - 1)
 	 break;
-   if (i == DMAXCOLORS) return Failed;
-   wc->bg = &(wd->colors[i]);
+   if (i == wd->numColors) return Failed;
+   wc->bg = wd->colrptrs[i];
    if (stdgc != NULL)
       XSetBackground(stddpy, stdgc, wc->bg->c);
    return ISXORREVERSE(w) ? resetfg(w) : Succeeded;
@@ -1603,8 +1600,8 @@ char *s;
 
    Protect(d = alc_display(s), return 0);
    w->window->display = d;
-   w->context->fg = &(d->colors[0]);
-   w->context->bg = &(d->colors[1]);
+   w->context->fg = d->colrptrs[0];
+   w->context->bg = d->colrptrs[1];
    w->context->font = d->fonts;
    return Succeeded;
    }
@@ -2111,7 +2108,7 @@ int x, y, width, height, x2, y2;
    int lpad, rpad, tpad, bpad;
    Pixmap src;
    wsp ws1 = w->window, ws2 = w2->window;
-   wclrp cp, cp2 = NULL;
+   wclrp cp1, cp2 = NULL, *cpp;
    STDLOCALS(w2);
 
    if (w->window->display->display != w2->window->display->display) {
@@ -2140,16 +2137,17 @@ int x, y, width, height, x2, y2;
 	       }
 	    c = clr.pixel;
 	    cp2 = NULL;
-	    for ( cp = wd1->colors; cp < wd->colors + wd->numColors; cp++) {
-	       if (cp->c == c) {
-		  if (cp->name[0]=='\0') {
+	    for (cpp = wd1->colrptrs; cpp < wd1->colrptrs+wd->numColors; cpp++){
+	       cp1 = *cpp;
+	       if (cp1->c == c) {
+		  if (cp1->name[0]=='\0') {
 		     XQueryColor(d1, wd1->cmap, &clr);
-		     cp->r = clr.red;
-		     cp->g = clr.green;
-		     cp->b = clr.blue;
-		     sprintf(cp->name,"%d,%d,%d",cp->r,cp->g,cp->b);
+		     cp1->r = clr.red;
+		     cp1->g = clr.green;
+		     cp1->b = clr.blue;
+		     sprintf(cp1->name,"%d,%d,%d",cp1->r,cp1->g,cp1->b);
 		     }
-		  cp2 = alc_rgb(w2, cp->name, cp->r, cp->g, cp->b, 0);
+		  cp2 = alc_rgb(w2, cp1->name, cp1->r, cp1->g, cp1->b, 0);
 		  if (cp2 == NULL) return Failed;
 		  break;
 		  }
@@ -2299,12 +2297,12 @@ int *retval;
    i = alc_centry(wd);
    if (i == 0)
       return Failed;
-   wd->colors[i].type = MUTABLE;
-   wd->colors[i].c = pixels[0];
+   wd->colrptrs[i]->type = MUTABLE;
+   wd->colrptrs[i]->c = pixels[0];
 
 
    /* save color index as "name", followed by a null string for value */
-   colorname = wd->colors[i].name;
+   colorname = wd->colrptrs[i]->name;
    sprintf(colorname, "%ld", -pixels[0] - 1);	/* index is name */
    colorname = colorname + strlen(colorname) + 1;
    *colorname = '\0';				/* value unknown */
@@ -2363,12 +2361,13 @@ int mute_index;
    dp = w->window->display;
    d = dp->display;
 
-   for (i = 2; i < DMAXCOLORS; i++)
-      if (dp->colors[i].type == MUTABLE && dp->colors[i].c == - mute_index - 1)
-	    break;
-   if (i == DMAXCOLORS)
+   for (i = 2; i < dp->numColors; i++)
+      if (dp->colrptrs[i]->type == MUTABLE
+      && dp->colrptrs[i]->c == - mute_index - 1)
+         break;
+   if (i == dp->numColors)
       return NULL;
-   colorname = dp->colors[i].name;			/* color name field */
+   colorname = dp->colrptrs[i]->name;			/* color name field */
    colorname = colorname + strlen(colorname) + 1;	/* set value follows */
    return colorname;
    }
@@ -2401,11 +2400,12 @@ int mute_index;
    dp = w->window->display;
    d = dp->display;
 
-   for (i = 2; i < DMAXCOLORS; i++)
-      if (dp->colors[i].type == MUTABLE && dp->colors[i].c == - mute_index - 1)
-            break;
-   if (i != DMAXCOLORS)
-      free_xcolor(w, dp->colors[i].c);
+   for (i = 2; i < dp->numColors; i++)
+      if (dp->colrptrs[i]->type == MUTABLE
+      && dp->colrptrs[i]->c == - mute_index - 1)
+         break;
+   if (i != dp->numColors)
+      free_xcolor(w, dp->colrptrs[i]->c);
    }
 
 
@@ -2425,12 +2425,12 @@ char *s;
    d = dp->display;
    color = xcolor(w, clr);
 
-   for (i = 2; i < DMAXCOLORS; i++)
-      if (dp->colors[i].r == color.red && dp->colors[i].g == color.green
-      && dp->colors[i].b == color.blue && dp->colors[i].type != MUTABLE)
+   for (i = 2; i < dp->numColors; i++)
+      if (dp->colrptrs[i]->r == color.red && dp->colrptrs[i]->g == color.green
+      && dp->colrptrs[i]->b == color.blue && dp->colrptrs[i]->type != MUTABLE)
          break;
-   if (i != DMAXCOLORS)
-      free_xcolor(w, dp->colors[i].c);
+   if (i != dp->numColors)
+      free_xcolor(w, dp->colrptrs[i]->c);
    }
 
 /*
@@ -2618,7 +2618,7 @@ unsigned char *data;
    {
    XImage *im;
    XColor colorcell;
-   wclrp cp;
+   wclrp *cpp;
    unsigned long px, clist[DMAXCOLORS], *lp;
    int i, ncolors;
    STDLOCALS(w);
@@ -2653,8 +2653,8 @@ unsigned char *data;
        * list index as the color index.
        */
       lp = clist;
-      for (cp = wd->colors; cp < wd->colors + wd->numColors; cp++)
-         *lp++ = cp->c;
+      for (cpp = wd->colrptrs; cpp < wd->colrptrs + wd->numColors; cpp++)
+         *lp++ = (*cpp)->c;
       ncolors = lp - clist;
       qsort((char *)clist, ncolors, sizeof(*clist), (int (*)())ulcmp);
 
@@ -2804,7 +2804,7 @@ struct imgmem *imem;
    {
    XColor colorcell;
    LinearColor clr;
-   wclrp cp;
+   wclrp *cpp;
    unsigned long c;
    STDLOCALS(w);
 
@@ -2815,15 +2815,15 @@ struct imgmem *imem;
       c = colorcell.pixel = XGetPixel(imem->im, x - imem->x, y - imem->y);
    *rv = 0xff000000;
 
-   for (cp = wd->colors ; cp < wd->colors + wd->numColors; cp++) {
-      if (cp->c == c) {
-	 if (cp->type == MUTABLE)
+   for (cpp = wd->colrptrs ; cpp < wd->colrptrs + wd->numColors; cpp++) {
+      if ((*cpp)->c == c) {
+	 if ((*cpp)->type == MUTABLE)
 	    *rv = -c - 1;
 	 else {
             *rv = 1;
-            colorcell.red = cp->r;
-            colorcell.green = cp->g;
-            colorcell.blue = cp->b;
+            colorcell.red = (*cpp)->r;
+            colorcell.green = (*cpp)->g;
+            colorcell.blue = (*cpp)->b;
             clr = lcolor(w, colorcell);
             sprintf(s, "%ld,%ld,%ld", clr.red, clr.green, clr.blue);
 	    }
@@ -3211,7 +3211,7 @@ unsigned int x, y, height, width;
 	    XCopyArea(stddpy, stdpix, p1, stdgc, x, y, width, height, 0, 0);
 	    XSync(stddpy, False);
 
-	    status = XWriteBitmapFile(stddpy, filename, p1, width, height, -1, -1);
+	    status = XWriteBitmapFile(stddpy,filename,p1,width,height,-1,-1);
 
 	    XSync(stddpy, False);
 	    XFreePixmap(stddpy, p1);
@@ -3359,29 +3359,21 @@ int *status;
        * and window in which we are residing.
        */
       for (i = 0; i < a.npixels; i++) {
-	 for (j = 2; j < DMAXCOLORS; j++)
-	    if (wd->colors[j].refcount == 0) break;
-	 if (j == DMAXCOLORS) {
+	 j = alc_centry(wd);
+	 if (j == 0)
 	    return (Pixmap) NULL;
-	    }
-	 if (j == wd->numColors) wd->numColors++;
-         else if (j > wd->numColors) {
-	    wd->numColors = j+1;
-	    }
-	 wd->colors[j].refcount = 1;
 	 /*
 	  * Store their allocated pixel (r,g,b) values.
 	  */
-	 color.pixel = wd->colors[j].c = a.pixels[i];
+	 color.pixel = wd->colrptrs[j]->c = a.pixels[i];
 	 XQueryColor(stddpy, wd->cmap, &color);
-	 wd->colors[j].r = color.red;
-	 wd->colors[j].g = color.green;
-	 wd->colors[j].b = color.blue;
+	 wd->colrptrs[j]->r = color.red;
+	 wd->colrptrs[j]->g = color.green;
+	 wd->colrptrs[j]->b = color.blue;
          clr = lcolor(w, color);
-         sprintf(wd->colors[j].name,"%ld,%ld,%ld",clr.red,clr.green,clr.blue);
-	 if (ws->numColors == WMAXCOLORS)
-	    ;
-	 else {
+         sprintf(wd->colrptrs[j]->name, "%ld,%ld,%ld",
+	    clr.red, clr.green, clr.blue);
+	 if (ws->numColors <= WMAXCOLORS) {
 	    if (ws->theColors == NULL) {
 	       ws->theColors = (short *)calloc(WMAXCOLORS, sizeof(short));
 	       if (ws->theColors == NULL)
@@ -3480,7 +3472,7 @@ wbp w;
    wsp ws = w->window;
    if (ws->win) {
       XRaiseWindow(ws->display->display, ws->win);
-      XSetInputFocus(ws->display->display, ws->win, RevertToParent, CurrentTime);
+      XSetInputFocus(ws->display->display,ws->win,RevertToParent,CurrentTime);
       }
    return Succeeded;
    }

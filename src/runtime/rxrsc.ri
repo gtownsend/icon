@@ -23,6 +23,7 @@ char *s;
 unsigned int r,g,b;
 int is_iconcolor;
    {
+   wclrp cp;
    LinearColor lc;
    XColor color;
    int i;
@@ -34,9 +35,9 @@ int is_iconcolor;
     * handle black and white specially (no allocation)
     */
    if ((r == 0) && (g == 0) && (b == 0))
-      return &(wd->colors[0]);
+      return wd->colrptrs[0];
    if ((r == 65535) && (g == 65535) && (b == 65535))
-      return &(wd->colors[1]);
+      return wd->colrptrs[1];
 
    if (is_iconcolor) {
       if (ws->iconColors == NULL) {
@@ -70,11 +71,11 @@ int is_iconcolor;
     * Search for the color in w's display
     */
    for (i = 2; i < wd->numColors; i++) {
-      if (wd->colors[i].refcount>0 &&
-	  wd->colors[i].type == SHARED &&
-          color.red == wd->colors[i].r &&
-          color.green == wd->colors[i].g &&
-          color.blue == wd->colors[i].b)
+      if (wd->colrptrs[i]->refcount > 0 &&
+	  wd->colrptrs[i]->type == SHARED &&
+          color.red == wd->colrptrs[i]->r &&
+          color.green == wd->colrptrs[i]->g &&
+          color.blue == wd->colrptrs[i]->b)
          break;
       }
 
@@ -82,12 +83,7 @@ int is_iconcolor;
       int j;
       /*
        * color not found, must allocate
-       * first verify there is room in window color table.
        */
-      if (*numColors == WMAXCOLORS) {
-	 return NULL;
-         }
-
       if (!XAllocColor(stddpy, wd->cmap, &color)) {
 	 /* try again with a virtual colormap (but not for an icon) */
 	 if (is_iconcolor || !go_virtual(w) ||
@@ -98,17 +94,22 @@ int is_iconcolor;
       j = alc_centry(wd);
       if (j == 0)
          return NULL;
-      strcpy(wd->colors[j].name, s);
+      cp = wd->colrptrs[j];
+      strcpy(cp->name, s);
       /*
        * Store server color as requested in color table.
        */
-      wd->colors[j].r = r;
-      wd->colors[j].g = g;
-      wd->colors[j].b = b;
-      wd->colors[j].c = color.pixel;
-      wd->colors[j].type = SHARED;
-      theColors[(*numColors)++] = j;
-      return &(wd->colors[j]);
+      cp->r = r;
+      cp->g = g;
+      cp->b = b;
+      cp->c = color.pixel;
+      cp->type = SHARED;
+      /*
+       * Remember in window color list, too, if not TrueColor visual.
+       */
+      if (wd->visual->class != TrueColor && *numColors < WMAXCOLORS)
+         theColors[(*numColors)++] = j;
+      return cp;
       }
    else {
       /* color is found, alias it and put it in the window color table */
@@ -116,34 +117,54 @@ int is_iconcolor;
       for(k=0; k < *numColors; k++){
          if (theColors[k] == i) {
 	    /* already there, no further action needed */
-	    return &(wd->colors[i]);
+	    return wd->colrptrs[i];
             }
          }
-      wd->colors[i].refcount++;
-      theColors[(*numColors)++] = i;
-      return &(wd->colors[i]);
+      wd->colrptrs[i]->refcount++;
+      /*
+       * Remember in window color list, too, if not TrueColor visual.
+       */
+      if (wd->visual->class != TrueColor && *numColors < WMAXCOLORS)
+         theColors[(*numColors)++] = i;
+      return wd->colrptrs[i];
       }
    }
 
 /*
- * allocate a color entry, return index (or 0 if table is full)
+ * allocate a color entry, return index
  */
 int alc_centry(wd)
 wdp wd;
 {
    int j;
 
-   for (j = 2; j < DMAXCOLORS; j++)
-      if (wd->colors[j].refcount == 0)
-	 break;
-   if (j == DMAXCOLORS)
-      return 0;
-   if (j == wd->numColors)
-      wd->numColors++;
-   else if (j > wd->numColors)
-      return 0;		/* internal confusion */
-
-   wd->colors[j].refcount = 1;
+   /*
+    * Look for allocated but unused entry (beyond reserved entries 0 and 1)
+    */
+   for (j = 2; j < wd->numColors; j++)
+      if (wd->colrptrs[j]->refcount == 0) {
+         wd->colrptrs[j]->refcount = 1;
+         return j;
+         }
+   /*
+    * No unused entry found.  Make sure there's room for another pointer.
+    */
+   if (wd->numColors == wd->cpSize) {
+      j = 2 * wd->cpSize;			/* double the array size */
+      wd->colrptrs = realloc(wd->colrptrs, j * sizeof(struct wcolor *));
+      if (wd->colrptrs == NULL)
+         ReturnErrNum(305, 0);
+      wd->cpSize = j;
+      }
+   /*
+    * Now allocate a new entry.
+    */
+   j = wd->numColors;
+   wd->colrptrs[j] = calloc(1, sizeof(struct wcolor));
+   if (wd->colrptrs[j] == NULL)
+      ReturnErrNum(305, 0);
+   wd->colrptrs[j]->refcount = 1;
+   wd->numColors++;
    return j;
 }
 
@@ -184,22 +205,23 @@ wbp w1, w2;
 
    for (i1 = 0; i1 < ws1->numColors; i1++) {
       j = ws1->theColors[i1];
-      if (wd->colors[j].refcount > 0 && wd->colors[j].type != MUTABLE) {
+      if (wd->colrptrs[j]->refcount > 0 && wd->colrptrs[j]->type != MUTABLE) {
 	 for (i2 = 0; i2 < ws2->numColors; i2++) {
 	    if (j == ws2->theColors[i2])
 	       break;
 	    }
 	 if (i2 >= ws2->numColors) {
 	    /* need to add this color */
-	    wd->colors[j].refcount++;
-	    if (ws2->numColors < WMAXCOLORS) {
+	    wd->colrptrs[j]->refcount++;
+	    if (ws2->display->visual->class != TrueColor
+	    && ws2->numColors < WMAXCOLORS) {
 	       if (ws2->theColors == NULL)
 		  ws2->theColors = (short *)calloc(WMAXCOLORS, sizeof(short));
 	       if (ws2->theColors == NULL)
 		  break; /* unlikely bug; should fail or something */
 	       ws2->theColors[ws2->numColors++] = j;
 	       }
-	    /* else cannot record it -- table full */
+	    /* else cannot record it -- table full, or unneeded for TrueColor */
 	    }
 	 }
       }
@@ -216,13 +238,14 @@ unsigned long c;
    STDLOCALS(w);
 
    for (i = 0; i < ws->numColors; i++) {
-      if (wd->colors[ws->theColors[i]].c == c) break;
+      if (wd->colrptrs[ws->theColors[i]]->c == c) break;
       }
    if (i >= ws->numColors) {
       /* "free_xcolor couldn't find the color in the window\n" */
+      /* (for TrueColor visuals, this is normal) */
       }
    else {
-      if (--(wd->colors[ws->theColors[i]].refcount) == 0) {
+      if (--(wd->colrptrs[ws->theColors[i]]->refcount) == 0) {
 	 XFreeColors(stddpy, wd->cmap, &c, 1, 0);
 	 ws->numColors--;
 	 if (ws->numColors != i)
@@ -242,7 +265,7 @@ wbp w;
 int extent;
    {
    int i;
-   unsigned long toFree[DMAXCOLORS];
+   unsigned long toFree[WMAXCOLORS];
    int freed = 0;
    int *numColors;
    int numSaved;
@@ -256,15 +279,14 @@ int extent;
    for (i = *numColors-1; i >= 0; i--) {
       int j = theColors[i];
 
-
       if (j < 2)		/* black & white are permanent residents */
 	 continue;
       /*
        * don't free fg, bg, or mutable color
        */
-      if (((extent==0) && (&(wd->colors[j]) == w->context->fg)) ||
-	  ((extent==0) && (&(wd->colors[j]) == w->context->bg)) ||
-	  (wd->colors[j].type == MUTABLE)) {
+      if (((extent==0) && (wd->colrptrs[j] == w->context->fg)) ||
+	  ((extent==0) && (wd->colrptrs[j] == w->context->bg)) ||
+	  (wd->colrptrs[j]->type == MUTABLE)) {
 	     theColors[numSaved++] = j;
 	     continue;
 	     }
@@ -276,23 +298,23 @@ int extent;
       {
       wcp wc; int numhits = 0;
       for(wc=wcntxts; wc; wc=wc->next) {
-	 if ((wc->fg == &(wd->colors[j])) ||
-	     (wc->bg == &(wd->colors[j]))) {
+	 if ((wc->fg == wd->colrptrs[j]) ||
+	     (wc->bg == wd->colrptrs[j])) {
 	    if (numhits == 0)
 	       theColors[numSaved++] = j;
 	    numhits++;
 	    }
 	 }
       if (numhits) {
-	 if (numhits > wd->colors[j].refcount)
-	    wd->colors[j].refcount = numhits;
+	 if (numhits > wd->colrptrs[j]->refcount)
+	    wd->colrptrs[j]->refcount = numhits;
 	 continue;
 	 }
       }
 #endif					/* FreeColorFix */
 
-      if (--(wd->colors[j].refcount) == 0) {
-	 toFree[freed++] = wd->colors[j].c;
+      if (--(wd->colrptrs[j]->refcount) == 0) {
+	 toFree[freed++] = wd->colrptrs[j]->c;
          }
       }
    if (freed>0)
@@ -335,6 +357,7 @@ char *s;
    double g;
    wdp wd;
    XColor color;
+   wclrp cp;
 
    if (s == NULL) s = getenv("DISPLAY");
    if (s == NULL) s = "";
@@ -355,35 +378,44 @@ char *s;
       return NULL;
       }
    wd->screen = DefaultScreen(wd->display);
+   wd->visual = DefaultVisual(wd->display, wd->screen);
    wd->cmap = DefaultColormap(wd->display, wd->screen);
 
    /*
-    * Color slots 0 and 1 are permanently reserved for black and white
-    * respectively.  Allocate them explicitly so that they're preserved
-    * if we later switch to a virtual colormap.
+    * Allocate initial set of color slots.
     */
-   strcpy(wd->colors[0].name,"black");
-   wd->colors[0].refcount = 1;
-   wd->colors[0].type = SHARED;
-   wd->colors[0].r = wd->colors[0].g = wd->colors[0].b = 0;
+   wd->cpSize = 8;		/* start with room for 8 colors */
+   wd->colrptrs = alloc(wd->cpSize * sizeof(struct wcolor *));
+   if (wd->colrptrs == NULL)
+      ReturnErrNum(305, NULL);
+
+   /*
+    * Color slots 0 and 1 are permanently reserved for black and white
+    * respectively.
+    */
+   alc_centry(wd);		/* allocate slot 0 (ambiguous return value) */
+   if (!alc_centry(wd))		/* allocate slot 1 */
+      ReturnErrNum(305, NULL);
+
+   cp = wd->colrptrs[0];
+   strcpy(cp->name,"black");
+   cp->type = SHARED;
+   cp->r = cp->g = cp->b = 0;
    color.red = color.green = color.blue = 0;
    if (XAllocColor(wd->display, wd->cmap, &color))
-      wd->colors[0].c = color.pixel;
+      cp->c = color.pixel;
    else
-      wd->colors[0].c = BlackPixel(wd->display,wd->screen);
+      cp->c = BlackPixel(wd->display,wd->screen);
 
-   strcpy(wd->colors[1].name,"white");
-   wd->colors[1].refcount = 1;
-   wd->colors[1].type = SHARED;
-   wd->colors[1].r = wd->colors[1].g = wd->colors[1].b = 65535;
+   cp = wd->colrptrs[1];
+   strcpy(cp->name,"white");
+   cp->type = SHARED;
+   cp->r = cp->g = cp->b = 65535;
    color.red = color.green = color.blue = 65535;
    if (XAllocColor(wd->display, wd->cmap, &color))
-      wd->colors[1].c = color.pixel;
+      cp->c = color.pixel;
    else
-      wd->colors[1].c = WhitePixel(wd->display,wd->screen);
-
-   wd->numColors = 2;
-   for (i=2; i < DMAXCOLORS; i++) wd->colors[i].refcount = 0;
+      cp->c = WhitePixel(wd->display,wd->screen);
 
    /*
     * Set the default gamma correction value for windows that are
@@ -426,8 +458,8 @@ char *s;
    XGCValues gcv;
    Display *stddpy = wd->display;
    gcv.font = wd->fonts->fsp->fid;
-   gcv.foreground = wd->colors[0].c;
-   gcv.background = wd->colors[1].c;
+   gcv.foreground = wd->colrptrs[0]->c;
+   gcv.background = wd->colrptrs[1]->c;
    gcv.fill_style = FillSolid;
    gcv.cap_style = CapProjecting;
    wd->icongc = XCreateGC(stddpy, DefaultRootWindow(stddpy),
@@ -782,9 +814,9 @@ wbp w;
    wc->serial = ++context_serial;
    wc->display = wd;
    wd->refcount++;
-   wc->fg = &(wd->colors[0]);
+   wc->fg = wd->colrptrs[0];
    wc->fg->refcount++;
-   wc->bg = &(wd->colors[1]);
+   wc->bg = wd->colrptrs[1];
    wc->bg->refcount++;
    wc->font = wd->fonts;
    wc->leading = wd->fonts->height;
