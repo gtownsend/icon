@@ -2241,78 +2241,6 @@ int x, y, width, height, x2, y2;
    return Succeeded;
    }
 
-
-wbp sprite;
-int tics;
-int lastx,lasty;
-int animwidth, animheight;
-
-void animHelper(w,p,n)
-wbp w;
-XPoint p[];
-int n;
-   {
-   int i=0;
-   STDLOCALS(w);
-
-   for ( ; i < n; i++) {
-      int j;
-
-      /*
-       * redraw that portion of the previous image that isn't overlapped
-       * by the new image being drawn
-       */
-      if (lastx >= 0) {
-	 int dx = p[i].x - lastx, dy = p[i].y - lasty;
-         if (dx > 0) XCopyArea(stddpy,stdpix,stdwin,stdgc, lastx, lasty,
-			       dx, animheight, lastx, lasty);
-	 else if (dx < 0)
-	    XCopyArea(stddpy,stdpix,stdwin,stdgc, lastx+animwidth+dx, lasty,
-		      -dx, animheight, lastx+animwidth+dx, lasty);
-
-         if (dy > 0) XCopyArea(stddpy, stdpix, stdwin, stdgc, lastx, lasty,
-			       animwidth, dy, lastx, lasty);
-	 else if (dy < 0)
-	    XCopyArea(stddpy,stdpix,stdwin,stdgc, lastx, lasty+animheight+dy,
-		      animwidth, -dy, lastx, lasty+animheight+dy);
-         }
-
-      XCopyArea(stddpy, sprite->window->pix, stdwin, stdgc,
-		0, 0, animwidth, animheight, p[i].x, p[i].y);
-      XFlush(stddpy);
-      for (j = 0; j < tics; j++);
-/*
- * erase the whole box approach:
- *      XCopyArea(stddpy, stdpix, stdwin, stdgc,
- *                0, 0, animwidth, animheight, p[i].x, p[i].y);
- */
-      lastx = p[i].x;
-      lasty = p[i].y;
-      }
-   }
-
-#ifdef Experimental
-void animate(w, pixs, npix, p, n, delay)
-wbp w;
-dptr pixs;
-int npix;
-XPoint *p;
-int n, delay;
-   {
-   wbp w2 = (wbp)(BlkLoc(*pixs)->file.fd);
-   STDLOCALS(w);
-
-   sprite = w2;
-   animheight = sprite->window->height;
-   animwidth  = sprite->window->width;
-   tics = delay;
-   lastx = lasty = -1;
-   genCurve(w, p, n, animHelper);
-   XCopyArea(stddpy, stdpix, stdwin, stdgc, lastx, lasty,
-	     animwidth, animheight, lastx, lasty);
-   }
-#endif					/* Experimental */
-
 int getdefault(w, prog, opt, answer)
 wbp w;
 char *prog, *opt, *answer;
