@@ -6,7 +6,7 @@
 #
 #	Authors:  Ralph E. Griswold and Gregg M. Townsend
 #
-#	Date:     November 17, 2000
+#	Date:     June 10, 2001
 #
 ############################################################################
 #
@@ -17,7 +17,7 @@
 #  This file contains procedures related to factorization and prime
 #  numbers.
 #
-#	divisors(n)	generators the divisors of n.
+#	divisors(n)	generates the divisors of n.
 #
 #	factorial(n)	returns n!.  It fails if n is less than 0.
 #
@@ -51,6 +51,8 @@
 #	sfactors(i, j)	as factors(i, j), except output is in string form
 #			with exponents for repeated factors
 #
+#	squarefree(i)	succeeds if i is square free
+#
 ############################################################################
 #
 #  Notes:  Some of these procedures are not fast enough for extensive work.
@@ -70,20 +72,13 @@
 link io
 link numbers
 
-procedure divisors(i)		#: divisors of integer
-   local divs, count, j, k
+procedure divisors(i)         #: divisors
+   local j
 
-   i := integer(i)
-   divs := set(factors(i))
-   count := 0
-
-   while count <:= *divs do
-      every j := !divs do
-         every k := j * !divs do
-            if i % k = 0 then insert(divs, k)
-
-   insert(divs, 1)
-   suspend !sort(divs)
+   every j := 1 to i / 2 do
+      if i % j = 0 then
+	 suspend j
+   suspend i
 
 end
 
@@ -295,5 +290,14 @@ procedure sfactors(i, j)
    else result ||:= " " || term
 
    return result[2:0]
+
+end
+
+procedure squarefree(n)		#: test for square-free number
+   local facts
+
+   facts := factors(n)
+
+   if *facts = *set(facts) then return n else fail
 
 end

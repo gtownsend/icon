@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     November 26, 1999
+#	Date:     June 10, 2001
 #
 ############################################################################
 #
@@ -15,6 +15,9 @@
 ############################################################################
 #
 #  Procedures to manipulate image strings as records.  
+#
+#	imrcath(imr1, imr2)
+#			concatenates imr1 and imr2 horizontally
 #
 #	imrcatv(imr1, imr2)
 #			concatenates imr1 and imr2 vertically
@@ -83,8 +86,42 @@ link wopen
 
 record ImageRecord(width, palette, pixels)
 
+procedure imrcath(imr1, imr2)	#: horizontally concatenate image records
+   local imr, i, rows1, rows2
+
+   if *imr1.pixels / imr1.width ~= *imr2.pixels / imr2.width then fail
+   if imr1.palette ~== imr2.palette then fail
+
+   imr := ImageRecord()
+   imr.width := imr1.width + imr2.width
+   imr.palette := imr1.palette
+
+   rows1 := []
+
+   imr1.pixels ? {
+      while put(rows1, move(imr1.width))
+      }
+
+   rows2 := []
+
+   imr2.pixels ? {
+      while put(rows2, move(imr2.width))
+      }
+
+   imr.pixels := ""
+
+   every i := 1 to *rows1 do
+      imr.pixels ||:= rows1[i] || rows2[i]
+
+   return imr
+
+end
+
 procedure imrcatv(imr1, imr2)		#: vertically concatenate image records
    local imr
+
+   if imr1.width ~= imr2.width then fail
+   if imr1.palette ~== imr2.palette then fail
 
    imr := ImageRecord()
    imr.width := imr1.width

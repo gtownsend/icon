@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     April 8, 2000
+#	Date:     May 26, 2001
 #
 ############################################################################
 #
@@ -43,9 +43,9 @@ global Y_		# y position for copying
 $define CellSize 5
 $define g_w 10
 
-# Create the plots.
+# Create draft.
 
-procedure plot(draft)
+procedure plot(draft, clip)
    local threading_pane, treadling_pane, tieup_pane
    local tr_w, th_w, tr_h, th_h, i, j, weft_colors_pane
    local x, y, k, width, height, warp_colors_pane
@@ -54,6 +54,8 @@ procedure plot(draft)
    local trc_w, trc_h, thc_w, thc_h, matrix
 
    X_ := Y_ := 0
+
+   if /draft.warp_colors | /draft.weft_colors then fail
 
    colors := *draft.color_list			# NEEDS FIXING
 
@@ -64,17 +66,17 @@ procedure plot(draft)
 
    every i := 1 to *draft.warp_colors do
       colorcell(warp_colors_pane, i, 1,
-         draft.color_list[draft.warp_colors[i]])
+         draft.color_list[integer(draft.warp_colors[i])]) | fail
 
    every j := 1 to *draft.weft_colors do
       colorcell(weft_colors_pane, 1, j,
-         draft.color_list[draft.weft_colors[j]])
+         draft.color_list[integer(draft.weft_colors[j])]) | fail
 
    threading_pane := makepanel(*draft.threading, draft.shafts, CellSize)
 
    every i := 1 to *draft.threading do
-      colorcell(threading_pane, i, draft.shafts - draft.threading[i] + 1,
-         "black")
+      colorcell(threading_pane, i, draft.shafts - \draft.threading[i] + 1,
+         "black") | fail
 
    th_w := WAttrib(threading_pane.window, "width")
    th_h := WAttrib(threading_pane.window, "height")
@@ -184,10 +186,23 @@ procedure plot(draft)
 
    CopyArea(tieup_pane.window, win, , , , , X_, Y_)
 
-   every WClose((warp_colors_pane | weft_colors_pane | tieup_pane |
-      threading_pane | treadling_pane).window | drawdown_win)
+   if \clip then {			# remove color portion
+       CopyArea(win, win, X_, Y_, , , 0, 0)
+       WAttrib(win, "width=" || (WAttrib(win, "width") - X_ - 2 * g_w))
+       WAttrib(win, "height=" || (WAttrib(win, "height") - Y_ - 2 * g_w))
+       }
 
-   WAttrib(win, "canvas=normal")
+   every WClose(
+      weft_colors_pane.window |
+      treadling_colors_pane.window |
+      treadling_pane.window |
+      drawdown_win |
+      threading_pane.window |
+      threading_colors_pane.window |
+      warp_colors_pane.window |
+      tieup_pane.window |
+      drawdown_win
+      )
 
    return  win
 

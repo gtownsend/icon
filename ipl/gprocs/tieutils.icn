@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     May 2, 2001
+#	Date:     June 2, 2001
 #
 ############################################################################
 #
@@ -47,7 +47,8 @@
 #	overunder(pattern, treadles)
 #			over/under tie-up structure
 #
-#	direct(shafts)	direct tie-up
+#	direct(shafts, treadles)
+#			direct tie-up
 #
 #	satin(counter, shafts, treadles)
 #			satin tie-up
@@ -67,13 +68,15 @@
 #
 ############################################################################
 #
-#  Links:  cells, numbers,  patutils, imrutils
+#  Links:  cells, numbers,  wopen, patutils, imrutils, patxform
 #
 ############################################################################
 
 link cells
 link numbers
+link wopen
 link patutils
+link patxform
 link imrutils
 
 record tie(shafts, treadles, matrix)
@@ -252,10 +255,12 @@ procedure tier2string(rec)	#: convert tie-up record to string
 
 end
 
-procedure twill(pattern, shift, shafts)	#: twill tie-up
+procedure twill(pattern, shift, shafts, treadles)	#: twill tie-up
    local row, rows
 
-   row := overunder(pattern, shafts) | fail
+   /treadles := shafts
+
+   row := overunder(pattern, treadles) | fail
 
    rows := []
 
@@ -264,7 +269,7 @@ procedure twill(pattern, shift, shafts)	#: twill tie-up
    every 1 to shafts - 1 do
       put(rows, row := rotate(row, shift))
 
-   return rows2pat(rows)
+   return rows
 
 end
 
@@ -289,19 +294,30 @@ procedure overunder(pattern, treadles)
 
 end
 
-procedure direct(shafts)	#: direct tie-up
-   local row, i, rows
+#  direct() supports a "generalized" tie-up when the number of shafts
+#  is not the same as the number of treadles.
+
+procedure direct(shafts, treadles)	#: direct tie-up
+   local row, i, rows, swap
+
+   /treadles := shafts			# normal direct tie-up
+
+   if shafts ~= treadles then {
+      shafts :=: treadles
+      swap := 1
+      }
 
    rows := []
 
-   row := "1" || repl("0", shafts - 1)
+   row := "1" || repl("0", treadles - 1)
 
    put(rows, row)
 
    every i := 1 to shafts - 1 do
       put(rows, row := rotate(row, -1))
 
-   return rows2pat(rows)
+   if /swap then return rows
+   else return pflip(protate(rows, -90), "v")
 
 end
 
@@ -316,12 +332,12 @@ procedure satin(counter, shafts, treadles)	#: satin tie-up
    every k := 2 to shafts do
       rows[k, residue(m +:= counter, shafts, 1)] := "1"
 
-   return rows2pat(rows)
+   return rows
 
 end
 
 procedure tabby(shafts, treadles)	#: tabby tie-up
-   local i, row, rows 
+   local rows, row, i
 
    rows := []
 
@@ -332,7 +348,7 @@ procedure tabby(shafts, treadles)	#: tabby tie-up
    every i := 1 to shafts - 1 do
       push(rows, row := rotate(row, 1))
 
-   return rows2pat(rows)
+   return rows
 
    return
 
@@ -356,7 +372,7 @@ procedure general(pattern, shift, rep, shafts)	#: general tie-up
 
    rows := rows[1+:shafts]		# trim
 
-   return rows2pat(rows)
+   return rows
 
 end
 

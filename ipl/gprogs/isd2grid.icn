@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     August 3, 2000
+#	Date:     June 10, 2001
 #
 ############################################################################
 #
@@ -47,7 +47,9 @@ procedure main(args)
 
    draft.name := \opts["n"]
 
-   win := plot(draft)
+   win := plot(draft) | stop("*** plot() failed")
+
+   WAttrib(win, "canvas=normal")
 
    repeat case Event(win) of {		# process low-level user events
       !"qQ" :  exit()

@@ -2,11 +2,11 @@
 #
 #	File:     seqops.icn
 #
-#	Subject:  Procedures to perform operations on finite sequences
+#	Subject:  Procedures to manipulate T-sequences
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     May 2, 2001
+#	Date:     June 10, 2001
 #
 ############################################################################
 #
@@ -14,570 +14,1319 @@
 #
 ############################################################################
 #
-#  This module contains procedures that operate on finite sequence, generally
-#  in the form of lists, although some will handle strings and records.
-#
-#  Most of these procedures are the same as the list procedures in the
-#  module lists.icn
+#  These procedures perform operations related to T-Sequences and to
+#  analyze T-Sequences.
 #
 ############################################################################
 #
-#	scomb(seq,i)		sequence combinations
-#
-#	sdelete(seq, spec)	sequence deletion
-#
-#	sdelta(seq)		first difference
-#
-#	sequiv(seq1, seq2)	sequence equivalence
-#
-#	sextend(seq, i)		sequence extension
-#
-#	simage(seq)		unadorned sequence image
-#
-#	sinterl(seq1, seq2)	sequence interleaving
-#
-#	slpad(seq, i, x)	sequence padding at left
-#
-#	sltrim(seq, S)		sequence left trimming
-#
-#	smake(x)		sequence from elements
-#
-#	smap(seq1,seq2,seq3)	sequence mapping
-#
-#	spalin(seq, x)		sequence palindrome
-#
-#	spermute(seq)		sequence permutations
-#
-#	sreflect(seq, i) 	sequence concatenated with its reversal to
-#				produce palindrome; the values of i determine
-#				"end conditions" for the reversal:
-#
-#					0	omit first and last elements
-#					1	omit first element
-#					2	omit last element
-#					3	don't omit element
-#
-#	sremvals(seq, x1, x2, ...)
-#				remove values from list
-#
-#	srepl(seq, i)		sequence replication
-#
-#	sreverse(seq)		sequence reverse
-#
-#	srotate(seq, i)		sequence rotation
-#
-#	srpad(seq, i, x)	sequence right padding
-#
-#	srtrim(seq, S)		sequence right trim
-#
-#	srun(seq)		sequence of runs from anchors
-#
-#	sspan(1, j, k)		sequence from i to j by k
-#
-#	sswap(seq)		sequence element swap
-#
-#	sunique(seq)		keep only unique sequence elements
-#
-#	smaxlen(seq, p)		size of the largest value in seq.
-#				If p is given, it is applied to each string as
-#				as a "length" procedure.  The default for p is
-#				proc("*", 1).
-#
-#	sminlen(seq, p)		size of the smallest value in seq.
-#				If p is given, it is applied to each string as
-#				as a "length" procedure.  The default for p is
-#				proc("*", 1).
-#
-#	str2seq(s, i)		sequence with i-character lines from s.  The
-#				default for i is 1.
+#  Requires:  Courage.
 #
 ############################################################################
 #
-#		About sequence mapping
+#   copyl(xargs[])	 copy list of lists
+#   eval_tree(n)	 evaluate expression tree
+#   expression_tree(n)	 create expression tree
+#   fragment(s, i, p, arg)
 #
-#  The procedure smap(seq1,seq2,seq3) maps elements of seq1 according to seq2
-#  and seq3.  This procedure is the analog for lists of the built-in
-#  string-mapping function map(s1,s2,s3). Elements in seq1 that are
-#  the same as elements in seq2 are mapped into the corresponding ele-
-#  ments of seq3. For example, given the sequences
-#  
-#     seq1 := [1,2,3,4]
-#     seq2 := [4,3,2,1]
-#     seq3 := ["a","b","c","d"]
-#  
-#  then
-#  
-#     smap(seq1,seq2,seq3)
-#  
-#  produces a new list
-#  
-#     ["d","c","b","a"]
-#  
-#     Sequences that are mapped can have any kinds of elements. The
-#  operation
-#  
-#     x === y
-#  
-#  is used to determine if elements x and y are equivalent.
-#  
-#     All cases in smap are handled as they are in map, except that
-#  no defaults are provided for omitted arguments. As with map, smap
-#  can be used for transposition as well as substitution.
-#  
-#  Warning:
+#   get_analysis(s)	 analyze sequence
+#   get_scollate(s)	 analyze for collation
+#   get_splace(s)	 analyze for motif along a path
+#   get_srepeat(s)	 analyze for repeat
+#   get_srun(s)		 analyze for run
+#   get_sruns(s)	 analyze for simple runs
+#   is_scompact(x)	 test sequence for compactness
+#   pimage(x)
+#   remod(s, p)
+#   sanalout()		 output analysis
+#   sanalysis(x)	 over-all analysis
+#   sbinop(op, xargs[])	 binary operation on terms
+#   sbound(xargs[])	 compute sequence upper bound  FIX!
+#   scollate(xargs[])	 sequence collation
+#   scompress(xargs[])	 compact sequence
+#   sconcat(xargs[])	 concatenate sequences
+#   scpal(xargs[])	 closed sequence palindrome
+#   sdecimate(xargs[])	 decimate sequence
+#   sdecollate(order, x) decollate sequence
+#   sdelta(x)		 get delta sequence
+#   sdirection(x)	 "direction" of delta(x)
+#   sequiv(x1, x2)	 test sequence equivalence
+#   sextend(xargs[])	 extend sequence
+#   sflatten(x)		 flatten nested sequence
+#   sground(s, i)	 ground sequence to i
+#   shaft_period(x1, x2) shaft period
+#   simage(x, limit)	 string image of sequence
+#   sinit()		 initialize sequence operations
+#   slayer(xargs[])	 layer sequences
+#   slength(x)		 compute sequence length
+#   slocate(xargs[])	 sequences of first positions of terms
+#   smap(xargs[])	 map terms in sequence
+#   smin(xargs[])	 compute sequence lower bound	FIX
+#   smissing(x)		 missing terms in sequence  BUGUS??
+#   smod(xargs[])	 modular reduction
+#   smutate(xargs[])	 mutation
+#   snormal(x)		 normalize sequence
+#   sopal(xargs[])	 create open sequence palindrome
+#   sorder(x)		 positions of first occurrence
+#   sparity(xargs[])	 adust parity
+#   speriod(s)		 sequence period
+#   splace(xargs[])	 place motif along a path
+#   splaceg(xargs[])	 generalized motifs along a path
+#   spositions(x1, x2)	 shaft positions
+#   spromote(x)		 promote term to sequence
+#   srandom(x)		 random selection
+#   sreflecth(xargs[])	 reflect sequence horizontally
+#   sreflectr(xargs[])
+#   sreflectv(xargs[])	 refect sequence vertically
+#   sremdupl(xargs[])	 remove duplicate adjacent terms
+#   srepeat(xargs[])	 repeat sequence
+#   srepl(xargs[])	 replicate sequence terms
+#   srotatev(xargs[])	 rotate sequence vertically
+#   srun(xargs[])	 create connected run
+#   sruns(xargs[])	 create simple runs
+#   sscale(xargs[])	 scale terms in sequence
+#   sscollate(xargs[])	 collate entire sequences
+#   sselect(xargs[])	 select terms from sequence
+#   sshift(x, i)	 shift terms sequence
+#   sunmod(x)		 modular expansion
+#   sunop(op, xargs[])	 unary operation on terms
+#   walk_tree(n, tree_list, tree_ptrs, depth)
+#			 walk expression tree
 #
-#     If smap is called with the same lists seq2 and seq3 as in
-#  the immediately preceding call, the same mapping is performed,
-#  even if the values in seq2 and seq3 have been changed. This improves
-#  performance, but it may cause unexpected effects.
-#  
-#     This ``caching'' of the mapping table based on seq2 and seq3
-#  can be easily removed to avoid this potential problem.
-#  
 ############################################################################
 #
-#  Links:  indicies, lists
-#
-############################################################################
-#
-#  See also:  lists.icn
+#  Links:  factors, numbers
 #
 ############################################################################
 
-link indices
-link lists
+link factors
+link numbers
 
-procedure s_comp(l1,l2)			# sequence comparison
+global expressions
+global node_gen
+global saltparity
+global scompact
+global sfliph
+global sflipv
+global sflipr
+global sflipl
 
-    #
-    # seqist comparison routine basically taken from Griswold & Griswold
-    # (1st ed.), p. 174.
-    #
+record node(name, seqlist)
 
-    local i
+$define MaxTerms 300
 
-    /l1 | /l2 & stop("l_comp:  Null argument!")
-    l1 === l2 & (return l2)
+procedure copyl(xargs[])		#: copy list of lists
+   local new_xargs
 
-    if type(l1) == type(l2) == "list" then {
-	*l1 ~= *l2 & fail
-	every i := 1 to *l1
-	do l_comp(l1[i],l2[i]) | fail
-	return l2
-    }
+   new_xargs := []
 
-end
+   every put(new_xargs, copy(spromote(!xargs)))
 
-
-procedure sblock(seq1, seq2)
-   local seq3, i, j
-
-   if *seq1 < *seq2 then seq1 := sextend(seq1, *seq2) | fail
-   else if *seq2 < *seq1 then seq2 := sextend(seq2, *seq1) | fail
-
-   seq3 := []
-
-    every i := 1 to *seq1 do
-       every j := 1 to seq2[i] do
-          put(seq3, seq2[i])
-
-      return seq3
+   return new_xargs
 
 end
 
-procedure scomb(seq,i)			#: sequence combinations
-   local j
-
-   if i < 1 then fail
-   suspend if i = 1 then [!seq]
-      else [seq[j := 1 to *seq - i + 1]] ||| lcomb(seq[j + 1:0],i - 1)
-
-end
-
-procedure sdelete(seq, spec)		#: delete specified sequence elements
-   local i, tmp
-
-   tmp := indices(spec, *seq) | fail		# bad specification
-
-   while i := pull(tmp) do
-      seq := seq[1+:i - 1] ||| seq[i + 1:0]
-
-   return seq
-
-end
-
-procedure sdelta(seq)			#: first difference
-   local i, j, seq1
-
-   seq1 := []
-
-   i := seq[1] | return seq1		# boundary case
-
-   every j := seq[2 to *seq] do {
-     put(seq1, j - i)
-     i := j
-     }
-
-   return seq1
-
-end
-
-procedure sequiv(x,y)			#: compare lists for equivalence
+procedure eval_tree(n)
    local i
 
-   if x === y then return y
-   if type(x) == type(y) == "list" then {
-      if *x ~= *y then fail
-      every i := 1 to *x do
-         if not lequiv(x[i],y[i]) then fail
-      return y
-     }
+   n := integer(n)
+
+   if type(n) ~== "node" then return n
+
+   every i := 1 to *n.seqlist do
+      n.seqlist[i] := eval_tree(n.seqlist[i])
+
+   return n.name ! n.seqlist
 
 end
-	
-procedure sextend(seq, i)			#: sequence extension
+
+procedure expression_tree(n)
    local result
 
-   if *seq = 0 then fail
+   n := integer(n)
 
-   result := copy(seq)
+   case type(n) of {
+      "list" | "integer"  :  return "[" || simage(n, MaxTerms) || "]"
+      "string"            :  return n
+      }
 
-   until *result >= i do
-      result |||:= seq
+   result :=  n.name || "("
 
-   result := result[1+:i]
+   every result ||:= expression_tree(!n.seqlist) || ","
 
-   return result
- 
+   return result[1:-1] || ")"
+
 end
 
-procedure simage(seq)			#: sequence image
-   local result
+procedure fragment(s, i, p, arg)
+   local results, j, k
 
-   if type(seq) ~== "list" then stop("*** invalid type to limage()")
+   if *s <= i then return s
+
+   /p := 1
+
+   results := list(i)
+
+   every !results := []
+
+   k := 0
+
+   every j := 1 to i do
+      every 1 to  *s / i do
+         put(results[j], s[k +:= 1]) | break break
+
+   every j := 1 to i do
+      results[j] := p(results[j], arg)
+
+   every j := 1 to i do
+      results[j] := fragment(results[j], i, p, arg)
+
+   return results
+
+end
+
+$define MinLength 5	# minimum length for attempting analysis
+
+procedure get_analysis(seq)
+   local expression
+
+   if *seq < MinLength then return simageb(seq)
+
+   expression := (
+      get_scollate(seq) |
+      get_srepeat(seq) |
+      remod(seq, get_srun) |	# before sruns(), which would subsume it
+      remod(seq, get_sruns) |
+      get_splace(seq) |		# would subsume some runs
+      simageb(seq)
+      )
+
+   return expression
+
+end
+
+procedure get_scollate(seq)		#: find collation in sequence
+   local bound, deltas, i, j, poses, positions, oper, seqs
+   local results, result, k, count, oseq, m, nonperiod, facts, period
+
+   bound := (sbound ! seq)
+
+   speriod(seq) | fail		# only handle periodic case
+
+   deltas := table()
+   positions := table()
+
+   every  i := 1 to bound do {
+      poses := spositions(seq, i)
+      positions[i] := poses
+      j := sconstant(sdelta(poses)) | fail	# CONTRADICTION
+      /deltas[j] := []
+      put(deltas[j], i) 
+      }
+
+   oseq := list(*seq, 1)		# decollation order sequence
+
+   count := 0
+
+   every k := key(deltas) do {
+      count +:= 1
+      every j := !deltas[k] do
+         every m := !positions[j] do
+            oseq[m] := count
+      }
+
+   if *set(oseq) < 2 then fail		# not enough sequences
+
+#  oseq := srun([1, get(facts)]) | fail
+
+   seqs := sdecollate(oseq, seq) | fail
+
+   oper := "scollate(" || (simageb(oseq[1+:speriod(oseq)]) |
+      get_analysis(oseq))
+
+   every oper ||:= ", " || get_analysis(!seqs)
+
+   return oper || ")"
+
+end
+
+procedure get_splace(seq)		#: find motif along a path in sequence
+   local i, j, motif, seq2, path
+
+   if i := sconstant(seq) then return "srepeat(" || i || "," || *seq || ")"
+
+   every i := divisors(*seq) do {
+      motif := seq[1+:i]
+      every j := i + 1 to *seq by i do
+         if not sequiv(motif, sground(seq[j+:i], seq[1])) then break next
+      path := []
+      every put(path, seq[1 to *seq by i])
+      return "splace(" || get_analysis(motif) || ", " || get_analysis(path) || ")"
+      }
+
+   fail
+
+end
+
+procedure get_srepeat(seq)		#: find repeat in sequence
+   local i
+
+   i := speriod(seq) | fail
+   return "srepeat(" || get_analysis(seq[1+:i]) || ", " || (*seq / i) || ")"
+
+end
+
+procedure get_srun(seq)
+   local i, j, new_seq, dir
+
+   seq := copy(seq)
+
+   i := get(seq)
+   j := get(seq)
+
+   if j = i - 1 then dir := -1		# down going
+   else if j = i + 1 then dir := 1			# upgoing
+   else fail
+
+   new_seq := [i]
+
+   while i := get(seq) do {
+      if i = j + 1 then {
+         if dir = -1 then put(new_seq, j)
+         dir := 1
+         }
+      else if i =  j - 1 then {
+         if dir = 1 then put(new_seq, j)
+         dir := -1
+         }
+      else {
+         put(new_seq, j)
+         push(seq, i)		# put back non-continuing value
+         break
+         }
+      j := i
+      }
+
+   if *seq ~= 0 then fail
+
+   put(new_seq, j)
+
+   return "srun(" || get_analysis(new_seq) || ")"
+
+end
+
+procedure get_sruns(seq)
+   local i, j, seq1, seq2, dir
+
+   seq1 := []
+   seq2 := []
+
+   repeat {
+      i := get(seq) | {
+         put(seq2, j)
+         break					# end of road
+         }
+      j := get(seq) | fail			# isolated end point
+      if j = i - 1 then dir := -1		# down going
+      else if j = i + 1 then dir := 1		# up going
+      else fail
+      put(seq1, i)				# beginning point
+      while i := get(seq) do {
+         if i = j + dir then {
+            j := i
+            next
+            }
+         else {
+            push(seq, i)			# put back next value
+            put(seq2, j)
+            break
+            }
+         }
+      }
+
+   return "sruns(" || get_analysis(seq1) || ", " || get_analysis(seq2) || ")"
+
+end
+
+procedure is_scompact(x)		#: test sequence for compactness
+   local bound
+
+   x := spromote(x)
+
+   bound := sbound ! x
+
+   if bound = *set(x) then return bound
+   else fail
+
+end
+
+procedure pimage(s)			# DOES THIS BELONG HERE?
+   local result, x
 
    result := ""
 
-   every result ||:= image(!seq) || ","
-
-   return ("[" || result[1:-1] || "]") | "[]"
-
-end
-
-procedure sinterl(seq1, seq2)		#: sequence interleaving
-   local seq3, i
-
-   if *seq1 < *seq2 then seq1 := sextend(seq1, *seq2) | fail
-   else if *seq2 < *seq1 then seq2 := sextend(seq2, *seq1) | fail
-
-   seq3 := []
-
-   every i := 1 to *seq1 do
-      put(seq3, seq1[i], seq2[i])
-
-   return seq3
-
-end
-
-procedure slpad(seq, i, x)		#: sequence padding at left
-
-   seq := copy(seq)
-
-   while *seq < i do push(seq, x)
-
-   return seq
-
-end
-
-procedure sltrim(seq, S)			#: sequence left trimming
-
-   seq := copy(seq)
-
-   while member(S, seq[1]) do
-      get(seq)
-
-    return seq
-
-end
-
-procedure seqop(seq, op, args[])	#: apply operation to sequence
-   local i, reseq
-
-   op := proc(op, *args + 1 to 1 by -1) | fail
-
-   reseq := []
-
-   push(args)			# placeholder for first argument
-
-   every i := 1 to *seq do {
-      args[1] := seq[i]		# sequence element as first argument
-      put(reseq, op ! args)
+   every x := !s do {
+      if integer(x) then result ||:= x else
+         result ||:= pimage(x)
+      result ||:= ","
       }
 
-   return reseq
+   return "[" || result[1:-1] || "]"
 
 end
 
-procedure smake(x)			#: make sequence from elements
-   local seq
+procedure remod(seq, p)			#: handle modulus
+   local nseq, bound
 
-   seq := []
+   nseq := sunmod(seq)
 
-   every put(seq, !x)
-
-   return seq
-
-end
-
-procedure smap(seq1,seq2,seq3)		#: sequence mapping
-   static lmem2, lmem3, lmaptbl, tdefault
-   local i, a
-
-   initial tdefault := []
-
-   if type(a := seq1 | seq2 | seq3) ~== "list" then runerr(108,a)
-   if *seq2 ~= *seq3 then runerr(208,seq2)
-
-   seq1 := copy(seq1)
-
-   if not(lmem2 === seq2 & lmem3 === seq3) then {	# if an argument is new, rebuild
-      lmem2 := seq2				# save for future reference
-      lmem3 := seq3
-      lmaptbl := table(tdefault)		# new mapping table
-      every i := 1 to *seq2 do			# build the map
-         lmaptbl[seq2[i]] := seq3[i]
-      }
-   every i := 1 to *seq1 do			# map the values
-      seq1[i] := (tdefault ~=== lmaptbl[seq1[i]])
-   return seq1
+   if (sbound ! nseq) > (bound := sbound ! seq) then
+      return "smod(" || p(nseq) || ", " || bound || ")"
+   else return p(copy(seq))
 
 end
 
-procedure spalin(seq, x)			#: sequence palindrome
+procedure sanalout()
+   local expression, var
 
-   seq |||:= lreverse(seq)
+   write("link seqops")
+   write("procedure main()")
 
-   if /x then pull(seq)
+   expressions := sort(expressions, 4)
 
-   return seq
+   while expression := get(expressions) do
+      write(var := get(expressions), " := ", expression)
 
-end
+   write("every write(!", var, ")")
 
-procedure spermute(seq)			#: sequence permutations
-   local i
+   write("end")
 
-   if *seq = 0 then return []
-   suspend [seq[i := 1 to *seq]] ||| lpermute(seq[1:i] ||| seq[i+1:0])
+   expressions := table()
 
-end
-
-procedure sreflect(seq, i)		#: sequence reflection
-   local seq1
-
-   /i := 0
-
-   if i > 3 then stop("*** invalid argument to lreflect()")
-
-   if i < 3 then seq1 := copy(seq)
-
-   return seq ||| lreverse(
-      case i of {
-         0:   {get(seq1); pull(seq1); seq1}
-         1:   {get(seq1); seq1}
-         2:   {pull(seq1); seq1}
-         3:   seq
-         }
-      )
+   return
 
 end
 
-procedure sremvals(seq, x[])		#: remove values from list
-   local result, y
+procedure sanalysis(x)
 
-   result := []
+#  sanalyze(x)
 
-   every y := !seq do
-      if y === !x then next
-      else put(result, y)
+   sanalout()
 
-   return result
+   return
 
 end
 
+procedure sbinop(op, xargs[])		#: binary operation on terms
+   local lseq, i, x1, x2
 
-procedure srepl(seq, i)			#: sequence replication
-   local j, k
+   x1 := spromote(xargs[1])
+   x2 := spromote(xargs[2])
 
-   i := (0 < integer(i)) | stop("*** invalid replication factor in lrepl()")
+   op := proc(op, 2) | fail
 
-   seq := copy(seq)
+   lseq := []
 
-   j := *seq
+   every i := 1 to smin(*x1, *x2) do
+      put(lseq, op(x1[i], x2[i]))
 
-   every 1 to i - 1 do
-      every k := 1 to j do
-         put(seq, seq[k])
-
-   return seq
-
-end
-
-procedure sreverse(seq)			#: sequence reverse
-   local i
-
-   seq := copy(seq)
-
-   every i := 1 to *seq / 2 do
-      seq[i] :=: seq[-i]
-
-   return seq
+   return lseq
 
 end
 
-procedure srotate(seq, i)			#: sequence rotation
+procedure sbound(xargs[])		#: compute sequence upper bound  FIX!
 
-   /i := 1
-
-   seq := copy(seq)
-
-   if i > 0 then
-      every 1 to i do
-         put(seq, get(seq))
-   else
-      every 1 to -i do
-         push(seq, pull(seq))
-
-   return seq
+   return sort(xargs)[-1]
 
 end
 
-procedure srpad(seq, i, x)		#: sequence right padding
+procedure scollate(xargs[])		#: sequence term collation
+   local lseq, i, order
 
-   seq := copy(seq)
+   if \node_gen then return node("scollate", xargs)
 
-   while *seq < i do put(seq, x)
+   order := get(xargs)
 
-   return seq
+   /order := srun(1, *xargs)
 
-end
+   xargs := copyl ! xargs
 
-procedure srtrim(seq, S)			#: sequence right trimming
+   lseq := []
 
-   seq := copy(seq)
-
-   while member(S, seq[-1]) do
-      pull(seq)
-
-    return seq
-
-end
-
-procedure srun(seq, p, m)			#: sequence of anchor runs
-   local seq1, i, j, k
-
-   seq1 := []
-
-   /p := 1
-   /m := 100
-
-   every i := 1 to *seq - 1 do {
-      j := seq[i] % m
-      k := seq[i + 1] % m
-      if j < k then
-         every put(seq1, j to k - 1 by p)
-      else if j > k then
-         every put(seq1, j to k + 1 by -p)
+   while i := get(order) do {
+      put(order, i)
+      put(lseq, get(xargs[i])) | break
       }
 
-   put(seq1, seq[-1])
+   put(lseq, get(xargs[get(order)]))		# ?????
 
-   return seq1
-
-end
-
-procedure sspan(i, j, k)		#: sequence from i to j by k
-   local seq
-
-   /k := 1
-
-   seq := []
-
-   every put(seq, i to j by k)
-
-   return seq
+   return lseq
 
 end
 
-procedure sswap(seq)			#: sequence element swap
-   local i
+procedure scompress(xargs[])		#: compact sequence
+   local unique, target, x
 
-   seq := copy(seq)
+   if \node_gen then return node("compress", xargs)
 
-   every i := 1 to *seq by 2 do
-      seq[i] :=: seq[i + 1]
+   x := spromote(xargs[1])
 
-   return seq
+   unique := set(x)
 
-end
+   target := []
 
-procedure sunique(seq)			#: keep only unique sequence elements
-   local result, culls, x
+   every put(target, 1 to *unique)
 
-   result := []
-   culls := set(seq)
-
-   every x := !seq do
-      if member(culls, x) then {
-         delete(culls, x)
-         put(result, x)
-         }
-
-   return result
+   return smap(x, sort(unique), target)
 
 end
 
-procedure smaxlen(seq, p)			#: largest value in list
-   local i
+procedure sconcat(xargs[])		#: concatenate sequences
+   local lseq
 
-   if *seq = 0 then fail
+   if \node_gen then return node("sconcat", xargs)
 
-   /p := proc("*", 1)
+   lseq := []
 
-   i := 2 ^ 31			# kludge
+   every lseq |||:= spromote(!xargs)
 
-   every i <:= p(!seq)
-
-   return i
+   return lseq
 
 end
 
-procedure sminlen(seq, p)			#: smallest value in list
-   local i
+procedure sconstant(seq)		#: test for constant sequence
 
-   if *seq = 0 then fail
+   if *set(seq) = 1 then return !seq
+   else fail
 
-   /p := proc("*", 1)
+end
+
+procedure scpal(xargs[])		#: closed sequence palindrome
+   local lseq, x1, x2, i
+
+   if \node_gen then return node("scpal", xargs)
+
+   x1 := spromote(xargs[1])
+   x2 := spromote(xargs[2]) | [1]
 
    i := 0
 
-   every i >:= p(!seq)
+   every i +:= !x2
 
-   return i
+   lseq := srepeat(sopal(x1), i)
+
+   put(lseq, lseq[1])
+
+   return lseq
 
 end
 
-procedure str2seq(s, i)			#: sequence from string
-   local seq
+procedure sdecimate(xargs[])		#: decimate sequence
+   local lseq, j, k, x1, x2
 
-   /i := 1
+   x1 := spromote(xargs[1])
+   x2 := sort(spromote(xargs[2]))
 
-   seq := []
+   lseq := []
 
-   s ? {
-      while put(seq, move(i))
-      if not pos(0) then put(seq, tab(0))
+   k := 1
+
+   while j := get(x2) do {
+      every put(lseq, x1[k to j - 1])
+      k := j + 1
       }
 
+   every put(lseq, x1[j + 1 to *x1])
+
+   return lseq
+
+end
+
+
+procedure sdecollate(order, x)		#: sequence decollation
+   local lseq, i, j
+
+   x := spromote(x)
+
+   if *x = 0 then fail
+
+   order := copy(order)
+
+   lseq := list(sbound ! order)		# list of lists to return
+
+   every !lseq := []			# initially empty
+
+   every j := !x do {
+      i := get(order)	| fail
+      put(order, i)
+      put(lseq[i], j)
+      }
+
+   return lseq
+
+end
+
+procedure sdelta(seq)			#: sequence delta
+   local i, lseq, j
+
+   if *seq < 2 then fail
+
+   seq := copy(seq)
+
+   i := get(seq)
+
+   lseq := []
+
+   while j := get(seq) do {
+      put(lseq, j - i)
+      i := j
+      }
+
+   return lseq
+
+end
+
+procedure sdirection(x)			#: sequence delta "direction"
+   local lseq, i
+
+   x := sdelta(spromote(x)) | fail
+
+   lseq := []
+
+   while i := get(x) do
+      put(lseq,
+         if i > 0 then 3
+         else if i = 0 then 2
+         else 1
+         )
+
+   return lseq
+
+end
+
+procedure sdistrib(x)
+   local lseq, i
+
+   x := copy(spromote(x))
+
+   lseq := list(sbound ! x, 0)
+
+   while i := get(x) do
+      lseq[i] +:= 1
+
+   return lseq
+
+end
+
+procedure sequiv(x1, x2)		# test for sequence equivalence
+   local i
+
+   x1 := spromote(x1)
+   x2 := spromote(x2)
+
+   if *x1 ~= *x2 then fail
+
+   every i := 1 to *x1 do
+      if x1[i] ~= x2[i] then fail
+
+   return x2
+
+end
+
+procedure sextend(xargs[])		#: extend sequence
+   local lseq, part, i, x1, x2
+
+   if \node_gen then return node("sextend", xargs)
+
+   x1 := spromote(xargs[1])
+
+   lseq := []
+
+   every i := !spromote(xargs[2]) do {
+      part := []
+      until *part >= i do
+         part |||:= x1
+      lseq |||:= part[1+:i]
+      }
+
+   return lseq
+
+end
+
+procedure sflatten(s)		# flatten packet sequence  BELONGS HERE?
+   local lseq, x
+
+   lseq := []
+
+   every x := !s do
+      if type(x) == "list" then lseq |||:= sflatten(x)
+      else put(lseq, x)
+
+   return lseq
+
+end
+
+procedure sground(seq, i)		#: ground sequence to i
+   local j
+
+   j := smin ! seq
+
+   every !seq -:= (j - i)
+
    return seq
+
+end
+
+procedure shaft_period(x1, x2)		#: shaft period
+   local results
+
+   x1 := spromote(x1)
+   x2 := spromote(x2)
+
+   return sconstant(sdelta(spositions(x1, x2)))
+
+end
+
+procedure simage(x, limit)		#: string image of sequence
+   local str
+
+   x := spromote(x)
+
+   if *x = 0 then return "[]"
+
+   /limit := 2 ^ 16			# good enough
+
+   str:= ""
+
+   every str ||:= (!x \ limit) || ", "
+
+   if *x > limit then str ||:= "...  "
+
+   return str[1:-2]
+
+end
+
+procedure simageb(seq)			#: bracketed sequence image
+
+   if *seq = 1 then return seq[1]
+
+   return "sconcat(" || simage(seq) || ")"
+
+end
+
+procedure sinit()			#: initialize sequence operations
+
+   saltparity := sparity
+   scompact := scompress
+   sfliph := sreflecth
+   sflipv := sreflectv
+   sflipr := sreflectr
+#  sflipl := sreflectl
+
+   return
+
+end
+
+procedure slayer(xargs[])		#: layer sequences
+   local new_xargs, i, shift
+
+   if \node_gen then return node("slayer", xargs)
+
+   new_xargs := [xargs[1], xargs[2]] | fail
+
+   if not integer(xargs[2][1]) then return scollate ! xargs
+
+   shift := sbound ! xargs[2]
+
+   every i := 3 to *xargs do {
+      put(new_xargs, sshift(xargs[i], shift))
+      shift +:= sbound ! xargs[i]
+      }
+
+   return scollate ! new_xargs
+
+end
+
+procedure slength(x)			#: compute sequence length
+
+   return *spromote(x)
+
+end
+
+procedure slocate(xargs[])		#: sequences of first positions of terms
+   local count, i, lseq, x1, x2
+
+   if \node_gen then return node("slocate", xargs)
+
+   x1 := copy(spromote(xargs[1]))
+   x2 := set(spromote(xargs[2]))
+
+   lseq := []
+
+   count := 0
+
+   while i := get(x1) do {
+      count +:= 1
+      if member(x2, integer(i)) then
+         return count
+      }
+
+   fail
+
+end
+
+procedure smap(xargs[])			#: map terms in sequence
+   local i, smaptbl, x1, x2, x3
+   static tdefault
+
+   initial tdefault := []
+
+   x1 := copy(spromote(xargs[1]))
+   x2 := spromote(xargs[2])
+   x3 := spromote(xargs[3])
+
+   if *x2 ~= *x3 then fail
+
+   smaptbl := table(tdefault)		# mapping table
+
+   every i := 1 to *x2 do		# build the map
+      smaptbl[x2[i]] := x3[i]
+
+   every i := 1 to *x1 do		# map the values
+      x1[i] := (tdefault ~=== smaptbl[x1[i]])
+
+   return x1
+
+end
+
+procedure smin(xargs[])			#: compute sequence lower bound	FIX
+
+   return sort(xargs)[1]
+
+end
+
+procedure smissing(x)			#: missing terms in sequence  BUGUS??
+   local lseq, i, result
+
+   x := spromote(x)
+
+   lseq := sorder(x)
+
+   result := []
+
+   every i := 1 to *lseq do
+      if lseq[i] = 0 then put(result, i)
+
+   return result
+
+end
+
+procedure smod(xargs[])			#: modular reduction
+   local lseq, i, x1, x2
+
+   if \node_gen then return node("smod", xargs)
+
+   x1 := spromote(xargs[1])
+   x2 := spromote(xargs[2])
+
+   lseq := []
+
+   every i := !x2 do
+      every put(lseq, residue(!x1, i, 1))
+
+   return lseq
+
+end
+
+procedure smutate(xargs[])		#: mutation
+   local lseq, x1, x2
+
+   if \node_gen then return node("smutate", xargs)
+
+   x1 := spromote(xargs[1])
+   x2 := spromote(xargs[2])
+
+   lseq := []
+
+   every put(lseq, x1[!x2])
+
+   return lseq
+
+end
+
+procedure snormal(x)			#: normalize sequence
+   local lseq, i, target, count	# maps shafts so they are numbered in order
+				# first appearance
+   x := spromote(x)
+
+   lseq := []
+
+   count := 0
+
+   target := table()
+
+   every i := !x do {
+      /target[i] := (count +:= 1)
+      put(lseq, target[i])
+      }
+
+   return lseq
+
+end
+
+procedure sopal(xargs[])		#: create open sequence palindrome
+   local x
+
+   if \node_gen then return node("sopal", xargs)
+
+   x := spromote(xargs[1])
+
+   return x ||| sreflecth(x)[2:-1]
+
+end
+
+procedure sorder(x)			#: positions of first occurrence
+   local lseq, i, done		#  of terms in *compact* sequence
+
+   x := copy(spromote(x))
+
+   lseq := []
+
+   done := set()
+
+   while i := integer(get(x)) do {
+      if member(done, i) then next
+      else {
+         put(lseq, i)
+         insert(done, i)
+         }
+      }
+
+   return lseq
+
+end
+
+procedure sparity(xargs[])		#: adust parity
+   local lseq, i, j, k, x1, x2
+
+   if \node_gen then return node("sparity", xargs)
+
+   x1 := spromote(xargs[1])
+   x2 := spromote(xargs[2])
+
+   lseq := []
+
+   every i := 1 to *x1 do {
+      j := x1[i]
+      k := x2[i]
+      if (j % 2) = (k % 2) then put(lseq, j)
+      else put(lseq, j + 1, j)
+      }
+
+   return lseq
+
+end
+
+procedure speriod(seq)			#: period of sequence
+   local i, segment
+
+   every i := divisors(*seq) do {
+      segment := seq[1+:i]
+      if sequiv(sextend(segment, *seq), seq) then return i
+      }
+
+   fail
+
+end
+
+procedure splace(xargs[])		#: place motif along a path
+   local lseq, i, x1, x2
+
+   if \node_gen then return node("splace", xargs)
+
+   x1 := copy(spromote(xargs[1]))
+   x2:= spromote(xargs[2])
+
+   lseq := []
+
+   every i := !x2 do
+      every put(lseq, !x1 + i - 1)
+
+   return lseq
+
+end
+
+procedure splaceg(xargs[])		#: generalized motifs along a path
+   local lseq, i, path, motif
+
+   if \node_gen then return node("splaceg", xargs)
+
+   path := copy(get(xargs))
+
+   xargs := copyl ! xargs
+
+   lseq := []
+
+   while i := get(path) do {
+      motif := get(xargs)
+      put(xargs, motif)
+      every put(lseq, !motif + i - 1)
+      }
+
+   return lseq
+
+end
+
+procedure spositions(x1, x2)		#: positions of values in sequence
+   local lseq, count, i
+
+   x1 := copy(spromote(x1))
+   x2 := set(spromote(x2))
+
+   lseq := []
+
+   count := 0
+
+   while i := get(x1) do {
+      count +:= 1
+      if member(x2, integer(i)) then
+         put(lseq, count)
+      }
+
+   return lseq
+
+end
+
+procedure spromote(x)			#: promote term to sequence
+
+   if type(x) ~== "list" then x := [x]
+
+   return x
+
+end
+
+procedure srandom(x)			#: random selection
+
+   return ?spromote(x)
+
+end
+
+procedure sreflecth(xargs[])		#: reflect sequence horizontally
+   local lseq, x
+
+   if \node_gen then return node("sreflecth", xargs)
+
+   lseq := []
+
+   every push(lseq, !spromote(xargs[1]))
+
+   return lseq
+
+end
+
+
+procedure sreflectr(xargs[])
+   local lseq, i, bound, x
+
+   if \node_gen then return node("sreflectr", xargs)
+
+   x := spromote(xargs[1])
+
+   bound := sbound ! x
+
+   lseq := []
+
+   every i := !x do
+      push(lseq, bound - i + 1)
+
+   return lseq
+
+end
+
+procedure sreflectv(xargs[])		#: refect sequence vertically
+   local lseq, m, x
+
+   if \node_gen then return node("sreflectv", xargs)
+
+   x := spromote(xargs[1])
+
+   if not integer(x[1]) then return x
+
+   m := sbound ! x
+
+   lseq := []
+
+   every put(lseq, m - !x + 1)
+
+   return lseq
+
+end
+
+procedure sremdupl(xargs[])		#: remove duplicate adjacent terms
+   local lseq, i, x
+
+   if \node_gen then return node("sremdupl", xargs)
+
+   x := copy(spromote(xargs[1]))
+
+   lseq := [get(x)] | return []
+
+   while i := get(x) do
+      if lseq[-1] ~= i then
+         put(lseq, i)
+
+   return lseq
+
+end
+
+procedure srepeat(xargs[])		#: repeat sequence
+   local lseq, count, x1, x2
+
+   if \node_gen then return node("srepeat", xargs)
+
+   x1 := spromote(xargs[1])
+
+   count := 0
+
+   every count +:= !spromote(xargs[2])
+
+   lseq := copy(x1)
+
+   every 2 to count do
+         lseq |||:= x1
+
+   return lseq
+
+end
+
+procedure srepl(xargs[])		# replicate sequence terms
+   local lseq, i, j, x1, x2
+
+   if \node_gen then return node("srepl", xargs)
+
+   x1 := spromote(xargs[1])
+   x2 := spromote(xargs[2])
+
+   lseq := []
+
+   every i := !x2 do
+      every j := !x1 do
+         every 1 to i do
+            put(lseq, j)
+
+   return lseq
+
+end
+
+procedure srotatev(xargs[])		#: rotate sequence vertically
+   local lseq, m, x
+
+   if \node_gen then return node("srotatev", xargs)
+
+   x := spromote(xargs[1])
+
+   if not integer(x[1]) then return x
+
+   m := sbound ! x
+
+   lseq := []
+
+   every put(lseq, residue(!x + 1, m, 1))
+
+   return lseq
+
+end
+
+procedure srun(xargs[])			#: create connected runs
+   local lseq, i, j, x
+
+   if \node_gen then return node("srun", xargs)
+
+   x := copy(spromote(xargs[1]))
+
+   lseq := []
+
+   i := get(x) | return lseq
+
+   while j := get(x) do {
+      lseq |||:= sruns(i, j, 1)
+      pull(lseq)
+      i := j
+      }
+
+   put(lseq, i)
+
+   return lseq
+
+end     
+
+procedure sruns(xargs[])		# disconnected runs
+   local lseq, i, j, k, limit, x1, x2, x3
+
+   if \node_gen then return node("sruns", xargs)
+
+   x1 := copy(spromote(xargs[1]))
+   x2 := copy(spromote(xargs[2]))
+   x3 := copy(spromote(xargs[3]) | [1])
+
+   lseq := []
+
+   repeat {
+      i := get(x1) | break
+      j := get(x2) | break
+      k := get(x3) | break
+      put(x3, k)			# cycle
+      if integer(j) < integer(i) then k := -k
+      every put(lseq, i to j by k)
+      }
+
+   return lseq
+
+end
+ 
+procedure sscale(xargs[])		#: scale terms in sequence
+   local lseq, j, i, x1, x2
+
+   if \node_gen then return node("sscale", xargs)
+
+   x1 := spromote(xargs[1])
+
+   lseq := []
+
+   every i := !spromote(xargs[2]) do
+      every j := 1 to *x1 do
+          put(lseq, (x1[j] - 1) * i + 1)
+
+   return lseq	
+
+end
+
+procedure sscollate(xargs[])		#: entire sequence collation
+   local lseq, i, order
+
+   if \node_gen then return node("sscollate", xargs)
+
+   order := get(xargs)
+
+   /order := srun(1, *xargs)
+
+   xargs := copyl ! xargs
+
+   lseq := []
+
+   while i := get(order) do
+      lseq |||:= xargs[i]
+
+   return lseq
+
+end
+
+procedure sselect(xargs[])		#: select terms from sequence
+   local lseq, i, x1, x2
+
+   if \node_gen then return node("sselect", xargs)
+
+   x1 := spromote(xargs[1])
+   x2 := copy(spromote(xargs[2]))
+
+   lseq := []
+
+   while i := get(x2) do
+      put(lseq, x1[i])		# may fail
+
+   return lseq
+
+end
+
+procedure sshift(x, i)			#: shift terms sequence
+   local lseq
+
+   lseq := []
+
+   every put(lseq, !spromote(x) + i)
+
+   return lseq
+
+end
+
+procedure sunmod(x)			#: modular expansion
+   local base, bound, i, lseq, k
+
+   x := copy(spromote(x))
+
+   if not integer(x[1]) then return x
+
+   base := 0
+
+   bound := sbound ! x
+
+   lseq := [get(x)] | fail
+
+   while i := get(x) do {
+      if (i = 1) & (lseq[-1] = base + bound) then
+         base +:= bound
+      else if (i = bound) & (lseq[-1] = base + 1) then
+         base -:= bound
+      put(lseq, base + i)
+      }
+
+   k := (smin ! lseq)
+
+   if k > 0 then return lseq
+
+   k := bound * (-k / bound + 1)
+
+   every !lseq +:= k
+
+   return lseq
+
+end
+procedure sunop(op, xargs[])		#: unary operation on terms
+   local lseq, i, x
+
+   if \node_gen then return node("sunop", xargs)
+
+   x := spromote(xargs[1])
+
+   op := proc(op, 1) | fail
+
+   lseq := []
+
+   every i := 1 to *x do
+      put(lseq, op(x[i]))
+
+   return lseq
+
+end
+
+procedure walk_tree(n, tree_list, tree_ptrs, depth)
+   local indent
+
+   /tree_list := []
+   /tree_ptrs := []
+   /depth := 0
+
+   indent := repl(" ", 3 * depth)
+
+   n := integer(n)
+
+   case type(n) of {
+      "integer" | "list"  :  {
+         put(tree_list, indent || "[" || simage(n, MaxTerms) || "]")
+         put(tree_ptrs, n)
+         return [tree_list, tree_ptrs]
+         }
+      "string"            :  {
+         put(tree_list, indent || n)
+         put(tree_ptrs, n)
+         return [tree_list, tree_ptrs]
+         }
+      }
+
+   put(tree_list, indent || n.name)
+   put(tree_ptrs, n)
+
+   every walk_tree(!n.seqlist, tree_list, tree_ptrs, depth + 1)
+
+   return [tree_list, tree_ptrs]
 
 end

@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     June 21, 2000
+#	Date:     June 10, 2001
 #
 ############################################################################
 #
@@ -33,11 +33,19 @@
 #
 #  chexmorphseq()	sequence of centered hexamorphic numbers
 #
-#  connellseq(p)	the generalized Connell sequence
+#  connellseq(p)	generalized Connell sequence
+#
+#  dietzseq(s)		Dietz sequence for polynomial
+#
+#  dressseq(i)		dress sequence with increment i, default 1 (Schroeder)
 #
 #  eisseq(i)		EIS A sequence for i
 #
 #  factseq()		factorial sequence
+#
+#  fareyseq(i, k)	Farey fraction sequence; k = 0, the default, produces
+#			numerator sequence; k = 1 produces denominator
+#			sequence
 #
 #  fibseq(i, j, k, m)	generalized Fibonacci sequence (Lucas sequence)
 #			with initial values i and j and additive constant
@@ -69,6 +77,8 @@
 #			of characters from s
 #	
 #  mthueseq()		Morse-Thue sequence
+#
+#  mthuegseq(i)		Morse-Thue sequence for base i
 #
 #  multiseq(i, j, k)	sequence of (i * j + k) i's
 #
@@ -102,6 +112,9 @@
 #
 #  spectseq(r)		spectral sequence integer(i * r), i - 1, 2, 3, ...
 #
+#  srpseq(n, m)		palindromic part of the continued-fraction sequence
+#			for sqrt(n^2+m)
+#
 #  versumseq(i, j)	generalized sequence of added reversed integers with
 #			seed i (default 196) and increment j (default 0)
 #
@@ -118,17 +131,23 @@
 #
 ############################################################################
 #
-#  Links:  fastfncs, io, lindgen, partit, numbers, rational, xcode
+#  Links:  convert, factors, fastfncs, io, lindgen, lists, numbers,
+#	partit, periodic, polynom, rational, strings, xcode
 #
 ############################################################################
 
-link lists
+link convert
+link factors
 link fastfncs
 link io
 link lindgen
+link lists
 link numbers
 link partit
+link periodic
+link polynom
 link rational
+link strings
 link xcode
 
 procedure arandseq(i, j)	#: arithmetic sequence with random intervals
@@ -149,15 +168,19 @@ procedure arithseq(i, j)	#: arithmetic sequence
 
 end
 
-procedure beatty1seq()		#: Beatty sequence 1
+procedure beatty1seq(r)		#: Beatty sequence 1
 
-   suspend integer(seq() * &phi)
+   /r := &phi
+
+   suspend integer(seq() * r)
 
 end
 
-procedure beatty2seq()		#: Beatty sequence 2
+procedure beatty2seq(r)		#: Beatty sequence 2
 
-   suspend integer(seq() * &phi ^ 2)
+   /r := &phi
+
+   suspend integer(seq() * (r / (r - 1)))
 
 end
 
@@ -226,18 +249,71 @@ procedure cfseq(i, j)	#: continued-fraction sequence
 
 end
 
+procedure dietzseq(str)
+   local vars
+
+   str := deletec(str, ' ')		# delete blanks
+
+   vars := &letters ** cset(str)
+
+   suspend !map(poly2profile(eval(str)), vars, &digits[2+:*vars])
+
+end
+
+procedure eval(str)
+
+   while str ?:= 2(="(", tab(bal(')')), =")", pos(0))
+
+   return oper(str) | str2poly(str)
+
+end
+
+procedure oper(str)
+
+   return str ? form(tab(bal('-+*^')), move(1), tab(0))
+
+end
+
+procedure form(str1, op, str2)
+
+   return case op of {
+      "+"  :  polyadd(eval(str1), eval(str2))
+      "-"  :  polysub(eval(str1), eval(str2))
+      "*"  :  polymul(eval(str1), eval(str2))
+      "^"  :  polyexp(eval(str1), str2)
+      }
+
+end
+
+procedure dressseq(i)		#: dress sequence
+   local s, t
+
+   /i := 1
+
+   s := [0]
+
+   suspend !s
+
+   repeat {
+      t := []
+      every put(t, !s + i)
+      suspend !t
+      s |||:= t
+      }
+
+end
+
 procedure eisseq(i)		#: EIS A sequence
-   local input, seq, lst
+   local input, seq
+   static lst
 
-   input := dopen("eis.seq") | fail
+   initial {
+      input := dopen("eis.seq") | fail
+      lst := xdecode(input) | fail
+      close(input)
+      }
 
-   lst := xdecode(input) | fail
-
-   seq := \lst[i] | fail
-
-   close(input)
-
-   lst := &null
+   seq := \lst[integer(i)] | fail
 
    suspend !seq
 
@@ -249,6 +325,62 @@ procedure factseq()		#: factorial sequence
    i := 1
 
    suspend i *:= seq()
+
+end
+
+record farey(magnitude, n, d)
+
+procedure fareyseq(i, k)		#: Farey fraction sequence
+   local farey_list, n, d, x
+
+   /k := 0				# default numerators
+
+   k := integer(k) | fail
+
+   farey_list := [farey(0.0, 0, 1)]
+
+   every d := 1 to i do
+      every n := 1 to d do {
+         if gcd(n, d) = 1 then
+            put(farey_list, farey(real(n) / d, n, d))
+         }
+
+   farey_list := sortf(farey_list, 1)
+
+   case k of {
+      0  :  every suspend (!farey_list).n	# numerator sequence
+      1  :  every suspend (!farey_list).d	# denominator sequence
+      }
+
+end
+      
+procedure fareydseq(i)		#: Farey fraction denominator sequence
+   local parity, j
+
+   parity := 1
+
+   every j := fareyseq(i) do {
+      if parity < 0 then suspend j
+      parity *:= -1
+      }
+
+end
+
+procedure fareynseq(i)		#: Farey fraction numerator sequence
+   local parity, j
+
+   parity := 1
+
+   every j := fareyseq(i) do {
+      if parity > 0 then suspend j
+      parity *:= -1
+      }
+
+end
+
+procedure fareyn1seq(i)		#: Farey fraction numerator sequence, 1-based
+
+   suspend fareynseq(i) + 1
 
 end
 
@@ -349,7 +481,7 @@ end
 procedure linrecseq(terms, coeffs)	#: synonym for lrrcseq
    linrecseq := lrrcseq
 
-   return lrrcseq(terms, coeffs)
+   suspend lrrcseq(terms, coeffs)
 
 end
 
@@ -389,17 +521,26 @@ procedure meanderseq(alpha, n)	#: generate meandering characters
 
 end
 
-
 procedure mthueseq()		#: Morse-Thue sequence
-   local i, s
+   local s, t
 
-   i := 0
-   s := "0"
+   s := 0
 
-   suspend |((s[i +:= 1] | (s ||:= map(s, "01", "10"), s[i])) \ 1)
+   suspend s
+
+   repeat {
+      t := map(s, "01", "10")
+      every suspend integer(!t)
+      s ||:= t
+      }
 
 end
-   
+
+procedure mthuegseq(j)		#: generalized Morse-Thue sequence
+
+   suspend adr(exbase10(seq(0), j)) % j		# only works through base 10
+      
+end
    
 procedure multiseq(i, j, k)	#: sequence of repeated integers
 
@@ -570,6 +711,42 @@ procedure spectseq(r)		#: spectral sequence
 
 end
 
+
+procedure srpseq(n, m)		#: generate square-root palindrome
+   local iter, count, okay, rat, j, pal
+
+   if not (1 <= m <= 2 * n) then fail
+
+   iter := 5
+
+   repeat {
+      pal := []
+      count := 0
+      okay := 1
+      rat := Sqrt(n ^ 2 + m, iter)
+      every j := cfseq(rat.numer, rat.denom) do {
+         count +:= 1
+         if count = 1 then next	# don't examine first term
+         if j = 2 * n then {	# presumed end
+            if not lequiv(pal, lreverse(pal)) then break
+            okay := &null
+            break
+            }
+         else if j > n then break			# too big; error
+         else put(pal, j)
+         }
+      if \okay then {
+         iter +:= 1			# back to repeat loop
+         if iter > 12 then fail		# too many iterations required.
+         next
+         }
+      break
+      }
+
+   suspend !pal
+
+end
+
 procedure versumseq(i, j)	#: generalized reversed-sum sequence
 
    /j := 0
@@ -626,7 +803,7 @@ procedure zebra(args[])		#: black and white bands
    clr_alt := 1			# dark
 
    while i := get(args) do {
-      suspend (i to i) & clr
+      suspend (1 to i) & clr
       clr :=: clr_alt
       }
 

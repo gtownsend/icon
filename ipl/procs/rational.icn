@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     May 1, 2001
+#	Date:     June 10, 2001
 #
 ############################################################################
 #
@@ -23,6 +23,8 @@
 #     addrat(r1,r2) Add rational numbers r1 and r2.
 #
 #     divrat(r1,r2) Divide rational numbers r1 and r2.
+#
+#     medrat(r1,r2) Form mediant of r1 and r2.
 #
 #     mpyrat(r1,r2) Multiply rational numbers r1 and r2.
 #
@@ -78,6 +80,21 @@ procedure divrat(r1, r2)		#: divide rationals.
    r2 := ratred(r2)
 
    return mpyrat(r1, reciprat(r2))
+
+end
+ 
+procedure medrat(r1, r2)		#: form rational mediant
+   local numer, denom, div
+
+   r1 := ratred(r1)
+   r2 := ratred(r2)
+
+   numer := r1.numer + r2.numer
+   denom := r1.denom + r2.denom
+
+   div := gcd(numer, denom)
+
+   return rational(numer / div, denom / div, r1.sign * r2.sign)
 
 end
  

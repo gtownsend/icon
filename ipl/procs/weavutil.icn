@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     May 2, 2001
+#	Date:     June 10, 2001
 #
 ############################################################################
 #
@@ -32,6 +32,7 @@ record PflParams(P, T)
 #  Sequence-drafting database record
 
 record sdb(table, name)			# specification database
+record ldb(table, name)			# specification database
 
 record ddb(table)			# definition database
 record edb(table)			# expression database
@@ -138,7 +139,7 @@ procedure write_spec(name, spec, opt, mode)	#: write weaving include file
    if \mode == "drawdown" then write(output, "$define DrawDown")
 
    #  Literals are output with image().  Other definitions are
-   #  Icon experssions, enclosed in parentheses.
+   #  Icon expressions, enclosed in parentheses.
 
    write(output, "$define Comments ", image(spec.comments))
    write(output, "$define Name ", image(spec.name))
@@ -179,19 +180,66 @@ procedure write_spec1(name, spec, opt, mode, defns)	#: weaving include file
    if \mode == "drawdown" then write(output, "$define DrawDown")
 
    #  Literals are output with image().  Other definitions are
-   #  Icon experssions, enclosed in parentheses.
+   #  Icon expressions, enclosed in parentheses.
 
    write(output, "$define Comments ", image(spec.comments))
    write(output, "$define Name ", image(spec.name))
    write(output, "$define Palette ", image((\spec.palette).name))
-   write(output, "$define WarpPalette ", image((\spec.warp_palette).name))
-   write(output, "$define WeftPalette ", image((\spec.weft_palette).name))
+#  write(output, "$define WarpPalette ", image((\spec.warp_palette).name))
+#  write(output, "$define WeftPalette ", image((\spec.weft_palette).name))
    write(output, "$define WarpColors (", check(spec.warp_colors), ")")
    write(output, "$define WeftColors (", check(spec.weft_colors), ")")
    write(output, "$define Breadth (", spec.breadth, ")")
    write(output, "$define Length (", spec.length, ")")
    write(output, "$define Threading (", check(spec.threading), ")")
    write(output, "$define Treadling (", check(spec.treadling), ")")
+   write(output, "$define Shafts (", spec.shafts, ")")
+   write(output, "$define Treadles (", spec.treadles, ")")
+   write(output, "$define Tieup ", spec.tieup)
+   
+   every n := !keylist(spec.defns) do
+      write(output, "$define ", n, " ", spec.defns[n])
+
+   if \defns then
+      every n := !keylist(defns) do
+         write(output, "$define ", n, " ", defns[n])
+
+   write(output, bar)
+
+   close(output)
+
+   return
+
+end
+
+#  Write include file for lstdraft (new)
+
+procedure write_spec2(name, spec, opt, mode, defns)	#: weaving include file
+   local n, output
+   static bar
+
+   initial bar := repl("#", 72)
+
+   /opt := "w"
+
+   output := open(name, opt) | fail
+
+   if \mode == "drawdown" then write(output, "$define DrawDown")
+
+   #  Literals are output with image().  Other definitions are
+   #  Icon expressions, enclosed in parentheses.
+
+   write(output, "$define Comments ", image(spec.comments))
+   write(output, "$define Name ", image(spec.name))
+   write(output, "$define Palette ", image((\spec.palette)))
+   write(output, "$define WarpPalette ", image((\spec.warp_palette)))
+   write(output, "$define WeftPalette ", image((\spec.weft_palette)))
+   write(output, "$define WarpColors (", spec.warp_colors, ")")
+   write(output, "$define WeftColors (", spec.weft_colors, ")")
+   write(output, "$define Breadth (", spec.breadth, ")")
+   write(output, "$define Length (", spec.length, ")")
+   write(output, "$define Threading (", spec.threading, ")")
+   write(output, "$define Treadling (", spec.treadling, ")")
    write(output, "$define Shafts (", spec.shafts, ")")
    write(output, "$define Treadles (", spec.treadles, ")")
    write(output, "$define Tieup ", spec.tieup)

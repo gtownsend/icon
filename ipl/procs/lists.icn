@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     February 9, 2001
+#	Date:     June 10, 2001
 #
 ############################################################################
 #
@@ -17,6 +17,10 @@
 #	Contributor:  Richard L. Goerwitz
 #
 ############################################################################
+#
+#	file2lst(s)	create list from lines in file
+#
+#	imag2lst(s)	convert limage() output to list
 #
 #	l_Bscan(e1)	begin list scanning
 #
@@ -47,18 +51,42 @@
 #	l_upto(l1,l2,i,j)
 #			upto() for list scanning
 #
+#	lclose(L)	close open palindrome
+#
 #	lcomb(L,i)	list combinations
+#
+#	lcompact(L)	compact list, mapping out missing values
+#
+#	ldecollate(I, L)
+#			list decollation
 #
 #	ldelete(L, spec)
 #			list deletion
 #
+#	ldupl(L, i)	list term duplication
+#
 #	lequiv(L1, L2)	list equivalence
+#
+#	levate(L, m, n)	list elevation
 #
 #	lextend(L, i)	list extension
 #
+#	lfliph(L)	list horizontal flip (reversal)
+#
+#	lflipv(L)	list vertical flip
+#
 #	limage(L)	unadorned list image
 #
+#	lcollate(L1, L2, ...)
+#			list collation; like linterl() except stops on
+#			short list
+#
+#	lconstant(L)	succeeds and returns element if all are the same
+#
 #	linterl(L1, L2)	list interleaving
+#
+#	llayer(L1, L2, ...)
+#			layer and interleave L1, L2, ... 
 #
 #	llpad(L, i, x)	list padding at left
 #
@@ -84,13 +112,24 @@
 #
 #	lrepl(L, i)	list replication
 #
+#	lresidue(L, m, i)
+#			list residue
+#
 #	lreverse(L)	list reverse
 #
 #	lrotate(L, i)	list rotation
 #
 #	lrpad(L, i, x)	list right padding
 #
+#	lrundown(L1, L2, L3)
+#			list run down
+#
+#	lrunup(L1, L2, L3)
+#			list run up
+#
 #	lrtrim(L, S)	list right trimming
+#
+#	lshift(L, i)	shift list terms
 #
 #	lswap(L)	list element swap
 #
@@ -275,15 +314,48 @@
 #
 ############################################################################
 #
-#  Links:  indices
-#
-############################################################################
-#
-#  See also:  structs.icn
+#  Links:  equiv, indicies, numbers
 #
 ############################################################################
 
+link equiv
 link indices
+link numbers
+
+procedure file2lst(s)			#: create list from lines in file
+   local input, result, x
+
+   input := open(s) | fail
+
+   result := []
+
+   every x := !input do {
+      x := numeric(x)			# kludge
+      put(result, x)
+      }
+
+   close(input)
+
+   return result
+
+end
+
+procedure imag2lst(seqimage)		#: convert limage() output to list
+   local seq, term
+
+   seq := []
+
+   seqimage[2:-1] ? {
+      while term := tab(upto(',') | 0) do {
+         term := numeric(term)			# special interest
+         put(seq, term)
+         move(1) | break
+         }
+      }
+
+   return seq
+
+end
 
 global l_POS
 global l_SUBJ
@@ -739,12 +811,83 @@ procedure lblock(L1, L2)
 
 end
 
+procedure llayer(args[])		#: interleave lists with layering
+   local offsets, offset, seq, arg, lists, k
+
+   lists := []
+
+   every put(lists, lcompact(!args))
+
+   offsets := []
+
+   offset := 0
+
+   every arg := !lists do {
+      put(offsets, offset)
+      offset +:= max ! arg
+      }
+
+   seq := []
+
+   repeat {
+      every k := 1 to *lists do {
+         arg := lists[k]
+         put(seq, get(arg) + offsets[k]) | break break
+         }
+      }
+
+   return seq
+
+end
+
+procedure lcompact(seq)			#: compact sequence
+   local unique, target
+
+   unique := set(seq)
+
+   target := []
+
+   every put(target, 1 to *unique)
+
+   return lmap(seq, sort(unique), target)
+
+end
+
+procedure lclose(L)			#: close open palindrome
+
+   if equiv(L, lreverse(L)) then return L
+   else {
+      L := copy(L)
+      put(L, L[1])
+      return L
+      }
+
+end
+
 procedure lcomb(L,i)			#: list combinations
    local j
 
    if i < 1 then fail
    suspend if i = 1 then [!L]
       else [L[j := 1 to *L - i + 1]] ||| lcomb(L[j + 1:0],i - 1)
+
+end
+
+procedure ldecollate(indices, L)	#: list decollation
+   local result, i, x
+
+   indices := copy(indices)
+
+   result := list(max ! indices)	# list of lists to return
+   every !result := []			# initially empty
+
+   every x := !L do {
+      i := get(indices)	| fail
+      put(indices, i)
+      put(result[i], x)
+      }
+
+   return result
 
 end
 
@@ -760,6 +903,22 @@ procedure ldelete(L, spec)		#: delete specified list elements
 
 end
 
+procedure ldupl(L1, L2)			#: list term duplication
+   local L3, i, j
+
+   if integer(L2) then L2 := [L2]
+
+   L3 := []
+
+   every i := !L2 do
+      every j := !L1 do
+        every 1 to i do
+           put(L3, j)
+
+   return L3
+
+end
+
 procedure lequiv(x,y)			#: compare lists for equivalence
    local i
 
@@ -770,6 +929,29 @@ procedure lequiv(x,y)			#: compare lists for equivalence
          if not lequiv(x[i],y[i]) then fail
       return y
      }
+
+end
+
+procedure levate(seq, m, n)		#: elevate values
+   local shafts, reseq, i, j, k
+
+   shafts := list(m)
+
+   every !shafts := []
+
+   every i := 1 to m do
+      every put(shafts[i], i to n by m)
+
+   reseq := []
+
+   while j := get(seq) do {
+      i := j % m + 1
+      k := get(shafts[i])
+      put(reseq, k)
+      put(shafts[i], k)
+      }
+
+   return reseq
 
 end
 	
@@ -789,16 +971,65 @@ procedure lextend(L, i)			#: list extension
  
 end
 
+procedure lfliph(L)			#: list horizontal flip (reversal)
+
+   lfliph := lreverse
+
+   return lfliph(L)
+
+end
+
+procedure lflipv(L)			#: list vertical flip
+   local L1, m, i
+
+   m := max ! L
+
+   L1 := []
+
+   every i := !L do
+      put(L1, residue(-i + 1, m, 1))
+
+   return L1
+
+end
+
 procedure limage(L)			#: list image
    local result
 
-   if type(L) ~== "list" then stop("*** invalid type to limage()")
+   if type(L) ~== "list" then fail
 
    result := ""
 
    every result ||:= image(!L) || ","
 
    return ("[" || result[1:-1] || "]") | "[]"
+
+end
+
+procedure lcollate(args[])		#: generalized list collation
+   local seq, arg, lists, k
+
+   lists := []
+
+   every put(lists, copy(!args))
+
+   seq := []
+
+   repeat {
+      every k := 1 to *lists do {
+         arg := lists[k]
+         put(seq, get(arg)) | break break
+         }
+      }
+
+   return seq
+
+end
+
+procedure lconstant(L)			#: test list for all terms equal
+
+   if *set(L) = 1 then return L[1]
+   else fail
 
 end
 
@@ -826,6 +1057,33 @@ procedure llpad(L, i, x)		#: list padding at left
    return L
 
 end
+
+procedure lrunup(L1, L2, L3)		#: list run up
+   local L4
+
+   /L3 := [1]		# could be /L3 := 1 ...
+
+   L4 := []
+
+   every put(L4, !L1 to !L2 by !L3)
+
+   return L4
+
+end
+
+procedure lrundown(L1, L2, L3)		#: list run up
+   local L4
+
+   /L3 := [1]		# could be /L3 := 1 ...
+
+   L4 := []
+
+   every put(L4, !L1 to !L2 by -!L3)
+
+   return L4
+
+end
+
 
 procedure lltrim(L, S)			#: list left trimming
 
@@ -859,6 +1117,19 @@ procedure lmap(L1,L2,L3)		#: list mapping
    every i := 1 to *L1 do			# map the values
       L1[i] := (tdefault ~=== lmaptbl[L1[i]])
    return L1
+
+end
+
+procedure lresidue(L, m, i)		#: list residue
+   local result
+
+   /i := 0
+
+   result := []
+
+   every put(result, residue(!L, m, i))
+
+   return result
 
 end
 
@@ -977,6 +1248,16 @@ procedure lrtrim(L, S)			#: list right trimming
       pull(L)
 
     return L
+
+end
+
+procedure lshift(L, i)			#: shift list terms
+
+   L := copy(L)
+
+   every !L +:= i
+
+   return L
 
 end
 

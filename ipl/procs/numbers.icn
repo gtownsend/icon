@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     May 1, 2001
+#	Date:     June 10, 2001
 #
 ############################################################################
 #
@@ -110,6 +110,8 @@
 #
 #	round(r)	returns nearest integer to r.
 #
+#	sigma(i)	synonym for digroot(i)
+#
 #	sign(r)		returns sign of r.
 #
 #	spell(i)	spells out i in English.
@@ -122,10 +124,11 @@
 #
 ############################################################################
 #
-#	Links:  strings
+#	Links:  factors, strings
 #	
 ############################################################################
 
+link factors
 link strings
 
 procedure adp(i)		#: additive digital persistence
@@ -251,6 +254,8 @@ procedure digred(i)		#: sum digits of integer repeated to one digit
 end
 
 procedure digroot(i)		#: digital root
+
+   if i = 0 then return 1
 
    i %:= 9
    
@@ -592,6 +597,14 @@ end
 procedure round(r)		#: round real
 
    if r > 0 then return integer(r + 0.5) else return -integer(0.5 - r)
+
+end
+
+procedure sigma(i)		#: synonym for digroot()
+
+   sigma := digroot
+
+   return sigma(i)
 
 end
 

@@ -1,0 +1,151 @@
+############################################################################
+#
+#	File:     polynom.icn
+#
+#	Subject:  Procedures to manipulate multi-variate polynomials
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 11, 2001
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  The format for strings omits symbols for multiplication and expponention.
+#  For example, 3*a^2 is entered as 3a2.
+#
+############################################################################
+#
+#  Links:  strings, tables
+#
+############################################################################
+
+link strings
+link tables
+
+procedure str2poly(str)			#: convert string to polynomial
+   local poly, var, vars, term, factor, power
+
+   poly := table(0)
+
+   str ? {
+      while term := (move(1) || tab(upto('-+') | 0)) do {	# possible sign
+         term ? {
+            factor := 1			# default
+            factor := tab(many(&digits ++ '+-'))
+            tab(0) ? {
+               vars := ""
+               while var := move(1) do {
+                  power := 1		# default
+                  power := integer(tab(many(&digits)))
+                  vars ||:= repl(var, power)
+                  }
+               }
+            poly[csort(vars)] +:= integer(factor)
+            }
+         }
+      }
+
+   return poly
+
+end
+
+procedure polyadd(poly1, poly2)		#: add polynomials
+   local poly, keys, k
+
+   keys := sort(set(keylist(poly1)) ++ set(keylist(poly2)))
+
+   poly := table(0)
+
+   every k := !keys do
+      poly[k] := poly1[k] + poly2[k]
+
+   return poly
+
+end
+
+procedure polysub(poly1, poly2)		#: substract polynomials
+   local poly, keys, k
+
+   keys := sort(set(keylist(poly1)) ++ set(keylist(poly2)))
+
+   poly := table(0)
+
+   every k := !keys do
+      poly[k] := poly1[k] - poly2[k]
+
+   return poly
+
+end
+
+procedure polymul(poly1, poly2)		#: multiply polynomials
+   local poly, keys1, keys2, k1, k2
+
+   keys1 := keylist(poly1)
+   keys2 := keylist(poly2)
+
+   poly := table(0)
+
+   every k1 := !keys1 do
+      every k2 := !keys2 do
+         poly[csort(k1 || k2)] +:= poly1[k1] * poly2[k2]
+
+   return poly
+
+end
+
+procedure polyexp(poly1, i)		#: exponentiate polynomial
+   local poly
+
+   poly := copy(poly1)
+
+   every 1 to i - 1 do 
+      poly := polymul(poly, poly1)
+
+   return poly
+
+end
+
+procedure poly2str(poly)		#: polynomial to string
+   local str, keys, k, count, var
+
+   keys := keylist(poly)
+
+   str := ""
+
+   every k := !keys do {
+      if poly[k] = 0 then next		# skip term
+      else if poly[k] > 1 then str ||:= "+" || poly[k]
+      else if poly[k] = -1 then str ||:= "-"
+      else if poly[k] < 0 then str ||:= poly[k]
+      else str ||:= "+"
+      k ? {
+         while var := move(1) do {
+            count := 1
+            count +:= *tab(many(var))
+            if count = 1 then str ||:= var
+            else str ||:= var || count
+            }
+         }
+      }
+
+   return str[2:0]
+
+end
+
+procedure poly2profile(poly)		#: polynomial to profile sequence
+   local str, keys, k, count, var
+
+   keys := keylist(poly)
+
+   str := ""
+
+   every k := !keys do
+      str ||:= repl(k, (0 < poly[k]))
+
+   return str
+
+end

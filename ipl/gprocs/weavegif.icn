@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     May 2, 2001
+#	Date:     June 10, 2001
 #
 ############################################################################
 #
@@ -27,6 +27,12 @@
 #  Links: tables, wopen
 #
 ############################################################################
+#
+#  Links: wopen
+#
+############################################################################
+
+link wopen
 
 link tables, wopen
 
@@ -72,9 +78,9 @@ procedure weavegif(draft, attribs)	#: create GIF from ISD
    
    every !treadle_list := [win]
 
-   every i := 1 to draft.height do {
+   every i := 1 to draft.treadles do {
       every j := 1 to draft.shafts do
-         if draft.tieup[i, j] == "0" then
+         if draft.tieup[j, i] == "0" then
             every k := 1 to *draft.threading do
                if draft.threading[k] = j then
                   put(treadle_list[i], k - 1, 0)
@@ -83,7 +89,7 @@ procedure weavegif(draft, attribs)	#: create GIF from ISD
    if \draft.color_list then {
       treadle_colors := list(*draft.color_list)
       every !treadle_colors := []
-      every i := 1 to draft.width do {
+      every i := 1 to draft.height do {
          j := draft.weft_colors[i]
          put(treadle_colors[j], i)
          }

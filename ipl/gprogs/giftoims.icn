@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     December 9, 1999
+#	Date:     June 10, 2001
 #
 ############################################################################
 #
@@ -88,10 +88,10 @@ procedure main(args)
          str ? {
             write(output, "   \"", tab(upto(',') + 1), tab(upto(',') + 1), "_")
             while seg := move(length) do {
-               if pos(0) then write(output, "   ", fix(seg), "\"")
-               else write(output, "   ", fix(seg), "_")
+               if pos(0) then write(output, "   ", esc(seg), "\"")
+               else write(output, "   ", esc(seg), "_")
                }
-            if not pos(0) then write(output, "   ", fix(tab(0)), "\"")
+            if not pos(0) then write(output, "   ", esc(tab(0)), "\"")
             }
          }
       close(output)
@@ -100,7 +100,7 @@ procedure main(args)
 
 end
 
-procedure fix(s)
+procedure esc(s)
 
    s := image(s)
    s := replace(s, "$", "\\x24")

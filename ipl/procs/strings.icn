@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     May 18, 2001
+#	Date:     June 10, 2001
 #
 ############################################################################
 #
@@ -80,7 +80,7 @@
 #	palins(s, n)       generates all the n-character palindromes from the
 #			   characters in s.
 #
-#	permute(s)         generates all the permutations of the string s.
+#	permutes(s)        generates all the permutations of the string s.
 #
 #	pretrim(s, c)	   trims characters from beginning of s.
 #
@@ -474,11 +474,11 @@ procedure palins(s, n)			#: palindromes
     
 end
 
-procedure permute(s)			#: string permutations
+procedure permutes(s)			#: generate string permutations
    local i
 
    if *s = 0 then return ""
-   suspend s[i := 1 to *s] || permute(s[1:i] || s[i+1:0])
+   suspend s[i := 1 to *s] || permutes(s[1:i] || s[i+1:0])
 
 end
 
