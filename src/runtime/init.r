@@ -24,6 +24,7 @@ extern  setint_t    sizevar;
 
 static void	env_err		(char *msg, char *name, char *val);
 FILE		*pathOpen       (char *fname, char *mode);
+static long	 deep		(int n);
 
 /*
  * The following code is operating-system dependent [@init.01].  Declarations
@@ -107,6 +108,7 @@ struct b_proc *op_tbl;			/* operators available for string invocation */
 
 extern struct errtab errtab[];		/* error numbers and messages */
 
+int upstack;				/* does stack grow upward? */
 word mstksize = MStackSize;		/* initial size of main stack */
 word stksize = StackSize;		/* co-expression stack size */
 
@@ -721,6 +723,11 @@ Deliberate Syntax Error
    envset();
 
    /*
+    * Check direction of stack growth.
+    */
+   upstack = deep(2) > deep(1);
+
+   /*
     * Convert stack sizes from words to bytes.
     */
 
@@ -1015,6 +1022,12 @@ Deliberate Syntax Error
  * Service routines related to getting things started.
  */
 
+/*
+ * Return address of argument at given depth (for inferring stack behavior).
+ */
+static long deep(int n) {
+   return n <= 1 ? (long)&n : deep(n - 1);
+}
 
 /*
  * Check for environment variables that Icon uses and set system
