@@ -16,7 +16,182 @@ procedure main()
    T["three"] := 333
 
    write()
-   write("strings:")
+   write("convert:")			# convert
+   gen(exbase10, 11213, 8)
+   gen(inbase10, 11213, 8)
+   gen(radcon, 11213, 4, 7)
+
+   write()
+   write("datetime:")			# datetime
+   HoursFromGmt := 7
+   gen(ClockToSec, "14:27:43")
+   gen(DateLineToSec, "Friday, September 7, 1984  1:07 pm")
+   gen(DateToSec, "1984/09/07")
+   gen(SecToClock, 14 * 3600 + 27 * 60 + 43)
+   gen(SecToDate, 463338000)
+   gen(SecToDateLine, 463385237)
+   gen(SecToUnixDate, 463385237)
+   gen(IsLeapYear, 2004)
+   gen(dayoweek, 7, 9, 1984)
+   gen(julian, 9, 7, 1984)
+   gen(saytime, "15:00:47")
+   # several procedures that return records omitted
+
+   write()
+   write("factors:")			# factors
+   gen(divisors, 360)
+   gen(factorial, 0)
+   gen(factorial, 6)
+   lst(factors, 360)
+   gen(genfactors, 360)
+   gen(gfactorial, 5, 2)
+   gen(ispower, 81, 4)
+   gen(isprime, 97)
+   gen(nxtprime, 97)
+   lst(pfactors, 360)
+   lst(prdecomp, 360)
+   lst(prdecomp, 504)
+   gen(prime)
+#  gen(primel)		# not testable without data file
+#  gen(primeorial, 12)	# not testable without data file
+   gen(sfactors, 360)
+
+   write("[testing factorizations]")
+   every tfact(1 to 100)
+   write("[testing prime numbers]")
+   tprimes(100)
+
+   write()
+   write("io:")				# io
+   gen(exists, "/foo/bar/baz/not/very/likely")
+   gen(directory, "/tmp")
+   # several others omitted
+
+   write()
+   write("lists:")			# lists
+   lst(ldelete, copy(L), 3)
+   lst(lequiv, L, copy(L))
+   lst(lextend, L, 20)
+   lst(limage, L)
+   lst(linterl, L, lreverse(L))
+   lst(llpad, L, 14, 0)
+   lst(lltrim, L, set([3]))
+   lst(lpalin, L)
+   lst(lpermute, L)
+   lst(lreflect, L)
+   lst(lremvals, L, 1, 5)
+   lst(lrepl, L, 2)
+   lst(lreverse, L)
+   lst(lrotate, L, 4)
+   lst(lrpad, L, 14, 0)
+   lst(lrtrim, L, set([3, 5]))
+   lst(lswap, L)
+   lst(lunique, L)
+   lst(lmaxlen, L, integer)
+   lst(lminlen, L, integer)
+   lst(sortkeys, L)
+   lst(sortvalues, L)
+   lst(str2lst, "Once upon a midnight dreary", 5)
+   # several others omitted
+
+   write()
+   write("math:")			# math
+   gen(binocoef, 16, 5)
+   gen(cosh, &pi / 3)
+   gen(sinh, &pi / 3)
+   gen(tanh, &pi / 3)
+
+   write()
+   write("numbers:")			# numbers 
+   gen(adp, 2147483647)
+   gen(adr, 2147483647)
+   gen(amean, 1, 1, 2, 3, 5, 8, 13, 21, 42)
+   gen(ceil, &pi)
+   gen(commas, 2147483647)
+   gen(decimal, 1, 70)				#%#% wrong result
+   gen(decipos, &pi, 6, 10)
+   gen(digprod, 2147483647)
+   gen(digred,  2147483647)
+   gen(digroot, 2147483647)
+   gen(digsum,  2147483647)
+   gen(distseq, 1, GENLIMIT)
+   gen(div, 355, 113)
+   gen(fix, 355, 113, 10, 4)
+   gen(floor, &phi)
+   gen(frn, &pi, 10, 4)
+   gen(gcd, 42, 120)
+   gen(gcdl, 42, 120, 81)
+   gen(gmean, 1, 1, 2, 3, 5, 8, 13, 21, 42)
+   gen(hmean, 1, 1, 2, 3, 5, 8, 13, 21, 42)
+   gen(large, 214748364721474836472147483647)
+   gen(lcm, 20, 24)
+   gen(lcm, 20, 24, 16)
+   gen(mantissa, &e)
+   gen(max, &e, &pi, &phi)
+   gen(mdp, 2147483647)
+   gen(mdr, 2147483647)
+   gen(min, &e, &pi, &phi)
+   gen(mod1, 21, 7)
+   gen(npalins, 2)
+   gen(residue, 21, 7, 14)
+   gen(roman, 1989)
+   gen(round, &e)
+   gen(sign, -47)
+   gen(spell, 47193)				#%#% result not strictly correct
+   gen(sum, 1, 1, 2, 3, 5, 8, 13, 21, 42)
+   gen(trunc, &phi)
+   gen(unroman, "MCMLXXIV")
+
+   write()
+   write("random:")			# random
+   gen(rand_num)
+   gen(rand_int, 20)
+   gen(randomize)
+   gen(randrange, 30, 50)
+   gen(randrangeseq, 52, 99)
+   gen(randseq, 1903)
+   gen(rng) 
+   gen(shuffle, "A23456789TJQK")
+
+   write()
+   write("rational:")			# rational  (not part of core)
+   rat(str2rat, "(355/113)")
+   r1 := rat(real2rat, 355. / 113.)
+   gen(rat2str, r1)
+   gen(rat2real, r1)
+   r2 := rat(negrat, r1)
+   r3 := rat(reciprat, r1)
+   rat(addrat, r1, r3)
+   rat(subrat, r1, r3)
+   rat(mpyrat, r1, r2)
+   rat(divrat, r1, r3)
+   trat()
+
+   write()
+   write("records:")			# records
+   gen(field, DateRec(), 7)
+   gen(fieldnum, DateRec(), "weekday")
+
+   write()
+   write("scan:")			# scan
+
+   write()
+   write("sets:")			# sets
+   lst(cset2set, &digits)
+   lst(domain, T)
+   lst(inverse, T)
+   #   pairset, T    returns list of lists
+   lst(range, T)
+   lst(seteq, set([4, 7, 1]), set([7, 1, 4]))
+   lst(setlt, set([4, 7, 1]), set([7, 3, 1, 4]))
+   gen(simage, set(L))
+
+   write()
+   write("sort:")			# sort
+   lst(isort, "Quoth The Raven: Nevermore", map)
+
+   write()
+   write("strings:")			# strings
    gen(cat, "abc", "def", "ghi")
    gen(charcnt, "deinstitutionalization", 'aeiou')
    gen(collate, "abcde", "12345")
@@ -60,177 +235,7 @@ procedure main()
    gen(words,    "fly.me.to.the.moon.and.let.me.sing.among.the.stars", '.')
 
    write()
-   write("scan:")
-
-   write()
-   write("numbers:")
-   gen(adp, 2147483647)
-   gen(adr, 2147483647)
-   gen(amean, 1, 1, 2, 3, 5, 8, 13, 21, 42)
-   gen(ceil, &pi)
-   gen(commas, 2147483647)
-   gen(decimal, 1, 70)				#%#% wrong result
-   gen(decipos, &pi, 6, 10)
-   gen(digprod, 2147483647)
-   gen(digred,  2147483647)
-   gen(digroot, 2147483647)
-   gen(digsum,  2147483647)
-   gen(distseq, 1, GENLIMIT)
-   gen(div, 355, 113)
-   gen(fix, 355, 113, 10, 4)
-   gen(floor, &phi)
-   gen(frn, &pi, 10, 4)
-   gen(gcd, 42, 120)
-   gen(gcdl, 42, 120, 81)
-   gen(gmean, 1, 1, 2, 3, 5, 8, 13, 21, 42)
-   gen(hmean, 1, 1, 2, 3, 5, 8, 13, 21, 42)
-   gen(large, 214748364721474836472147483647)
-   gen(lcm, 20, 24)
-   gen(lcm, 20, 24, 16)
-   gen(mantissa, &e)
-   gen(max, &e, &pi, &phi)
-   gen(mdp, 2147483647)
-   gen(mdr, 2147483647)
-   gen(min, &e, &pi, &phi)
-   gen(mod1, 21, 7)
-   gen(npalins, 2)
-   gen(residue, 21, 7, 14)
-   gen(roman, 1989)
-   gen(round, &e)
-   gen(sign, -47)
-   gen(spell, 47193)				#%#% result not strictly correct
-   gen(sum, 1, 1, 2, 3, 5, 8, 13, 21, 42)
-   gen(trunc, &phi)
-   gen(unroman, "MCMLXXIV")
-
-   write()
-   write("factors:")
-   gen(divisors, 360)
-   gen(factorial, 0)
-   gen(factorial, 6)
-   lst(factors, 360)
-   gen(genfactors, 360)
-   gen(gfactorial, 5, 2)
-   gen(ispower, 81, 4)
-   gen(isprime, 97)
-   gen(nxtprime, 97)
-   lst(pfactors, 360)
-   lst(prdecomp, 360)
-   lst(prdecomp, 504)
-   gen(prime)
-#  gen(primel)		# not testable without data file
-#  gen(primeorial, 12)	# not testable without data file
-   gen(sfactors, 360)
-
-   write("[testing factorizations]")
-   every tfact(1 to 100)
-   write("[testing prime numbers]")
-   tprimes(100)
-
-   write()
-   write("convert:")
-   gen(exbase10, 11213, 8)
-   gen(inbase10, 11213, 8)
-   gen(radcon, 11213, 4, 7)
-
-   write()
-   write("math:")
-   gen(binocoef, 16, 5)
-   gen(cosh, &pi / 3)
-   gen(sinh, &pi / 3)
-   gen(tanh, &pi / 3)
-
-   write()
-   write("rational:")
-   rat(str2rat, "(355/113)")
-   r1 := rat(real2rat, 355. / 113.)
-   gen(rat2str, r1)
-   gen(rat2real, r1)
-   r2 := rat(negrat, r1)
-   r3 := rat(reciprat, r1)
-   rat(addrat, r1, r3)
-   rat(subrat, r1, r3)
-   rat(mpyrat, r1, r2)
-   rat(divrat, r1, r3)
-   trat()
-
-   write()
-   write("random:")
-   gen(rand_num)
-   gen(rand_int, 20)
-   gen(randomize)
-   gen(randrange, 30, 50)
-   gen(randrangeseq, 52, 99)
-   gen(randseq, 1903)
-   gen(rng) 
-   gen(shuffle, "A23456789TJQK")
-
-   write()
-   write("io:")
-   gen(exists, "/foo/bar/baz/not/very/likely")
-   gen(directory, "/tmp")
-   # several others omitted
-
-   write()
-   write("datetime:")
-   HoursFromGmt := 7
-   gen(ClockToSec, "14:27:43")
-   gen(DateLineToSec, "Friday, September 7, 1984  1:07 pm")
-   gen(DateToSec, "1984/09/07")
-   gen(SecToClock, 14 * 3600 + 27 * 60 + 43)
-   gen(SecToDate, 463338000)
-   gen(SecToDateLine, 463385237)
-   gen(SecToUnixDate, 463385237)
-   gen(IsLeapYear, 2004)
-   gen(dayoweek, 7, 9, 1984)
-   gen(julian, 9, 7, 1984)
-   gen(saytime, "15:00:47")
-   # several procedures that return records omitted
-
-   write()
-   write("sort:")
-   lst(isort, "Quoth The Raven: Nevermore", map)
-
-   write()
-   write("lists:")
-   lst(ldelete, copy(L), 3)
-   lst(lequiv, L, copy(L))
-   lst(lextend, L, 20)
-   lst(limage, L)
-   lst(linterl, L, lreverse(L))
-   lst(llpad, L, 14, 0)
-   lst(lltrim, L, set([3]))
-   lst(lpalin, L)
-   lst(lpermute, L)
-   lst(lreflect, L)
-   lst(lremvals, L, 1, 5)
-   lst(lrepl, L, 2)
-   lst(lreverse, L)
-   lst(lrotate, L, 4)
-   lst(lrpad, L, 14, 0)
-   lst(lrtrim, L, set([3, 5]))
-   lst(lswap, L)
-   lst(lunique, L)
-   lst(lmaxlen, L, integer)
-   lst(lminlen, L, integer)
-   lst(sortkeys, L)
-   lst(sortvalues, L)
-   lst(str2lst, "Once upon a midnight dreary", 5)
-   # several others omitted
-
-   write()
-   write("sets:")
-   lst(cset2set, &digits)
-   lst(domain, T)
-   lst(inverse, T)
-   #   pairset, T    returns list of lists
-   lst(range, T)
-   lst(seteq, set([4, 7, 1]), set([7, 1, 4]))
-   lst(setlt, set([4, 7, 1]), set([7, 3, 1, 4]))
-   gen(simage, set(L))
-
-   write()
-   write("tables:")
+   write("tables:")			# tables
    lst(keylist, T)
    lst(kvallist, T)
    tbl(tbleq, T, copy(T))
@@ -242,21 +247,16 @@ procedure main()
    tbl(twt, T)
    lst(vallist, T)
 
-   write()
-   write("records:")
-   gen(field, DateRec(), 7)
-   gen(fieldnum, DateRec(), "weekday")
-
 end
 
-procedure gen(p, a[])			#: test simple procedure or generator
+procedure gen(p, a[])			#: test a simple procedure or generator
    &random := 4747
    writes(left(image(p)[11:0], LSIZE - 1))
    every writes(" ", ((p ! a) \ GENLIMIT) | "\n")
    return
 end
 
-procedure lst(p, a[])			#: test procedure that returns a list
+procedure lst(p, a[])			#: test a procedure that returns a list
    local L
 
    L := (p ! a) | ["[FAILED]"]
@@ -265,7 +265,7 @@ procedure lst(p, a[])			#: test procedure that returns a list
    return
 end
 
-procedure tbl(p, a[])			#: test procedure that returns a table
+procedure tbl(p, a[])			#: test a procedure that returns a table
    local k, T
 
    writes(left(image(p)[11:0] | "", LSIZE - 1))
@@ -279,14 +279,14 @@ procedure tbl(p, a[])			#: test procedure that returns a table
    return \T
 end
 
-procedure rat(p, a[])			#: test procedure that returns rational
+procedure rat(p, a[])			#: test a procedure that rets a rational
    local v
    v := p ! a
    write(left(image(p)[11:0], LSIZE), rat2str(\v) | ["[FAILED]"])
    return \v
 end
 
-procedure tfact(n)			#:  test factorization of n
+procedure tfact(n)			#: test factorization of n
    local D, F, P, i, v
 
    F := factors(n)
@@ -315,7 +315,7 @@ procedure tfact(n)			#:  test factorization of n
          }
 end
 
-procedure tprimes(n)			#: test first n primes
+procedure tprimes(n)			#: test the first n primes
    local i, L1, L2, L3
 
    L1 := []
