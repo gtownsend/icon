@@ -6,7 +6,7 @@
 #
 #	Authors:  Ralph E. Griswold and Gregg M. Townsend
 #
-#	Date:     June 11, 2001
+#	Date:     January 23, 2002
 #
 ############################################################################
 #
@@ -18,6 +18,8 @@
 #  numbers.
 #
 #	divisors(n)	generates the divisors of n.
+#
+#	divisorl(n)	returns a list of the divisors of n.
 #
 #	factorial(n)	returns n!.  It fails if n is less than 0.
 #
@@ -51,7 +53,7 @@
 #	sfactors(i, j)	as factors(i, j), except output is in string form
 #			with exponents for repeated factors
 #
-#	squarefree(i)	succeeds if i is square free
+#	squarefree(i)	succeeds if the factors of i are distinct
 #
 ############################################################################
 #
@@ -88,6 +90,12 @@ procedure divisors(n)			#: generate the divisors of n
       suspend d
    suspend n / !dlist
 
+end
+
+procedure divisorl(n)			#: return list of divisors of n
+   local divs
+   every put(divs := [], divisors(n))
+   return divs
 end
 
 procedure factorial(n)			#: return n! (n factorial)
@@ -274,7 +282,7 @@ procedure primorial(i, j)		#: product of primes
 
 end
 
-procedure sfactors(i, j)		# return factors in string form
+procedure sfactors(i, j)		#: return factors in string form
    local facts, result, term, nterm, count
 
    facts := factors(i, j)

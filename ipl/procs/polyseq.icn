@@ -1,0 +1,64 @@
+############################################################################
+#
+#	File:     polyseq.icn
+#
+#	Subject:  Procedure to generate Dietz sequence
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 19, 2001
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  The procedure poly2seq(str) generates the Dietz sequence for the
+#  polynomial str.  See Ada Dietz, "Algebraic Expressions in Handweaving".
+#
+############################################################################
+#
+#  Links:  polynom, strings
+#
+############################################################################
+
+link polynom
+link strings
+
+procedure poly2seq(str)
+   local vars
+
+   str := deletec(str, ' ')		# delete blanks
+
+   vars := &letters ** cset(str)
+
+   suspend !map(poly2profile(eval(str)), vars, &digits[2+:*vars])
+
+end
+
+procedure eval(str)
+
+   while str ?:= 2(="(", tab(bal(')')), =")", pos(0))
+
+   return oper(str) | str2poly(str)
+
+end
+
+procedure oper(str)
+
+   return str ? form(tab(bal('-+*^%')), move(1), tab(0))
+
+end
+
+procedure form(str1, op, str2)
+
+   return case op of {
+      "+"  :  polyadd(eval(str1), eval(str2))
+      "-"  :  polysub(eval(str1), eval(str2))
+      "*"  :  polymul(eval(str1), eval(str2))
+      "^"  :  polyexp(eval(str1), str2)
+      "%"  :  polymod(eval(str1), str2)
+      }
+
+end

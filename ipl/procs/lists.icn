@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     June 11, 2001
+#	Date:     October 22, 2001
 #
 ############################################################################
 #
@@ -76,6 +76,9 @@
 #	lflipv(L)	list vertical flip
 #
 #	limage(L)	unadorned list image
+#
+#	lindex(L, x)
+#			generate indices of L whose values are x
 #
 #	lcollate(L1, L2, ...)
 #			list collation; like linterl() except stops on
@@ -323,16 +326,13 @@ link indices
 link numbers
 
 procedure file2lst(s)			#: create list from lines in file
-   local input, result, x
+   local input, result
 
    input := open(s) | fail
 
    result := []
 
-   every x := !input do {
-      x := numeric(x)			# kludge
-      put(result, x)
-      }
+   every put(result, !input)
 
    close(input)
 
@@ -451,8 +451,6 @@ procedure l_Escan(l_OuterEnvir, e2)	#: end list scanning
 
 end
 
-
-
 procedure l_any(l1,l2,i,j)		#: any() for list scanning
 
     #
@@ -488,8 +486,6 @@ procedure l_any(l1,l2,i,j)		#: any() for list scanning
     }
     
 end
-
-
 
 procedure l_bal(l1,l2,l3,l,i,j)		#: bal() for list scanning
 
@@ -534,8 +530,6 @@ procedure l_bal(l1,l2,l3,l,i,j)		#: bal() for list scanning
 
 end
 
-    
-
 procedure l_comp(l1,l2)			# list comparison
 
     #
@@ -556,8 +550,6 @@ procedure l_comp(l1,l2)			# list comparison
     }
 
 end
-
-
 
 procedure l_find(l1,l2,i,j)		#: find() for list scanning
 
@@ -599,8 +591,6 @@ procedure l_find(l1,l2,i,j)		#: find() for list scanning
     })
     
 end
-
-
 
 procedure l_many(l1,l2,i,j)		#: many() for list scanning
 
@@ -644,8 +634,6 @@ procedure l_many(l1,l2,i,j)		#: many() for list scanning
 
 end
 
-
-
 procedure l_match(l1,l2,i,j)		#: match() for list scanning
 
     #
@@ -684,8 +672,6 @@ procedure l_match(l1,l2,i,j)		#: match() for list scanning
 
 end
 
-    
-
 procedure l_move(i)			#: move() for list scanning
 
     /i & stop("l_move:  Null argument.")
@@ -701,8 +687,6 @@ procedure l_move(i)			#: move() for list scanning
     suspend l_SUBJ[.l_POS:l_POS <- (0 < (*l_SUBJ+1 >= l_POS+i))]
 
 end
-
-
 
 procedure l_pos(i)			#: pos() for list scanning
 
@@ -721,8 +705,6 @@ procedure l_pos(i)			#: pos() for list scanning
 
 end
 
-
-
 procedure l_tab(i)			#: tab() for list scanning
 
     /i & stop("l_tab:  Null argument.")
@@ -734,8 +716,6 @@ procedure l_tab(i)			#: tab() for list scanning
     else suspend l_SUBJ[.l_POS:l_POS <- 0 < (*l_SUBJ+1 >= i)]
 
 end
-
-
 
 procedure l_upto(l1,l2,i,j)		#: upto() for list scanning
 
@@ -876,8 +856,6 @@ end
 procedure ldecollate(indices, L)	#: list decollation
    local result, i, x
 
-   indices := copy(indices)
-
    result := list(max ! indices)	# list of lists to return
    every !result := []			# initially empty
 
@@ -996,7 +974,7 @@ end
 procedure limage(L)			#: list image
    local result
 
-   if type(L) ~== "list" then fail
+   if type(L) ~== "list" then stop("*** invalid type to limage()")
 
    result := ""
 
@@ -1030,6 +1008,14 @@ procedure lconstant(L)			#: test list for all terms equal
 
    if *set(L) = 1 then return L[1]
    else fail
+
+end
+
+procedure lindex(lst, x)		#: generate indices for items matching x
+   local i
+
+   every i := 1 to *lst do
+      if lst[i] === x then suspend i
 
 end
 
@@ -1083,7 +1069,6 @@ procedure lrundown(L1, L2, L3)		#: list run up
    return L4
 
 end
-
 
 procedure lltrim(L, S)			#: list left trimming
 

@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     December 22, 2000
+#	Date:     January 23, 2002
 #
 ############################################################################
 #
@@ -14,11 +14,13 @@
 #
 ############################################################################
 #
-#  This program produces an ISD from bi-level image string.
+#  This program produces an ISD from a bi-level image string or row file.
 #
 #  The following option is supported:
 #
 #	-n s	draft name, default "drawup"
+#
+#	-r	interpret input as row pattern; default image string
 #
 ############################################################################
 #
@@ -40,9 +42,13 @@ procedure main(args)
    local threading, treadling, rows, pattern, i
    local symbols, symbol, drawdown, draft, opts
 
-   opts := options(args, "n:")
+   opts := options(args, "rn:")
 
-   drawdown := pat2rows(read()) | stop("*** invalid input")
+   if \opts["r"] then {
+      drawdown := []
+      while put(drawdown, read())
+      }
+   else drawdown := pat2rows(read()) | stop("*** invalid input")
 
    treadling := analyze(drawdown)
    drawdown := protate(drawdown, "cw")

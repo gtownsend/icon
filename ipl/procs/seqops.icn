@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     June 11, 2001
+#	Date:     January 10, 2002
 #
 ############################################################################
 #
@@ -27,7 +27,6 @@
 #   eval_tree(n)	 evaluate expression tree
 #   expression_tree(n)	 create expression tree
 #   fragment(s, i, p, arg)
-#
 #   get_analysis(s)	 analyze sequence
 #   get_scollate(s)	 analyze for collation
 #   get_splace(s)	 analyze for motif along a path
@@ -39,6 +38,7 @@
 #   remod(s, p)
 #   sanalout()		 output analysis
 #   sanalysis(x)	 over-all analysis
+#   sbefriend(x, p)	 befriend sequence
 #   sbinop(op, xargs[])	 binary operation on terms
 #   sbound(xargs[])	 compute sequence upper bound  FIX!
 #   scollate(xargs[])	 sequence collation
@@ -56,6 +56,7 @@
 #   shaft_period(x1, x2) shaft period
 #   simage(x, limit)	 string image of sequence
 #   sinit()		 initialize sequence operations
+#   sintermix(xargs[])	 intermix sequences
 #   slayer(xargs[])	 layer sequences
 #   slength(x)		 compute sequence length
 #   slocate(xargs[])	 sequences of first positions of terms
@@ -71,6 +72,7 @@
 #   speriod(s)		 sequence period
 #   splace(xargs[])	 place motif along a path
 #   splaceg(xargs[])	 generalized motifs along a path
+#   ssplitdupl(xargs[])	 split duplicate adjacent terms
 #   spositions(x1, x2)	 shaft positions
 #   spromote(x)		 promote term to sequence
 #   srandom(x)		 random selection
@@ -87,6 +89,7 @@
 #   sscollate(xargs[])	 collate entire sequences
 #   sselect(xargs[])	 select terms from sequence
 #   sshift(x, i)	 shift terms sequence
+#   sundulate(x)	 make undulating sequence
 #   sunmod(x)		 modular expansion
 #   sunop(op, xargs[])	 unary operation on terms
 #   walk_tree(n, tree_list, tree_ptrs, depth)
@@ -668,6 +671,8 @@ end
 procedure sground(seq, i)		#: ground sequence to i
    local j
 
+   /i := 1
+
    j := smin ! seq
 
    every !seq -:= (j - i)
@@ -723,6 +728,28 @@ procedure sinit()			#: initialize sequence operations
 #  sflipl := sreflectl
 
    return
+
+end
+
+procedure sintermix(xargs[])		#: sequence intermixing
+   local lseq, i, order
+
+   if \node_gen then return node("sintermix", xargs)
+
+   order := get(xargs)
+
+   /order := srun(1, *xargs)
+
+   xargs := copyl ! xargs
+
+   lseq := []
+
+   while i := get(order) do {
+      put(order, i)
+      lseq |||:= xargs[i]
+      }
+
+   return lseq
 
 end
 
@@ -929,7 +956,7 @@ end
 procedure speriod(seq)			#: period of sequence
    local i, segment
 
-   every i := divisors(*seq) do {
+   every i := 1 | divisors(*seq) do {	# if repeats came out even
       segment := seq[1+:i]
       if sequiv(sextend(segment, *seq), seq) then return i
       }
@@ -1078,6 +1105,25 @@ procedure sremdupl(xargs[])		#: remove duplicate adjacent terms
 
 end
 
+procedure ssplitdupl(xargs[])		#: split duplicate adjacent terms
+   local lseq, i, x
+
+   if \node_gen then return node("sremdupl", xargs)
+
+   x := copy(spromote(xargs[1]))
+
+   lseq := [get(x)] | return []
+
+   while i := get(x) do
+      if lseq[-1] ~= i then
+         put(lseq, i)
+      else 
+         put(lseq, i + 1, i)
+
+   return lseq
+
+end
+
 procedure srepeat(xargs[])		#: repeat sequence
    local lseq, count, x1, x2
 
@@ -1166,7 +1212,7 @@ procedure sruns(xargs[])		# disconnected runs
 
    x1 := copy(spromote(xargs[1]))
    x2 := copy(spromote(xargs[2]))
-   x3 := copy(spromote(xargs[3]) | [1])
+   x3 := copy(spromote(xargs[3])) | [1]
 
    lseq := []
 
@@ -1248,6 +1294,47 @@ procedure sshift(x, i)			#: shift terms sequence
 
 end
 
+procedure sundulate(x)			#: make undulating sequence
+   local lseq, i, dir
+
+   x := copy(spromote(x))
+
+   lseq := [get(x)] | fail
+
+   while i := get(x) | return lseq do {
+      if i > lseq[-1] then {
+         dir := -1
+         break
+         }
+      else if i < lseq[-1] then {
+         dir := 1
+         break
+         }
+     } 
+
+   put(lseq, i)
+
+   while i := get(x) do {
+      if i < lseq[-1] then  {
+         if dir = -1 then {
+            put(lseq, i)
+            dir := 1
+            }
+         else lseq[-1] := i
+         }
+      if i > lseq[-1] then {
+         if dir = 1 then {
+            put(lseq, i)
+            dir := -1
+            }
+         else lseq[-1] := i
+         }
+      }
+
+   return lseq
+
+end
+
 procedure sunmod(x)			#: modular expansion
    local base, bound, i, lseq, k
 
@@ -1269,17 +1356,13 @@ procedure sunmod(x)			#: modular expansion
       put(lseq, base + i)
       }
 
-   k := (smin ! lseq)
-
-   if k > 0 then return lseq
-
-   k := bound * (-k / bound + 1)
-
-   every !lseq +:= k
+   while (k := (smin ! lseq)) < 1 do
+      every !lseq +:= bound
 
    return lseq
 
 end
+
 procedure sunop(op, xargs[])		#: unary operation on terms
    local lseq, i, x
 
@@ -1328,5 +1411,162 @@ procedure walk_tree(n, tree_list, tree_ptrs, depth)
    every walk_tree(!n.seqlist, tree_list, tree_ptrs, depth + 1)
 
    return [tree_list, tree_ptrs]
+
+end
+
+procedure sbefriend(x, way)		#: make a sequence friendly
+   local lseq, i, tail
+
+   /way := connect
+
+   x := copy(spromote(x))
+
+   put(x, x[1])			# for first-last friendliness
+
+   lseq := [get(x)] | return []
+
+   while i := get(x) do
+      lseq |||:= way(lseq[-1], i)
+
+   pull(lseq)			# remove added term
+
+   return lseq
+
+end
+
+procedure connect(j, i)		#: connect friends
+   local k, result
+
+   result := []
+
+   k := i - j
+
+   if abs(k) = 1 then put(result, i)
+   else if k = 0 then
+      put(result, i + ?[1, -1], i)
+   else if k > 0 then
+      every put(result, j + 1 to i)
+   else
+      every put(result, j - 1 to i by -1)
+
+   return result
+
+end
+
+procedure wander(j, i)		#: friendly meander
+   local result, k, incr
+
+   result := [j]
+
+   repeat {
+      k := i - result[-1]
+      if abs(k) = 1 then {
+         put(result, i)
+         break
+         }
+      incr := [1, -1]
+      if k < 0 then
+         every 1 to -k do
+            put(incr, -1)
+      else
+         every put(incr, 1)
+      put(result, result[-1] + ?incr)
+      if result[-1] == i then break
+      }
+
+   if *result > 1 then get(result)
+
+   return result
+
+end
+
+procedure sxplot(x)		# plot sequence
+   local plot, i, bound
+
+   x := spromote(x)
+
+   bound := sbound ! x
+
+   plot := list(bound, repl(" ", *x))
+
+   every i := 1 to *x do
+      plot[x[i]][ i] := "x"
+
+   while write(pull(plot))
+
+   return
+
+end
+
+procedure sundelta(x)		# get undulant from delta sequence
+   local i
+
+   x := spromote(x)
+
+   every i := 2 to *x by 2 do	# change sign of even-numbered terms
+      x[i] := -x[i]
+
+   return sredelta(x)
+
+end
+
+procedure sredelta(x)		# reconstruct sequence from delta sequence
+   local lseq
+
+   x := spromote(x)
+
+   lseq := [1]			# nominal base
+
+   while put(lseq, lseq[-1] + get(x))
+
+   return sground(lseq)		# may have gone negative ...
+
+end
+
+procedure sreplp(x1, x2)
+   local lseq, i
+
+   x1 := spromote(x1)
+   x2 := spromote(x2)
+
+   lseq := []
+
+   while i := get(x1) do
+     every 1 to get(x2) do
+        put(lseq, i)
+
+   return lseq
+
+end
+
+procedure sundulant(x, sw)		# get undulant
+   local lseq, i, dir, cdir
+
+   x := spromote(x)
+
+   lseq := [x[1]] | fail
+
+   i := 2
+
+   repeat {
+      dir := sign(x[i] - x[i - 1]) | fail
+      if dir ~= 0 then break
+      else i +:= 1
+      }
+
+   every i := 2 to *x do {
+      cdir := sign(x[i] - x[i - 1])
+      if cdir = 0 then next
+      if dir ~= cdir then {
+         put(lseq, x[i - 1])
+         dir := cdir
+         }
+      }
+
+   if \sw & lseq[1] = lseq[-1] then pull(lseq)	# repeating undulant
+
+   if *lseq < 3 then fail		# too short
+
+   return lseq
 
 end

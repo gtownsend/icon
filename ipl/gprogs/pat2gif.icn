@@ -1,0 +1,48 @@
+############################################################################
+#
+#	File:     pat2gif.icn
+#
+#	Subject:  Program to convert bi-level pattern to GIF
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 30, 2001
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  Names ofs BLP are given on the command line.  The GIFs have a
+#  corresponding basename.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  basename, patutils, wopen
+#
+############################################################################
+
+link basename
+link patutils
+link wopen
+
+procedure main(args)
+   local matrix, ims, input, file
+
+   while file := get(args) do {
+      input := open(file) | stop("cannot open ", file)
+      ims := read(input) | stop("empty BLP")
+      matrix := pat2rows(ims) | stop("*** invalid pattern")
+      WOpen("size=" || *matrix[1] || "," || *matrix, "canvas=hidden") |
+         stop("*** cannot open window")
+      DrawImage(0, 0, ims)
+      WriteImage(basename(file, ".blp") || ".gif") 
+      close(input)
+      }
+
+end

@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     June 11, 2001
+#	Date:     October 1, 2001
 #
 ############################################################################
 #
@@ -16,6 +16,11 @@
 #
 #  The format for strings omits symbols for multiplication and
 #  exponentiation.  For example, 3*a^2 is entered as 3a2.
+#
+#  A polynomial is represented by a table in which each term, such as 3xy,
+#  the xy is #  a key and the corresponding value is the coefficient, 3 in
+#  this case.  If a variable is raised to a power, such as x^3, the key
+#  is the product of the individual variables, xxx in this case.
 #
 ############################################################################
 #
@@ -35,7 +40,7 @@ procedure str2poly(str)			#: convert string to polynomial
       while term := (move(1) || tab(upto('-+') | 0)) do {	# possible sign
          term ? {
             factor := 1			# default
-            factor := tab(many(&digits ++ '+-'))
+            factor := tab(many(&digits ++ '+.-'))
             tab(0) ? {
                vars := ""
                while var := move(1) do {
@@ -44,7 +49,7 @@ procedure str2poly(str)			#: convert string to polynomial
                   vars ||:= repl(var, power)
                   }
                }
-            poly[csort(vars)] +:= integer(factor)
+            poly[csort(vars)] +:= numeric(factor) | fail
             }
          }
       }
@@ -64,6 +69,20 @@ procedure polyadd(poly1, poly2)		#: add polynomials
       poly[k] := poly1[k] + poly2[k]
 
    return poly
+
+end
+
+procedure polymod(poly, i)		#: polynomial modular reduction
+   local poly1, keys, k
+
+   keys := keylist(poly)
+
+   poly1 := table(0)
+
+   every k := !keys do
+      poly1[k] := poly[k] % i
+
+   return poly1
 
 end
 
@@ -118,10 +137,8 @@ procedure poly2str(poly)		#: polynomial to string
 
    every k := !keys do {
       if poly[k] = 0 then next		# skip term
-      else if poly[k] > 1 then str ||:= "+" || poly[k]
-      else if poly[k] = -1 then str ||:= "-"
-      else if poly[k] < 0 then str ||:= poly[k]
-      else str ||:= "+"
+      else if poly[k] > 0 then str ||:= "+" || ((poly[k] ~= 1) | "")
+      else if poly[k] < 0 then str ||:= ((poly[k] ~= 1) | "")
       k ? {
          while var := move(1) do {
             count := 1
@@ -132,20 +149,137 @@ procedure poly2str(poly)		#: polynomial to string
          }
       }
 
-   return str[2:0]
+   return str[2:0] | "0"
+
+end
+
+procedure polydiff(poly, var)		#: polynomial differentiation
+   local poly_new, keys, k, nvars, newk
+
+   poly_new := table()
+
+   keys := keylist(poly)
+
+   every k := !keys do {
+      k ? {
+         if newk := tab(upto(var)) then {
+            nvars := *tab(many(var))
+            newk ||:= repl(var, nvars - 1) || tab(0)
+            poly_new[newk] := nvars * poly[k]
+            }
+         }
+      }
+
+   return poly_new
+
+end
+
+procedure polyintg(poly, var)		#: polynomial integration
+   local poly_new, keys, k, nvars, newk
+
+   poly_new := table()
+
+   keys := keylist(poly)
+
+   every k := !keys do {
+      k ? {
+         if newk := tab(upto(var)) then {
+            nvars := *tab(many(var))
+            newk ||:= repl(var, nvars + 1) || tab(0)
+            poly_new[newk] := poly[k] / real(nvars + 1) 
+            }
+         }
+      }
+
+   return poly_new
+
+end
+
+procedure peval(str)			#: string polynomial simplification
+
+   while str ?:= 2(="(", tab(bal(')')), =")", pos(0))
+
+   return poper(str) | str2poly(str)
+
+end
+
+procedure poper(str)			#: find polynomial operation
+
+   return str ? {
+      pform(tab(bal('-+*^:|%')), move(1), tab(0))
+      }
+
+end
+
+procedure pform(str1, op, str2)		#: polynomial formation
+
+   return case op of {
+      "+"  :  polyadd(peval(str1), peval(str2))
+      "-"  :  polysub(peval(str1), peval(str2))
+      "*"  :  polymul(peval(str1), peval(str2))
+      "^"  :  polyexp(peval(str1), str2)
+      ":"  :  polydiff(peval(str1), str2)
+      "|"  :  polyintg(peval(str1), str2)
+      "%"  :  polymod(peval(str1), str2)
+      }
 
 end
 
 procedure poly2profile(poly)		#: polynomial to profile sequence
-   local str, keys, k, count, var
+   local str, keys, k, count, vara, i, seg
 
    keys := keylist(poly)
 
    str := ""
 
-   every k := !keys do
-      str ||:= repl(k, (0 < poly[k]))
+   every k := !keys do {
+      i := poly[k]
+      if i < 0 then {			# if negative, reverse sequence
+         i := abs(i)
+         k := reverse(k)
+         }
+      str ||:= left(repl(k, i + 1), i * *k)
+      }
 
    return str
+
+end
+
+procedure poly2profilelen(poly)		#: polynomial to profile sequence
+   local i, keys, k, count, var
+
+   keys := keylist(poly)
+
+   i := 0
+
+   every k := !keys do
+       i +:= *repl(k, abs(poly[k]))	# treat negative as if positive
+
+   return i
+
+end
+
+procedure basepolystr(clist, plist)	# base polynomial string
+
+   return "(" || poly2str(basepoly(clist, plist)) || ")"
+
+end
+
+procedure basepoly(clist, plist)	# base polynomial
+   local poly, i, c, p
+   static vlist
+
+   initial vlist := string(&lcase)
+
+   poly := table()
+
+   i := 1
+
+   while c := get(clist) & p := get(plist) do {
+      poly[repl(vlist[i], (0 <= p))] := (0 ~= c)
+      i +:= 1
+      }
+
+   return poly
 
 end

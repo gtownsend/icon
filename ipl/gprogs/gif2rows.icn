@@ -1,0 +1,48 @@
+############################################################################
+#
+#	File:     gif2rows.icn
+#
+#	Subject:  Program to convert B&W GIF to 0/1 rows
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 11, 2001
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  AD HOC.  Assumes any non-black pixel is white.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  wopen
+#
+############################################################################
+
+link wopen
+
+procedure main(args)
+   local width, height, row, p, y
+
+   WOpen("image=" || args[1], "canvas=hidden") |
+      stop("*** cannot open image")
+
+   width := WAttrib("width")
+   height := WAttrib("height")
+
+   every y := 0 to height - 1 do {
+      row := ""
+      every p := Pixel(0, y, width, 1) do
+         if ColorValue(p) == "0,0,0" then row ||:= "1"
+            else row ||:= "0"
+      write(row)
+      }
+
+end

@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     April 17, 2000
+#	Date:     November 16, 2001
 #
 ############################################################################
 #
@@ -14,41 +14,38 @@
 #
 ############################################################################
 #
-#  This program reads a drawdown from standard input in the for of
+#  This program reads a drawdown from standard input in the form of
 #  rows of zeros and ones, in which ones indicate places where the
 #  warp thread is on top and zeros where the weft thread is on top.
+#  It also accepts a BLP as input.
 #
 #  The number of shafts and treadles required is written to standard
 #  output.
 #
 ############################################################################
+#
+#  Links:  patutils, patxform
+#
+############################################################################
+
+link patutils
+link patxform
 
 procedure main()
-   local rows, cols
+   local line, rows
 
    rows := []
 
-   while put(rows, read())
+   line := read() | stop("empty file")
 
-   write("treadles needed: ", *set(rows))
-
-   cols := rotate(rows)
-
-   write("shafts needed: ", *set(cols))
-
-end
-
-procedure rotate(rows)
-   local cols, row, grid, i
-
-   cols := list(*rows[1], "")
-
-   every row := !rows do {
-      i := 0
-      every grid := !row do
-         cols[i +:= 1] := grid || cols[i]
+   if upto("#", line) then rows := pat2rows(line)
+   else {
+      rows := [line]
+      while put(rows, read())	# read in row pattern
       }
 
-   return cols
+   while put(rows, read())
+
+   write(right(*set(protate(rows)), 2, "0"), "x", right(*set(rows), 2, "0"))
 
 end

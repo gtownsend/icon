@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     June 10, 2001
+#	Date:     January 23, 2002
 #
 ############################################################################
 #
@@ -36,6 +36,8 @@
 #			grayscale palettes
 #
 #	imropen(imr)	opens a hidden window with an image record
+#
+#	imror(imr)	forms inclusive "or" of two images
 #
 #	imrpshift(imr, ir)
 #			shifts colors by mapping rotated palette
@@ -313,6 +315,17 @@ procedure imstoimr(s)			#: convert image string to image record
       move(1)
       imr.pixels := tab(0)
       }
+
+   return imr
+
+end
+
+procedure imror(imr)			#: form inclusive "or" of two images
+   local chars
+
+   chars := PaletteChars(imr.palette)
+
+   imr.pixels := map(imr.pixels, chars, reverse(chars))
 
    return imr
 

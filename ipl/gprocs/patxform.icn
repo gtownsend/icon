@@ -14,18 +14,20 @@
 #
 ############################################################################
 #
-#	pscramble(rows, dir)
-#	pshift(rows, shift, dir)
 #	pborder(rows, l, r, t, b, c)
+#	pcaten(rows1, rows2, dir)
+#	pcenter(rows, w, h)
 #	pcrop(rows, l, r, t, b)
-#	phalve(rows, dir, choice)
+#	pdisplay(rows)
 #	pdouble(rows, dir)
 #	pflip(rows, dir)
+#	phalve(rows, dir, choice)
 #	pinvert(rows)
 #	pminim(rows)
 #	protate(rows, dir)
+#	pscramble(rows, dir)
+#	pshift(rows, shift, dir)
 #	ptrim(rows, c)
-#	pcenter(rows, w, h)
 #
 ############################################################################
 #
@@ -40,68 +42,6 @@
 link patutils
 link random
 link strings
-
-#
-#  Scrambles a pattern by shuffling it.  If dir is "h", the columns of each row
-#  are scrambled; if "v", the the rows are scrambled.  If "b", bits are
-#  scrambled throughout the pattern.
-
-procedure pscramble(rows, dir)		#: scramble pattern
-   local i, all
-
-   case dir of {
-      "h":  {
-          every i := 1 to *rows do
-             rows[i] := shuffle(rows[i])
-          }
-      "v":  rows := shuffle(rows)
-      "b" | &null:  {
-         all := ""
-         every all ||:= !rows
-         all := shuffle(all)
-         every i := 1 to *rows do {
-            rows[i] := left(all, *rows[1])
-            all[1 +: *rows[1]] := ""
-            }
-         }
-      default:   stop("*** illegal specification in scramble()")
-      }
-
-   return rows
-
-end 
-      
-
-#
-#  Create bit-shifted copy of a pattern.  If dir is "h", then the
-#  shift is horizontal; if "v", vertical. The default is horizontal.
-#  Positive shift is to the right for horizontal shifts, downward for vertical
-#  shifts.  The default shift is 0 and the default direction is horizontal.
-
-procedure pshift(rows, shift, dir)	#: bit shift pattern
-   local i
-
-   /shift := 0
-
-   case dir of {
-      "h" | &null: {			# horizontal shift
-         every i := 1 to *rows do
-            rows[i] := rotate(rows[i], -shift)
-         }
-      "v": {				# vertical shift
-         if shift > 0 then
-            every 1 to shift do
-               push(rows, pull(rows))
-         else if shift < 0 then
-            every 1 to -shift do
-               put(rows, pop(rows))
-         }
-      default:  stop("*** illegal specification in pshift()")
-      }
-
-   return rows
-
-end
 
 #
 #  Place a border around a pattern.  l, r, t, and b specify the number of bits
@@ -137,6 +77,57 @@ procedure pborder(rows, l, r, t, b, c)	#: place border around pattern
 end
 
 #
+#  Concatenate patterns
+
+procedure pcaten(rows1, rows2, dir)	#: concatenate patterns
+   local rows, i
+
+   if (*rows1 ~= *rows2) | (*rows1[1] ~= *rows2[1]) then
+      stop("nonconformal patterns in pcaten()")
+
+   /dir := "h"
+
+   case dir of {
+      "h"  :  {
+         rows := []
+         every i := 1 to *rows1 do
+            put(rows, rows1[i] || rows2[i])
+         }
+      "v"  :  {
+         rows := copy(rows1)
+         every put(rows, !rows2)
+         }
+      default:  stop("invalid direction specification in pcaten()")
+      }
+
+   return rows
+
+end
+
+#
+#  Centers non-white portion of pattern
+
+procedure pcenter(rows, w, h)		#: center pattern
+   local rw, rh, vert, horz, t, l
+
+   rows := ptrim(rows)
+
+   rw := *rows[1]
+   rh := *rows
+
+   if (rh = h) & (rw = w) then return rows
+   if (rh > h) | (rw > w) then fail
+
+   horz := w - rw
+   vert := h - rh
+   l := horz / 2
+   t := vert / 2
+
+   return pborder(rows, l, horz - l, t, vert - t)
+
+end
+
+#
 #  Crop a pattern.  l, r, t, and b specify the number of bits
 #  to crop at the left, right, top, and bottom, respectively.
 
@@ -165,29 +156,16 @@ procedure pcrop(rows, l, r, t, b)	#: crop pattern
 
 end
 
-#  Creates a tile in every other pixel is discarded.  dir determines the
-#  direction is which the halving is done.  If dir is "b" or null, it's
-#  done both vertically and horizontally.  If dir is "v", it's only done
-#  vertically, while if dir is "v", it's done only vertically.
-#  If choice is "o" or null, odd-numbered rows or columns are kept;
-#  if "e", the even-numbered ones.
+#
+#  Display pattern
 
-procedure phalve(rows, dir, choice)	#: halve pattern by bits
-   local newrows, i
+procedure pdisplay(rows, pat)			#: display pattern
 
-   choice := if choice === ("o" | &null) then 1 else 0
-   newrows := []
+   /pat := "01"			# mapping string
 
-   case dir of {
-      "v": {
-         every i := choice to *rows by 2 do
-            put(newrows, rows[i])
-         }
-      "h":  every put(newrows, decollate(!rows, choice))
-      "b" | &null: return phalve(phalve(rows, "v", choice), "h", choice)
-      }
+   every write(map(!rows, "01", pat))
 
-   return newrows
+   return
 
 end
          
@@ -260,11 +238,39 @@ procedure pflip(rows, dir)		#: flip pattern
       
 end
 
+#  Creates a tile in every other pixel is discarded.  dir determines the
+#  direction is which the halving is done.  If dir is "b" or null, it's
+#  done both vertically and horizontally.  If dir is "v", it's only done
+#  vertically, while if dir is "v", it's done only vertically.
+#  If choice is "o" or null, odd-numbered rows or columns are kept;
+#  if "e", the even-numbered ones.
+
+procedure phalve(rows, dir, choice)	#: halve pattern by bits
+   local newrows, i
+
+   choice := if choice === ("o" | &null) then 1 else 0
+   newrows := []
+
+   case dir of {
+      "v": {
+         every i := choice to *rows by 2 do
+            put(newrows, rows[i])
+         }
+      "h":  every put(newrows, decollate(!rows, choice))
+      "b" | &null: return phalve(phalve(rows, "v", choice), "h", choice)
+      }
+
+   return newrows
+
+end
+
 #
 #  Invert white and black bits in pattern specification
 
 procedure pinvert(rows)			#: invert B&W pattern
    local i
+
+   rows := copy(rows)
 
    every i := 1 to *rows do
       rows[i] := map(rows[i], "10", "01")
@@ -345,6 +351,68 @@ procedure protate(rows, dir)		#: rotate pattern
 end
 
 #
+#  Scrambles a pattern by shuffling it.  If dir is "h", the columns of each row
+#  are scrambled; if "v", the the rows are scrambled.  If "b", bits are
+#  scrambled throughout the pattern.
+
+procedure pscramble(rows, dir)		#: scramble pattern
+   local i, all
+
+   case dir of {
+      "h":  {
+          every i := 1 to *rows do
+             rows[i] := shuffle(rows[i])
+          }
+      "v":  rows := shuffle(rows)
+      "b" | &null:  {
+         all := ""
+         every all ||:= !rows
+         all := shuffle(all)
+         every i := 1 to *rows do {
+            rows[i] := left(all, *rows[1])
+            all[1 +: *rows[1]] := ""
+            }
+         }
+      default:   stop("*** illegal specification in scramble()")
+      }
+
+   return rows
+
+end 
+      
+
+#
+#  Create bit-shifted copy of a pattern.  If dir is "h", then the
+#  shift is horizontal; if "v", vertical. The default is horizontal.
+#  Positive shift is to the right for horizontal shifts, downward for vertical
+#  shifts.  The default shift is 0 and the default direction is horizontal.
+
+procedure pshift(rows, shift, dir)	#: bit shift pattern
+   local i
+
+   /shift := 0
+
+   case dir of {
+      "h" | &null: {			# horizontal shift
+         every i := 1 to *rows do
+            rows[i] := rotate(rows[i], -shift)
+         }
+      "v": {				# vertical shift
+         if shift > 0 then
+            every 1 to shift do
+               push(rows, pull(rows))
+         else if shift < 0 then
+            every 1 to -shift do
+               put(rows, pop(rows))
+         }
+      default:  stop("*** illegal specification in pshift()")
+      }
+
+   return rows
+
+end
+
+#
 #  Trim border from pattern;  c gives color; default "1"
 
 procedure ptrim(rows, c)		#: trim pattern
@@ -367,28 +435,5 @@ procedure ptrim(rows, c)		#: trim pattern
       pull(rows)
  
    return protate(rows, "ccw")
-
-end
-
-#
-#  Centers non-white portion of pattern
-
-procedure pcenter(rows, w, h)		#: center pattern
-   local rw, rh, vert, horz, t, l
-
-   rows := ptrim(rows)
-
-   rw := *rows[1]
-   rh := *rows
-
-   if (rh = h) & (rw = w) then return rows
-   if (rh > h) | (rw > w) then fail
-
-   horz := w - rw
-   vert := h - rh
-   l := horz / 2
-   t := vert / 2
-
-   return pborder(rows, l, horz - l, t, vert - t)
 
 end

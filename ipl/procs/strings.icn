@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     June 10, 2001
+#	Date:     August 12, 2001
 #
 ############################################################################
 #
@@ -548,10 +548,11 @@ procedure rotate(s, i)			#: string rotation
 
    if s == "" then return s
    /i := 1
-   if i <= 0 then i +:= *s
+   if i = 0 then return s
+   else if i < 0 then i +:= *s
    i %:= *s
 
-   return s[i + 1:0] || s[1:i + 1]
+   return s[(i + 1):0] || s[1:(i + 1)]
 
 end
 

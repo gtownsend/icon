@@ -6,7 +6,7 @@
 #
 #	Authors:  Ralph E. Griswold and Gregg M. Townsend
 #
-#	Date:     April 20, 2000
+#	Date:     January 19, 2002
 #
 ############################################################################
 #
@@ -147,6 +147,7 @@ procedure grid_file_cb(vidget, menu)
    return case menu[1] of {
       "read  @R"  :  read_tile()
       "open  @O"  :  open_gif()
+      "ims   @M"  :  open_ims()
       "write @W"  :  write_tile()
       "copy  @C"  :  copy_tile()
       "paste @P"  :  paste_tile()
@@ -178,7 +179,7 @@ procedure grid_init()
    &window := &null			# clear for new subject
    atts := grid_ui_atts()
    put(atts, "canvas=hidden")
-   (WOpen ! atts) | stop("*** can't open tie-up editor window")
+   (WOpen ! atts) | stop("*** can't open drawdown editor window")
    grid_vidgets := grid_ui()
    grid_window := &window
    &window := window_save 		# restore previous subject window
@@ -295,6 +296,8 @@ procedure grid_init()
    place(symmet_xpos, symmet_yoff, 2, 1, flip_vert)
    place(symmet_xpos, symmet_yoff, 3, 1, flip_horiz)
 
+   VSetState(grid_vidgets["symstate"], "none ")
+
    return
 
 end
@@ -306,8 +309,11 @@ procedure grid_shortcuts(e)
    if (e === "\r") & \subservient then return_tile()	# subservient role
 
    if &meta then case map(e) of {
+      "0"  :  read_rows()
+      "1"  :  write_rows()
       "c"  :  copy_tile()
       "i"  :  tile_info()
+      "m"  :  open_ims()
       "n"  :  new_tile()
       "o"  :  open_gif()
       "p"  :  paste_tile()
@@ -355,7 +361,7 @@ procedure new_tile()
 end
 
 procedure open_gif()
-   local win, ims, width
+   local win, ims
 
    repeat {
       if OpenDialog("Open image:") == "Cancel" then fail
@@ -364,16 +370,45 @@ procedure open_gif()
          next
          }
       ims := Capture(win, "g2")
-      grid_rows := []
-      width := WAttrib(win, "width")
-      ims ? {
-         while tab(upto(',') + 1)
-         while put(grid_rows, map(move(width), "01", "10"))
-         }
       WClose(win)
-      setup()
+      setup_ims(ims)
       return
       }
+
+end
+
+procedure open_ims()
+   local ims, input
+
+   repeat {
+      if OpenDialog("Open ims:") == "Cancel" then fail
+      input := open(dialog_value) | {
+         Notice("Cannot open ims file.")
+         next
+         }
+      ims := read(input)
+      close(input)
+      setup_ims(ims)
+      return
+      }
+
+end
+
+procedure setup_ims(ims)
+   local width
+
+   grid_rows := []
+
+   ims ? {
+      width := tab(upto(','))
+      while tab(upto(',') + 1)
+#     while put(grid_rows, map(move(width), "01", "10"))
+      while put(grid_rows, move(width))
+      }
+
+   setup()
+
+   return
 
 end
 
@@ -421,7 +456,7 @@ procedure read_pattern(file)
 
 end
 
-#  read and add tile to tile list
+#  read and add pattern to tile list
 
 procedure read_tile()
    local input, tile
@@ -451,6 +486,27 @@ procedure read_tile()
          }
       close(input)
       grid_rows := pat2rows(tile.tile)
+      return setup()
+      }
+
+end
+
+#  read and add rows to tile list
+
+procedure read_rows()
+   local input
+   static file
+
+   repeat {
+      if OpenDialog("Read rows:") == "Cancel" then fail
+      input := open(dialog_value) | {
+         Notice("Cannot open file.")
+         next
+         }
+      file := dialog_value
+      grid_rows := []
+      while put(grid_rows, read(input))
+      close(input)
       return setup()
       }
 
@@ -568,6 +624,36 @@ procedure setup()
 
 end
 
+procedure symstate_cb(vidget, value)
+   local row, col
+
+   #  Note:  the blanks at the end of these radio-button labels are
+   #  for interface formatting.
+
+   sym_state := case value of {
+      "none "  :  [[1, -1, -1, -1], [-1, -1, -1, -1]]
+      "all  "   :  [[1, 1, 1, 1], [1, 1, 1, 1]]
+      }
+
+   sym_image_next := [
+      [ident, hi_rot_90, hi_rot_m90, hi_rot_180],
+      [hi_right, hi_left, hi_vert, hi_horiz]
+      ]
+   sym_image_current := [
+      [hi_ident, rotate_90, rotate_m90, rotate_180],
+      [flip_right, flip_left, flip_vert, flip_horiz]
+      ]
+
+   if value == "all  " then sym_image_next :=: sym_image_current
+
+   every col := 1 to 4 do
+      every row := 1 to 2 do
+         place(symmet_xpos, symmet_yoff, col - 1, row - 1,
+            sym_image_current[row, col])
+   return
+
+end
+
 #  symmetry buttons
 
 procedure symmet_cb(vidget, e)
@@ -601,7 +687,7 @@ procedure tile_cb(vidget, value)
 
    case value[1] of {
       "new  @N"  :  new_tile()
-      "info @I"  : tile_info()
+      "info @I"  :  tile_info()
       }
 
    return
@@ -638,18 +724,36 @@ procedure undo_xform()
 
 end
 
-#  write tile
+#  write pattern
 
 procedure write_tile()
    local output
 
    repeat {
-      if SaveDialog("Write tie-up") == "Cancel" then fail
+      if SaveDialog("Write pattern") == "Cancel" then fail
       output := open(dialog_value, "w") | {
          Notice("Cannot open file for writing.")
          next
          }
       write(output, rows2pat(grid_rows))
+      close(output)
+      return
+      }
+
+end
+
+#  write rows
+
+procedure write_rows()
+   local output
+
+   repeat {
+      if SaveDialog("Write rows") == "Cancel" then fail
+      output := open(dialog_value, "w") | {
+         Notice("Cannot open file for writing.")
+         next
+         }
+      every write(output, !grid_rows)
       close(output)
       return
       }
@@ -747,18 +851,20 @@ end
 
 #===<<vib:begin>>===	modify using vib; do not remove this marker line
 procedure grid_ui_atts()
-   return ["size=635,568", "bg=pale gray", "label=Tie-Up Editor"]
+   return ["size=635,568", "bg=pale gray", "label=Drawdown Editor"]
 end
 
 procedure grid_ui(win, cbk)
 return vsetup(win, cbk,
-   ["grid_ui:Sizer:::0,0,635,568:Tie-Up Editor",],
-   ["file:Menu:pull::0,0,36,21:file",grid_file_cb,
-      ["read  @R","open  @O","write @W","copy  @C","paste @P",
-      "quit  @Q ","save  @S"]],
+   ["grid_ui:Sizer:::0,0,635,568:Drawdown Editor",],
+   ["file:Menu:pull::0,0,36,21:File",grid_file_cb,
+      ["read  @R","open  @O","ims   @M","write @W","copy  @C",
+      "paste @P","quit  @Q ","save  @S"]],
    ["line1:Line:::0,22,660,22:",],
    ["symmetries:Label:::22,316,70,13:symmetries",],
-   ["tile:Menu:pull::38,0,36,21:tile",tile_cb,
+   ["symstate:Choice::2:26,384,64,42:",symstate_cb,
+      ["all  ","none "]],
+   ["tile:Menu:pull::38,0,64,21:Drawdown",tile_cb,
       ["new  @N","info @I"]],
    ["transformations:Label:::5,33,105,13:transformations",],
    ["symregion:Rect:grooved::24,338,68,36:",symmet_cb],

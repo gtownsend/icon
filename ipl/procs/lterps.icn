@@ -1,0 +1,43 @@
+############################################################################
+#
+#	File:     lterps.icn
+#
+#	Subject:  Procedure to interpret L-system output
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 30, 2001
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  Links:  numbers
+#
+############################################################################
+
+link numbers
+
+procedure seqterp(s)			#: interpret L-system output
+   local c
+   static incr, pos
+
+   initial {
+      incr := 1
+      pos := 0
+      }
+
+   every c := !s do
+      case c of {
+         "F"  :  {
+            pos +:= incr
+            suspend pos
+            }
+         "f"  :  pos +:= incr
+         "+"  :  incr := 1
+         "-"  :  incr := -1
+         }
+
+end

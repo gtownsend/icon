@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     July 23, 2000
+#	Date:     December 22, 2001
 #
 ############################################################################
 #
@@ -139,9 +139,17 @@ procedure nav_init()
 end
 
 procedure nav_files_cb(vidget, value)
+   static last_file, last_time
 
-   if /value then return
+   initial {
+      last_file := ""
+      last_time := 0
+      }
 
+   if /value then {
+      last_time := 0
+      return
+      }
 
 $ifdef _UNIX
    if value ?:= tab(upto('/')) then {
@@ -154,7 +162,16 @@ $else
 $endif
 
    nav_file := value
-      
+
+   if (value == last_file) then {
+      last_file := ""
+      nav_state := "Okay"
+      return
+      }
+
+   last_time := 0
+   last_file := value
+
    return
 
 end

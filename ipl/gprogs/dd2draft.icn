@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     April 17, 2000
+#	Date:     November 16, 2001
 #
 ############################################################################
 #
@@ -17,18 +17,30 @@
 #  This program reads a drawdown in terms of rows of zeros and ones from
 #  standard input and outputs draft information in textual form.
 #
+#  It also accepts BLPs as input.
+#
 ############################################################################
+#
+#   Links:  patutils. patxform
+#
+############################################################################
+
+link patutils
+link patxform
 
 record analysis(rows, sequence, patterns)
 
 procedure main()
-
    local threading, treadling, rows, columns,  pattern, i
-   local symbols, symbol, tieup
+   local symbols, symbol, tieup, line
 
-   rows := []		# list for rows of the drawdown
+   line := read() | stop("empty file")
 
-   while put(rows, read())	# read rows of the drawdown
+   if upto("#", line) then rows := pat2rows(line)
+   else {
+      rows := [line]
+      while put(rows, read())	# read in row pattern
+      }
 
    write("Drawdown:")
    write()
@@ -42,7 +54,7 @@ procedure main()
    write()
    write()
 
-   columns := rotate(rows)	# rotate 90 degrees
+   columns := protate(rows)	# rotate 90 degrees
 
    threading := analyze(columns)
    write("Threading:")
@@ -95,20 +107,5 @@ procedure analyze(drawdown)
       }
 
    return analysis(rows, sequence, patterns)
-
-end
-
-procedure rotate(rows)
-   local columns, row, grid, i
-
-   columns := list(*rows[1], "")
-
-   every row := !rows do {
-      i := 0
-      every grid := !row do
-         columns[i +:= 1] := grid || columns[i]
-      }
-
-   return columns
 
 end
