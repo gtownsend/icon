@@ -1,7 +1,7 @@
 <!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN">
 <HTML>
 <HEAD>
-    <TITLE>Release Notes for Version 9.4.1 of Icon</TITLE>
+    <TITLE>Release Notes for Version 9.4.2 of Icon</TITLE>
     <LINK REL="STYLESHEET" TYPE="text/css" HREF="istyle.css">
 </HEAD>
 <BODY>
@@ -9,31 +9,89 @@
 <A HREF="http://www.cs.arizona.edu/icon/"> <IMG SRC="wwwcube.gif"
 ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 
-<H1> Release Notes for Version 9.4.1 of Icon </H1>
+<H1> Release Notes for Version 9.4.2 of Icon </H1>
 
 <P> Gregg M. Townsend
 <BR> <SMALL> Department of Computer Science </SMALL>
 <BR> <SMALL> The University of Arizona </SMALL>
 
-<P> <SMALL> www.cs.arizona.edu/icon/v941/relnotes.htm
-<BR> Last updated March 25, 2002 </SMALL>
+<P> <SMALL> www.cs.arizona.edu/icon/v942/relnotes.htm
+<BR> Last updated September 20, 2002 </SMALL>
 <!-- $Id$ -->
 
 
 <H2> Introduction </H2>
 
-<P> Version 9.4.1 of Icon is a minor update to version 9.4.0 of Icon. 
-Most changes address installation and portability issues.
-The performance of large sets and tables is improved,
-and some minor bugs have been fixed.
-The one new feature is a command that allows
-an Icon source program to be used as an executable script.
+<P> Version 9.4.2 of Icon is a minor update to version 9.4.1 of Icon. 
+The 256-color graphics limit has been removed,
+and an experimental configuration for Cygwin (on Windows) has been added.
+Some minor bugs have been fixed.
 
 <P> The Icon language is unchanged, and this Unix implementation
 remains compatible at the source level with Icon 9.3 for Windows.
 
 
-<H2> Recent feature additions </H2>
+<H2> Changes in Version 9.4.2 </H2>
+
+<P> Notable changes in this latest version are listed here.
+Some code cleanup work and documentation editing
+has also been done.
+
+<H3> 256-color limit removed </H3>
+
+<P> Icon's X-windows interface previously limited each window
+to 256 colors at one time.
+This limitation has been removed for the TrueColor displays
+provided by most modern computers.
+Median-cut quantization is used to select 256 image colors
+when <CODE>WriteImage()</CODE> is called to write a GIF file.
+
+<H3> Experimental Windows configuration using Cygwin </H3>
+
+<P> A new, experimental configuration allows Icon to be
+built on Microsoft Windows using the
+<A HREF="http://www.cygwin.com/">Cygwin</A> environment.
+For more details see 
+<A HREF=mswin.htm>Icon on Windows</A>.
+
+
+<H3> Library Changes </H3>
+
+<P> As usual, several files in the Icon program library
+have been added, edited, or moved.
+The core library files, however, remain stable.
+
+<P> The <CODE>randomize()</CODE> function now uses <CODE>/dev/urandom</CODE>,
+if available, to initialize the random sequence.  Formerly, two programs
+started within the same clock second could produce the same random sequence.
+
+<P> The map navigation GUI from the <CODE>dlgvu</CODE> program has been
+broken out into a separate <CODE>mapnav</CODE> procedure library.
+This libary is used by a new <CODE>trkvu</CODE> program,
+a simple viewer for GPS track logs.
+
+<P> The new file <CODE>ipl/cfuncs/ilists.c</CODE> provides
+support code for loadable C functions that access arrays.
+
+<H3> Minor changes </H3>
+
+<UL>
+
+   <LI> The command "<CODE>icon - [args]</CODE>" can now be used to
+	execute a source program read from standard input.
+
+   <LI> The configuration directory structure has changed.
+
+   <LI> Several obsolete configurations have been removed.
+
+   <LI> "make Install" has been changed to not delete anything.
+   	You must now specify a target directory that does not yet exist.
+
+
+</UL>
+
+
+<H2> Other recent feature additions </H2>
 
 New features added since the publication of the Icon books
 are described below.
@@ -48,7 +106,7 @@ and setting its execute permission bit.
 This uses a new <A HREF="icon.txt"><CODE>icon</CODE></A> command,
 which in another form allows a small Icon program to be embedded
 within a shell script.
-See the new <A HREF="icon.txt">man page</A> for details.
+See the <A HREF="icon.txt">man page</A> for details.
 The traditional <A HREF="icont.txt"><CODE>icont</CODE></A> command
 remains available for less specialized purposes.
 
@@ -94,80 +152,8 @@ Windows (CR+LF), Macintosh (CR), or Unix (LF).
 Consequently, text files created on one platform can be
 read by an Icon program running on a different platform. 
 
-<H2> Other Changes in Version 9.4.1 </H2>
 
-<P> Notable changes in this latest version are listed here.
-Some code cleanup work and documentation editing
-has also been done.
-
-<H3> Huge sets and tables </H3>
-
-<P> The access time of a set or table is constant
-as long as the structure does not grow too big.
-Prior to this release, sets and tables began slowing down
-after growing beyond 20,000 elements.
-With this version, the limit has been raised to around
-44 million elements, making much larger sets and tables
-feasible.
-
-<H3> Automatic hardware configuration </H3>
-
-<P> The configuration parameters <CODE>IntBits</CODE>, <CODE>WordBits</CODE>,
-<CODE>Double</CODE>, and <CODE>UpStack</CODE> are now configured automatically.
-This allows the same <CODE>linux</CODE> configuration to be used 
-on x86, Itanium, and Alpha architectures, and presumably on others.
-The set of configurations has been consolidated, and some
-obsolete configurations removed.
-
-<H3> Pthreads configurations </H3>
-
-<P> Co-expression support requires specialized code for context switching
-that until now has been hardware-dependent.
-A new, portable set of context switching functions has been developed
-using POSIX threads ("pthreads") and semaphores.
-The new functions have been tested under
-Linux, FreeBSD, Solaris, Irix, and Digital Unix,
-and on several hardware architectures including the Intel Itanium.
-
-<P> Because platform-specific code is considerably faster,
-the pthreads version is used only when such code is not available.
-
-<H3> Macintosh configuration </H3>
-
-<P> Using the new <CODE>ppc_macos</CODE> configuration,
-Icon can be built and run in a terminal window 
-on an Apple Macintosh running MacOS X version 10.1.
-Graphics facilities are available if
-<A HREF="http://xfree86.org">XFree86</A> is installed.
-
-<H3> Library Changes </H3>
-
-<P> As usual, several files in the Icon program library
-have been added, edited, or moved.
-No significant changes were made to the core files.
-The most notable addition is a nice double-deck solitaire game,
-<CODE>gprogs/spider.icn</CODE>.
-
-<H3> Minor changes </H3>
-
-<UL>
-
-<LI> Added <CODE>icont -V</CODE> to print the Icon version
-and configuration.
-
-<LI> Edited Makefiles and shell scripts to work even in a non-POSIX locale.
-
-<LI> Altered getopt() calls to allow use of GNU getopt.
-
-<LI> Fixed icont to not reject an <CODE>invocable</CODE> identifier
-having a numeric second character.
-
-<LI> Enlarged the test suite by incorporating tests from 
-<A HREF="http://www.cs.arizona.edu/icon/jcon/">Jcon</A>.
-
-</UL>
-
-<H2> Other Documentation </H2>
+<H2> Documentation </H2>
 
 <P> See the <A HREF=docguide.htm>documentation guide</A>
 for an overview of the available Icon documentation.
@@ -179,19 +165,8 @@ for an overview of the available Icon documentation.
 <H2> Acknowledgments </H2>
 
 <P>
-Christian Hudon contributed a Hurd configuration and an
-automatic hardware configurator.
-Tony Ewing contributed the Macintosh configuration.
-Ralph Griswold contributed numerous library modifications.
-Will Evans contributed the new Spider game.
-Richard Aguirre,
-Marc Espie,
-Patrick Homer,
-Christian Hudon,
-Vipul Periwal,
-Peter Seebach,
-and David Slate
-assisted with testing.
+Frank Lhota contributed the Cygwin port.
+Kostas Oikonomou contributed the array support code.
 
 <P> <HR>
 
