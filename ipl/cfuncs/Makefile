@@ -11,6 +11,8 @@ IFLAGS = -us
 
 FUNCLIB = libcfunc.so
 
+.SUFFIXES: .c .o
+.c.o:			; $(CC) $(CFLAGS) $(CFDYN) -c $<
 
 FUNCS = bitcount.o files.o fpoll.o internal.o lgconv.o osf.o \
 	pack.o ppm.o process.o tconnect.o
