@@ -26,7 +26,6 @@ LIBDIR = /usr/local/lib/icon/data
 ICONC = icont
 IFLAGS = -u -s #-Sc 400 -Sg 400 -Si 2000 -Sn 4000 -SF 40
 
-SHELL = /bin/sh
 SHAR = /usr/local/bin/shar
 COMPRESS = /usr/bin/compress
 # COMPRESS = /usr/local/bin/gzip

@@ -34,7 +34,7 @@ dlrgint.o: ../h/rproto.h ../h/rexterns.h ../h/rmacros.h ../h/rstructs.h
 xwindow.o: ../h/graphics.h ../h/xwin.h
 
 rswitch.o: $(RSWITCH)
-	$(CC) -c $(OFLAGS) $(RSWITCH)
+	$(CC) -c $(CFLAGS) $(RSWITCH)
 
 
 #  The following section is needed if changes are made to the Icon grammar,

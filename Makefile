@@ -3,9 +3,6 @@ VER=9.4.f
 name=unspecified
 dest=/must/specify/dest/
 
-# for old versions of "make"
-SHELL=/bin/sh
-MAKE=make
 
 ##################################################################
 #

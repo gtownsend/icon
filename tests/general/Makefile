@@ -3,10 +3,6 @@
 
 SAMPLES = btrees diffwrds kross meander prefix recogn roman sieve wordcnt
 
-# for old versions of "make"
-SHELL=/bin/sh
-MAKE=make
-
 
 
 # default is to run all tests, using icont

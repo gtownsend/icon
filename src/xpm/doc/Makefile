@@ -40,8 +40,6 @@
 
 # site:  $XConsortium: site.def,v 1.2 91/07/30 20:26:44 rws Exp $
 
-            SHELL = /bin/sh
-
               TOP = .
       CURRENT_DIR = .
 
@@ -59,7 +57,6 @@
       LINTLIBFLAG = -C
          LINTOPTS = -axz
                LN = ln -s
-             MAKE = make
                MV = mv
                CP = cp
 

@@ -1,6 +1,3 @@
-SHELL=/bin/sh
-MAKE=make
-
 .SILENT:
 .IGNORE:
 
@@ -149,13 +146,3 @@ errcmd:
 
 Clean:
 		rm -f foo local/*.out
-
-# Entries beyond this point are for use at Arizona only.
-#   *** Do not delete the line above; it is used in trimming Makefiles
-#   for distribution ***
-
-Dist-clean:
-		rm -f .*K* .emacs*
-		rm -f local/*.out
-		rm -rf `gcomp Test-pp README Makefile local stand *.[ch] \
-		   dir1 dir2`
