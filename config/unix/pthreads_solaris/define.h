@@ -8,9 +8,6 @@
 #define LoadFunc
 #define SysOpt
 
-/* CPU architecture */
-#define Double
-
 /* Solaris and Sun C */
 #define SUN
 #define CComp "c89"

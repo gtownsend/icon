@@ -2,8 +2,6 @@
  * Icon configuration.
  */
 
-#include <limits.h>
-
 /*
  * System-specific definitions are in define.h, which is loaded first.
  */
@@ -30,12 +28,6 @@
  *
  *	DeBug		debugging code
  *	MultiThread	support for multiple programs under the interpreter
- *
- *  Other definitions perform configurations that are common to several
- *  systems. An example is:
- *
- *	Double		align reals at double-word boundaries
- *			(when sizeof(long) > sizeof(double))
  */
 
 /*
@@ -281,24 +273,6 @@
 /*
  * Data sizes and alignment.
  */
-
-#ifndef IntBits
-   #if INT_MAX < 2147483647L
-      #define IntBits 16
-   #elif INT_MAX == 2147483647L
-      #define IntBits 32
-   #else
-      #define IntBits 64
-   #endif
-#endif					/* IntBits */
-
-#ifndef WordBits
-   #if LONG_MAX == 2147483647L
-      #define WordBits 32
-   #else
-      #define WordBits 64
-   #endif
-#endif					/* WordBits */
 
 #define WordSize sizeof(word)
 

@@ -10,9 +10,6 @@
 #define SUN
 #define ZERODIVIDE
 
-/* CPU architecture */
-#define Double
-
 /* use gcc to compile generated code */
 #define CComp "gcc"
 #define COpts "-O2 -fomit-frame-pointer"

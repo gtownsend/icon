@@ -8,7 +8,6 @@
 
 #define IRIS4D
 #define CStateSize 32		/* anything >= 26 should actually do */
-#define Double
 
 #ifdef NoCoexpr
    #define MaxStatSize 9000

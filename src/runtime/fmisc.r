@@ -1786,15 +1786,15 @@ function{1} load(s,arglist,infile,outfile,errfile,
         + Wsizeof(struct progstate) + pstate->hsize/WordSize;
       if (pstate->hsize % WordSize) sp++;
 
-      if (upstack)
-         sblkp->cstate[0] = ((word)((char *)sblkp + (mstksize -
-            (sizeof(*sblkp)+sizeof(struct progstate)+pstate->hsize))/2)
-            & ~((word)WordSize*StackAlign-1));
-      else
-         sblkp->cstate[0] =
-            ((word)((char *)sblkp + mstksize -
-            WordSize + sizeof(struct progstate) + pstate->hsize)
-            & ~((word)WordSize*StackAlign-1));
+#ifdef UpStack
+      sblkp->cstate[0] =
+         ((word)((char *)sblkp + (mstksize - (sizeof(*sblkp)+sizeof(struct progstate)+pstate->hsize))/2)
+            &~((word)WordSize*StackAlign-1));
+#else					/* UpStack */
+      sblkp->cstate[0] =
+	((word)((char *)sblkp + mstksize - WordSize + sizeof(struct progstate) + pstate->hsize)
+           &~((word)WordSize*StackAlign-1));
+#endif					/* UpStack */
 
       sblkp->es_argp = NULL;
       sblkp->es_gfp = NULL;

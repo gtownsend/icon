@@ -6,7 +6,7 @@ what:
 
 Clean Pure:
 	cd iconc;	rm -f *.o iconc
-	cd common;	rm -f *.o doincl patchstr
+	cd common;	rm -f *.o doincl patchstr infer
 	cd preproc;	rm -f *.o pp
 	cd rtt;		rm -f *.o rtt
 	cd runtime;	rm -f *.o *.c rt.db rt.a rttcur.lst rttfull.lst iconx
@@ -14,6 +14,7 @@ Clean Pure:
 	cd xpm;		rm -f *.o *.a
 # force full runtime system rebuild
 	touch h/define.h
+	rm -f h/arch.h
 
 
 #  The following entry forces rebuilding of everthing from first-generation

@@ -43,7 +43,6 @@ extern struct descrip onedesc;	/* one */
 extern struct descrip ucase;	/* uppercase string */
 extern struct descrip zerodesc;	/* zero */
 
-extern int upstack;		/* does stack grow upward? */
 extern word mstksize;		/* size of main stack in words */
 extern word stksize;		/* size of co-expression stacks in words */
 extern word qualsize;		/* size of string qualifier list */

@@ -6,6 +6,7 @@
  */
 
 #include "../h/define.h"
+#include "../h/arch.h"
 #include "../h/config.h"
 #include "../h/sys.h"
 #include "../h/typedefs.h"

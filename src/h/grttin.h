@@ -4,6 +4,7 @@
  *   does not output any code from them.
  */
 #include "../h/define.h"
+#include "../h/arch.h"
 #include "../h/config.h"
 #include "../h/version.h"
 

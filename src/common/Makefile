@@ -7,7 +7,7 @@ OBJS =	long.o getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
 
 common:		doincl patchstr $(OBJS) xpmaybe
 
-doincl:		doincl.c
+doincl:		doincl.c ../h/arch.h
 		$(CC) $(CFLAGS) -o doincl doincl.c
 		-./doincl -o ../../bin/rt.h ../h/rt.h
 
@@ -22,8 +22,12 @@ xpm:
 		cd ../xpm; $(MAKE) libXpm.a
 		cp ../xpm/libXpm.a ../../bin
 
-$(OBJS): ../h/define.h ../h/config.h ../h/cstructs.h ../h/mproto.h \
+$(OBJS): ../h/define.h ../h/arch.h ../h/config.h ../h/cstructs.h ../h/mproto.h \
 	  ../h/typedefs.h ../h/proto.h ../h/cpuconf.h
+
+../h/arch.h:	infer.c
+		$(CC) $(CFLAGS) -o infer infer.c
+		./infer >../h/arch.h
 
 identify.o: ../h/version.h
 

@@ -39,14 +39,13 @@ struct b_coexpr *sblkp;
     *  the co-expression block. For down-growing stacks, the C stack starts
     *  at the last word of the co-expression block.
     */
-   if (upstack) {
-      frame_size = sizeof(struct p_frame) +
-         sizeof(struct descrip) * (nl + na + nt - 1) + rblkp->wrk_size;
-      stack_strt = (word)((char*)&sblkp->pf + frame_size + StackAlign*WordSize);
-      }
-   else {
-      stack_strt = (word)((char *)sblkp + stksize - WordSize);
-      }
+#ifdef UpStack
+   frame_size = sizeof(struct p_frame) + sizeof(struct descrip) * (nl + na +
+      nt - 1) + rblkp->wrk_size;
+   stack_strt = (word)((char *)&sblkp->pf + frame_size + StackAlign*WordSize);
+#else					/* UpStack */
+   stack_strt = (word)((char *)sblkp + stksize - WordSize);
+#endif					/* UpStack */
    sblkp->cstate[0] = stack_strt & ~(WordSize * StackAlign - 1);
 
    sblkp->es_argp = &sblkp->pf.tend.d[nl + nt];   /* args follow temporaries */
@@ -69,14 +68,15 @@ struct b_coexpr *sblkp;
 
    newsp = (word *)((char *)sblkp + sizeof(struct b_coexpr));
 
-   if (upstack)
-      sblkp->cstate[0] =
-         ((word)((char *)sblkp + (stksize - sizeof(*sblkp))/2)
-            & ~((word)WordSize*StackAlign-1));
-   else
-      sblkp->cstate[0] =
-         ((word)((char *)sblkp + stksize - WordSize)
-            & ~((word)WordSize*StackAlign-1));
+#ifdef UpStack
+   sblkp->cstate[0] =
+      ((word)((char *)sblkp + (stksize - sizeof(*sblkp))/2)
+         &~((word)WordSize*StackAlign-1));
+#else					/* UpStack */
+   sblkp->cstate[0] =
+	((word)((char *)sblkp + stksize - WordSize)
+           &~((word)WordSize*StackAlign-1));
+#endif					/* UpStack */
 
    sblkp->es_argp = (dptr)newsp;  /* args are first thing on stack */
 

@@ -6,4 +6,3 @@
 
 #define CStateSize 20
 #define StackSize 10000
-#define Double

@@ -8,9 +8,6 @@
 #define LoadFunc
 #define SysOpt
 
-/* CPU architecture */
-#define Double
-
 /* use gcc to compile generated code */
 #define CComp "gcc"
 #define COpts "-I/usr/openwin/include -ldl"
