@@ -312,53 +312,7 @@ function{0,1} open(fname, spec)
        * Fail if the file cannot be opened.
        */
       if (f == NULL) {
-#ifdef WinGraphics
-
-#ifndef _S_IFDIR
-   #define _S_IFDIR S_IFDIR
-#endif					/* _S_IFDIR */
-
-         char tempbuf[512];
-	 *tempbuf = '\0';
-         if (strchr(fnamestr, '*') || strchr(fnamestr, '?')) {
-            /*
-	     * attempted to open a wildcard, do file completion
-	     */
-	    strcpy(tempbuf, fnamestr);
-            }
-	 else {
-            /*
-	     * check and see if the file was actually a directory
-	     */
-            struct stat fs;
-            if (stat(fnamestr, &fs) == -1) fail;
-	    if (fs.st_mode & _S_IFDIR) {
-#if CYGWIN
-               cygwin_conv_to_win32_path(fnamestr, tempbuf); 
-#else					/* CYGWIN */
-	       strcpy(tempbuf, fnamestr);
-#endif					/* CYGWIN */
-	       if (tempbuf[strlen(tempbuf)-1] != '\\')
-	          strcat(tempbuf, "\\");
-	       strcat(tempbuf, "*.*");
-	       }
-	    }
-         if (*tempbuf) {
-            FINDDATA_T fd;
-	    if (!FINDFIRST(tempbuf, &fd)) fail;
-            f = tmpfile();
-            if (f == NULL) fail;
-            do {
-               fprintf(f, "%s\n", FILENAME(&fd));
-               } while (FINDNEXT(&fd));
-            FINDCLOSE(&fd);
-            fflush(f);
-            fseek(f, 0, SEEK_SET);
-            if (f == NULL) fail;
-	    }
-#else					/* WinGraphics */
 	 fail;
-#endif					/* WinGraphics */
 	 }
 
       /*
@@ -1184,7 +1138,7 @@ function{*} fattrib (fname, att[argc])
             suspend string(l, temp);
             }
          else {
-            runerr(205, s);
+            runerr(205, att[i]);
             }
       }
       fail;
