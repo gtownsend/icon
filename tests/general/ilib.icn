@@ -281,24 +281,24 @@ procedure tfact(n)			#:  test factorization of n
    v := 1
    every v *:= !F
    if v ~= n then
-      write("   ", i, ": PRODUCT OF FACTORS = " ,v)
+      write("   ", n, ": PRODUCT OF FACTORS = " ,v)
 
    F := set(F)
    P := pfactors(n)
    if *P ~= *F then
-      write("   ", i, ": PRIME FACTOR COUNT = ", *P)
+      write("   ", n, ": PRIME FACTOR COUNT = ", *P)
    every i := !P do
       if not member(F, i) then
-         write("   ", i, ": MISSING PRIME FACTOR ", i)
+         write("   ", n, ": MISSING PRIME FACTOR ", i)
 
    D := set()
    every insert(D, divisors(n))
    every i := 1 to n do
       if member(D, i) then {
-         if n % i ~= 0 then write ("   ", i, ": BOGUS DIVISOR ", i)
+         if n % i ~= 0 then write ("   ", n, ": BOGUS DIVISOR ", i)
 	 }
       else {
-         if n % i == 0 then write ("   ", i, ": MISSING DIVISOR ", i)
+         if n % i == 0 then write ("   ", n, ": MISSING DIVISOR ", i)
 	 }
 end
 
