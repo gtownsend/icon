@@ -18,6 +18,5 @@ Samples-iconc:		; cd general; $(MAKE) Samples-iconc
 Clean:
 		cd bench;	$(MAKE) Clean
 		cd general;	$(MAKE) Clean
-		cd graphics;	$(MAKE) Clean
 		cd preproc;	$(MAKE) Clean
 		cd special;	$(MAKE) Clean
