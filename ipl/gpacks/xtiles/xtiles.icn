@@ -3,6 +3,7 @@
 # tiles puzzle
 
 # $Id$
+# minor mods 2000/12/23 gmt
 
 link graphics
 
@@ -740,8 +741,9 @@ procedure main(L)
 			{
 			last_random := &random
 			best_score := &null
-			write("Playing tiles ", r, " ", n, " ", m, " ", &random)
 			}
+		writes("Playing tiles ", r, " ", n, " ", m, " ",
+		   left(&random, 12))
 
 		new_game(r)
 		lasti := &null
@@ -830,6 +832,7 @@ procedure main(L)
 						prompt := "End "
 
 					write_score(prompt||score)
+					write("  Final score ", score)
 					last := user_entry()
 					if last == "u" then
 						{
@@ -867,6 +870,7 @@ procedure main(L)
 				if (e == ("o" | "y" | "q")) then 
 					{
 					last := "q"
+					write()
 					break
 					}
 				else
