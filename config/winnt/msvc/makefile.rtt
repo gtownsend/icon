@@ -1,0 +1,115 @@
+OS=NT
+ENV=WIN32
+CPU=i386
+!include <$(OS)$(ENV).mak>
+
+CC=cl
+CFLAGS= /D_X86_ /DWIN32 /DRttx /DRTT /DTokDotH=\"../rtt/ltoken.h\" /DNTConsole
+HFLAGS=
+LDFLAGS=
+LIBS=
+YFLAGS=
+MAKE = nmake
+COPY = copy
+
+ROBJS = rttparse.obj rttmain.obj rttlex.obj rttsym.obj rttnode.obj rttout.obj rttmisc.obj\
+	  rttdb.obj rttinlin.obj rttilc.obj
+
+PP_DIR = ../preproc/
+P_DOT_H = $(PP_DIR)preproc.h $(PP_DIR)pproto.h ltoken.h ../h/mproto.h\
+        ../h/define.h ../h/config.h ../h/typedefs.h ../h/proto.h\
+        ../h/cstructs.h ../h/cpuconf.h
+POBJS = pout.obj pchars.obj  perr.obj pmem.obj  bldtok.obj macro.obj preproc.obj\
+	evaluate.obj files.obj gettok.obj pinit.obj
+
+COBJS = ../common/getopt.obj ../common/time.obj ../common/filepart.obj\
+	  ../common/memory.obj ../common/identify.obj ../common/strtbl.obj\
+	  ../common/rtdb.obj ../common/mlocal.obj ../common/literals.obj \
+	  ../common/alloc.obj
+
+ICOBJS=	getopt.obj time.obj filepart.obj memory.obj identify.obj strtbl.obj rtdb.obj\
+	  mlocal.obj literals.obj alloc.obj
+
+OBJ = $(ROBJS) $(POBJS) $(COBJS)
+
+WOBJS=	../wincap/file.obj ../wincap/errors.obj ../wincap/dibutil.obj\
+	../wincap/copy.obj ..\runtime\xrwindow.obj ..\runtime\xrwinsys.obj\
+	../runtime/xrwinrsc.obj ../common/dconsole.obj
+
+all:
+	cd ../common
+	$(MAKE) winobjs CONSOLE=NTConsole
+	cd ../rtt
+	$(MAKE) rtt
+
+wrtt:	$(OBJ)
+	cd ../common
+	$(MAKE) winobjs dconsole.obj
+	cd ../rtt
+	$(CC) $(CFLAGS) /DWIN32 -c rttmain.c
+	$(link) $(linkdebug) $(guiflags) $(OBJ) $(WOBJS) $(guilibs) -out:wrtt.exe
+	$(COPY) wrtt.exe ..\..\bin
+
+rtt:	$(OBJ)
+	$(CC) $(CFLAGS) /DNTConsole /DWIN32 -c rttmain.c
+	link @rtt.lnk
+	$(COPY) rtt.exe ..\..\bin
+
+library:	$(OBJ)
+		rm -rf rtt.a
+		ar qc rtt.a $(OBJ)
+		-(test -f ../../NoRanlib) || (ranlib rtt.a)
+
+$(ROBJS): rtt.h rtt1.h rttproto.h $(P_DOT_H)
+
+rttdb.obj: ../h/version.h
+rttparse.obj : ../h/gsupport.h ../h/path.h ../h/config.h ../h/cstructs.h \
+	../h/proto.h ../h/typedefs.h ../h/cpuconf.h ../h/define.h
+rttmain.obj : ../h/path.h
+
+pout.obj: $(PP_DIR)pout.c $(P_DOT_H)
+	$(CC) -c $(CFLAGS) $(PP_DIR)pout.c 
+
+pchars.obj: $(PP_DIR)pchars.c $(P_DOT_H)
+	$(CC) -c $(CFLAGS) $(PP_DIR)pchars.c 
+
+perr.obj: $(PP_DIR)perr.c $(P_DOT_H)
+	$(CC) -c $(CFLAGS) $(PP_DIR)perr.c
+
+pmem.obj: $(PP_DIR)pmem.c $(P_DOT_H)
+	$(CC) -c $(CFLAGS) $(PP_DIR)pmem.c
+
+bldtok.obj: $(PP_DIR)bldtok.c $(P_DOT_H)
+	$(CC) -c $(CFLAGS) $(PP_DIR)bldtok.c
+
+macro.obj: $(PP_DIR)macro.c $(P_DOT_H)
+	$(CC) -c $(CFLAGS) $(PP_DIR)macro.c
+
+preproc.obj: $(PP_DIR)preproc.c $(P_DOT_H)
+	$(CC) -c $(CFLAGS) $(PP_DIR)preproc.c
+
+evaluate.obj: $(PP_DIR)evaluate.c $(P_DOT_H)
+	$(CC) -c $(CFLAGS) $(PP_DIR)evaluate.c
+
+files.obj: $(PP_DIR)files.c $(P_DOT_H)
+	$(CC) -c $(CFLAGS) $(PP_DIR)files.c
+
+gettok.obj: $(PP_DIR)gettok.c $(P_DOT_H)
+	$(CC) -c $(CFLAGS) $(PP_DIR)gettok.c
+
+pinit.obj: $(PP_DIR)pinit.c $(P_DOT_H)
+	$(CC) -c $(CFLAGS) $(PP_DIR)pinit.c
+
+#
+# The following entry is commented out because it is not normally
+# necessary to recreate rttparse.c and ltoken.h unless the grammar
+# in rttgram.y for the run-time langauge is changed. Recreating these
+# files is not normally a part of the installation process. Note that
+# on some systems, yacc may not have large enough internal tables to
+# translate this grammar.
+#
+#rttparse.c ltoken.h: rttgram.y
+#	yacc -d $(YFLAGS) rttgram.y
+#	fgrep -v -x "extern char *malloc(), *realloc();" y.tab.c > rttparse.c
+#	rm y.tab.c
+#	mv y.tab.h ltoken.h

@@ -1,0 +1,111 @@
+OS=NT
+ENV=WIN32
+CPU=i386
+!include <$(OS)$(ENV).mak>
+
+#  The -D$D option to CFLAGS makes it possible to specify a definition
+#  at the Make command level without revising the Makefile, as
+#  in
+#
+#       make D=Debug
+#
+D=NOTHING
+CC=cl
+# /O1 to minimize space, /Zi for debugging
+CFLAGS= /D_X86_ /DWIN32 /O1 /D$(D)
+LDFLAGS=
+MAKE = nmake
+
+OBJS=   long.obj getopt.obj memory.obj time.obj filepart.obj identify.obj strtbl.obj rtdb.obj\
+	mlocal.obj literals.obj rswitch.obj alloc.obj long.obj getopt.obj memory.obj time.obj\
+	save.obj redirerr.obj xwindow.obj dlrgint.obj ipp.obj
+#       rswitch.obj
+
+common:         doincl.exe patchstr.exe
+		.\doincl -o ..\..\bin\rt.h ..\h\rt.h
+
+# add dconsole.obj for wicont
+winobjs:
+		del *.obj
+	        nmake $(OBJS) $(DCONSOLE) D=$(CONSOLE)
+
+doincl.exe:     doincl.obj
+		link32 -subsystem:console doincl.obj libc.lib kernel32.lib ntdll.lib user32.lib gdi32.lib winspool.lib comdlg32.lib VERSION.LIB -out:doincl.exe
+
+patchstr.exe:   patchstr.c
+		$(CC) $(CFLAGS) patchstr.c
+		link32 -subsystem:console patchstr.obj libc.lib kernel32.lib ntdll.lib user32.lib gdi32.lib winspool.lib comdlg32.lib VERSION.LIB -out:patchstr.exe
+		copy patchstr.exe ..\..\bin
+
+patchstr.obj:  patchstr.c
+		$(CC) -c $(CFLAGS) /DNOMAIN patchstr.c
+
+xpm:
+		cd ../xpm; $(MAKE) libXpm.a
+		cp ../xpm/libXpm.a ../../bin
+		-(test -f ../../NoRanlib) || (ranlib ../../bin/libXpm.a)
+
+$(OBJS): ../h/define.h ../h/config.h ../h/cstructs.h ../h/mproto.h  ../h/path.h\
+	  ../h/typedefs.h ../h/proto.h ../h/cpuconf.h
+
+identify.obj: ../h/version.h
+
+ipp.obj: ../h/features.h
+
+literals.obj: ../h/esctab.h
+
+rtdb.obj: ../h/version.h icontype.h
+
+dlrgint.obj: ../h/rproto.h ../h/rexterns.h ../h/rmacros.h ../h/rstructs.h
+
+xwindow.obj: ../h/graphics.h ../h/xwin.h ../h/pmwin.h
+
+#
+# use these lines for the old rswitch.asm assembly co-expression switch.
+#
+#rswitch.obj: rswitch.asm
+#        masm386 /Mx rswitch.asm,rswitch.obj,NUL,NUL
+
+rswitch.obj: rswitch.c
+	$(CC) /D_X86_ /DWIN32 /c rswitch.c
+
+#  The following section is needed if changes are made to the Icon grammar,
+#  but it is not run as part of the normal installation process.  If it is
+#  needed, it is run by changing ../icont/Makefile and/or ../iconc/Makefile;
+#  see the comments there for details.  icont must be in the search path
+#  for this section to work.
+ 
+gfiles:                 lextab.h yacctok.h fixgram pscript
+ 
+lextab.h yacctok.h:     tokens.txt op.txt mktoktab
+			./mktoktab 
+ 
+mktoktab:               mktoktab.icn
+			icont -s mktoktab.icn
+ 
+fixgram:                fixgram.icn
+			icont -s fixgram.icn
+ 
+pscript:                pscript.icn
+			icont -s pscript.icn
+ 
+ 
+ 
+#  The following section is commented out because it does not need to be
+#  performed unless changes are made to typespec.txt. Such changes 
+#  and are not part of the installation process.  However, if the
+#  distribution files are unloaded in a fashion such that their dates
+#  are not set properly, the following section would be attempted.
+#
+#  Note that if any changes are made to the file mentioned above, the
+#  comment characters at the beginning of the following lines should be
+#  removed.
+#
+#  Note that icont must be on your search path for this.
+#
+#
+#icontype.h: typespec.txt typespec
+#       typespec <typespec.txt >icontype.h
+#
+#typespec: typespec.icn
+#       icont typespec
