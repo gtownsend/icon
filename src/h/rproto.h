@@ -556,6 +556,7 @@ int	fixtrap		(void);
 int	get_name	(dptr dp1, dptr dp2);
 int	getch		(void);
 int	getche		(void);
+double	getdbl		(dptr dp);
 int	getimage	(dptr dp1, dptr dp2);
 int	getstrg		(char *buf, int maxi, struct b_file *fbp);
 void	hgrow		(union block *bp);

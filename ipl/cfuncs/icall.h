@@ -7,7 +7,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     December 3, 1996
+#	Date:     May 31, 2001
 #
 ############################################################################
 #
@@ -60,7 +60,6 @@
 # 	ArgString(i)		check that argv[i] is a string
 #
 #   Caveats:
-#      RealVal() may not work if doubles need to be 8-byte aligned.
 #      Allocation failure is not detected.
 #
 ############################################################################
@@ -134,6 +133,7 @@ typedef struct { word title; FILE *fp; word stat; descriptor fname; } fileblock;
 char *alcstr(char *s, word len);
 realblock *alcreal(double v);
 fileblock *alcfile(FILE *fp, int stat, descriptor *name);
+double getdbl(descriptor *d);
 
 extern descriptor nulldesc;		/* null descriptor */
 
@@ -143,7 +143,7 @@ extern descriptor nulldesc;		/* null descriptor */
 
 #define IntegerVal(d) ((d).vword)
 
-#define RealVal(d) (((realblock *)((d).vword))->rval)
+#define RealVal(d) getdbl(&(d))
 
 #define FileVal(d) (((fileblock *)((d).vword))->fp)
 #define FileStat(d) (((fileblock *)((d).vword))->stat)

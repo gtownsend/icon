@@ -2,8 +2,8 @@
  * cnv.r -- Conversion routines:
  *
  * cnv_c_dbl, cnv_c_int, cnv_c_str, cnv_cset, cnv_ec_int,
- * cnv_eint, cnv_int, cnv_real, cnv_str, cnv_tcset, cnv_tstr, deref
- * strprc, bi_strprc
+ * cnv_eint, cnv_int, cnv_real, cnv_str, cnv_tcset, cnv_tstr, deref,
+ * getdbl, strprc, bi_strprc
  *
  * Service routines: itos, ston, radix, cvpos
  *
@@ -664,6 +664,17 @@ dptr s, d;
           */
          *d = *(dptr)((word *)VarLoc(*s) + Offset(*s));
       }
+   }
+
+/*
+ * getdbl - return as a double the value inside a real block.
+ */
+double getdbl(dp) 
+dptr dp;
+   {
+   double d;
+   GetReal(dp, d);
+   return d;
    }
 
 /*
