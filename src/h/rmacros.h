@@ -461,15 +461,10 @@
     * Shorter Versions of the Push*SP macros that assume sp points to the top
     * of the stack.
     */
-   #define PushAVal(x)		PushAValSP(sp,x)
    #define PushDesc(d)		PushDescSP(sp,d)
    #define PushNull		PushNullSP(sp)
    #define PushVal(x)		PushValSP(sp,x)
-
-   /*
-    * Push address.  Once weird for DOS, now the same as PushVal.
-    */
-   #define PushAVal(x) PushVal(x)
+   #define PushAVal(x)		PushValSP(sp,x)
 
    /*
     * Macros related to function and operator definition.

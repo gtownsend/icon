@@ -147,7 +147,7 @@ word xnargs;
 #define PushDesc(d)   PushDescSP(rsp,d)
 #define PushNull      PushNullSP(rsp)
 #define PushVal(v)    PushValSP(rsp,v)
-#define PushAVal(a)   PushVal(a)
+#define PushAVal(a)   PushValSP(rsp,a)
 
 
 /*
