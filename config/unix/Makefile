@@ -10,7 +10,7 @@ SRC = $(TOP)/src
 Setup-Common:
 	cp $(name)/define.h $(SRC)/h
 	cp $(name)/rswitch.[cs] $(SRC)/common
-	-if grep -s NoRanlib $(name)/define.h; \
+	-if grep NoRanlib $(name)/define.h >/dev/null; \
 	   then touch $(TOP)/NoRanlib; \
 	   else rm -f $(TOP)/NoRanlib; fi
 	cp $(name)/Makedefs $(TOP)
