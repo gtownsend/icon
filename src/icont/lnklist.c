@@ -32,7 +32,7 @@ int n;
       else
          name = "0";			/* "0" represents "all" */
       }
-   else if (!isalpha(name[1]) && (name[1] != '_'))
+   else if (!isalpha(name[0]) && (name[0] != '_'))
       return;				/* if operator, ignore */
 
    p = (struct invkl *) alloc(sizeof(struct invkl));
