@@ -8,7 +8,7 @@ $define LSIZE 16
 $define GENLIMIT 25
 
 procedure main()
-   local L, LR, T, r1, r2, r3, argv
+   local L, LR, T, r1, r2, r3, argv, SL
 
    L := [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
    LR := lreverse(L)
@@ -221,12 +221,15 @@ procedure main()
 
    write()
    write("strings:")			# strings
+   SL := ["abc", "ab", "bc"]
    gen(cat, "abc", "def", "ghi")
    gen(charcnt, "deinstitutionalization", 'aeiou')
    gen(collate, "abcde", "12345")
    gen(comb, "abcde", 3)
    gen(compress,
       "Mississippi bookkeeper unsuccessfully lobbies heedless committee")
+   every gen(coprefix, !SL, !SL)
+   every gen(cosuffix, !SL, !SL)
    gen(csort,    "sphinx of black quartz judge my vow")
    gen(decollate,"saturday in the park")
    gen(deletec,  "deinstitutionalization", 'aeiou')

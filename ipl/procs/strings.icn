@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     August 12, 2001
+#	Date:     May 8, 2002
 #
 ############################################################################
 #
@@ -22,9 +22,7 @@
 #			   c in s.
 #
 #	collate(s1, s2)    collates the characters of s1 and s2.  For example,
-#
 #                              collate("abc", "def")
-#
 #                          produces "adbecf".
 #
 #	comb(s, i)	   generates the combinations of characters from s
@@ -32,6 +30,16 @@
 #
 #       compress(s, c)     compresses consecutive occurrences of charac-
 #                          ters in c that occur in s; c defaults to &cset.
+#
+#	coprefix(s1, s2, ...)
+#			   produces the common prefix of its arguments:
+#			   the longest initial substring shared by all,
+#			   which may be the empty string.
+#
+#	cosuffix(s1, s2, ...)
+#			   produces the common suffix of its arguments:
+#			   the longest trailing substring shared by all,
+#			   which may be the empty string.
 #
 #	csort(s)           produces the characters of s in lexical order.
 #  
@@ -238,6 +246,30 @@ procedure compress(s, c)		#: character compression
          }
       return result || tab(0)
       }
+end
+
+procedure coprefix(args[])		#: find common prefix of strings
+   local s, t, i
+
+   s := get(args) | fail
+   every t := !args do {
+      every i := seq(1) do
+         if not (s[i] == t[i]) then break
+      s := s[1+:(i-1)] 
+      }
+   return s
+end
+
+procedure cosuffix(args[])		#: find common suffix of strings
+   local s, t, i
+
+   s := get(args) | fail
+   every t := !args do {
+      every i := seq(-1, -1) do
+         if not (s[i] == t[i]) then break
+      s := s[i+1:0]
+      }
+   return s
 end
 
 procedure csort(s)			#: lexically ordered characters
