@@ -169,58 +169,13 @@ CopyLib:
 # Tests.
 #
 
-#
-# Some simple tests to be sure Icon works.
-#
+Test    Test-icont:	; cd tests; $(MAKE) Test
+Samples Samples-icont:	; cd tests; $(MAKE) Samples
 
-Samples:
-		$(MAKE) Samples-icont
+Test-iconc:		; cd tests; $(MAKE) Test-iconc
+Samples-iconc:		; cd tests; $(MAKE) Samples-iconc
 
-Samples-iconc:
-		cd tests/samples;	$(MAKE) Samples-iconc
 
-Samples-icont:
-		cd tests/samples;	$(MAKE) Samples-icont
-
-#
-# More exhaustive tests of various features of Icon and larger programs.
-#
-
-#
-# Basic tests. Should show only insignificant differences.
-#
-
-Test:
-		$(MAKE) Test-icont
-
-Test-iconc:
-		cd tests/general;	$(MAKE) test-iconc
-
-Test-icont:
-		cd tests/general;	$(MAKE) test-icont
-
-Test-opt:
-		cd tests/general;	$(MAKE) test-opt
-
-Test-noopt:
-		cd tests/general;	$(MAKE) test-noopt
-
-#
-# Tests of co-expressions. Should not show differences if co-expressions
-# are implemented.
-#
-
-Test-coexpr:
-		$(MAKE) Test-coexpr-icont
-
-Test-coexpr-iconc:
-		cd tests/general;	$(MAKE) test-coexpr-iconc
-
-Test-coexpr-icont:
-		cd tests/general;	$(MAKE) test-coexpr-icont
-
-Test-large:
-		cd tests/general;	$(MAKE) test-large
 
 #################################################################
 #
