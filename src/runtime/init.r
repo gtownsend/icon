@@ -469,6 +469,7 @@ char *argv[];
    {
 #if !COMPILER
    FILE *fname = NULL;
+   int delete_icode = 0;
    word cbread, longread();
 #endif					/* COMPILER */
 
@@ -517,6 +518,22 @@ char *argv[];
 #else					/* OS2 */
 
    prog_name = name;			/* Set icode file name */
+
+#if UNIX
+   /*
+    * Look for environment variable ICODE_TEMP=xxxxx:yyyyy as a message
+    * from icont to delete icode file xxxxx and to use yyyyy for &progname.
+    * (This is used with Unix "#!" script files written in Icon.)
+    */
+   {
+      char *itval = getenv("ICODE_TEMP");
+      int nlen = strlen(name);
+      if (itval != NULL && itval[nlen] == ':' && strncmp(name,itval,nlen)==0) {
+         delete_icode = 1;
+         prog_name = itval + nlen + 1;
+         }
+      }
+#endif					/* UNIX */
 
 #endif					/* OS2 */
 
@@ -882,17 +899,8 @@ Deliberate Syntax Error
    fclose(fname);
 #endif					/* OS2 */
 
-#if UNIX
-   /*
-    * Delete the icode file if requested by environment variable.
-    * (This is used with Unix "#!" script files written in Icon.)
-    */
-   {
-      char *dname = getenv("DELETE_ICODE_FILE");
-      if (dname != NULL && strcmp(dname, name) == 0)
-         remove(dname);
-      }
-#endif					/* UNIX */
+   if (delete_icode)		/* delete icode file if flag set earlier */
+      remove(name);
 
 /*
  * Make sure the version number of the icode matches the interpreter version.

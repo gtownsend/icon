@@ -11,9 +11,9 @@ static void execute (char *ofile, char *efile, char *args[]);
 static void usage (void);
 static char *libpath (char *prog, char *envname);
 
-static void txrun(void (*func)(char*, char*), char *source, char *args[]);
-static void copyfile(char *dstfile, char *srcfile);
-static void savefile(char *dstfile, char *srcprog);
+static void txrun(char *(*func)(FILE*, char*), char *source, char *args[]);
+static char *copyfile(FILE *f, char *srcfile);
+static char *savefile(FILE *f, char *srcprog);
 static void cleanup(void);
 
 static char **rfiles;		/* list of files removed by cleanup() */
@@ -288,25 +288,34 @@ static char *libpath(char *prog, char *envname) {
  * Translate, link, and execute a source file.
  * Does not return under any circumstances.
  */
-static void txrun(void (*func)(char*, char*), char *source, char *args[]) {
+static void txrun(char *(*func)(FILE*, char*), char *source, char *args[]) {
    int omask;
    char c1, c2;
-   char *flist[2];
+   char *flist[2], *progname;
    char srcfile[MaxFileName], u1[MaxFileName], u2[MaxFileName];
    char icode[MaxFileName], buf[MaxFileName + 20];
    static char abet[] = "abcdefghijklmnopqrstuvwxyz";
+   FILE *f;
 
    silent = 1;			/* don't issue commentary while translating */
    omask = umask(0077);		/* remember umask; keep /tmp files private */
 
    /*
-    * Invent a file named /tmp/innnnnxx.icn and copy the source code there.
+    * Invent a file named /tmp/innnnnxx.icn.
     */
    srand(time(NULL));
    c1 = abet[rand() % (sizeof(abet) - 1)];
    c2 = abet[rand() % (sizeof(abet) - 1)];
    sprintf(srcfile, "/tmp/i%d%c%c.icn", getpid(), c1, c2);
-   func(srcfile, source);
+
+   /*
+    * Copy the source code to the temporary file.
+    */
+   f = fopen(srcfile, "w");
+   if (f == NULL)
+      quitf("cannot open for writing: %s", srcfile);
+   progname = func(f, source);
+   fclose(f);
 
    /*
     * Derive other names and arrange for cleanup on exit.
@@ -339,7 +348,7 @@ static void txrun(void (*func)(char*, char*), char *source, char *args[]) {
     */
    rfiles[3] = NULL;			/* don't delete icode yet */
    cleanup();				/* but delete the others */
-   sprintf(buf, "DELETE_ICODE_FILE=%s", icode);
+   sprintf(buf, "ICODE_TEMP=%s:%s", icode, progname);
    putenv(buf);				/* tell iconx to delete icode */
    umask(omask);			/* reset original umask */
    execute(icode, NULL, args);		/* execute the program */
@@ -349,30 +358,26 @@ static void txrun(void (*func)(char*, char*), char *source, char *args[]) {
 /*
  * Dump a string to a file, prefixed by  $line 0 "[inline]".
  */
-static void savefile(char *dstfile, char *srcprog) {
-   FILE *f = fopen(dstfile, "w");
-   if (f == NULL)
-      quitf("cannot open for writing: %s", dstfile);
-   fprintf(f, "$line 0 \"[inline]\"\n");
+static char *savefile(FILE *f, char *srcprog) {
+   static char *progname = "[inline]";
+   fprintf(f, "$line 0 \"%s\"\n", progname);
    fwrite(srcprog, 1, strlen(srcprog), f);
-   fclose(f);
+   return progname;
    }
 
 /*
  * Copy a source file for later translation, adding  $line 0 "filename".
  */
-static void copyfile(char *dstfile, char *srcfile) {
+static char *copyfile(FILE *f, char *srcfile) {
    int c;
    FILE *e = fopen(srcfile, "r");
-   FILE *f = fopen(dstfile, "w");
    if (e == NULL)
       quitf("cannot open: %s", srcfile);
-   if (f == NULL)
-      quitf("cannot open for writing: %s", dstfile);
    fprintf(f, "$line 0 \"%s\"\n", srcfile);
    while ((c = getc(e)) != EOF)
       putc(c, f);
-   fclose(f);
+   fclose(e);
+   return srcfile;
    }
 
 /*
