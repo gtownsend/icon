@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     June 23, 2000
+#	Date:     August 23, 2000
 #
 ############################################################################
 #
@@ -1008,14 +1008,12 @@ procedure lunique(L)			#: keep only unique list elements
 
 end
 
-procedure lmaxlen(L, p)			#: largest value in list
+procedure lmaxlen(L, p)			#: size of largest list entry
    local i
-
-   if *L = 0 then fail
 
    /p := proc("*", 1)
 
-   i := 2 ^ 31			# kludge
+   i := p(L[1]) | fail
 
    every i <:= p(!L)
 
@@ -1023,14 +1021,12 @@ procedure lmaxlen(L, p)			#: largest value in list
 
 end
 
-procedure lminlen(L, p)			#: smallest value in list
+procedure lminlen(L, p)			#: size of smallest list entry
    local i
-
-   if *L = 0 then fail
 
    /p := proc("*", 1)
 
-   i := 0
+   i := p(L[1]) | fail
 
    every i >:= p(!L)
 
