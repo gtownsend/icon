@@ -5,12 +5,18 @@
  * routines in order to handle aliasing and resource sharing.
  */
 
+static int rgbhash[5000];	/* rgb hash table */
+
 wdp wdsplys;
 
 wfp findfont(wbp w, char *fam, int size, int flags);
 int okfont(char *spec, int size, int flags);
 int fontcmp(char *font1, char *font2, int size, int flags);
 
+/* check for color match */
+#define CMATCH(cp, rr, gg, bb) \
+   ((cp)->r == (rr) && (cp)->g == (gg) && (cp->b) == (bb) && \
+   (cp)->type == SHARED && (cp)->refcount > 0)
 
 /*
  * Allocate a color given linear r, g, b. Colors are shared on a
@@ -26,7 +32,7 @@ int is_iconcolor;
    wclrp cp;
    LinearColor lc;
    XColor color;
-   int i;
+   int h, i;
    int *numColors;
    short *theColors;
    STDLOCALS(w);
@@ -70,13 +76,24 @@ int is_iconcolor;
    /*
     * Search for the color in w's display
     */
-   for (i = 2; i < wd->numColors; i++) {
-      if (wd->colrptrs[i]->refcount > 0 &&
-	  wd->colrptrs[i]->type == SHARED &&
-          color.red == wd->colrptrs[i]->r &&
-          color.green == wd->colrptrs[i]->g &&
-          color.blue == wd->colrptrs[i]->b)
-         break;
+   if (wd->visual->class == TrueColor) {
+      /*
+       * TrueColor entries are linked on hash chains.
+       */
+      h = (503 * r + 509 * g + 499 * b) % ElemCount(rgbhash);
+      i = rgbhash[h];
+      while (i != 0 && !CMATCH(wd->colrptrs[i],r,g,b))
+         i = wd->colrptrs[i]->next;
+      if (i == 0)
+         i = wd->numColors;		/* indicate not found */
+      }
+   else {
+      /*
+       * Search linearly through the list of colors.
+       */
+      for (i = 2; i < wd->numColors; i++)
+         if (CMATCH(wd->colrptrs[i],r,g,b))
+            break;
       }
 
    if (i >= wd->numColors) {
@@ -95,6 +112,8 @@ int is_iconcolor;
       if (j == 0)
          return NULL;
       cp = wd->colrptrs[j];
+      cp->next = rgbhash[h];
+      rgbhash[h] = j;
       strcpy(cp->name, s);
       /*
        * Store server color as requested in color table.
@@ -138,14 +157,24 @@ wdp wd;
 {
    int j;
 
-   /*
-    * Look for allocated but unused entry (beyond reserved entries 0 and 1)
-    */
-   for (j = 2; j < wd->numColors; j++)
-      if (wd->colrptrs[j]->refcount == 0) {
-         wd->colrptrs[j]->refcount = 1;
-         return j;
+   if (wd->visual->class == TrueColor) {
+      /*
+       * TrueColor entries are never freed, so skip the search.
+       */
+      j = wd->numColors;
+      }
+   else {
+      /*
+       * Look for allocated but unused entry (beyond reserved entries 0 and 1)
+       */
+      for (j = 2; j < wd->numColors; j++) {
+         if (wd->colrptrs[j]->refcount == 0) {
+            wd->colrptrs[j]->refcount = 1;
+            return j;
+            }
          }
+      } 
+
    /*
     * No unused entry found.  Make sure there's room for another pointer.
     */

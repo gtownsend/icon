@@ -163,11 +163,12 @@
  * containing the current color setting.
  */
 typedef struct wcolor {
-   int		refcount;
-   char		name[6+MAXCOLORNAME];	/* name for WAttrib & WColor reads */
+   unsigned long c;			/* X pixel value */
+   int		refcount;		/* reference count */
+   int		type;			/* SHARED or MUTABLE */
+   int		next;			/* next entry in hash chain */
    unsigned short r, g, b;		/* rgb for colorsearch */
-   unsigned long	c;		/* X pixel value */
-   int           type;			/* SHARED or MUTABLE */
+   char		name[6+MAXCOLORNAME];	/* name for WAttrib & WColor reads */
 } *wclrp;
 
 /*
