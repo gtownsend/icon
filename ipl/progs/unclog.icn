@@ -1,0 +1,89 @@
+############################################################################
+#
+#	File:     unclog.icn
+#
+#	Subject:  Program to reformat CVS log output
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     May 1, 2001
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Usage:  unclog [-n nnn] [file]
+#
+#	-n nnn	maximum number of files to be listed individually
+#		(default is 50)
+#
+#  Unclog reads the output of "cvs log", as run without arguments in
+#  a directory maintained by CVS, and reformats it to correlate CVS
+#  changes that affected multiple files.  The log entries are produced
+#  in chronological order.  Portions crossing a one-minute clock boundary
+#  are not combined.
+#
+############################################################################
+
+link options
+
+$define MAXFILES 50
+
+procedure main(args)
+   local opts, maxfiles, f, line, mods, fname, files, text, s
+
+   opts := options(args, "n+")
+   maxfiles := \opts["n"] | MAXFILES
+
+   if *args = 0 then
+      f := &input
+   else
+      f := open(args[1]) | stop("cannot open ", args[1])
+
+   mods := table()
+
+   while line := read(f) do line ? {
+
+      # look for "date:" line
+      if ="Working file: " then		# save working file name
+         fname := tab(0)
+      ="date: "			| next
+      tab(find("author: ") + 8)	| next
+      tab(upto(';') + 1)	| next
+
+      # this is the "date:" line
+      # save as first part of description
+      s := tab(1)
+      s[23+:3] := ""			# remove seconds from clock reading
+
+      # read description of modification
+      while line := read(f) do {
+         if line ? =("-----------" | "===========") then break
+         s ||:= "\n" || line
+         }
+
+      # have reached end of this entry
+      # add to table, indexed by text
+      files := mods[s]
+      if /files then
+         files := mods[s] := []
+      put(files, fname)
+      }
+
+   # sort mods by timestamp, which is first part of text
+   mods := sort(mods, 3)
+
+   # output the mods in order, giving affected files first
+   while text := get(mods) do {
+      write()
+      files := get(mods)
+      if *files >= maxfiles then
+         write("file: [", *files, " files]")
+      else
+         every write("file: ", !sort(files))
+      write(text)
+      write()
+      }
+end
