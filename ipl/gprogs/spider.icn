@@ -1,0 +1,547 @@
+############################################################################
+#
+#	File:     spider.icn
+#
+#	Subject:  Program to play Spider solitaire card game
+#
+#	Author:   William S. Evans
+#
+#	Date:     December 18, 2001
+#
+############################################################################
+#
+#	This file is in the public domain.
+#
+############################################################################
+#
+#   Initially, 54 cards are dealt (from two decks shuffled together)
+#   into 10 piles (6,5,5,6,5,5,6,5,5,6) with only the top card in each
+#   pile face-up.  You may pile face-up cards in decreasing order (Ace
+#   is smallest) by moving the topmost face-up "run" of cards from one
+#   pile to another.  A run is a decreasing sequence of cards in the
+#   same suit.  To perform the move, you may drag the run to its
+#   destination, click on the pile containing the run, or type its
+#   number.  In the latter two cases, the program tries to move the
+#   longest run in the pile to the "best" location.  You may move any
+#   run to an empty pile.
+#
+#   A run from King to Ace can be removed from the board (by clicking on
+#   its pile or typing its pile number).
+#
+#   The 50 additional cards remaining in the deck may be dealt, one to
+#   each pile, as long as every pile contains at least one card.
+#
+#   The goal of the game is to remove all 104 cards from the board.
+#
+#   The following keys are recognized by the program:
+#	'd'	Deal.
+#	'u'	Undo last move or deal.
+#	'q'	Quit.
+#	'e'	Print list of face-up cards in pile. (Useful if the
+#		pile becomes so big that the card names are obscured.)
+#	'E'	Print list of face-down cards in pile. (Cheating)
+#	'n'	Start a new game.
+#	's'	Save the current game to a file.
+#	'r'	Read a game from a file.
+#	'1234567890'	Move run from indicated pile.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  drawcard, graphics, random
+#
+############################################################################
+
+link drawcard
+link graphics
+link random
+
+$define SPIDER_VERSION "spider-0.3"	# version of spider
+
+global cardw, cardh			# card width and height
+global ymargin, xmargin, xgap		# margins, gap between cards
+global height,width,fheight,descent	# window attributes
+global lap		# overlap of facedown cards
+global deck		# a string of characters
+global up		# list of integers
+global pile		# list of strings
+global nextCard		# an integer
+global undoStack	# list of integers
+global currentFile	# filename to store/retrieve a game
+global readingGame	# =1 if reading game from file =0 o.w.
+
+procedure main(args)
+    local fromPile,e,p
+
+    initialize(args)
+    newgame()
+    repeat case e := Event() of {
+	!"qQ": {
+	    exit()
+	}
+	"d": {
+	    deal() | beep()
+	}
+	"e": {
+	    message(pileNames(1+(&x-xmargin+xgap/2)/(cardw+xgap)))
+	}
+	"E": {
+	   message(hiddenNames(1+(&x-xmargin+xgap/2)/(cardw+xgap)))
+	}
+	"n": {
+	    newgame()
+	}
+	"u": {
+	    undo() | beep()
+	}
+	"r": {
+	    readingGame := 1
+	    Bg("gray")
+	    readFile()
+	    readingGame := 0
+	    Bg("deep moderate green")
+	    drawBoard()
+	}
+	"s": {
+	    Bg("gray")
+	    saveFile()
+	    Bg("deep moderate green")
+	}
+	!"1234567890": {
+	    p := 0 < ord(e)-ord("0") | 10
+	    click(p,p) | beep()
+	}
+	&lpress: {
+	    fromPile := 1 + (&x - xmargin + xgap/2) / (cardw + xgap)
+	}
+	&lrelease: {
+	    click(fromPile,1 + (&x - xmargin + xgap/2) / (cardw + xgap)) |
+		beep()
+	}
+#	&resize: {
+#	    drawBoard()
+#	}
+    }
+
+end
+
+procedure initialize(args)
+
+    currentFile := "game1.spd"
+    readingGame := 0
+    cardw := 80
+    cardh := 124
+    pile := list(11)
+    up := list(11)
+    undoStack := list(0)
+
+    deck := "aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ" ||
+	    "aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ"
+    randomize()
+
+    ymargin := 10
+    xmargin := 0
+    xgap := xmargin / 2
+    lap := 5			# how much facedown cards overlap in pile
+
+    WOpen("width="||(10 * cardw + 9 * xgap),"height=500",
+	  "bg=deep moderate green","fg=white")
+    Font("serif")
+    height := WAttrib("height")
+    width  := WAttrib("width")
+    fheight:= WAttrib("fheight")
+    descent:= WAttrib("descent")
+
+    ymargin <:= fheight
+
+    return
+end
+
+
+
+procedure newgame(initialDeck)
+   local i, j, s
+
+   while (pop(undoStack))		# empty stack
+
+   deck := \initialDeck |		# use initialDeck or shuffle deck
+       every i := *deck to 2 by -1 do
+	   deck[?i] :=: deck[i]
+
+   deck ? {
+       pile[1] := move(6)
+       pile[2] := move(5)
+       pile[3] := move(5)
+       pile[4] := move(6)
+       pile[5] := move(5)
+       pile[6] := move(5)
+       pile[7] := move(6)
+       pile[8] := move(5)
+       pile[9] := move(5)
+       pile[10] := move(6)
+       nextCard := 55
+   }
+   pile[11] := ""
+
+   every i := 1 to 10 do
+       up[i] := 1
+   up[11] := 0
+
+   drawBoard()
+   return
+end
+
+procedure drawPiles(p[])
+    local i,j,n,x,y,ht,mlap,upstart
+
+    if readingGame = 0 then {
+	every i := 1 <= 10 >= !p do {
+
+#	write("pile ",i," = ",pile[i]," up = ",up[i])
+
+	    x := xmargin + (i-1) * (cardw + xgap)
+	    EraseArea(x,ymargin,cardw,height-2*ymargin)
+	    GotoXY(x+cardw/2,ymargin-descent)
+	    WWrites(10 > i | 0)
+	    n := *(pile[i])
+	    mlap := lap
+	    if n > 1 then
+		mlap >:= (height - 2*ymargin - cardh)/(n-1.0)
+	    every j := n to up[i]+1 by -1 do {
+		y := ymargin + (n - j)*mlap
+		drawcard(x,y,"-")
+	    }
+	    if up[i] > 0 then {
+		upstart := ymargin + (n-up[i])*mlap
+		mlap := (height-2*ymargin-cardh-(n-up[i])*mlap)/
+		    (0<up[i]-1.0) | 0
+		mlap >:= cardh / 3
+		every j := up[i] to 1 by -1 do {
+		    y := upstart + (up[i] - j)*mlap
+		    drawcard(x,y,pile[i][j])
+		}
+	    }
+	}
+	message("")
+    }
+    return
+end
+
+
+procedure drawBoard()
+    if readingGame = 0 then {
+	WAttrib("label=Spider Deck "||104-nextCard+1)
+	drawPiles(1,2,3,4,5,6,7,8,9,10)
+    }
+    return
+end
+
+procedure deal()
+    local i
+
+    every i := 1 to 10 do {
+	if *(pile[i]) = 0 then fail
+    }
+
+    every i := 1 to 10 do {
+	pile[i] := (deck[nextCard] || pile[i]) | fail
+	up[i] +:= 1
+	nextCard +:= 1
+    }
+    if readingGame = 0 then {
+	push(undoStack,0,0,0,2)			# flag for deal
+	drawBoard()
+    }
+    return
+end
+
+procedure undo()
+    local undoFlag,i,toPile,fromPile,n
+
+#    writes(">")
+#    every writes(!undoStack," ")
+#    write("")
+
+    undoFlag := pop(undoStack) | fail
+    case undoFlag of {
+	0 | 1: {			# undo move
+	    toPile := pop(undoStack)
+	    fromPile := pop(undoStack)
+	    n := pop(undoStack)
+	    up[fromPile] -:= undoFlag	# undoFlag = 1 means unturn card
+	    moveNoUndo(n,toPile,fromPile)
+	}
+	2: {				# undo deal
+	    every i := 1 to 10 do {
+		pile[i] := pile[i][2:0]
+		up[i] -:= 1
+		nextCard -:= 1
+	    }
+	    pop(undoStack)		# push spacers
+	    pop(undoStack)
+	    pop(undoStack)
+	    drawBoard()
+	}
+	default: fail			# this should never happen
+    }
+    return
+end
+
+procedure moveNoUndo(n,fromPile,toPile)
+#    write("moveNoUndo ",n," ",fromPile," ",toPile)
+    pile[toPile] := pile[fromPile][1:n+1] || pile[toPile]
+    up[toPile] +:= n
+    pile[fromPile] := (pile[fromPile][n+1:0] | "")
+    up[fromPile] -:= n
+    drawPiles(fromPile,toPile)
+    return
+end
+
+procedure moveCards(n,fromPile,toPile)
+    push(undoStack,n)
+    push(undoStack,fromPile)
+    push(undoStack,toPile)
+    if n = up[fromPile] & *(pile[fromPile]) > n then {
+	push(undoStack,1)
+	up[fromPile] +:= 1
+    } else {
+	push(undoStack,0)
+    }
+    moveNoUndo(n,fromPile,toPile)
+
+    return
+end
+
+procedure chainPrefix(p)
+    local i
+
+    i := 1
+    while (i < up[p] & \(succ(pile[p][i])) == pile[p][i+1]) do {
+	       i +:= 1
+	   }
+    return pile[p][1:i+1]
+end
+
+
+procedure click(fromPile, toPile)
+    local i,j,tail,chain,c
+
+#    write("click ",fromPile," ",toPile)
+
+    chain := chainPrefix(fromPile) | fail
+
+    if fromPile = toPile then {		# find best pile to move to
+	if *chain = 13 then {		# take-off entire suit
+	   moveCards(13,fromPile,11)
+	   return
+	} else {			# move chain
+	    tail := succ(chain[-1]) | &null
+
+	    i := 0 < fromPile - 1 | 10
+	    j := fromPile
+	    while i ~= fromPile do {
+		if pile[i] == "" & j = fromPile then {
+		    j := i
+		} else if pile[i][1] == \tail then {
+		    j := i
+		    break
+		} else if rank(pile[i][1]) == rank(\tail) then {
+		    j := i
+		}
+		i := 0 < i - 1 | 10
+	    }
+	    if j ~= fromPile then {
+		moveCards(*chain,fromPile,j)
+		return
+	    }
+	}
+    } else {				# move to toPile
+	if pile[toPile] == "" then {
+	    moveCards(*chain,fromPile,toPile)
+	    return
+	} else {
+	    c := pile[toPile][1]
+  	    every i := 1 to *chain do {
+  		if rank(c) == rank(chain[i]) + 1 then {
+  		    moveCards(i,fromPile,toPile)
+  		    return
+  		}
+  	    }
+	}
+    }
+    cantMove(chain[-1])
+#   fail
+end
+
+procedure cantMove(c)
+    message("Can't move " || rankName(c) || suitName(c))
+    return
+end
+
+
+# label: ABCDEFGHIJKLM NOPQRSTUVWXYZ abcdefghijklm nopqrstuvwxyz
+# rank:  A23456789TJQK A23456789TJQK A23456789TJQK A23456789TJQK
+# suit:  hearts....... spades....... clubs........ diamonds.....
+
+procedure suit(c)
+    if c >>= "A" & c <<= "M" then return "A"	#hearts
+    if c >>= "N" & c <<= "Z" then return "N"	#spades
+    if c >>= "a" & c <<= "m" then return "a"	#clubs
+    if c >>= "n" & c <<= "z" then return "n"	#diamonds
+#   fail
+end
+
+procedure rank(c)
+    return ord(c)-ord(suit(c))
+end
+
+procedure succ(c)
+    if c == !"MZmz" then fail
+    else return char(ord(c)+1)
+end
+
+procedure beep()
+    writes("\^g")
+    flush(&output)
+    return
+end
+
+procedure rankName(c)
+    local r
+
+    case r := rank(c) of {
+	0: return "A"
+	1 to 9: return string(r+1)
+	10: return "J"
+	11: return "Q"
+	12: return "K"
+    }
+end
+
+procedure suitName(c)
+    case suit(c) of {
+	"A": return "h"
+	"N": return "s"
+	"a": return "c"
+	"n": return "d"
+    }
+end
+
+procedure message(s)
+    local x
+    x := 5
+    EraseArea(x,height-fheight,width,fheight)
+    GotoXY(x,height-descent)
+    WWrites(s)
+    return
+end
+
+
+procedure hiddenNames(p)
+   local i, s, card
+
+   i := up[p]
+   s := ""
+   every card := pile[p][i to *(pile[p])] do {
+      s ||:= rankName(card) || suitName(card)
+   }
+   return s
+end
+
+procedure pileNames(p)
+    local i,run,s
+
+    i := up[p]
+    s := ""
+    while ( i >= 1 ) do {
+	s ||:= rankName(pile[p][i])
+	run := 0
+	while ( pile[p][i] == succ(pile[p][i-1])[1] ) do {
+	    i -:= 1
+	    run := 1
+	}
+	if ( run = 1 ) then {
+	    s ||:= "-"
+	    s ||:= rankName(pile[p][i])
+	}
+	s ||:= suitName(pile[p][i])
+	i -:= 1
+    }
+    return s
+end
+
+procedure saveFile()
+    local output
+
+    repeat {
+	case SaveDialog("Save game as:",currentFile) of {
+	    "Yes": {
+		if output := open(dialog_value,"w") then {
+		    currentFile := dialog_value
+		    write(output,SPIDER_VERSION)
+		    write(output,deck)
+		    every writes(output,!undoStack," ")
+		    write(output,"")
+		    return
+		} else {
+		    Notice("Cannot open file for writing.")
+		}
+	    }
+	    "No" | "Cancel" : fail
+	}
+    }
+end
+
+
+procedure readFile()
+    local input
+
+    repeat {
+	case OpenDialog(,currentFile) of {
+	    "Okay": {
+		if input := open(dialog_value) then {
+		    currentFile := dialog_value
+		    if read(input)==SPIDER_VERSION then {
+			newgame(read(input))
+			read(input) ? {
+			    while put(undoStack,integer(tab(upto(" "))))
+			}
+			if doAll() then return
+		    }
+		    Notice("Not a valid spider game file.")
+		} else
+		    Notice("Cannot open file.")
+	    }
+	    "Cancel": fail
+	}
+    }
+end
+
+procedure doAll()
+    local i,doFlag,toPile,fromPile,n
+
+#    writes(">")
+#    every writes(!undoStack," ")
+#    write("")
+
+    i := *undoStack
+    while i >= 1 do {
+	case doFlag := undoStack[i-3] of {
+	    0 | 1: {
+		toPile := undoStack[i-2]
+		fromPile := undoStack[i-1]
+		n := undoStack[i]
+		up[fromPile] +:= doFlag	# doFlag = 1 means turn card
+		moveNoUndo(n,fromPile,toPile) | fail
+	    }
+	    2: {
+		deal() | fail
+	    }
+	}
+	i -:= 4
+    }
+    return
+end
