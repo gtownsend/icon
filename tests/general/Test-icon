@@ -14,6 +14,10 @@ unset ICONX IPATH LPATH FPATH
 unset BLKSIZE BLOCKSIZE HEAPSIZE STRSIZE
 unset MSTKSIZE COEXPSIZE QLSIZE
 
+# echo system environment
+echo ""
+uname -a
+
 # check that we have what we need
 case $IC in
    *icont)
@@ -32,6 +36,8 @@ if [ $# = 0 ]; then
 fi
 
 #  loop through the chosen tests
+echo ""
+FAILED=
 for F in $*; do
    F=`basename $F .std`
    F=`basename $F .icn`
@@ -44,6 +50,18 @@ for F in $*; do
    else
       ./$F </dev/null >$F.out 2>&1
    fi
-   diff $F.std $F.out
+   diff $F.std $F.out || FAILED="$FAILED $F"
    rm -f $F
 done
+
+echo ""
+if [ "x$FAILED" == "x" ]; then
+   echo "All tests passed."
+   echo ""
+   exit 0
+else
+   echo "Tests failed: $FAILED"
+   echo ""
+   exit 1
+fi
+
