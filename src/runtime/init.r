@@ -237,13 +237,8 @@ struct header *hdr;
    for (;;) {
       if (fgets(buf, sizeof buf-1, fname) == NULL)
 	 error(name, errmsg);
-      #if MSWIN
-         if (strncmp(buf, "rem [executable Icon binary follows]", 36) == 0)
-            break;
-      #else				/* MSWIN */
          if (strncmp(buf, "[executable Icon binary follows]", 32) == 0)
             break;
-      #endif				/* MSWIN */
       }
 
    while ((n = getc(fname)) != EOF && n != '\f')	/* read thru \f\n\0 */
