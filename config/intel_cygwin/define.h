@@ -12,3 +12,5 @@
 
 #define BinaryHeader
 #define IcodeSuffix ".exe"
+
+#define MaxHdr 16384 
