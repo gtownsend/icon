@@ -1,0 +1,202 @@
+############################################################################
+#
+#       File:     dijkstra.icn
+#
+#       Subject:  Icon implementation the control structures from
+#                 Dijkstra's book, "A Discipline of Programming"
+#
+#       Author:   Frank J. Lhota
+#
+#       Date:     November 21, 2003
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# The procedures do_od and if_fi implement the "do ... od" and "if ... fi"
+# control structures used in the book "A Discipline of Programming" by
+# Edsger W. Dijkstra. This book uses a programming language designed to
+# delay implementation details, such as the order in which tests are
+# performed.
+#
+# Note: this programming language uses two non-ASCII characters, a box and a
+# right arrow. In the following discussion, the box and right arrow
+# characters are represented as "[]" and "->" respectively.
+#
+# The "if ... fi" control structure is similar to multibrach "if" statements
+# found in many languages, including the Bourne shell (i.e. the
+# "if / elif / fi" construct). The major difference is that in Dijkstra's
+# notation, there is no specified order in which the "if / elif" tests are
+# performed. The "if ... fi" structure has the form
+#
+#       if
+#             Guard1 -> List1
+#          [] Guard2 -> List2
+#          [] Guard3 -> List3
+#          ...
+#          [] GuardN -> ListN
+#       fi
+#
+# where
+#
+#      Guard1, Guard2, Guard3 ... GuardN are boolean expressions, and
+#      List1, List2, List3 ... ListN are lists of statements.
+#
+# When this "if ... fi" statement is performed, the guard expressions are
+# evaluated, in some order not specified by the language, until one of the
+# guard expressions evaluates to true. Once a true guard is found, the list
+# of statements following the guard is evaluated. NOTE: It is a fatal error
+# for none of the guards in an "if ... fi" statement to be true.
+#
+# The "do ... od" control is a "while" loop structure, but with mupltiple
+# loop conditions, in style similar to "if ... fi". The form of a Dijkstra
+# "do" statement is
+#
+#       do
+#             Guard1 -> List1
+#          [] Guard2 -> List2
+#          [] Guard3 -> List3
+#          ...
+#          [] GuardN -> ListN
+#       od
+#
+# where
+#
+#      Guard1, Guard2, Guard3 ... GuardN are boolean expressions, and
+#      List1, List2, List3 ... ListN are lists of statements.
+#
+# To perform this "do ... od" statement, the guard expressions are
+# evaluated, in some order not specified by the language, until either a
+# guard evaluates to true, or all guards have been evaluated as false.
+#
+# - If all the guards are false, we exit the loop.
+# - If a guard evaluates to true, then the list of statements following this
+#   guard is performed, and then we loop back to perform this "do ... od"
+#   statement again.
+#
+# The procedures if_fi{} and do_od{} implement Dijkstra's "if ... fi" and
+# "do ... od" control structures respectively. In keeping with Icon
+# conventions, the guard expressions are arbitrary Icon expressions. A guard
+# is considered to be true precisely when it succeeds. Simiarly, a statement
+# list can be represented by a single Icon expression. The Icon call
+#
+#       if_fi{
+#           Guard1, List1,
+#           Guard2, List2,
+#           ...
+#           GuardN, ListN
+#          }
+#
+# suspends with each result produced by the expression following the true
+# guard. If none of the guards succeed, stop() is called with an appropriate
+# message.
+#
+# Similarly, the Icon call
+#
+#       do_od{
+#           Guard1, List1,
+#           Guard2, List2,
+#           ...
+#           GuardN, ListN
+#          }
+#
+# parallels the "do ... od" statement. As long as at least one guard
+# succeeds, another iteration is performed. When all guards fail, we exit
+# the loop and do_od fails.
+#
+# The test section of this file includes a guarded command implementation of
+# Euclid's algorithm for calculating the greatest common denominator. Unlike
+# most implementations of Euclid's algorithm, this version handles its
+# parameters in a completely symmetrical fashion.
+#
+############################################################################
+#
+#  Links: none
+#
+############################################################################
+
+############################################################################
+#
+# Produces a set of the indices of all the guard expressions in exp.
+#
+############################################################################
+procedure __Dijkstra_guard_index_set( exp )
+   local result
+
+   result := set()
+   every insert( result, 1 to *exp by 2 )
+   return result
+
+end     # __Dijkstra_guard_index_set
+
+############################################################################
+
+procedure do_od( exp )
+
+   local all_guards, curr_guard
+
+   all_guards := __Dijkstra_guard_index_set( exp )
+
+   # Remember to use refreshed co-expressions so that they can be evaluated
+   # more than once!
+   while @^exp[ curr_guard := !all_guards ] do
+      @^exp[ curr_guard + 1 ]
+
+end     # do_od
+
+############################################################################
+
+procedure if_fi( exp )
+
+   local all_guards, curr_guard
+
+   all_guards := __Dijkstra_guard_index_set( exp )
+
+   if @exp[ curr_guard := !all_guards ] then
+      suspend | @exp[ curr_guard + 1 ]
+   else
+      stop( "if_fi: no guards succeeded" )
+
+end     # if_fi
+
+$ifdef TEST
+
+############################################################################
+#
+# Dijkstra version of the familiar Euclidean algorithm for gcd.
+#
+############################################################################
+procedure gcd(x, y)
+
+   # Use static variables so that coexpressions can share them
+   static lx, ly
+
+   lx := abs(x)
+   ly := abs(y)
+
+   do_od{
+      lx >= ly > 0, lx %:= ly,
+      ly >= lx > 0, ly %:= lx
+      }
+
+   return if_fi{
+      lx = 0, ly,
+      ly = 0, lx
+      }
+
+end     # gcd
+
+procedure main(arg)
+
+   local a, b
+
+   a := integer(arg[1]) | 1836311903
+   b := integer(arg[2]) | 1134903170
+   return write( "gcd(",a,",",b,")=",gcd(a, b) )
+
+end     # main
+
+
+$endif
