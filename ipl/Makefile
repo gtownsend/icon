@@ -26,6 +26,4 @@ Clean:
 	rm -f `find *packs -name '*.u[12]'`
 	rm -f `find *procs *progs -type f -perm -100`
 	cd cfuncs; $(MAKE) Clean
-	cd gpacks/vib; $(MAKE) Clean
-	cd gpacks/tiger; $(MAKE) clean
-	# need to be more thorough in cleaning up various packs
+	for d in packs/[a-z]*; do (cd $$d; make Clean); done
