@@ -14,10 +14,6 @@
    #define MAXXOBJS 256
 #endif					/* MAXXOBJS */
 
-#ifndef DMAXCOLORS
-   #define DMAXCOLORS 256
-#endif					/* DMAXCOLORS */
-
 #ifndef MAXCOLORNAME
    #define MAXCOLORNAME 40
 #endif					/* MAXCOLORNAME */
@@ -193,6 +189,8 @@ struct imgmem {
 #define TCH2 0377			/* alternate transparent character */
 #define PCH1 ' '			/* punctuation character */
 #define PCH2 ','			/* punctuation character */
+
+#define GIFMAX 256			/* maximum colors in a GIF file */
 
 #ifdef XWindows
 /*

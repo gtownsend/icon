@@ -2601,25 +2601,22 @@ int on_icon;
 
 /*
  * The getimstr() code assumes that a maximum of 256 colors can be onscreen
- * at one time.  If DMAXCOLORS maximum is raised, code must be added for the
+ * at one time.  If GIFMAX maximum is raised, code must be added for the
  * depth>8 case to reduce the local copy of the image to no more than the
  * 256-color maximum allowed in a GIF file.  This reduction operation is
  * nontrivial; look up "color quantization" in computer graphics literature.
  */
-#passthru #if (DMAXCOLORS > 256)
-#passthru    #error DMAXCOLORS is too large
-#passthru #endif				/* DMAXCOLORS */
 
 int getimstr(w, x, y, width, height, paltbl, data)
 wbp w;
 int x, y, width, height;
-struct palentry paltbl[DMAXCOLORS];
+struct palentry paltbl[GIFMAX];
 unsigned char *data;
    {
    XImage *im;
    XColor colorcell;
    wclrp *cpp;
-   unsigned long px, clist[DMAXCOLORS], *lp;
+   unsigned long px, clist[GIFMAX], *lp;
    int i, ncolors;
    STDLOCALS(w);
 
@@ -2636,7 +2633,7 @@ unsigned char *data;
        * We can use the pixel values directly as color indices.
        * Put them in the data string, noting which colors are used.
        */
-      for (i = 0; i < DMAXCOLORS; i++)
+      for (i = 0; i < GIFMAX; i++)
          clist[i] = i;
       for (y = 0; y < height; y++)
          for (x = 0; x < width; x++) {
@@ -2653,8 +2650,11 @@ unsigned char *data;
        * list index as the color index.
        */
       lp = clist;
-      for (cpp = wd->colrptrs; cpp < wd->colrptrs + wd->numColors; cpp++)
+      for (cpp = wd->colrptrs; cpp < wd->colrptrs + wd->numColors; cpp++) {
          *lp++ = (*cpp)->c;
+	 if (lp - clist == GIFMAX)
+	    break;
+	 }
       ncolors = lp - clist;
       qsort((char *)clist, ncolors, sizeof(*clist), (int (*)())ulcmp);
 
@@ -2676,7 +2676,7 @@ unsigned char *data;
     * Query the real color values from X; Icon's data structures
     * may show several entries for any particular pixel value.
     */
-   for (i = 0; i < DMAXCOLORS; i++)
+   for (i = 0; i < GIFMAX; i++)
       if (paltbl[i].used) {
          colorcell.pixel = clist[i];
          colorcell.flags = DoRed | DoGreen | DoBlue;

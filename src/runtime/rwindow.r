@@ -1400,7 +1400,7 @@ int x, y, width, height;
    long len;
    LinearColor *cp;
    unsigned char *p, *q;
-   struct palentry paltbl[DMAXCOLORS];
+   struct palentry paltbl[GIFMAX];
    unsigned char obuf[GifBlockSize];
    lzwnode tree[GifTableSize + 1];
 
@@ -1411,7 +1411,7 @@ int x, y, width, height;
    if (!(gf_string = (unsigned char*)malloc(len)))
       return Error;
 
-   for (i = 0; i < DMAXCOLORS; i++)
+   for (i = 0; i < GIFMAX; i++)
       paltbl[i].used = paltbl[i].valid = paltbl[i].transpt = 0;
    if (!getimstr(w, x, y, width, height, paltbl, gf_string))
       return Error;
@@ -1432,7 +1432,7 @@ int x, y, width, height;
 
 
    for (i = 0; i < (1 << gf_nbits); i++) {	/* output color table */
-      if (i < DMAXCOLORS && paltbl[i].valid) {
+      if (i < GIFMAX && paltbl[i].valid) {
          cp = &paltbl[i].clr;
          putc(cp->red >> 8, gf_f);
          putc(cp->green >> 8, gf_f);
@@ -1519,11 +1519,11 @@ long len;
 struct palentry *paltbl;
    {
    int i, ncolors, lastcolor;
-   unsigned char *p, *q, cmap[DMAXCOLORS];
+   unsigned char *p, *q, cmap[GIFMAX];
 
    ncolors = 0;
    lastcolor = 0;
-   for (i = 0; i < DMAXCOLORS; i++)
+   for (i = 0; i < GIFMAX; i++)
       if (paltbl[i].used) {
          lastcolor = i;
          cmap[i] = ncolors;		/* mapping to output color */

@@ -2358,15 +2358,15 @@ SysColor * imqsearch (SysColor key, SysColor *base, int nel)
 int getimstr(w, xx, yy, width, height, paltbl, data)
 wbp w;
 int xx, yy, width, height;
-struct palentry paltbl[DMAXCOLORS];
+struct palentry paltbl[GIFMAX];
 unsigned char *data;
    {
    SysColor px, lastpx, *clist, *lp;
    int i, ncolors, x, y, wd = xx + width, ht = yy + height, nclist;
    STDLOCALS(w);
 
-   clist = malloc(DMAXCOLORS * sizeof (SysColor));
-   nclist = DMAXCOLORS;
+   clist = malloc(GIFMAX * sizeof (SysColor));
+   nclist = GIFMAX;
    /*
     * Make a sorted list of the pixel values of the colors that are in
     * use.  Search this list for every pixel and store the resulting
@@ -2403,10 +2403,10 @@ unsigned char *data;
       }
 
    /*
-    * if ncolors is greater than DMAXCOLORS, then fail rather than
+    * if ncolors is greater than GIFMAX, then fail rather than
     * overwriting the paltbl.
     */
-   if (ncolors > DMAXCOLORS) {
+   if (ncolors > GIFMAX) {
       free(clist);
       return 0;
       }
