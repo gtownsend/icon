@@ -8,15 +8,15 @@ PATH=../../bin:$PATH
 #  merge stdin and stderr
 exec 2>&1
 
-#  stop on errors
-set -e -x
-
 #  remove files if left over from before
 test -f olleh    && chmod +rw olleh
 test -f hello    && chmod +rw hello
 test -f hello.u1 && chmod +rw hello.u1
 test -f hello.u2 && chmod +rw hello.u2
 rm -f hello hello.u? olleh
+
+#  stop on errors
+set -e -x
 
 #  simple compile and execute, with no arguments
 icont hello -x
