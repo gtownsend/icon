@@ -1018,11 +1018,7 @@ int p;
    if (!(gf_paltbl = (struct palentry *)malloc(256 * sizeof(struct palentry))))
       return Failed;
 
-#ifdef MSWindows
    if ((gf_f = fopen(filename, "rb")) == NULL)
-#else					/* MSWindows */
-   if ((gf_f = fopen(filename, "r")) == NULL)
-#endif					/* MSWindows */
       return Failed;
 
    for (i = 0; i < 256; i++)		/* init palette table */
