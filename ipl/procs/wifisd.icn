@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     April 23, 2000
+#	Date:     June 10, 2001
 #
 ############################################################################
 #
@@ -41,14 +41,16 @@
 #
 ############################################################################
 #
-#  Links:  tieutils, tables, weavutil, xcode
+#  Links:  numbers, tieutils, tables, weavutil, xcode, ximage
 #
 ############################################################################
 
+link numbers
 link tieutils
 link tables
 link weavutil
 link xcode
+link ximage
 
 global data_default
 global data_entries
@@ -84,7 +86,6 @@ procedure wif2isd(file, title)
 
    data_sections := [
       "notes",
-      "tieup",
       "liftplan",
       "color table",
       "warp symbol table",
@@ -104,6 +105,7 @@ procedure wif2isd(file, title)
       "weft colors",
       "weft symbols",
       "bitmap image data",
+      "tieup",
       "private"
       ]
 
@@ -139,7 +141,7 @@ procedure wif2isd(file, title)
 
    #  Set up data information.
 
-   data_entries["tieup"] := (\information["weaving"])["treadles"] 
+   data_entries["tieup"] := (\information["weaving"])["treadles"] # may be bogus
    data_entries["liftplan"] := (\information["weft"])["threads"] 
    data_entries["color table"] := (\information["color palette"])["entries"] 
    data_entries["warp symbol table"] :=
@@ -221,9 +223,15 @@ procedure wif2isd(file, title)
       }
 
    draft.threading := \data["threading"]
+   draft.shafts := max ! draft.threading	# don't trust information
 
 #  if \lifting then draft.treadling := lifting else
-      draft.treadling := \data["treadling"] | draft.threading
+   draft.treadling := \data["treadling"] | draft.threading
+   draft.treadles := max ! draft.treadling	# don't trust information
+
+   data_entries["tieup"] := draft.treadles	# try to fix bogosity
+
+   data["tieup"] := decode_data("tieup")	# re-do
 
    if tieup := \data["tieup"] then {
       tie := ""
@@ -241,7 +249,9 @@ procedure wif2isd(file, title)
          }
       }
 
-   draft.tieup := pat2tier(tie2pat(draft.shafts, draft.shafts, tie)).matrix
+   draft.tieup := pat2tier(tie2pat(draft.shafts, draft.treadles, tie)).matrix
+
+   write(&errout, ximage(draft.tieup))
 
    #  Now, finally, the liftplan, if any.
    #
