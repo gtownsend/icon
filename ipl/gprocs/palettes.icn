@@ -1,0 +1,405 @@
+############################################################################
+#
+#	File:     palettes.icn
+#
+#	Subject:  Procedures for programmer-defined palettes
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 23, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures implement programmer-defined palettes.  They overload
+#  and build on top of the built-in palette mechanism.
+#
+############################################################################
+#
+#  Data structures:
+#
+#	Palette_() is a record that holds the information for a
+#	programmer-defined palette.  Its fields are:
+#
+#		name:    the name the palette is known by
+#		keys:  the string of the palette characters
+#		table:   a table keyed by the palette characters
+#			 whose corresponding values are the colors
+#
+#	Color_() is a record that holds the components of an RGB
+#	color in separate r, g, and b fields.
+#
+#	PDB_ is a table whose keys are the names of programmer-
+#	defined palettes and whose corresponding values are the
+#       palettes.  PDB_ is a global variable and provides the
+#	way for programmer-defined palette procedures to access
+#	a particular database.  If it is null, a new database is
+#	created.
+#
+#  Procedures:
+#
+#	BuiltinPalette(name)
+#		succeeds if name is the name of a built-in palette but
+#		fails otherwise.
+#
+#	CreatePalette(name, keys, colors)
+#		creates a new palette with the given colors and
+#		corresponding keys.  The colors used are the given ones.
+#
+#	InitializePalettes()
+#		initializes the built-in palette mechanism; it is called
+#		by the first palette procedure that is called.
+#
+#	Measure(color1, color2) returns the a measure of the distance
+#		 between color1 and color2 in RGB space.
+#
+#	NearColor(name, color)
+#		returns a color close to color in the palette name.
+#
+#	PaletteChars(win, palette)
+#		returns the palette characters of palette.  It extends
+#		the standard version.
+#
+#	PaletteColor(win, palette, key)
+#		returns color in palette for the given key. It extends
+#		the standard version.
+#
+#	PaletteKey(win, palette, color)
+#		returns the key in palette closest to the given color.
+#
+#	RGB(color)
+#		parses RGB color and returns a corresponding record.
+#
+#	makepalette ! colors
+#		makes a palette from the list of colors, choosing
+#		keys automatically.
+#
+#	palette_colors(palette)
+#
+#		returns the list of colors in palette.
+#
+#  Procedures fail in case of errors. This leaves control and error
+#  reporting to programs that use this module.  This module is intended
+#  to be used by programs that manage the necessary data and supply
+#  the table through PDB_.  The problem with this is that there is
+#  no way to differentiate errors.  A solution would be to post error
+#  messages in a global variable.
+#
+#  Limitations and problems:
+#
+#	The names of built-in palettes may not be used for programmer-
+#	defined ones.
+#
+#	PaletteGrays() is not implemented for programmer-defined
+#	palettes.  The library version should work for built-in
+#	palettes with this module linked.
+#
+#	Transparency is not yet implemented for DrawImage().
+#
+#	ReadImage() does not yet support programmer defined palettes.
+#
+#	Not tested:  Capture(), which may work.
+#
+#	There is some library code that checks for the names of
+#	built-in palettes in an ad-hoc fashion.  It therefore is
+#	not advisable to use names for programmer-defined palettes
+#	that begin with "c" or "g" followed by a digit.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  imrutils, lists, sort
+#
+############################################################################
+
+link imrutils
+link lists
+link sort
+
+global PDB_
+
+record Palette_(name, keys, table)
+record Color_(r, g, b)
+
+#  Check for built-in palette
+
+procedure BuiltinPalette(name)			#: check for built-in palette
+
+   BuiltinPalette := proc("PaletteChars", 0)
+
+   return BuiltinPalette(name)
+
+end
+
+procedure CreatePalette(name, keys, colors)	#: create palette
+   local i, k, t
+
+   initial InitializePalettes()
+
+   if BuiltinPalette(name) then fail
+
+   if *keys ~= *cset(keys) then fail	# duplicate keys
+
+   if *keys ~= *colors then fail	# mismatch
+
+   t := table()
+
+   every i := 1 to *colors do
+      t[keys[i]] := ColorValue(colors[i]) | fail
+
+   PDB_[name] := Palette_(name, keys, t)
+
+   return PDB_[name]
+
+end
+
+#  Extended version of DrawImage()
+
+procedure DrawImage(args[])			#: draw image
+   local palette_pixels, palette_lookup, keys, c, i, row, imr
+   static draw_image
+
+   initial draw_image := proc("DrawImage", 0)
+
+   if type(args[1]) ~== "window" then push(args, &window)
+
+   imr := imstoimr(args[4]) | return draw_image ! args
+
+   if BuiltinPalette(imr.palette) then return draw_image ! args
+
+   palette_lookup := (\PDB_[imr.palette]).table | fail
+   palette_pixels := copy(palette_lookup)
+
+   keys := cset(imr.pixels)
+
+   every !palette_pixels := []		# empty lists for coordinates
+
+   every c := !keys do {
+      i := 0
+      imr.pixels ? {
+         while row := move(imr.width) do {
+            row ? {
+               every put(palette_pixels[c], upto(c) - 1, i)
+               }
+            i +:= 1
+            }
+         }
+      }
+
+   every c := !keys do {
+      Fg(palette_lookup[c]) | fail		# fails for invalid character
+      DrawPoint ! palette_pixels[c]
+      }
+
+   return
+
+end
+
+#  Initialize defined palette mechanism
+
+procedure InitializePalettes()			#: initialize palettes
+
+   /PDB_ := table()
+
+   if type(PDB_) ~== "table" then runerr(777)
+
+   InitializePalettes := 1		# make this procedure a no-op
+
+   return
+
+end
+
+procedure Measure(s1, s2)			#: measure of RGB distance
+   local color1, color2
+
+   color1 := RGB(s1)
+   color2 := RGB(s2)
+
+   return (color1.r - color2.r) ^ 2 + (color1.g - color2.g) ^ 2 +
+      (color1.b - color2.b) ^ 2
+
+end
+
+#  Get color close to specified key
+
+procedure NearColor(name, s)			#: close color in palette
+   local palette_lookup, k, measure, close_key, color
+
+   measure := 3 * (2 ^ 16 - 1) ^ 2	# maximum
+
+   color := ColorValue(s) | fail
+
+   palette_lookup := (\PDB_[name]).table | fail
+
+   every k := key(palette_lookup) do
+      if measure >:= Measure(palette_lookup[k], color) then {
+        close_key := k
+        if measure = 0 then break
+        }
+
+   return \close_key
+
+end
+
+#  Extended version of PaletteChars()
+
+procedure PaletteChars(args[])			#: characters in palette
+   local name
+   static palette_chars
+
+   initial {
+      InitializePalettes()
+      palette_chars := proc("PaletteChars", 0)
+      }
+
+   if type(args[1]) == "window" then get(args)
+
+   name := args[1]
+
+   if BuiltinPalette(name) then return palette_chars(name)
+   else return (\PDB_[name]).keys
+
+end
+
+#  Extended version of PaletteColor()
+
+procedure PaletteColor(args[])			#: color for key in palette
+   local palette_lookup, name, s
+   static palette_color
+
+   initial {
+      InitializePalettes()
+      palette_color := proc("PaletteColor", 0)
+      }
+
+   if type(args[1]) == "window" then get(args)
+
+   name := args[1]
+   s := args[2]
+
+   if BuiltinPalette(name) then return palette_color(name, s)
+
+   palette_lookup := (\PDB_[name]).table | fail
+
+   return \palette_lookup[s]
+
+end
+
+#  Extended version of PaletteKey()
+
+procedure PaletteKey(args[])			#: key for color in palette
+   local name, s
+   static palette_key
+
+   initial {
+      InitializePalettes()
+      palette_key := proc("PaletteKey", 0)
+      }
+
+   if type(args[1]) == "window" then get(args)
+
+   name := args[1]
+   s := args[2]
+
+   if BuiltinPalette(name) then return palette_key(name, s)
+   else return NearColor(name, s)
+
+end
+
+procedure RGB(s)				#: convert RGB color to record
+   local color
+
+   color := Color_()
+
+   ColorValue(s) ? {
+      color.r := tab(upto(',')) &
+      move(1) &
+      color.g := tab(upto(',')) &
+      move(1) &
+      color.b := tab(0)
+      } | fail
+
+   return color
+
+end
+
+procedure makepalette(name, clist)		#: make palette automatically
+   local keys
+   static alphan
+
+   initial alphan := &digits || &letters
+
+   if *clist = 0 then fail
+
+   keys :=
+      if *clist < *alphan then alphan
+      else &cset
+
+   CreatePalette(name, keys[1+:*clist], clist) | fail
+
+   return
+
+end
+
+procedure palette_colors(p)			#: list of palette colors
+   local clist
+
+   clist := []
+
+   every put(clist, PaletteColor(p, !PaletteChars(p)))
+
+   return clist
+
+end
+
+procedure keyseq(palette, colors[])		#: sequence of palette keys
+   local chars
+
+   chars := PaletteChars(palette)
+
+   suspend upto(PaletteKey(palette, !colors), chars)
+
+end
+
+procedure color_range(color, range)		#: adjust RGB range
+   local r, g, b
+
+   range := 2 ^ 16 / range
+
+   color ? {
+      r := tab(upto(','))
+      move(1)
+      g := tab(upto(','))
+      move(1)
+      b := tab(0)
+      return (r * range) || "," || (g * range) || "," || (b * range)
+      }
+
+end
+
+procedure colorseq(palette)			#: sequence of palette colors
+
+   suspend PaletteColor(palette, !PaletteChars(palette))
+
+end
+
+procedure sort_colors(colors)
+
+   return isort(colors, value)
+
+end
+
+procedure value(s)			#: RGB magnitude
+   local color
+
+   color := RGB(s)
+
+   return color.r ^ 2 + color.g ^ 2 + color.b ^ 2
+
+end

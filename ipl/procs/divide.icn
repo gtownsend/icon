@@ -1,0 +1,42 @@
+############################################################################
+#
+#	File:     divide.icn
+#
+#	Subject:  Procedure to perform long division
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 29, 2000
+#
+############################################################################
+#
+#
+#  Doesn't get the decimal point.  Not sure what the padding does;
+#  to study.
+#
+############################################################################
+#
+#  Requires:  Large integer arithmetic, potentially
+#
+############################################################################
+
+procedure divide(i, j, k)		# long division
+   local q, pad
+
+   /k := 5
+
+   q := ""
+
+   pad := 20
+
+   i ||:= repl("0", pad)
+
+   every 1 to k do {
+      q ||:= i / j
+      i %:= j
+      if i = 0 then break
+      }
+
+   return q[1:-pad]
+
+end

@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     May 24, 1999
+#	Date:     June 17, 2000.
 #
 ############################################################################
 #
@@ -14,9 +14,9 @@
 #
 ############################################################################
 #
-#  Contributors:  Paul Abrahams, Bob Alexander, David A. Gamey, Richard L.
-#		  Goerwitz, Will Menagarini, Charles Sharstis, and Gregg
-#		  Townsend.
+#  Contributors:  Paul Abrahams, Bob Alexander, Will Evans, David A. Gamey,
+#		  Richard L. Goerwitz, Will Menagarini, Charles Sharstis,
+#		  and Gregg Townsend.
 #
 ############################################################################
 #
@@ -580,10 +580,17 @@ end
 
 procedure directory(name)		#: succeed if name is a directory
 
+$ifdef _MS_WINDOWS
+   if fattrib(name, "status")[1] == "d" then
+      return name
+   else
+      fail
+$else
    if close(open(name || "/.")) then
       return name
    else
       fail
+$endif
 
 end
 

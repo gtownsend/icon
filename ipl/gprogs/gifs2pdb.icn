@@ -1,0 +1,56 @@
+############################################################################
+#
+#	File:     gifs2pdb.icn
+#
+#	Subject:  Program to produce custom palettes from GIF images
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 13, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program makes a custom palette database from the colors in GIF
+#  images
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics  
+#
+############################################################################
+#
+#  Links:  basename, palettes, wopen, xcode
+#
+############################################################################
+
+link basename
+link palettes
+link wopen
+link xcode
+
+global PDB_
+
+procedure main(args)
+   local file, name, output, colors, win
+
+   every file := !args do {
+      win := WOpen("image=" || file, "canvas=hidden") | {
+          write(&errout, "*** cannot open image: ", image(file))
+          next
+          }
+      name := basename(file, ".gif")
+      colors := set()
+      every insert(colors, Pixel(win, 0, 0, WAttrib(win, "width"),
+         WAttrib(win, "height")))
+      WClose(win)
+      makepalette(name, sort_colors(colors)) |
+         write(&errout, "*** cannot make palette from ", image(file))
+      }
+
+    xencode(PDB_, &output)
+
+end

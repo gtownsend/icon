@@ -1,0 +1,51 @@
+############################################################################
+#
+#	File:     weavgenr.icn
+#
+#	Subject:  Links to procedures related to sequence drafting
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 20, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  AD HOC
+#
+############################################################################
+#
+#  Links:  ndutils, randseq
+#
+############################################################################
+
+link ndutils
+link randseq
+
+procedure shaftmap(s)			#: produce shaft map for characters
+   local j, map_table
+
+   map_table := table()
+
+   j := 0
+
+   every /map_table[!s] := (j +:= 1)
+
+   return map_table
+
+end
+
+procedure genshafts(s, tbl)		#: generate shafts for string mapping
+
+   suspend tbl[!s]
+
+end
+
+procedure genmapshafts(s1, s2)		#: map string and generate shafts
+
+   suspend genshafts(s1, shaftmap(s2))
+
+end

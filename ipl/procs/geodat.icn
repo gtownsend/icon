@@ -1,0 +1,1276 @@
+############################################################################
+#
+#	File:     geodat.icn
+#
+#	Subject:  Procedures for geodetic datum conversion
+#
+#	Authors:  William S. Evans and Gregg M. Townsend
+#
+#	Date:     June 30, 2000
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	These procedures provide "projections" that convert among geodetic
+#	datums, which relate locations on the earth's surface to longitude
+#	and latitude coordinates.  As measurement techniques improve,
+#	newer datums typically give slightly different values from older
+#	ones.  The values returned here are used with the project()
+#	procedure of cartog.icn.
+#
+#	geodat(s1, s2) defines a geodetic datum conversion.
+#	molodensky() performs an algorithmic datum conversion.
+#	nadcon(s1, s2) uses data files for more precise conversion.
+#
+#	ellipsoid(s) return the parameters of the named ellipsoid.
+#
+############################################################################
+#
+#	geodat(f, t) returns a projection from longitude and latitude
+#	in datum f to longitude and latitude in datum t.
+#	f and t are strings.  If f and t equal "NAD83", "NAD27",
+#	"HARN", or "HPGN", geodat returns a nadcon projection.
+#	Failing that, geodat returns a molodensky projection.
+#
+#	The input to the projection is a list of signed numeric values,
+#	angles measured in degrees, with each pair representing one
+#	location; longitude precedes latitude.  The output is a list
+#	with the same form and length as the input list.
+#
+############################################################################
+#
+#	nadcon(f, t) returns a projection from longitude and latitude
+#	in datum f to longitude and latitude in datum t.  The strings
+#	f and t must each be one of "NAD83", "NAD27", "HARN", or "HPGN".
+#	The projection uses our implementation of the National Oceanic
+#	and Atmospheric Administration's (NOAA's) North American Datum
+#	Conversion Utility (NADCON); for more information, see
+#	    http://www.ngs.noaa.gov/TOOLS/Nadcon/Nadcon.html
+#
+#	nadcon() requires data grid (.loa and .laa) files, which must be
+#	found in the current directory or along the space-separated path
+#	given by the environment variable DPATH.  These files can be
+#	downloaded from:
+#	    http://www.cs.arizona.edu/icon/ftp/data/nadcon/
+#	    ftp://ftp.cs.arizona.edu/icon/data/nadcon/
+#
+#	The projection's input and output are lists of signed numbers.
+#	Output is properly rounded and so may not agree exactly with
+#	the equivalent NOAA programs.
+#
+############################################################################
+#
+#	molodensky(dx, dy, dz, ain, fin, aout, fout) returns a projection
+#	from input longitude and latitude to output longitude and latitude.
+#	The projection uses the standard Molodensky transformation.
+#	The input datum is specified by an ellipsoid with parameters
+#	ain, the equatorial radius in metres, and fin, the flattening;
+#	and by three shift values dx, dy, and dz.  The output datum is
+#	specified by an ellipsoid with parameters aout and fout.
+#
+#	If dz is null, then dx and dy are interpreted as the names of
+#	an input and output datum.  The names are the ID codes
+#	specified in NIMA TR 8350.2.
+#
+#	The projection's input and output are lists of signed numbers.
+#
+############################################################################
+#
+#	ellipsoid(s) return a list [a, 1/f] containing the defining
+#	parameters of the standard ellipsoid model named s;  a is the
+#	equatorial radius and 1/f is the flattening factor.  Names are
+#	listed in the code; the default is "WGS84".
+#
+############################################################################
+#
+#	Ellipsoid and datum parameters are from:
+#		
+#		Department of Defense World Geodetic System 1984
+#		National Imagery and Mapping Agency
+#		Technical Report TR8350.2
+#		Third Edition, Amendment 1 (3 January 2000)
+#		ftp://ftp.nima.mil/pub/gg/tr8350.2/
+#
+############################################################################
+#
+#   Links: cartog, io
+#
+############################################################################
+
+
+
+link cartog
+link io
+
+
+
+#  Procedures and globals named with a "gdt_" prefix are 
+#  not intended for access outside this file.
+
+global gdt_datum_ptab		# table of gdt_datum_rec's, keyed by code
+
+
+
+###################### Geodat Conversion #################################
+
+procedure geodat(f, t)		#: define geodetic conversion
+   return nadcon(f, t) | molodensky(f, t) | fail
+end
+
+
+
+###################### NADCON Conversion #################################
+
+record gdt_nadcon(		# nadcon conversion record
+   proj,			# projection procedure
+   inv,				# invert myself
+   grids			# list of gdt_nadcon_grid records to search
+   )
+
+record gdt_nadcon_grid(		# information about a .loa and .laa file
+   name,			# name of file
+   offset,			# offset in file to start of grid data
+   termLen,			# number of chars in line termination (1 or 2)
+   nc, nr, nz,			# number of rows, columns in file (nz = ??) 
+   xmin, xmax, dx,		# dimension of coverage
+   ymin, ymax, dy,		#
+   angle			# ??
+   )
+
+procedure nadcon(f, t)		#: define NAD data conversion
+   local d, ft
+
+   ft := (gdt_nadcon_datum(f) || "-" || gdt_nadcon_datum(t)) | fail
+   d := gdt_nadcon()
+   d.inv := gdt_nadcon_inv
+   case ft of {
+      "NAD27-NAD83"|"NAD83-NAD27":
+         d.grids := gdt_nadcon_initGrids(
+            ["conus","hawaii","prvi","stlrnc", "stgeorge","stpaul","alaska"])
+      "NAD83-HPGN"|"HPGN-NAD83":
+         d.grids := gdt_nadcon_initGrids(
+            ["alhpgn","azhpgn","cnhpgn","cohpgn","cshpgn","emhpgn","ethpgn",
+               "flhpgn","gahpgn","hihpgn","inhpgn","kshpgn","kyhpgn","lahpgn",
+               "mdhpgn","mehpgn","mihpgn","mshpgn","nbhpgn","ndhpgn","nehpgn",
+               "nmhpgn","nvhpgn","nyhpgn","ohhpgn","okhpgn","pvhpgn","sdhpgn",
+               "tnhpgn","uthpgn","vahpgn","wihpgn","wmhpgn","wohpgn","wthpgn",
+               "wvhpgn","wyhpgn"])
+      "NAD27-HPGN":
+         return compose(nadcon("NAD27", "NAD83"), nadcon("NAD83", "HPGN"))
+      "HPGN-NAD27":
+         return compose(nadcon("HPGN", "NAD83"), nadcon("NAD83", "NAD27"))
+      default:				# identity conversion
+         d.grids := []
+      }
+   case ft of {
+      "NAD27-NAD83"|"NAD83-HPGN":	d.proj := gdt_nadcon_fwd
+      "NAD83-NAD27"|"HPGN-NAD83":	d.proj := gdt_nadcon_bck
+      default:				d.proj := gdt_identity
+      }
+   return d
+end
+
+procedure gdt_nadcon_fwd(p, L)
+   local i, a
+
+   a := []
+   every i := 1 to *L by 2 do {
+      gdt_nadcon_fwdPoint(p, a, L[i], L[i+1]) | fail
+      }
+   return a
+end
+
+procedure gdt_nadcon_bck(p, L)
+   local i, a
+    
+   a := []
+   every i := 1 to *L by 2 do {
+      gdt_nadcon_bckPoint(p, a, L[i], L[i+1]) | fail
+      }
+   return a
+end
+
+procedure gdt_identity(p, L)
+   return L
+end
+
+procedure gdt_nadcon_inv(p)
+   local q
+
+   q := copy(p)
+   case p.proj of {
+      gdt_nadcon_bck :	q.proj := gdt_nadcon_fwd
+      gdt_nadcon_fwd :	q.proj := gdt_nadcon_bck
+      gdt_identity :	q.proj := gdt_identity
+      }
+   return q
+end
+
+procedure gdt_nadcon_datum(x)
+   case x of {
+      "NAD27":		return "NAD27"
+      "NAD83":		return "NAD83"
+      "HARN" | "HPGN":	return "HPGN"
+      }
+end
+
+
+procedure gdt_nadcon_initGrids(names)
+   local grids, latf, lonf, a1, a2, b1, b2, g
+
+   grids := []
+   every name := !names do {
+      close(\lonf)
+      close(\latf)
+
+      g := gdt_nadcon_grid()
+      g.name := name
+
+      lonf := dopen(name || ".loa") | &null
+      latf := dopen(name || ".laa") | &null
+
+      if /lonf | /latf then next		# filename unreadable
+
+      a1 := read(lonf) | &null
+      a2 := read(lonf) | &null
+      b1 := read(latf) | &null
+      b2 := read(latf) | &null
+      if /a1 | /a2 | /b1 | /b2 | a1 ~== b1 | a2 ~== b2 then {
+         write(&errout, g.name, " incompatible or corrupt files.")
+         next
+         }
+      g.offset := where(lonf)
+
+      if g.offset = 141 then
+         g.termLen := 2
+      else
+         g.termLen := 1
+      a2 ? {
+         g.nc := integer(move(4))
+         g.nr := integer(move(4))
+         g.nz := integer(move(4))
+         g.xmin := real(move(12))
+         g.dx := real(move(12))
+         g.xmax := g.xmin + (g.nc - 1) * g.dx
+         g.ymin := real(move(12))
+         g.dy := real(move(12))
+         g.ymax := g.ymin + (g.nr - 1) * g.dy
+         g.angle := real(move(12))
+         put(grids, g)
+         }
+      }
+   close(\lonf)
+   close(\latf)
+
+   if *grids = 0 then {
+      write(&errout, "No valid NADCON conversion files found.")
+      fail
+      }
+   return grids
+end
+
+procedure gdt_nadcon_findGrid(grids, xpt, ypt)
+   local g
+
+   every g := !grids do {
+      if (g.xmin < xpt < g.xmax & g.ymin < ypt < g.ymax) then return g
+      }
+   fail
+end
+
+procedure gdt_nadcon_box(f, g, xcol, yrow)
+# This procedure is very sensitive to the format of the .loa & .laa
+# files.  In particular, it assumes:
+#	1) each line contains 6 numbers (except, possibly, the
+#	   last line of a row, which contains (nc % 6) numbers,
+#	2) each number is 12 chars long,
+   local charsPerRow, pos, t1, t2, t3, t4
+
+   charsPerRow := (72 + g.termLen) * integer(g.nc / 6)
+   if (g.nc % 6) > 0 then
+      charsPerRow +:= g.termLen + 12 * (g.nc % 6)
+
+   pos := g.offset + charsPerRow * (yrow - 1) +
+      (72 + g.termLen) * integer((xcol - 1) / 6) + 12 * ((xcol - 1) % 6)
+
+   seek(f, pos)
+   t1 := reads(f, 12)
+   if (xcol % 6 = 0) then reads(f, g.termLen)	# line termination
+   t3 := reads(f, 12)
+   seek(f, pos + 12 * g.nc + g.termLen * ceil(g.nc / 6.0))
+   t2 := reads(f, 12)
+   if (xcol % 6 = 0) then reads(f, g.termLen)	# line termination
+   t4 := reads(f, 12)
+
+   return [real(t1), real(t2), real(t3), real(t4)]
+end
+
+
+procedure gdt_nadcon_fwdPoint(p, a, xpt, ypt)
+   local g, latf, lonf, xgrid, ygrid, xcol, yrow, t, dlas, dlos
+
+   if not(g := gdt_nadcon_findGrid(p.grids, xpt, ypt)) then {
+      runerr(205, [xpt, ypt])		# point not in available areas
+      fail
+      }
+   lonf := dopen(g.name || ".loa")
+   latf := dopen(g.name || ".laa")
+
+   xgrid := (xpt - g.xmin) / g.dx + 1.0
+   ygrid := (ypt - g.ymin) / g.dy + 1.0
+   xcol := integer(xgrid)
+   yrow := integer(ygrid)
+
+   t := gdt_nadcon_box(lonf, g, xcol, yrow)
+   dlos := t[1] + (t[3]-t[1]) * (xgrid-xcol) + (t[2]-t[1]) * (ygrid-yrow) +
+         (t[4]-t[3]-t[2]+t[1]) * (xgrid-xcol) * (ygrid-yrow)
+    
+   t := gdt_nadcon_box(latf, g, xcol, yrow)
+   dlas := t[1] + (t[3]-t[1]) * (xgrid-xcol) + (t[2]-t[1]) * (ygrid-yrow) +
+         (t[4]-t[3]-t[2]+t[1]) * (xgrid-xcol) * (ygrid-yrow)
+    
+   close(lonf)
+   close(latf)
+
+   # Why is the range specified in +east and the correction in +west?
+   put(a, xpt - dlos / 3600.0, ypt + dlas / 3600.0)
+   return
+end
+
+$define CTG_NADCON_SMALL 0.000000001	# close enough for NADCON inverse
+
+procedure gdt_nadcon_bckPoint(p, a, xpt, ypt)
+   local xguess, yguess, b, i, dx, dy
+
+   xguess := xpt
+   yguess := ypt
+   b := []
+   every i:= 1 to 10 do {
+      gdt_nadcon_fwdPoint(p, b, xguess, yguess) | fail
+      dx := xpt - get(b)
+      dy := ypt - get(b)
+      if abs(dx) > CTG_NADCON_SMALL then xguess +:= dx
+      if abs(dy) > CTG_NADCON_SMALL then yguess +:= dy
+      if abs(dx) <= CTG_NADCON_SMALL & abs(dy) <= CTG_NADCON_SMALL then {
+         put(a, xguess, yguess)
+         return
+         }
+      }
+   write(&errout, "Maximum iterations exceeded!!")
+   fail
+end
+
+
+
+################# Standard Molodensky Datum Transformation ##################
+# See NIMA TR 8350.2
+#
+# ************************ WARNING ******************************************
+# NIMA TR 8350.2 contains Molodensky parameters to convert
+# from an arbitrary datum to WGS84.  To convert from datum A to datum B,
+# I call molodensky(Ax-Bx,Ay-By,Az-Bz,Aa,Af,Ba,Bf) where Ax,Ay,Az are the
+# shift to convert A to WGS84; Bx,By,Bz are the shift to convert B to WGS84;
+# Aa,Af,Ba,Bf are the ellipsoid parameters.
+# ************************ WARNING ******************************************
+#
+# TODO:
+#	1) Add special conversion for North and South pole
+#	2) Add Multiple Regression Equations
+#	3) Add special WGS72 to WGS84 conversion
+#
+record gdt_molo(
+   proj,		# projection procedure (always gdt_molo_proj)
+   inv,			# invert myself (always gdt_molo_inv)
+   dx, dy, dz,		# x,y,z differences (output - input)
+   ain, fin,		# input ellipsoid specs
+   aout, fout		# output ellipsoid specs
+   )
+
+procedure molodensky(dx,dy,dz,ain,fin,aout,fout) #: define geodetic conversion
+   local p, a, din, ein, dout, eout
+
+   if /dx | /dy then fail
+   if /dz then {
+      din := gdt_datum_params(dx) | fail
+      ein := ellipsoid(din.eps) | fail
+      dout := gdt_datum_params(dy) | fail
+      eout := ellipsoid(dout.eps) | fail
+      a := []
+      put(a, din.dx - dout.dx, din.dy - dout.dy, din.dz - dout.dz)
+      put(a, ein[1], ein[2], eout[1], eout[2])
+      return molodensky ! a
+      }
+   p := gdt_molo()
+   p.proj := gdt_molo_proj
+   p.inv := gdt_molo_inv
+   p.dx := dx
+   p.dy := dy
+   p.dz := dz
+   p.ain := ain
+   p.fin := fin
+   p.aout := aout
+   p.fout := fout
+   return p
+end
+
+procedure gdt_molo_proj(p, L)
+   local e2, slam, clam, sphi, cphi, Rm, Rn, dlam, dphi
+   local i, bbya, da, df, lam, phi, lllist
+
+   da := p.aout - p.ain
+   df := p.fout - p.fin
+   e2 := p.fin * (2 - p.fin)
+   bbya := 1. - p.fin
+   lllist := []
+   every i := 1 to *L by 2 do {
+      lam := dtor(L[i])
+      slam := sin(lam)
+      clam := cos(lam)
+      phi := dtor(L[i+1])
+      sphi := sin(phi)
+      cphi := cos(phi)
+      Rm := p.ain * (1 - e2) / (1 - e2 * sphi ^ 2) ^ (1.5)
+      Rn := p.ain / sqrt(1 - e2 * sphi ^ 2)
+      dlam := (-p.dx * slam + p.dy * clam) / (Rn * cphi)
+      dphi := (-p.dx * sphi * clam - p.dy * sphi * slam + p.dz * cphi +
+               da * (Rn * e2 * sphi * cphi) / p.ain +
+               df * (Rm / bbya + Rn * bbya) * sphi * cphi) / Rm
+      put(lllist, rtod(lam + dlam), rtod(phi + dphi))
+      }
+   return lllist
+end
+
+procedure gdt_molo_inv(p)
+   local q
+
+   q := gdt_molo()
+   q.proj := gdt_molo_proj
+   q.inv := gdt_molo_inv
+   q.dx := -p.dx
+   q.dy := -p.dy
+   q.dz := -p.dz
+   q.ain := p.aout
+   q.fin := p.fout
+   q.aout := p.ain
+   q.fout := p.fin
+   return q
+end
+
+
+
+###################### Ellipsoid Parameters #################################
+
+procedure ellipsoid(name)	#: return [a, 1/f] for named ellipsoid
+   local f, line, w, i
+
+   /name := "WGS84"
+   return case name of {
+      "Airy 1830"|"Airy"|"AA":			[6377563.396, 1 / 299.3249646]
+      "Australian National"|"AN":		[6378160.0, 1 / 298.25]
+      "Bessel 1841"|"BR":			[6377397.155, 1 / 299.1528128]
+      "Bessel 1841 (Namibia)"|"BN":		[6377483.865, 1 / 299.1528128]
+      "Clarke 1866"|"Clarke66"|"NAD27"|"CC":	[6378206.4, 1 / 294.9786982]
+      "Clarke 1880"|"CD":			[6378249.145, 1 / 293.465]
+      "Everest 1830"|"Everest"|"EA":		[6377276.345, 1 / 300.8017]
+      "Everest 1948"|"Modified Everest"|"EE":	[6377304.063, 1 / 300.8017]
+      "Everest 1956"|"EC":			[6377301.243, 1 / 300.8017]
+      "Everest 1969"|"ED":			[6377295.664, 1 / 300.8017]
+      "Everest (Pakistan)"|"EF":		[6377309.613, 1 / 300.8017]
+      "Everest (Sabah & Sarawak)"|"EB":		[6377298.556, 1 / 300.8017]
+      "Fischer 1960":				[6378166.0, 1 / 298.3]
+      "Fischer 1968":				[6378150.0, 1 / 298.3]
+      "GRS67":					[6378160.0, 1 / 298.247167427]
+      "GRS80"|"NAD83"|"RF":			[6378137.0, 1 / 298.257222101]
+      "Hayford":				[6378388.0, 1 / 297.0]
+      "Helmert 1906"|"HE":			[6378200.0, 1 / 298.3]
+      "Hough"|"HO":				[6378270.0, 1 / 297.0]
+      "Indonesian 1974"|"ID":			[6378160.0, 1 / 298.247]
+      "International 1924"|"IN":		[6378388.0, 1 / 297.0]
+      "Krassovsky 1940"|"KA":			[6378245.0, 1 / 298.3]
+      "Modified Airy"|"AM":			[6377340.189, 1 / 299.3249646]
+      "Modified Fischer 1960"|"FA":		[6378155.0, 1 / 298.3]
+      "South American 1969"|"SA":		[6378160.0, 1 / 298.25]
+      "WGS 1960"|"WGS 60"|"WGS60"|"W60"|"WA":	[6378165.0, 1 / 298.3]
+      "WGS 1966"|"WGS 66"|"WGS66"|"W66"|"WB":	[6378145.0, 1 / 298.25]
+      "WGS 1972"|"WGS 72"|"WGS72"|"W72"|"WD":	[6378135.0, 1 / 298.26]
+      "WGS 1984"|"WGS 84"|"WGS84"|"W84"|"WE":	[6378137.0, 1 / 298.257223563]
+      default: runerr(207, name)
+      }
+end
+
+
+
+###################### Datum Parameters #################################
+
+
+record gdt_datum_rec(
+   region,		# major region of datum (e.g. "Africa")
+   name,		# datum code name
+   area,		# area of datum (e.g. "Cameroon")
+   eps,			# ellipsoid specification (e.g. "CD")
+   dx, dy, dz,		# x,y,z differences from WGS84
+   ex, ey, ez		# x,y,z maximum error in converted point (unused)
+   )
+
+
+procedure gdt_datum_params(codename)
+   initial gdt_datum_init()
+   return \gdt_datum_ptab[codename] | runerr(207, codename)
+end
+
+
+procedure gdt_datum_add(key, fields[])
+   return gdt_datum_ptab[key] := gdt_datum_rec ! fields
+end
+
+
+procedure gdt_datum_init()
+   gdt_datum_ptab := table()
+
+$define add gdt_datum_add
+
+# ----------------- AFRICA --------------------------------
+add("ADI-M", "Africa",
+"Adindan","mean Ethiopia & Sudan","CD",	-166,-15,204, 5,5,3
+)
+add("ADI-E", "Africa",
+"Adindan","Burkina Faso","CD",		-118,-14,218, 25,25,25
+)
+add("ADI-F", "Africa",
+"Adindan","Cameroon","CD",		-134,-2,210, 25,25,25
+)
+add("ADI-A", "Africa",
+"Adindan","Ethiopia","CD",		-165,-11,206, 3,3,3
+)
+add("ADI-C", "Africa",
+"Adindan","Mali","CD",			-123,-20,220, 25,25,25
+)
+add("ADI-D", "Africa",
+"Adindan","Senegal","CD",		-128,-18,224, 25,25,25
+)
+add("ADI-B", "Africa",
+"Adindan","Sudan","CD",			-161,-14,205, 3,5,3
+)
+add("AFG", "Africa",
+"Afgooye","Somalia","KA",		-43,-163,45, 25,25,25
+)
+add("ARF-M", "Africa",
+"Arc 1950","mean","CD",			-143,-90,-294, 20,33,20
+)
+add("ARF-A", "Africa",
+"Arc 1950","Botswana","CD",		-138,-105,-289, 3,5,3
+)
+add("ARF-H", "Africa",
+"Arc 1950","Burundi","CD",		-153,-5,-292, 20,20,20
+)
+add("ARF-B", "Africa",
+"Arc 1950","Lesotho","CD",		-125,-108,-295, 3,3,8
+)
+add("ARF-C", "Africa",
+"Arc 1950","Malawi","CD",		-161,-73,-317, 9,24,8
+)
+add("ARF-D", "Africa",
+"Arc 1950","Swaziland","CD",		-134,-105,-295, 15,15,15
+)
+add("ARF-E", "Africa",
+"Arc 1950","Zaire","CD",		-169,-19,-278, 25,25,25
+)
+add("ARF-F", "Africa",
+"Arc 1950","Zambia","CD",		-147,-74,-283, 21,21,27
+)
+add("ARF-G", "Africa",
+"Arc 1950","Zimbabwe","CD",		-142,-96,-293, 5,8,11
+)
+add("ARS-M", "Africa",
+"Arc 1960","mean Kenya & Tanzania","CD",-160,-6,-302, 20,20,20
+)
+add("ARS-A", "Africa",
+"Arc 1960","Kenya","CD",		-157,-2,-299, 4,3,3
+)
+add("ARS-B", "Africa",
+"Arc 1960","Tanzania","CD",		-175,-23,-303, 6,9,10
+)
+add("PHA", "Africa",
+"Ayabelle Lighthouse","Djibouti","CD",	-79,-129,145, 25,25,25
+)
+add("BID", "Africa",
+"Bissau","Guinea-Bissau","IN",		-173,253,27, 25,25,25
+)
+add("CAP", "Africa",
+"Cape","South Africa","CD",		-136,-108,-292, 3,6,6
+)
+add("CGE", "Africa",
+"Carthage","Tunisia","CD",		-263,6,431, 6,9,8
+)
+add("DAL", "Africa",
+"Dabola","Guinea","CD",			-83,37,124, 15,15,15
+)
+add("EUR-F", "Africa",
+"European 1950","Egypt","IN",		-130,-117,-151, 6,8,8
+)
+add("EUR-T", "Africa",
+"European 1950","Tunisia","IN",		-112,-77,-145, 25,25,25
+)
+add("LEH", "Africa",
+"Leigon","Ghana","CD",			-130,29,364, 2,3,2
+)
+add("LIB", "Africa",
+"Liberia 1964","Liberia","CD",		-90,40,88, 15,15,15
+)
+add("MAS", "Africa",
+"Massawa","Eritrea (Ethiopia)","BR",	639,405,60, 25,25,25
+)
+add("MER", "Africa",
+"Merchich","Morocco","CD",		31,146,47, 5,3,3
+)
+add("MIN-A", "Africa",
+"Minna","Cameroon","CD",		-81,-84,115, 25,25,25
+)
+add("MIN-B", "Africa",
+"Minna","Nigeria","CD",			-92,-93,122, 3,6,5
+)
+add("MPO", "Africa",
+"M'Poraloko","Gabon","CD",		-74,-130,42, 25,25,25
+)
+add("NSD", "Africa",
+"North Sahara 1959","Algeria","CD",	-186,-93,310, 25,25,25
+)
+add("OEG", "Africa",
+"Old Egyptian 1907","Egypt","HE",		-130,110,-13, 3,6,8
+)
+add("PTB", "Africa",
+"Point 58","mean Burkina Faso & Niger","CD",-106,-129,165, 25,25,25
+)
+add("PTN", "Africa",
+"Pointe Noire 1948","Congo","CD",		-148,51,-291, 25,25,25
+)
+add("SCK", "Africa",
+"Schwarzeck","Namibia","BN",		616,97,-251, 20,20,20
+)
+add("SRL", "Africa",
+"Sierra Leone 1960","Sierra Leone","CD",	-88,4,101, 15,15,15
+)
+add("VOR", "Africa",
+"Voirol 1960","Algeria","CD",		-123,-206,219, 25,25,25
+)
+
+# ----------------- ASIA --------------------------------
+add("AIN-A", "Asia",
+"Ain el Abd 1970","Bahrain","IN",	-150,-250,-1, 25,25,25
+)
+add("AIN-B", "Asia",
+"Ain el Abd 1970","Saudi Arabia","IN",	-143,-236,7, 10,10,10
+)
+add("BAT", "Asia",
+"Djakarta (Batavia)","Sumatra (Indonesia)","BR",-377,681,-50, 3,3,3
+)
+add("EUR-H", "Asia",
+"European 1950","Iran","IN",		-117,-132,-164, 9,12,11
+)
+add("HKD", "Asia",
+"Hong Kong 1963","Hong Kong","IN",	-156,-271,-189, 25,25,25
+)
+add("HTN", "Asia",
+"Hu-Tzu-Shan","Taiwan","IN",		-637,-549,-203, 15,15,15
+)
+add("IND-B", "Asia",
+"Indian","Bangladesh","EA",		282,726,254, 10,8,12
+)
+add("IND-I", "Asia",
+"Indian","India & Nepal","EC",		295,736,257, 12,10,15
+)
+add("INF-A", "Asia",
+"Indian 1954","Thailand","EA",		217,823,299, 15,6,12
+)
+add("ING-A", "Asia",
+"Indian 1960","Vietnam (near 16N)","EA",198,881,317, 25,25,25
+)
+add("ING-B", "Asia",
+"Indian 1960","Con Son Island (Vietnam)","EA",182,915,344, 25,25,25
+)
+add("INH-A", "Asia",
+"Indian 1975","Thailand","EA",		209,818,290, 12,10,12
+)
+add("INH-A1", "Asia",
+"Indian 1975","Thailand","EA",		210,814,289, 3,2,3
+)
+add("IDN", "Asia",
+"Indonesian 1974","Indonesia","ID",	-24,-15,5, 25,25,25
+)
+add("KAN", "Asia",
+"Kandawala","Sri Lanka","EA",		-97,787,86, 20,20,20
+)
+add("KEA", "Asia",
+"Kertau 1948","West Malaysia & Singapore","EE",-11,851,5, 10,8,6
+)
+add("KGS", "Asia",
+"Korean Geodetic System 1995","South Korea","WE",0,0,0, 1,1,1
+)
+add("NAH-A", "Asia",
+"Nahrwan","Masirah Island (Oman)","CD",	-247,-148,369, 25,25,25
+)
+add("NAH-B", "Asia",
+"Nahrwan","United Arab Emirates","CD",	-249,-156,381, 25,25,25
+)
+add("NAH-C", "Asia",
+"Nahrwan","Saudi Arabia","CD",		-243,-192,477, 20,20,20
+)
+add("FAH", "Asia",
+"Oman","Oman","CD",			-346,-1,224, 3,3,9
+)
+add("QAT", "Asia",
+"Qatar National","Qatar","IN",		-128,-283,22, 20,20,20
+)
+add("SOA", "Asia",
+"South Asia","Singapore","FA",		7,-10,-26, 25,25,25
+)
+add("TIL", "Asia",
+"Timbalai 1948","Brunei & East Malaysia (Sarawak & Sabah)","EB",
+					-679,669,-48, 10,10,12
+)
+add("TOY-M", "Asia",
+"Tokyo","mean","BR",			-148,507,685, 20,5,20
+)
+add("TOY-A", "Asia",
+"Tokyo","Japan","BR",			-148,507,685, 8,5,8
+)
+add("TOY-C", "Asia",
+"Tokyo","Okinawa","BR",			-158,507,676, 20,5,20
+)
+add("TOY-B", "Asia",
+"Tokyo","South Korea","BR",		-146,507,687, 8,5,8
+)
+add("TOY-B1", "Asia",
+"Tokyo","South Korea","BR",		-147,506,687, 2,2,2
+)
+
+# ----------------- AUSTRALIA --------------------------------
+add("AUA", "Australia",
+"Australian Geodetic 1966","Australia & Tasmania","AN",-133,-48,148, 3,3,3
+)
+add("AUG", "Australia",
+"Australian Geodetic 1984","Australia & Tasmania","AN",-134,-48,149, 2,2,2
+)
+
+# ----------------- EUROPE --------------------------------
+add("EST", "Europe",
+"Co-ordinate System 1937 of Estonia","Estonia","BN",374,150,588, 2,3,3
+)
+add("EUR-M", "Europe",
+"European 1950","mean","IN",		-87,-98,-121, 3,8,5
+)
+add("EUR-A", "Europe",
+"European 1950","mean Western Europe","IN",-87,-96,-120, 3,3,3
+)
+add("EUR-E", "Europe",
+"European 1950","Cyprus","IN",		-104,-101,-140, 15,15,15
+)
+add("EUR-G", "Europe",
+"European 1950","England & Channel Islands & Scotland & Shetland Islands","IN",
+					-86,-96,-120, 3,3,3
+)
+add("EUR-K", "Europe",
+"European 1950","England & Ireland & Scotland & Shetland Islands","IN",
+					-86,-96,-120, 3,3,3
+)
+add("EUR-B", "Europe",
+"European 1950","Greece","IN",		-84,-95,-130, 25,25,25
+)
+add("EUR-I", "Europe",
+"European 1950","Sardinia (Italy)","IN",-97,-103,-120, 25,25,25
+)
+add("EUR-J", "Europe",
+"European 1950","Sicily (Italy)","IN",	-97,-88,-135, 20,20,20
+)
+add("EUR-L", "Europe",
+"European 1950","Malta","IN",		-107,-88,-149, 25,25,25
+)
+add("EUR-C", "Europe",
+"European 1950","Norway & Finland","IN",-87,-95,-120, 3,5,3
+)
+add("EUR-D", "Europe",
+"European 1950","Portugal & Spain","IN",-84,-107,-120, 5,6,3
+)
+add("EUS", "Europe",
+"European 1979","mean","IN",		-86,-98,-119, 3,3,3
+)
+add("HJO", "Europe",
+"Hjorsey 1955","Iceland","IN",		-73,46,-86, 3,3,6
+)
+add("IRL", "Europe",
+"Ireland 1965","Ireland","AM",		506,-122,611, 3,3,3
+)
+add("OGB-M", "Europe",
+"Ordnance Survey Great Britain 1936","mean","AA",375,-111,431, 10,10,15
+)
+add("OGB-A", "Europe",
+"Ordnance Survey Great Britain 1936","England","AA",371,-112,434, 5,5,6
+)
+add("OGB-B", "Europe",
+"Ordnance Survey Great Britain 1936","England & Isle of Man & Wales","AA",
+					371,-111,434, 10,10,15
+)
+add("OGB-C", "Europe",
+"Ordnance Survey Great Britain 1936","Scotland & Shetland Islands","AA",
+					384,-111,425, 10,10,10
+)
+add("OGB-D", "Europe",
+"Ordnance Survey Great Britain 1936","Wales","AA",370,-108,434, 20,20,20
+)
+add("MOD", "Europe",
+"Rome 1940","Sardinia","IN",		-225,-65,9, 25,25,25
+)
+add("SPK-A", "Europe",
+"S-42 (Pulkovo 1942)","Hungary","KA",	28,-121,-77, 2,2,2
+)
+add("SPK-B", "Europe",
+"S-42 (Pulkovo 1942)","Poland","KA",	23,-124,-82, 4,2,4
+)
+add("SPK-C", "Europe",
+"S-42 (Pulkovo 1942)","Czechoslavakia","KA",26,-121,-78, 3,3,2
+)
+add("SPK-D", "Europe",
+"S-42 (Pulkovo 1942)","Latvia","KA",	24,-124,-82, 2,2,2
+)
+add("SPK-E", "Europe",
+"S-42 (Pulkovo 1942)","Kazakhstan","KA",15,-130,-84, 25,25,25
+)
+add("SPK-F", "Europe",
+"S-42 (Pulkovo 1942)","Albania","KA",	24,-130,-92, 3,3,3
+)
+add("SPK-G", "Europe",
+"S-42 (Pulkovo 1942)","Romania","KA",	28,-121,-77, 3,5,3
+)
+add("CCD", "Europe",
+"S-JTSK","Czechoslavakia (Prior 1 Jan 1993)","BR",589,76,480, 4,2,3
+)
+
+# ----------------- NORTH AMERICA --------------------------------
+add("CAC", "North America",
+"Cape Canaveral","mean Bahamas & Florida","CC",-2,151,181, 3,3,3
+)
+gdt_datum_ptab["NAD27"] :=
+add("NAS-C", "North America",
+"North American 1927","mean CONUS","CC",-8,160,176, 5,5,6
+)
+add("NAS-B", "North America",
+"North American 1927","mean West CONUS","CC",-8,159,175, 5,3,3
+)
+add("NAS-A", "North America",
+"North American 1927","mean East CONUS","CC",-9,161,179, 5,5,8
+)
+add("NAS-D", "North America",
+"North American 1927","Alaska (minus Aleutian Islands)","CC",
+					-5,135,172, 5,9,5
+)
+add("NAS-V", "North America",
+"North American 1927","Aleutian Islands East of 180W","CC",
+					-2,152,149, 6,8,10
+)
+add("NAS-W", "North America",
+"North American 1927","Aleutian Islands West of 180W","CC",
+					2,204,105, 10,10,10
+)
+add("NAS-Q", "North America",
+"North American 1927","Bahamas (minus San Salvador Island)","CC",
+					-4,154,178, 5,3,5
+)
+add("NAS-R", "North America",
+"North American 1927","San Salvador Island","CC",1,140,165, 25,25,25
+)
+add("NAS-E", "North America",
+"North American 1927","mean Canada","CC",-10,158,187, 15,11,6
+)
+add("NAS-F", "North America",
+"North American 1927","Albert & British Columbia (Canada)","CC",
+					-7,162,188, 8,8,6
+)
+add("NAS-G", "North America",
+"North American 1927","Eastern Canada","CC",-22,160,190, 6,6,3
+)
+add("NAS-H", "North America",
+"North American 1927","Manitoba & Ontario (Canada)","CC",-9,157,184, 9,5,5
+)
+add("NAS-I", "North America",
+"North American 1927","Northwest Territories & Saskatchewan (Canada)","CC",
+					4,159,188, 5,5,3
+)
+add("NAS-J", "North America",
+"North American 1927","Yukon (Canada)","CC",-7,139,181, 5,8,3
+)
+add("NAS-O", "North America",
+"North American 1927","Canal Zone","CC",0,125,201, 20,20,20
+)
+add("NAS-P", "North America",
+"North American 1927","mean Caribbean","CC",-3,142,183, 3,9,12
+)
+add("NAS-N", "North America",
+"North American 1927","mean Central America","CC",0,125,194, 8,3,5
+)
+add("NAS-T", "North America",
+"North American 1927","Cuba","CC",	-9,152,178, 25,25,25
+)
+add("NAS-U", "North America",
+"North American 1927","Greenland (Hayes Peninsula)","CC",11,114,195, 25,25,25
+)
+add("NAS-L", "North America",
+"North American 1927","Mexico","CC",	-12,130,190, 8,6,6
+)
+add("NAR-A", "North America",
+"North American 1983","Alaska (minus Aleutian Islands)","RF",0,0,0, 2,2,2
+)
+add("NAR-E", "North America",
+"North American 1983","Aleutian Islands","RF",-2,0,4, 5,2,5
+)
+add("NAR-B", "North America",
+"North American 1983","Canada","RF",	0,0,0, 2,2,2
+)
+gdt_datum_ptab["NAD83"] :=
+add("NAR-C", "North America",
+"North American 1983","CONUS","RF",	0,0,0, 2,2,2
+)
+add("NAR-H", "North America",
+"North American 1983","Hawaii","RF",	1,1,-1, 2,2,2
+)
+add("NAR-D", "North America",
+"North American 1983","Mexico & Central America","RF",0,0,0, 2,2,2
+)
+
+# ----------------- SOUTH AMERICA --------------------------------
+add("BOO", "South America",
+"Bogota Observatory","Colombia","IN",	307,304,-318, 6,5,6
+)
+add("CAI", "South America",
+"Campo Inchauspe 1969","Argentina","IN",-148,136,90, 5,5,5
+)
+add("CHU", "South America",
+"Chua Astro","Paraguay","IN",		-134,229,-29, 6,9,5
+)
+add("COA", "South America",
+"Corrego Alegre","Brazil","IN",		-206,172,-6, 5,3,5
+)
+add("PRP-M", "South America",
+"Provisional South American 1956","mean","IN",-288,175,-376, 17,27,27
+)
+add("PRP-A", "South America",
+"Provisional South American 1956","Bolivia","IN",-270,188,-388, 5,11,14
+)
+add("PRP-B", "South America",
+"Provisional South American 1956","Northern Chile","IN",
+					-270,183,-390, 25,25,25
+)
+add("PRP-C", "South America",
+"Provisional South American 1956","Southern Chile","IN",
+					-305,243,-442, 20,20,20
+)
+add("PRP-D", "South America",
+"Provisional South American 1956","Colombia","IN",-282,169,-371, 15,15,15
+)
+add("PRP-E", "South America",
+"Provisional South American 1956","Ecuador","IN",-278,171,-367, 3,5,3
+)
+add("PRP-F", "South America",
+"Provisional South American 1956","Guyana","IN",-298,159,-369, 6,14,5
+)
+add("PRP-G", "South America",
+"Provisional South American 1956","Peru","IN",-279,175,-379, 6,8,12
+)
+add("PRP-H", "South America",
+"Provisional South American 1956","Venezuela","IN",-295,173,-371, 9,14,15
+)
+add("HIT", "South America",
+"Provisional South Chilean 1963","Southern Chile","IN",16,196,93, 25,25,25
+)
+add("SAN-M", "South America",
+"South American 1969","mean","SA",	-57,1,-41, 15,6,9
+)
+add("SAN-A", "South America",
+"South American 1969","Argentina","SA",	-62,-1,-37, 5,5,5
+)
+add("SAN-B", "South America",
+"South American 1969","Bolivia","SA",	-61,2,-48, 15,15,15
+)
+add("SAN-C", "South America",
+"South American 1969","Brazil","SA",	-60,-2,-41, 3,5,5
+)
+add("SAN-D", "South America",
+"South American 1969","Chile","SA",	-75,-1,-44, 15,8,11
+)
+add("SAN-E", "South America",
+"South American 1969","Colombia","SA",	-44,6,-36, 6,6,5
+)
+add("SAN-F", "South America",
+"South American 1969","Ecuador (minus Galapagos Islands)","SA",
+					-48,3,-44, 3,3,3
+)
+add("SAN-J", "South America",
+"South American 1969","Baltra & Galapagos Islands (Ecuador)","SA",
+					-47,26,-42, 25,25,25
+)
+add("SAN-G", "South America",
+"South American 1969","Guyana","SA",	-53,3,-47, 9,5,5
+)
+add("SAN-H", "South America",
+"South American 1969","Paraguay","SA",	-61,2,-33, 15,15,15
+)
+add("SAN-I", "South America",
+"South American 1969","Peru","SA",	-58,0,-44, 5,5,5
+)
+add("SAN-K", "South America",
+"South American 1969","Trinidad & Tobago","SA",-45,12,-33, 25,25,25
+)
+add("SAN-L", "South America",
+"South American 1969","Venezuela","SA",	-45,8,-33, 3,6,3
+)
+add("SIR", "South America",
+"South American Geocentric Reference System (SIRGAS)","South America","RF",
+					0,0,0, 1,1,1
+)
+add("ZAN", "South America",
+"Zanderij","Suriname","IN",		-265,120,-358, 5,5,8
+)
+
+# ----------------- ATLANTIC OCEAN --------------------------------
+add("AIA", "Atlantic Ocean",
+"Antigua Island Astro 1943","Antigua & Leeward Islands","CD",
+					-270,13,62, 25,25,25
+)
+add("ASC", "Atlantic Ocean",
+"Ascension Island 1958","Ascension Island","IN",-205,107,53, 25,25,25
+)
+add("SHB", "Atlantic Ocean",
+"Astro DOS 71/4","St Helena Island","IN",-320,550,-494, 25,25,25
+)
+add("BER", "Atlantic Ocean",
+"Bermuda 1957","Bermuda","CC",		-73,213,296, 20,20,20
+)
+add("DID", "Atlantic Ocean",
+"Deception Island","Deception Island & Antarctica","CD",260,12,-147, 20,20,20
+)
+add("FOT", "Atlantic Ocean",
+"Fort Thomas 1955","Nevis & St. Kitts & Leeward Islands","CD",
+					-7,215,225, 25,25,25
+)
+add("GRA", "Atlantic Ocean",
+"Graciosa Base SW 1948",
+"Faial & Graciosa & Pico & Sao Jorge & Terceira Islands (Azores)","IN",
+					-104,167,-38, 3,3,3
+)
+add("ISG", "Atlantic Ocean",
+"ISTS 061 Astro 1968","South Georgia Island","IN",-794,119,-298, 25,25,25
+)
+add("LCF", "Atlantic Ocean",
+"L. C. 5 Astro 1961","Cayman Brac Island","CC",42,124,147, 25,25,25
+)
+add("ASM", "Atlantic Ocean",
+"Montserrat Island Astro 1958","Montserrat & Leeward Islands","CD",
+					174,359,365, 25,25,25
+)
+add("NAP", "Atlantic Ocean",
+"Naparima BWI","Trinidad & Tobago","IN",-10,375,165, 15,15,15
+)
+add("FLO", "Atlantic Ocean",
+"Observatorio Meteorologico 1939","Corvo & Flores Islands (Azores)","IN",
+					-425,-169,81, 20,20,20
+)
+add("PLN", "Atlantic Ocean",
+"Pico de las Nieves","Canary Islands","IN",-307,-92,127, 25,25,25
+)
+add("POS", "Atlantic Ocean",
+"Porto Santo 1936","Porto Santo & Madeira Islands","IN",-499,-249,314, 25,25,25
+)
+add("PUR", "Atlantic Ocean",
+"Puerto Rico","Puerto Rico & Virgin Islands","CC",11,72,-101, 3,3,3
+)
+add("QUO", "Atlantic Ocean",
+"Qornoq","South Greenland","IN",	164,138,-189, 25,25,32
+)
+add("SAO", "Atlantic Ocean",
+"Sao Braz","Sao Miguel & Santa Maria Islands","IN",-203,141,53, 25,25,25
+)
+add("SAP", "Atlantic Ocean",
+"Sapper Hill 1943","East Falkland Island","IN",-355,21,72, 1,1,1
+)
+add("SGM", "Atlantic Ocean",
+"Selvagem Grande 1938","Salvage Islands","IN",-289,-124,60, 25,25,25
+)
+add("TDC", "Atlantic Ocean",
+"Tristan Astro 1968","Tristan da Cunha","IN",-632,438,-609, 25,25,25
+)
+
+# ----------------- INDIAN OCEAN --------------------------------
+add("ANO", "Indian Ocean",
+"Anna 1 Astro 1965","Cocos Islands","AN",-491,-22,435, 25,25,25
+)
+add("GAA", "Indian Ocean",
+"Gan 1970","Republic of Maldives","IN",	-133,-321,50, 25,25,25
+)
+add("IST", "Indian Ocean",
+"ISTS 073 Astro 1969","Diego Garcia","IN",208,-435,-229, 25,25,25
+)
+add("KEG", "Indian Ocean",
+"Kerguelen Island 1949","Kerguelen Island","IN",145,-187,103, 25,25,25
+)
+add("MIK", "Indian Ocean",
+"Mahe 1971","Mahe Island","CD",		41,-220,-134, 25,25,25
+)
+add("REU", "Indian Ocean",
+"Reunion","Mascarene Islands","IN",	94,-948,-1262, 25,25,25
+)
+
+# ----------------- PACIFIC OCEAN --------------------------------
+add("AMA", "Pacific Ocean",
+"American Samoa 1962","American Samoa Islands","CC",-115,118,426, 25,25,25
+)
+add("ATF", "Pacific Ocean",
+"Astro Beacon E 1945","Iwo Jima","IN",	145,75,-272, 25,25,25
+)
+add("TRN", "Pacific Ocean",
+"Astro Tern Island (FRIG) 1961","Tern Island","IN",114,-116,-333, 25,25,25
+)
+add("ASQ", "Pacific Ocean",
+"Astronomical Station 1952","Marcus Island","IN",124,-234,-25, 25,25,25
+)
+add("IBE", "Pacific Ocean",
+"Bellevue (IGN)","Efate & Erromango Islands","IN",-127,-769,472, 20,20,20
+)
+add("CAO", "Pacific Ocean",
+"Canton Astro 1966","Phoenix Islands","IN",298,-304,-375, 15,15,15
+)
+add("CHI", "Pacific Ocean",
+"Chatham Island Astro 1971","Chatham Island (New Zealand)","IN",
+					175,-38,113, 15,15,15
+)
+add("GIZ", "Pacific Ocean",
+"DOS 1968","Gizo Island (New Georgia Islands)","IN",230,-199,-752, 25,25,25
+)
+add("EAS", "Pacific Ocean",
+"Easter Island 1967","Easter Island","IN",211,147,111, 25,25,25
+)
+add("GEO", "Pacific Ocean",
+"Geodetic Datum 1949","New Zealand","IN",84,-22,209, 5,3,5
+)
+add("GUA", "Pacific Ocean",
+"Guam 1963","Guam","CC",		-100,-248,259, 3,3,3
+)
+add("DOB", "Pacific Ocean",
+"GUX 1 Astro","Guadalcanal Island","IN",252,-209,-751, 25,25,25
+)
+add("JOH", "Pacific Ocean",
+"Johnston Island 1961","Johnston Island","IN",189,-79,-202, 25,25,25
+)
+add("KUS", "Pacific Ocean",
+"Kusaie Astro 1951","Caroline Islands & Fed. States of Micronesia","IN",
+					647,1777,-1124, 25,25,25
+)
+add("LUZ-A", "Pacific Ocean",
+"Luzon","Philippines (minus Mindanao Island)","CC",-133,-77,-51, 8,11,9
+)
+add("LUZ-B", "Pacific Ocean",
+"Luzon","Mindanao Island (Philippines)","CC",-133,-79,-72, 25,25,25
+)
+add("MID", "Pacific Ocean",
+"Midway Astro 1961","Midway Islands","IN",912,-58,1227, 25,25,25
+)
+add("OHA-M", "Pacific Ocean",
+"Old Hawaiian","mean","CC",		61,-285,-181, 25,20,20
+)
+add("OHA-A", "Pacific Ocean",
+"Old Hawaiian","Hawaii","CC",		89,-279,-183, 25,25,25
+)
+add("OHA-B", "Pacific Ocean",
+"Old Hawaiian","Kauai","CC",		45,-290,-172, 20,20,20
+)
+add("OHA-C", "Pacific Ocean",
+"Old Hawaiian","Maui","CC",		65,-290,-190, 25,25,25
+)
+add("OHA-D", "Pacific Ocean",
+"Old Hawaiian","Oahu","CC",		58,-283,-182, 10,6,6
+)
+add("OHI-M", "Pacific Ocean",
+"Old Hawaiian Int","mean","IN",		201,-228,-346, 25,20,20
+)
+add("OHI-A", "Pacific Ocean",
+"Old Hawaiian Int","Hawaii","IN",	229,-222,-348, 25,25,25
+)
+add("OHI-B", "Pacific Ocean",
+"Old Hawaiian Int","Kauai","IN",	185,-233,-337, 20,20,20
+)
+add("OHI-C", "Pacific Ocean",
+"Old Hawaiian Int","Maui","IN",		205,-233,-355, 25,25,25
+)
+add("OHI-D", "Pacific Ocean",
+"Old Hawaiian Int","Oahu","IN",		198,-226,-347, 10,6,6
+)
+add("PIT", "Pacific Ocean",
+"Pitcairn Astro 1967","Pitcairn Island","IN",185,165,42, 25,25,25
+)
+add("SAE", "Pacific Ocean",
+"Santo (DOS) 1965","Espirito Santo Island","IN",170,42,84, 25,25,25
+)
+add("MVS", "Pacific Ocean",
+"Viti Levu 1916","Viti Levu Island (Fiji Islands)","CD",51,391,-36, 25,25,25
+)
+add("ENW", "Pacific Ocean",
+"Wake-Eniwetok 1960","Marshall Islands","HO",102,52,-38, 3,3,3
+)
+add("WAK", "Pacific Ocean",
+"Wake Island Astro 1952","Wake Atoll","IN",276,-57,149, 25,25,25
+)
+
+# ----------------- WORLD-WIDE DATUM ----------------------------
+gdt_datum_ptab["WGS66"] :=
+add("W66", "World-wide Datum",
+"WGS 1966","Global Definition I","WB",	0,0,0, 0,0,0
+)
+gdt_datum_ptab["WGS72"] :=
+add("W72", "World-wide Datum",
+"WGS 1972","Global Definition I","WD",	0,0,0, 3,3,3
+)
+gdt_datum_ptab["WGS84"] :=
+add("W84", "World-wide Datum",
+"WGS 1984","Global Definition II","WE",	0,0,0, 0,0,0
+)
+
+# ----------------- MISC. NON-SATELLITE DERIVED ----------------------------
+# Error bounds of zero mean unknown error.
+add("BUR", "Misc. Non-satellite derived",
+"Bukit Rimpah","Bangka & Belitung Islands (Indonesia)","BR",-384,664,-48, 0,0,0
+)
+add("CAZ", "Misc. Non-satellite derived",
+"Camp Area Astro","Camp McMurdo Area (Antarctica)","IN",-104,-129,239, 0,0,0
+)
+add("EUR-S", "Misc. Non-satellite derived",
+"European 1950","mean Near East","IN",	-103,-106,-141, 0,0,0
+)
+add("GSE", "Misc. Non-satellite derived",
+"Gunung Segara","Kalimantan (Indonesia)","BR",-403,684,41, 0,0,0
+)
+add("HEN", "Misc. Non-satellite derived",
+"Herat North","Afghanistan","IN",	-333,-222,114, 0,0,0
+)
+add("HER", "Misc. Non-satellite derived",
+"Hermannskogel",
+"Yugoslavia (Prior to 1990) Slovenia & Croatia & Bosnia & Herzegovina & Serbia",
+"BN",					682,-203,480, 0,0,0
+)
+add("IND-P", "Misc. Non-satellite derived",
+"Indian","Pakistan","EF",		283,682,231, 0,0,0
+)
+add("PUK", "Misc. Non-satellite derived",
+"Pulkovo 1942","Russia","KA",		28,-130,-95, 0,0,0
+)
+add("TAN", "Misc. Non-satellite derived",
+"Tananarive Observatory 1925","Madagascar","IN",-189,-242,-91, 0,0,0
+)
+add("VOI", "Misc. Non-satellite derived",
+"Voirol 1874","Tunisia & Algeria","CD",	-73,-247,227,0,0,0
+)
+add("YAC", "Misc. Non-satellite derived",
+"Yacare","Uruguay","IN",		-155,171,37, 0,0,0
+)
+return
+end

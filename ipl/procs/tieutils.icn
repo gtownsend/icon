@@ -1,0 +1,409 @@
+############################################################################
+#
+#	File:     tieutils.icn
+#
+#	Subject:  Procedures related to weaving tie-ups
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 20, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#	imr2tie(imr)	converts g2 image record to tie-ip
+#
+#	pat2tie(pat)	converts bi-level pattern to tie-up string
+#
+#	pat2tier(pat)	converts bi-level pattern to tie-up record
+#
+#	showpat(pat, size, fg, bg)
+#			produces a hidden window for the pattern as a matrix
+#			with the specified foreground and background colors
+#
+#	str2matrix(shafts, treadles, s)
+#			produce matrix from binary string
+#
+#	testtie(s)	succeeds if s is a valid tie-up but fails otherwise
+#
+#	tie2imr(s)	converts tie-up to g2 image record
+#
+#	tie2pat(i, j, tie)
+#			converts tie-up to bi-level pattern
+#
+#	tie2coltier(s)	creates a black/white color tieup-record for
+#			  tie-up s
+#
+#	tie2tier(s)	creates a 0/1 tie-up record for tie-up s
+#
+#	tier2rstring(r)	creates a tie-up string from a tie-up record
+#
+#	twill(pattern, shift, shafts)
+#			twill tie-up
+#
+#	overunder(pattern, treadles)
+#			over/under tie-up structure
+#
+#	direct(shafts)	direct tie-up
+#
+#	satin(counter, shafts, treadles)
+#			satin tie-up
+#
+#	tabby(shafts, treadles)
+#			tabby tie-up
+#
+#	general(pattern, shift, rep, shafts)
+#			general tie-up
+#
+#	exptie(expression, shafts, treadles)
+#			expression tie-up
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  cells, numbers,  wopen, patutils, imrutils
+#
+############################################################################
+
+link cells
+link numbers
+link wopen
+link patutils
+link imrutils
+
+record tie(shafts, treadles, matrix)
+
+procedure imr2tie(imr)			#: convert image record to tie-up
+
+   return imr.width || ";" || *imr.pixels / imr.width || ";" || imr.pixels
+
+end
+
+procedure pat2tie(pat)			#: convert pattern to tie-up string
+   local matrix, tieup, shafts, treadles
+
+   pat ? {		# OLD-STYLE BIT STRING TIE-UP
+      if shafts := tab(upto(',')) &
+      move(1) &
+      treadles := tab(upto(',')) &
+      move(1) then {
+         matrix := list(shafts)
+         while put(matrix, move(treadles))
+         }
+      else matrix := pat2rows(pat)
+      }
+
+   tieup := tie(*matrix[1], *matrix, matrix)
+
+   return tier2string(tieup)
+
+end
+
+procedure pat2tier(pat)			#: convert pattern to tie-up record
+   local matrix
+
+   matrix := pat2rows(pat)
+
+   return tie(*matrix[1], *matrix, matrix)
+
+end
+
+#  Set up empty palette grid
+
+procedure showpat(pat, cellsize, fg, bg)	#: image of bi-level pattern
+   local x, y, panel, row, rows, color, tieup
+
+   /cellsize := 10
+
+   rows := pat2rows(pat)
+
+   panel := makepanel(*rows[1], *rows, cellsize, fg, bg)
+
+   y := 1
+
+   every row := !rows do {
+      every x := 1 to *row do {
+         color := if row[x] == "1" then "black" else "white"
+         colorcell(panel, x, y, color)
+         }
+      y +:= 1
+      }
+
+   return panel
+ 
+end
+
+procedure str2matrix(shafts, treadles, tieup)
+   local matrix
+
+   matrix := []
+
+   tieup ? {
+      every 1 to treadles do 
+         put(matrix, move(shafts))
+      }
+
+   return matrix
+
+end
+
+procedure testtie(s)			#: test validity of tie-up s
+   local n, m, bits
+
+   s ? {
+      n := (0 < integer(tab(upto(';')))) &
+      move(1) &
+      m := (0 < integer(tab(upto(';')))) &
+      move(1) &
+      bits := tab(0)
+      } | fail					# bad header
+
+   if *(cset(bits) -- '01') > 0 then fail	# illegal characters
+
+   if *bits ~= (n * m) then fail		# wrong length
+
+   return s
+
+end
+
+procedure tie2imr(tie)			#: convert tie-up to image record
+   local width
+
+   tie ? {
+      width := tab(upto(';'))
+      move(1)
+      tab(upto(';') + 1)
+      return imstoimr(width || ",g2," || tab(0))
+      }
+
+end
+
+procedure tie2pat(shafts, treadles, tie)	#: convert tie-up record to ims
+   local tieup, matrix
+
+   tieup := tie2tier(shafts, treadles, tie)
+   matrix := tieup.matrix
+   return rows2pat(matrix)
+
+end 
+
+procedure tie2tier(shafts, treadles, tieup)	#: create 0/1 tie-up record
+   local matrix
+
+   matrix := []
+
+   tieup ? {
+      every 1 to treadles do 
+         put(matrix, move(shafts))
+      }
+
+   return tie(shafts, treadles, matrix)
+
+end
+
+procedure tie2coltier(tieup)		#: create color tie-up record
+   local result, shafts, treadles, rec
+
+   result := []
+
+   if not upto(';', tieup) then		# old-style tie-up
+      tieup := "8;8;" || tieup
+
+   tieup ? {
+      (
+         shafts := tab(upto(';')) &
+         move(1) &
+         treadles := tab(upto(';')) &
+         move(1)
+         ) | stop("*** invalid tieup")
+      every 1 to shafts do 
+         put(result, tcolors(move(treadles)))
+      }
+
+   return tie(shafts, treadles, result)
+
+end
+
+procedure tcolors(s)
+   local i, result
+
+   result := []
+
+   every i := 1 to *s do
+      put(result, if s[i] == "0" then "black" else "white")
+
+   return result
+
+end
+
+procedure tier2string(rec)	#: convert tie-up record to string
+   local result
+
+   result := ""
+
+   every result ||:= !rec.matrix
+
+   return result
+
+end
+
+procedure twill(pattern, shift, shafts)	#: twill tie-up
+   local row, rows
+
+   row := overunder(pattern, shafts) | fail
+
+   rows := []
+
+   put(rows, row)
+
+   every 1 to shafts - 1 do
+      put(rows, row := rotate(row, shift))
+
+   return rows2pat(rows)
+
+end
+
+procedure overunder(pattern, treadles)
+   local row, count, i
+
+   row := ""
+
+   count := 1			# odd/even over/under toggle
+
+   pattern ? {
+      while ="/" do {
+         i := tab(many(&digits)) | fail
+         row ||:= repl(count, i)
+         count +:= 1
+         count %:= 2
+         }
+      if not pos(0) then fail
+      }
+      
+   return extend(row, treadles)
+
+end
+
+procedure direct(shafts)	#: direct tie-up
+   local row, i, rows
+
+   rows := []
+
+   row := "1" || repl("0", shafts - 1)
+
+   put(rows, row)
+
+   every i := 1 to shafts - 1 do
+      put(rows, row := rotate(row, -1))
+
+   return rows2pat(rows)
+
+end
+
+procedure satin(counter, shafts, treadles)	#: satin tie-up
+   local row, rows, m, k
+
+   rows := list(shafts, repl("0", treadles))
+
+   m := 1
+   rows[1, 1]  := "1"
+
+   every k := 2 to shafts do
+      rows[k, residue(m +:= counter, shafts, 1)] := "1"
+
+   return rows2pat(rows)
+
+end
+
+procedure tabby(shafts, treadles)	#: tabby tie-up
+   local rows
+
+   rows := []
+
+   row := repl("01", (treadles + 1) / 2)
+
+   push(rows, row)
+
+   every i := 1 to shafts - 1 do
+      push(rows, row := rotate(row, 1))
+
+   return rows2pat(rows)
+
+   return
+
+end
+
+procedure general(pattern, shift, rep, shafts)	#: general tie-up
+   local row, rows, i
+
+   row := overunder(pattern, shafts) | fail
+
+   rows := []
+
+   every 1 to rep do
+      put(rows, row)
+
+   every i := (1 to shafts - 1) \ (shafts / rep) do {
+      row := rotate(row, shift)
+      every 1 to rep do
+         put(rows, row)
+      }
+
+   rows := rows[1+:shafts]		# trim
+
+   return rows2pat(rows)
+
+end
+
+procedure exptie(expression, shafts, treadles)	#: expression tie-up
+   local output, size, row, rows, values, input
+
+   size := shafts * treadles
+
+   output := open("/tmp/expr.icn", "w") | {
+      stop("*** cannot open file for tie-up expression")
+      fail
+      }
+
+   write(output, "$include \"/tmp/include.wvp\"")
+   write(output, "link seqfncs")
+   write(output, "procedure main()")
+   write(output, "   every write(", expression, " %  2) \\ ", size)
+   write(output, "end")
+
+   close(output)
+
+#  remove("/tmp/seqdraft.err")
+
+   if system("icont -s /tmp/expr >/dev/null 2>/tmp/seqdraft.err") ~= 0 then
+      fail
+
+   input := open("expr", "p")
+
+   values := ""
+   every values ||:= !input
+
+   close(input)
+
+   remove("expr")
+
+   rows := []
+
+   if *values < (shafts * treadles) then {
+      stop("*** short tie-up sequence")
+      fail
+      }
+
+   values ? {
+      while put(rows, move(shafts))
+      }
+
+   return rows
+
+end

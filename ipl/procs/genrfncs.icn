@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     June 9, 1999
+#	Date:     June 21, 2000
 #
 ############################################################################
 #
@@ -27,25 +27,31 @@
 #
 #  catlnseq(i)		sequence of generalized Catalan numbers
 #
+#  cfseq(i, j)		continued-fraction sequence for i / j
+#
 #  chaosseq()		chaotic sequence
 #
 #  chexmorphseq()	sequence of centered hexamorphic numbers
 #
 #  connellseq(p)	the generalized Connell sequence
 #
+#  eisseq(i)		EIS A sequence for i
+#
 #  factseq()		factorial sequence
 #
-#  fibseq(i, j, k)	generalized Fibonacci sequence (Lucas sequence)
+#  fibseq(i, j, k, m)	generalized Fibonacci sequence (Lucas sequence)
 #			with initial values i and j and additive constant
-#			k.
+#			k.  If m is supplied, the results are produced
+#			mod m.
 #
 #  figurseq(i)		series of ith figurate number
 #
 #  fileseq(s, i)	generate from file s; if i is null, lines are generated.
 #			Otherwise characters, except line terminators.
 #
-#  gseq(k, i)		generalized nested Hofstader recurrence, starting at
-#			k.
+#  friendseq(k)		generate random friendly sequence from k values, 1 to k
+#			(in a friendly sequence, successive terms differ by 1).
+#
 #
 #  geomseq(i, j)	geometric sequence starting at i with multiplier j
 #
@@ -53,11 +59,24 @@
 #
 #  irepl(i, j)		j instances of i
 #
+#  lrrcseq(L1, L2)
+#			generalized linear recurrence with constant
+#			coefficients; L1 is a list of initial terms,
+#			L2 is a list of coefficients for n prevous values,
+#			where n = *L2
+#
+#  meanderseq(s, n)	sequences of all characters that contain all n-tuples
+#			of characters from s
+#	
 #  mthueseq()		Morse-Thue sequence
 #
 #  multiseq(i, j, k)	sequence of (i * j + k) i's
 #
-#  ngonalseq(i)		sequence of the i polygonal number
+#  ngonalseq(i)		sequence of the ith polygonal number
+#
+#  nibonacciseq(values[])
+#			generalized Fibonacci sequence that sums the
+#			previous n terms, where n = *values.
 #
 #  partitseq(i, j, k)	sequence of integer partitions of i with minimum j
 #			and maximum k
@@ -67,14 +86,31 @@
 #
 #  perrinseq()		Perrin sequence
 #
-#
+#  polyseq(coeff[])	polynomial in x evaluated for x := seq()
+#	
 #  primeseq()		the sequence of prime numbers
 #
-#  powerseq(i, j)	sequence i ^ j, starting at j = 0
+#  powerseq(i)		sequence n ^ i, n = 1, 2, 3, 4, ...
+#
+#  powersofseq(i)	sequence i ^ n, n = 1, 2, 3, 4, ...n
+#
+#  rabbitseq()		rabbit sequence
+#
+#  ratsseq(i)		versumseq() with sort
+#
+#  signaseq(r)		signature sequence of r
 #
 #  spectseq(r)		spectral sequence integer(i * r), i - 1, 2, 3, ...
 #
-#  versumseq(i)		sequence of added reversed integers with seed i.
+#  versumseq(i, j)	generalized sequence of added reversed integers with
+#			seed i (default 196) and increment j (default 0)
+#
+#  versumopseq(i, p)	procedure p (default 1) applied to versumseq(i)
+#
+#  vishwanathseq()	random variation on Fibonacci sequence
+#
+#  zebra(values[])	zebra colors, alternating 2 and 1, for number of
+#			times given by successive values
 #  
 ############################################################################
 #
@@ -82,14 +118,18 @@
 #
 ############################################################################
 #
-#  Links:  io, fastfncs, partit, numbers
+#  Links:  fastfncs, io, lindgen, partit, numbers, rational, xcode
 #
 ############################################################################
 
-link io
-link partit
+link lists
 link fastfncs
+link io
+link lindgen
 link numbers
+link partit
+link rational
+link xcode
 
 procedure arandseq(i, j)	#: arithmetic sequence with random intervals
 
@@ -174,6 +214,35 @@ procedure chexmorphseq()	#: sequence of centered hexamorphic numbers
 
 end
 
+procedure cfseq(i, j)	#: continued-fraction sequence
+   local r
+
+   until j = 0 do {
+     suspend integer(i / j)
+     r := i % j
+     i := j
+     j := r
+     }
+
+end
+
+procedure eisseq(i)		#: EIS A sequence
+   local input, seq, lst
+
+   input := dopen("eis.seq") | fail
+
+   lst := xdecode(input) | fail
+
+   seq := \lst[i] | fail
+
+   close(input)
+
+   lst := &null
+
+   suspend !seq
+
+end
+
 procedure factseq()		#: factorial sequence
    local i
 
@@ -183,17 +252,26 @@ procedure factseq()		#: factorial sequence
 
 end
 
-procedure fibseq(i, j, k)	#: generalized Fibonacci sequence
-   local m
+procedure fibseq(i, j, k, m)	#: generalized Fibonacci sequence
+   local n
 
    /i := 1
-   /j := 2
+   /j := 1
    /k := 0
 
-   suspend i | j | |{
-      m := i + j + k
-      i := j
-      j := m
+   if /m then {
+      suspend i | j | |{
+         n := i + j + k
+         i := j
+         j := n
+         }
+      }
+   else {
+      suspend i % m | j % m | |{
+         n := (i + j + k) % m
+         i := j
+         j := n
+         }
       }
 
 end
@@ -213,6 +291,8 @@ procedure fileseq(s, i)		#: sequence from file
 
    close(input)
 
+   input := &null
+
 end
 
 procedure figurseq(i)		#: sequence of figurate numbers
@@ -224,15 +304,22 @@ procedure figurseq(i)		#: sequence of figurate numbers
 
 end
 
-procedure gseq(k, i)		#: generalized Hofstadter recurrence sequence
+procedure friendseq(k)		#: random friendly sequence
+   local state
 
-   /k := 1
-   /i := 1
+   state := ?k
 
-   suspend g(k, seq(i))
+   repeat {
+      suspend state
+      case state of {
+         1        :  state +:= 1
+         k        :  state -:= 1
+         default  :  state +:= ?[1, -1]
+         }
+      }
 
 end
-
+      
 procedure geomseq(i, j)		#: geometric sequence
 
    /i := 1
@@ -258,6 +345,50 @@ procedure irepl(i, j)		#: repeated sequence
    suspend |i \ j
 
 end
+
+procedure linrecseq(terms, coeffs)	#: synonym for lrrcseq
+   linrecseq := lrrcseq
+
+   return lrrcseq(terms, coeffs)
+
+end
+
+procedure lrrcseq(terms, coeffs)	#: linear recurrence sequence
+   local i, term
+
+   suspend !terms
+
+   repeat {
+      term := 0
+      every i := 1 to *coeffs do
+         term +:= terms[i] * coeffs[-i]
+      suspend term
+      get(terms)
+      put(terms, term)
+      }
+
+end
+
+procedure meanderseq(alpha, n)	#: generate meandering characters
+   local sequence, trial, i, c
+
+   i := *alpha
+
+   sequence := repl(alpha[1], n - 1)			# base string
+
+   while c := alpha[i] do {			# try a character
+      trial := right(sequence, n - 1) || c
+      if find(trial, sequence) then
+         i -:= 1
+      else {
+         sequence ||:= c				# add it
+         i := *alpha				# and start from end again
+         suspend c
+         }
+      }
+
+end
+
 
 procedure mthueseq()		#: Morse-Thue sequence
    local i, s
@@ -285,11 +416,26 @@ procedure ngonalseq(i)		#: sequence of polygonal numbers
 
    /i := 2
 
-   i +:= 2
-
    k := i - 2
 
    suspend ((j := 1) | (j +:= 1 + k * seq()))
+
+end
+
+procedure nibonacciseq(values[])	#: n-valued Fibonacci generalization
+   local sum
+
+   if *values = 0 then fail
+
+   suspend !values
+
+   repeat {
+      sum := 0
+      every sum +:= !values
+      suspend sum
+      get(values)
+      put(values, sum)
+      }
 
 end
 
@@ -321,9 +467,9 @@ end
 procedure perrinseq()		#: perrin sequence
    local i, j, k, l
 
-   suspend i := 3
-   suspend j := 0
-   suspend k := 2
+   suspend i := 0
+   suspend j := 2
+   suspend k := 3
 
    repeat {
       suspend l := i + j
@@ -333,7 +479,19 @@ procedure perrinseq()		#: perrin sequence
       }
 
 end
-      
+
+procedure polyseq(coeff[])	#: sequence of polynomial evaluations
+   local i, j, sum
+
+   every i := seq() do {
+      sum := 0
+      every j := 1 to *coeff do
+         sum +:= coeff[j] * i ^ (j - 1)
+      suspend sum
+      }
+
+end
+
 procedure primeseq()		#: sequence of prime numbers
    local i, k
 
@@ -342,12 +500,65 @@ procedure primeseq()		#: sequence of prime numbers
 
 end
 
-procedure powerseq(i, j)	#: power sequence
+procedure powersofseq(i)		#: powers
 
    /i := 2
-   /j := 0
 
-   suspend i ^ seq(j)
+   suspend i ^ seq(i)
+
+end
+
+procedure powerseq(i)		#: powers sequence
+
+   suspend seq() ^ i
+
+end
+
+procedure rabbitseq()		#: rabbit sequence
+   local seq, i
+
+   seq := [0]
+
+   suspend 1
+
+   repeat {
+      i := get(seq)
+      suspend i
+      if i = 0 then put(seq, 1)
+      else put(seq, 1, 0)
+      }
+
+end
+   
+procedure ratsseq(i, p)		#: reverse add and then sort sequence
+
+   /p := 1
+
+   repeat {
+      i +:= reverse(i)
+      i := integer(p(csort(i)))
+      suspend i
+      }
+
+end
+
+record entry(value, i, j)
+
+procedure signaseq(r, n, m)	#: signature sequence
+   local i, j, result
+
+   /n := 100
+   /m := 100
+
+   result := []
+
+   every j := 1 to n do 
+      every i := 1 to m do
+         put(result, entry(i + j * r, i, j))
+
+   result := sortf(result, 1)
+
+   suspend (!result)[2]
 
 end
 
@@ -359,17 +570,64 @@ procedure spectseq(r)		#: spectral sequence
 
 end
 
-procedure versumseq(i)		#: reversed-sum sequence
-   local j, k
+procedure versumseq(i, j)	#: generalized reversed-sum sequence
+
+   /j := 0
 
    /i := 196
 
-   i := integer(i) | stop("*** invalid type to versumseq()")
+   repeat {
+      i +:= reverse(i) + j
+      suspend i
+      }
+
+end
+
+procedure versumopseq(i, p, args[])	#: versum sequence with operator
+
+   /i := 196
+
+   /p := csort
+
+   push(args, &null)			# make room for first argument
 
    repeat {
-      j := reverse(i)
-      i +:= j
+      i := reverse(i)
+      args[1] := i		# make current i first argument
+      i := integer(p ! args)
       suspend i
+      }
+
+end
+
+procedure vishwanathseq(i, j)	#: random variation on Fibonacci sequence
+   local m
+
+   /i := 1
+   /j := 1
+
+   suspend i | j | |{
+      m := case ?4 of {
+         1  :  i + j
+         2  :  i - j
+         3  :  -i + j
+         4  :  -i - j
+         }
+      i := j
+      j := m
+      }
+
+end
+
+procedure zebra(args[])		#: black and white bands
+   local i, clr, clr_alt
+
+   clr := 2			# light
+   clr_alt := 1			# dark
+
+   while i := get(args) do {
+      suspend (i to i) & clr
+      clr :=: clr_alt
       }
 
 end

@@ -1,0 +1,727 @@
+############################################################################
+#
+#	File:     unravel.icn
+#
+#	Subject:  Program to find thread colors for weaving
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     June 23, 2000
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Unravel solves a coloring problem inspired by weaving.  Given a
+#	multicolored rectangular pattern, assign colors to warp and weft
+#	threads that will allow the pattern to be woven on a loom.
+#	We ignore questions of structural integrity and insist only
+#	that each cell's color be matched by either the corresponding
+#	warp thread (column color) or weft thread (row color).
+#
+############################################################################
+#
+#	Usage:  unravel [-bdnrtv] filename
+#
+#		-b: run in batch mode (don't show results in window)
+#		-d: show details of solution on &error
+#		-n: no shortcuts: retain solid & duplicate rows & cols
+#		-r: raw output on &output of columns, rows, grid data
+#		-t: include timing breakdown in result message
+#		-v: write verbose commentary on &output
+#
+#	Input is an image file (GIF, XBM) to be mapped to the c1 palette
+#	(these require graphics, even in batch mode) or an image string
+#	acceptable to readims().  The maximum size is 256 x 256.
+#
+#	After analysis, the pattern is declared "solved" or "insoluble".
+#	This result is displayed in the title of the result window and
+#	printed on standard error output.
+#
+#	The output window shows an enlarged copy of the pattern with row
+#	and column color assignments along the top, bottom, and sides.
+#	With an insoluble or pattern, colors just reflect the program
+#	state at termination.  Type "q" in the window to exit.
+#
+#	A one-line result summary is always written to &errout.  The -d
+#	option adds two more lines giving the row and column assignments,
+#	with the colors coded by the "c1" color palette.
+#
+#	With the -r option, three lines are written to &output:
+#		column colorings
+#		row colorings
+#		grid data
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: graphics, imscolor, imsutils, numbers, options, random
+#
+############################################################################
+
+
+
+link graphics
+link imscolor
+link imsutils
+link numbers
+link options
+link random
+
+
+
+record vector(		# one row or column
+   index,		# index of this row/column (1-based)
+   label,		# row/column label: "rnnn" or "cnnn"
+   mchar,		# char used in mapping
+   cells,		# string of colors in row/column cells
+   live,		# string of colors in active row/column cells
+   fam,			# color family
+   ignored		# non-null if to be ignored (if solved, or if redundant)
+)
+
+record family(		# a family of vectors that must all be the same color
+   vset,		# set of vectors
+   color		# assigned color (null if not yet set)
+)
+
+
+
+global opts		# command options
+global fname		# input file name
+global logfile		# output file for logging, if -v specified
+global t1,t2,t3,t4,t5	# &time measurements
+
+global imstring		# image string of original pattern specification
+global data		# raw cell data
+global rows		# list of row vectors
+global cols		# list of column vectors
+
+global mapchars		# string of chars used for col & row mapping
+global rowvalid		# valid columns in row
+global colvalid		# valid columns in column
+
+
+
+##############################  CONTROL  ##############################
+
+
+
+procedure main(args)
+   local n, v
+
+   opts := options(args, "bdnrtv")
+   if \opts["v"] then
+      logfile := &output
+   else
+      log := 1				# disable logging function
+
+   *args = 1 | stop("usage: ", &progname, " [-bdnrtv] imsfile")
+   fname := get(args)
+   imstring := load(fname) | abort("can't load file")
+   t1 := &time
+
+   setpattern(imstring) | abort("can't parse pattern string")
+   setmaps()				# initialize mapping strings
+   loggrid()				# show problem diagram
+   t2 := &time
+
+   if /opts["n"] then {			# if not -n, then reduce problem
+      while dupls(rows | cols) | solids() do 
+         setmaps()			# reduce problem size
+      loggrid()				# show reduced problem
+      }
+   t3 := &time
+  
+   # check for quads until no longer worthwhile
+   while (not trivial()) & quad(rows | cols) do {
+      setmaps()				# reduce problem size
+      loggrid()				# show reduced problem
+      }
+   t4 := &time
+
+   log("choosing colors arbitrarily")
+   every v := active(rows | cols) do	# will solve or show impossible
+      setcolor(v, ?v.live)
+   setmaps()				# should detect solved problem
+
+   abort("didn't finish!")
+end
+
+
+
+##############################  INPUT  ##############################
+
+
+
+#  load(fname) -- load image from file, convert to imstring if necessary
+
+procedure load(fname)
+   local f, s
+
+   if f := WOpen("canvas=hidden", "image=" || fname) then {
+      if WAttrib(f, "width" | "height") > 256 then
+         abort("image exceeds 256 x 256")
+      s := Capture(f, "c1")
+      WClose(f)
+      return s
+      }
+
+   f := open(fname) | fail
+   s := readims(f) | fail
+   close(f)
+   return s
+end
+
+
+
+#  setpattern(im) -- initialize pattern data from image string
+
+procedure setpattern(im)
+   local ncols, nrows, i, j, s
+
+   mapchars := string(&cset)
+
+   imstring := im
+   ncols := imswidth(imstring) | fail
+   nrows := imsheight(imstring) | fail
+   data := (imstring ? 3(tab(upto(',')+1), tab(upto(',')+1), tab(0))) | fail
+   if *data ~= nrows * ncols then
+      abort("malformed image string: wrong data length")
+   if nrows > 256 || ncols > 256 then
+      abort("pattern exceeds 256 x 256")
+
+   rows := []
+   data ? while addvector(rows, "r", move(ncols))
+
+   cols := []
+   every i := 1 to ncols do {
+      s := ""
+      every j := i to *data by ncols do
+         s ||:= data[j]
+      addvector(cols, "c", s)
+      }
+   return
+end
+
+
+
+#  addvector(vlist, lchar, data) -- add new vector to vlist, labeled with lchar
+
+procedure addvector(vlist, lchar, data)
+   local v, f
+
+   v := vector()
+   f := family()
+   v.index := *vlist + 1
+   v.label := lchar || v.index
+   v.mchar := mapchars[*vlist + 1]
+   v.cells := data
+   v.fam := f
+   f.vset := set()
+   insert(f.vset, v)
+   put(vlist, v)
+   return
+end
+
+
+
+##############################  ANALYSIS  ##############################
+
+
+
+#  solids() -- check for families with remaining members all one color
+#
+#  succeeds if it accomplishes anything
+
+procedure solids()
+   local f, v, n
+
+   log("checking for solids (r,c)")
+   n := 0
+   every v := active(rows) | active(cols) do {
+      if *cset(v.live) = 1 then {
+         setcolor(v, v.live[1])
+         n +:= 1
+         }
+      }
+   return 0 < n
+end
+
+
+
+#  dupls(vlist) -- check for duplicate (identical) vectors in a list
+#
+#  succeeds if it accomplishes anything
+
+procedure dupls(vlist)
+   local s, t, v, w, n
+
+   log("checking for duplicates (", vlist[1].label[1], ")")
+   t := table()
+   n := 0
+
+   every v := active(vlist) do {
+      s := v.cells
+      if not (/t[s] := v) then {
+         samecolor(t[s], v)
+         v.ignored := 1			# set inactive
+         n +:= 1
+         }
+      }
+
+   return 0 < n
+end
+
+
+
+
+#  trivial() -- succeed if this is a trivial case
+#
+#  A trivial case is one that can be solved by coloring remaining
+#  vectors arbitrarily with any of the colors they contain.
+#  (Color one vector, force others, repeat until done.)
+
+procedure trivial()
+   local c, s, cs, union, isectn
+
+   if *rowvalid < 3 & *colvalid < 3 then
+      return				# trivial (2x2 or smaller)
+   if *rowvalid < 2 | *colvalid < 2 then
+      return				# trivial (1xn)
+
+   union := ''
+   isectn := &cset
+
+   every cs := cset(active(rows | cols).live) do {
+      union ++:= cs
+      isectn **:= cs
+      }
+
+   if *union < 3 then
+      return				# trivial (bilevel or solid pattern)
+
+#  If a pattern can be permuted into a solid color except for
+#  one diagonal line (or parts of one), then it is trivially solved.
+
+   if *isectn = 1 then {		# if single background color
+      c := string(isectn)
+      every s := active(rows | cols).live do {
+         s ? {
+            tab(many(c))
+            move(1)
+            tab(many(c))
+            if not pos(0) then
+               fail			# if not a diagonal case
+         }
+      }
+      log("found diagonal case")
+      return				# trivial (diagonal case)
+   }
+
+   fail					# not a trivial case
+end
+
+
+
+#  quad(vlist) -- find a 2x2 forcing subproblem
+#
+#  Looks for AABC pattern with AA oriented along one vector of vlist.
+#  Succeeds after finding one quad pattern and forcing colors.
+
+procedure quad(vlist)
+   local wlist, a, b, c, s, t, x1, x2, y1, y2, ss, ts
+
+   log("checking quads (", vlist[1].label[1], ")")
+   every put(wlist := [], active(vlist))
+   shuffle(wlist)			# for better chance of quick solution
+
+   every x1 := 1 to *wlist do {
+      s := wlist[x1].live		# potential AA vector
+      ss := cset(s)
+      every x2 := (x1 ~= (1 to *wlist)) do {
+         t := wlist[x2].live		# potential BC vector
+         ts := cset(t)
+         if *(ss ++ ts) < 3 then
+            next
+         every y1 := 1 to *s do {
+            a := s[y1]
+            b := t[y1]
+            if a == b then next
+            if *(ts -- a -- b) = 0
+               then next
+            every y2 := y1 + 1 to *s do {
+               if s[y2] ~== a then next
+               # now have found AA at subscripts y1, y2
+               c := t[y2]
+               if c == (a | b) then next
+               log("found pattern: ", a, a, b, c, " ",
+                  wlist[x1].label, " ", wlist[x2].label,
+                  " [", y1, "] [", y2, "]")
+               setcolor(wlist[x1], a)
+               return		# return after finding and forcing one
+               }
+            }
+         }
+      }
+   fail
+end
+
+
+
+#  active(vlist) -- generate vlist entries that are not being ignored
+
+procedure active(vlist)
+   local v
+
+   every v := !vlist do
+      if /v.ignored then
+         suspend v
+end
+
+
+
+##############################  MANIPULATION   ##############################
+
+
+
+#  setmaps() -- recompute mapping strings for ignoring cols and rows
+
+procedure setmaps()
+   local v
+
+   rowvalid := vectmap(cols)
+   colvalid := vectmap(rows)
+
+   every v := active(rows) do
+      v.live := map(rowvalid, mapchars[1+:*cols], v.cells)
+   every v := active(cols) do
+      v.live := map(colvalid, mapchars[1+:*rows], v.cells)
+
+   if *colvalid = 0 | *rowvalid = 0 then
+      success()
+   return
+end
+
+
+
+#  vectmap(vlist) -- concatenate mapping chars of non-ignored vector entries
+
+procedure vectmap(vlist)
+   local s, v
+
+   s := ""
+   every v := active(vlist) do
+      s ||:= v.mchar
+   return s
+end
+
+
+
+##############################  CONSTRAINTS  ##############################
+
+
+
+#  samecolor(v, w) -- link together two vectors that must be the same color
+
+procedure samecolor(v, w)
+   local vfam, wfam, f, x
+
+   vfam := v.fam
+   wfam := w.fam
+   if vfam === wfam then {
+      log("samecolor ", v.label, " ", w.label, ": ",
+         *vfam.vset, " vectors already linked")
+      return
+      }
+
+   if \vfam.color ~== \wfam.color then
+      insoluble("cannot merge " || v.label || " and " || w.label)
+
+   f := family()
+   f.vset := vfam.vset ++ wfam.vset
+   f.color := \vfam.color | \wfam.color | &null
+   every x := !f.vset do
+      x.fam := f
+
+   log("samecolor ", v.label, " ", w.label, ": ", *f.vset, " vectors")
+   return
+end
+
+
+
+#  setcolor(v, c) -- force vector v to color c, checking consequences
+
+procedure setcolor(v, c)
+   local f, fc
+   static depth, todo
+   initial {
+      depth := 0
+      todo := set()
+      }
+      
+   f := v.fam
+   fc := f.color
+   if \v.ignored & fc === c then
+      return
+
+   log("setcolor ", v.label, " ", c)
+
+   if \fc ~== c then {
+      f.color := &null
+      insoluble(v.label || " cannot be both " || fc || " and " || c)
+      }
+
+   f.color := c
+   v.ignored := 1			# set inactive
+   insert(todo, v)			# but make note check forcings
+
+   if depth > 0 then			# avoid deep recursion
+      return
+
+   # check forcings only if not nested
+
+   depth +:= 1
+   while v := ?todo do {
+      ckforce(v)
+      delete(todo, v)
+      }
+   depth -:= 1
+   return
+end
+
+
+
+#  ckforce(v) -- check for forced colorings of vectors intersecting v
+
+procedure ckforce(v)
+   local c, cs, vlist
+
+   log("checking consequences of coloring ", v.label, " ", v.fam.color)
+
+   cs := &cset -- v.fam.color
+   vlist := case v.label[1] of {
+      "r":	cols
+      "c":	rows
+      default:	abort("bad label in ckforce(): ", v.label)
+      }
+
+   v.cells ? while tab(upto(cs)) do
+      setcolor(vlist[&pos], move(1))
+   return
+end
+
+
+
+##############################  LOGGING  ##############################
+
+
+
+#  log(s,...) -- write a log message
+
+procedure log(args[])
+   if *args > 0 then
+      push(args, "  ", &time - t1, "t=")
+   push(args, logfile)
+   write ! args
+end
+
+
+
+#  loggrid() -- write grid diagram to logfile
+
+$define LBLSIZE 4	# number of rows to allow for vertical column labels
+$define PADUPTO 32	# space between columns if no more than this many
+
+procedure loggrid()
+   local i, r, c, n, pad
+
+   if /logfile then
+      return
+
+   log("loggrid:    ", *rowvalid, " x ", *colvalid)
+
+   if *cols <= PADUPTO then
+      pad := " "
+
+   # col labels
+   every i := 1 to LBLSIZE do {
+      writes(logfile, "      ")
+      every c := active(cols) do
+         writes(logfile, pad, right(c.label, LBLSIZE)[i])
+      write(logfile)
+      }
+   write(logfile)
+
+   #  rows: labels, data, color[s]
+   every r := active(rows) do {
+      i := r.index
+      writes(logfile, right(r.label, 5), " ")
+      every writes(logfile, pad, !r.live)
+      write(logfile, "   ", \r.fam.color | " ")
+      }
+
+   # bottom label: column color 
+   write(logfile)
+   writes(logfile, "      ")
+   every c := active(cols) do
+      writes(logfile, pad, \c.fam.color | " ")
+   write(logfile)
+
+   return
+end
+
+
+
+##############################  TERMINATION  ##############################
+
+
+
+#  abort(s,...) -- abort due to error
+
+procedure abort(s[])
+   push(s, ": ", fname, "    ")
+   stop ! s
+end
+
+
+
+#  insoluble(reason) -- terminate run, because no solution is possible
+
+procedure insoluble(reason)
+   log()
+   log("no solution possible: ", reason)
+   done("insoluble")
+end
+
+
+
+#  success() -- report successful solution
+
+procedure success()
+   local v, r, c
+
+   log()
+   log("solution found!")
+
+   every v := !rows | !cols do			# set colors for don't-cares
+      /v.fam.color := ?v.cells
+
+   every (!rows | !cols).ignored := &null	# to get them printed
+   setmaps()					# likewise
+
+   r := c := ""
+   every r ||:= (!rows).fam.color
+   every c ||:= (!cols).fam.color
+   done("solved", r, c)
+end
+
+
+
+#  done(label, rowcolors, colcolors) -- display final resolution, and exit
+
+procedure done(label, rowcolors, colcolors)
+   local fn, s1, s2, s3, s4, s5, s6
+
+   loggrid()
+   log()
+   flush(\logfile)
+
+   if /opts["t"] then
+      write(&errout, "   ", left(label, 11), fname)
+   else {
+      t5 := &time
+      /t4 := t5
+      /t3 := t5
+      /t2 := t5
+      s1 := frn((t1 -  0) / 1000.0, 7, 2)	# loading time
+      s2 := frn((t2 - t1) / 1000.0, 6, 2)	# parsing
+      s3 := frn((t3 - t2) / 1000.0, 6, 2)	# solids & duplicates
+      s4 := frn((t4 - t3) / 1000.0, 6, 2)	# quads
+      s5 := frn((t5 - t4) / 1000.0, 6, 2)	# arbitrary
+      s6 := frn((t5 - t1) / 1000.0, 8, 2)	# total excl loading
+      write(&errout, s1, s2, s3, s4, s5, s6, "  ", left(label, 11), fname)
+      }
+
+   if \opts["d"] then {			# if details wanted
+      write(&errout, "      cols:      ", \colcolors)
+      write(&errout, "      rows:      ", \rowcolors)
+      }
+   flush(&errout)
+
+   if \opts["r"] & \colcolors then {	# if raw data wanted (and if solved)
+      write(colcolors)
+      write(rowcolors)
+      every writes(active(rows).live)
+      write()
+      flush(&output)
+      }
+
+   if /opts["b"] then {			# if not batch mode, display in window
+      dpygrid(label)
+      WDone()
+      }
+   exit()
+end
+
+
+
+#  dpygrid(label) -- display grid in window
+
+$define BACKGROUND "pale-weak-blue-cyan"
+$define PREFSZ 800	# preferred size after scaling
+$define MAXMAG 10	# maximum magnification
+
+$define STRIPE 2	# space for thread color(s)
+$define GAP 1		# margin around image
+
+procedure dpygrid(label)
+   local s
+   static w, h, z, p, v
+
+   initial {
+      p := imspalette(imstring)
+      w := STRIPE + GAP + *cols + GAP + STRIPE
+      h := STRIPE + GAP + *rows + GAP + STRIPE
+      z := PREFSZ / w
+      z >:= PREFSZ / h
+      z <:= 1
+      z >:= MAXMAG
+      WOpen("width=" || (z * w), "height=" || (z * h), "bg=" || BACKGROUND) |
+         abort("can't open window")
+   }
+
+   EraseArea()
+   DrawImage(STRIPE + GAP, STRIPE + GAP, imstring)
+   every v := !rows do {
+      dpycolor(v, p, STRIPE - 1, STRIPE + GAP + v.index - 1)
+      dpycolor(v, p, w - STRIPE, STRIPE + GAP + v.index - 1)
+      }
+   every v := !cols do {
+      dpycolor(v, p, STRIPE + GAP + v.index - 1, STRIPE - 1)
+      dpycolor(v, p, STRIPE + GAP + v.index - 1, h - STRIPE)
+      }
+   Fg("black")
+
+   Zoom(0, 0, w, h, 0, 0, z * w, z * h)
+
+   if *rows <= z * STRIPE & *cols <= z * STRIPE then
+      every DrawImage(1 | z * w - *cols - 1, 1 | z * h - *rows - 1, imstring)
+
+   WAttrib("label=" || fname || ": " || label)
+   return
+end
+
+
+
+#  dpycolor(v, p, x, y) -- display assigned color, if any
+
+procedure dpycolor(v, p, x, y)
+   if Fg(PaletteColor(p, \v.fam.color)) then
+      DrawPoint(x, y)
+end

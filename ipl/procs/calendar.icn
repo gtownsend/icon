@@ -1,0 +1,998 @@
+############################################################################
+#
+#	File:     calendar.icn
+#
+#	Subject:  Procedures for data and time calculation and conversion
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     June 23, 2000
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Procedures in this file supercede several procedures in datetime.icn.
+#
+############################################################################
+#
+#	Setting up
+#	----------
+#	You will probably want to set a platform environment variable
+#	"Cal_TimeZone" to an appropriate local time zone ID string
+#	before using this library. Look at the time zone data at the
+#	end of this source file and choose an ID for your locale.
+#	Common ones for USA are "PST", "MST", "CST", and "EST", although
+#	there are more specific ones such as "America/Arizona" that
+#	handle special rules. If environment variables are not supported
+#	for your platform or your implementation of Icon, explicitly specify
+#	the default time zone in your program: e.g.
+#
+#		Cal_CurrentTimeZone := Cal_GetTimeZone("PST").
+#
+#	If your system uses a base year for date calculation that is
+#	different from 1970, your can specify it in an environment
+#	variable "Cal_DateBaseYear" or set it directly in the global
+#	variable by the same name. Unix and Windows use the library's
+#	default value of 1970, but Macintosh used to use 1984 (I'm
+#	not sure if Apple have yet seen fit to conform to
+#	the 1970 quasi-standard). This setting doesn't matter unless you
+#	want your "seconds" values to be the same as your system's.
+#
+#	GMT and local time
+#	------------------
+#	GMT (Greenwich Mean Time) is a universal time standard (virtually
+#	equivalent to "Coordinated Universal Time" (UTC), except for some
+#	millisecond differences).
+#
+#	Time forms
+#	----------
+#	There are two fundamental date/time forms supported by this
+#	library: a form in which computation is easy (the "seconds" form)
+#	and a form in which formatting is easy (the "calendar record"
+#	form).
+#	  - Seconds -- the time is be represented as an integer that is
+#	    the number of seconds relative to the beginning of
+#	    Cal_DateBaseYear, GMT. Cal_DateBaseYear is
+#	    usually 1970, but can be changed). The "seconds" form is
+#	    a universal time, independent of locale.
+#	  - Cal_Rec -- a "calendar record", which has fields for date and
+#	    time components: year, month, day, hour, minutes, seconds,and
+#	    day-of-week.
+#	    The "Cal_Rec" form is usually in terms of local time, including
+#	    accounting for daylight savings time according to local rules.
+#
+#	Notes
+#	-----
+#	  - Several procedures have a final "timeZone" parameter. In those
+#	    procedures the timeZone parameter is optional and, if omitted,
+#	    Cal_CurrentTimeZone is used.
+#
+#	  - The time zone table and list consume around 30KB that can be
+#	    "freed" by setting both Cal_TimeZoneTable and Cal_TimeZoneList
+#	    to &null. Procedures Cal_GetTimeZoneTable() and
+#	    Cal_GetTimeZoneList() will re-create the structures and assign
+#	    them back to their globals. For many applications, those
+#	    structures are no longer needed after program initialization.
+#
+#	  - The global variables are automatically initialized by
+#	    the Cal_ procedures. However, if you want to use the globals
+#	    before using any procedures, they must be explicitly initialized
+#	    by calling Cal_Init().
+#
+#	  - Time zone records in the time zone structures should be viewed
+#	    as read-only. If you want to make temporary changes to the
+#	    fields, copy() the time zone record.
+#
+#	Global variables
+#	----------------
+#	The following global variables are useful in date and time
+#	operations (R/O means please don't change it):
+#
+#	  - Cal_SecPerMin	- (R/O) Seconds per minute.
+#	  - Cal_SecPerHour	- (R/O) Seconds per hour.
+#	  - Cal_SecPerDay	- (R/O) Seconds per day.
+#	  - Cal_SecPerWeek	- (R/O) Seconds per week.
+#	  - Cal_MonthNames	- (R/O) List of month names.
+#	  - Cal_DayNames	- (R/O) List of day names.
+#	  - Cal_CurrentTimeZone	- Current default time zone record --
+#				  can be changed at any time. Initialized
+#				  to the time zone whose ID is in
+#				  environment variable "Cal_TimeZone" if
+#				  set, or to GMT.
+#	  - Cal_TimeZoneGMT	- (R/O) The GMT time zone record. Can be used
+#				  as a timeZone parameter to "turn off"
+#				  conversion to or from local.
+#	  - Cal_DateBaseYear - The base year from which the "seconds"
+#				  form is calculated, initialized to
+#				  the value of environment variable
+#				  "Cal_DateBaseYear" if set, or 1970 (the
+#				  year used by both Unix and MS-Windows)
+#	  - Cal_TimeZoneTable - A table of time zones keyed by the
+#				  time zone's ID string
+#	  - Cal_TimeZoneList - A list of time zones ordered by
+#				  increasing offset from GMT
+#
+#	Initialization procedure
+#	------------------------
+#	Cal_Init()
+#		Initializes global variables. Called implicitly by
+#		the Cal_ procedures.
+#
+#	Cal_Rec (calendar record) procedures
+#	------------------------------------
+#	Cal_Rec(year,month,day,hour,min,sec,weekday)			 =20
+#		Cal_Rec record constructor. All values are integers in
+#		customary US usage (months are 1-12, weekdays are 1-7 with
+#	        1 -> Sunday)
+#
+#	Cal_SecToRec(seconds,timeZone)
+#		Converts seconds to a Cal_Rec, applying conversion rules
+#		of "timeZone". To suppress conversion, specify timeZone =
+#		Cal_TimeZoneGMT.
+#
+#	Cal_RecToSec(calRec,timeZone)
+#		Converts a Cal_Rec to seconds, applying conversion rules
+#		of "timeZone". To suppress conversion, specify timeZone =
+#		Cal_TimeZoneGMT.
+#
+#	Time zone procedures
+#	--------------------
+#	Cal_GetTimeZone(timeZoneName)
+#		Gets a time zone given a time zone ID string. Fails if
+#		a time zone for the given ID cannot be produced.
+#
+#	Cal_GetTimeZoneList()
+#		Returns the tine zone list that is the value of
+#		Cal_TimeZoneList, unless that global has been explicitly
+#		set to &null. If the global is null, a new list is built,
+#		assigned to Cal_TimeZoneList, and returned.
+#
+#	Cal_GetTimeZoneTable()
+#		Returns the tine zone table that is the value of
+#		Cal_TimeZoneTable, unless that global has been explicitly
+#		set to &null. If the global is null, a new table is built,
+#		assigned to Cal_TimeZoneTable, and returned. In building
+#		the table, Cal_GetTimeZoneList() is called so global
+#		variable Cal_TimeZoneList is also set.
+#
+#	Date/time calculation procedures
+#	--------------------------------
+#	Cal_LocalToGMTSec(seconds,timeZone)
+#		Converts seconds from local to GMT using the rules of
+#		timeZone.
+#
+#	Cal_GMTToLocalSec(seconds,timeZone)
+#		Converts seconds from GMT to local using the rules of
+#		timeZone.
+#
+#	Cal_IsLeapYear(year)
+#		Returns the number of seconds in a day if year is a leap
+#		year, otherwise fails.
+#
+#	Cal_LeapYearsBetween(loYear,hiYear)
+#		Returns the count of leap years in the range of years n
+#		where loYear <= n < hiYear.
+#
+#	Cal_IsDST(seconds,timeZone)
+#		Returns the DST offset in hours if seconds (local time)
+#		is in the DST period, otherwise fails.
+#
+#	Cal_NthWeekdayToSec(year,month,weekday,n,fromDay)
+#		Returns seconds of nth specified weekday of month, or fails
+#		if no such day. This is mainly an internal procedure for
+#		DST calculations, but might have other application.
+#
+#	Date/time formatting procedures
+#	-------------------------------
+#	Cal_DateLineToSec(dateline,timeZone)
+#		Converts a date in something like Icon's &dateline format
+#		(Wednesday, February 11, 1998  12:00 am) to "seconds" form.
+#
+#	Cal_DateToSec(date,timeZone)
+#		Converts a date string in something like Icon &date format
+#		(1998/02/11) to "seconds" form.
+#
+#	Cal_SecToDate(seconds,timeZone)
+#		Converts "seconds" form to a string in Icon's
+#		&date format (1998/02/11).
+#
+#	Cal_SecToDateLine(seconds,timeZone)
+#		Converts "seconds" form to a string in Icon's &dateline
+#		format (Wednesday, February 11, 1998  12:00 am).
+#
+#	Cal_SecToUnixDate(seconds,timeZone)
+#		Converts "seconds" form to a string in typical UNIX
+#		date/time format (Jan 14 10:24 1991).
+#
+#	Time-only formatting procedures
+#	-------------------------------
+#	Cal_ClockToSec(seconds)
+#		Converts a time in the format of &clock (19:34:56) to
+#		seconds past midnight.
+#
+#	Cal_SecToClock(seconds)
+#		Converts seconds past midnight to a string in the format of
+#		&clock (19:34:56).
+#
+############################################################################
+#
+#  See also:  datetime.icn, datefns.icn
+#
+############################################################################
+
+global Cal_DateBaseYear,Cal_CurrentTimeZone,Cal_TimeZoneGMT,
+      Cal_SecPerMin,Cal_SecPerHour,Cal_SecPerDay,Cal_SecPerWeek,
+      Cal_MonthNames,Cal_DayNames,Cal_TimeZoneList,Cal_TimeZoneTable
+
+record Cal_Rec(year,month,day,hour,min,sec,weekday)
+
+record Cal_TimeZoneRec(id,hoursFromGMT,data)
+record Cal_TimeZoneData(dstOffset,startYear,
+    startMode,startMonth,startDay,startDayOfWeek,startTime,
+    endMode,endMonth,endDay,endDayOfWeek,endTime)
+
+#
+#  Initialize the date globals -- although done automatically by many
+#  calls to date procedures, it's not a bad idea to call this explicitly
+#  before using.
+#
+procedure Cal_Init(initialTimeZone)		#: initialize calendar globals
+   local tzTbl
+   initial {
+      Cal_SecPerMin := 60
+      Cal_SecPerHour := Cal_SecPerMin * 60
+      Cal_SecPerDay := Cal_SecPerHour * 24
+      Cal_SecPerWeek := Cal_SecPerDay * 7
+      Cal_MonthNames := ["January","February","March","April","May","June",
+	    "July","August","September","October","November","December"]
+      Cal_DayNames := ["Sunday","Monday","Tuesday","Wednesday","Thursday",
+	    "Friday","Saturday"]
+      /Cal_DateBaseYear := integer(getenv("Cal_DateBaseYear")) | 1970
+      tzTbl := Cal_GetTimeZoneTable()
+      Cal_TimeZoneGMT := tzTbl["GMT"]
+      /Cal_CurrentTimeZone := \initialTimeZone |
+	    tzTbl["" ~== getenv("Cal_TimeZone")] | Cal_TimeZoneGMT
+      }
+   return
+end
+
+#
+#  Produces a date record computed from the seconds since the start of
+#  DateBaseYear.
+#
+procedure Cal_SecToRec(seconds,timeZone)
+   local day,hour,min,month,secs,weekday,year
+   static secPerYear
+   initial {
+      Cal_Init()
+      secPerYear := 365 * Cal_SecPerDay
+      }
+   seconds := integer(seconds) | runerr(101,seconds)
+   /timeZone := Cal_CurrentTimeZone
+   seconds := Cal_GMTToLocalSec(seconds,timeZone)
+   weekday := (seconds / Cal_SecPerDay % 7 + 4) % 7 + 1
+   year := Cal_DateBaseYear + seconds / secPerYear
+   seconds -:= (year - Cal_DateBaseYear) * secPerYear +
+	 Cal_LeapYearsBetween(Cal_DateBaseYear,year) * Cal_SecPerDay
+   while seconds < 0 do {
+      year -:= 1
+      seconds +:= if Cal_IsLeapYear(year) then 31622400 else 31536000
+      }
+   month := 1
+   every secs :=
+	 2678400 |
+	 (if Cal_IsLeapYear(year) then 2505600 else 2419200) |
+	 2678400 |
+	 2592000 |
+	 2678400 |
+	 2592000 |
+	 2678400 |
+	 2678400 |
+	 2592000 |
+	 2678400 |
+	 2592000 |
+	 2678400 do {
+      if seconds < secs then break
+      month +:= 1
+      seconds -:= secs
+      }
+   day := seconds / Cal_SecPerDay + 1
+   seconds %:= Cal_SecPerDay
+   hour := seconds / Cal_SecPerHour
+   seconds %:= Cal_SecPerHour
+   min := seconds / Cal_SecPerMin
+   seconds %:= Cal_SecPerMin
+   return Cal_Rec(year,month,day,hour,min,seconds,weekday)
+end
+
+#
+#  Converts a Cal_Rec to seconds since start of DateBaseYear.
+#
+procedure Cal_RecToSec(calRec,timeZone)
+   local day,hour,min,month,sec,seconds,year
+   static days
+   initial {
+      Cal_Init()
+      days := [
+	 0,
+	 2678400,
+	 5097600,
+	 7776000,
+	 10368000,
+	 13046400,
+	 15638400,
+	 18316800,
+	 20995200,
+	 23587200,
+	 26265600,
+	 28857600]
+      }
+   /timeZone := Cal_CurrentTimeZone
+   year := \calRec.year | +&date[1+:4]
+   month := \calRec.month | +&date[6+:2]
+   day := \calRec.day | +&date[9+:2]
+   hour := \calRec.hour | 0
+   min := \calRec.min | 0
+   sec := \calRec.sec | 0
+   seconds := ((year - Cal_DateBaseYear) * 365 +
+	 Cal_LeapYearsBetween(Cal_DateBaseYear,year)) * Cal_SecPerDay
+   month > 2 & seconds +:= Cal_IsLeapYear(year)
+   seconds +:= days[month] + (day - 1) * Cal_SecPerDay +
+	 hour * Cal_SecPerHour + min * Cal_SecPerMin + sec
+   return Cal_LocalToGMTSec(seconds,timeZone)
+end
+
+#
+# Gets the time zone record with ID "timeZoneName".
+#
+procedure Cal_GetTimeZone(timeZoneName)
+   return \Cal_GetTimeZoneTable()[timeZoneName]
+end
+
+#
+# Builds a table of time zones with keys the time zone names and values
+# the time zone records (Cal_TimeZoneRec).
+#
+procedure Cal_GetTimeZoneTable()
+   local tzTbl,x
+   return \Cal_TimeZoneTable | {
+      tzTbl := table()
+      every x := !Cal_GetTimeZoneList() do
+	 tzTbl[x.id] := x
+      Cal_TimeZoneTable := tzTbl
+   }
+end
+
+#
+# Builds a list of time zones ordered by increasing offset from GMT.
+#
+procedure Cal_GetTimeZoneList()
+   return \Cal_TimeZoneList | (Cal_TimeZoneList := Cal_MakeTimeZoneList())
+end
+
+procedure Cal_LocalToGMTSec(seconds,timeZone)
+   initial Cal_Init()
+   /timeZone := Cal_CurrentTimeZone
+   seconds -:= Cal_IsDST(seconds,timeZone) * Cal_SecPerHour
+   seconds -:= timeZone.hoursFromGMT * Cal_SecPerHour
+   return integer(seconds)
+end
+
+procedure Cal_GMTToLocalSec(seconds,timeZone)
+   initial Cal_Init()
+   /timeZone := Cal_CurrentTimeZone
+   seconds +:= timeZone.hoursFromGMT * Cal_SecPerHour
+   seconds +:= Cal_IsDST(seconds,timeZone) * Cal_SecPerHour
+   return integer(seconds)
+end
+
+#
+# Fails unless year is a leap year.
+#
+procedure Cal_IsLeapYear(year)			#: determine if year is leap
+   initial Cal_Init()
+   return year % 4 = 0 & (year % 100 ~= 0 | year % 400 = 0) & Cal_SecPerDay
+end
+
+#
+# Counts leap years in the range [loYear,hiYear).
+#
+procedure Cal_LeapYearsBetween(loYear,hiYear)
+   loYear -:= 1; hiYear -:= 1
+   return (hiYear /   4 - loYear /   4) -
+	  (hiYear / 100 - loYear / 100) +
+	  (hiYear / 400 - loYear / 400)
+end
+
+#
+# If "seconds" represents a time in the DST period for the specified time
+# zone, returns the number of hours by which to adjust standard time to
+# daylight savings time, otherwise fails. "seconds" are local, but not
+# adjusted for DST.
+#
+procedure Cal_IsDST(seconds,timeZone)	#: determines if seconds (local) is DST
+   local data,calRec,year,month,startMonth,endMonth,dstOffset,result
+   /timeZone := Cal_CurrentTimeZone
+   if not (data := \timeZone.data) then fail
+   dstOffset := data.dstOffset
+   calRec := Cal_SecToRec(seconds,Cal_TimeZoneGMT)
+   year := calRec.year
+   if year < data.startYear then fail
+   month := calRec.month
+   startMonth := data.startMonth
+   endMonth := data.endMonth
+   return {
+      if startMonth < endMonth then
+	 Cal_ApplyDSTRule(seconds,year,month,dstOffset,
+	       data.startMode,startMonth,data.startDay,data.startDayOfWeek,
+	       data.startTime,
+	       data.endMode,endMonth,data.endDay,data.endDayOfWeek,
+	       data.endTime - integer(dstOffset * Cal_SecPerHour)) & dstOffset
+      else
+	 not Cal_ApplyDSTRule(seconds,year,month,dstOffset,
+	       data.endMode,endMonth,data.endDay,data.endDayOfWeek,
+	       data.endTime - integer(dstOffset * Cal_SecPerHour),
+	       data.startMode,startMonth,data.startDay,data.startDayOfWeek,
+	       data.startTime) & dstOffset
+      }
+end
+
+#
+# Calculates number of seconds on the "n"th "weekday" of "month" of "year"
+# following or preceding "fromDay" (e.g. the 3rd Wednesday of April 1998
+# on or following the 5th).
+# If n is negative, n is counted from the end of the month. Fails if
+# the day does not exist (i.e., n is out of range for that month).
+#
+# The "time window" in which the day counting takes place, in the
+# absense of a "fromDay", is the entire month specified. By providing a
+# nonnull "fromDay", the window can be restricted to days including and
+# following "fromDay" (if it is positive), or preceding (and not including,
+# if it is negative).
+#
+# Examples:
+#   For first Sunday in April on or after the 5th:
+#     NthWeekdayToSec(1998,4,1,1,5)
+#   For last Sunday in October, 1998:
+#     NthWeekdayToSec(1998,10,1,-1)
+#
+procedure Cal_NthWeekdayToSec(year,month,weekday,n,fromDay)   #: gets seconds of nth specified weekday of month
+   local startOfMonth,endOfMonth,lastDay
+   startOfMonth := Cal_RecToSec(Cal_Rec(year,month,1),Cal_TimeZoneGMT)
+   endOfMonth := Cal_RecToSec(Cal_Rec(year,month + 1,1),Cal_TimeZoneGMT)
+   if \fromDay then
+      if fromDay > 0 then
+	 startOfMonth +:= (fromDay - 1) * Cal_SecPerDay
+      else if fromDay < 0 then
+	 endOfMonth := startOfMonth + (-fromDay - 1) * Cal_SecPerDay
+   return {
+      if n > 0 then {
+	 endOfMonth > (startOfMonth + ((weekday + 7 -
+	       Cal_SecToRec(startOfMonth,Cal_TimeZoneGMT).weekday) % 7) *
+	       Cal_SecPerDay + (n - 1) * Cal_SecPerWeek)
+	 }
+      else if n < 0 then {
+	 lastDay := endOfMonth - Cal_SecPerDay
+	 startOfMonth <= (lastDay -
+	       ((Cal_SecToRec(lastDay,Cal_TimeZoneGMT).weekday +
+	       7 - weekday) % 7) * Cal_SecPerDay + (n + 1) * Cal_SecPerWeek)
+	 }
+      }
+end
+
+#
+#  Converts a date in long form to seconds since start of DateBaseYear.
+#
+procedure Cal_DateLineToSec(dateline,timeZone)	#: convert &dateline to seconds
+   local day,halfday,hour,min,month,sec,year
+   static months
+   initial {
+      Cal_Init()
+      months := table()
+      months["jan"] := 1
+      months["feb"] := 2
+      months["mar"] := 3
+      months["apr"] := 4
+      months["may"] := 5
+      months["jun"] := 6
+      months["jul"] := 7
+      months["aug"] := 8
+      months["sep"] := 9
+      months["oct"] := 10
+      months["nov"] := 11
+      months["dec"] := 12
+      }
+   map(dateline) ? {
+      tab(many(' \t'))
+      =("sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat") &
+	    tab(many(&letters)) | &null & tab(many(' \t,')) | &null
+      month := 1(tab(many(&letters)),tab(many('  \t')) | &null)
+      day <- integer(1(tab(many(&digits)),tab(many(' \t,')) | &null)) | &null &
+      year <- integer(1(tab(many(&digits)),tab(many(' \t')) | &null)) | &null &
+      (hour <- integer(tab(many(&digits))) &
+	    ((=":" & min <- integer(tab(many(&digits)))) &
+	    ((=":" & sec <- integer(tab(many(&digits)))) | &null) | &null) &
+	    tab(many(' \t')) | &null & halfday := =("am" | "pm") | &null &
+	    tab(many(' \t')) | &null) | &null & pos(0)
+      }
+   \month :=  \months[month[1+:3]] | fail
+   if not /(halfday | hour) then {
+      if hour = 12 then hour := 0
+      if halfday == "pm" then
+	    hour +:= 12
+      }
+   return Cal_RecToSec(Cal_Rec(year,month,day,hour,min,sec),timeZone)
+end
+
+#
+#  Converts a date in Icon &date format (yyyy/mm/dd) do seconds
+#  past DateBaseYear.
+#
+procedure Cal_DateToSec(date,timeZone)	#: convert &date to seconds
+   date ? return Cal_RecToSec(Cal_Rec(+1(tab(find("/")),move(1)),
+	 +1(tab(find("/")),move(1)),+tab(0)),timeZone)
+end
+
+#
+#  Converts seconds past DateBaseYear to a &date in Icon date format
+#  (yyyy,mm,dd).
+#
+procedure Cal_SecToDate(seconds,timeZone) #: convert seconds to &date
+   local r
+   r := Cal_SecToRec(seconds,timeZone)
+   return right(r.year,4,"0") || "/" || right(r.month,2,"0") || "/" ||
+	 right(r.day,2,"0")
+end
+
+#
+#  Produces a date in the same format as Icon's &dateline.
+#
+procedure Cal_SecToDateLine(seconds,timeZone) #: convert seconds to &dateline
+   local d,hour,halfday
+   d := Cal_SecToRec(seconds,timeZone)
+   if (hour := d.hour) < 12 then {
+      halfday := "am"
+      }
+   else {
+      halfday := "pm"
+      hour -:= 12
+      }
+   if hour = 0 then hour := 12
+   return Cal_DayNames[d.weekday] || ", " || Cal_MonthNames[d.month] || " " ||
+	 d.day || ", " || d.year || "  " || hour || ":" ||
+	 right(d.min,2,"0") || " " || halfday
+end
+
+#
+#  Returns a date and time in UNIX format: Jan 14 10:24 1991
+#
+procedure Cal_SecToUnixDate(seconds,timeZone)	#: convert seconds to UNIX time
+   local d
+   d := Cal_SecToRec(seconds,timeZone)
+   return Cal_MonthNames[d.month][1+:3] || " " || d.day || " " ||
+	 d.hour || ":" || right(d.min,2,"0") || " " || d.year
+end
+
+#
+#  Converts a time in the format of &clock to seconds past midnight.
+#
+procedure Cal_ClockToSec(seconds)		#: convert &date to seconds
+    seconds ? return (
+	 (1(tab(many(&digits)),move(1)) * 60 +
+	 1(tab(many(&digits)),move(1) | &null)) * 60 +
+	 (tab(many(&digits)) | 0)
+	 )
+end
+
+#
+#  Converts seconds past midnight to a string in the format of &clock.
+#
+procedure Cal_SecToClock(seconds)		#: convert seconds to &clock
+   local sec
+   sec := seconds % 60
+   seconds /:= 60
+   return right(seconds / 60,2,"0") || ":" || right(seconds % 60,2,"0") ||
+	 ":" || right(sec,2,"0")
+end
+
+#
+# Internal procedure to help process DST rules.
+#
+procedure Cal_ApplyDSTRule(seconds,year,month,dstOffset,
+      startMode,startMonth,startDay,startDayOfWeek,startTime,
+      endMode,endMonth,endDay,endDayOfWeek,endTime)
+   if startMonth <= month <= endMonth &
+	 (startMonth < month < endMonth |
+	 (month = startMonth &
+	    seconds >= Cal_DSTDayOfMonthToSec(
+		  year,startMonth,startMode,startDay,startDayOfWeek) +
+			startTime) |
+	 (month = endMonth &
+	    seconds < Cal_DSTDayOfMonthToSec(
+		  year,endMonth,endMode,endDay,endDayOfWeek) +
+			endTime)) then
+      return
+end
+
+#
+# Internal procedure to calculate seconds at the start of the day
+# specified for DST start or end.
+#
+procedure Cal_DSTDayOfMonthToSec(year,month,mode,day,dayOfWeek)
+   return case mode of {
+      "dayOfMonth": Cal_RecToSec(Cal_Rec(year,month,day),Cal_TimeZoneGMT)
+      "dayOfWeek": Cal_NthWeekdayToSec(year,month,dayOfWeek,day)
+      "dayOfWeekStarting": Cal_NthWeekdayToSec(year,month,dayOfWeek,1,day)
+      "dayOfWeekEnding": 
+Cal_NthWeekdayToSec(year,month,dayOfWeek,-1,-day)
+      default: runerr(500)
+   }
+end
+
+#
+# Time zone data, ordered by increasing hoursFromGMT
+#
+procedure Cal_MakeTimeZoneList()
+    local data1,data2,data3,data4,data5,data6,data7,data8,data9,data10,
+        data11,data12,data13,data14,data15,data16,data17,data18,data19,data20,
+        data21,data22,data23,data24,data25,data26,data27,data28,data29,data30,
+        data31,data32,data33
+    data1 := Cal_TimeZoneData(1,0,"dayOfWeekStarting",4,1,1,7200,"dayOfWeek",10,-1,1,7200)
+    data2 := Cal_TimeZoneData(0.5,0,"dayOfWeek",10,-1,1,0,"dayOfWeekStarting",3,1,1,0) 
+    data3 := Cal_TimeZoneData(1,0,"dayOfWeekStarting",10,9,1,0,"dayOfWeekStarting",3,9 ,1,0)
+    data4 := Cal_TimeZoneData(1,0,"dayOfWeekStarting",4,1,1,0,"dayOfWeekStarting",10,8 ,1,3600)
+    data5 := Cal_TimeZoneData(1,0,"dayOfWeekStarting",4,1,1,3600,"dayOfWeek",10,-1,1,7200)
+    data6 := Cal_TimeZoneData(1,0,"dayOfWeekStarting",4,1,1,0,"dayOfWeek",10,-1,1,0)
+    data7 := Cal_TimeZoneData(1,0,"dayOfWeekStarting",10,1,1,0,"dayOfWeekStarting",2,11,1,0)
+    data8 := Cal_TimeZoneData(1,0,"dayOfWeekStarting",9,8,1,0,"dayOfWeekStarting",4,16 ,1,0)
+    data9 := Cal_TimeZoneData(1,0,"dayOfMonth",10,1,0,0,"dayOfMonth",3,1,0,0)
+    data10 := Cal_TimeZoneData(1,0,"dayOfWeek",3,-1,7,79200,"dayOfWeek",10,-1,7,79200)
+    data11 := Cal_TimeZoneData(1,0,"dayOfWeek",3,-1,1,0,"dayOfWeek",10,-1,1,0)
+    data12 := Cal_TimeZoneData(1,0,"dayOfWeek",3,-1,1,3600,"dayOfWeek",10,-1,1,3600)
+    data13 := Cal_TimeZoneData(1,0,"dayOfWeek",3,-1,1,7200,"dayOfWeek",10,-1,1,7200)
+    data14 := Cal_TimeZoneData(1,0,"dayOfWeek",3,-1,5,7200,"dayOfWeekStarting",10,1,5,10800)
+    data15 := Cal_TimeZoneData(1,0,"dayOfWeekStarting",9,1,1,7200,"dayOfWeekStarting",4 ,1,1,7200)
+    data16 := Cal_TimeZoneData(1,0,"dayOfWeek",3,-1,1,3600,"dayOfWeek",10,-1,1,7200)
+    data17 := Cal_TimeZoneData(1,0,"dayOfWeek",3,-1,1,7200,"dayOfWeek",10,-1,1,10800)
+    data18 := Cal_TimeZoneData(1,0,"dayOfWeek",3,-1,1,0,"dayOfWeek",9,-1,1,0)
+    data19 := Cal_TimeZoneData(1,0,"dayOfWeek",4,-1,6,3600,"dayOfWeek",9,-1,6,10800)
+    data20 := Cal_TimeZoneData(1,0,"dayOfWeek",3,-1,1,10800,"dayOfWeek",10,-1,1,10800)
+    data21 := Cal_TimeZoneData(1,0,"dayOfWeekStarting",3,15,6,0,"dayOfWeekStarting",9,1 ,1,0)
+    data22 := Cal_TimeZoneData(1,0,"dayOfWeekStarting",4,1,6,0,"dayOfWeekStarting",9,15 ,6,3600)
+    data23 := Cal_TimeZoneData(1,0,"dayOfWeek",3,-1,1,7200,"dayOfWeek",9,-1,1,10800)
+    data24 := Cal_TimeZoneData(1,0,"dayOfMonth",4,1,0,0,"dayOfMonth",10,1,0,0)
+    data25 := Cal_TimeZoneData(1,0,"dayOfMonth",4,1,0,10800,"dayOfMonth",10,1,0,14400)
+    data26 := Cal_TimeZoneData(1,0,"dayOfMonth",3,21,0,0,"dayOfMonth",9,23,0,0)
+    data27 := Cal_TimeZoneData(1,0,"dayOfWeek",3,-1,1,18000,"dayOfWeek",10,-1,1,18000)
+    data28 := Cal_TimeZoneData(1,0,"dayOfWeekStarting",4,7,1,0,"dayOfWeek",9,-1,1,0)
+    data29 := Cal_TimeZoneData(1,0,"dayOfWeek",10,-1,1,7200,"dayOfWeek",3,-1,1,10800)
+    data30 := Cal_TimeZoneData(0.5,0,"dayOfWeek",10,-1,1,7200,"dayOfWeek",3,-1,1,10800) 
+    data31 := Cal_TimeZoneData(1,0,"dayOfWeek",11,-1,1,7200,"dayOfWeekStarting",3,1,1,10800)
+    data32 := Cal_TimeZoneData(1,0,"dayOfWeekStarting",10,1,1,7200,"dayOfWeekStarting", 3,15,1,10800)
+    data33 := 
+Cal_TimeZoneData(1,0,"dayOfWeekStarting",10,1,1,9900,"dayOfWeekStarting", 3,15,1,13500)
+    return [
+        Cal_TimeZoneRec("Pacific/Niue",-11),
+        Cal_TimeZoneRec("Pacific/Apia",-11),
+        Cal_TimeZoneRec("MIT",-11),
+        Cal_TimeZoneRec("Pacific/Pago_Pago",-11),
+        Cal_TimeZoneRec("Pacific/Tahiti",-10),
+        Cal_TimeZoneRec("Pacific/Fakaofo",-10),
+        Cal_TimeZoneRec("Pacific/Honolulu",-10),
+        Cal_TimeZoneRec("HST",-10),
+        Cal_TimeZoneRec("America/Adak",-10,data1),
+        Cal_TimeZoneRec("Pacific/Rarotonga",-10,data2),
+        Cal_TimeZoneRec("Pacific/Marquesas",-9.5),
+        Cal_TimeZoneRec("Pacific/Gambier",-9),
+        Cal_TimeZoneRec("America/Anchorage",-9,data1),
+        Cal_TimeZoneRec("AST",-9,data1),
+        Cal_TimeZoneRec("Pacific/Pitcairn",-8.5),
+        Cal_TimeZoneRec("America/Vancouver",-8,data1),
+        Cal_TimeZoneRec("America/Tijuana",-8,data1),
+        Cal_TimeZoneRec("America/Los_Angeles",-8,data1),
+        Cal_TimeZoneRec("PST",-8,data1),
+        Cal_TimeZoneRec("America/Dawson_Creek",-7),
+        Cal_TimeZoneRec("America/Phoenix",-7),
+        Cal_TimeZoneRec("PNT",-7),
+        Cal_TimeZoneRec("America/Edmonton",-7,data1),
+        Cal_TimeZoneRec("America/Mazatlan",-7,data1),
+        Cal_TimeZoneRec("America/Denver",-7,data1),
+        Cal_TimeZoneRec("MST",-7,data1),
+        Cal_TimeZoneRec("America/Belize",-6),
+        Cal_TimeZoneRec("America/Regina",-6),
+        Cal_TimeZoneRec("Pacific/Galapagos",-6),
+        Cal_TimeZoneRec("America/Guatemala",-6),
+        Cal_TimeZoneRec("America/Tegucigalpa",-6),
+        Cal_TimeZoneRec("America/El_Salvador",-6),
+        Cal_TimeZoneRec("America/Costa_Rica",-6),
+        Cal_TimeZoneRec("America/Winnipeg",-6,data1),
+        Cal_TimeZoneRec("Pacific/Easter",-6,data3),
+        Cal_TimeZoneRec("America/Mexico_City",-6,data1),
+        Cal_TimeZoneRec("America/Chicago",-6,data1),
+        Cal_TimeZoneRec("CST",-6,data1),
+        Cal_TimeZoneRec("America/Porto_Acre",-5),
+        Cal_TimeZoneRec("America/Bogota",-5),
+        Cal_TimeZoneRec("America/Guayaquil",-5),
+        Cal_TimeZoneRec("America/Jamaica",-5),
+        Cal_TimeZoneRec("America/Cayman",-5),
+        Cal_TimeZoneRec("America/Managua",-5),
+        Cal_TimeZoneRec("America/Panama",-5),
+        Cal_TimeZoneRec("America/Lima",-5),
+        Cal_TimeZoneRec("America/Indianapolis",-5),
+        Cal_TimeZoneRec("IET",-5),
+        Cal_TimeZoneRec("America/Nassau",-5,data1),
+        Cal_TimeZoneRec("America/Montreal",-5,data1),
+        Cal_TimeZoneRec("America/Havana",-5,data4),
+        Cal_TimeZoneRec("America/Port-au-Prince",-5,data5),
+        Cal_TimeZoneRec("America/Grand_Turk",-5,data6),
+        Cal_TimeZoneRec("America/New_York",-5,data1),
+        Cal_TimeZoneRec("EST",-5,data1),
+        Cal_TimeZoneRec("America/Antigua",-4),
+        Cal_TimeZoneRec("America/Anguilla",-4),
+        Cal_TimeZoneRec("America/Curacao",-4),
+        Cal_TimeZoneRec("America/Aruba",-4),
+        Cal_TimeZoneRec("America/Barbados",-4),
+        Cal_TimeZoneRec("America/La_Paz",-4),
+        Cal_TimeZoneRec("America/Manaus",-4),
+        Cal_TimeZoneRec("America/Dominica",-4),
+        Cal_TimeZoneRec("America/Santo_Domingo",-4),
+        Cal_TimeZoneRec("America/Grenada",-4),
+        Cal_TimeZoneRec("America/Guadeloupe",-4),
+        Cal_TimeZoneRec("America/Guyana",-4),
+        Cal_TimeZoneRec("America/St_Kitts",-4),
+        Cal_TimeZoneRec("America/St_Lucia",-4),
+        Cal_TimeZoneRec("America/Martinique",-4),
+        Cal_TimeZoneRec("America/Montserrat",-4),
+        Cal_TimeZoneRec("America/Puerto_Rico",-4),
+        Cal_TimeZoneRec("PRT",-4),
+        Cal_TimeZoneRec("America/Port_of_Spain",-4),
+        Cal_TimeZoneRec("America/St_Vincent",-4),
+        Cal_TimeZoneRec("America/Tortola",-4),
+        Cal_TimeZoneRec("America/St_Thomas",-4),
+        Cal_TimeZoneRec("America/Caracas",-4),
+        Cal_TimeZoneRec("Antarctica/Palmer",-4,data3),
+        Cal_TimeZoneRec("Atlantic/Bermuda",-4,data1),
+        Cal_TimeZoneRec("America/Cuiaba",-4,data7),
+        Cal_TimeZoneRec("America/Halifax",-4,data1),
+        Cal_TimeZoneRec("Atlantic/Stanley",-4,data8),
+        Cal_TimeZoneRec("America/Thule",-4,data1),
+        Cal_TimeZoneRec("America/Asuncion",-4,data9),
+        Cal_TimeZoneRec("America/Santiago",-4,data3),
+        Cal_TimeZoneRec("America/St_Johns",-3.5,data1),
+        Cal_TimeZoneRec("CNT",-3.5,data1),
+        Cal_TimeZoneRec("America/Fortaleza",-3),
+        Cal_TimeZoneRec("America/Cayenne",-3),
+        Cal_TimeZoneRec("America/Paramaribo",-3),
+        Cal_TimeZoneRec("America/Montevideo",-3),
+        Cal_TimeZoneRec("America/Buenos_Aires",-3),
+        Cal_TimeZoneRec("AGT",-3),
+        Cal_TimeZoneRec("America/Godthab",-3,data10),
+        Cal_TimeZoneRec("America/Miquelon",-3,data1),
+        Cal_TimeZoneRec("America/Sao_Paulo",-3,data7),
+        Cal_TimeZoneRec("BET",-3,data7),
+        Cal_TimeZoneRec("America/Noronha",-2),
+        Cal_TimeZoneRec("Atlantic/South_Georgia",-2),
+        Cal_TimeZoneRec("Atlantic/Jan_Mayen",-1),
+        Cal_TimeZoneRec("Atlantic/Cape_Verde",-1),
+        Cal_TimeZoneRec("America/Scoresbysund",-1,data11),
+        Cal_TimeZoneRec("Atlantic/Azores",-1,data11),
+        Cal_TimeZoneRec("Africa/Ouagadougou",0),
+        Cal_TimeZoneRec("Africa/Abidjan",0),
+        Cal_TimeZoneRec("Africa/Accra",0),
+        Cal_TimeZoneRec("Africa/Banjul",0),
+        Cal_TimeZoneRec("Africa/Conakry",0),
+        Cal_TimeZoneRec("Africa/Bissau",0),
+        Cal_TimeZoneRec("Atlantic/Reykjavik",0),
+        Cal_TimeZoneRec("Africa/Monrovia",0),
+        Cal_TimeZoneRec("Africa/Casablanca",0),
+        Cal_TimeZoneRec("Africa/Timbuktu",0),
+        Cal_TimeZoneRec("Africa/Nouakchott",0),
+        Cal_TimeZoneRec("Atlantic/St_Helena",0),
+        Cal_TimeZoneRec("Africa/Freetown",0),
+        Cal_TimeZoneRec("Africa/Dakar",0),
+        Cal_TimeZoneRec("Africa/Sao_Tome",0),
+        Cal_TimeZoneRec("Africa/Lome",0),
+        Cal_TimeZoneRec("GMT",0),
+        Cal_TimeZoneRec("UTC",0),
+        Cal_TimeZoneRec("Atlantic/Faeroe",0,data12),
+        Cal_TimeZoneRec("Atlantic/Canary",0,data12),
+        Cal_TimeZoneRec("Europe/Dublin",0,data12),
+        Cal_TimeZoneRec("Europe/Lisbon",0,data12),
+        Cal_TimeZoneRec("Europe/London",0,data12),
+        Cal_TimeZoneRec("Africa/Luanda",1),
+        Cal_TimeZoneRec("Africa/Porto-Novo",1),
+        Cal_TimeZoneRec("Africa/Bangui",1),
+        Cal_TimeZoneRec("Africa/Kinshasa",1),
+        Cal_TimeZoneRec("Africa/Douala",1),
+        Cal_TimeZoneRec("Africa/Libreville",1),
+        Cal_TimeZoneRec("Africa/Malabo",1),
+        Cal_TimeZoneRec("Africa/Niamey",1),
+        Cal_TimeZoneRec("Africa/Lagos",1),
+        Cal_TimeZoneRec("Africa/Ndjamena",1),
+        Cal_TimeZoneRec("Africa/Tunis",1),
+        Cal_TimeZoneRec("Africa/Algiers",1),
+        Cal_TimeZoneRec("Europe/Andorra",1,data13),
+        Cal_TimeZoneRec("Europe/Tirane",1,data13),
+        Cal_TimeZoneRec("Europe/Vienna",1,data13),
+        Cal_TimeZoneRec("Europe/Brussels",1,data13),
+        Cal_TimeZoneRec("Europe/Zurich",1,data13),
+        Cal_TimeZoneRec("Europe/Prague",1,data13),
+        Cal_TimeZoneRec("Europe/Berlin",1,data13),
+        Cal_TimeZoneRec("Europe/Copenhagen",1,data13),
+        Cal_TimeZoneRec("Europe/Madrid",1,data13),
+        Cal_TimeZoneRec("Europe/Gibraltar",1,data13),
+        Cal_TimeZoneRec("Europe/Budapest",1,data13),
+        Cal_TimeZoneRec("Europe/Rome",1,data13),
+        Cal_TimeZoneRec("Europe/Vaduz",1,data13),
+        Cal_TimeZoneRec("Europe/Luxembourg",1,data13),
+        Cal_TimeZoneRec("Africa/Tripoli",1,data14),
+        Cal_TimeZoneRec("Europe/Monaco",1,data13),
+        Cal_TimeZoneRec("Europe/Malta",1,data13),
+        Cal_TimeZoneRec("Africa/Windhoek",1,data15),
+        Cal_TimeZoneRec("Europe/Amsterdam",1,data13),
+        Cal_TimeZoneRec("Europe/Oslo",1,data13),
+        Cal_TimeZoneRec("Europe/Warsaw",1,data16),
+        Cal_TimeZoneRec("Europe/Stockholm",1,data13),
+        Cal_TimeZoneRec("Europe/Belgrade",1,data13),
+        Cal_TimeZoneRec("Europe/Paris",1,data13),
+        Cal_TimeZoneRec("ECT",1,data13),
+        Cal_TimeZoneRec("Africa/Bujumbura",2),
+        Cal_TimeZoneRec("Africa/Gaborone",2),
+        Cal_TimeZoneRec("Africa/Lubumbashi",2),
+        Cal_TimeZoneRec("Africa/Maseru",2),
+        Cal_TimeZoneRec("Africa/Blantyre",2),
+        Cal_TimeZoneRec("Africa/Maputo",2),
+        Cal_TimeZoneRec("Africa/Kigali",2),
+        Cal_TimeZoneRec("Africa/Khartoum",2),
+        Cal_TimeZoneRec("Africa/Mbabane",2),
+        Cal_TimeZoneRec("Africa/Lusaka",2),
+        Cal_TimeZoneRec("Africa/Harare",2),
+        Cal_TimeZoneRec("CAT",2),
+        Cal_TimeZoneRec("Africa/Johannesburg",2),
+        Cal_TimeZoneRec("Europe/Sofia",2,data11),
+        Cal_TimeZoneRec("Europe/Minsk",2,data17),
+        Cal_TimeZoneRec("Asia/Nicosia",2,data18),
+        Cal_TimeZoneRec("Europe/Tallinn",2,data17),
+        Cal_TimeZoneRec("Africa/Cairo",2,data19),
+        Cal_TimeZoneRec("ART",2,data19),
+        Cal_TimeZoneRec("Europe/Helsinki",2,data20),
+        Cal_TimeZoneRec("Europe/Athens",2,data20),
+        Cal_TimeZoneRec("Asia/Jerusalem",2,data21),
+        Cal_TimeZoneRec("Asia/Amman",2,data22),
+        Cal_TimeZoneRec("Asia/Beirut",2,data18),
+        Cal_TimeZoneRec("Europe/Vilnius",2,data17),
+        Cal_TimeZoneRec("Europe/Riga",2,data23),
+        Cal_TimeZoneRec("Europe/Chisinau",2,data11),
+        Cal_TimeZoneRec("Europe/Bucharest",2,data11),
+        Cal_TimeZoneRec("Europe/Kaliningrad",2,data17),
+        Cal_TimeZoneRec("Asia/Damascus",2,data24),
+        Cal_TimeZoneRec("Europe/Kiev",2,data20),
+        Cal_TimeZoneRec("Europe/Istanbul",2,data20),
+        Cal_TimeZoneRec("EET",2,data20),
+        Cal_TimeZoneRec("Asia/Bahrain",3),
+        Cal_TimeZoneRec("Africa/Djibouti",3),
+        Cal_TimeZoneRec("Africa/Asmera",3),
+        Cal_TimeZoneRec("Africa/Addis_Ababa",3),
+        Cal_TimeZoneRec("EAT",3),
+        Cal_TimeZoneRec("Africa/Nairobi",3),
+        Cal_TimeZoneRec("Indian/Comoro",3),
+        Cal_TimeZoneRec("Asia/Kuwait",3),
+        Cal_TimeZoneRec("Indian/Antananarivo",3),
+        Cal_TimeZoneRec("Asia/Qatar",3),
+        Cal_TimeZoneRec("Africa/Mogadishu",3),
+        Cal_TimeZoneRec("Africa/Dar_es_Salaam",3),
+        Cal_TimeZoneRec("Africa/Kampala",3),
+        Cal_TimeZoneRec("Asia/Aden",3),
+        Cal_TimeZoneRec("Indian/Mayotte",3),
+        Cal_TimeZoneRec("Asia/Riyadh",3),
+        Cal_TimeZoneRec("Asia/Baghdad",3,data25),
+        Cal_TimeZoneRec("Europe/Simferopol",3,data20),
+        Cal_TimeZoneRec("Europe/Moscow",3,data17),
+        Cal_TimeZoneRec("Asia/Tehran",3.5,data26),
+        Cal_TimeZoneRec("MET",3.5,data26),
+        Cal_TimeZoneRec("Asia/Dubai",4),
+        Cal_TimeZoneRec("Indian/Mauritius",4),
+        Cal_TimeZoneRec("Asia/Muscat",4),
+        Cal_TimeZoneRec("Indian/Reunion",4),
+        Cal_TimeZoneRec("Indian/Mahe",4),
+        Cal_TimeZoneRec("Asia/Yerevan",4),
+        Cal_TimeZoneRec("NET",4),
+        Cal_TimeZoneRec("Asia/Baku",4,data27),
+        Cal_TimeZoneRec("Asia/Aqtau",4,data11),
+        Cal_TimeZoneRec("Europe/Samara",4,data17),
+        Cal_TimeZoneRec("Asia/Kabul",4.5),
+        Cal_TimeZoneRec("Indian/Kerguelen",5),
+        Cal_TimeZoneRec("Asia/Tbilisi",5),
+        Cal_TimeZoneRec("Indian/Chagos",5),
+        Cal_TimeZoneRec("Indian/Maldives",5),
+        Cal_TimeZoneRec("Asia/Dushanbe",5),
+        Cal_TimeZoneRec("Asia/Ashkhabad",5),
+        Cal_TimeZoneRec("Asia/Tashkent",5),
+        Cal_TimeZoneRec("Asia/Karachi",5),
+        Cal_TimeZoneRec("PLT",5),
+        Cal_TimeZoneRec("Asia/Bishkek",5,data28),
+        Cal_TimeZoneRec("Asia/Aqtobe",5,data11),
+        Cal_TimeZoneRec("Asia/Yekaterinburg",5,data17),
+        Cal_TimeZoneRec("Asia/Calcutta",5.5),
+        Cal_TimeZoneRec("IST",5.5),
+        Cal_TimeZoneRec("Asia/Katmandu",5.75),
+        Cal_TimeZoneRec("Antarctica/Mawson",6),
+        Cal_TimeZoneRec("Asia/Thimbu",6),
+        Cal_TimeZoneRec("Asia/Colombo",6),
+        Cal_TimeZoneRec("Asia/Dacca",6),
+        Cal_TimeZoneRec("BST",6),
+        Cal_TimeZoneRec("Asia/Alma-Ata",6,data11),
+        Cal_TimeZoneRec("Asia/Novosibirsk",6,data17),
+        Cal_TimeZoneRec("Indian/Cocos",6.5),
+        Cal_TimeZoneRec("Asia/Rangoon",6.5),
+        Cal_TimeZoneRec("Indian/Christmas",7),
+        Cal_TimeZoneRec("Asia/Jakarta",7),
+        Cal_TimeZoneRec("Asia/Phnom_Penh",7),
+        Cal_TimeZoneRec("Asia/Vientiane",7),
+        Cal_TimeZoneRec("Asia/Saigon",7),
+        Cal_TimeZoneRec("VST",7),
+        Cal_TimeZoneRec("Asia/Bangkok",7),
+        Cal_TimeZoneRec("Asia/Krasnoyarsk",7,data17),
+        Cal_TimeZoneRec("Antarctica/Casey",8),
+        Cal_TimeZoneRec("Australia/Perth",8),
+        Cal_TimeZoneRec("Asia/Brunei",8),
+        Cal_TimeZoneRec("Asia/Hong_Kong",8),
+        Cal_TimeZoneRec("Asia/Ujung_Pandang",8),
+        Cal_TimeZoneRec("Asia/Ishigaki",8),
+        Cal_TimeZoneRec("Asia/Macao",8),
+        Cal_TimeZoneRec("Asia/Kuala_Lumpur",8),
+        Cal_TimeZoneRec("Asia/Manila",8),
+        Cal_TimeZoneRec("Asia/Singapore",8),
+        Cal_TimeZoneRec("Asia/Taipei",8),
+        Cal_TimeZoneRec("Asia/Shanghai",8),
+        Cal_TimeZoneRec("CTT",8),
+        Cal_TimeZoneRec("Asia/Ulan_Bator",8,data18),
+        Cal_TimeZoneRec("Asia/Irkutsk",8,data17),
+        Cal_TimeZoneRec("Asia/Jayapura",9),
+        Cal_TimeZoneRec("Asia/Pyongyang",9),
+        Cal_TimeZoneRec("Asia/Seoul",9),
+        Cal_TimeZoneRec("Pacific/Palau",9),
+        Cal_TimeZoneRec("Asia/Tokyo",9),
+        Cal_TimeZoneRec("JST",9),
+        Cal_TimeZoneRec("Asia/Yakutsk",9,data17),
+        Cal_TimeZoneRec("Australia/Darwin",9.5),
+        Cal_TimeZoneRec("ACT",9.5),
+        Cal_TimeZoneRec("Australia/Adelaide",9.5,data29),
+        Cal_TimeZoneRec("Antarctica/DumontDUrville",10),
+        Cal_TimeZoneRec("Pacific/Truk",10),
+        Cal_TimeZoneRec("Pacific/Guam",10),
+        Cal_TimeZoneRec("Pacific/Saipan",10),
+        Cal_TimeZoneRec("Pacific/Port_Moresby",10),
+        Cal_TimeZoneRec("Australia/Brisbane",10),
+        Cal_TimeZoneRec("Asia/Vladivostok",10,data17),
+        Cal_TimeZoneRec("Australia/Sydney",10,data29),
+        Cal_TimeZoneRec("AET",10,data29),
+        Cal_TimeZoneRec("Australia/Lord_Howe",10.5,data30),
+        Cal_TimeZoneRec("Pacific/Ponape",11),
+        Cal_TimeZoneRec("Pacific/Efate",11),
+        Cal_TimeZoneRec("Pacific/Guadalcanal",11),
+        Cal_TimeZoneRec("SST",11),
+        Cal_TimeZoneRec("Pacific/Noumea",11,data31),
+        Cal_TimeZoneRec("Asia/Magadan",11,data17),
+        Cal_TimeZoneRec("Pacific/Norfolk",11.5),
+        Cal_TimeZoneRec("Pacific/Kosrae",12),
+        Cal_TimeZoneRec("Pacific/Tarawa",12),
+        Cal_TimeZoneRec("Pacific/Majuro",12),
+        Cal_TimeZoneRec("Pacific/Nauru",12),
+        Cal_TimeZoneRec("Pacific/Funafuti",12),
+        Cal_TimeZoneRec("Pacific/Wake",12),
+        Cal_TimeZoneRec("Pacific/Wallis",12),
+        Cal_TimeZoneRec("Pacific/Fiji",12),
+        Cal_TimeZoneRec("Antarctica/McMurdo",12,data32),
+        Cal_TimeZoneRec("Asia/Kamchatka",12,data17),
+        Cal_TimeZoneRec("Pacific/Auckland",12,data32),
+        Cal_TimeZoneRec("NST",12,data32),
+        Cal_TimeZoneRec("Pacific/Chatham",12.75,data33),
+        Cal_TimeZoneRec("Pacific/Enderbury",13),
+        Cal_TimeZoneRec("Pacific/Tongatapu",13),
+        Cal_TimeZoneRec("Asia/Anadyr",13,data17),
+        Cal_TimeZoneRec("Pacific/Kiritimati",14)]
+end

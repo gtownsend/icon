@@ -1,0 +1,54 @@
+############################################################################
+#
+#	File:     dd2res.icn
+#
+#	Subject:  Program to compute loom resources needed from drawdown
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 17, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program reads a drawdown from standard input in the for of
+#  rows of zeros and ones, in which ones indicate places where the
+#  warp thread is on top and zeros where the weft thread is on top.
+#
+#  The number of shafts and treadles required is written to standard
+#  output.
+#
+############################################################################
+
+procedure main()
+   local rows, cols
+
+   rows := []
+
+   while put(rows, read())
+
+   write("treadles needed: ", *set(rows))
+
+   cols := rotate(rows)
+
+   write("shafts needed: ", *set(cols))
+
+end
+
+procedure rotate(rows)
+   local cols, row, grid, i
+
+   cols := list(*rows[1], "")
+
+   every row := !rows do {
+      i := 0
+      every grid := !row do
+         cols[i +:= 1] := grid || cols[i]
+      }
+
+   return cols
+
+end

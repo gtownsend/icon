@@ -1,0 +1,193 @@
+############################################################################
+#
+#	File:     flohisto.icn
+#
+#	Subject:  Program to display float histograms
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 20, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program analyszes the floats in a drawdown GIF whose name is given
+#  on the command line and an image file showing the floats.
+#
+#  The command-line option -n s allows a basename for the image file
+#  to be specified.  The default is "floats".
+#
+#  If the command-line option -v is given, the float window is displayed
+#  and held until there until it is dismissed by a quit event.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  numbers, options, wopen
+#
+############################################################################
+
+link wopen
+link numbers
+link options
+
+$define FloatMax 15
+$define Width 300
+$define Gutter 20
+$define Height 250
+$define Delta 9
+$define Gap 4
+$define Xoff 20
+$define Yoff 30
+
+procedure main(args)
+   local front, back, black, white, opts, name, i, canvas
+   local warp_front, warp_back, weft_front, weft_back, win
+
+   opts := options(args, "n:v")
+
+   name := (\opts["n"] | "floats") || ".gif"
+
+   canvas := if \opts["v"] then "canvas=normal" else "canvas=hidden"
+
+   WOpen("image=" || args[1], "canvas=hidden") |
+      stop("*** cannot open drawdown GIF")
+
+   front := win2rows(&window)
+   
+   back := copy(front)
+
+   #  0 = black, 1 = white.
+
+   every i := 1 to *back do
+      back[i] := map(back[i], "10", "01")
+
+   weft_front := analyze(front, "1")
+
+   front := rot(front)
+
+   warp_front := analyze(front, "0")
+
+   weft_back := analyze(back, "1")
+
+   back := rot(back)
+
+   warp_back := analyze(back, "0")
+
+   win := WOpen("size=" || (2 * Width + 2 * Gutter) || "," ||
+      (2 * Height + 2 * Gutter), canvas) |
+         stop("*** cannot open main window")
+
+   CopyArea(plot(warp_front, "warp front"), win, , , , , 0, 0)
+   CopyArea(plot(weft_front, "weft front"), win, , , , , Width + Gutter, 0)
+   CopyArea(plot(warp_back, "warp back"), win, , , , , 0, Height + Gutter)
+   CopyArea(plot(weft_back, "weft back"), win, , , , , Width + Gutter,
+      Height + Gutter)
+
+   if \opts["v"] then WDone(win)
+
+   WriteImage(win, name)
+
+end
+
+procedure analyze(rows, color)
+   local counts, length, row, k, count_list
+
+   counts := table(0)
+
+   every row := !rows do {
+      row ? {
+         while tab(upto(color)) do {
+            length := *tab(many(color))
+            if length > 1 then counts[length] +:= 1
+            }
+         }
+      }
+
+   if *counts = 0 then fail	# no floats
+
+   count_list := list(FloatMax, 0)	# list of counts
+
+   every k := key(counts) do
+      if k > FloatMax then count_list[FloatMax] +:= counts[k]
+      else count_list[k - 1] := counts[k]
+
+   return count_list
+
+end
+
+procedure plot(data, legend)
+   local i, j, scale, maximum, y, width, win
+
+   win := WOpen("size=" || Width || "," || Height, "font=times,10", "canvas=hidden") |
+      stop("*** cannot open plotting window")
+
+   WAttrib(win, "dx=" || Xoff)
+   WAttrib(win, "dy=" || (Yoff + Gap))
+
+   DrawLine(win, 0, 0 - Gap, Width, 0 - Gap)
+   DrawLine(win, 0, 0 - Gap, 0, Height - Gap)
+
+   DrawString(win, -2, -(18 + Gap), legend)
+
+   if /data then return win
+
+   maximum := max ! data
+   maximum := integer((maximum + 99.0) / 100) * 100	# get to next hundred
+
+   width := real(Width - 2 * Xoff)
+   scale := width / maximum
+
+   every i := 0 to 4 do
+      CenterString(win, (width / 4) * i, 18 - Yoff, (maximum / 4) * i)
+
+   every j := 2 to FloatMax + 1 do {
+      y := (j - 2) * (Delta + Gap)
+      FillRectangle(win, 0, y, data[j - 1] * scale, Delta)
+      if j > FloatMax then j := ">"
+      RightString(win, 15 - Xoff, y + Gap, j)
+      }
+
+   return win
+
+end
+
+procedure win2rows(win)
+   local width, height, row, rows, pixel, y
+
+   width := WAttrib(win, "width")
+   height := WAttrib(win, "height")
+
+   rows := []
+
+   every y := 0 to height - 1 do {
+      row := ""
+      every pixel := Pixel(win, 0, y, width, 1) do
+         row ||:= if pixel == "0,0,0" then "0" else "1"
+      put(rows, row)
+      }
+
+   return rows
+
+end
+
+procedure rot(rows)
+   local cols, row, grid, i
+
+   cols := list(*rows[1], "")
+
+   every row := !rows do {
+      i := 0
+      every grid := !row do
+         cols[i +:= 1] := grid || cols[i]
+      }
+
+   return cols
+
+end

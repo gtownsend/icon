@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     April 30, 1993
+#	Date:     June 21, 2000
 #
 ############################################################################
 #
@@ -22,12 +22,12 @@
 procedure lastname(s)
    local line, i
 
-   while line := trim(s) do {
-      line ?:= tab(upto(','))		# Get rid of things like " ... , Jr."
-      line ? {
-          every i := upto(' ')
-          tab(\i + 1)
-          return tab(0)
-          }
+   line := trim(s)
+   line ?:= tab(upto(','))		# Get rid of things like " ... , Jr."
+   line ? {
+      every i := upto(' ')
+      tab(\i + 1)
+      return tab(0)
       }
+
 end

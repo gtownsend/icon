@@ -4,38 +4,39 @@
 #
 #	Subject:  Program to prepare TIGER line chains
 #
-#	Author:   Gregg M. Townsend
+#	Authors:  Gregg M. Townsend and William S. Evans
 #
-#	Date:     October 12, 1995
+#	Date:     June 9, 2000
 #
 ############################################################################
 #
 #  Tgrprep writes files of "line chain" data extracted from Census Bureau
-#  1994 TIGER/Line data files.  The main purpose of this is to prepare
+#  TIGER/Line data files.  The main purpose of this is to prepare
 #  input for the "tgrmap" program.
-#
-#  This is an evolving work.  File formats may change in future versions.
 #
 #  Usage:  tgrprep rec1file rec2file
 #
-#	rec1file:  tgr*.f61 file containing Type 1 (chain) data
-#	rec2gile:  tgr*.f62 file containing Type 2 (shape point) data
+#	rec1file:  tgr*.rt1 file containing Type 1 (chain) data
+#	rec2file:  tgr*.rt2 file containing Type 2 (shape point) data
 #
-#  Output consists of two records giving the data range followed by
-#  one line per chain formatted as follows:
-#	 1- 3	(3)	CFCC feature code
-#	 4	(1)	boundary code (see below)
-#	 5- 8	(4)	max dimension (latitude or longitude units), max 9999
-#	 9-15	(7)	starting longitude, fraction E of Greenwich meridian
-#	16-22	(7)	starting latitude, fraction S of North Pole
-#	23-26	(4)	delta longitude to first point, same units, plus 5000
-#	27-30	(4)	delta latitude to first point, same units, plus 5000
-#  followed by any number (zero or more) of additional deltas.
+############################################################################
+#
+#  Output consists of:
+#
+#  Line 1: the smallest longitude and latitude found in the Type 1 file
+#  Line 2: the largest  longitude and latitude found in the Type 1 file
+#  Line 3-n: chain specifications, one per line, in the following format
+#
+#	(3 chars)  census feature class code (CFCC)
+#	(1 char)   boundary code (see below)
+#	(varies)   optional feature name, delimted by '|' (see below)
+#	(4 chars)  max dimension (latitude or longitude units), max 9999
+#	(7 chars)  starting longitude, fraction E of Greenwich meridian
+#	(7 chars)  starting latitude, fraction S of North Pole
+#	(4 chars)  delta longitude to first point, same units, plus 5000
+#	(4 chars)  delta latitude to first point, same units, plus 5000
+#  followed by any number (zero or more) of additional delta pairs. 
 #  Output lines may be arbitrarily long.
-#
-#  In the first two records, only starting longitude and latitude are
-#  nonblank.  The first record gives the smallest longitude/latitude
-#  seen in the data, and the second gives the largest.
 #
 #  Boundary codes are:
 #	9	national boundary  (not used)
@@ -44,11 +45,20 @@
 #	5	city limits
 #	0	other, unknown, not a boundary
 #
-#  For input formats and the definition of CFCC codes, see
-#	TIGER/Line Files, 1994 Technical Documentation
-#	Bureau of the Census, Washington, DC, 1994.
+#  Feature name is the concatenation of the following TIGER fields
+#	"Feature Direction, Prefix"
+#	"Feature Name"
+#	"Feature Type"
+#	"Feature Direction, Suffix"
+#  The concatenation is surrounded by vertical bars "|" unless it is empty
+#  (all spaces).  Any "|" within a TIGER field is replaced by "!".
 #
+#  For input formats and the definition of CFCC codes, see
+#	TIGER/Line Files, 1998 Technical Documentation
+#	Bureau of the Census, Washington, DC, 1998.
+#	http://www.census.gov/geo/www/tiger/tiger98.pdf
 ############################################################################
+
 
 global minlon, maxlon	# min/max longitude seen (in input terms)
 global minlat, maxlat	# min/max latitude seen (in input terms)
@@ -87,29 +97,40 @@ end
 
 procedure scan(file1, file2, details)
    local line, tlid, cfcc, lon, lat, n, l, r
-   local startlon, startlat, endlon, endlat, dim, bound
+   local startlon, startlat, endlon, endlat, dim, bound, fename
 
    n := 0
    seek(file1, 1)
    while line := read(file1) do line ? {
-      ="10021" | next
+      ="1" | next
+      tab(6)
       tlid := move(10)
+      tab(18)
+
+      fename := ""
+      fename ||:= " " || ("" ~== trim(move(2) \ 1))	# direction prefix
+      fename ||:= " " || ("" ~== trim(move(30) \ 1))	# name
+      fename ||:= " " || ("" ~== trim(move(4) \ 1))	# type
+      fename ||:= " " || ("" ~== trim(move(2) \ 1))	# direction prefix
+      if fename ~== "" then 
+         fename := "|" || map(fename[2:0], "|", "!") || "|"
+
       tab(56)
       cfcc := move(3)
       bound := "0"
 
       tab(135)
-      l := move(3)
-      r := move(3)
-      if l ~== r then
-	 bound := "7"
+      l := move(3)		#left county code
+      r := move(3)		#right county code
+      if l ~== r then		#different --> county boundary
+         bound := "7"
       else {
          tab(161)
-         l := move(5)
-         r := move(5)
-         if l ~== r then
-	    bound := "5"
-	 }
+         l := move(5)		#left city code
+         r := move(5)		#right city code
+         if l ~== r then	#different --> city boundary
+            bound := "5"
+         }
 
       tab(191)
       startlon := curlon := minlon := maxlon := cvlon(move(10))
@@ -119,15 +140,15 @@ procedure scan(file1, file2, details)
 
       deltas := ""
       if seek(file2, \details[tlid]) then {
-	 n +:= 1
+         n +:= 1
          while line := read(file2) do line ? {
-	    tab(6)
-	    =tlid | break
-	    tab(19)
-	    every 1 to 10 do
-	       drawto(cvlon(0 ~= move(10)), cvlat(0 ~= move(9)))
-	    }
-	 }
+            tab(6)
+            =tlid | break
+            tab(19)
+            every 1 to 10 do
+               drawto(cvlon(0 ~= move(10)), cvlat(0 ~= move(9)))
+            }
+         }
       drawto(endlon, endlat)
 
       dim := startlon - minlon
@@ -136,7 +157,8 @@ procedure scan(file1, file2, details)
       dim <:= maxlat - startlat
       dim >:= 9999
 
-      write(cfcc, bound, right(dim, 4), rz(startlon), rz(startlat), deltas)
+      write(cfcc, bound, fename,
+         right(dim, 4), rz(startlon), rz(startlat), deltas)
       }
    return n
 end
@@ -212,9 +234,11 @@ procedure dtindex(f)
 
    details := table()
    seek(f, 1)
-   while (w := where(f)) & (line := read(f)) do line ?
-      if ="20021" then
-	  /details[move(10)] := w
+   while (w := where(f)) & (line := read(f)) do line ? {
+      ="2" | next
+      tab(6)
+      /details[move(10)] := w
+   }
    return details
 end
 
@@ -223,7 +247,7 @@ end
 #  llrange(f) -- scan f to set min/max lon/lat, returning record count
 
 procedure llrange(f)
-   local line, n, lon, lat 
+   local line, n, lon, lat
 
    minlon := +180000000
    maxlon := -180000000
@@ -233,7 +257,7 @@ procedure llrange(f)
 
    seek(f, 1)
    while line := read(f) do line ? {
-      ="10021" | next
+      ="1" | next
       n +:= 1
       tab(191)
       every 1 | 2 do {

@@ -1,0 +1,81 @@
+############################################################################
+#
+#	File:     drawup.icn
+#
+#	Subject:  Program to create draft from drawdown
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 20, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#  This program produces an ISD from bi-level image string.
+#
+#  The following option is supported:
+#
+#	-n s	draft name, default "drawup"
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  options, patutils, patxform, weavutil, xcode
+#
+############################################################################
+
+link options
+link patutils
+link patxform
+link weavutil
+link xcode
+
+procedure main(args)
+   local threading, treadling, rows, pattern, i
+   local symbols, symbol, drawdown, draft, opts
+
+   opts := options(args, "n:")
+
+   drawdown := pat2rows(read()) | stop("*** invalid input")
+
+   treadling := analyze(drawdown)
+   drawdown := protate(drawdown, "cw")
+   threading := analyze(drawdown)
+
+   symbols := table("")
+
+   every pattern := !treadling.patterns do {
+      symbol := treadling.rows[pattern]
+      symbols[symbol] := repl("0", *threading.rows)
+      pattern ? {
+         every i := upto('1') do
+            symbols[symbol][threading.sequence[i]] := "1"
+         }
+      }
+
+   symbols := sort(symbols, 3)
+   rows := []
+
+   while get(symbols) do
+      put(rows, get(symbols))
+
+   draft := isd()
+
+   draft.name := \opts["n"] | "drawup"
+   draft.threading := threading.sequence
+   draft.treadling := treadling.sequence
+   draft.warp_colors := list(*threading.sequence, 1)
+   draft.weft_colors := list(*treadling.sequence, 2)
+   draft.color_list := ["black", "white"]
+   draft.shafts := *threading.rows
+   draft.treadles := *treadling.rows
+   draft.tieup := rows
+
+   xencode(draft, &output)
+
+end

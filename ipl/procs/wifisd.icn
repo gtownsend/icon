@@ -1,0 +1,317 @@
+############################################################################
+#
+#	File:     wifisd.icn
+#
+#	Subject:  Procedure to convert WIF to xencoded ISD
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 23, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure analyzes a Weaving Information File and returns xencoded
+#  ISD.
+#
+#  Information in a WIF that is not necessary for an ISD is ignored.
+#
+#  If there is a liftplan, the symbols in the treadling sequence
+#  correspond to shaft patterns given in the liftplan.  The symbols
+#  for these pattern shafts are implicit and occur in orde to the number
+#  of shaft patterns.
+#
+#  There is a problem where there is treadling with multiple treadles
+#  and no liftplan.  *Presumably* that treadling can be used like a
+#  liftplan, but without, necessarily, a direct tie-up.  This problem
+#  problem has not been addressed yet.
+#
+#  If there is a liftplan, then a direct tie-up is implied by the
+#  wording in the WIF documentation.  However, that's in the interpretation
+#  of the draft.  The tie-up produced here is the one given in the WIF.
+#
+#  If there is a liftplan and a treadling with multiple treadles,
+#  the treadling is ignored.
+#
+#  This procedure does not attempt to detect or correct errors in WIFs,
+#  but it does try to work around some common problems.
+#
+############################################################################
+#
+#  Links:  tieutils, tables, weavutil, xcode
+#
+############################################################################
+
+link tieutils
+link tables
+link weavutil
+link xcode
+
+global data_default
+global data_entries
+global sections
+global wif
+
+procedure wif2isd(file, title)
+   local section, line, i, colors, information_sections, data_sections
+   local color_range, information, data, tieup
+   local lst, x, k, r, g, b, color, opts, j, tie, lift
+   local range, format
+   local color_set, color_tbl, symbols, maxi, colors_in, liftplan
+   local lift_set, lift_list, lifting, lift_table, draft, threads
+
+   /title := "untitled"
+
+   maxi := 0
+   
+   information_sections := [
+      "wif",
+      "contents",
+      "translations",
+      "color palette",
+      "warp symbol palette",
+      "weft symbol palette",
+      "text",
+      "weaving",
+      "warp",
+      "weft",
+      "bitmap image",
+      "bitmap file"
+      ]
+
+   data_sections := [
+      "notes",
+      "tieup",
+      "liftplan",
+      "color table",
+      "warp symbol table",
+      "weft symbol table",
+      "threading",
+      "warp thickness",
+      "warp thickness zoom",
+      "warp spacing",
+      "warp spacing zoom",
+      "warp colors",
+      "warp symbols",
+      "treadling",
+      "weft thickness",
+      "weft thickness zoom",
+      "weft spacing",
+      "weft spacing zoom",
+      "weft colors",
+      "weft symbols",
+      "bitmap image data",
+      "private"
+      ]
+
+   data_default := table()
+   data_entries := table()
+      
+   sections := table()
+   information := table()
+   data := table()
+
+   wif := []
+
+   #  Read WIF into list.
+
+   while line := trim(read(file)) do
+      if *line > 0 then put(wif, line)
+
+   #  Locate sections.
+
+   every i := 1 to *wif do {
+      wif[i] ? {
+         if ="[" then {
+            section := map(tab(upto(']')))
+            sections[section] := i
+            }
+         }
+      }
+
+   #  Process information sections.
+
+   every name := !information_sections do
+      information[name] := info(name)
+
+   #  Set up data information.
+
+   data_entries["tieup"] := (\information["weaving"])["treadles"] 
+   data_entries["liftplan"] := (\information["weft"])["threads"] 
+   data_entries["color table"] := (\information["color palette"])["entries"] 
+   data_entries["warp symbol table"] :=
+      (\information["warp symbol palette"])["entries"]
+   data_entries["weft symbol table"] :=
+      (\information["weft symbol palette"])["entries"]
+   data_entries["threading"] := (\information["warp"])["threads"]
+   data_entries["warp colors"] := (\information["warp"])["threads"]
+   data_entries["treadling"] := (\information["weft"])["threads"]
+   data_entries["weft colors"] := (\information["weft"])["threads"]
+
+   data_default["tieup"] := ""
+   data_default["liftplan"] := ""
+   data_default["notes"] := ""
+   data_default["warp colors"] := (\information["warp"])["color"]
+   data_default["weft colors"] := (\information["weft"])["color"]
+   \data_default["warp colors"] ?:= {		# We require index for now.
+       tab(upto(','))
+       }
+   \data_default["weft colors"] ?:= {		# We require index for now.
+       tab(upto(','))
+       }
+      
+
+   #  Process data sections.
+
+   draft := isd()
+
+   every name := !data_sections do
+      data[name] := decode_data(name)
+
+   #  First get colors and encode them.
+
+   draft.color_list := \data["color table"] | ["white", "black"]
+
+   #  Compose draft
+
+   draft.name := title
+
+   draft.shafts := (\information["weaving"])["shafts"] | abort(3)
+   draft.treadles := (\information["weaving"])["treadles"] | abort(3)
+
+   draft.warp_colors := \data["warp colors"]
+
+   draft.weft_colors := \data["weft colors"] | draft.warp_colors
+
+   #  Need to get liftplan, if there is one, before processing treadling.
+   #  Output is later.
+   #
+   #  Note: If the treadling has multiple treadles, we need to handle it
+   #  some other way than we now are.  What we need to do is to create
+   #  a treadling here.
+
+   if draft.liftplan := \data["liftplan"] then {
+      lifting := ""
+      lift_set := set()
+      lift_list := []
+      lift_table := table()
+      k := 0
+      threads := (\information["weft"])["threads"] | abort(3)
+      every i := 1 to threads do {
+         line := repl("0", draft.treadles)
+         if \draft.liftplan[i] then {
+            draft.liftplan[i] ? {
+               while j := tab(upto(',') | 0) do {
+                  if *j > 0 then line[j] := "1"
+                  move(1) | break
+                  }
+               }
+            }
+         if not member(lift_set, line) then {
+            insert(lift_set, line)
+            k +:= 1
+            lift_table[line] := possym(k) | stop("*** masking error")
+            }
+         put(lift_list, line)
+         lifting ||:= lift_table[line]
+         }
+      }
+
+   draft.threading := \data["threading"]
+
+#  if \lifting then draft.treadling := lifting else
+      draft.treadling := \data["treadling"] | draft.threading
+
+   if tieup := \data["tieup"] then {
+      tie := ""
+      every i := 1 to draft.treadles do {
+         line := repl("0", draft.shafts)
+         if \tieup[i] then {
+            tieup[i] ? {
+               while j := tab(upto(',') | 0) do {
+                  if *j > 0 then line[j] := "1"
+                  move(1) | break
+                  }
+               }
+            }
+         tie ||:= line			# MAY BE MIS-ORIENTED
+         }
+      }
+
+   draft.tieup := pat2tier(tie2pat(draft.shafts, draft.shafts, tie)).matrix
+
+   #  Now, finally, the liftplan, if any.
+   #
+   #  The lift lines are given in order of occurrence.  The symbols
+   #  used for them in the treadling can be reconstructed and are
+   #  note included here.
+
+   draft.liftplan := \lift_list
+
+   xencode(draft, &output)
+
+end
+
+procedure abort(i)
+
+   stop("*** insufficient information to produce specifications: ", i)
+
+end
+
+procedure info(name)
+   local i, tbl, keyname, keyvalue, line
+   
+   tbl := table()
+   
+   i := \sections[name] | fail
+   
+   repeat {
+     i +:= 1
+     line := wif[i] | return tbl
+     line ? {
+        {
+           keyname := map(tab(upto('='))) &
+           move(1) &
+           keyvalue := trim(tab(upto(';') | 0))
+           } | return tbl
+        tbl[keyname] := keyvalue
+        } | return tbl
+     }
+
+end
+
+procedure decode_data(name)
+   local i, lst, keyname, keyvalue, line, size, value
+   
+   i := \sections[name] | fail
+   
+   value := \data_default[name]
+   
+   if size := \data_entries[name] then lst := list(size, value)
+   else lst := []
+   
+   repeat {
+     i +:= 1
+     line := wif[i] | return lst
+     line ? {
+        {
+           keyname := integer(tab(upto('='))) | return lst
+           move(1)
+           keyvalue := trim(tab(upto(';') | 0))
+           keyvalue := integer(keyvalue)	# in case
+           if *keyvalue = 0 then {
+              keyvalue := value
+              if /keyvalue then {
+                  write(&errout, "name=", name)
+                  stop("*** no default where needed")
+                  }
+              }
+           }
+        if /size then put(lst, keyvalue) else lst[keyname] := keyvalue
+        }
+     }
+   
+end

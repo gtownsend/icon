@@ -1,0 +1,240 @@
+############################################################################
+#
+#	File:     isdplot.icn
+#
+#	Subject:  Procedures to create grid plots for ISDs
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 8, 2000
+#
+############################################################################
+#
+#  NOTE:  The drawdown code is patched in from code in pfd2ill.icn and
+#  uses a different method than the others.  One way or another, the
+#  methods should be made consonant.
+#
+############################################################################
+#
+# Requires:  Version 9 graphics and large integers
+#
+############################################################################
+#
+#  Links:  cells, convert, expander, weaving, weavutil, lists, mirror,
+#	   tieutils, wopen, numbers, xcode, palettes, patxform
+#
+############################################################################
+
+link convert
+link expander
+link weaving
+link weavutil
+link lists
+link mirror
+link numbers
+link palettes
+link patxform
+link tieutils
+link wopen
+
+global X_		# x position for copying
+global Y_		# y position for copying
+
+$define CellSize 5
+$define g_w 10
+
+# Create the plots.
+
+procedure plot(draft)
+   local threading_pane, treadling_pane, tieup_pane
+   local tr_w, th_w, tr_h, th_h, i, j, weft_colors_pane
+   local x, y, k, width, height, warp_colors_pane
+   local drawdown_win, treadle, treadle_list, win, b_w
+   local threading_colors_pane, treadling_colors_pane, colors
+   local trc_w, trc_h, thc_w, thc_h, matrix
+
+   X_ := Y_ := 0
+
+   colors := *draft.color_list			# NEEDS FIXING
+
+   warp_colors_pane := makepanel(*draft.threading, 1, CellSize)
+   weft_colors_pane := makepanel(1, *draft.treadling, CellSize)
+
+   b_w := WAttrib(weft_colors_pane.window, "width")
+
+   every i := 1 to *draft.warp_colors do
+      colorcell(warp_colors_pane, i, 1,
+         draft.color_list[draft.warp_colors[i]])
+
+   every j := 1 to *draft.weft_colors do
+      colorcell(weft_colors_pane, 1, j,
+         draft.color_list[draft.weft_colors[j]])
+
+   threading_pane := makepanel(*draft.threading, draft.shafts, CellSize)
+
+   every i := 1 to *draft.threading do
+      colorcell(threading_pane, i, draft.shafts - draft.threading[i] + 1,
+         "black")
+
+   th_w := WAttrib(threading_pane.window, "width")
+   th_h := WAttrib(threading_pane.window, "height")
+
+   treadling_pane := makepanel(draft.treadles, *draft.treadling, CellSize)
+
+   tr_w := WAttrib(treadling_pane.window, "width")
+   tr_h := WAttrib(treadling_pane.window, "height")
+
+   every i := 1 to *draft.treadling do
+      colorcell(treadling_pane, draft.treadles - draft.treadling[i] + 1, i,
+         "black")
+
+   threading_colors_pane := makepanel(*draft.threading, colors, CellSize)
+
+   every i := 1 to *draft.threading do
+      colorcell(threading_colors_pane, i,
+         colors - draft.warp_colors[i] + 1, "black")
+
+   thc_w := WAttrib(threading_colors_pane.window, "width")
+   thc_h := WAttrib(threading_colors_pane.window, "height")
+
+   treadling_colors_pane := makepanel(colors, *draft.treadling, CellSize)
+
+   every i := 1 to *draft.treadling do
+      colorcell(treadling_colors_pane,
+         colors - draft.weft_colors[i] + 1, i, "black")
+
+   trc_w := WAttrib(treadling_colors_pane.window, "width")
+   trc_h := WAttrib(treadling_colors_pane.window, "height")
+
+   tieup_pane := makepanel(draft.treadles, draft.shafts, CellSize)
+
+   matrix := pflip(pflip(draft.tieup, "h"), "v")
+
+   every i := 1 to draft.shafts do 		# rows
+      every j := 1 to draft.treadles do		# columns
+         if matrix[i, j] == "1" then 
+            colorcell(tieup_pane, j,  i, "black") 
+
+   drawdown_win := WOpen(
+      "canvas=hidden",
+      "width=" || (CellSize * *draft.threading + 1),
+      "height=" || (CellSize * *draft.treadling + 1)
+      )
+
+   treadle_list := list(draft.treadles)
+   every !treadle_list := []
+
+   every i := 1 to draft.shafts do
+      every j := 1 to draft.treadles do
+         if draft.tieup[i, j] == "1" then
+            every k := 1 to *draft.threading do
+               if draft.threading[k] == i then
+                  put(treadle_list[j], k)
+
+   every j := 1 to *draft.treadling do {
+      treadle := draft.treadling[j]
+      if *treadle_list[treadle] = 0 then next	# blank pick
+      every i := 1 to *(treadle_list[treadle]) do
+         fillcell(drawdown_win, treadle_list[treadle][i], j, "black")
+      }
+
+   every x := 0 to WAttrib(drawdown_win, "width") by CellSize do
+      DrawLine(drawdown_win, x, 0, x, WAttrib(drawdown_win, "height"))
+   every y := 0 to WAttrib(drawdown_win, "height") by CellSize do
+      DrawLine(drawdown_win, 0, y, WAttrib(drawdown_win, "width"), y)
+
+   width := trc_w + tr_w + th_w + b_w + 5 * g_w
+   height := thc_h + th_h + tr_h + b_w + 5 * g_w
+
+   win := WOpen(
+      "canvas=hidden",
+      "width=" || width,
+      "height=" || height
+      ) | stop("cannot open comp window")
+
+   incr_offset(g_w, 4 * g_w + b_w + thc_h + th_h)
+
+   CopyArea(weft_colors_pane.window, win, , , , , X_, Y_)
+
+   incr_offset(b_w + g_w, 0)
+
+   CopyArea(treadling_colors_pane.window, win, , , , , X_, Y_)
+
+   incr_offset(trc_w + g_w, 0)
+
+   CopyArea(treadling_pane.window, win, , , , , X_, Y_)
+
+   incr_offset(tr_w + g_w, 0)
+
+   CopyArea(drawdown_win, win, , , , , X_, Y_)
+
+   incr_offset(0,  -(th_h + g_w))
+
+   CopyArea(threading_pane.window, win, , , , , X_, Y_)
+
+   incr_offset(0, -(thc_h + g_w))
+
+   CopyArea(threading_colors_pane.window, win, , , , , X_, Y_)
+
+   incr_offset(0, -(b_w + g_w))
+
+   CopyArea(warp_colors_pane.window, win, , , , , X_, Y_)
+
+   incr_offset(-(tr_w + g_w),  b_w + thc_h + 2 * g_w)
+
+   CopyArea(tieup_pane.window, win, , , , , X_, Y_)
+
+   every WClose((warp_colors_pane | weft_colors_pane | tieup_pane |
+      threading_pane | treadling_pane).window | drawdown_win)
+
+   WAttrib(win, "canvas=normal")
+
+   return  win
+
+end
+
+procedure clear_pane(win, n, m, size)
+   local x, y, width, height, save_fg
+
+   width := n * size + 1
+   height := m * size + 1
+
+   save_fg := Fg(win)
+
+   Fg(win, "black")
+
+   every x := 0 to width by size do
+      DrawLine(win, x, 0, x, height)
+
+   every y := 0 to height by size do
+      DrawLine(win, 0, y, width, y)
+
+   Fg(win, save_fg)
+
+   return
+
+end
+
+procedure fillcell(win, n, m, color)
+   local  save_fg
+
+   save_fg := Fg(win)
+   Fg(win, color)
+
+   FillRectangle(win, (n - 1) * CellSize, (m - 1) * CellSize, CellSize,
+      CellSize)
+
+   Fg(win, save_fg)
+
+   return
+
+end
+
+procedure incr_offset(x, y)
+
+   X_ +:= x
+   Y_ +:= y
+
+   return
+
+end

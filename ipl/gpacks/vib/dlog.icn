@@ -1,0 +1,40 @@
+#  dlog.icn -- VIB dialog box demo and test program
+
+procedure main(args)
+   Window("font=sans,bold,24", args)
+   WAttrib("fillstyle=textured", "pattern=grains")
+   FillRectangle()
+   WAttrib("fillstyle=solid")
+   CenterString(247, 102, "Dialog Box Test")
+   Fg("white")
+   CenterString(250, 100, "Dialog Box Test")
+   while dl() ~== "quit"
+end
+
+link dsetup
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure dl(win, deftbl)
+static dstate
+initial dstate := dsetup(win,
+   [":Sizer::1:0,0,270,300:",],
+   ["checkbox:Button:check:1:29,52,83,20:checkbox",],
+   ["line:Line:::15,233,255,233:",],
+   ["ne:Button:regular:1:235,0,35,20:ne",],
+   ["nw:Button:regular:1:0,0,35,20:nw",],
+   ["quit:Button:regular::137,257,49,20:quit",],
+   ["radio:Choice::4:180,49,57,84:",,
+      ["KUAT","KUAZ","KMCI","KJZZ"]],
+   ["repeat:Button:regular:-1:70,256,49,20:repeat",],
+   ["scroller:Scrollbar:h:1:35,183,200,18:0.0,1.0,0.5",],
+   ["se:Button:regular:1:235,280,35,20:se",],
+   ["slider:Slider:h:1:35,154,200,18:0.0,1.0,0.5",],
+   ["sw:Button:regular:1:0,280,35,20:sw",],
+   ["text:Text::11:34,112,122,19:Text:\\=",],
+   ["title:Label:::73,17,105,13:Dialog Box Test",],
+   ["xbox:Button:xbox:1:30,80,25,25:",],
+   ["xlabel:Label:::65,85,28,13:xbox",],
+   )
+return dpopup(win, deftbl, dstate)
+end
+#===<<vib:end>>===	end of section maintained by vib

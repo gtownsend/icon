@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     June 9, 1999
+#	Date:     June 23, 2000
 #
 ############################################################################
 #
@@ -53,6 +53,9 @@
 #
 #	extend(s, n)	   replicates s to length n.
 #
+#	fchars(s)	   returns characters of s in order of decreasing
+#			   frequency
+#
 #	interleave(s1, s2) interleaves characters s2 extended to the length
 #			   of s1 with s1.
 #
@@ -71,6 +74,9 @@
 #	ochars(s)          produces the unique characters of s in the order
 #			   that they first appear in s.
 #
+#	odd_even(s)	   inserts values in a numerical string do that
+#			   adjacent digits follow and odd-even pattern.
+#
 #	palins(s, n)       generates all the n-character palindromes from the
 #			   characters in s.
 #
@@ -83,7 +89,7 @@
 #			   to produce a palindroid; the values of i
 #			   determine "end conditions" for the reversal:
 #
-#				0	pattern palindrome
+#				0	pattern palindrome; the default
 #				1	pattern palindrome with center duplicated
 #				2	true palindrome with center not duplicated
 #				3	true palindrome with center duplicated
@@ -96,7 +102,7 @@
 #			   if s2 is null.
 #
 #	replacem(s, ...)   performs multiple replacements in the style of
-#			   of replace(), where multiple aregument pairs
+#			   of replace(), where multiple argument pairs
 #			   may be given, as in
 #
 #				replacem(s, "a", "bc", "d", "cd")
@@ -120,6 +126,14 @@
 #	selectp(s, L)	   selects characters of s that are at positions
 #			   given in L.
 #
+#	slugs(s, n, c)	   generates column-sized chunks (length <= n)
+#			   of string s broken at spans of cset c.
+#
+#			   Defaults:	n	80
+#					c	' \t\r\n\v\f'
+#
+#			   Example:  every write(">  ", slugs(msg, 50))
+#
 #	starseq(s) 	   sequence consisting of the closure of s
 #		  	   starting with the empty string and continuing
 #			   in lexical order as given in s
@@ -141,6 +155,12 @@
 #			   c, which defaults to ' \t\r\n\v\f'.
 #
 ############################################################################
+#
+#  Links:  lists
+#
+############################################################################
+
+link lists
 
 procedure cat(args[])			#: concatenate strings
    local result
@@ -303,6 +323,8 @@ end
 procedure extend(s, n)			#: extend string
    local i
 
+   if *s = 0 then fail
+
    i := n / *s
    if n % *s > 0 then i +:= 1
 
@@ -310,9 +332,26 @@ procedure extend(s, n)			#: extend string
 
 end
 
+procedure fchars(s)			#: characters in order of frequency
+   local tbl, result, klist
+
+   tbl := table(0)
+
+   every tbl[!s] +:= 1
+
+   klist := lreverse(sortkeys(sort(tbl, 4)))
+
+   result := ""
+
+   every result ||:= !klist
+
+   return result
+
+end
+
 procedure interleave(s1, s2)		#: interleave strings
 
-   return collate(s1, extend(s2, *s1))
+   return collate(s1, extend(s2, *s1)) | fail
 
 end
 
@@ -387,6 +426,21 @@ procedure ochars(w)			#: first appearance unique characters
 
 end
 
+procedure odd_even(s)			#: odd-even numerical string
+   local result, i, j
+
+
+   every i := integer(!s) do {
+      if /result then result := i
+      else if (i % 2) = (j % 2) then result ||:= (j + 1) || i
+      else result ||:= i
+      j := i
+      }
+
+   return result
+
+end
+
 procedure palins(s, n)			#: palindromes
    local c, lpart, mpart, rpart, h, p
 
@@ -445,7 +499,7 @@ procedure reflect(s1, i, s2)			#: string reflection
 
    return s1 || s2 || reverse(
       case i of {
-         0:   s1[2:-1]		# pattern paindrome
+         0:   s1[2:-1]		# pattern palindrome
          1:   s1[2:0]		# pattern palindrome with first character at end
          2:   s1[1:-1]		# true palindrome with center character unduplicated
          3:   s1		# true palindrome with center character duplicated
@@ -509,6 +563,8 @@ end
 procedure scramble(s)			#: scramble string
    local i
 
+   s := string(s) | fail
+
    every i := *s to 2 by -1 do
       s[?i] :=: s[i]
 
@@ -525,6 +581,32 @@ procedure selectp(s, L)			#: select characters
 
    return result
 
+end
+
+procedure slugs(s, n, c)  		#: generate s in chunks of size <= n
+   local i, t
+
+   (/n := 80) | (n := 0 < integer(n)) | runerr(101, n)
+   /c := ' \t\r\n\v\f'
+
+   n +:= 1
+   while *s > 0 do s ? {
+      if *s <= n then
+         return trim(s, c)
+      if tab(i := (n >= upto(c))) then {
+         tab(many(c))
+         while tab(i := (n >= upto(c))) do {
+            tab(many(c))
+            }
+         suspend .&subject[1:i]
+         }
+      else {
+         t := tab(n | 0)
+         suspend t
+         }
+      s := tab(0)
+      }
+   fail
 end
 
 procedure starseq(s)		#: closure sequence

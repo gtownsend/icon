@@ -1,0 +1,144 @@
+#  busy.icn -- vib application demo and tester
+#
+#  A complex user interface that does nothing useful
+#  (except to assist in testing VIB)
+
+link vsetup
+
+global vidgets
+
+
+#  main procedure
+
+procedure main(args)
+
+   vidgets := ui(args, cbk)			# set up vidgets
+
+   VSetItems(vidgets["list1"],
+      ["Select", " your", "custom", "pizza", "below"])
+   VSetItems(vidgets["list2"],
+      ["individual", "small", "medium", "large", "family"])
+   VSetItems(vidgets["list3"],
+      ["anchovies", "bacon", "black olive", "bell pepper", "broccoli",
+      "capicolla", "garlic", "green olive", "linguisa", "mushroom", "onion",
+      "pepperoni", "pineapple", "sausage", "spinach", "tomato", "extra cheese"])
+
+   GetEvents(vidgets["root"], quitcheck)	# enter event loop
+end
+
+
+#  quitcheck() -- handle events that fall outside the vidgets
+
+procedure quitcheck(e)
+   if e === QuitEvents() then
+      exit()
+   else
+      write("unhandled event: ", image(e))
+end
+
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=490,401", "bg=pale gray", "label=An Icon Busy-Box"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,490,401:An Icon Busy-Box",],
+   ["DUMP:Button:regular::11,31,73,20:DUMP",dump],
+   ["QUIT:Button:regular::11,56,73,20:QUIT",quit],
+   ["Toggles:Label:::25,159,49,13:Toggles",],
+   ["b1:Button:regular::129,189,28,27:1",],
+   ["b2:Button:regular::129,216,28,27:2",],
+   ["b3:Button:regular::129,243,28,27:3",],
+   ["b4:Button:regular::129,270,28,27:4",],
+   ["b5:Button:regular::129,297,28,27:5",],
+   ["check1:Button:xbox:1:21,282,37,37:",],
+   ["checko:Button:check:1:123,108,69,20:checko",],
+   ["circlo:Button:circle:1:123,83,69,20:circlo",],
+   ["line1:Line:::128,154,186,171:",],
+   ["line2:Line:::131,147,189,164:",],
+   ["line3:Line:::12,24,150,24:",],
+   ["list1:List:r::350,10,120,115:",],
+   ["list2:List:w::350,141,120,115:",],
+   ["list3:List:a::350,274,120,115:",],
+   ["menu1:Menu:pull::12,110,71,21:Food Menu",foodhandler,
+      ["American",
+         ["Burgers","Barbecue","Tex-Mex","Creole","New England"],
+      "Chinese",
+         ["Cantonese","Mandarin","Szechuan"],
+      "Greek","Italian",
+         ["Pasta","Pizza","Sandwiches",
+            ["Grinder","Hoagie","Poor Boy","Submarine"]],
+      "Mexican",
+         ["Sonoran","Chihuahuan","Angelino","Taco Bell"],
+      "Japanese","Korean","French","German","English",
+      "Scottish","Irish"]],
+   ["sbar1:Scrollbar:v:1:316,10,18,379:77,22,66",],
+   ["sbar2:Scrollbar:h::20,345,280,18:999,1,777",],
+   ["slider1:Slider:h::20,369,280,18:0,1000,200",],
+   ["slider2:Slider:v:1:290,10,18,312:33,67,44",],
+   ["stations:Choice::5:204,83,57,105:",,
+      ["KUAT","KUAZ","KXCI","KJZZ","WOI"]],
+   ["tcheck:Button:checkno:1:23,235,62,20:check",],
+   ["tcircle:Button:circleno:1:22,256,69,20:circle",],
+   ["text:Text::12:122,54,157,19:password:\\=swordfish",],
+   ["title1:Label:::11,10,126,13:Some VIB Experimen",],
+   ["title2:Label:::137,10,14,13:ts",],
+   ["tline:Line:::26,181,92,181:",],
+   ["tregular:Button:regular:1:23,189,56,20:regular",],
+   ["tsimple:Button:regularno:1:24,213,77,20:no-outline",],
+   ["xgrooved:Button:xboxno:1:64,284,33,33:",],
+   ["rectx:Rect:grooved::62,282,37,37:",],
+   ["rect1:Rect:grooved::188,202,30,50:",],
+   ["rect2:Rect:sunken::229,201,30,50:",],
+   ["rect3:Rect:raised::188,263,30,50:",],
+   ["rect4:Rect:invisible::230,263,30,50:",],
+   ["trect:Rect:grooved::12,151,98,176:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib
+
+
+procedure cbk(v, x)
+   writes("CALLBACK: ")
+   VEcho(v, x)
+   return
+end
+
+procedure foodhandler(v, x)
+   writes("FOOD: ")
+   every writes(" ", !x)
+   write()
+   return
+end
+
+procedure dump(v, x)
+   local l, id
+
+   write()
+   write("key         v.id        VGetState(v)   image(v)")
+   write("---------   ---------   ------------   -----------------------------")
+   l := sort(vidgets, 3)
+   while id := get(l) do {
+      v := get(l)
+      write(left(\id | "**NULL**", 12), left(\v.id | "**NULL**", 12),
+	 left(vimage(VGetState(v)) | "---", 15), image(v))
+      }
+   write()
+   return
+end
+
+procedure vimage(a)
+   local s
+
+   if (type(a) ~== "list") then
+      return image(a)
+   s := "["
+   every s ||:= image(!a) || ","
+   return s[1:-1] || "]"
+end
+
+procedure quit(v, x)
+   exit()
+end

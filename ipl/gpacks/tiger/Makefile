@@ -1,27 +1,31 @@
 #  Makefile for TIGER mapping programs
 
-SHELL=/bin/sh
 
-ICONT = icont
+IC = icont
 IFLAGS = -us
-ITRAN = $(ICONT) $(IFLAGS)
+DEST = /unspecified/destination/
 
-DEST=/unspecified/destination
-
-
-PROGS = tgrprep tgrlink tgrmap tgrmerge tgrquant
+PROGS = tgrprep tgrlink tgrmap tgrmerge tgrquant tgrtrack
 SCRIPTS = tgrsort tgrstats tgrclean
+
+
+.SUFFIXES:	.icn
+.icn:		; IPATH="../procs $$IPATH" $(IC) $(IFLAGS) $<
+
 
 
 default:	$(PROGS)
 
-tgrprep:	tgrprep.icn	; $(ITRAN) tgrprep
-tgrlink:	tgrlink.icn	; $(ITRAN) tgrlink
-tgrmap:		tgrmap.icn	; $(ITRAN) tgrmap
-tgrmerge:	tgrmerge.icn	; $(ITRAN) tgrmerge
-tgrquant:	tgrquant.icn	; $(ITRAN) tgrquant
+
+test:
+
 
 install:	$(PROGS) $(SCRIPTS)
 		cp $(PROGS) $(SCRIPTS) $(DEST)
 
-clean Clean:			; rm -f $(PROGS) *.u[12]
+
+$(PROGS):	../procs/built
+
+
+clean:		
+		rm -f $(PROGS) *.u[12] *.out*

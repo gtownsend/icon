@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     March 20, 1997
+#	Date:     November 10, 1999
 #
 ############################################################################
 #
@@ -16,23 +16,25 @@
 #
 #     These procedures perform arithmetic on rational numbers (fractions):
 #
-#     str2rst(s)    Convert the string representation of a rational number
-#                   (such as "3/2") to a rational number.
+#     addrat(r1,r2) Add rational numbers r1 and r2.
+#
+#     divrat(r1,r2) Divide rational numbers r1 and r2.
+#
+#     mpyrat(r1,r2) Multiply rational numbers r1 and r2.
+#
+#     negrat(r)     Produce negative of rational number r.
+#
+#     rat2real(r)   Produce floating-point approximation of r
 #
 #     rat2str(r)    Convert the rational number r to its string
 #                   representation.
 #
-#     addrat(r1,r2) Add rational numbers r1 and r2.
+#     reciprat(r)   Produce the reciprocal of rational number r.
+#
+#     str2rst(s)    Convert the string representation of a rational number
+#                   (such as "3/2") to a rational number.
 #
 #     subrat(r1,r2) Subtract rational numbers r1 and r2.
-#
-#     mpyrat(r1,r2) Multiply rational numbers r1 and r2.
-#
-#     divrat(r1,r2) Divide rational numbers r1 and r2.
-#
-#     negrat(r)     Produce negative of rational number r.
-#
-#     reciprat(r)   Produce the reciprocal of rational number r.
 #    
 ############################################################################
 #
@@ -42,84 +44,122 @@
 
 link numbers
 
-record rational(numer,denom,sign)
+record rational(numer, denom, sign)
 
-procedure str2rat(s)		# convert string to rational
-   local div, numer, denom, sign
+procedure addrat(r1, r2)		#: sum of rationals
+   local denom, numer, div
 
-   s ? {
-      ="[" &
-      numer := integer(tab(upto('/'))) &
-      move(1) &
-      denom := integer(tab(upto(']'))) &
-      pos(-1)
-      } | fail
-
-   div := gcd(numer,denom) | fail
-   numer /:= div
-   denom /:= div
-
-   if numer * denom >= 0 then sign := 1	# dangerous -- potential overflow
-      else sign := -1
-
-   return rational(abs(numer),abs(denom),sign)
-
-end
-  
-procedure rat2str(r)		#: convert rational to string
-
-   return "[" || r.numer * r.sign || "/" || r.denom || "]"
-
-end
- 
-procedure mpyrat(r1,r2)		#: multiply rationals
-   local numer, denom, div
-
-   numer := r1.numer * r2.numer
-   denom := r1.denom * r2.denom
-   div := gcd(numer,denom) | fail	# shouldn't fail
-
-   return rational(numer / div,denom / div, r1.sign * r2.sign)
-
-end
-
-procedure divrat(r1,r2)		#: divide rationals.
-
-   return mpyrat(r1,reciprat(r2))	# may fail
-
-end
-
-procedure reciprat(r)		#: reciprocal of rational
-
-   if r.numer = 0 then fail
-   else return rational(r.denom,r.numer,r.sign)
-
-end
-
-procedure negrat(r)		#: negative of rational
-
-   return rational(r.numer,r.denom,-r.sign)
-
-end
-
-procedure addrat(r1,r2)		#: sum of rationals
-   local denom, numer, div, sign
+   r1 := ratred(r1)
+   r2 := ratred(r2)
 
    denom := r1.denom * r2.denom
    numer := r1.sign * r1.numer * r2.denom +
       r2.sign * r2.numer * r1.denom
 
-   if numer >= 0 then sign := 1
-      else sign := -1
+   if numer = 0 then return rational (0, 1, 1)
 
-   div := gcd(numer,denom) | fail
+   div := gcd(numer, denom)
 
-   return rational(abs(numer / div),abs(denom / div),sign)
+   return rational(abs(numer / div), abs(denom / div), numer / abs(numer))
 
 end
 
-procedure subrat(r1,r2)		#: difference of rationals
+procedure divrat(r1, r2)		#: divide rationals.
 
-   return addrat(r1,negrat(r2))
+   r1 := ratred(r1)
+   r2 := ratred(r2)
+
+   return mpyrat(r1, reciprat(r2))
+
+end
+ 
+procedure mpyrat(r1, r2)		#: multiply rationals
+   local numer, denom, div
+
+   r1 := ratred(r1)
+   r2 := ratred(r2)
+
+   numer := r1.numer * r2.numer
+   denom := r1.denom * r2.denom
+
+   div := gcd(numer, denom)
+
+   return rational(numer / div, denom / div, r1.sign * r2.sign)
+
+end
+
+procedure negrat(r)		#: negative of rational
+
+   r := ratred(r)
+
+   return rational(r.numer, r.denom, -r.sign)
+
+end
+
+procedure rat2real(r)		#: floating-point approximation of rational
+
+   r := ratred(r)
+
+   return (real(r.numer) * r.sign) / r.denom
+
+end
+  
+procedure rat2str(r)		#: convert rational to string
+
+   r := ratred(r)
+
+   return "(" || (r.numer * r.sign) || "/" || r.denom || ")"
+
+end
+
+procedure ratred(r)		#: reduce rational to lowest terms
+   local div
+
+   if r.denom = 0 then runerr(501)
+   if abs(r.sign) ~= 1 then runerr(501)
+
+   if r.numer = 0 then return rational(0, 1, 1)
+
+   if r.numer < 0 then r.sign *:= -1
+   if r.denom < 0 then r.sign *:= -1
+
+   r.numer := abs(r.numer)
+   r.denom := abs(r.denom)
+
+   div := gcd(r.numer, r.denom)
+
+   return rational(r.numer / div, r.denom / div, r.sign)
+
+end
+
+procedure reciprat(r)		#: reciprocal of rational
+
+   r := ratred(r)
+
+   return rational(r.denom, r.numer, r.sign)
+
+end
+
+procedure str2rat(s)		# convert string to rational
+   local div, numer, denom, sign
+
+   s ? {
+      ="(" &
+      numer := integer(tab(upto('/'))) &
+      move(1) &
+      denom := integer(tab(upto(')'))) &
+      pos(-1)
+      } | fail
+
+   return ratred(rational(numer, denom, 1))
+
+end
+
+procedure subrat(r1, r2)		#: difference of rationals
+
+   r1 := ratred(r1)
+   r2 := ratred(r2)
+
+   return addrat(r1, negrat(r2))
 
 end

@@ -6,7 +6,7 @@
 #
 #	Authors:  Robert J. Alexander and Gregg M. Townsend
 #
-#	Date:     May 31, 1999
+#	Date:     May 5, 2000
 #
 ############################################################################
 #
@@ -28,8 +28,9 @@
 #
 #     On the command line, options are introduced by a "-" character.  An
 #  option name is either a single printable character, as in "-n" or "-?",
-#  or a string of letters, as in "-geometry".  Valueless single-character
-#  options may appear in combination, for example as "-qtv".
+#  or a string of letters, numbers, and underscores, as in "-geometry".
+#  Valueless single-character options may appear in combination, for
+#  example as "-qtv".
 #
 #     Some options require values.  Generally, the option name is one
 #  argument and the value appears as the next argument, for example
@@ -61,7 +62,8 @@
 #			-name%
 #		    where
 #			-	introduces the option
-#			name	is either a string of letters
+#			name	is either a string of alphanumerics
+#				(any of a-z, A-Z, 0-9, and _)
 #				or any single printable character
 #			%	is one of the following flag characters:
 #				!	No value is required or allowed
@@ -102,7 +104,7 @@
 ############################################################################
 
 procedure options(arg,optstring,errproc)
-   local f,fList,fileArg,fn,ignore,optname,opttable,opttype,p,x,option
+   local f,fList,fileArg,fn,ignore,optname,opttable,opttype,p,x,option,optcs
    #
    #  Initialize.
    #
@@ -111,6 +113,7 @@ procedure options(arg,optstring,errproc)
    option := table()
    fList := []
    opttable := table()
+   optcs := &lcase ++ &ucase ++ &digits ++ '_'
    #
    #  Scan the option specification string.
    #
@@ -118,7 +121,7 @@ procedure options(arg,optstring,errproc)
       while optname := move(1) do {
 	 if optname == " " then next
 	 if optname == "-" then
-	    optname := tab(many(&letters)) | move(1) | break
+	    optname := tab(many(optcs)) | move(1) | break
 	 opttype := tab(any('!:+.')) | "!"
 	 opttable[optname] := opttype
 	 }

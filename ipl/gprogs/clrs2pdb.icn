@@ -1,0 +1,56 @@
+############################################################################
+#
+#	File:     clrs2pdb.icn
+#
+#	Subject:  Program to create custom palettes from color lists
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 15, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program builds a palette database from color lists.
+#
+############################################################################
+#
+#  Requires:   Version 9 graphics
+#
+############################################################################
+#
+#  Links: basename, palettes, xcode
+#
+############################################################################
+
+link basename
+link palettes
+link xcode
+
+global PDB_
+
+procedure main(args)
+   local file, input, clist, line, name
+
+    every file := !args do {
+       input := open(file) | {
+          write(&errout, "*** cannot open ", image(file))
+          next
+          }
+       name := basename(file, ".clr")
+       clist := []
+       while line := read(input) do {
+          line ?:= tab(upto('\t'))
+          put(clist, line)
+          }
+       close(input)
+       makepalette(clist) |
+          write(&errout, "*** could not make palette from ", image(file))
+       }
+
+    xencode(PDB_, &output)
+       
+end

@@ -1,0 +1,167 @@
+############################################################################
+#
+#	File:     dd2wif.icn
+#
+#	Subject:  Program to produce a WIF from drawdown
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 18, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program reads a drawdown in the form of strings of zeros and ones
+#  that represent the drawdown.  The output is a WIF.
+#
+############################################################################
+
+procedure main()
+   local rows, cols, treadling, threading, count, tieup
+   local shafts, treadles, i, tie_line, row, treadle, draft
+
+   rows := []			# start with empty list
+
+   while put(rows, read())	# append rows from input
+
+   cols := rot(rows)		# rotate to get columns
+
+   treadles := examine(rows)	# get treadles
+   shafts := examine(cols)	# get shafts
+
+   treadling := []		# construct treadling sequence
+   every put(treadling, treadles[!rows])
+
+   threading := []		# construct threading sequence
+   every put(threading, shafts[!cols])
+
+   tieup := table()
+
+   every row := key(treadles) do {		# get unique rows
+      treadle := treadles[row]			# assigned treadle number
+      tie_line := repl("0", *shafts)		# blank tie-up line
+      every i := 1 to *row do			# go through row
+         if row[i] == "1" then			#    if warp on top
+            tie_line[threading[i]] := "1"	#       mark shaft position
+      tieup[treadle] := tie_line		# add line to tie-up
+      }
+
+   #  Now output the WIF.
+
+   write("[WIF]")
+   write("Version=1.1")
+   write("Date=" || &dateline)
+   write("Developers=ralph@cs.arizona.edu")
+   write("Source Program=dd2wif.icn")
+
+   write("[CONTENTS]")
+   write("Color Palette=yes")
+   write("Text=yes")
+   write("Weaving=yes")
+   write("Tieup=yes")
+   write("Color Table=yes")
+   write("Threading=yes")
+   write("Treadling=yes")
+   write("Warp colors=yes")
+   write("Weft colors=yes")
+   write("Warp=yes")
+   write("Weft=yes")
+
+   write("[COLOR PALETTE]")
+   write("Entries=2")
+   write("Form=RGB")
+   write("Range=0," || 2 ^ 16 - 1)
+
+   write("[TEXT]")
+   write("Title=example")
+   write("Author=Ralph E. Griswold")
+   write("Address=5302 E. 4th St., Tucson, AZ 85711-2304")
+   write("EMail=ralph@cs.arizona.edu")
+   write("Telephone=520-881-1470")
+   write("FAX=520-325-3948")
+
+   write("[WEAVING]")
+   write("Shafts=", *cols)
+   write("Treadles=", *rows)
+   write("Rising shed=yes")
+
+   write("[WARP]")
+   write("Threads=", *threading)
+   write("Units=Decipoints")
+   write("Thickness=10")
+   write("Color=1")
+
+   write("[WEFT]")
+   write("Threads=", *treadling)
+   write("Units=Decipoints")
+   write("Thickness=10")
+   write("Color=2")
+
+   #  These are provided to produce better initial configurations when
+   #  WIFs are imported to some weaving programs.
+
+   write("[WARP THICKNESS]")
+   write("[WEFT THICKNESS]")
+
+   write("[COLOR TABLE]")
+
+   write("1=0,0,0")
+   write("2=65535,65535,65535")
+
+   write("[THREADING]")
+   every i := 1 to *threading do
+      write(i, "=", threading[i])
+
+   write("[TREADLING]")
+   every i := 1 to *treadling do
+      write(i, "=", treadling[i])
+
+   write("[TIEUP]")
+   every i := 1 to *tieup do
+      write(i, "=", tromp(tieup[i]))
+
+end
+
+procedure tromp(treadle)
+   local result
+
+   result := ""
+   
+   treadle ? {
+      every result ||:= upto("1") || ","
+      }
+
+   return result[1:-1]
+
+end
+
+procedure examine(array)
+   local count, lines, line
+
+   lines := table()			# table to be keyed by line patterns
+   count := 0
+
+   every line := !array do		# process lines
+      /lines[line] := (count +:= 1)	# if new line, insert with new number
+
+   return lines
+
+end
+
+procedure rot(rows)
+   local cols, row, grid, i
+
+   cols := list(*rows[1], "")
+
+   every row := !rows do {
+      i := 0
+      every grid := !row do
+         cols[i +:= 1] := grid || cols[i]
+      }
+
+   return cols
+
+end

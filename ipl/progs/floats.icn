@@ -1,0 +1,84 @@
+############################################################################
+#
+#	File:     floats.icn
+#
+#	Subject:  Program to count floats
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 22, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program analyszes the floats in a drawdown given as an image
+#  string from standard input.
+#
+############################################################################
+#
+#  Links:  imrutils
+#
+############################################################################
+
+link imrutils
+
+procedure main()
+   local front, back, black, white
+
+   front := imstoimr(read()) | stop("cannot create image record")
+   
+   black := cset(PaletteKey(front.palette, "black"))
+   white := cset(PaletteKey(front.palette, "white"))
+
+   back := imrcopy(front)
+   back.pixels := map(back.pixels, white || black, black || white)
+
+   analyze("Front weft floats", front, white)
+
+   front := imrrot90cw(front)
+
+   analyze("Front warp floats", front, black)
+   analyze("Back weft floats", back, white)
+
+
+   back := imrrot90cw(back)
+
+   analyze("Back warp floats", back, black)
+
+end
+
+procedure analyze(caption, imr, color)
+   local counts, length, row
+
+   counts := table(0)
+
+   imr.pixels ? {
+      while row := move(imr.width) do {
+         row ? {
+            while tab(upto(color)) do {
+               length := *tab(many(color))
+               if length > 1 then counts[length] +:= 1
+               }
+            }
+         }
+      }
+
+   if *counts = 0 then fail	# no floats
+
+   write(caption)
+
+   counts := sort(counts, 3)
+
+   write()
+
+#  while write(right(get(counts), 6), right(get(counts), 6))
+   while write("\t", get(counts), "\t", get(counts))
+
+   write()
+
+   return
+
+end

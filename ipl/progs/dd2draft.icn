@@ -1,0 +1,114 @@
+############################################################################
+#
+#	File:     dd2draft.icn
+#
+#	Subject:  Program to create draft information from drawdown
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 17, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program reads a drawdown in terms of rows of zeros and ones from
+#  standard input and outputs draft information in textual form.
+#
+############################################################################
+
+record analysis(rows, sequence, patterns)
+
+procedure main()
+
+   local threading, treadling, rows, columns,  pattern, i
+   local symbols, symbol, tieup
+
+   rows := []		# list for rows of the drawdown
+
+   while put(rows, read())	# read rows of the drawdown
+
+   write("Drawdown:")
+   write()
+   every write(!rows)
+   write()
+
+   treadling := analyze(rows)
+   write("Treadling:")
+   write()
+   every writes(!treadling.sequence, ", ")
+   write()
+   write()
+
+   columns := rotate(rows)	# rotate 90 degrees
+
+   threading := analyze(columns)
+   write("Threading:")
+   write()
+   every writes(!threading.sequence, ", ")
+   write()
+   write()
+
+   # Now do the tie-up.
+
+   symbols := table("")
+
+   every pattern := !treadling.patterns do {
+      symbol := treadling.rows[pattern]
+      symbols[symbol] := repl("0", *threading.rows)
+      pattern ? {
+         every i := upto('1') do
+            symbols[symbol][threading.sequence[i]] := "1"
+         }
+      }
+
+   symbols := sort(symbols, 3)
+   tieup := []
+
+   while get(symbols) do
+      put(tieup, get(symbols))
+
+   write("Tie-up:")
+   write()
+   every write(!tieup)
+
+end
+
+procedure analyze(drawdown)
+   local sequence, rows, row, count, patterns
+
+   sequence := []
+   patterns := []
+
+   rows := table()
+
+   count := 0
+
+   every row := !drawdown do {
+      if /rows[row] then {
+         rows[row] := count +:= 1
+         put(patterns, row)
+         }
+      put(sequence, rows[row])
+      }
+
+   return analysis(rows, sequence, patterns)
+
+end
+
+procedure rotate(rows)
+   local columns, row, grid, i
+
+   columns := list(*rows[1], "")
+
+   every row := !rows do {
+      i := 0
+      every grid := !row do
+         columns[i +:= 1] := grid || columns[i]
+      }
+
+   return columns
+
+end

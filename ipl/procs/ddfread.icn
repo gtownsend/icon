@@ -1,0 +1,415 @@
+############################################################################
+#
+#	File:     ddfread.icn
+#
+#	Subject:  Procedures for reading ISO 8211 DDF files
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     June 26, 2000
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	These procedures read DDF files ("Data Descriptive Files",
+#	ISO standard 8211) such as those specified by the US Geological
+#	Survey's "Spatial Data Transfer Standard" for digital maps.
+# 	ISO8211 files from other sources may contain additional data
+#	encodings not recognized by these procedures.
+#
+#	ddfopen(filename) opens a file and returns a handle.
+#	ddfdda(handle) returns a list of header records.
+#	ddfread(handle) reads the next data record.
+#	ddfclose(handle) closes the  file.
+#
+############################################################################
+#
+#	ddfopen(filename) opens a DDF file, decodes the header, and
+#	returns an opaque handle for use with subsequent calls.  It
+#	fails if any problems are encountered.  Instead of a filename,
+#	an already-open file can be supplied.
+#
+############################################################################
+#
+#	ddfdda(handle) returns a list of records containing data
+#	from the Data Descriptive Area (DDA) of the file header.
+#	Each record contains the following fields:
+#
+#		tag	DDR entry tag
+#		control	field control data
+#		name	field name
+#		labels	list of field labels
+#		format	data format
+#
+#	The records may also contain other fields used internally.
+#
+############################################################################
+#
+#	ddfread(handle) reads the next data record from the file.
+#	It returns a list of lists, with each sublist containing
+#	a tag name followed by the associated data values, already
+#	decoded according to the specification given in the header.
+#
+############################################################################
+#
+#	ddfclose(handle) closes a DDF file.
+#
+############################################################################
+
+
+
+$define RecSep "\x1E"		# ASCII Record Separator
+$define UnitSep "\x1F"		# ASCII Unit Separator
+$define EitherSep '\x1E\x1F'	# either separator, as cset
+
+$define LabelSep "!"		# label separator
+$define AnySep	'!\x1E\x1F'	# any separator, as cset
+
+
+
+record ddf_info(	# basic DDF file handle
+   file,		# underlying file
+   header,		# last header
+   dlist,		# DDA list (of ddf_dde records)
+   dtable		# DDA table (indexed by tag)
+   )
+
+
+record ddf_header(	# DDF header information
+   hcode,		# header code (R if to reuse)
+   dlen,		# data length
+   ddata,		# dictionary data (as a string)
+   tsize,		# size of tag field in dictionary
+   lsize,		# size of length field
+   psize,		# size of position field
+   s			# header string
+   )
+
+
+record ddf_dde(		# data description entry
+   tag,			# record tag
+   control,		# field control
+   name,		# field name
+   rep,			# non-null if labels repeat to end of record
+   labels,		# list of labels
+   format,		# format
+   dlist		# decoder list
+   )
+
+
+record ddf_decoder(	# field decoder record
+   proc,		# decoding procedure
+   arg			# decoder argument
+   )
+
+
+
+#########################  PUBLIC PROCEDURES  #########################
+
+
+
+#  ddfopen(filename) -- open DDF file for input
+#
+#  Opens a DDF file, decodes the header, and returns an opaque handle h
+#  for use with ddfread(h).  Fails if any problems are found.
+
+procedure ddfopen(fname)		#: open DDF file
+   local f, h, p, l, t, e
+
+   if type(fname) == "file" then
+      f := fname
+   else
+      f := open(fname, "ru")	| fail
+
+   h := ddf_rhdr(f)		| fail
+   p := ddf_rdata(f, h)		| fail
+   l := dda_list(p)		| fail
+   t := table()
+   every e := !l do
+      t[e.tag] := e
+   return ddf_info(f, h, l, t)
+end
+
+
+
+#  ddfdda(handle) -- return list of DDAs
+#
+#  Returns a list of Data Descriptive Area records containing the
+#  following fields:
+#
+#     tag	DDR entry tag
+#     control	field control data
+#     name	field name
+#     labels	list of field labels
+#     format	data format
+#
+#  (There may be other fields present for internal use.)
+
+procedure ddfdda(handle)
+   return handle.dlist
+end
+
+
+
+
+#  ddfread(handle) -- read DDF record
+#
+#  Reads the next record using a handle returned by ddfopen().
+#  Returns a list of lists, each sublist consisting of a
+#  tag name followed by the associated data values
+
+procedure ddfread(handle)		#: read DDF record
+   local h, p, dlist, code, data, drec, sublist, e
+
+   h := handle.header
+   if h.hcode ~== "R" then
+      h := handle.header := ddf_rhdr(handle.file) | fail
+   p := ddf_rdata(handle.file, h) | fail
+   dlist := list()
+   while code := get(p) do {
+      data := get(p)
+      drec := \handle.dtable[code] | next	# ignore unregistered code
+      put(dlist, sublist := [code])
+      data ? {
+         while not pos(0) do {
+            every e := !drec.dlist do
+               every put(sublist, e.proc(e.arg))
+            if /drec.rep | (pos(-1) & =RecSep) then
+               break
+            }
+         }
+      }
+   return dlist
+end
+
+
+
+#  ddfclose(handle) -- close DDF file
+
+procedure ddfclose(handle)		#: close DDF file
+   close(\handle.file)
+   every !handle := &null
+   return
+end
+
+
+
+#########################  INTERNAL PROCEDURES  #########################
+
+
+
+#  ddf_rhdr(f) -- read DDF header record
+
+procedure ddf_rhdr(f)
+   local s, t, tlen, hcode, off, nl, np, nx, nt, ddata
+
+   s := reads(f, 24)				| fail
+   *s = 24					| fail
+   s ? {
+      tlen := integer(move(5))			| fail
+      move(1)
+      hcode := move(1)
+      move(5)
+      off := integer(move(5))			| fail
+      move(3)					| fail
+      nl := integer(move(1))			| fail
+      np := integer(move(1))			| fail
+      nx := move(1)				| fail
+      nt := integer(move(1))			| fail
+   }
+   ddata := reads(f, off - 24)			| fail
+   *ddata = off - 24				| fail
+
+   return ddf_header(hcode, tlen - off, ddata, nt, nl, np, s)
+end
+
+
+
+#  ddf_rdata(f, h) -- read data, returning code/value pairs in list
+
+procedure ddf_rdata(f, h)
+   local tag, len, posn, data, a, d
+
+   d := reads(f, h.dlen)			| fail
+   if *d < h.dlen then fail
+   a := list()
+   h.ddata ? while not pos(0) do {
+      if =RecSep then break
+      tag := move(h.tsize)			| fail
+      len := move(h.lsize)			| fail
+      posn := move(h.psize)			| fail
+      data := d[posn + 1 +: len]		| fail
+      put(a, tag, data)
+      }
+   return a
+end
+
+
+
+#  dda_list(pairs) -- build DDA list from tag/data pairs
+
+procedure dda_list(p)
+   local l, labels, tag, spec, control, name, format, d, rep
+
+   l := list()
+   while tag := get(p) do {
+      labels := list()
+      spec := get(p)				| fail
+      spec ? {
+         control := move(6)			| fail
+         name := tab(upto(EitherSep) | 0)
+         move(1)
+         rep := ="*"
+         while put(labels, tab(upto(AnySep))) do {
+            if =LabelSep then next
+            move(1)
+            break
+            }
+         format := tab(upto(EitherSep) | 0)
+         move(1)
+         pos(0)					| fail
+         }
+      d := ddf_dtree(format)			| fail
+      put(l, ddf_dde(tag, control, name, rep, labels, format, d))
+      }
+
+   return l
+end
+
+
+
+#  ddf_dtree(format) -- return tree of decoders for format
+#
+#  keeps a cache to remember & share decoder lists for common formats
+
+procedure ddf_dtree(format)
+   static dcache
+   initial {
+      dcache := table()
+      dcache[""] := [ddf_decoder(ddf_str, EitherSep)]
+      }
+
+   /dcache[format] := ddf_fcrack(format[2:-1])
+   return dcache[format]
+end
+
+
+
+#  ddf_fcrack(s) -- crack format string
+
+procedure ddf_fcrack(s)
+   local dlist, n, d
+
+   dlist := list()
+   s ? while not pos(0) do {
+
+      if (any(&digits)) then
+         n := tab(many(&digits))
+      else
+         n := 1
+
+      d := &null
+      d := case move(1) of {
+         ",":	next
+         "A":	ddf_oneof(ddf_str, ddf_strn)
+         "B":	ddf_oneof(&null,   ddf_binn, 8)
+         "I":	ddf_oneof(ddf_int, ddf_intn)
+         "R":	ddf_oneof(ddf_real, ddf_realn)
+         "(":	ddf_decoder(ddf_repeat, ddf_fcrack(tab(bal(')')), move(1)))
+         }
+      if /d then fail
+      every 1 to n do
+         put(dlist, d)
+      }
+   return dlist
+end
+
+
+
+#  ddf_oneof(tabproc, moveproc, quantum) -- select one of two procs
+
+procedure ddf_oneof(tabproc, moveproc, quantum)
+   local d, n
+
+   if not ="(" then
+      return ddf_decoder(tabproc, EitherSep)
+
+   if any(&digits) then {
+      /quantum := 1
+      n := integer(tab(many(&digits)))
+      n % quantum = 0					| fail
+      d := ddf_decoder(moveproc, n / quantum)
+      }
+   else {
+      d := ddf_decoder(\tabproc, move(1) ++ EitherSep)	| fail
+      }
+
+   =")"							| fail
+   return d
+end
+
+
+
+#########################  DECODING PROCEDURES  #########################
+
+
+
+procedure ddf_str(cs)			# delimited string
+   return 1(tab(upto(cs)), move(1))
+end
+
+procedure ddf_strn(n)			# string of n characters
+   return move(n)
+end
+
+procedure ddf_int(cs)			# delimited integer
+   local s
+   s := tab(upto(cs))
+   move(1)
+   return integer(s) | 0
+end
+
+procedure ddf_intn(n)			# integer of n digits
+   local s
+   s := move(n)
+   return integer(s) | 0
+end
+
+procedure ddf_real(cs)			# delimited real
+   local s
+   s := tab(upto(cs))
+   move(1)
+   return real(s) | 0.0
+end
+
+procedure ddf_realn(n)			# real of n digits
+   local s
+   s := move(n)
+   return real(s) | 0.0
+end
+
+procedure ddf_binn(n)			# binary value of n bytes
+   local v, c
+   v := c := ord(move(1))
+   every 2 to n do
+      v := 256 * v + ord(move(1))
+   if c < 128 then	# if sign bit unset in first byte
+      return v
+   else
+      return v - ishift(1, 8 * n)
+end
+
+procedure ddf_repeat(lst)		# repeat sublist to EOR
+   local e
+   repeat {
+      every e := !lst do {
+         if (=RecSep | &null) & pos(0) then
+            fail
+         else
+            suspend e.proc(e.arg)
+         }
+      }
+end

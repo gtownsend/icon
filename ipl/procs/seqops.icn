@@ -1,0 +1,582 @@
+############################################################################
+#
+#	File:     seqops.icn
+#
+#	Subject:  Procedures to perform operations on finite sequences
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     October 14, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This module contains procedures that operate on finite sequence, generally
+#  in the form of lists, although some will handle strings and records.
+#
+#  Most of these procedures are the same as the list procedures in the
+#  module lists.icn
+#
+############################################################################
+#
+#	scomb(seq,i)		sequence combinations
+#
+#	sdelete(seq, spec)	sequence deletion
+#
+#	sdelta(seq)		first difference
+#
+#	sequiv(seq1, seq2)	sequence equivalence
+#
+#	sextend(seq, i)		sequence extension
+#
+#	simage(seq)		unadorned sequence image
+#
+#	sinterl(seq1, seq2)	sequence interleaving
+#
+#	slpad(seq, i, x)	sequence padding at left
+#
+#	sltrim(seq, S)		sequence left trimming
+#
+#	smake(x)		sequence from elements
+#
+#	smap(seq1,seq2,seq3)	sequence mapping
+#
+#	spalin(seq, x)		sequence palindrome
+#
+#	spermute(seq)		sequence permutations
+#
+#	sreflect(seq, i) 	sequence concatenated with its reversal to
+#				produce palindrome; the values of i determine
+#				"end conditions" for the reversal:
+#
+#					0	omit first and last elements
+#					1	omit first element
+#					2	omit last element
+#					3	don't omit element
+#
+#	sremvals(seq, x1, x2, ...)
+#				remove values from list
+#
+#	srepl(seq, i)		sequence replication
+#
+#	sreverse(seq)		sequence reverse
+#
+#	srotate(seq, i)		sequence rotation
+#
+#	srpad(seq, i, x)	sequence right padding
+#
+#	srtrim(seq, S)		sequence right trim
+#
+#	srun(seq)		sequence of runs from anchors
+#
+#	sspan(1, j, k)		sequence from i to j by k
+#
+#	sswap(seq)		sequence element swap
+#
+#	sunique(seq)		keep only unique sequence elements
+#
+#	smaxlen(seq, p)		size of the largest value in seq.
+#				If p is given, it is applied to each string as
+#				as a "length" procedure.  The default for p is
+#				proc("*", 1).
+#
+#	sminlen(seq, p)		size of the smallest value in seq.
+#				If p is given, it is applied to each string as
+#				as a "length" procedure.  The default for p is
+#				proc("*", 1).
+#
+#	str2seq(s, i)		sequence with i-character lines from s.  The
+#				default for i is 1.
+#
+############################################################################
+#
+#		About sequence mapping
+#
+#  The procedure smap(seq1,seq2,seq3) maps elements of seq1 according to seq2
+#  and seq3.  This procedure is the analog for lists of the built-in
+#  string-mapping function map(s1,s2,s3). Elements in seq1 that are
+#  the same as elements in seq2 are mapped into the corresponding ele-
+#  ments of seq3. For example, given the sequences
+#  
+#     seq1 := [1,2,3,4]
+#     seq2 := [4,3,2,1]
+#     seq3 := ["a","b","c","d"]
+#  
+#  then
+#  
+#     smap(seq1,seq2,seq3)
+#  
+#  produces a new list
+#  
+#     ["d","c","b","a"]
+#  
+#     Sequences that are mapped can have any kinds of elements. The
+#  operation
+#  
+#     x === y
+#  
+#  is used to determine if elements x and y are equivalent.
+#  
+#     All cases in smap are handled as they are in map, except that
+#  no defaults are provided for omitted arguments. As with map, smap
+#  can be used for transposition as well as substitution.
+#  
+#  Warning:
+#
+#     If smap is called with the same lists seq2 and seq3 as in
+#  the immediately preceding call, the same mapping is performed,
+#  even if the values in seq2 and seq3 have been changed. This improves
+#  performance, but it may cause unexpected effects.
+#  
+#     This ``caching'' of the mapping table based on seq2 and seq3
+#  can be easily removed to avoid this potential problem.
+#  
+############################################################################
+#
+#  Links:  indicies
+#
+############################################################################
+#
+#  See also:  lists.icn
+#
+############################################################################
+
+link indices
+
+procedure s_comp(l1,l2)			# sequence comparison
+
+    #
+    # seqist comparison routine basically taken from Griswold & Griswold
+    # (1st ed.), p. 174.
+    #
+
+    local i
+
+    /l1 | /l2 & stop("l_comp:  Null argument!")
+    l1 === l2 & (return l2)
+
+    if type(l1) == type(l2) == "list" then {
+	*l1 ~= *l2 & fail
+	every i := 1 to *l1
+	do l_comp(l1[i],l2[i]) | fail
+	return l2
+    }
+
+end
+
+
+procedure sblock(seq1, seq2)
+   local seq3, i, j
+
+   if *seq1 < *seq2 then seq1 := sextend(seq1, *seq2) | fail
+   else if *seq2 < *seq1 then seq2 := sextend(seq2, *seq1) | fail
+
+   seq3 := []
+
+    every i := 1 to *seq1 do
+       every j := 1 to seq2[i] do
+          put(seq3, seq2[i])
+
+      return seq3
+
+end
+
+procedure scomb(seq,i)			#: sequence combinations
+   local j
+
+   if i < 1 then fail
+   suspend if i = 1 then [!seq]
+      else [seq[j := 1 to *seq - i + 1]] ||| lcomb(seq[j + 1:0],i - 1)
+
+end
+
+procedure sdelete(seq, spec)		#: delete specified sequence elements
+   local i, tmp
+
+   tmp := indices(spec, *seq) | fail		# bad specification
+
+   while i := pull(tmp) do
+      seq := seq[1+:i - 1] ||| seq[i + 1:0]
+
+   return seq
+
+end
+
+procedure sdelta(seq)			#: first difference
+   local i, j, seq1
+
+   seq1 := []
+
+   i := seq[1] | return seq1		# boundary case
+
+   every j := seq[2 to *seq] do {
+     put(seq1, j - i)
+     i := j
+     }
+
+   return seq1
+
+end
+
+procedure sequiv(x,y)			#: compare lists for equivalence
+   local i
+
+   if x === y then return y
+   if type(x) == type(y) == "list" then {
+      if *x ~= *y then fail
+      every i := 1 to *x do
+         if not lequiv(x[i],y[i]) then fail
+      return y
+     }
+
+end
+	
+procedure sextend(seq, i)			#: sequence extension
+   local result
+
+   if *seq = 0 then fail
+
+   result := copy(seq)
+
+   until *result >= i do
+      result |||:= seq
+
+   result := result[1+:i]
+
+   return result
+ 
+end
+
+procedure simage(seq)			#: sequence image
+   local result
+
+   if type(seq) ~== "list" then stop("*** invalid type to limage()")
+
+   result := ""
+
+   every result ||:= image(!seq) || ","
+
+   return ("[" || result[1:-1] || "]") | "[]"
+
+end
+
+procedure sinterl(seq1, seq2)		#: sequence interleaving
+   local seq3, i
+
+   if *seq1 < *seq2 then seq1 := sextend(seq1, *seq2) | fail
+   else if *seq2 < *seq1 then seq2 := sextend(seq2, *seq1) | fail
+
+   seq3 := []
+
+   every i := 1 to *seq1 do
+      put(seq3, seq1[i], seq2[i])
+
+   return seq3
+
+end
+
+procedure slpad(seq, i, x)		#: sequence padding at left
+
+   seq := copy(seq)
+
+   while *seq < i do push(seq, x)
+
+   return seq
+
+end
+
+procedure sltrim(seq, S)			#: sequence left trimming
+
+   seq := copy(seq)
+
+   while member(S, seq[1]) do
+      get(seq)
+
+    return seq
+
+end
+
+procedure seqop(seq, op, args[])	#: apply operation to sequence
+   local i, reseq
+
+   op := proc(op, *args + 1 to 1 by -1) | fail
+
+   reseq := []
+
+   push(args)			# placeholder for first argument
+
+   every i := 1 to *seq do {
+      args[1] := seq[i]		# sequence element as first argument
+      put(reseq, op ! args)
+      }
+
+   return reseq
+
+end
+
+procedure smake(x)			#: make sequence from elements
+   local seq
+
+   seq := []
+
+   every put(seq, !x)
+
+   return seq
+
+end
+
+procedure smap(seq1,seq2,seq3)		#: sequence mapping
+   static lmem2, lmem3, lmaptbl, tdefault
+   local i, a
+
+   initial tdefault := []
+
+   if type(a := seq1 | seq2 | seq3) ~== "list" then runerr(108,a)
+   if *seq2 ~= *seq3 then runerr(208,seq2)
+
+   seq1 := copy(seq1)
+
+   if not(lmem2 === seq2 & lmem3 === seq3) then {	# if an argument is new, rebuild
+      lmem2 := seq2				# save for future reference
+      lmem3 := seq3
+      lmaptbl := table(tdefault)		# new mapping table
+      every i := 1 to *seq2 do			# build the map
+         lmaptbl[seq2[i]] := seq3[i]
+      }
+   every i := 1 to *seq1 do			# map the values
+      seq1[i] := (tdefault ~=== lmaptbl[seq1[i]])
+   return seq1
+
+end
+
+procedure spalin(seq, x)			#: sequence palindrome
+
+   seq |||:= lreverse(seq)
+
+   if /x then pull(seq)
+
+   return seq
+
+end
+
+procedure spermute(seq)			#: sequence permutations
+   local i
+
+   if *seq = 0 then return []
+   suspend [seq[i := 1 to *seq]] ||| lpermute(seq[1:i] ||| seq[i+1:0])
+
+end
+
+procedure sreflect(seq, i)		#: sequence reflection
+   local seq1
+
+   /i := 0
+
+   if i > 3 then stop("*** invalid argument to lreflect()")
+
+   if i < 3 then seq1 := copy(seq)
+
+   return seq ||| lreverse(
+      case i of {
+         0:   {get(seq1); pull(seq1); seq1}
+         1:   {get(seq1); seq1}
+         2:   {pull(seq1); seq1}
+         3:   seq
+         }
+      )
+
+end
+
+procedure sremvals(seq, x[])		#: remove values from list
+   local result, y
+
+   result := []
+
+   every y := !seq do
+      if y === !x then next
+      else put(result, y)
+
+   return result
+
+end
+
+
+procedure srepl(seq, i)			#: sequence replication
+   local j, k
+
+   i := (0 < integer(i)) | stop("*** invalid replication factor in lrepl()")
+
+   seq := copy(seq)
+
+   j := *seq
+
+   every 1 to i - 1 do
+      every k := 1 to j do
+         put(seq, seq[k])
+
+   return seq
+
+end
+
+procedure sreverse(seq)			#: sequence reverse
+   local i
+
+   seq := copy(seq)
+
+   every i := 1 to *seq / 2 do
+      seq[i] :=: seq[-i]
+
+   return seq
+
+end
+
+procedure srotate(seq, i)			#: sequence rotation
+
+   /i := 1
+
+   seq := copy(seq)
+
+   if i > 0 then
+      every 1 to i do
+         put(seq, get(seq))
+   else
+      every 1 to -i do
+         push(seq, pull(seq))
+
+   return seq
+
+end
+
+procedure srpad(seq, i, x)		#: sequence right padding
+
+   seq := copy(seq)
+
+   while *seq < i do put(seq, x)
+
+   return seq
+
+end
+
+procedure srtrim(seq, S)			#: sequence right trimming
+
+   seq := copy(seq)
+
+   while member(S, seq[-1]) do
+      pull(seq)
+
+    return seq
+
+end
+
+procedure srun(seq, p, m)			#: sequence of anchor runs
+   local seq1, i, j, k
+
+   seq1 := []
+
+   /p := 1
+   /m := 100
+
+   every i := 1 to *seq - 1 do {
+      j := seq[i] % m
+      k := seq[i + 1] % m
+      if j < k then
+         every put(seq1, j to k - 1 by p)
+      else if j > k then
+         every put(seq1, j to k + 1 by -p)
+      }
+
+   put(seq1, seq[-1])
+
+   return seq1
+
+end
+
+procedure sspan(i, j, k)		#: sequence from i to j by k
+   local seq
+
+   /k := 1
+
+   seq := []
+
+   every put(seq, i to j by k)
+
+   return seq
+
+end
+
+procedure sswap(seq)			#: sequence element swap
+   local i
+
+   seq := copy(seq)
+
+   every i := 1 to *seq by 2 do
+      seq[i] :=: seq[i + 1]
+
+   return seq
+
+end
+
+procedure sunique(seq)			#: keep only unique sequence elements
+   local result, culls, x
+
+   result := []
+   culls := set(seq)
+
+   every x := !seq do
+      if member(culls, x) then {
+         delete(culls, x)
+         put(result, x)
+         }
+
+   return result
+
+end
+
+procedure smaxlen(seq, p)			#: largest value in list
+   local i
+
+   if *seq = 0 then fail
+
+   /p := proc("*", 1)
+
+   i := 2 ^ 31			# kludge
+
+   every i <:= p(!seq)
+
+   return i
+
+end
+
+procedure sminlen(seq, p)			#: smallest value in list
+   local i
+
+   if *seq = 0 then fail
+
+   /p := proc("*", 1)
+
+   i := 0
+
+   every i >:= p(!seq)
+
+   return i
+
+end
+
+procedure str2seq(s, i)			#: sequence from string
+   local seq
+
+   /i := 1
+
+   seq := []
+
+   s ? {
+      while put(seq, move(i))
+      if not pos(0) then put(seq, tab(0))
+      }
+
+   return seq
+
+end

@@ -1,0 +1,58 @@
+############################################################################
+#
+#	File:     isd2grid.icn
+#
+#	Subject:  Program to create grid plots for ISDs
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 8, 2000
+#
+############################################################################
+#
+#  NOTE:  The drawdown code is patched in from code in pfd2ill.icn and
+#  uses a different method than the others.  One way or another, the
+#  methods should be made consonant.
+#
+#  The option -n s allows a basename to be specified for the image file.
+#  It defaults to the name in the ISD.
+#
+############################################################################
+#
+# Requires:  Version 9 graphics and large integers
+#
+############################################################################
+#
+#  Links:  isdplot, options, wopen, xcode
+#
+############################################################################
+#
+#  Note:  The include file may contain link declarations.
+#
+############################################################################
+
+link isdplot
+link options
+link wopen
+link xcode
+
+procedure main(args)
+   local draft, win, opts
+
+   opts := options(args, "n:")
+
+   isd			# hands off, linker!
+
+   draft := xdecode(&input) | stop("*** cannot decode draft")
+
+   draft.name := \opts["n"]
+
+   win := plot(draft)
+
+   repeat case Event(win) of {		# process low-level user events
+      !"qQ" :  exit()
+      "s"   :  WriteImage(win, draft.name || "_d.gif")
+      }
+end
+
+$include "weaveseq.icn"

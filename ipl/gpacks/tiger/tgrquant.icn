@@ -4,9 +4,9 @@
 #
 #	Subject:  Program to quantize a line chain file
 #
-#	Author:   Gregg M. Townsend
+#	Authors:  Gregg M. Townsend and William S. Evans
 #
-#	Date:     October 12, 1995
+#	Date:     December 18, 1999
 #
 ############################################################################
 #
@@ -19,7 +19,7 @@
 
 procedure main(args)
    local n, fname, ifile, line
-   local prefix, lon, lat, rndlon, rndlat, newrlon, newrlat
+   local prefix, fename, dim, lon, lat, rndlon, rndlat, newrlon, newrlat
 
    if n := integer(args[1]) then
       get(args)
@@ -35,19 +35,24 @@ procedure main(args)
       stop("usage: ", &progname, " [n] [file.lch]")
 
    while line := read(ifile) do line ? {
-      prefix := move(8)
+      prefix := move(4)
+      if ="|" then
+         fename := "|" || tab(upto('|')) || move(1)
+      else
+         fename := ""
+      dim := move(4)
       lon := move(7)
       lat := move(7)
       rndlon := lon - lon % n
       rndlat := lat - lat % n
-      writes(prefix, right(rndlon, 7), right(rndlat, 7))
+      writes(prefix, fename, dim, right(rndlon, 7), right(rndlat, 7))
       while (lon +:= move(4) - 5000) & (lat +:= move(4) - 5000) do {
-	 newrlon := lon - lon % n
-	 newrlat := lat - lat % n
-	 writes(right(newrlon-rndlon+5000, 4), right(newrlat-rndlat+5000, 4))
-	 rndlon := newrlon
-	 rndlat := newrlat
-	 }
+         newrlon := lon - lon % n
+         newrlat := lat - lat % n
+         writes(right(newrlon-rndlon+5000, 4), right(newrlat-rndlat+5000, 4))
+         rndlon := newrlon
+         rndlat := newrlat
+         }
       write()
    }
 end

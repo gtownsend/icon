@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     January 21, 1999
+#	Date:     June 21, 2000
 #
 ############################################################################
 #
@@ -62,7 +62,7 @@
 #
 #	select_dialog(s, L, d)	
 #			provides a dialog for selecting from a list of
-#			item.  d is the default selection.
+#			items.  d is the default selection.
 #
 #	snapshot(win, x, y, w, h, n)
 #			writes an image file for the specified portion of
@@ -244,7 +244,7 @@ procedure open_image(caption, atts[])		#: open image
    local button, win
 
    repeat {
-      (button := OpenDialog(caption)) == "Okay" | return button
+      (button := OpenDialog(caption)) == "Okay" | fail
       put(atts, "image=" || dialog_value)
       win := (WOpen ! atts) | {
          Notice("Can't open " || dialog_value)
@@ -359,31 +359,27 @@ procedure snapshot(win, x, y, w, h, n)		#: snapshot dialog
       win := &window
       }
 
-   fg := Fg()
-   bg := Bg()
-   Fg("black")
-   Bg("light gray")
+   fg := Fg(win)
+   bg := Bg(win)
+   Fg(win, "black")
+   Bg(win, "light gray")
 
    repeat {
-      if OpenDialog("Image file name", , n) == "Okay" then {
+      if OpenDialog(win, "Image file name", , n) == "Okay" then {
          name := dialog_value
          if exists(dialog_value) then {
             if TextDialog("Overwrite existing file?") == "Cancel"
             then next
             }
+         Fg(win, fg)
+         Bg(win, bg)
          WriteImage(win, name, x, y, w, h) | {
             Notice("Cannot write image")
             next
             }
-         Fg(fg)
-         Bg(bg)
          return
          }
-      else {
-         Fg(fg)
-         Bg(bg)
-         fail
-         }
+      else fail
       }
       
 end

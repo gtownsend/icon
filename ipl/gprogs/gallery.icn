@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     October 13, 1998
+#	Date:     June 23, 2000
 #
 ############################################################################
 #
@@ -87,7 +87,7 @@ $define MinWidth 32		# minimum width if auto-scaled
 $define MinHeight 32		# minimum height if auto-scaled
 
 
-record area(fname, x, y, w, h)
+record area(fname, x, y, w, h, iw, ih)
 
 global opts			# command options
 global tempname			# temporary file name
@@ -231,7 +231,8 @@ procedure main(args)
          DrawString(x, y + h + fh - WAttrib("descent"), label)
 
       # Record the space it occupies
-      put(areas, area(fname, x - Gap / 2, y - Gap / 2, w + Gap, h + fh + Gap))
+      put(areas, area(fname, x - Gap / 2, y - Gap / 2, w + Gap, h + fh + Gap,
+         WAttrib(imwin, "width"), WAttrib(imwin, "height")))
 
       # Move on to next position.
       if /opts["r"] then
@@ -315,21 +316,27 @@ end
 
 ## info(event) -- display info about image under the mouse
 
-$define InfoImage 300
-$define InfoText 80
-$define InfoMargin 10
-
-$define InfoWidth (InfoImage + 2 * InfoMargin)
-$define InfoHeight (InfoImage + 3 * InfoMargin + InfoText)
+$define InfoMargin 10	# margin around image
+$define InfoHeight 80	# text area height
+$define InfoWidth 300	# text area width
 
 procedure info(e)
-   local a, x, y
+   local a, w, h, wmin, wmax, hmax
+
+   wmin := InfoWidth + 2 * InfoMargin
+   wmax := WAttrib("width") - 4 * InfoMargin
+   hmax := WAttrib("height") - 5 * InfoMargin - InfoHeight
 
    every a := !areas do
       if InBounds(a.x, a.y, a.w, a.h) then {
-         x := (WAttrib("width") - InfoWidth) / 2
-         y := (WAttrib("height") - InfoHeight) / 2
-         Popup(x, y, InfoWidth, InfoHeight, popinfo, a, e)
+         w := a.iw
+         h := a.ih
+         if w >:= wmax then
+            h := a.ih * w / a.iw
+         if h >:= hmax then
+            w := a.iw * h / a.ih
+         wmin <:= w + 2 * InfoMargin
+         Popup(, , wmin, h + InfoHeight + 3 * InfoMargin, popinfo, a, e, w, h)
          break
          }
    return
@@ -337,47 +344,29 @@ end
 
 
 
-##  popinfo(area, event) -- display info in the popup
+##  popinfo(area, event, w, h) -- display info in the popup
 #
 #   if event was &rpress, wait for &rrelease
 #   otherwise wait for &lpress, Enter, or space to dismiss
 
-procedure popinfo(a, e)
-   local f, i, n, x, y, w, h, zw, zh
+procedure popinfo(a, e, w, h)
+   local f, i, n, x, y
 
    f := open(a.fname)
    seek(f, 0)
    n := where(f)
    seek(f, 1)
-
    i := rdimage(a.fname, f) | fail
-   w := WAttrib(i, "width")
-   h := WAttrib(i, "height")
-   if w <= InfoImage & h <= InfoImage then {
-      x := InfoMargin + (InfoImage - w) / 2
-      y := InfoMargin + (InfoImage - h) / 2
-      CopyArea(i, &window, , , , , x, y)
-      }
-   else if w > h then {
-      zw := InfoImage
-      zh := InfoImage * h / w
-      x := InfoMargin
-      y := InfoMargin + (InfoImage - zh) / 2
-      Zoom(i, &window, , , , , x, y, zw, zh)
-      }
-   else {
-      zw := InfoImage * w / h
-      zh := InfoImage
-      x := InfoMargin + (InfoImage - zw) / 2
-      y := InfoMargin
-      Zoom(i, &window, , , , , x, y, zw, zh)
-      }
+
+   x := (WAttrib("clipw") - w) / 2
+   y := InfoMargin
+   Zoom(i, &window, , , , , x, y, w, h)
 
    Font("sans,bold,12")
    WAttrib("leading=16")
-   GotoXY(0, InfoMargin + InfoImage + InfoMargin + WAttrib("ascent"))
+   GotoXY(0, InfoMargin + h + InfoMargin + WAttrib("ascent"))
    WWrite("    ", a.fname)
-   WWrite("    ", w, " x ", h, " pixels")
+   WWrite("    ", a.iw, " x ", a.ih, " pixels")
    WWrite("    ", n, " bytes")
    WWrite("    ", iformat(f), " format")
 

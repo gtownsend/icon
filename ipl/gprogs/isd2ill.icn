@@ -1,0 +1,317 @@
+############################################################################
+#
+#	File:     isd2ill.icn
+#
+#	Subject:  Program to create images from ISDs
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 23, 2000
+#
+############################################################################
+#
+#  This program creates Encapsulated PostScript and GIF image files from
+#  ISDs.
+#
+#  The following options are supported:
+#
+#	-g	draw grid lines on drawdown
+#	-h	hold windows open in visible (-v) mode
+#       -p	add showpage for printing
+#	-s i	cell size, default 6
+#	-v	show images during creation; default, don't
+#
+#  Other options to be added include the control of layout and orientation.
+#
+#  Names of ISDs are taken from the command line.  For each, six Encap-
+#  PostScript files are created:
+#
+#	<base name>_tieup.eps (if given)
+#	<base name>_liftplan.eps (if given)
+#	<base name>_threading.eps
+#	<base name>_treadling.eps
+#	<base name>_drawdown.eps
+#	<base name>_pattern.eps (colored "drawdown")
+#
+#  Corresponding GIFs also are produced.
+#
+#  Future plans call for handling "shaftplans" specifying what diagrams
+#  are wanted.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  basename, interact, options, psrecord, weavutil, xcode
+#
+############################################################################
+
+link basename
+link interact
+link options
+link psrecord
+link weavutil
+link xcode
+
+global canvas
+global cellsize
+global gridlines
+global hold
+global name
+global printing
+global draft
+
+$define CellSize 6
+
+procedure main(args)
+   local opts, input, file
+
+   isd
+
+   opts := options(args, "ghps+v")
+
+   if /opts["p"] then printing := 1
+   if \opts["v"] then {
+       canvas := "canvas=normal"
+       hold := opts["h"]		# only if images are visible
+       }
+   else canvas := "canvas=hidden"
+
+   gridlines := opts["g"]
+
+   cellsize := \opts["s"] | CellSize
+
+   while file := get(args) do {
+      input := open(file) | {
+         Notice("Cannot open " || file)
+         next
+         }
+   name := basename(file, ".isd")
+   draft := xdecode(input)
+
+   draw_panes()
+   close(input)
+   }
+
+end
+
+procedure clear_pane(win, n, m, size)
+   local x, y, width, height, save_fg
+
+   width := n * size + 1
+   height := m * size + 1
+
+   save_fg := Fg(win)
+
+   Fg(win, "black")
+
+   every x := 0 to width by size do
+      DrawLine(win, x, 0, x, height)
+
+   every y := 0 to height by size do
+      DrawLine(win, 0, y, width, y)
+
+   Fg(win, save_fg)
+
+   return
+
+end
+
+procedure draw_panes()
+   local i, j, x, y, treadle, k, treadle_list, c, color
+   local tieup_win, threading_win, treadling_win, liftplan_win
+   local drawdown_win, pattern_win
+
+   if \draft.tieup then {
+
+      tieup_win := WOpen(canvas, "width=" || (cellsize * draft.treadles + 1),
+         "height=" || (cellsize * draft.shafts + 1))
+
+      PSStart(tieup_win, name || "_tieup.eps")
+
+      clear_pane(tieup_win, draft.treadles, draft.shafts, cellsize)
+
+      every i := 1 to draft.shafts do
+         every j := 1 to draft.treadles do {
+            if draft.tieup[j, i] == "1" then 
+               fillcell(tieup_win, j, i, "black") 
+            }
+
+      PSDone(printing)
+
+      WriteImage(tieup_win, name || "_tieup.gif")
+
+      }
+
+   if *\draft.liftplan > 0 then {
+
+      liftplan_win := WOpen(canvas, "width=" || (cellsize * draft.shafts + 1),
+         "height=" || (cellsize * *draft.treadling + 1))
+
+      PSStart(liftplan_win, name || "_liftplan.eps")
+
+      clear_pane(liftplan_win, draft.shafts, *draft.treadling, cellsize)
+
+      every i := 1 to *draft.treadling do
+         every j := 1 to draft.treadles do {
+            if draft.liftplan[i, j] == "1" then 
+               fillcell(liftplan_win, j, i, "black") 
+            }
+
+      PSDone(printing)
+
+      WriteImage(liftplan_win, name || "_liftplan.gif")
+
+      }
+
+   threading_win := WOpen(canvas, "width=" || (cellsize * *draft.threading + 1),
+      "height=" || (cellsize * draft.shafts) + 1)
+
+   PSStart(threading_win, name || "_threading.eps")
+
+   clear_pane(threading_win, *draft.threading, draft.shafts + 1, cellsize)
+
+   every i := 1 to *draft.threading do
+      fillcell(threading_win, i, draft.threading[i], "black")
+
+   PSDone(printing)
+
+   WriteImage(threading_win, name || "_threading.gif")
+
+   treadling_win := WOpen(canvas, "height=" || (cellsize * *draft.treadling + 1),
+      "width=" || (cellsize * draft.treadles + 1))
+
+   PSStart(treadling_win, name || "_treadling.eps")
+
+   clear_pane(treadling_win, draft.treadles + 1, *draft.treadling, cellsize)
+   every i := 1 to *draft.treadling do
+      fillcell(treadling_win, draft.treadling[i], i, "black")
+
+   PSDone(printing)
+
+   WriteImage(treadling_win, name || "_treadling.gif")
+
+   pattern_win := WOpen(canvas, "width=" || (cellsize * *draft.threading + 1),
+      "height=" || (cellsize * *draft.treadling + 1))
+
+   PSStart(pattern_win, name || "_pattern.eps")
+
+   clear_pane(pattern_win, draft.shafts, draft.treadles, cellsize)
+
+   if *cset(draft.warp_colors) = 1 then {		# warp solid black
+      Fg(pattern_win, draft.color_list[draft.warp_colors[1]])
+      FillRectangle(pattern_win, 0, 0, *draft.threading * cellsize,
+         *draft.treadling * cellsize)
+      }
+   else {
+      every i := 0 to *draft.threading - 1 do {	# warp striped
+         Fg(pattern_win, draft.color_list[draft.warp_colors[i]])
+         FillRectangle(pattern_win, i * cellsize, 0, cellsize - 1,
+            *draft.treadling * cellsize)
+         }
+      }
+
+   Fg(pattern_win, "black")
+
+   treadle_list := list(draft.treadles)
+   every !treadle_list := []
+
+   every i := 1 to draft.treadles do
+      every j := 1 to draft.shafts do
+         if draft.tieup[i, j] == "1" then
+            every k := 1 to *draft.threading do
+               if draft.threading[k] == j then
+                  put(treadle_list[i], k, 0)
+
+   every y := 1 to *draft.treadling do {
+      treadle := draft.treadling[y]
+      color := draft.color_list[draft.weft_colors[y]]
+      if *treadle_list[treadle] = 0 then next	# blank pick
+      every i := 1 to *treadle_list[treadle] by 2 do
+         fillcell(pattern_win, treadle_list[treadle][i], y, color)
+      }
+
+   Fg(pattern_win, "black")
+
+   if \gridlines then {
+      every x := 0 to WAttrib(pattern_win, "width") by cellsize do
+         DrawLine(pattern_win, x, 0, x, WAttrib(pattern_win, "height"))
+      every y := 0 to WAttrib(pattern_win, "height") by cellsize do
+         DrawLine(pattern_win, 0, y, WAttrib(pattern_win, "width"), y)
+      }
+
+   PSDone(printing)
+
+   WriteImage(pattern_win, name || "_pattern.gif")
+
+   drawdown_win := WOpen(canvas, "width=" || (cellsize * *draft.threading + 1),
+      "height=" || (cellsize * *draft.treadling + 1))
+
+   PSStart(drawdown_win, name || "_drawdown.eps")
+
+   clear_pane(drawdown_win, draft.shafts, draft.treadles, cellsize)
+
+   Fg(drawdown_win, "white")
+
+   FillRectangle(drawdown_win, 0, 0, *draft.threading * cellsize,
+      *draft.treadling * cellsize)
+
+   treadle_list := list(draft.treadles)
+   every !treadle_list := []
+
+   every i := 1 to draft.treadles do
+      every j := 1 to draft.shafts do
+         if draft.tieup[i, j] == "1" then
+            every k := 1 to *draft.threading do
+               if draft.threading[k] == j then
+                  put(treadle_list[i], k, 0)
+
+   every y := 1 to *draft.treadling do {
+      treadle := draft.treadling[y]
+      if *treadle_list[treadle] = 0 then next	# blank pick
+      every i := 1 to *treadle_list[treadle] by 2 do
+         fillcell(drawdown_win, treadle_list[treadle][i], y, "black")
+      }
+
+   Fg(drawdown_win, "black")
+
+   if \gridlines then {
+      every x := 0 to WAttrib(drawdown_win, "width") by cellsize do
+         DrawLine(drawdown_win, x, 0, x, WAttrib(drawdown_win, "height"))
+      every y := 0 to WAttrib(drawdown_win, "height") by cellsize do
+         DrawLine(drawdown_win, 0, y, WAttrib(drawdown_win, "width"), y)
+      }
+
+   PSDone(printing)
+
+   WriteImage(drawdown_win, name || "_drawdown.gif")
+
+   if \hold then {
+      repeat {
+         if Event(Active()) === "q" then break
+         }
+      }
+
+   every WClose(tieup_win | \liftplan_win | threading_win | treadling_win |
+      pattern_win, drawdown_win)
+
+   return
+
+end
+
+procedure fillcell(win, n, m, color)
+   local  save_fg
+
+   save_fg := Fg(win)
+   Fg(win, color)
+
+   FillRectangle(win, (n - 1) * cellsize, (m - 1) * cellsize, cellsize,
+      cellsize)
+
+   Fg(win, save_fg)
+
+   return
+
+end

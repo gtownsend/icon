@@ -1,0 +1,168 @@
+############################################################################
+#
+#	File:     tgrtrack.icn
+#
+#	Subject:  Program to translate "track log" files into TIGER chains
+#
+#	Author:   William S. Evans and Gregg M. Townsend
+#
+#	Date:     June 9, 2000
+#
+############################################################################
+#
+#  tgrtrack reads a fixed field length file containing track data from
+#  a GPS receiver and outputs a "line chain" (.lch) format file (see
+#  tgrprep) that can then be viewed using tgrmap.
+#
+#  Usage:  tgrtrack file
+#
+#	Input is a text file of coordinates such as those from a GPS
+#	receiver.  Lines ending with two decimal values are interpreted
+#	as specifying latitude and longitude in that order.
+#	Lines without data indicate breaks between paths.
+#
+#	Output is a line chain file
+#
+############################################################################
+#
+#  Links:  numbers, strings
+#
+############################################################################
+
+link numbers
+link strings
+
+global deltas
+global curlon, curlat
+global maxlon, minlon, maxlat, minlat
+
+procedure main(args)
+   local n, trackfile
+
+   *args = 1 | stop("usage: ", &progname, " GPStrackfile")
+   trackfile := open(args[1]) | stop("can't open ", args[1])
+   n := llrange(trackfile)
+   write("        ", rz(convertLon(minlon)), rz(convertLat(maxlat)))
+   write("        ", rz(convertLon(maxlon)), rz(convertLat(minlat)))
+   writeLCH(trackfile)
+   return
+end
+
+procedure convertLat(n)
+#  convert latitude from decimal degrees to fraction of semicircle
+#  south of North Pole, as 0000000 to 9999999.
+   static m
+   initial m := 9999999 / 180.0
+   return round(m * (90.0 - n))
+end
+
+procedure convertLon(n)
+#  convert longitude to fraction of circle east of Greenwich,
+#  as 0000000 to 9999999.
+   static m
+   initial m := 9999999 / 360.0
+
+   n := real(n)
+   if n < 0 then
+      n +:= 360.0
+   return round(m * n)
+end
+
+
+procedure writeLCH(trackfile)
+   local x, y, line, n, trackPts, dim, startlon, startlat, lon, lat, w
+
+   n := 1
+   trackPts := 0
+   deltas := ""
+
+   seek(trackfile, 1) | fail
+   repeat {
+      line := read(trackfile) | "stop"
+      every put(w := [], words(line))
+      if (lat := real(w[-2])) & (lon := real(w[-1])) &
+         (-90. <= lat <= 90.) & (-180. <= lon <= 180.) then {
+            y := convertLat(lat)
+            x := convertLon(lon)
+            if (trackPts = 0) then {	# starting a new track
+               deltas := ""
+               startlon := minlon := maxlon := curlon := x
+               startlat := minlat := maxlat := curlat := y
+               }
+            else {
+               drawto(x, y)
+               }
+            trackPts +:= 1
+            }
+         else {
+            if trackPts >= 2 then {
+               dim := startlon - minlon
+               dim <:= maxlon - startlon
+               dim <:= startlat - minlat
+               dim <:= maxlat - startlat
+               dim >:= 9999
+               write("T000|GPS Track ", n, "|", right(dim, 4),
+                     rz(startlon), rz(startlat), deltas)
+               n +:= 1
+               }
+            trackPts := 0
+            }
+      if w[1] == "stop" then break
+      }
+   return
+end
+
+procedure drawto(lon, lat)
+   local dlon, dlat
+
+   dlon := lon - curlon
+   dlat := lat - curlat
+
+   if abs(dlon | dlat) >= 5000 then {
+      drawto(curlon + dlon / 2, curlat + dlat / 2)
+      drawto(lon, lat)
+      }
+   else {
+      deltas ||:= rz(dlon + 5000, 4)
+      deltas ||:= rz(dlat + 5000, 4)
+      curlon := lon
+      curlat := lat
+      minlon >:= lon
+      maxlon <:= lon
+      minlat >:= lat
+      maxlat <:= lat
+      }
+   return
+end
+
+
+procedure rz(v, n)
+#  right-justify value in n digits with zero fill
+   /n := 7
+   return right(v, n, "0")
+end
+
+
+procedure llrange(f)
+#  scan f to set min/max lon/lat, returning record count
+   local line, n, lon, lat, w
+
+   minlon := +180.0
+   maxlon := -180.0
+   minlat := +90.0
+   maxlat := -90.0
+   n := 0
+
+   seek(f, 1)
+   while line := read(f) do line ? {
+      every put(w := [], words(line))
+      if (lat := real(w[-2])) & (lon := real(w[-1])) &
+         (-90. <= lat <= 90.) & (-180. <= lon <= 180.) then {
+            minlon >:= lon
+            maxlon <:= lon 
+            minlat >:= lat 
+            maxlat <:= lat
+            }
+      }
+   return n
+end

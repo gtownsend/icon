@@ -1,0 +1,75 @@
+############################################################################
+#
+#	File:     zipread.icn
+#
+#	Subject:  Procedures for reading files from ZIP archives
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     March 5, 2000
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	These Unix procedures read files from ZIP format archives by
+#	opening pipes to the "unzip" utility.  It is assumed that
+#	"unzip" is in the shell search path.
+#
+#	iszip(zname) succeeds if zname is a ZIP archive.
+#	zipdir(zname) opens a ZIP archive directory.
+#	zipfile(zname, fname) opens a member of a ZIP archive.
+#
+############################################################################
+#
+#	iszip(zname) succeeds if the named file appears to be
+#	a ZIP format archive file.
+#
+############################################################################
+#
+#	zipdir(zname) returns a pipe from which the members of the
+#	ZIP archive can be read, one per line, as if reading a
+#	directory.  It is assumed that zname is a ZIP archive.
+#
+############################################################################
+#
+#	zipfile(zname, fname) returns a pipe from which the
+#	file fname within the ZIP archive zname can be read.
+#	It is assumed that zname and fname are valid.
+#
+############################################################################
+#
+#   Requires: UNIX with "unzip" utility.
+#
+############################################################################
+
+
+
+#  iszip(zname) -- succeed if zname is a ZIP archive file
+
+procedure iszip(fname)		#: check for ZIP archive
+   local f, s
+
+   f := open(fname, "ru") | fail
+   s := reads(f, 4)
+   close(f)
+   return s === "PK\03\04"
+end
+
+
+
+#  zipdir(zname) -- returns a file representing the ZIP directory
+
+procedure zipdir(zname)			#: open ZIP directory
+   return open("unzip -l " || zname || " | sed -n 's/.*:..   //p'", "rp")
+end
+
+
+
+#  zipfile(zname, fname) -- open file fname inside archive zname
+
+procedure zipfile(zname, fname)		#: open member of ZIP archive
+   return open("unzip -p " || zname || " " || fname, "rp")
+end

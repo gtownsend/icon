@@ -1,0 +1,46 @@
+############################################################################
+#
+#	File:     converge.icn
+#
+#	Subject:  Procedure to produce continued-fraction convergents
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 7, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure produces continued-fraction convergents from a list
+#  of partial quotients.
+#
+############################################################################
+#
+#  Links:  rational
+#
+############################################################################
+
+link rational
+
+procedure converge(seq)		#: continued-fraction convergents
+   local prev_p, prev_q, p, q, t
+
+   seq := copy(seq)
+
+   prev_p := [0, 1]
+   prev_q := [1, 0]
+
+   while t := get(seq) do {
+      p := t * prev_p[2] + prev_p[1]
+      q := t * prev_q[2] + prev_q[1]
+      suspend rational(p, q, 1)
+      prev_p[1] := prev_p[2]
+      prev_p[2] := p
+      prev_q[1] := prev_q[2]
+      prev_q[2] := q
+      }
+
+end

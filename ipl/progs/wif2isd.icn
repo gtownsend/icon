@@ -1,0 +1,71 @@
+############################################################################
+#
+#	File:     wif2isd.icn
+#
+#	Subject:  Program to convert WIFs to ISDs
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 20, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  The following option is supported:
+#
+#	-n s	name; default "untitled"
+#
+#  Note:  The output is an xencoded ISD. 
+#
+#  There is a problem where there is treadling with multiple treadles
+#  and no liftplan.  *Presumably* that treadling can be used like a
+#  liftplan, but without, necessarily, a direct tie-up.  This problem
+#  problem has not been addressed yet.
+#
+#  If there is a liftplan, then a direct tie-up is implied by the
+#  wording in the WIF documentation.  However, that's in the interpretation
+#  of the draft.  The tie-up produced here is the one given in the
+#
+#  If there is a liftplan and a treadling with multiple treadles,
+#  the treadling is ignored.
+#
+#  Also not handled is the possibility of multiple shafts per thread.
+#  This could be dealt with as for the liftplan.  The idea is that
+#  instead of a threading corresponding to a single shaft, there are
+#  some number of different shaft patterns, like there are liftplan
+#  patterns.
+#
+#  The liftplan is represented as concatenated rows of shaft patterns in the
+#  irder they first appear.  Thus, the symbols used for them can be
+#  reconstructed with the ISD is processed.
+#
+#  This program does not attempt to detect or correct errors in WIFs,
+#  but it does try to work around some common problems.
+#
+############################################################################
+#
+#  Links:  options, wifcvt
+#
+############################################################################
+
+link options
+link wifisd
+
+global data_default
+global data_entries
+global sections
+global wif
+
+procedure main(args)
+   local opts, title, palette
+
+   opts := options(args, "n:")
+
+   title := \opts["n"] | "untitled"
+
+   wif2isd(&input, title)
+
+end

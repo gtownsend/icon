@@ -6,7 +6,7 @@
 #
 #	Author:   Alan Beale
 #
-#	Date:     February 18, 1997
+#	Date:     August 7, 1999
 #
 ############################################################################
 #
@@ -39,6 +39,8 @@
 #	seteq(S1, S2)	tests equivalence of sets S1 and S2.
 #
 #	setlt(S1, S2)	tests inclusion of set S1 in S2.
+#
+#	simage(S)	string image of set
 #
 ############################################################################
 
@@ -107,5 +109,16 @@ procedure setlt(set1, set2)		#: set inclusion
    every x := !set1 do
       if not member(set2, x) then fail
    return set2
+
+end
+
+procedure simage(set)			#: string image of set
+   local result
+
+   result := ""
+
+   every result ||:= image(!set) || ", "
+
+   return "{ " || result[1:-2] || " }"
 
 end

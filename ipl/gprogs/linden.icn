@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     January 6, 1999
+#	Date:     June 21, 1999
 #
 ############################################################################
 #
@@ -135,7 +135,7 @@ link wopen
 
 procedure main(args)
    local line, gener, axiom, angle, opts, i, s, c, symbol, rewrite
-   local allchars, rhs, value, spec, x, y, length, w, h, delay
+   local allchars, rhs, value, spec, x, y, length, w, h, delay, name
 
    rewrite := table()
    allchars := ''			# cset of all rhs characters
@@ -165,6 +165,7 @@ procedure main(args)
                "comment":  &null		# ignore comments
                "length":   length := value   
                "gener":    gener := value   
+               "name":     name := value
                }				# ignore others
             }
          else write(&errout, "malformed input: ", tab(0))
@@ -193,6 +194,7 @@ procedure main(args)
    /x := 0
    /y := 0
    /delay := 0
+   /name := "intitled"
 
    if /axiom then stop("*** no axiom")
 
@@ -200,8 +202,8 @@ procedure main(args)
       WOpen("size=" || w || "," || h, "dx=" || (w / 2),
       "dy=" || (h / 2)) | stop("*** cannot open window")
       linddraw(x, y, axiom, rewrite, length, angle, gener, delay)
-      if \opts["s"] then WriteImage("linden.gif")
-      Event()
+      if \opts["s"] then WriteImage(name || ".gif")
+      WDone()
       }
    else {
       every writes(lindgen(!axiom, rewrite, gener))

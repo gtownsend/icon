@@ -1,0 +1,131 @@
+############################################################################
+#
+#	File:     gif2isd.icn
+#
+#	Subject:  Program to produce a ISD from bi-level image
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 23, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program takes a B&W GIF image whose name is given on the
+#  command line and writes an ISD for a draft to standard output.
+#
+#  If the GIF is not strictly B&W, non-black pixels are assumed to
+#  be white.
+#
+############################################################################
+#
+#  Links:  graphics, weavutil, xcode
+#
+############################################################################
+
+link graphics
+link weavutil
+link xcode
+
+procedure main(args)
+   local rows, cols, treadling, threading, count, tieup, y, width, height
+   local shafts, treadles, i, tie_line, row, treadle, draft, p
+
+   WOpen("image=" || args[1], "canvas=hidden") |
+      stop("*** cannot open image")
+
+   width := WAttrib("width")
+   height := WAttrib("height")
+
+   rows := []			# start with empty list
+
+   every y := 0 to height - 1 do {
+      row := ""
+      every p := Pixel(0, y, width, 1) do
+         if ColorValue(p) == "0,0,0" then row ||:= "1"
+            else row ||:= "0"
+      put(rows, row)
+      }
+
+   cols := rot(rows)		# rotate to get columns
+
+   treadles := examine(rows)	# get treadles
+   shafts := examine(cols)	# get shafts
+
+   treadling := []		# construct treadling sequence
+   every put(treadling, treadles[!rows])
+
+   threading := []		# construct threading sequence
+   every put(threading, shafts[!cols])
+
+   tieup := table()
+
+   every row := key(treadles) do {		# get unique rows
+      treadle := treadles[row]			# assigned treadle number
+      tie_line := repl("0", *shafts)		# blank tie-up line
+      every i := 1 to *row do			# go through row
+         if row[i] == "1" then			#    if warp on top
+            tie_line[threading[i]] := "1"	#       mark shaft position
+      tieup[treadle] := tie_line		# add line to tie-up
+      }
+
+   draft := isd("gif2isd")
+
+   draft.threading := threading
+   draft.treadling := treadling
+   draft.shafts := *shafts
+   draft.treadles := *treadles
+   draft.width := *shafts
+   draft.height := *treadles
+   draft.tieup := tieup
+   draft.color_list := ["black", "white"]
+   draft.warp_colors := list(*threading, 1)
+   draft.weft_colors := list(*treadling, 2)
+
+   write(xencode(draft))
+
+end
+
+procedure tromp(treadle)
+   local result
+
+   result := ""
+   
+   treadle ? {
+      every result ||:= upto("1") || ","
+      }
+
+   return result[1:-1]
+
+end
+
+procedure examine(array)
+   local count, lines, line
+
+   lines := table()			# table to be keyed by line patterns
+   count := 0
+
+   every line := !array do		# process lines
+      /lines[line] := (count +:= 1)	# if new line, insert with new number
+
+   return lines
+
+end
+
+procedure rot(rows)
+   local cols, row, grid, i
+
+   cols := list(*rows[1], "")
+
+   every row := !rows do {
+      i := 0
+      every grid := !row do
+         cols[i +:= 1] := grid || cols[i]
+      }
+
+   return cols
+
+end

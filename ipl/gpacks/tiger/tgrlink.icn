@@ -4,9 +4,9 @@
 #
 #	Subject:  Program to combine TIGER line chains
 #
-#	Author:   Gregg M. Townsend
+#	Authors:  Gregg M. Townsend and William S. Evans
 #
-#	Date:     October 26, 1995
+#	Date:     June 23, 2000
 #
 ############################################################################
 #
@@ -25,7 +25,7 @@
 #  without introducing visible artifacts.
 #
 #  The maxangle parameter, defaulting to 30 degrees, limits the change in
-#  angle of the chain pathe due to the removal of a middle point.  This
+#  angle of the chain path due to the removal of a middle point.  This
 #  prevents narrow rectangles from turning into pointed triangles.
 #
 #  The input file must be randomly seekable (a disk file, not a pipe).
@@ -103,7 +103,7 @@ global done			# set of offsets already output
 global xoff, yoff		# lists of deltas in current chain
 
 
-record crec (code, key, x1, x2, y1, y2, rev, aindex)	# chain record data
+record crec(code, key, x1, x2, y1, y2, rev, aindex)	# chain record data
 
 
 
@@ -152,7 +152,7 @@ procedure loadfile()
       r := crack(line)
 
       if /(alist := chtab[r.code]) then {
-	 # first time for this code; make new tables.
+         # first time for this code; make new tables.
          alist := chtab[r.code] := list(SECTORS)
          every !alist := table()
          }
@@ -262,7 +262,7 @@ procedure putchain(code, k, o)
       ymax <:= y
       }
 
-   d := x - xmin			# find max deviatoin from x1 | y1
+   d := x - xmin			# find max deviation from x1 | y1
    d <:= xmax - x
    d <:= y - ymin
    d <:= ymax - y
@@ -285,26 +285,33 @@ end
 # putdel(o) -- record deltas (only) for chain at offset o in input file.
 
 procedure putdel(o)
-   local line, r, dy
+   local line, r, dy, mark
 
    # read the line located at offset o
-   seek(ifile, o) | stop(&progname, ":can't reposition input file")
-   line := read(ifile) | stop(&progname,
-				    ": input file changed during processing")
+   seek(ifile, o) | stop(&progname, ": can't reposition input file")
+   line := read(ifile) |
+      stop(&progname, ": input file changed during processing")
    # crack its data
    r := crack(line)
 
    # append deltas
-   line[23:0] ? 
+   line ? {
+      move(4)
+      if ="|" then
+         tab(upto('|') + 1)		# skip feature name
+      move(18)
+
       if /r.rev then			# if endpoints were not reversed
          while put(xoff, move(4) - 5000) do
             put(yoff, move(4) - 5000)
       else {
+         mark := &pos
          tab(0)				# if must start at far end
-         while put(yoff, 5000 - move(-4)) do
+         while (mark < &pos) & (put(yoff, 5000 - move(-4))) do {
             put(xoff, 5000 - move(-4))
+            }
          }
-
+      }
    return r				# return cracked data
 end
 
@@ -386,7 +393,10 @@ procedure crack(line)
 
    line ? {
       o.code := move(4)
-      move(4)
+      if o.code ||:= ="|" then		# if feature name present
+         o.code ||:= tab(upto('|') + 1)
+
+      move(4)				# skip old dimension measurement
 
       x1 := x2 := integer(move(7))
       y1 := y2 := integer(move(7))

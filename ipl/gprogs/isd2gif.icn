@@ -1,0 +1,60 @@
+############################################################################
+#
+#	File:     isd2gif.icn
+#
+#	Subject:  Program to create woven image from ISD
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 20, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program reads a internal structure draft and creates a GIF image of
+#  the corresponding weave.  The command-line option
+#	-n s
+#  allows the basename for the GIF file to be specified.  Otherwise, it
+#  is take from the name field of the ISD. If other command-line arguments
+#  are given, they are #  used as attributes for the window in which the
+#  woven image is created.
+#
+############################################################################
+#
+#  Links:  options, weavegif, weavutil, xcode
+#
+############################################################################
+
+link options
+link weavegif
+link weavutil
+link xcode
+
+procedure main(args)
+   local draft, width, spacing, bg, opts
+
+   isd			# Hands off, linker.
+
+   opts := options(args, "n:")
+
+   width := 5
+   spacing := 0
+   bg := "black"
+
+   push(args, "canvas=hidden")
+
+   draft := xdecode(&input) | stop("*** cannot decode isd")
+
+   draft.name := \opts["n"]		# override if given
+
+   if /draft.name then draft.name := "untitled"
+   /draft.width := *draft.threading
+   /draft.height := *draft.treadling
+
+   WriteImage(weavegif(draft, args),
+      draft.name || ".gif")
+
+end

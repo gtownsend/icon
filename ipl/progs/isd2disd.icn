@@ -1,0 +1,41 @@
+############################################################################
+#
+#	File:     isd2disd.icn
+#
+#	Subject:  Program to show convert ISD draft to drawdown form
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 20, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program converts an ISD to an ISD with drawdown colors.
+#
+############################################################################
+#
+#  Links:  weavutil, xcode
+#
+############################################################################
+
+link weavutil
+link xcode
+
+procedure main()
+   local draft
+
+   isd				# fly a kite, linker
+
+   draft := xdecode(&input)
+
+   draft.warp_colors := list(*draft.threading, 1)	# black
+   draft.weft_colors := list(*draft.treadling, 2)	# white
+   draft.color_list := ["black", "white"]
+
+   xencode(draft, &output)
+
+end

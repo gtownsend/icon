@@ -1,0 +1,135 @@
+############################################################################
+#
+#	File:     clipping.icn
+#
+#	Subject:  Procedures for clipping lines
+#
+#	Authors:  William S. Evans and Gregg M. Townsend
+#
+#	Date:     June 16, 2000
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	ClipLine(W, L, x, y, w, h) clips the multisegment line specified
+#	by coordinates in L to the region (x, y, w, h), which defaults
+#	to the clipping region of the window W.  ClipLine() returns a
+#	list of coordinates suitable for calling DrawSegment().  If no
+#	segments remain after clipping, ClipLine() fails.
+#
+#	Coalesce(L) connects adjoining segments from a DrawSegment()
+#	argument list such as is produced by ClipLine().  Coalesce()
+#	returns a list of DrawLine() lists.
+#
+#	DrawClipped(W, x1, y1, x2, y2, ...) draws a line using ClipLine()
+#	with the clipping region of the window W.  DrawClipped() is
+#	superior to DrawLine() only when lines with extremely large
+#	coordinate values (beyond +/-32767) are involved.
+#
+############################################################################
+
+ 
+#  DrawClipped(W, x1, y1, x2, y2, ...) -- draw line using ClipLine()
+
+procedure DrawClipped(a[])		#: draw line with clipping
+   local win
+
+   if type(a[1]) == "window" then
+      win := pop(a)
+   else
+      win := &window
+
+   DrawSegment ! push(ClipLine(win, a), win)
+   return win
+end
+
+
+#  ClipLine(W, L, x, y, w, h) -- clip polyline to region, returning segments.
+#
+#  Cyrus-Beck parametric line clipping with Liang-Barsky
+#  optimizations for axis-aligned rectangular clipping regions.
+
+procedure ClipLine(win, L, x, y, w, h)	#: clip line for DrawSegment
+   local i, ret, tin, tout, delx, dely, x0, x1, xmax, y0, y1, ymax
+
+   if (type(win) == "list") then		# window param is optional
+      return ClipLine(&window, win, L, x, y, w)
+
+   /x := WAttrib(win, "clipx") - WAttrib(win, "dx")
+   /y := WAttrib(win, "clipy") - WAttrib(win, "dy")
+   /w := WAttrib(win, "clipw")
+   /h := WAttrib(win, "cliph")
+   if w < 0 then
+      x -:= (w := -w)
+   if h < 0 then
+      y -:= (h := -h)
+   xmax := x + w
+   ymax := y + h
+
+   ret := []
+   x1 := L[1]
+   y1 := L[2]
+
+   every i := 3 to *L by 2 do {
+      x0 := x1
+      y0 := y1
+      x1 := L[i]
+      y1 := L[i + 1]
+      tin := 0.0
+      tout := 1.0
+
+      delx := real(x1 - x0)
+      if delx < 0.0 then {
+         tin <:= (xmax - x0) / delx
+         tout >:= (x - x0) / delx
+         }
+      else if delx > 0.0 then {
+         tin <:= (x - x0) / delx
+         tout >:= (xmax - x0) / delx
+         }
+      else
+         x <= x0 <= xmax | next
+      if tout < tin then next
+   
+      dely := real(y1 - y0)
+      if dely < 0.0 then {
+         tin <:= (ymax - y0) / dely
+         tout >:= (y - y0) / dely
+         }
+      else if dely > 0.0 then {
+         tin <:= (y - y0) / dely
+         tout >:= (ymax - y0) / dely
+         }
+      else
+         y <= y0 <= ymax | next
+      if tout < tin then next
+
+      put(ret, x0 + tin*delx, y0 + tin*dely, x0 + tout*delx, y0 + tout*dely)
+      }
+
+   if *ret > 0 then
+      return ret
+   else
+      fail
+end
+
+
+#  Coalesce(L) -- connect adjoining segments
+
+procedure Coalesce(L)			#: connect adjoining segments
+   local i, all, seg, x1, y1, x2, y2
+
+   all := []
+   every i := 1 to *L by 4 do {
+      x1 := L[i]
+      y1 := L[i + 1]
+      if x1 ~=== x2 | y1 ~=== y2 then
+         put(all, seg := [x1, y1])
+      put(seg, x2 := L[i + 2], y2 := L[i + 3])
+      }
+
+   return all
+end

@@ -1,0 +1,232 @@
+############################################################################
+#
+#	File:     colorwif.icn
+#
+#	Subject:  Program to a WIF from unravel data
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 18, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+#############################################################################
+#
+#  Input is expected to be the output of unravel -r.
+#
+#############################################################################
+#
+#  This program takes information from a image solved by unravel.icn to
+#  produce a draft.
+#
+#  The option -o i determines how optional choices at intersections are
+#  handled:
+#
+#	0	random (default)
+#	1	warp
+#	2	weft
+#	3	alternating
+#
+############################################################################
+#
+#  Links:  numbers, options, weavutil, patxform, patutils
+#
+############################################################################
+
+link numbers
+link options
+link patutils
+link patxform
+
+record analysis(rows, sequence, patterns)
+
+procedure main(args)
+   local warp, weft, pattern, rows, i, j, count, opts
+   local threading, treadling, color_list, colors, choice
+   local symbols, symbol, drawdown, draft, warp_colors, weft_colors, pixels
+
+   opts := options(args, "o+")
+
+   choice := opts["o"] | 0
+
+   (warp := read()  & weft := read() & pattern := read()) |
+      stop("*** short file")
+
+   pixels := real(*pattern)
+
+   colors := warp ++ weft
+
+   color_list := []
+
+   every put(color_list, PaletteColor("c1", !colors))
+
+   warp_colors := []
+
+   every put(warp_colors, upto(!warp, colors))
+
+   weft_colors := []
+
+   every put(weft_colors, upto(!weft, colors))
+
+   drawdown := []
+
+   pattern ? {
+      while put(drawdown, move(*warp))
+      }
+
+   count := 0
+
+   every i := 1 to *weft do {		# row
+      every j := 1 to *warp do {		# column
+         if weft[i] == warp[j] then {		# option point
+            count +:= 1
+            drawdown[i, j] := case choice of {
+               0  :  ?2 - 1				# random
+               1  :  "1"				# warp
+               2  :  "0"				# weft
+               3  :  if count % 2 = 0 then "1" else "2"	# alternative
+               }
+            }
+         else if drawdown[i, j] == weft[i] then drawdown[i, j] := "0"
+         else drawdown[i, j] := "1"
+         }
+      }
+
+   treadling := analyze(drawdown)
+   drawdown := protate(drawdown, "cw")
+   threading := analyze(drawdown)
+
+   symbols := table("")
+
+   every pattern := !treadling.patterns do {
+      symbol := treadling.rows[pattern]
+      symbols[symbol] := repl("0", *threading.rows)
+      pattern ? {
+         every i := upto('1') do
+            symbols[symbol][threading.sequence[i]] := "1"
+         }
+      }
+
+   symbols := sort(symbols, 3)
+   rows := []
+
+   while get(symbols) do
+      put(rows, get(symbols))
+
+   #  Now output the WIF.
+
+   write("[WIF]")
+   write("Version=1.1")
+   write("Date=" || &dateline)
+   write("Developers=ralph@cs.arizona.edu")
+   write("Source Program=colorwif.icn")
+
+   write("[CONTENTS]")
+   write("Color Palette=yes")
+   write("Text=yes")
+   write("Weaving=yes")
+   write("Tieup=yes")
+   write("Color Table=yes")
+   write("Threading=yes")
+   write("Treadling=yes")
+   write("Warp colors=yes")
+   write("Weft colors=yes")
+   write("Warp=yes")
+   write("Weft=yes")
+
+   write("[COLOR PALETTE]")
+   write("Entries=", *color_list)
+   write("Form=RGB")
+   write("Range=0," || 2 ^ 16 - 1)
+
+   write("[TEXT]")
+   write("Title=example")
+   write("Author=Ralph E. Griswold")
+   write("Address=5302 E. 4th St., Tucson, AZ 85711-2304")
+   write("EMail=ralph@cs.arizona.edu")
+   write("Telephone=520-881-1470")
+   write("FAX=520-325-3948")
+
+   write("[WEAVING]")
+   write("Shafts=", *threading.rows)
+   write("Treadles=", *treadling.rows)
+   write("Rising shed=yes")
+
+   write("[WARP]")
+   write("Threads=", *threading.sequence)
+   write("Units=Decipoints")
+   write("Thickness=10")
+
+   write("[WEFT]")
+   write("Threads=", *treadling.sequence)
+   write("Units=Decipoints")
+   write("Thickness=10")
+
+   #  These are provided to produce better initial configurations when
+   #  WIFs are imported to some weaving programs.
+
+   write("[WARP THICKNESS]")
+   write("[WEFT THICKNESS]")
+
+   write("[COLOR TABLE]")
+   every i := 1 to *color_list do
+      write(i, "=", ColorValue(color_list[i]))
+
+   write("[WARP COLORS]")
+   every i := 1 to *warp_colors do
+      write(i, "=", warp_colors[i])
+
+   write("[WEFT COLORS]")
+   every i := 1 to *weft_colors do
+      write(i, "=", weft_colors[i])
+
+   write("[THREADING]")
+   every i := 1 to *threading.sequence do
+      write(i, "=", threading.sequence[i])
+
+   write("[TREADLING]")
+   every i := 1 to *treadling.sequence do
+      write(i, "=", treadling.sequence[i])
+
+   write("[TIEUP]")
+   every i := 1 to *rows do
+      write(i, "=", tromp(rows[i]))
+
+end
+
+procedure tromp(treadle)
+   local result
+
+   result := ""
+   
+   treadle ? {
+      every result ||:= upto("1") || ","
+      }
+
+   return result[1:-1]
+
+end
+
+procedure analyze(drawdown)
+   local sequence, rows, row, count, patterns
+
+   sequence := []
+   patterns := []
+
+   rows := table()
+
+   count := 0
+
+   every row := !drawdown do {
+      if /rows[row] then {
+         rows[row] := count +:= 1
+         put(patterns, row)
+         }
+      put(sequence, rows[row])
+      }
+
+   return analysis(rows, sequence, patterns)
+
+end

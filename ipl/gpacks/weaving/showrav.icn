@@ -1,0 +1,197 @@
+############################################################################
+#
+#	File:     showrav.icn
+#
+#	Subject:  Program to display woven pattern
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     June 23, 2000
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Showrav displays an unraveled weaving using shading to show how
+#	the threads (actually, they look more like ribbons) pass over
+#	and under each other.  It reads raw output of the form produced
+#	by "unravel -r".  At any intersection where both the warp and
+#	weft threads are the correct color, the thread is chosen randomly.
+#
+#	Usage:  showrav [winoptions] file...
+#
+#	Window commands are:
+#		q	quit
+#		r	render again with different random choices
+#		s	save image
+#		<SP>	advance to next file
+#		<BS>	go back one file
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: graphics, interact, random
+#
+############################################################################
+
+
+
+link graphics
+link interact
+link random
+
+
+$define CMAX 12		# maximum cell size
+$define CMIN 3		# minimum cell size (overrides WMAX/HMAX)
+
+
+global normal, lighter, darker		# mapping strings for c1 palette colors
+
+global cols, rows, data
+
+global WMAX, HMAX			# maximum window size
+
+global W				# cell size
+global B				# border width
+
+
+procedure main(args)
+   local n
+
+   Window("canvas=hidden", "size=1000,800", args)	# that's MAXIMUM size
+   WMAX := WAttrib("width")				# user may override
+   HMAX := WAttrib("height")
+
+   if *args = 0 then stop("usage: ", &progname, " [winoptions] file...")
+
+   setcolors()
+   randomize()
+   n := 1
+   load(args[n])
+   render()
+
+   repeat case Event() of {
+      !QuitEvents():	exit()
+      !"rR":		render()
+      !"sS":		snapshot()
+      !" \n\r": {
+         if n < *args then {
+            load(args[n +:= 1])
+            render()
+            }
+         }
+      !" \b\d": {
+         if n > 1 then {
+            load(args[n -:= 1])
+            render()
+            }
+         }
+      }
+end
+
+
+procedure load(fname)
+   local f, s
+
+   f := open(fname) | stop("cannot open ", fname)
+   cols := read(f)
+   rows := read(f)
+   data := read(f)
+   close(f)
+
+   (*\cols * *\rows = *\data) | stop("malformed input: ", fname)
+   W := WMAX / *cols
+   W >:= HMAX / *rows
+   W >:= CMAX
+   W <:= CMIN
+   B := W / 6
+   B <:= 1
+
+   s := "size=" || (W * *cols) || "," || (W * *rows)
+   WAttrib(s, "label=" || fname, "canvas=normal")
+   return
+end
+
+
+procedure render()
+   local x, y, c
+
+   every x := 1 to *cols do
+      warp(x, cols[x])
+
+   data ? {
+      every y := 1 to *rows do {
+         every x := 1 to *cols do {
+            c := move(1)
+            if c ~== rows[y] then
+               vert(x, y, c)
+            else if c ~== cols[x] then
+               horz(x, y, c)
+            else
+               either(x, y, c)
+            }
+         }
+      }
+   return
+end
+
+
+
+procedure warp(x, c)
+   local h
+
+   x := W * (x - 1)
+   h := W * *rows
+   Fg(PaletteColor("c1", map(c, normal, lighter)))
+   FillRectangle(x, 0, B, h)
+   Fg(PaletteColor("c1", c))
+   FillRectangle(x + B, 0, W - 2 * B, h)
+   Fg(PaletteColor("c1", map(c, normal, darker)))
+   FillRectangle(x + W, 0, -B, h)
+   return
+end
+
+
+procedure vert(x, y, c)
+   # nothing to do; let warp thread show through
+   return
+end
+
+
+procedure horz(x, y, c)
+   x := W * (x - 1)
+   y := W * (y - 1)
+   Fg(PaletteColor("c1", map(c, normal, lighter)))
+   FillRectangle(x, y, W, B)
+   Fg(PaletteColor("c1", c))
+   FillRectangle(x, y + B, W, W - 2 * B)
+   Fg(PaletteColor("c1", map(c, normal, darker)))
+   FillRectangle(x, y + W, W, -B)
+   return
+end
+
+
+procedure either(x, y, c)
+   static procs
+   initial procs := [horz, vert]
+   return (?procs)(x, y, c)
+end
+
+
+procedure setcolors()
+
+   lighter := "2234565^[&Cpabc,;+*`ijklmABCDEFGHIJKLMNOPQRSTUVWXYZ"
+   normal  := "0123456789?!ABCDEFGHIJKLMNOPQRSTUVWXYZnopqrstuvwxyz"
+   darker  := "1012344MKCp0NOPQRSTUVWXYZnopqrstuvwxyz0000000000000"
+
+   lighter ||:= "#$&,;+*`<([{^6666666666666#$&,;+*`<([{^"
+   normal  ||:= "abcdefghijklm#$&,;+*`<([{^@%|.:-/'>)]}="
+   darker  ||:= "@%|.:-/'>)]}=@%|.:-/'>)]}=nopqrstuvwxyz"
+
+   return
+end

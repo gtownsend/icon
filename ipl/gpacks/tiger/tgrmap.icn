@@ -4,22 +4,22 @@
 #
 #	Subject:  Program to generate map from TIGER files
 #
-#	Author:   Gregg M. Townsend
+#	Authors:  Gregg M. Townsend and William S. Evans
 #
-#	Date:     July 31, 1998
+#	Date:     July 28, 2000
 #
 ############################################################################
 #
-#  Tgrmap draws maps based on TIGER94 data files from the Census Bureau.
+#  Tgrmap draws maps based on TIGER data files from the Census Bureau.
 #  Data files must be in "line chain" (.lch) format as written by the
 #  associated "tgrprep" program.
 #
-#  Usage:  tgrmap [file.lch]
-#	Input is a file of chains created by "tgrprep.icn".
+#  Usage:  tgrmap [file.lch ...]
+#	Input is zero or more files of chains created by "tgrprep.icn".
 #
 #  All manipulation is done by mouse actions, keyboard shortcuts, or
-#  by resizing the window.  There are no menus (although they would be 
-#  nice to have.)
+#  window resizing.  There are no menus (although they would be nice
+#  to have.)
 #
 #  Mouse actions:
 #	Sweeping an area with the left mouse button zooms the image
@@ -29,24 +29,28 @@
 #	Clicking the center mouse button pops up the Layers dialog,
 #	which selects the categories of data to be shown or hidden.
 #	No other actions are accepted while the dialog box is up.
+#	(This only works on 8-bit displays, a vanishing breed.)
 #
-#  Keyboard shortcuts (where @ represents the Meta or Alt key):
-#	@L	bring up the layers dialog
-#	@R	refresh the display
-#	@O	open a new file
-#	@P	create PostScript file for printing
-#	@M	create PPM image
-#	@S	save the displayed data to file
-#	@Q	quit
-#	@+	zoom in by a factor of 2
-#	@-	zoom out by a factor of 2
-#	@2-@9	zoom to factor given
-#	@1	reset original map (centered and unzoomed)
+#	Clicking the right mouse button when the cursor is on a line
+#	brings up a subwindow that shows the name and type of the
+#	line.
+#
+#  Keyboard shortcuts:
+#	F	find a feature by name
+#	L	bring up the layers dialog
+#	M	create PPM image
+#	O	open a new file
+#	P	create PostScript file for printing
+#	Q	quit
+#	R	refresh the display
+#	S	save the displayed data to file
+#	+	zoom in by a factor of 2
+#	-	zoom out by a factor of 2
+#	2-9	zoom to factor given
+#	1	reset original map (centered and unzoomed)
 #	arrow	arrow keys shift the center of the displayed area
 #
-#  Window resizing is allowed.  After either a resize or an arrow-key
-#  image shift, the display is *not* redrawn.  After completing a
-#  sequence of resizes and/or shifts, enter @R to redraw, if needed.
+#  Window resizing is allowed.
 #
 ############################################################################
 #
@@ -54,21 +58,20 @@
 #
 ############################################################################
 #
-#  Links:  graphics, pscript
+#  Links:  clipping, graphics, numbers, pscript, strings
 #
 ############################################################################
 
 #  Ideas for future changes:
-#	Allow events to interrupt a long display
 #	Add menu alternatives to keyboard shortcuts
 #	Write *color* PostScript, at least as an option
 #	   (the programming is easy; tuning the colors is the hard part)
 
-#  Known bugs:
-#	Sometimes all features disappear under extreme zooming.
-
+link clipping
 link graphics
+link numbers
 link pscript
+link strings
 
 $include "keysyms.icn"
 
@@ -83,9 +86,11 @@ $define MARGIN 5			# margin around full-sized map
 $define CLIP 2				# clipping margin, allowing for linewdth
 $define SHIFTBY 32			# number of pixels to shift at once
 $define PSSCALE 100			# scaling from pixels to PostScript
+$define MAXDRAW 4000			# maximum (even) args to avoid error 301
+$define EPSILON 2.5			# how close is enough when clicking
 
 # file values
-global ifile, fname			# input file and its name
+global ifileList, fnameList		# input files and their names
 global lonmin, lonmax, latmin, latmax 	# input range
 
 # windows
@@ -99,9 +104,13 @@ global dx, dy				# current translation values
 global fullx, fully			# scaling for zoom-1 display
 
 # display parameters
-global ctrlong, ctrlat			# longitude/latitude of center
+global ctrlon, ctrlat			# longitude/latitude of center
 global curzoom, xscale, yscale		# current zoom factor and scaling
 global lonrange, latrange		# distance from center to edge
+
+# inquiry parameters
+global litName				# string to match against feature name
+
 
 # the classification list finds things based on line type
 record class(				# classification record
@@ -119,7 +128,7 @@ global ctable				# table keyed by two-char prefix
 
 
 procedure main(args)
-   local e, xywh, lon1, lat1, lon2, lat2
+   local e, xywh, lon1, lat1, lon2, lat2, hilightOnly
 
    Window("size=870,870", "bg=pale moderate brown", args)
 
@@ -128,14 +137,14 @@ procedure main(args)
    &error := 0
 
    Font(("Helvetica" | "Univers" | "LucidaSans") || ",bold,12")	# may fail
-   WAttrib("pointer=crosshair")					# may fail
+   WAttrib("pointer=cross" | "pointer=crosshair")		# may fail
    msgwin := Clone(&window)		# save shaded window for notices
    setclasses()
 
-   if args[1] then
-      setfile(args[1]) | exit()
+   if *args > 0 then
+      setfiles(args) | exit()
    else
-      setfile() | exit()
+      setfiles() | exit()
 
    setwindow()
    setcenter()
@@ -144,75 +153,90 @@ procedure main(args)
 
    repeat case e := Event() of {
 
-      &meta & !"01": {
+      !"01": {
          setregion(lonmin, lonmax, latmin, latmax)
          drawmap()
          }
 
-      &meta & !"23456789":	{ setzoom(e); drawmap() }
-      &meta & !"+=":		{ setzoom(2.0 * curzoom); drawmap() }
-      &meta & "-":		{ setzoom(0.5 * curzoom); drawmap() }
+      !"23456789":	{ setzoom(e); drawmap() }
+      !"+=":		{ setzoom(2.0 * curzoom); drawmap() }
+      "-":		{ setzoom(0.5 * curzoom); drawmap() }
 
-      &meta & !"Oo": {
-         if setfile() then {
+      !"Oo": {
+         if setfiles() then {
             setwindow()
-	    setcenter()
-	    setzoom()
+            setcenter()
+            setzoom()
             drawmap()
             }
          }
 
-      &meta & !"Ll":	setlayers()
-      &meta & !"Rr":	drawmap()
+      !"Ll":	setlayers()
+      !"Rr":	drawmap()
 
-      &meta & !"Mm": {
-	 tmpwin := WOpen("canvas=hidden",
-	    "width=" || WAttrib("width"), "height=" || WAttrib("height"))
-	 if /tmpwin then {
-	    Notice("can't open temporary canvas", "for PPM snapshot")
-	    break
-	    }
-	 CopyArea(&window, tmpwin)
-	 writefile(writeppm, "Write PPM file:", "Writing PPM file...")
-	 WClose(tmpwin)
-	 tmpwin := &null
-	 }
+      !"Mm": {
+         tmpwin := WOpen("canvas=hidden",
+            "width=" || WAttrib("width"), "height=" || WAttrib("height"))
+         if /tmpwin then {
+            Notice("can't open temporary canvas", "for PPM snapshot")
+            break
+            }
+         CopyArea(&window, tmpwin)
+         writefile(writeppm, "Write PPM file:", "Writing PPM file...")
+         WClose(tmpwin)
+         tmpwin := &null
+         }
 
-      &meta & !"Pp":	
-	 writefile(writeps, "Write PostScript file:", "Writing PostScript...")
+      !"Pp":	
+         writefile(writeps, "Write PostScript file:", "Writing PostScript...")
 
-      &meta & !"Ss":	
-	 writefile(writelch, "Save displayed portion as:", "Saving...")
+      !"Ss":	
+         writefile(writelch, "Save displayed portion as:", "Saving...")
 
-      &meta & QuitEvents():	break
+      !"Ff": {
+         if /litName then {
+            hilightOnly := 1
+            litName := ""
+            }
+         else {
+            hilightOnly := &null
+         }
+         if TextDialog("Find feature named...", , litName) == "Okay" then {
+            litName := map(dialog_value[1])
+            if litName == "" then litName := &null
+            drawmap(hilightOnly)
+         }
+      }
 
-      Key_Left | Key_KP_Left:	shift(-SHIFTBY, 0)
-      Key_Right | Key_KP_Right:	shift(+SHIFTBY, 0)
-      Key_Up   | Key_KP_Up:	shift(0, -SHIFTBY)
-      Key_Down | Key_KP_Down:	shift(0, +SHIFTBY)
+      QuitEvents():	break
+
+      Key_Left | Key_KP_Left:	shift(e, +SHIFTBY, 0)
+      Key_Right | Key_KP_Right:	shift(e, -SHIFTBY, 0)
+      Key_Up | Key_KP_Up:	shift(e, 0, +SHIFTBY)
+      Key_Down | Key_KP_Down:	shift(e, 0, -SHIFTBY)
 
       &lpress: {
          xywh := Sweep()
          if xywh[3|4] < 10 then
             next
-         lon1 := ctrlong + (get(xywh) - 0.5) / xscale
+         lon1 := ctrlon + (get(xywh) - 0.5) / xscale
          lat1 := ctrlat + (get(xywh) - 0.5) / yscale
          lon2 := lon1 + (get(xywh) + 0.5) / xscale
-	 lat2 := lat1 + (get(xywh) + 0.5) / yscale
+         lat2 := lat1 + (get(xywh) + 0.5) / yscale
          setregion(lon1, lon2, lat1, lat2)
          drawmap()
          }
 
       &mrelease: {
-	 setlayers()
-	 }
+         setlayers()
+         }
 
       &rrelease: {
-	 # should pop up a menu for selecting actions
-	 }
+         identify(&x, &y)
+         }
 
       &resize: {
-	 resize()
+         resize()
          }
    }
 end
@@ -223,24 +247,24 @@ procedure writefile(proc, caption, message)
 
    repeat case OpenDialog(msgwin, caption) of {
       "Okay": {
-	 if *dialog_value = 0 then
-	    next
-	 if close(open(oname := dialog_value)) then
-	    case TextDialog(msgwin, "Overwrite existing file?", , , ,
-	       ["Yes","No","Cancel"]) of {
-		  "Yes":	&null
-		  "No":		next
-		  "Cancel":	fail
-	       }
-	 if ofile := open(oname, "w") then
-	    break
-	 case TextDialog(msgwin, "Cannot open " || oname) of {
-	    "Okay":	next
-	    "Cancel":	fail
-	    }
-	 }
+         if *dialog_value = 0 then
+            next
+         if close(open(oname := dialog_value)) then
+            case TextDialog(msgwin, "Overwrite existing file?", , , ,
+               ["Yes", "No", "Cancel"]) of {
+                  "Yes":	&null
+                  "No":		next
+                  "Cancel":	fail
+               }
+         if ofile := open(oname, "w") then
+            break
+         case TextDialog(msgwin, "Cannot open " || oname) of {
+            "Okay":	next
+            "Cancel":	fail
+            }
+         }
       "Cancel":
-	 fail
+         fail
       }
 
    Popup(msgwin, , , 32 + TextWidth(msgwin, message), 32,
@@ -255,58 +279,70 @@ procedure popmsg(message, proc, ofile)
 end
 
 
-procedure setfile(s)
-   local f
+procedure setfiles(L)
+   local f, fname
 
-   /s := ""
-   repeat {
-      until s ~== "" do {
-         case OpenDialog(msgwin, "Input file:") of {
-            "Okay":    s := dialog_value
+   /L := list()
+   fnameList := list()
+   every close(!(\ifileList))
+   ifileList := list()
+   prescan()			# reset lonmin,lonmax,latmin,latmax
+   until *fnameList > 0 do {
+      until *L > 0 do {
+         case OpenDialog(msgwin, "Input file(s):") of {
+            "Okay":    put(L, words(dialog_value))
             "Cancel":  fail
-            }
          }
-      if not (f := open(s)) then {
-         Notice(msgwin, "Cannot open " || s)
-         s := ""
-	 next
+      }
+      while fname := get(L) do {
+         if not (f := open(fname)) then {
+            Notice(msgwin, "Cannot open " || fname)
+            next
          }
-      if prescan(f) then
-         break
-      Notice(msgwin, "Invalid format: " || s)
-      s := ""
+         if not (prescan(f)) then {
+            Notice(msgwin, "Invalid format: " || fname)
+            close(f)
+            next
+         }
+         put(fnameList, fname)
+         put(ifileList, f)
+      }
    }
-
-   close(\ifile)
-   ifile := f
-   fname := s
    return
 end
 
 
 
 #  prescan(f) -- verify that f is a valid file, setting globals if so
-#
-#  min/max lines are allowed to be reversed.
 
 procedure prescan(f)
-   if (read(f) || read(f)) ? (
-      ="        " &
-      (lonmin := integer(move(7))) &
-      (latmin <- integer(move(7))) &
-      ="        " &
-      (lonmax <- integer(move(7))) &
-      (latmax <- integer(move(7))) &
-      lonmin ~= lonmax &
-      latmin ~= latmax
-      )
-   then {
-      if lonmin > lonmax then lonmin :=: lonmax
-      if latmin > latmax then latmin :=: latmax
+   local line, alon, alat, blon, blat
+   if /f then {
+      lonmin := latmin := 9999999
+      lonmax := latmax := 0
       return
-      }
-   else
-      fail
+   }
+   line := read(f)		| fail
+   line ? {
+      ="        "		| fail
+      alon := move(7)		| fail
+      alat := move(7)		| fail
+   }
+   line := read(f)		| fail
+   line ? {
+      ="        "		| fail
+      blon := move(7)		| fail
+      blat := move(7)		| fail
+   }
+   if alon > blon then {
+      alon :=: blon
+      alat :=: blat
+   }
+   lonmin >:= alon
+   latmin >:= alat
+   lonmax <:= blon
+   latmax <:= blat
+   return
 end
 
 
@@ -346,9 +382,9 @@ end
 
 
 
-procedure setcenter(long, lat)
-   ctrlong := integer(\long | (lonmin + lonmax + 1) / 2)
-   ctrlat := integer(\lat | (latmin + latmax + 1) / 2)
+procedure setcenter(lon, lat)
+   ctrlon := round(\lon | (lonmin + lonmax) / 2.0)
+   ctrlat := round(\lat | (latmin + latmax) / 2.0)
    return
 end
 
@@ -364,10 +400,16 @@ procedure setzoom(n)
    latrange := integer(dy / yscale + 0.5)
 
    # clip out-of-bounds data because it's probably incomplete
-   x1 := integer((lonmin - ctrlong) * xscale - 0.5) - CLIP
-   x2 := integer((lonmax - ctrlong) * xscale + 0.5) + CLIP
+   x1 := integer((lonmin - ctrlon) * xscale - 0.5) - CLIP
+   x2 := integer((lonmax - ctrlon) * xscale + 0.5) + CLIP
    y1 := integer((latmin - ctrlat) * yscale - 0.5) - CLIP
    y2 := integer((latmax - ctrlat) * yscale + 0.5) + CLIP
+
+   # limit clipping bounds to sensible values, else X gets confused
+   x1 <:= -dx
+   x2 >:= dx
+   y1 <:= -dy
+   y2 >:= dy
 
    # clip only drawing windows; NOT &window, used for copying and erasing!
    every Clip(!wintbl, x1, y1, x2 - x1, y2 - y1)
@@ -388,7 +430,7 @@ procedure resize()
    yshift := dy - dyold
 
    # move to realign existing map with new window center
-   CopyArea(-dx - xshift, -dy - yshift, 2*dx, 2*dy, -dx, -dy)
+   CopyArea(-dx - xshift, -dy - yshift, 2 * dx, 2 * dy, -dx, -dy)
    if xshift > 0 then EraseArea(dx - xshift, -dy)
    if yshift > 0 then EraseArea(-dx, dy - yshift)
 
@@ -400,8 +442,12 @@ end
 
 
 
-procedure shift(nx, ny)
-   setcenter(ctrlong - nx / xscale, ctrlat - ny / yscale)
+procedure shift(e, nx, ny)
+
+   while Pending()[1] === e do
+      Event()				# consume duplicate shift events
+
+   setcenter(ctrlon - nx / xscale, ctrlat - ny / yscale)
    CopyArea(-dx, -dy, 2 * dx, 2 * dy, -dx + nx, -dy + ny)
    if (nx > 0) then EraseArea(-dx, -dy, nx, 2 * dy)
    if (ny > 0) then EraseArea(-dx, -dy, 2 * dx, ny)
@@ -409,54 +455,165 @@ procedure shift(nx, ny)
    if (ny < 0) then EraseArea(-dx, dy + ny)
    settitle()			# reset center coords in title
    setzoom(curzoom)		# reset clipping
+
+   drawmap()
+
    return
 end
 
 
 
-procedure drawmap()
-   local line, w, lon, lat, dlon, dlat, a, bdy, dim, class
+procedure drawmap(hilightOnly)
+   local line, w, worig, lon, lat, dlon, dlat, a, bdy, dim, class, fename, f
+   local drawProc, litFeature
 
-   seek(ifile, 1)
-   read(ifile)		# skip minima line
-   read(ifile)		# skip maxima line
+   WAttrib("pointer=wait" | "pointer=watch")
 
-   WAttrib("pointer=watch")
-   EraseArea(-WAttrib("dx"), -WAttrib("dy"))
-   settitle()
+   if /hilightOnly then {
+      EraseArea()
+      settitle()
+   }
+   litFeature := list()
 
-   while line := read(ifile) do line ? {
+   every f := !ifileList do {
+      seek(f, 1)
+      read(f)		# skip minima line
+      read(f)		# skip maxima line
 
-      w := \wintbl[class := move(2)] | next
-      move(1)
-      bdy := move(1)
-      dim := integer(move(4))
-      lon := move(7) - ctrlong
-      lat := move(7) - ctrlat
-      if dim < 9999 & (
-         lon - dim > lonrange |
-	 lon + dim < -lonrange |
-	 lat - dim > latrange |
-	 lat + dim < -latrange )
-      then
-	 next
+      while line := read(f) do line ? {
 
-      a := [w, xscale * lon, yscale * lat]
-      while (dlon := move(4) - 5000) & (dlat := move(4) - 5000) do
-	 put(a, xscale * (lon +:= dlon), yscale * (lat +:= dlat))
+         if *Pending() > 0 then return
 
-      if any('57', bdy) & (a[1] := \wintbl["Y" || bdy]) then {
-	 DrawLine ! a
-	 if any('F', class) then
-	    next			# chain is ONLY a boundary
-	 a[1] := w
-	 }
+         w := \wintbl[class := move(2)] | next
+         move(1)
+         bdy := move(1)
+         if ="|" then {
+            fename := tab(upto('|'))
+            move(1)
+         }
+         else {
+            fename := &null
+         }
+         dim := integer(move(4))
+         lon := move(7) - ctrlon
+         lat := move(7) - ctrlat
 
-      DrawLine ! a
+# quick clip
+         if dim < 9999 & 
+            (lon - dim > lonrange | lon + dim < -lonrange |
+             lat - dim > latrange | lat + dim < -latrange) then
+            next
+
+         a := [xscale * lon, yscale * lat]
+         while (dlon := move(4) - 5000) & (dlat := move(4) - 5000) do
+            put(a, xscale * (lon +:= dlon), yscale * (lat +:= dlat))
+
+# if beyond valid X range (with dx/dy margin), use library clipper
+         if (!a > 32000) | (!a < -32000) then
+            drawProc := DrawClipped
+         else
+            drawProc := DrawLine
+
+         push(a, w)	# add graphics context
+
+         if find(\litName, map(\fename)) then {
+            put(litFeature, drawProc, a)
+         }
+
+         if /hilightOnly then {
+            if any('57', bdy) & (a[1] := \wintbl["Y" || bdy]) then {
+               drawProc ! a		# draw boundary indicator
+               if any('F', class) then
+                  next			# chain is ONLY a boundary
+               a[1] := w
+            }
+            drawProc ! a			# draw line itself
+         }
       }
+   }
+   if w := \wintbl["LL"] then {
+      repeat {
+         drawProc := get(litFeature) | break
+         a := get(litFeature) | break
+         a[1] := w	# replace graphics context
+         drawProc ! a
+      }
+   }
 
-   WAttrib("pointer=crosshair")
+   WAttrib("pointer=cross" | "pointer=crosshair")
    return
+end
+
+
+
+procedure identify(x, y)
+   local line, lon, lat, dlon, dlat, dim, s, f
+   local fename, cfcc, bndry, x0, y0, w, h
+   local features
+
+   WAttrib("pointer=wait" | "pointer=watch")
+
+   # calculate region of interest in lat/lon coordinates
+   x := (x - EPSILON) / xscale
+   y := (y - EPSILON) / yscale
+   w := (1 + 2 * EPSILON) / xscale
+   h := (1 + 2 * EPSILON) / yscale
+
+   features := set()
+   every f := !ifileList do {
+      seek(f, 1)
+      read(f)		# skip minima line
+      read(f)		# skip maxima line
+
+      while line := read(f) do line ? {
+         cfcc := move(3)
+         bndry := move(1)
+         if ="|" then {		# get feature name
+            fename := tab(upto('|'))
+            move(1)
+         }
+         else {
+            fename := ""
+         }
+         dim := integer(move(4))
+         lon := move(7) - ctrlon
+         lat := move(7) - ctrlat
+         if dim < 9999 &
+            (lon - dim > lonrange | lon + dim < -lonrange |
+             lat - dim > latrange | lat + dim < -latrange) then
+            next
+
+         x0 := lon
+         y0 := lat
+         while (dlon := move(4) - 5000) & (dlat := move(4) - 5000) do {
+            lon +:= dlon
+            lat +:= dlat
+            if ClipLine([x0, y0, lon, lat], x, y, w, h) then {
+               s := case bndry of {
+                  "9":" (national boundary) "
+                  "8":" (state boundary) "
+                  "7":" (county boundary) "
+                  "5":" (city limit) "
+                  "0":" "
+               }
+               insert(features, cfcc || s || fename)
+            }
+            x0 := lon
+            y0 := lat
+         }
+      }
+   }
+   WAttrib("pointer=cross" | "pointer=crosshair")
+   Popup(, , , WAttrib("leading") * (0 ~= *features), popList, sort(features))
+   return
+end
+
+
+
+procedure popList(l)
+   WAttrib("row=1", "col=1")
+   every WWrite(!l)
+   until Active()
 end
 
 
@@ -464,24 +621,27 @@ end
 procedure settitle()
    local lon, lat
 
-   lon := ctrlong * (360.0 / 9999999)
+   lon := ctrlon * (360.0 / 9999999)
    if lon > 180.0 then
       lon -:= 360.0
    lat := 90.0 - ctrlat * (180.0 / 9999999)
-   title := fname || ":  " || dms(lon, "W", "E") || "  " || dms(lat, "S", "N")
+   title := fnameList[1]
+   if *fnameList > 1 then
+      title ||:= "..."
+   title ||:= ":  " || dms(lon, "W", "E") || "  " || dms(lat, "S", "N")
    WAttrib("label=" || title)
    return
 end
 
 
 
-procedure dms (n, s1, s2)
+procedure dms(n, s1, s2)
    local deg, min, sec
 
    if n < 0 then
-       n := -n
+      n := -n
    else
-       s1 := s2
+      s1 := s2
 
    deg := integer(n)
    n := (n - deg) * 60
@@ -498,27 +658,13 @@ end
 procedure setregion(lomin, lomax, ltmin, ltmax)
    local xzoom, yzoom
 
-   setcenter((lomin + lomax + 1)/ 2, (ltmin + ltmax + 1) / 2)
+   setcenter((lomin + lomax + 1) / 2, (ltmin + ltmax + 1) / 2)
    xzoom := ((dx - MARGIN) * 2 / fullx) / (lomax - lomin)
    yzoom := ((dy - MARGIN) * 2 / fully) / (ltmax - ltmin)
    if xzoom < yzoom then
       setzoom(xzoom)
    else
       setzoom(yzoom)
-   return
-end
-
-
-
-procedure zoom(f)
-   local ww, wh
-
-   xscale *:= f
-   yscale *:= f
-   ww := WAttrib("width") - 2 * MARGIN
-   wh := WAttrib("height") - 2 * MARGIN
-   lonrange := integer(ww / xscale / 2 + 0.5)
-   latrange := integer(wh / yscale / 2 + 0.5)
    return
 end
 
@@ -537,17 +683,19 @@ procedure setclasses()
       class("A2", .0, 2, "roads", "black", 2),		# primary road
       class("A3", .0, 1, "roads", "black"),		# secondary road
       class("A4", .0, 0, "roads", "white"),		# local road
-      class("A",  .0, 0, "roads", "white"),		# other road 
+      class("A",  .0, 0, "roads", "white"),		# other road
       class("B1", .4, 2, "railroads", "deep green", 2),	# railroad line
       class("B",  .4, 1, "railroads", "deep green"),	# r.r. spur, yard, etc.
       class("H",  .7, 1, "water", "dark cyanish blue"),	# water
-      class("Y7", .9, 5, "major boundaries", "orange", 3),#county
-      class("Y5", .9, 3, "major boundaries", "orange", 2), # city
-      class("E",  .9, 1, "minor boundaries", "light orange"),	#visible
-      class("F",  .9, 1, "minor boundaries", "light orange"),   #invisible
-      class("D",  .0, 1, "landmarks", "dark red"),	# landmark
-      class("C",  .5, 1, "piplines & power", "purple"),	# pipe, power
-      class("X",  .8, 1, "unclassified", "purple")]	# unclassified
+      class("Y7", .9, 5, "major boundaries", "orange", 3),	# county
+      class("Y5", .9, 3, "major boundaries", "orange", 2),	# city
+      class("E",  .9, 1, "minor boundaries", "light orange"),	# visible
+      class("F",  .9, 1, "minor boundaries", "light orange"),	# invisible
+      class("D",  .0, 1, "landmarks", "dark red"),		# landmark
+      class("C",  .5, 1, "piplines & power", "purple"),		# pipe, power
+      class("LL", .2, 2, "highlighted feature", "yellow", 10),	# hilit feature
+      class("T0", .8, 3, "GPS track", "dark greenish cyan", 2),	# Track data
+      class("X",  .8, 1, "unclassified", "purple")]		# unclassified
 
    every c := !clist do
       c.vispfx := c.prefix		# initially, all layers visible
@@ -555,9 +703,9 @@ procedure setclasses()
    ctable := table()
    every c := !clist do
       if *c.prefix = 1 then
-	 every /ctable[c.prefix || !"0123456789"] := c
+         every /ctable[c.prefix || !"0123456789"] := c
       else
-	 ctable[c.prefix] := c
+         ctable[c.prefix] := c
 
    wintbl := table()			# global window table
    mcolors := table()			# local table of mutable colors
@@ -572,7 +720,7 @@ procedure setclasses()
       WAttrib(w, "linewidth=" || \c.width)
       wintbl[c.prefix] := w
       if *c.prefix = 1 then
-	 every /wintbl[c.prefix || (0 to 9)] := w
+         every /wintbl[c.prefix || (0 to 9)] := w
       }
    return
 end
@@ -584,17 +732,17 @@ end
 procedure setlayers()
    local c, i, defaults, buttons, choice, lset
    static labels, values
-  
+
    initial {
       lset := set()
-      labels := []
-      values := []
+      labels := list()
+      values := list()
       every c := !clist do
-	 if \c.index & not member(lset, c.label) then {
-	    insert(lset, c.label)
-	    put(labels, c.label)
-	    put(values, 1)
-	    }
+         if \c.index & not member(lset, c.label) then {
+            insert(lset, c.label)
+            put(labels, c.label)
+            put(values, 1)
+            }
       }
 
    if *labels = 0 then {
@@ -614,17 +762,17 @@ procedure setlayers()
       #  change mutable color for every item that changed in the dialog
       every i := 1 to *values do
          if values[i] ~=== defaults[i] then
-	    every c := !clist do
-	       if c.label == labels[i] then {
-	          if \values[i] then {
-		     Color(\c.index, c.color)
-		     c.vispfx := c.prefix
-		     }
-		  else {
-		     Color(\c.index, Bg())
-		     c.vispfx := &null
-		     }
-		  }
+            every c := !clist do
+               if c.label == labels[i] then {
+                  if \values[i] then {
+                     Color(\c.index, c.color)
+                     c.vispfx := c.prefix
+                     }
+                  else {
+                     Color(\c.index, Bg())
+                     c.vispfx := &null
+                     }
+                  }
       }
    return
 end
@@ -632,37 +780,68 @@ end
 
 
 procedure writelch(ofile)
-   local line, dim, lon, lat
+   local line, dim, lon, lat, f, a, b, x, y, dlon, dlat, nlon, nlat, w, head
+   local startlon, startlat, minlon, minlat, maxlon, maxlat, deltas, class
 
    write(ofile, "        ",
-       right(ctrlong - lonrange, 7), right(ctrlat - latrange, 7))
+      right(ctrlon - lonrange, 7), right(ctrlat - latrange, 7))
    write(ofile, "        ",
-       right(ctrlong + lonrange, 7), right(ctrlat + latrange, 7))
+      right(ctrlon + lonrange, 7), right(ctrlat + latrange, 7))
 
-   seek(ifile, 1)
-   read(ifile)			# skip minima line
-   read(ifile)			# skip maxima line
+   every f := !ifileList do {
+      seek(f, 1)
+      read(f)			# skip minima line
+      read(f)			# skip maxima line
 
-   while line := read(ifile) do line ? {
-      move(4)
-      dim := integer(move(4))
-      lon := move(7) - ctrlong
-      lat := move(7) - ctrlat
-      if dim < 9999 & (
-         lon - dim > lonrange |
-	 lon + dim < -lonrange |
-	 lat - dim > latrange |
-	 lat + dim < -latrange )
-      then
-	 next
-      else
-	 write(ofile, &subject)
+      while line := read(f) do line ? {
+         w := \wintbl[class := move(2)] | next
+         head := class || move(2)
+         if ="|" then {
+            head ||:= "|" || tab(upto('|') + 1)
+         }
+         dim := integer(move(4))
+         lon := move(7) - ctrlon
+         lat := move(7) - ctrlat
+# quick clip
+         if dim < 9999 & 
+            (lon - dim > lonrange | lon + dim < -lonrange |
+             lat - dim > latrange | lat + dim < -latrange) then
+            next
+
+         a := [xscale * lon, yscale * lat]
+         while (dlon := move(4) - 5000) & (dlat := move(4) - 5000) do
+            put(a, xscale * (lon +:= dlon), yscale * (lat +:= dlat))
+         a := Coalesce(ClipLine(w, a)) | next
+         every b := !a do {
+            deltas := ""
+            startlon := minlon := maxlon := lon :=
+               round(get(b) / xscale) + ctrlon
+            startlat := minlat := maxlat := lat :=
+               round(get(b) / yscale) + ctrlat
+            while nlon := round(get(b) / xscale) + ctrlon do {
+               nlat := round(get(b) / yscale) + ctrlat
+               deltas ||:= right(nlon - lon + 5000, 4, "0")
+               deltas ||:= right(nlat - lat + 5000, 4, "0")
+               lon := nlon
+               lat := nlat
+               maxlon <:= lon
+               minlon >:= lon
+               maxlat <:= lat
+               minlat >:= lat
+            }
+            dim := startlon - minlon
+            dim <:= maxlon - startlon
+            dim <:= startlat - minlat
+            dim <:= maxlat - startlat
+            dim >:= 9999
+
+            write(ofile, head, right(dim, 4), right(startlon, 7, "0"),
+                  right(startlat, 7, "0"), deltas)
+         }
+      }
    }
-
    return
 end
-
-
 
 #  writeppm(ofile) -- write PPM image to ofile
 #
@@ -676,7 +855,7 @@ procedure writeppm(ofile)
    rw := real(w)
    rh := real(h)
 
-   lon := ctrlong * (360.0 / 9999999)
+   lon := ctrlon * (360.0 / 9999999)
    if lon > 180.0 then
       lon -:= 360.0
    lat := 90.0 - ctrlat * (180.0 / 9999999)
@@ -687,8 +866,8 @@ procedure writeppm(ofile)
    write(ofile, "P6")
    write(ofile, "#RTIN")
    write(ofile, "#lon,lat:",
-     arcs(lon-dlon), arcs(lat-dlat), arcs(lon-dlon), arcs(lat+dlat),
-     arcs(lon+dlon), arcs(lat+dlat), arcs(lon+dlon), arcs(lat-dlat))
+      arcs(lon - dlon), arcs(lat - dlat), arcs(lon - dlon), arcs(lat + dlat),
+      arcs(lon + dlon), arcs(lat + dlat), arcs(lon + dlon), arcs(lat - dlat))
    write(ofile, "#x,y: 0.0 0.0 0.0 ", rh, " ", rw, " ", rh, " ", rw, " 0.0")
    write(ofile, w, " ", h)
    write(ofile, 255)
@@ -717,7 +896,7 @@ procedure rgb24(k)
 
    if s := \t[k] then
       return s
-      
+
    (ColorValue(k | Color(k)) | fail) ? {
       s := char(tab(upto(',')) / 256)
       move(1)
@@ -734,11 +913,11 @@ end
 #  writeps(ofile) -- write Encapsulated PostScript to ofile
 
 procedure writeps(ofile)
-   local x1, x2, y1, y2, line, prevcode, code, dim, lon, lat, a, n, c
+   local x1, x2, y1, y2, line, prevcode, code, dim, lon, lat, a, n, c, f
 
-   x1 := integer((lonmin - ctrlong) * xscale - 0.5) - CLIP
+   x1 := integer((lonmin - ctrlon) * xscale - 0.5) - CLIP
    y1 := integer((latmin - ctrlat) * yscale - 0.5) - CLIP
-   x2 := integer((lonmax - ctrlong) * xscale + 0.5) + CLIP
+   x2 := integer((lonmax - ctrlon) * xscale + 0.5) + CLIP
    y2 := integer((latmax - ctrlat) * yscale + 0.5) + CLIP
    x1 <:= -dx
    y1 <:= -dy
@@ -755,35 +934,36 @@ procedure writeps(ofile)
 
    every c := !clist do
       write(ofile, "/", left(\c.vispfx, 2),
-	 " { ", c.psgray, " ", c.pswidth, " w } bind def")
+         " { ", c.psgray, " ", c.pswidth, " w } bind def")
 
-   seek(ifile, 1)
-   read(ifile)			# skip minima line
-   read(ifile)			# skip maxima line
+   every f := !ifileList do {
+      seek(f, 1)
+      read(f)			# skip minima line
+      read(f)			# skip maxima line
 
-   while line := read(ifile) do line ? {
-      code := \ctable[move(2)].vispfx | next
-      move(2)
-      dim := integer(move(4))
-      lon := xscale * (move(7) - ctrlong)
-      lat := yscale * (move(7) - ctrlat)
-      if dim < 9999 & (
-	 lon - dim > lonrange |
-	 lon + dim < -lonrange |
-	 lat - dim > latrange |
-	 lat + dim < -latrange )
-      then
-	 next
-      else {
-	 writes(ofile, integer(PSSCALE * (dx + lon)), " ",
-	    integer(PSSCALE * (dy - lat)), " m")
-	 while lon := move(4) - 5000 & lat := move(4) - 5000 do
-	    writes(ofile, "\n", integer(PSSCALE * xscale * lon), " ",
-		integer(-PSSCALE * yscale * lat), " r")
-	 write(ofile, " ", (prevcode ~===:= code) | "s")
-	 }
+      while line := read(f) do line ? {
+         code := \ctable[move(2)].vispfx | next
+         move(2)
+# skip feature name
+         if ="|" then
+            tab(upto('|') + 1)
+         dim := integer(move(4))
+         lon := xscale * (move(7) - ctrlon)
+         lat := yscale * (move(7) - ctrlat)
+         if dim < 9999 &
+            (lon - dim > lonrange | lon + dim < -lonrange |
+             lat - dim > latrange | lat + dim < -latrange) then
+            next
+         else {
+            writes(ofile, integer(PSSCALE * (dx + lon)), " ",
+               integer(PSSCALE * (dy - lat)), " m")
+            while lon := move(4) - 5000 & lat := move(4) - 5000 do
+               writes(ofile, "\n", integer(PSSCALE * xscale * lon), " ",
+                  integer(-PSSCALE * yscale * lat), " r")
+            write(ofile, " ", (prevcode ~===:= code) | "s")
+         }
+      }
    }
-
    write(ofile, "showpage")
    return
 end

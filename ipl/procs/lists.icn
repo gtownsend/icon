@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     April 20, 1999
+#	Date:     June 23, 2000
 #
 ############################################################################
 #
@@ -74,7 +74,7 @@
 #			palindrome; the values of i determine "end
 #			conditions" for the reversal:
 #
-#				0	omit first and last elements
+#				0	omit first and last elements; default
 #				1	omit first element
 #				2	omit last element
 #				3	don't omit element
@@ -105,6 +105,12 @@
 #			If p is given, it is applied to each string as
 #			as a "length" procedure.  The default for p is
 #			proc("*", 1).
+#
+#	sortkeys(L)	returns list of keys from L, where L is the
+#			result of sorting a table with option 3 or 4.
+#
+#	sortvalues(L)	return list of values from L, where L is the
+#			result of sorting a table with option 3 or 4.
 #
 #	str2lst(s, i)	creates list with i-character lines from s.  The
 #			default for i is 1.
@@ -269,7 +275,7 @@
 #
 ############################################################################
 #
-#  Links:  indicies
+#  Links:  indices
 #
 ############################################################################
 #
@@ -720,8 +726,8 @@ end
 procedure lblock(L1, L2)
    local L3, i, j
 
-   if *L1 < *L2 then L1 := lextend(L1, *L2)
-   else if *L2 < *L1 then L2 := lextend(L2, *L1)
+   if *L1 < *L2 then L1 := lextend(L1, *L2) | fail
+   else if *L2 < *L1 then L2 := lextend(L2, *L1) | fail
 
    L3 := []
 
@@ -767,13 +773,19 @@ procedure lequiv(x,y)			#: compare lists for equivalence
 
 end
 	
-procedure lextend(L, i, x)			#: list extension
-   local j
+procedure lextend(L, i)			#: list extension
+   local result
 
-   until *L >= i do
-      put(L, x)
+   if *L = 0 then fail
 
-   return L
+   result := copy(L)
+
+   until *result >= i do
+      result |||:= L
+
+   result := result[1+:i]
+
+   return result
  
 end
 
@@ -793,8 +805,8 @@ end
 procedure linterl(L1, L2)		#: list interleaving
    local L3, i
 
-   if *L1 < *L2 then L1 := lextend(L1, *L2)
-   else if *L2 < *L1 then L2 := lextend(L2, *L1)
+   if *L1 < *L2 then L1 := lextend(L1, *L2) | fail
+   else if *L2 < *L1 then L2 := lextend(L2, *L1) | fail
 
    L3 := []
 
@@ -871,7 +883,7 @@ end
 procedure lreflect(L, i)		#: list reflection
    local L1
 
-   /i :=0
+   /i := 0
 
    if i > 3 then stop("*** invalid argument to lreflect()")
 
@@ -900,7 +912,6 @@ procedure lremvals(L, x[])		#: remove values from list
    return result
 
 end
-
 
 procedure lrepl(L, i)			#: list replication
    local j, k
@@ -1024,6 +1035,28 @@ procedure lminlen(L, p)			#: smallest value in list
    every i >:= p(!L)
 
    return i
+
+end
+
+procedure sortkeys(L)			#: extract keys from sorted list
+   local result
+
+   result := []
+
+   every put(result, L[1 to *L by 2])
+
+   return result
+
+end
+
+procedure sortvalues(L)			#: extract values from sorted list
+   local result
+
+   result := []
+
+   every put(result, L[2 to *L by 2])
+
+   return result
 
 end
 

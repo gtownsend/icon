@@ -4,15 +4,15 @@
 #
 #	Subject:  Program to merge line chain files
 #
-#	Author:   Gregg M. Townsend
+#	Authors:  Gregg M. Townsend and William S. Evans
 #
-#	Date:     January 20, 1996
+#	Date:     June 9, 2000
 #
 ############################################################################
 #
 #   usage:  tgrmerge file.lch ...
 #
-#   Tgrquant merges multiple line chain files to produce a single
+#   Tgrmerge merges multiple line chain files to produce a single
 #   output file.
 #
 ############################################################################
@@ -31,19 +31,19 @@ procedure main(args)
       line := read(f) | stop("empty file: ", fname)
       line ? {
          move(8)
-	 lat := move(7)
-	 lon := move(7)
-         minlon >:= lat
-         minlat >:= lon
-	 }
+         lon := move(7)
+         lat := move(7)
+         minlon >:= lon
+         minlat >:= lat
+         }
       line := read(f) | stop("truncated file: ", fname)
       line ? {
          move(8)
-	 lat := move(7)
-	 lon := move(7)
-         maxlon <:= lat
-         maxlat <:= lon
-	 }
+         lon := move(7)
+         lat := move(7)
+         maxlon <:= lon
+         maxlat <:= lat
+         }
       close(f)
       }
 

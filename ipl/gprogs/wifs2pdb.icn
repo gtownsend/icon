@@ -1,0 +1,84 @@
+############################################################################
+#
+#	File:     wifs2pdb.icn
+#
+#	Subject:  Program to create palette database from WIFs
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 15, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This is a crude version; it does not bother with actually parsing WIF
+#  files and it assumes a color range of 2^16.
+#
+############################################################################
+#
+#  Links:  basename, palettes, xcode
+#
+############################################################################
+
+link basename
+link palettes
+link xcode
+
+global PDB_
+
+procedure main(args)
+   local file, wifname, input, clist, line, range, i
+
+   every file := !args do {
+      wifname := basename(file, ".wif")
+      input := open(file) | {
+         write(&errout, "*** cannot open ", image(file))
+         next
+         }
+      clist := []
+      range := &null
+      while line := trim(map(read(input))) do {
+         if line == "[color table]" then {
+            while line := trim(read(input)) do {
+               if *line = 0 then break
+               line ?:= {
+                  if ="[" then break
+                  tab(upto('=') + 1)
+                  tab(0)
+                  }
+               put(clist, line)
+               }
+            }
+         else if line == "[color palette]" then {
+            while line := trim(map(read(input))) do {
+               if *line = 0 then break
+               line ? {
+                  if ="[" then break
+                  else if ="range=" then {
+                     tab(upto(',') + 1)
+                     range := tab(0) + 1
+                     break
+                     }
+                  }
+               }
+            }
+         }
+      close(input)
+
+      if (\range ~= 65536) then {		# adjust color values
+         every i := 1 to *clist do
+            clist[i] := color_range(clist[i], range) | {
+               write(&errout, "*** bad color specification")
+               break break
+               }
+         }
+      makepalette(wifname, clist) |
+         write(&errout, "*** cannot make palette for ", image(wifname))
+       }
+
+   xencode(PDB_, &output)
+
+end

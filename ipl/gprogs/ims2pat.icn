@@ -1,0 +1,42 @@
+############################################################################
+#
+#	File:     ims2pat.icn
+#
+#	Subject:  Program to convert image string to bi-level pattern
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 20, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#  This program converts an image string with the g2 palette to a
+#  bi-level pattern.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  imrutils, imsutils, wopen
+#
+############################################################################
+
+link imrutils
+link imsutils
+link wopen
+
+procedure main()
+   local imr
+
+   imr := imstoimr(read())
+
+   imropen(imr)
+
+   write(pix2pat(&window, 0, 0, WAttrib("width"), WAttrib("height")))
+
+end

@@ -1,0 +1,133 @@
+############################################################################
+#
+#	File:     colorup.icn
+#
+#	Subject:  Program to produce a weave structure from unravel data
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 18, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+#############################################################################
+#
+#  Input is expected to be the output of unravel -r.
+#
+#############################################################################
+#
+#  This program takes information from a image solved by unravel.icn to
+#  produce a draft.
+#
+#  The option -o i determines how optional choices at intersections are
+#  handled:
+#
+#	0	random (default)
+#	1	warp
+#	2	weft
+#	3	alternating
+#
+############################################################################
+#
+#  Links:  numbers, options, weavutil, patxform, patutils, xcode
+#
+############################################################################
+
+link numbers
+link options
+link patutils
+link patxform
+link weavutil
+link xcode
+link ximage
+
+procedure main(args)
+   local warp, weft, pattern, rows, i, j, count, opts
+   local threading, treadling, color_list, colors, choice
+   local symbols, symbol, drawdown, draft, warp_colors, weft_colors, pixels
+
+   opts := options(args, "o+")
+
+   choice := opts["o"] | 0
+
+   (warp := read()  & weft := read() & pattern := read()) |
+      stop("*** short file")
+
+   pixels := real(*pattern)
+
+   colors := warp ++ weft
+
+   color_list := []
+
+   every put(color_list, PaletteColor("c1", !colors))
+
+   warp_colors := []
+
+   every put(warp_colors, upto(!warp, colors))
+
+   weft_colors := []
+
+   every put(weft_colors, upto(!weft, colors))
+
+   drawdown := []
+
+   pattern ? {
+      while put(drawdown, move(*warp))
+      }
+
+   count := 0
+
+   every i := 1 to *weft do {		# row
+      every j := 1 to *warp do {		# column
+         if weft[i] == warp[j] then {		# option point
+            count +:= 1
+            drawdown[i, j] := case choice of {
+               0  :  ?2 - 1				# random
+               1  :  "1"				# warp
+               2  :  "0"				# weft
+               3  :  if count % 2 = 0 then "1" else "2"	# alternative
+               }
+            }
+         else if drawdown[i, j] == weft[i] then drawdown[i, j] := "0"
+         else drawdown[i, j] := "1"
+         }
+      }
+
+   treadling := analyze(drawdown)
+   drawdown := protate(drawdown, "cw")
+   threading := analyze(drawdown)
+
+   symbols := table("")
+
+   every pattern := !treadling.patterns do {
+      symbol := treadling.rows[pattern]
+      symbols[symbol] := repl("0", *threading.rows)
+      pattern ? {
+         every i := upto('1') do
+            symbols[symbol][threading.sequence[i]] := "1"
+         }
+      }
+
+   symbols := sort(symbols, 3)
+   rows := []
+
+   while get(symbols) do
+      put(rows, get(symbols))
+
+   draft := isd()
+
+   draft.name := "colorup"
+   draft.threading := threading.sequence
+   draft.treadling := treadling.sequence
+   draft.warp_colors := warp_colors
+   draft.weft_colors := weft_colors
+   draft.color_list := color_list
+   draft.shafts := *threading.rows
+   draft.treadles := *treadling.rows
+   draft.tieup := rows
+
+   xencode(draft, &output)
+
+end

@@ -1,0 +1,81 @@
+#############################################################################
+#
+#	File:     base64.icn
+#
+#	Subject:  Procedures for base64 encodings for MIME (RFC 2045)
+#
+#	Author:   David A. Gamey
+#
+#	Date:     June 21, 2000
+#
+#############################################################################
+#
+#   This file is in the public domain.
+#
+#############################################################################
+#
+#     Descriptions:
+#
+#     base64encode( s1 ) : s2
+#
+#        returns the base64 encoding of a string s1
+#
+#     base64decode( s1 ) : s2
+#
+#        returns the base64 decoding of a string s1
+#        fails if s1 isn't base64 encoded
+#
+#     references:  MIME encoding Internet RFC 2045 
+#
+#############################################################################
+
+procedure base64encode(s)   #: encode a string into base 64 (MIME)
+local  pad, t, i, j, k 
+static b64
+initial
+   b64 := &ucase || &lcase || &digits || "+/"
+
+i := (3 - (*s % 3)) % 3
+s ||:= repl("\x00",i)      
+pad := repl("=",i)   
+
+t := ""
+s ? while ( i := ord(move(1)), j := ord(move(1)), k := ord(move(1)) ) do
+{
+   t ||:= b64[ 1 + ishift(i,-2) ]
+   t ||:= b64[ 1 + ior( ishift(iand(i,3),4), ishift(j,-4) ) ]
+   t ||:= b64[ 1 + ior( ishift(iand(j,15),2), ishift(k,-6) ) ]
+   t ||:= b64[ 1 + iand(k,63) ]
+}
+t[ 0 -: *pad ] := pad
+
+return t 
+end
+
+procedure base64decode(s)  #: decode a string from base 64 (MIME)
+
+static b64, c64, n64
+initial 
+{
+   b64 := &ucase || &lcase || &digits || "+/"
+   c64 := cset(b64)
+   n64 := string(&cset)[1+:64]
+}
+
+if not s ? ( tab(many(c64)), =("===" | "==" | "=" | ""), pos(0)) then fail
+if ( *s % 4 ) ~= 0 then fail
+
+s := map(s,"=","\x00")
+s := map(s,b64,n64)
+
+t := ""
+s ? while ( w := ord(move(1)), x := ord(move(1)), 
+            y := ord(move(1)), z := ord(move(1)) ) do
+{
+   t ||:= char( ior( ishift(w,2), ishift(x,-4) ) )
+   t ||:= char( ior( iand(ishift(x,4),255), ishift(y,-2) ) )
+   t ||:= char( ior( iand(ishift(y,6),255), z ) ) 
+}
+
+return trim(t,"\x00")
+end

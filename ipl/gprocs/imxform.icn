@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     January 27, 1999
+#	Date:     October 10, 1999
 #
 ############################################################################
 #
@@ -320,11 +320,10 @@ procedure imxflip(rows, dir)
 
    case dir of {
       "l": {
-         newrows := list(*rows[1], repl("0", *rows))
+         newrows := imxrotate(rows)
          every y := 1 to *rows do
             every x := 1 to *rows[1] do
-               if rows[y, x] == "1" then
-                  newrows[-x, -y] := "1"
+               newrows[x, y] := rows[y, x]
          }
       "r": {
          newrows := list(*rows[1], repl("0", *rows))
@@ -403,6 +402,8 @@ end
 
 procedure imxrotate(rows, dir)
    local newrows, i, row, pix
+
+   /dir := "cw"
 
    case string(dir) of {
       "ccw" | "-90":  {			# counter-clockwise

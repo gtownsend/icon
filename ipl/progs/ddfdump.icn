@@ -1,0 +1,91 @@
+############################################################################
+#
+#	File:     ddfdump.icn
+#
+#	Subject:  Program to print the contents of an ISO 8211 DDF file
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     June 7, 2000
+#
+############################################################################
+#
+#	This file is in the public domain.
+#
+############################################################################
+#
+#	Usage:  ddfdump [file...]
+#
+#	Ddfdump prints the contents of Data Descriptive Files (DDF).
+#	DDF is an incredibly complex file format enshrined by the
+#	ISO 8211 standard and used by the United States Geological
+#	Survey (USGS) for digital data.
+#
+############################################################################
+#
+#  Links:  ddfread
+#
+############################################################################
+
+link ddfread
+
+
+$define RecSep "\x1E"		# ASCII Record Separator
+$define UnitSep "\x1F"		# ASCII Unit Separator
+$define ShowRecSep "\xB6"	# show record separator as paragraph mark
+$define ShowUnitSep "\xA7"	# show unit separator as section mark
+
+
+
+procedure main(args)
+   local f, nbytes
+
+   if *args > 0 then
+      every dofile(!args)
+   else
+      dofile()
+
+end
+
+procedure dofile(fname)
+   local f, dda, d, e, s
+
+   write("\n", \fname, ":")
+   f := ddfopen(fname) | stop("can't open ", fname)
+   write()
+
+   dda := ddfdda(f)
+   every e := !dda do {
+      write(e.tag, ": ", img(e.control), " ", img(e.name), " ", img(e.format))
+      every write("   ", img(!e.labels))
+      }
+
+   while d := ddfread(f) do {
+      write()
+      every e := !d do {
+         writes(get(e), ":")
+         while s := get(e) do
+            if type(s) == "string" then
+               writes(" ", img(s))
+            else
+               writes(" ", image(s))
+         write()
+         }
+      }
+
+   ddfclose(f)
+end
+
+procedure img(s, n)
+   static s1, s2
+   initial {
+      s1 := s2 := string(&cset)
+      every !s2[1+:32] := "."		# show unprintables as "."
+      every !s2[128+:33] := "."
+      s2[1+ord(RecSep)] := ShowRecSep	# show record sep (1E) as section mark
+      s2[1+ord(UnitSep)] := ShowUnitSep	# show unit sep (1F) as paragraph mark
+   }
+   if *s > \n then
+      s := s[1+:n]
+   return "<" || map(s, s1, s2) || ">"
+end

@@ -1,0 +1,63 @@
+############################################################################
+#
+#	File:     fmap2pdb.icn
+#
+#	Subject:  Program to create custom palettes from color maps
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 15, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program builds a palette database from Fracting color maps.
+#
+############################################################################
+#
+#  Requires:   Version 9 graphics
+#
+############################################################################
+#
+#  Links: basename, palettes, xcode
+#
+############################################################################
+
+link basename
+link palettes
+link xcode
+
+global PDB_
+
+procedure main(args)
+   local file, input, clist, color, line, name
+
+    every file := !args do {
+       input := open(file) | {
+          write(&errout, "*** cannot open ", image(file))
+          next
+          }
+       name := basename(file, ".map")
+       clist := []
+       while line := read(input) do {
+          line ? {
+             tab(upto(&digits))
+             color := (tab(many(&digits)) * 257) || ","
+             tab(upto(&digits))
+             color ||:= (tab(many(&digits)) * 257) || ","
+             tab(upto(&digits))
+             color ||:= (tab(many(&digits)) * 257)
+             }
+          put(clist, color)
+          }
+       close(input)
+       makepalette(name, clist) |
+          write(&errout, "*** could not make palette from ", image(file))
+       }
+
+    xencode(PDB_, &output)
+       
+end

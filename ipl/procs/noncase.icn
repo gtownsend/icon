@@ -6,7 +6,7 @@
 #
 #	Author:   Robert J. Alexander
 #
-#	Date:     May 18, 1994
+#	Date:     June 21, 2000
 #
 ############################################################################
 #
@@ -26,7 +26,7 @@ end
 procedure c_find(s1,s2,i1,i2)
   local scanPos,endPos
   scanPos := match("",s2,i1,i2)
-  endPos := many(&cset,s2,i1,i2)
+  endPos := many(&cset,s2,i1,i2) | scanPos
   suspend scanPos - 1 + find(map(s1),
       map((if \s2 then s2 else &subject)[scanPos:endPos]))
 end

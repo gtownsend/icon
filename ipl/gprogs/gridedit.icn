@@ -1,0 +1,56 @@
+############################################################################
+#
+#	File:     gridedit.icn
+#
+#	Subject:  Program to create and edit binary arrays
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 21, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This application provides a variety of facilities for creating and
+#  editing binary arrays.  It is intended for use with weaving tie-ups
+#  and liftplans.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics, /tmp
+#
+############################################################################
+#
+#  Links: tieedit
+#
+############################################################################
+
+link tieedit
+
+procedure main(args)
+
+   grid_init()
+
+   ready()
+
+   while ProcessEvent(grid_root, ,  grid_shortcuts) do
+      if \grid_state then exit()
+
+end
+
+procedure ready()
+
+   grid_state := &null
+
+   grid_rows := pat2rows("10,#001002004008010020040080100200")
+
+   setup()
+
+   WAttrib(grid_window, "canvas=normal")
+
+   return
+
+end

@@ -1,0 +1,311 @@
+############################################################################
+#
+#	File:     weavutil.icn
+#
+#	Subject:  Procedures to support numerical weavings
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 20, 2000
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  Links:  expander, patutils, tables, tieutils
+#
+############################################################################
+
+link expander
+link patutils
+link tables
+link tieutils
+
+record analysis(rows, sequence, patterns)
+
+#  PFL weaving parameters
+
+record PflParams(P, T)
+
+#  Sequence-drafting database record
+
+record sdb(table, name)			# specification database
+
+record ddb(table)			# definition database
+record edb(table)			# expression database
+record tdb(table)			# tie-up database
+
+record pfd(				# pattern-form draft
+   name,
+   threading,
+   treadling,
+   warp_colors,
+   weft_colors,
+   palette,
+   colors,
+   shafts,
+   treadles,
+   tieup, 
+   liftplan,
+   drawdown
+   )
+
+record isd(				# internal structure draft
+   name,
+   threading,			# list of shaft numbers
+   treadling,			# list of treadle numbers
+   warp_colors,			# list of indexes into color_list
+   weft_colors,			# list of indexes into color_list
+   color_list,			# list of colors
+   shafts,			# number of shafts
+   treadles,			# number of treadles
+   width,			# image width
+   height,			# image height
+   tieup,			# tie-up matrix
+   liftplan			# liftplan matrix
+   )
+
+procedure readpfd(input)		# read PFD
+   local draft
+
+   draft := pfd()
+
+   draft.name := read(input) &
+   draft.threading := read(input) &
+   draft.treadling := read(input) &
+   draft.warp_colors := read(input) &
+   draft.weft_colors := read(input) &
+   draft.palette := read(input) &
+   draft.colors := read(input) &
+   draft.shafts := read(input) &
+   draft.treadles := read(input) &
+   draft.tieup := read(input)  | fail
+   draft.liftplan := read(input)			# may be missing
+   draft.drawdown := read(input)			# may be missing
+
+   return draft
+
+end
+
+procedure writepfd(output, pfd)		#: write PFD
+
+   write(output, pfd.name)
+   write(output, pfd.threading)
+   write(output, pfd.treadling)
+   write(output, pfd.warp_colors)
+   write(output, pfd.weft_colors)
+   write(output, pfd.palette)
+   write(output, pfd.colors)
+   write(output, pfd.shafts)
+   write(output, pfd.treadles)
+   write(output, pfd.tieup)
+   if *\pfd.liftplan > 0 then write(pfd.liftplan) else write()
+
+   return
+
+end
+
+procedure expandpfd(pfd)		#: expand PFD
+
+   pfd := copy(pfd)
+
+   pfd.threading := pfl2str(pfd.threading)
+   pfd.treadling := pfl2str(pfd.treadling)
+   pfd.warp_colors := pfl2str(pfd.warp_colors)
+   pfd.weft_colors := pfl2str(pfd.weft_colors)
+
+   pfd.warp_colors := Extend(pfd.warp_colors, *pfd.threading)
+   pfd.weft_colors := Extend(pfd.weft_colors, *pfd.treadling)
+
+   return pfd
+
+end
+
+#  Write include file for seqdraft (old)
+
+procedure write_spec(name, spec, opt, mode)	#: write weaving include file
+   local n, output
+   static bar
+
+   initial bar := repl("#", 72)
+
+   /opt := "w"
+
+   output := open(name, opt) | fail
+
+   if \mode == "drawdown" then write(output, "$define DrawDown")
+
+   #  Literals are output with image().  Other definitions are
+   #  Icon experssions, enclosed in parentheses.
+
+   write(output, "$define Comments ", image(spec.comments))
+   write(output, "$define Name ", image(spec.name))
+   write(output, "$define Palette ", image(spec.palette))
+   write(output, "$define WarpColors (", check(spec.warp_colors), ")")
+   write(output, "$define WeftColors (", check(spec.weft_colors), ")")
+   write(output, "$define Breadth (", spec.breadth, ")")
+   write(output, "$define Length (", spec.length, ")")
+   write(output, "$define Threading (", check(spec.threading), ")")
+   write(output, "$define Treadling (", check(spec.treadling), ")")
+   write(output, "$define Shafts (", spec.shafts, ")")
+   write(output, "$define Treadles (", spec.treadles, ")")
+   write(output, "$define Tieup ", image(spec.tieup))
+   
+   every n := !keylist(spec.defns) do
+      write(output, "$define ", n, " ", spec.defns[n])
+
+   write(output, bar)
+
+   close(output)
+
+   return
+
+end
+
+#  Write include file for seqdraft (new)
+
+procedure write_spec1(name, spec, opt, mode, defns)	#: weaving include file
+   local n, output
+   static bar
+
+   initial bar := repl("#", 72)
+
+   /opt := "w"
+
+   output := open(name, opt) | fail
+
+   if \mode == "drawdown" then write(output, "$define DrawDown")
+
+   #  Literals are output with image().  Other definitions are
+   #  Icon experssions, enclosed in parentheses.
+
+   write(output, "$define Comments ", image(spec.comments))
+   write(output, "$define Name ", image(spec.name))
+   write(output, "$define Palette ", image((\spec.palette).name))
+   write(output, "$define WarpPalette ", image((\spec.warp_palette).name))
+   write(output, "$define WeftPalette ", image((\spec.weft_palette).name))
+   write(output, "$define WarpColors (", check(spec.warp_colors), ")")
+   write(output, "$define WeftColors (", check(spec.weft_colors), ")")
+   write(output, "$define Breadth (", spec.breadth, ")")
+   write(output, "$define Length (", spec.length, ")")
+   write(output, "$define Threading (", check(spec.threading), ")")
+   write(output, "$define Treadling (", check(spec.treadling), ")")
+   write(output, "$define Shafts (", spec.shafts, ")")
+   write(output, "$define Treadles (", spec.treadles, ")")
+   write(output, "$define Tieup ", spec.tieup)
+   
+   every n := !keylist(spec.defns) do
+      write(output, "$define ", n, " ", spec.defns[n])
+
+   if \defns then
+      every n := !keylist(defns) do
+         write(output, "$define ", n, " ", defns[n])
+
+   write(output, bar)
+
+   close(output)
+
+   return
+
+end
+
+procedure check(s)		#: check for pattern form
+
+   if s[1] == "[" then s := "!pfl2str(" || image(s) || ")"
+
+   return s
+
+end
+
+procedure display()
+
+   write(&errout, "name=", name)
+   write(&errout, "threading=", threading)
+   write(&errout, "treadling=", treadling)
+   write(&errout, "warp colors=", warp_colors)
+   write(&errout, "weft colors=", weft_colors)
+   write(&errout, "tie up=", limage(tieup))
+   write(&errout, "palette=", palette)
+
+   return
+
+end
+
+procedure sympos(sym)		#: position of symbol in symbol list
+   static mask
+
+   initial mask := Mask
+
+   return upto(sym, mask)	# may fail
+
+end
+
+procedure possym(i)		#: symbol in position i of symbol list
+   static mask
+
+   initial mask := Mask
+
+   return mask[i]		# may fail
+
+end
+
+#  Procedure to convert a tier to a list of productions
+
+$define Different 2
+
+procedure tier2prodl(tier, name)
+   local rows, row, count, unique, prodl, prod
+
+   unique := table()
+   rows := []
+   count := 0
+
+   every row := !tier.matrix do {
+      if /unique[row] then unique[row] := (count +:= 1)
+      put(rows, unique[row])
+      }
+
+   prod := name || "->"
+   every prod ||:= possym(!rows + Different)
+
+   prodl := [
+      "name:" || "t-" || name,
+      "comment: ex pfd2wpg "  || &dateline,
+      "axiom:2",
+      "gener:1",
+      prod
+      ]
+   unique := sort(unique, 4)
+
+   while row := get(unique) do
+      put(prodl, possym(get(unique) + Different) || "->" || row)
+
+   put(prodl, "end:")
+
+   return prodl
+
+end
+
+procedure analyze(drawdown)
+   local sequence, rows, row, count, patterns
+
+   sequence := []
+   patterns := []
+
+   rows := table()
+
+   count := 0
+
+   every row := !drawdown do {
+      if /rows[row] then {
+         rows[row] := count +:= 1
+         put(patterns, row)
+         }
+      put(sequence, rows[row])
+      }
+
+   return analysis(rows, sequence, patterns)
+
+end

@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     June 10, 1988
+#	Date:     June 21, 2000
 #
 ############################################################################
 #
@@ -16,59 +16,80 @@
 #  
 #  The following procedures perform operations on complex numbers.
 #  
-#       complex(r,i)   create complex number with real part r and
-#                      imaginary part i
+#       complex(r,i)    create complex number with real part r and
+#                       imaginary part i
 #  
-#       cpxadd(x1,x2)  add complex numbers x1 and x2
+#       cpxadd(z1, z2)  add complex numbers z1 and z2
 #  
-#       cpxdiv(x1,x2)  divide complex number x1 by complex number x2
+#       cpxdiv(z1, z2)  divide complex number z1 by complex number z2
 #  
-#       cpxmul(x1,x2)  multiply complex number x1 by complex number
-#                      x2
+#       cpxmul(z1, z2)  multiply complex number z1 by complex number z2
 #  
-#       cpxsub(x1,x2)  subtract complex number x2 from complex
-#                      number x1
+#       cpxsub(z1, z2)  subtract complex number z2 from complex number z1
 #  
-#       cpxstr(x)      convert complex number x to string represen-
-#                      tation
+#       cpxstr(z)      convert complex number z to string representation
 #  
 #       strcpx(s)      convert string representation s of complex
 #                      number to complex number
 #  
 ############################################################################
 
-record complex(rpart,ipart)
+record complex(rpart, ipart)
 
 procedure strcpx(s)
-   local i
 
-   i := upto('+-',s,2)
-   return complex(+s[1:i],+s[i:-1])
+   s ? {
+      ="(" | fail
+      return complex(numeric(upto('+-')),
+         2(move(1), numeric(upto(')')), tab(-1)))
+      }
+
 end
 
-procedure cpxstr(x)
-   if x.ipart < 0 then return x.rpart || x.ipart || "i"
-   else return x.rpart || "+" || x.ipart || "i"
+procedure cpxstr(z)
+
+   if z.ipart < 0 then return "(" ||  z.rpart || z.ipart || "i)"
+   else return "(" ||  z.rpart || "+" || z.ipart || "i)"
+
 end
 
-procedure cpxadd(x1,x2)
-   return complex(x1.rpart + x2.rpart,x1.ipart + x2.ipart)
+procedure cpxadd(z1, z2)
+
+   return complex(z1.rpart + z2.rpart, z1.ipart + z2.ipart)
+
 end
 
-procedure cpxsub(x1,x2)
-   return complex(x1.rpart - x2.rpart,x1.ipart - x2.ipart)
+procedure cpxsub(z1, z2)
+
+   return complex(z1.rpart - z2.rpart, z1.ipart - z2.ipart)
+
 end
 
-procedure cpxmul(x1,x2)
-   return complex(x1.rpart * x2.rpart - x1.ipart * x2.ipart,
-      x1.rpart * x2.ipart + x1.ipart * x2.rpart)
+procedure cpxmul(z1, z2)
+
+   return complex(z1.rpart * z2.rpart - z1.ipart * z2.ipart,
+      z1.rpart * z2.ipart + z1.ipart * z2.rpart)
+
 end
 
-procedure cpxdiv(x1,x2)
+procedure cpxdiv(z1, z2)
    local denom
 
-   denom := x2.rpart ^ 2 + x2.ipart ^ 2
-   return complex((x1.rpart * x2.rpart + x1.ipart * x2.ipart) /
-      denom,(x1.ipart * x2.rpart - x1.rpart * x2.ipart) /
-      denom)
+   denom := z2.rpart ^ 2 + z2.ipart ^ 2
+
+   return complex((z1.rpart * z2.rpart + z1.ipart * z2.ipart) / denom,
+      (z1.ipart * z2.rpart - z1.rpart * z2.ipart) / denom)
+
+end
+
+procedure cpxconj(z)
+
+   return complex(z.rpart, -z.ipart)
+
+end
+
+procedure cpxabs(z)
+
+   return sqrt(z.rpart ^ 2 + z.ipart ^ 2)
+
 end

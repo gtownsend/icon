@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     July 1, 1999
+#	Date:     July 3, 2000
 #
 ############################################################################
 #
@@ -21,19 +21,35 @@
 #
 #	These procedures deal with numbers in various ways:
 #
-#	amean(L)	returns arithmetic mean of numbers in L.
+#	adp(i)		additive digital persistence of i
+#
+#	adr(i)		additive digital root of i (same as digred())
+#
+#	amean ! L	returns arithmetic mean of numbers in L.
 #
 #	ceil(r)		returns nearest integer to r away from 0.
 #
 #	commas(s)	inserts commas in s to separate digits into groups of
 #			three.
 #
+#	decimal(i, j)	decimal expansion of i / j; terminates when expansion
+#			terminates or the end of a recurring period is reached.
+#			The format of the returned value is <integer>.<seq>,
+#			where <seq> is a string a decimal digits if the
+#			expansion is finite but <pre>[<recurr>] if it
+#			is not, where <pre> is a string of decimal digits
+#			(possibly empty) before the recurring part.
+#
 #	decipos(r, i, j)
 #			positions decimal point at i in real number r in
 #			field of width j.
 #
+#	digprod(i)	produce of digits of i
+#
 #	digred(i)	reduction of number by adding digits until one digit is
 #			reached.
+#
+#	digroot(i)	same as digred().
 #
 #	digsum(i)	sum of digits in i.
 #
@@ -49,7 +65,7 @@
 #			function fails if j is 0 or if the number cannot
 #			be formatted.
 #
-# 	floor(r)	nearest integer to r toward 0
+# 	floor(r)	nearest integer to r toward 0.
 #
 #	frn(r, w, d)    format real number r into a string with d digits
 #			after the decimal point; a result narrower than w
@@ -57,30 +73,38 @@
 #			Fixed format is always used; there is no exponential
 #			notation.  Defaults:  w 0, d  0
 #
-#	gcd(i, j)	returns greatest common divisor of i and j. It fails
-#			if both are zero.
+#	gcd(i, j)	returns greatest common divisor of i and j.
 #
-#	gcdl(L)		returns the greatest common division of the integers
+#	gcdl ! L	returns the greatest common division of the integers
 #			list L.
 #
-#	gmean(L)	returns geometric mean of numbers in L.
+#	gmean ! L	returns geometric mean of numbers in L.
 #
-#	hmean(L)	returns harmonic mean of numbers in L.
+#	hmean ! L	returns harmonic mean of numbers in L.
 #
 #	large(i)	succeeds if i is a large integer but fails otherwise.
 #
 #	lcm(i, j)	returns the least common multiple of i and j.
 #
-#	lcml(L)		returns the least common multiple of the integers
+#	lcml | L	returns the least common multiple of the integers
 #			in the list L.
 #
-#	max(L)		produces maximum of numbers in L.
+#	mantissa(r)	mantissa (fractional part) of r.
 #
-#	min(L)		produces minimum of numbers in L.	
+#	max ! L		produces maximum of numbers in L.
+#
+#	mdp(i)		multiplicative digital persistence of i
+#
+#	mdr(i)		multiplicative digital root of i
+#
+#	min | L		produces minimum of numbers in L.	
 #
 #	mod1(i, m)	residue for 1-based indexing.
 #
-#	npalins(n)	generates palindomic n-digit numbers.
+#	npalins(n)	generates palindromic n-digit numbers.
+#
+#	residue(i, m, j)
+#			residue for j-based indexing.
 #
 #	roman(i)	converts i to Roman numerals.
 #
@@ -90,7 +114,9 @@
 #
 #	spell(i)	spells out i in English.
 #
-#	trunc(r)	returns nearest integer less than r.
+#	sum ! L		sum of numbers in list L
+#
+#	trunc(r)	returns nearest integer to r toward 0
 #
 #	unroman(s)	converts Roman numerals to integers.
 #
@@ -101,6 +127,29 @@
 ############################################################################
 
 link strings
+
+procedure adp(i)		#: additive digital persistence
+   local j
+
+   j := 0
+
+   until *i = 1 do {
+      i := digsum(i)
+      j +:= 1
+      }
+
+   return j
+
+end
+
+procedure adr(i)		#: additive digital root
+
+   until *i = 1 do
+      i := digsum(i)
+
+   return i
+
+end
 
 procedure amean(L[])		#: arithmetic mean
    local m
@@ -122,31 +171,63 @@ procedure ceil(r)		#: ceiling
 
 end
 
-procedure commas(s)		#: commas in number
+procedure commas(s)		#: insert commas in number
 
-    local s2, sign
+   local s2, sign
 
-    # Don't bother if s is already comma-ized.
-    if type(s) == "string" & find(",",  s) then fail
+   # Don't bother if s is already comma-ized.
+   if type(s) == "string" & find(",",  s) then fail
 
-    # Take sign.  Save chars after the decimal point (if present).
-    if s := abs(0 > s)
-    then sign := "-" else sign := ""
-    s ? {
-	s := tab(find(".")) & ="." &
-	not pos(0) & s2 := "." || integer(tab(0))
-    }
+   # Take sign.  Save chars after the decimal point (if present).
+   if s := abs(0 > s)
+   then sign := "-" else sign := ""
+   s ? {
+      s := tab(find(".")) & ="." &
+      not pos(0) & s2 := "." || tab(0)
+      }
 
-    /s2 := ""
-    integer(s) ? {
-	tab(0)
-	while s2 := "," || move(-3) || s2
-	if pos(1)
-	then s2 ?:= (move(1), tab(0))
-	else s2 := tab(1) || s2
-    }
+   /s2 := ""
+   integer(s) ? {
+      tab(0)
+      while s2 := "," || move(-3) || s2
+      if pos(1)
+      then s2 ?:= (move(1), tab(0))
+      else s2 := tab(1) || s2
+      }
 
-    return sign || s2
+   return sign || s2
+
+end
+
+procedure decimal(i, j)		#: decimal expansion of rational
+   local head, result, remainders, count
+
+   head := (i / j) || "."
+
+   result := ""
+
+   remainders := table()
+
+   i %:= j
+   i *:= 10
+
+   count := 0
+
+   while i > 0 do {
+      count +:= 1
+      result ||:= i / j
+      i %:= j
+      if member(remainders, i) then {	# been here; done that
+         result ?:=  {
+            move(remainders[i] - 1) || "[" || tab(-1) || "]"
+            }
+         break
+         }
+      else insert(remainders, i, count)
+      i *:= 10
+      }
+
+   return head || result
 
 end
 
@@ -170,17 +251,31 @@ procedure decipos(r, i, j)	#: position decimal point
 end
 
 procedure digred(i)		#: sum digits of integer repeated to one digit
+
+   digred := digroot
+
+   return digred(i)
+
+end
+
+procedure digroot(i)		#: digital root
+
+   i %:= 9
+   
+   return if i = 0 then 9 else i
+
+end
+
+procedure digprod(i)		#: product of digits
    local j
 
-   i := string(i)
+   if upto('0', i) then return 0
 
-   until *i = 1 do {
-      j := 0
-      every j +:= !i
-      i := string(j)
-      }
+   else j := 1
 
-   return i
+   every j *:= !i
+
+   return j
 
 end
 
@@ -233,7 +328,7 @@ procedure div(i, j)		#: real division
 
 end
 
-procedure fix(i,j,w,d)		#: format real number
+procedure fix(i, j, w, d)	#: format real number
    local r, int, dec
 
    /j := 1
@@ -243,12 +338,17 @@ procedure fix(i,j,w,d)		#: format real number
    w <:= 3
    d <:= 1
    r := real(i) / j
+   if r < 0 then {
+      r  := -r
+      sign := "-"
+      }
+   else sign:=""
 
-   int := dec := "0"				# prepare for small number
+   int := dec := "0"  # prepare for small number
 
-   if not(r < ("0." || repl("0", d - 1) || "1")) then {	# formats as zero
+   if not(r < ("0." || repl("0", d - 1) || "1")) then { # formats as zero
       string(r) ? {
-         if upto('eE') then fail		# can't format
+         if upto('eE') then fail # can't format
          if int := tab(find(".")) then {
             move(1)
             dec := tab(0)
@@ -256,8 +356,7 @@ procedure fix(i,j,w,d)		#: format real number
          }
       }
 
-   return right(int || "." || left(dec, d, "0"), w)
-
+   return right(sign || int || "." || left(dec, d, "0"), w)
 end
 
 procedure floor(r)		#: floor
@@ -294,11 +393,8 @@ end
 procedure gcd(i,j)		#: greatest common divisor
    local r
 
-   if i = j = 0 then fail
-   if i = 0 then return j
-   if j = 0 then return i
-   i := abs(i)
-   j := abs(j)
+   if (i | j) < 1 then runerr(501)
+
    repeat {
       r := i % j
       if r = 0 then return j
@@ -367,7 +463,7 @@ end
 
 procedure lcm(i, j)		#: least common multiple
 
-   if i = j = 0 then fail
+   if (i =  0) | (j = 0) then return 0	# ???
 
    return abs(i * j) / gcd(i, j)
 
@@ -385,6 +481,33 @@ procedure lcml(L[])		#: least common multiple of list
 
 end
 
+procedure mantissa(r)		#: mantissa (fractional part)
+   local fpart
+
+   r := real(r)
+
+   fpart := r - floor(r)
+
+   fpart ?:= {
+      tab(upto('.') + 1)
+      tab(0)
+      }
+
+   fpart ? {
+      if fpart := tab(upto('Ee')) then {
+         move(1)
+         if = "+" then fpart := "0"
+         else {
+            move(1)
+            fpart := repl("0", tab(0) - 1) || fpart
+            }
+         }
+      }
+
+   return "." || fpart
+
+end
+
 procedure max(values[])		#: maximum value
    local maximum
 
@@ -392,6 +515,29 @@ procedure max(values[])		#: maximum value
    every maximum <:= !values
 
    return maximum
+
+end
+
+procedure mdp(i)		#: multiplicative digital persistence
+   local j
+
+   j := 0
+
+   until *i = 1 do {
+      i := digprod(i)
+      j +:= 1
+      }
+
+   return j
+
+end
+
+procedure mdr(i)		#: multiplicative digital root
+
+   until *i = 1 do
+      i := digprod(i)
+
+   return i
 
 end
 
@@ -407,8 +553,9 @@ end
 
 procedure mod1(i, m)		#: modulus for 1-based integers
 
-   i := i % m
-   if i <= 0 then i := m + i
+   i %:= m
+
+   if i < 1 then i +:= m
 
    return i
 
@@ -419,6 +566,18 @@ procedure npalins(n)		#: palindromic numbers
 
    every i := palins(&digits, n) do
       if i[1] ~== "0" then suspend i	# can't start with zero
+
+end
+
+procedure residue(i, m, j)		#: residue for j-based integers
+
+   /j := 0
+
+   i %:= m
+
+   if i < j then i +:= m
+
+   return i
 
 end
 
@@ -489,6 +648,17 @@ procedure spell(n)		#: spell out integer
          (if (m := n[2:0]) ~= 0 then " and " || spell(m) else "")
       }
    else fail
+
+end
+
+procedure sum(values[])		#: sum of numbers
+   local result
+
+   result := 0
+
+   every result +:= !values
+
+   return result
 
 end
 
