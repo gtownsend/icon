@@ -6,7 +6,7 @@
 #
 #	Authors:  Jon Lipp and Gregg M. Townsend
 #
-#	Date:     July 22, 1997
+#	Date:     November 4, 2002
 #
 ############################################################################
 #
@@ -382,7 +382,8 @@ end
 #
 procedure insert_char_Vtext(self, c)
 
-   c := c[1]
+   if *c > 1 then
+      fail				# this isn't a character
 
    if TextWidth(self.win, c) == 0 then
       fail				# not displayable
