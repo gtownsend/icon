@@ -7,18 +7,18 @@ Ilib:
 	(cd gprocs; LPATH=../ilib ../../bin/icont -usc *icn; mv *.u? ../ilib)
 	(cd mprocs; LPATH=../ilib ../../bin/icont -usc *icn; mv *.u? ../ilib)
 
-# build programs, just to verify that they compile and link
-Progs:
-	BuildAll
-
-
-# check for undefined identifiers and externals
+# check for undefined identifiers and externals  (requires ilib)
 Undef:
-	cd ilib; for f in *.u2; do (echo $$f; icont -us $$f); done
+	cd ilib; for f in *.u2; do (echo $$f; icont -us -fs $$f); done
 
 # check for stray files
 Strays:
 	for d in *procs *progs *incl; do (cd $$d; pwd; gcomp CVS *.icn); done
+
+# build all programs including packs, to verify that they do build,
+# and perform some other sanity checks
+Check:
+	BuildAll
 
 # clean up
 Clean:
