@@ -12,8 +12,8 @@ Clean Pure:
 	cd runtime;	rm -f *.o *.c rt.db rt.a rttcur.lst rttfull.lst iconx
 	cd icont;	rm -f *.o icont
 	cd xpm;		rm -f *.o *.a
-# force full rebuild of runtime system by touching define.h if present
-	touch /dev/null `find h -name define.h`
+# force full runtime system rebuild
+	touch h/define.h
 
 
 #  The following entry forces rebuilding of everthing from first-generation
