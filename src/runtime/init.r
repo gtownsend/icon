@@ -6,31 +6,22 @@
  *  fatalerr, pstrnmcmp, datainit, [loadicode, savepstate, loadpstate]
  */
 
-#if !COMPILER
-#include "../h/header.h"
-
-static	FILE	*readhdr	(char *name, struct header *hdr);
-#endif					/* !COMPILER */
-
-/*
- * Prototypes.
- */
-
 static void	env_err		(char *msg, char *name, char *val);
 FILE		*pathOpen       (char *fname, char *mode);
 
-char *prog_name;			/* name of icode file */
-
 #if !COMPILER
-#passthru #define OpDef(p,n,s,u) int Cat(O,p) (dptr cargp);
-#passthru #include "../h/odefs.h"
-#passthru #undef OpDef
+   #include "../h/header.h"
+   static FILE *readhdr(char *name, struct header *hdr);
 
-/*
- * External declarations for operator blocks.
- */
+   #passthru #define OpDef(p,n,s,u) int Cat(O,p) (dptr cargp);
+   #passthru #include "../h/odefs.h"
+   #passthru #undef OpDef
 
-#passthru #define OpDef(f,nargs,sname,underef)\
+   /*
+    * External declarations for operator blocks.
+    */
+
+   #passthru #define OpDef(f,nargs,sname,underef)\
 	{\
 	T_Proc,\
 	Vsizeof(struct b_proc),\
@@ -40,64 +31,66 @@ char *prog_name;			/* name of icode file */
 	underef,\
 	0,\
 	{{sizeof(sname)-1,sname}}},
-#passthru static B_IProc(2) init_op_tbl[] = {
-#passthru #include "../h/odefs.h"
-#passthru   };
-#undef OpDef
+   #passthru static B_IProc(2) init_op_tbl[] = {
+   #passthru #include "../h/odefs.h"
+   #passthru   };
+   #undef OpDef
 #endif					/* !COMPILER */
-
+
 /*
  * A number of important variables follow.
  */
 
-int line_info;				/* flag: line information is available */
-char *file_name = NULL;			/* source file for current execution point */
-int line_num = 0;			/* line number for current execution point */
-struct b_proc *op_tbl;			/* operators available for string invocation */
+char *prog_name;		/* name of icode file */
 
-extern struct errtab errtab[];		/* error numbers and messages */
+int line_info;			/* flag: line information is available */
+char *file_name = NULL;		/* source file for current execution point */
+int line_num = 0;		/* line number for current execution point */
+struct b_proc *op_tbl;		/* operators available for string invocation */
 
-word mstksize = MStackSize;		/* initial size of main stack */
-word stksize = StackSize;		/* co-expression stack size */
+extern struct errtab errtab[];	/* error numbers and messages */
 
-int k_level = 0;			/* &level */
+word mstksize = MStackSize;	/* initial size of main stack */
+word stksize = StackSize;	/* co-expression stack size */
 
-#ifndef MultiThread
-struct descrip k_main;			/* &main */
-#endif					/* MultiThread */
-
-int set_up = 0;				/* set-up switch */
-
-char *currend = NULL;			/* current end of memory region */
-
-
-word qualsize = QualLstSize;		/* size of quallist for fixed regions */
-
-word memcushion = RegionCushion;	/* memory region cushion factor */
-word memgrowth = RegionGrowth;		/* memory region growth factor */
-
-uword stattotal = 0;			/* cumulative total static allocation */
-#ifndef MultiThread
-uword strtotal = 0;			/* cumulative total string allocation */
-uword blktotal = 0;			/* cumulative total block allocation */
-#endif					/* MultiThread */
-
-int dodump;				/* if nonzero, core dump on error */
-int noerrbuf;				/* if nonzero, do not buffer stderr */
-
-struct descrip maps2;			/* second cached argument of map */
-struct descrip maps3;			/* third cached argument of map */
+int k_level = 0;		/* &level */
 
 #ifndef MultiThread
-struct descrip k_current;		/* current expression stack pointer */
-int k_errornumber = 0;			/* &errornumber */
-char *k_errortext = "";			/* &errortext */
-struct descrip k_errorvalue;		/* &errorvalue */
-int have_errval = 0;			/* &errorvalue has legal value */
-int t_errornumber = 0;			/* tentative k_errornumber value */
-int t_have_val = 0;			/* tentative have_errval flag */
-struct descrip t_errorvalue;		/* tentative k_errorvalue value */
-#endif					/* MultiThread */
+   struct descrip k_main;	/* &main */
+#endif				/* MultiThread */
+
+int ixinited = 0;		/* set-up switch */
+
+char *currend = NULL;		/* current end of memory region */
+
+
+word qualsize = QualLstSize;	/* size of quallist for fixed regions */
+
+word memcushion = RegionCushion;  /* memory region cushion factor */
+word memgrowth = RegionGrowth;	  /* memory region growth factor */
+
+uword stattotal = 0;		/* cumulative total static allocation */
+#ifndef MultiThread
+   uword strtotal = 0;		/* cumulative total string allocation */
+   uword blktotal = 0;		/* cumulative total block allocation */
+#endif				/* MultiThread */
+
+int dodump;			/* if nonzero, core dump on error */
+int noerrbuf;			/* if nonzero, do not buffer stderr */
+
+struct descrip maps2;		/* second cached argument of map */
+struct descrip maps3;		/* third cached argument of map */
+
+#ifndef MultiThread
+   struct descrip k_current;	/* current expression stack pointer */
+   int k_errornumber = 0;	/* &errornumber */
+   char *k_errortext = "";	/* &errortext */
+   struct descrip k_errorvalue;	/* &errorvalue */
+   int have_errval = 0;		/* &errorvalue has legal value */
+   int t_errornumber = 0;	/* tentative k_errornumber value */
+   int t_have_val = 0;		/* tentative have_errval flag */
+   struct descrip t_errorvalue;	/* tentative k_errorvalue value */
+#endif				/* MultiThread */
 
 struct b_coexpr *stklist;	/* base of co-expression block list */
 
@@ -106,82 +99,84 @@ struct tend_desc *tend = NULL;  /* chain of tended descriptors */
 struct region rootstring, rootblock;
 
 #ifndef MultiThread
-dptr glbl_argp = NULL;		/* argument pointer */
-dptr globals, eglobals;			/* pointer to global variables */
-dptr gnames, egnames;			/* pointer to global variable names */
-dptr estatics;				/* pointer to end of static variables */
-
-struct region *curstring, *curblock;
+   dptr glbl_argp = NULL;	/* argument pointer */
+   dptr globals, eglobals;	/* pointer to global variables */
+   dptr gnames, egnames;	/* pointer to global variable names */
+   dptr estatics;		/* pointer to end of static variables */
+   struct region *curstring, *curblock;
+   #if !COMPILER
+      int n_globals = 0;	/* number of globals */
+      int n_statics = 0;	/* number of statics */
+   #endif				/* !COMPILER */
 #endif					/* MultiThread */
 
 #if COMPILER
-struct p_frame *pfp = NULL;	/* procedure frame pointer */
+   struct p_frame *pfp = NULL;	/* procedure frame pointer */
 
-int debug_info;				/* flag: is debugging information available */
-int err_conv;				/* flag: is error conversion supported */
-int largeints;				/* flag: large integers are supported */
+   int debug_info;		/* flag: is debugging information available */
+   int err_conv;		/* flag: is error conversion supported */
+   int largeints;		/* flag: large integers are supported */
 
-struct b_coexpr *mainhead;		/* &main */
+   struct b_coexpr *mainhead;	/* &main */
 
 #else					/* COMPILER */
 
-int debug_info=1;			/* flag: debugging information IS available */
-int err_conv=1;				/* flag: error conversion IS supported */
+   int debug_info=1;		/* flag: debugging information IS available */
+   int err_conv=1;		/* flag: error conversion IS supported */
 
-int op_tbl_sz = (sizeof(init_op_tbl) / sizeof(struct b_proc));
-struct pf_marker *pfp = NULL;		/* Procedure frame pointer */
+   int op_tbl_sz = (sizeof(init_op_tbl) / sizeof(struct b_proc));
+   struct pf_marker *pfp = NULL;  /* Procedure frame pointer */
 
-#ifndef MaxHeader
-#define MaxHeader MaxHdr
-#endif					/* MaxHeader */
+   #ifndef MaxHeader
+      #define MaxHeader MaxHdr
+   #endif				/* MaxHeader */
 
-#ifdef MultiThread
-struct progstate *curpstate;		/* lastop accessed in program state */
-struct progstate rootpstate;
-#else					/* MultiThread */
+   #ifdef MultiThread
+      struct progstate *curpstate;  /* lastop accessed in program state */
+      struct progstate rootpstate;
+   #else				/* MultiThread */
 
-struct b_coexpr *mainhead;		/* &main */
+      struct b_coexpr *mainhead;  /* &main */
 
-char *code;				/* interpreter code buffer */
-char *ecode;				/* end of interpreter code buffer */
-word *records;				/* pointer to record procedure blocks */
+      char *code;		/* interpreter code buffer */
+      char *ecode;		/* end of interpreter code buffer */
+      word *records;		/* pointer to record procedure blocks */
 
-int *ftabp;				/* pointer to record/field table */
-#ifdef FieldTableCompression
-word ftabwidth;				/* field table entry width */
-word foffwidth;				/* field offset entry width */
-unsigned char *ftabcp, *focp;		/* pointers to record/field table */
-short *ftabsp, *fosp;			/* pointers to record/field table */
+      int *ftabp;		/* pointer to record/field table */
 
-int *fo;				/* field offset (row in field table) */
-char *bm;				/* bitmap array of valid field bits */
-#endif					/* FieldTableCompression */
+      #ifdef FieldTableCompression
+         word ftabwidth;		/* field table entry width */
+         word foffwidth;		/* field offset entry width */
+         unsigned char *ftabcp, *focp;	/* pointers to record/field table */
+         short *ftabsp, *fosp;		/* pointers to record/field table */
 
-dptr fnames, efnames;			/* pointer to field names */
-dptr statics;				/* pointer to static variables */
-char *strcons;				/* pointer to string constant table */
-struct ipc_fname *filenms, *efilenms;	/* pointer to ipc/file name table */
-struct ipc_line *ilines, *elines;	/* pointer to ipc/line number table */
-#endif					/* MultiThread */
+         int *fo;		/* field offset (row in field table) */
+         char *bm;		/* bitmap array of valid field bits */
+      #endif				/* FieldTableCompression */
 
+      dptr fnames, efnames;	/* pointer to field names */
+      dptr statics;		/* pointer to static variables */
+      char *strcons;		/* pointer to string constant table */
+      struct ipc_fname *filenms, *efilenms; /* pointer to ipc/file name table */
+      struct ipc_line *ilines, *elines;	/* pointer to ipc/line number table */
+   #endif				/* MultiThread */
 
+   #ifdef TallyOpt
+      word tallybin[16];	/* counters for tallying */
+      int tallyopt = 0;		/* want tally results output? */
+   #endif				/* TallyOpt */
 
-#ifdef TallyOpt
-word tallybin[16];			/* counters for tallying */
-int tallyopt = 0;			/* want tally results output? */
-#endif					/* TallyOpt */
+   #ifdef ExecImages
+      int dumped = 0;		/* non-zero if reloaded from dump */
+   #endif				/* ExecImages */
 
-#ifdef ExecImages
-int dumped = 0;				/* non-zero if reloaded from dump */
-#endif					/* ExecImages */
-
-word *stack;				/* Interpreter stack */
-word *stackend;				/* End of interpreter stack */
-
+   word *stack;			/* Interpreter stack */
+   word *stackend;		/* End of interpreter stack */
 
 #endif					/* COMPILER */
 
 #if !COMPILER
+
 /*
  * Open the icode file and read the header.
  * Used by icon_init() as well as MultiThread's loadicode()
@@ -347,7 +342,8 @@ struct header *hdr;
 
    return fname;
    }
-#endif
+
+#endif					/* !COMPILER */
 
 /*
  * init/icon_init - initialize memory and prepare for Icon execution.
@@ -917,7 +913,7 @@ int i;
       }
 #endif					/* TallyOpt */
 
-   if (k_dump && set_up) {
+   if (k_dump && ixinited) {
       fprintf(stderr,"\nTermination dump:\n\n");
       fflush(stderr);
       fprintf(stderr,"co-expression #%ld(%ld)\n",

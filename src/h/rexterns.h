@@ -128,6 +128,7 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
     * External declarations for the interpreter.
     */
 
+   extern int ixinited;			/* iconx has initialized */
    extern inst ipc;			/* interpreter program counter */
    extern int ilevel;			/* interpreter level */
    extern int ntended;			/* number of active tended descriptors*/

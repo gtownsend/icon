@@ -2,291 +2,80 @@
 /*
  * File: imain.r
  * Interpreter main program, argument handling, and such.
- * Contents: main, icon_call, icon_setup, resolve, xmfree
+ * Contents: main, iconx, ixopts, resolve
  */
 
 #include "../h/version.h"
 #include "../h/header.h"
 #include "../h/opdefs.h"
 
-void	icon_setup	(int argc, char **argv, int *ip);
-
-extern int set_up;
-
-word istart[4];
-int mterm = Op_Quit;
-
-#ifndef MultiThread
-   int n_globals = 0;			/* number of globals */
-   int n_statics = 0;			/* number of statics */
-#endif					/* MultiThread */
-
-
+static int iconx(int argc, char *argv[]);
+static void ixopts(int argc, char *argv[], int *ip);
 
-#ifdef MSWindows
 /*
- * Special initialization under MS Windows.
+ * Initial interpreter entry point, with hook for system-dependent actions.
  */
-
-FILE *finredir, *fouredir, *ferredir;
-
-void detectRedirection()
-{
-   struct stat sb;
-   /*
-    * Look at the standard file handles and attempt to detect
-    * redirection.
-    */
-   if (fstat(stdin->_file, &sb) == 0) {
-      if (sb.st_mode & S_IFCHR) {		/* stdin is a device */
-	 }
-      if (sb.st_mode & S_IFREG) {		/* stdin is a regular file */
-	 }
-      /* stdin is of size sb.st_size */
-      if (sb.st_size > 0) {
-         ConsoleFlags |= StdInRedirect;
-	 }
-      }
-   else {					/* unable to identify stdin */
-      }
-
-   if (fstat(stdout->_file, &sb) == 0) {
-      if (sb.st_mode & S_IFCHR) {		/* stdout is a device */
-	 }
-      if (sb.st_mode & S_IFREG) {		/* stdout is a regular file */
-	 }
-      /* stdout is of size sb.st_size */
-      if (sb.st_size == 0)
-         ConsoleFlags |= StdOutRedirect;
-      }
-   else {					/* unable to identify stdout */
-     }
+int main(int argc, char *argv[]) {
+   #if MSDOS
+      return WinMain(argc, argv);
+   #else
+      return iconx(argc, argv);
+   #endif
 }
 
-int CmdParamToArgv(char *s, char ***avp)
-   {
-   char tmp[MaxPath], dir[MaxPath];
-   char *t, *t2;
-   int rv=0, i;
-   FILE *f;
-
-   t = salloc(s);
-   t2 = t;
-
-   *avp = malloc(2 * sizeof(char *));
-   (*avp)[rv] = NULL;
-
-   detectRedirection();
-
-   while (*t2) {
-      while (*t2 && isspace(*t2)) t2++;
-      switch (*t2) {
-	 case '\0': break;
-	 case '<': case '>': {
-	    /*
-	     * perform file redirection; this is for Windows 3.1
-	     * and other situations where Wiconx is launched from
-	     * a shell that does not process < and > characters.
-	     */
-	    char c = *t2++, buf[128], *t3;
-	    FILE *f;
-	    while (*t2 && isspace(*t2)) t2++;
-	    t3 = buf;
-	    while (*t2 && !isspace(*t2)) *t3++ = *t2++;
-	    *t3 = '\0';
-	    if (c == '<')
-	       f = fopen(buf, "r");
-	    else
-	       f = fopen(buf, "w");
-	    if (f == NULL) {
-	       MessageBox(0, "unable to redirect i/o", "system error",
-			  MB_ICONHAND);
-	       c_exit(-1);
-	       }
-	    if (c == '<') {
-	       finredir = f;
-	       ConsoleFlags |= StdInRedirect;
-	       }
-	    else {
-	       fouredir = f;
-	       ConsoleFlags |= StdOutRedirect;
-	       }
-	    break;
-	    }
-	 case '"': {
-	    char *t3 = ++t2;			/* skip " */
-
-            while (*t2 && (*t2 != '"')) t2++;
-            if (*t2)
-	       *t2++ = '\0';
-	    *avp = realloc(*avp, (rv + 2) * sizeof (char *));
-	    (*avp)[rv++] = salloc(t3);
-            (*avp)[rv] = NULL;
-
-	    break;
-	    }
-         default: {
-            FINDDATA_T fd;
-	    char *t3 = t2;
-            while (*t2 && !isspace(*t2)) t2++;
-	    if (*t2)
-	       *t2++ = '\0';
-            strcpy(tmp, t3);
-	    if (!FINDFIRST(tmp, &fd)) {
-	       *avp = realloc(*avp, (rv + 2) * sizeof (char *));
-	       (*avp)[rv++] = salloc(t3);
-               (*avp)[rv] = NULL;
-               }
-	    else {
-               int end;
-               strcpy(dir, t3);
-	       do {
-	          end = strlen(dir)-1;
-	          while (end >= 0 && dir[end] != '\\' && dir[end] != '/' &&
-			dir[end] != ':') {
-                     dir[end] = '\0';
-		     end--;
-	             }
-		  strcat(dir, FILENAME(&fd));
-	          *avp = realloc(*avp, (rv + 2) * sizeof (char *));
-	          (*avp)[rv++] = salloc(dir);
-                  (*avp)[rv] = NULL;
-	          } while (FINDNEXT(&fd));
-	       FINDCLOSE(&fd);
-	       }
-            break;
-	    }
-         }
-      }
-
-   free(t);
-   return rv;
-   }
-
-char *lognam;
-char tmplognam[128];
-
-void MSStartup(HINSTANCE hInstance, HINSTANCE hPrevInstance)
-   {
-   WNDCLASS wc;
-   #ifdef ConsoleWindow
-      extern FILE *flog;
-
-      /*
-       * Select log file name.  Might make this a command-line option.
-       * Default to "WICON.LOG".  The log file is used by Wi to report
-       * translation errors and jump to the offending source code line.
-       */
-      if ((lognam = getenv("WICONLOG")) == NULL)
-         lognam = "WICON.LOG";
-      remove(lognam);
-      lognam = strdup(lognam);
-      flog = fopen(tmpnam(tmplognam), "w");
-
-      if (flog == NULL) {
-         syserr("unable to open logfile");
-         }
-   #endif				/* ConsoleWindow */
-   if (!hPrevInstance) {
-      #if NT
-         wc.style = CS_HREDRAW | CS_VREDRAW;
-      #else				/* NT */
-         wc.style = 0;
-      #endif				/* NT */
-      wc.lpfnWndProc = WndProc;
-      wc.cbClsExtra = 0;
-      wc.cbWndExtra = 0;
-      wc.hInstance  = hInstance;
-      wc.hIcon      = NULL;
-      wc.hCursor    = NULL;
-      wc.hbrBackground = GetStockObject(WHITE_BRUSH);
-      wc.lpszMenuName = NULL;
-      wc.lpszClassName = "iconx";
-      RegisterClass(&wc);
-      }
-   }
-
-void iconx(int argc, char **argv);
-
-jmp_buf mark_sj;
-
-int_PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
-                   LPSTR lpszCmdLine, int nCmdShow)
-   {
-   int argc;
-   char **argv;
-
-   mswinInstance = hInstance;
-   ncmdShow = nCmdShow;
-
-   argc = CmdParamToArgv(GetCommandLine(), &argv);
-   MSStartup(hInstance, hPrevInstance);
-   if (setjmp(mark_sj) == 0)
-      iconx(argc,argv);
-   while (--argc>=0)
-      free(argv[argc]);
-   free(argv);
-   wfreersc();
-   xmfree();
-   return 0;
-}
-#define main iconx
-#endif					/* MSWindows */
-
 /*
  * Initial icode sequence. This is used to invoke the main procedure with one
  *  argument.  If main returns, the Op_Quit is executed.
  */
-int main(argc, argv)
-int argc;
-char **argv;
-   {
+int iconx(int argc, char *argv[]) {
    int i, slen;
+   static word istart[4];
+   static int mterm = Op_Quit;
 
-#ifdef MultiThread
-   /*
-    * Look for MultiThread programming environment in which to execute
-    * this program, specified by MTENV environment variable.
-    */
-   {
-   char *p;
-   char **new_argv;
-   int i, j = 1, k = 1;
-   if ((p = getenv("MTENV")) != NULL) {
-      for(i=0;p[i];i++)
-	 if (p[i] == ' ')
-	    j++;
-      new_argv = malloc((argc + j) * sizeof(char *));
-      new_argv[0] = argv[0];
-      for (i=0; p[i]; ) {
-	 new_argv[k++] = p+i;
-	 while (p[i] && (p[i] != ' '))
-	    i++;
-	 if (p[i] == ' ')
-	    p[i++] = '\0';
-	 }
-      for(i=1;i<argc;i++)
-	 new_argv[k++] = argv[i];
-      argc += j;
-      argv = new_argv;
+   #ifdef MultiThread
+      /*
+       * Look for MultiThread programming environment in which to execute
+       * this program, specified by MTENV environment variable.
+       */
+      {
+      char *p;
+      char **new_argv;
+      int i, j = 1, k = 1;
+      if ((p = getenv("MTENV")) != NULL) {
+         for(i=0;p[i];i++)
+   	 if (p[i] == ' ')
+   	    j++;
+         new_argv = malloc((argc + j) * sizeof(char *));
+         new_argv[0] = argv[0];
+         for (i=0; p[i]; ) {
+   	 new_argv[k++] = p+i;
+   	 while (p[i] && (p[i] != ' '))
+   	    i++;
+   	 if (p[i] == ' ')
+   	    p[i++] = '\0';
+   	 }
+         for(i=1;i<argc;i++)
+   	 new_argv[k++] = argv[i];
+         argc += j;
+         argv = new_argv;
+         }
       }
-   }
-#endif					/* MultiThread */
+   #endif				/* MultiThread */
 
    ipc.opnd = NULL;
 
-#if UNIX
-   /*
-    *  Append to FPATH the bin directory from which iconx was executed.
-    */
-   {
-      char *p, *q, buf[1000];
-      p = getenv("FPATH");
-      q = relfile(argv[0], "/..");
-      sprintf(buf, "FPATH=%s %s", (p ? p : "."), (q ? q : "."));
-      putenv(buf);
-      }
-#endif
+   #if UNIX
+      /*
+       *  Append to FPATH the bin directory from which iconx was executed.
+       */
+      {
+         char *p, *q, buf[1000];
+         p = getenv("FPATH");
+         q = relfile(argv[0], "/..");
+         sprintf(buf, "FPATH=%s %s", (p ? p : "."), (q ? q : "."));
+         putenv(buf);
+         }
+   #endif
 
    /*
     * Setup Icon interface.  It's done this way to avoid duplication
@@ -294,7 +83,7 @@ char **argv;
     *  is enabled.
     */
 
-   icon_setup(argc, argv, &i);
+   ixopts(argc, argv, &i);
 
    if (i < 0) {
       argc++;
@@ -347,12 +136,13 @@ char **argv;
    pfp = 0;
    ilevel = 0;
 
-/*
- * We have already loaded the
- * icode and initialized things, so it's time to just push main(),
- * build an Icon list for the rest of the arguments, and called
- * interp on a "invoke 1" bytecode.
- */
+   /*
+    * We have already loaded the
+    * icode and initialized things, so it's time to just push main(),
+    * build an Icon list for the rest of the arguments, and called
+    * interp on a "invoke 1" bytecode.
+    */
+
    /*
     * The first global variable holds the value of "main".  If it
     *  is not of type procedure, this is noted as run-time error 117.
@@ -383,11 +173,9 @@ char **argv;
       Ollist(argc - 2, glbl_argp);
       }
 
-
    sp = (word *)glbl_argp + 1;
    glbl_argp = 0;
-
-   set_up = 1;			/* post fact that iconx is initialized */
+   ixinited = 1;		/* post fact that iconx is initialized */
 
    /*
     * Start things rolling by calling interp.  This call to interp
@@ -400,9 +188,9 @@ char **argv;
 }
 
 /*
- * icon_setup - handle interpreter command line options.
+ * ixopts - handle interpreter command line options.
  */
-void icon_setup(argc,argv,ip)
+void ixopts(argc,argv,ip)
 int argc;
 char **argv;
 int *ip;
@@ -628,68 +416,5 @@ int *ip;
       curpstate = savedstate;
    #endif				/* MultiThread */
    }
-
 
-/*
- * Free malloc-ed memory; the main regions then co-expressions.  Note:
- *  this is only correct if all allocation is done by routines that are
- *  compatible with free() -- which may not be the case if Allocreg()
- *  in rmemfix.c is defined to be other than malloc().
- */
-
-void xmfree()
-   {
-   register struct b_coexpr **ep, *xep;
-   register struct astkblk *abp, *xabp;
-
-   if (mainhead != (struct b_coexpr *)NULL)
-      free((pointer)mainhead->es_actstk);	/* activation block for &main */
-   free((pointer)code);			/* icode */
-   code = NULL;
-   free((pointer)stack);		/* interpreter stack */
-   stack = NULL;
-   /*
-    * more is needed to free chains of heaps, also a multithread version
-    * of this function may be needed someday.
-    */
-   if (strbase)
-      free((pointer)strbase);		/* allocated string region */
-   strbase = NULL;
-   if (blkbase)
-      free((pointer)blkbase);		/* allocated block region */
-   blkbase = NULL;
-   if (curstring != &rootstring)
-      free((pointer)curstring);		/* string region */
-   curstring = NULL;
-   if (curblock != &rootblock)
-      free((pointer)curblock);		/* allocated block region */
-   curblock = NULL;
-   if (quallist)
-      free((pointer)quallist);		/* qualifier list */
-   quallist = NULL;
-
-   /*
-    * The co-expression blocks are linked together through their
-    *  nextstk fields, with stklist pointing to the head of the list.
-    *  The list is traversed and each stack is freeing.
-    */
-   ep = &stklist;
-   while (*ep != NULL) {
-      xep = *ep;
-      *ep = (*ep)->nextstk;
-       /*
-        * Free the astkblks.  There should always be one and it seems that
-        *  it's not possible to have more than one, but nonetheless, the
-        *  code provides for more than one.
-        */
-      for (abp = xep->es_actstk; abp; ) {
-         xabp = abp;
-         abp = abp->astk_nxt;
-         free((pointer)xabp);
-         }
-      free((pointer)xep);
-      stklist = NULL;
-      }
-
-   }
 #endif					/* !COMPILER */

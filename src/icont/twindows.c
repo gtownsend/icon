@@ -3,7 +3,7 @@
  *
  * THIS FILE IS UNTESTED.
  *
- * It is file is based on the old tmain.c from Icon 9.3.2, but it
+ * This file is based on the old tmain.c from Icon 9.3.2, but it
  * HAS NOT BEEN TESTED and probably needs some additional work.
  */
 
