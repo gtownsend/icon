@@ -9,7 +9,5 @@
 #define LoadFunc
 #define ExecImages
 
-#define MaxStatSize 20480
-
 #define CComp "gcc"
 #define COpts "-O2"

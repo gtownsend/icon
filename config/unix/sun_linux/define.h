@@ -8,7 +8,6 @@
 
 /* Sun parameters */
 #define SUN
-#define ZERODIVIDE
 
 /* use gcc to compile generated code */
 #define CComp "gcc"

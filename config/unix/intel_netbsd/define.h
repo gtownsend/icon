@@ -10,9 +10,5 @@
 #define LoadFunc
 #define ExecImages
 
-#define MaxStatSize 20480
-
 #define CComp "gcc"
 #define COpts "-O2 -I /usr/X11R6/include"
-#define LinkLibs " -lm"
-

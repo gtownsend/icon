@@ -364,13 +364,6 @@
 #define Bell '\a'
 
 /*
- *  something to handle a cast problem for signal().
- */
-#ifndef SigFncCast
-   #define SigFncCast (void (*)(int))
-#endif					/* SigFncCast */
-
-/*
  * Customize output if not pre-defined.
  */
 

@@ -616,6 +616,8 @@ char *argv[];
  * The following code is operating-system dependent [@init.02].  Set traps.
  */
 
+#define SigFncCast (void (*)(int))
+
 #if PORT
    /* probably needs something */
 Deliberate Syntax Error

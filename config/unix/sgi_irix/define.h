@@ -5,12 +5,7 @@
 #define UNIX 1
 #define LoadFunc
 
-#define IRIS4D
 #define CStateSize 32		/* anything >= 26 should actually do */
-
-#ifdef NoCoexpr
-   #define MaxStatSize 9000
-#endif				/* NoCoexpr */
 
 #define COpts "-Wf,-XNd10000"
 

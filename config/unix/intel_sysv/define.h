@@ -3,9 +3,5 @@
  */
 
 #define UNIX 1
-
-#define SigFncCast
-
 #define COpts "-O"
-
 #define NoIconify

@@ -21,5 +21,4 @@
 #define MSDOS 1
 #define StandardC
 #define Double
-#define ZERODIVIDE
 /* #define Eve */
