@@ -4,7 +4,7 @@
 #  make library distribution (portable ucode and include files)
 Ilib:	../bin/libcfunc.so
 ../bin/libcfunc.so:  ../bin/icont
-	cp incl/*.icn gincl/*.icn mincl/*.icn cfuncs/icall.h ../lib
+	cp incl/*.icn gincl/*.icn cfuncs/icall.h ../lib
 	cd procs;  LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
 	cd gprocs; LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
 	cd cfuncs; LPATH= $(MAKE) ICONT=../../bin/icont
