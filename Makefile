@@ -1,5 +1,5 @@
 #  configuration parameters
-VER=9.4.d
+VER=9.4.e
 name=unspecified
 dest=/must/specify/dest/
 
@@ -136,6 +136,7 @@ Install:
 		test -d $D/doc || mkdir $D/doc
 		test -d $D/man || mkdir $D/man
 		test -d $D/man/man1 || mkdir $D/man/man1
+		cp README $D
 		cp bin/[a-qs-z]* $D/bin
 		rm -f $D/bin/libXpm*
 		cp lib/*.* $D/lib
@@ -149,7 +150,6 @@ DIR=icon.$(VER)
 Package:
 		rm -rf $(DIR)
 		umask 002; $(MAKE) Install dest=$(DIR)
-		cp README $(DIR)
 		tar cf - icon.$(VER) | gzip -9 >icon.$(VER).tgz
 		rm -rf $(DIR)
 		
