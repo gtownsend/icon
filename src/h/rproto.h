@@ -42,6 +42,7 @@ int		co_chng		(struct b_coexpr *ncp, struct descrip *valloc,
 				   struct descrip *rsltloc,
 				   int swtch_typ, int first);
 void		co_init		(struct b_coexpr *sblkp);
+void		coclean		(word *old);
 void		coacttrace	(struct b_coexpr *ccp,struct b_coexpr *ncp);
 void		cofailtrace	(struct b_coexpr *ccp,struct b_coexpr *ncp);
 void		corettrace	(struct b_coexpr *ccp,struct b_coexpr *ncp);

@@ -162,6 +162,8 @@ struct b_coexpr *alccoexp()
    ep->line_num = 0;
    ep->freshblk = nulldesc;
    ep->es_actstk = NULL;
+   ep->cstate[0] = 0;		/* zero the first two cstate words as a flag */
+   ep->cstate[1] = 0;
    stklist = ep;
    return ep;
    }
@@ -232,9 +234,11 @@ struct b_coexpr *alccoexp()
       ep->id = 1;
    else
 #endif					/* MultiThread */
-      ep->id = coexp_ser++;
+   ep->id = coexp_ser++;
    ep->nextstk = stklist;
    ep->es_tend = NULL;
+   ep->cstate[0] = 0;		/* zero the first two cstate words as a flag */
+   ep->cstate[1] = 0;
 
 #ifdef MultiThread
    /*
