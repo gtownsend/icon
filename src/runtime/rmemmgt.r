@@ -1155,12 +1155,6 @@ static void cofree()
             abp = abp->astk_nxt;
             free((pointer)xabp);
             }
-
-#ifdef CoProcesses
-         coswitch(BlkLoc(k_current)->coexpr.cstate, xep->cstate, -1);
-         /* terminate coproc for co-expression first */
-#endif					/* CoProcesses */
-
          free((pointer)xep);
          }
       else {

@@ -1796,10 +1796,6 @@ function{1} load(s,arglist,infile,outfile,errfile,
            &~((word)WordSize*StackAlign-1));
 #endif					/* UpStack */
 
-#ifdef CoProcesses
-      sblkp->cstate[1] = 0;
-#endif					/* CoProcesses */
-
       sblkp->es_argp = NULL;
       sblkp->es_gfp = NULL;
       pstate->Mainhead->freshblk = nulldesc;/* &main has no refresh block. */

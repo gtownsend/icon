@@ -78,10 +78,6 @@ struct b_coexpr *sblkp;
            &~((word)WordSize*StackAlign-1));
 #endif					/* UpStack */
 
-#ifdef CoProcesses
-   sblkp->cstate[1] = 0;
-#endif
-
    sblkp->es_argp = (dptr)newsp;  /* args are first thing on stack */
 
 #endif					/* COMPILER */
