@@ -10,7 +10,6 @@ what:
 #
 Clean:
 		-cd bench;	$(MAKE) Clean
-		-cd calling;	$(MAKE) Clean
 		-cd general;	$(MAKE) Clean
 		-cd graphics;	$(MAKE) Clean
 		-cd preproc;	$(MAKE) Clean
@@ -24,11 +23,10 @@ Clean:
 
 Dist-clean:
 		-cd bench;	$(MAKE) Dist-clean
-		-cd calling;	$(MAKE) Dist-clean
 		-cd general;	$(MAKE) Dist-clean
 		-cd graphics;	$(MAKE) Dist-clean
 		-cd preproc;	$(MAKE) Dist-clean
 		-cd samples;	$(MAKE) Dist-clean
 		-cd special;	$(MAKE) Dist-clean
-		rm -rf `gcomp bench calling general samples \
+		rm -rf `gcomp bench general samples \
 		  graphics special preproc Makefile`
