@@ -14,6 +14,10 @@
 #
 ############################################################################
 #
+#	Contributor:  Frank Glandorf
+#
+############################################################################
+#
 #	Dlgvu displays USGS digital map data.
 #
 #	usage:  dlgvu [options] file...
@@ -1407,7 +1411,7 @@ end
 
 procedure writeps(psfile, projn, wwidth, wheight)
    local arec, color, style, width, ptoff, xmax, ymax, xmul, ymul
-   local a, b, m, w, h, pj, d, s, v, x, y, dx, dy, fx, fy
+   local a, b, m, w, h, pj, d, s, u, v, x, y, dx, dy, fx, fy, ll
 
    b := project(invp(projn), [0, 0, wwidth, wheight])
    xmax := PSSCALE * wwidth
@@ -1470,7 +1474,25 @@ procedure writeps(psfile, projn, wwidth, wheight)
          }
       }
 
-   write(psfile)
+   # write scale bar
+   u := 90 * DEGSCALE / 1e7		# one meter, in latitude units
+   m := sbsize(pj, xmin, ymin, u, 2000)
+   ll := project(pj, [xmin, ymin, xmin + m * u, ymin])
+   d := ll[3] - ll[1]
+   if m >= 1000 then
+      s := (m / 1000) || " km"
+   else
+      s := m || " m"
+
+   every write(psfile, ![
+      "",
+      "0 0 0 color",
+      "0 0 m 0 120 r " || d || " 0 r 0 -120 r fill",
+      "/Helvetica findfont 100 scalefont setfont",
+      "65535 65535 65535 color",
+      integer(d / 2 - 120) || " 25 m (" || s || ") show",
+      ])
+   
    write(psfile, "showpage")
    return
 end
