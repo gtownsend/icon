@@ -14,4 +14,3 @@
 
 #define CComp "gcc"
 #define COpts "-O2"
-#define LinkLibs " -lm"
