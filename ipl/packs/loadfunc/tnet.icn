@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     August 16, 1994
+#	Date:     August 4, 2000
 #
 ############################################################################
 #
@@ -25,15 +25,10 @@
 #
 ############################################################################
 
-$include "libnames.icn"
-
-global fpoll, tconnect
+link cfunc			# link standard C functions transparently
 
 procedure main(args)
    local h, p, f, s
-
-   fpoll := loadfunc(FUNCLIB, "fpoll")
-   tconnect := loadfunc(FUNCLIB, "tconnect")
 
    h := args[1] | &host		# default is current host
    p := integer(args[2]) | 13	# default is port 13 (time of day)

@@ -1,13 +1,10 @@
-#  Demonstrate dynamic loading of bitcount() function
+#  Simple demonstration of standard "bitcount" function
 
-$include "libnames.icn"
-
-global bitcount
+link cfunc			# link standard C functions transparently
 
 procedure main()
    local i
 
-   bitcount := loadfunc(KRLIB, "bitcount")
    every i := 500 to 520 do
       write(i, "  ", bitcount(i))
 end
