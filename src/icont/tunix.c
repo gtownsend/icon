@@ -9,9 +9,6 @@
 static void execute (char *ofile, char *efile, char *args[]);
 static void usage (void);
 
-static char patchpath[MaxPath+18] = "%PatchStringHere->";
-static char *refpath = RefPath;
-
 /*
  * getopt() variables
  */
@@ -33,14 +30,6 @@ int main(int argc, char *argv[]) {
    int c, n;
    char ch, **p;
    struct fileparts *fp;
-
-   if ((int)strlen(patchpath) > 18)
-      iconxloc = patchpath+18;
-   else {
-      iconxloc = (char *)alloc((unsigned)strlen(refpath) + 8);
-      strcpy(iconxloc, refpath);
-      strcat(iconxloc, "iconx");
-      }
 
    /*
     * Process options.
@@ -75,8 +64,6 @@ int main(int argc, char *argv[]) {
                quitf("bad operand to -v option: %s", optarg);
             if (verbose == 0)
                silent = 1;
-            break;
-         case 'C':			/* Ignore: compiler only */
             break;
          case 'E':			/* -E: preprocess only */
             pponly = 1;
@@ -141,6 +128,7 @@ int main(int argc, char *argv[]) {
    /*
     * Initialize globals.
     */
+   iconxloc = relfile(argv[0], "/../iconx");	/* infer path to iconx */
    initglob();
 
    /*

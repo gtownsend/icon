@@ -30,8 +30,8 @@ $(OBJS):	../h/define.h ../h/config.h ../h/cpuconf.h ../h/gsupport.h \
 
 $(COBJS):	../h/mproto.h
 
-tunix.o:	tglobals.h ../h/path.h
-tglobals.o:	tglobals.h ../h/path.h
+tunix.o:	tglobals.h
+tglobals.o:	tglobals.h
 util.o:		tglobals.h tree.h ../h/fdefs.h
 
 # translator files

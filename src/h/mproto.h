@@ -61,3 +61,7 @@ void 	lear_sbuf	(struct str_buf *sbuf);
 
 #define NewStruct(type)\
    (struct type *)alloc((unsigned int) sizeof (struct type))
+
+#if UNIX
+   char *relfile	(char *prog, char *mod);
+#endif

@@ -154,10 +154,6 @@
    #define MultiThread
 #endif					/* EventMon */
 
-#ifndef RefPath
-   #define RefPath BinPath
-#endif					/* RefPath */
-
 /*
  * Names for standard environment variables.
  * The standard names are used unless they are overridden.

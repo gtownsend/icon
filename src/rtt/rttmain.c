@@ -19,38 +19,19 @@ static void add_tdef (char *name);
 /*
  * refpath is used to locate the standard include files for the Icon.
  *  run-time system. If patchpath has been patched in the binary of rtt,
- *  the string was patched in is used for refpath.
+ *  the string that was patched in is used for refpath.
  */
 char patchpath[MaxPath+18] = "%PatchStringHere->";
 
-/*
- * The following code is operating-system dependent [@rttmain.01].  Definition
- *  of refpath.
- */
+#ifdef RefPath
+   char *refpath = RefPath;
+#else
+   char *refpath = "";
+#endif					/* RefPath */
 
-#if PORT
-   /* something is needed */
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if AMIGA || ATARI_ST || MACINTOSH || MSDOS || OS2 || UNIX
-char *refpath = RefPath;
-#endif					/* AMIGA || ... ... */
-
-#if MVS || VM
-char *refpath = "";
 #if MVS
-char *src_file_nm;
+   char *src_file_nm;
 #endif                                  /* MVS */
-#endif                                  /* MVS || VM */
-
-#if VMS
-char *refpath = "ICON_BIN:";
-#endif					/* VMS */
-
-/*
- * End of operating-system specific code.
- */
 
 
 /*
@@ -280,6 +261,10 @@ char **argv;
     */
    if ((int)strlen(patchpath) > 18)
       refpath = patchpath+18;
+#if UNIX
+   else
+      refpath = relfile(argv[0], "/../");
+#endif					/* UNIX */
 
    /*
     * Initialize the string table and indicate that File must be treated

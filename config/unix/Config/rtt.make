@@ -37,9 +37,8 @@ library:	$(OBJ)
 $(ROBJS): rtt.h rtt1.h rttproto.h $(P_DOT_H)
 
 rttdb.o: ../h/version.h
-rttparse.o : ../h/gsupport.h ../h/path.h ../h/config.h ../h/cstructs.h \
+rttparse.o : ../h/gsupport.h ../h/config.h ../h/cstructs.h \
 	../h/proto.h ../h/typedefs.h ../h/cpuconf.h ../h/define.h
-rttmain.o : ../h/path.h
 
 pout.o: $(PP_DIR)pout.c $(P_DOT_H)
 	$(CC) -c $(CFLAGS) $(PP_DIR)pout.c 

@@ -6,11 +6,11 @@ OBJS=		cmain.o clocal.o ctrans.o dbase.o clex.o\
 		typinfer.o types.o lifetime.o incheck.o
 
 COBJS=		../common/long.o ../common/getopt.o ../common/time.o\
-		  ../common/filepart.o ../common/identify.o\
+		  ../common/filepart.o ../common/identify.o ../common/munix.o\
 		  ../common/strtbl.o ../common/rtdb.o ../common/literals.o \
 		  ../common/alloc.o ../common/redirerr.o ../common/ipp.o
 
-ICOBJS=		long.o getopt.o time.o filepart.o identify.o\
+ICOBJS=		long.o getopt.o time.o filepart.o identify.o munix.o\
 		  strtbl.o rtdb.o literals.o alloc.o redirerr.o ipp.o
 
 all:		common iconc
@@ -31,7 +31,6 @@ $(OBJS):	../h/config.h ../h/cpuconf.h ../h/cstructs.h ../h/define.h\
 
 $(COBJS):	../h/mproto.h
 
-cmain.o:	../h/path.h
 ccode.o:	../h/lexdef.h ctoken.h
 chkinv.o:	ctoken.h
 clex.o:		../h/lexdef.h ../h/parserr.h ctoken.h \

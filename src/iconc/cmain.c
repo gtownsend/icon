@@ -25,29 +25,7 @@ static void usage   (void);
 char *toolstr = "${TOOLS}";
 #endif					/* ExpTools */
 
-char patchpath[MaxPath+18] = "%PatchStringHere->";
-
-/*
- * The following code is operating-system dependent [@tmain.01].  Definition
- *  of refpath.
- */
-
-#if PORT
-   /* something is needed */
-Deliberate Syntax Error
-#endif					/* PORT */
-
-#if UNIX || AMIGA || ATARI_ST || MACINTOSH || MSDOS || MVS || OS2 || VM
-char *refpath = RefPath;
-#endif					/* UNIX ... */
-
-#if VMS
-char *refpath = "ICON_BIN:";
-#endif					/* VMS */
-
-/*
- * End of operating-system specific code.
- */
+char *refpath;
 
 /*
  *  Define global variables.
@@ -97,6 +75,7 @@ char **argv;
    struct fileparts *fp;
 
 #ifdef ExpTools
+   /* needs rewrite */
    if (strlen(patchpath)>18) {
       refpath = patchpath+18;
       if(!strncmp(refpath,toolstr,strlen(toolstr))) {	/* Is it TOOLS   */
@@ -114,8 +93,7 @@ char **argv;
       }
    fprintf(stderr,"iconc library files found in %s\n",refpath);
 #else					/* ExpTools */
-   if ((int)strlen(patchpath) > 18)
-      refpath = patchpath+18;
+   refpath = relfile(argv[0], "/../");
 #endif					/* ExpTools */
 
    /*

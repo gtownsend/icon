@@ -5,7 +5,7 @@ what:
 
 Clean:
 		cd iconc; rm -f *.o iconc
-		cd common; rm -f *.o doincl patchstr
+		cd common; rm -f *.o doincl
 		cd preproc; rm -f *.o pp
 		cd rtt; rm -f *.o rtt
 		cd runtime; rm -f *.c *.o rt.db rt.a rttcur.lst\
@@ -16,7 +16,7 @@ Clean:
 		touch /dev/null `find h -name define.h`
 
 Pure:		Clean
-		rm -f common/rswitch.* h/path.h h/define.h */Makefile
+		rm -f common/rswitch.* h/define.h */Makefile
 
 # Entries beyond this point are for use at Arizona only.
 #   *** Do not delete the line above; it is used in trimming Makefiles
@@ -43,7 +43,7 @@ Dist-clean:
 Force-rebuild: Clean
 	cd h; rm -f kdefs.h
 	cd common; rm -f *.o yacctok.h lextab.h icontype.h \
-		doincl fixgram mktoktab patchstr pscript typespec
+		doincl fixgram mktoktab pscript typespec
 	cd icont; rm -f *.o icont mkkwd trash \
 		hdr.h keyword.h tgram.g ttoken.h tparse.c
 	cd iconc; rm -f *.o iconc cgram.g ctoken.h cparse.h

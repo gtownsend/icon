@@ -4,18 +4,16 @@ OBJS=	long.o getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
 	munix.o literals.o rswitch.o alloc.o long.o getopt.o time.o\
 	save.o rswitch.o redirerr.o xwindow.o dlrgint.o ipp.o
 
-common:		doincl.o patchstr.o
+common:		doincl.o
 		$(CC) $(LDFLAGS) -o doincl doincl.o
-		$(CC) $(LDFLAGS) -o patchstr patchstr.o
 		-./doincl -o ../../bin/rt.h ../h/rt.h
-		cp patchstr ../../bin
 
 xpm:
 		cd ../xpm; $(MAKE) libXpm.a
 		cp ../xpm/libXpm.a ../../bin
 		-(test -f ../../NoRanlib) || (ranlib ../../bin/libXpm.a)
 
-$(OBJS): ../h/define.h ../h/config.h ../h/cstructs.h ../h/mproto.h  ../h/path.h\
+$(OBJS): ../h/define.h ../h/config.h ../h/cstructs.h ../h/mproto.h \
 	  ../h/typedefs.h ../h/proto.h ../h/cpuconf.h
 
 identify.o: ../h/version.h

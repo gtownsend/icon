@@ -15,14 +15,12 @@ help:
 
 Configure:
 		make Clean
-		echo '#define BinPath' \"`pwd`/bin/\" >src/h/path.h
 		cp config/unix/Common/Makefile config/unix/$(name)
 		cd config/unix/$(name);	$(MAKE) 
 		rm -f config/unix/$(name)/Makefile
 
 X-Configure:
 		make Clean
-		echo '#define BinPath' \"`pwd`/bin/\" >src/h/path.h
 		cp config/unix/Common/Makefile config/unix/$(name)
 		cd config/unix/$(name);	$(MAKE) X-Icon
 		rm -f config/unix/$(name)/Makefile

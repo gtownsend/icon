@@ -8,9 +8,9 @@
    #include <io.h>
 #endif					/* CSet/2 ver 2 */
 
-#if !VMS	 /* don't need path.h */
+#if !VMS && !UNIX	 /* don't need path.h */
    #include "../h/path.h"
-#endif					/* VMS */
+#endif					/* !VMS && !UNIX */
 
 #include "../h/config.h"
 #include "../h/sys.h"

@@ -15,22 +15,34 @@ static char *followsym(char *name, char *buf, size_t len);
 static char *canonize(char *path);
 
 /*
- *  installdir(prog) -- return allcoated string holding installation directory.
+ *  relfile(prog, mod) -- find related file.
  *
- *  Given the argv[0] by which icont or iconx was executed, and assuming
- *  it was set by the shell or other equally correct invoker, finds and
- *  returns the name of the grandparent directory (the parent of .../bin).
+ *  Given that prog is the argv[0] by which this program was executed,
+ *  and assuming that it was set by the shell or other equally correct
+ *  invoker, relfile finds the location of a related file and returns
+ *  it in an allocated string.  It takes the location of prog, appends
+ *  mod, and canonizes the result; thus if argv[0] is icont or its path,
+ *  relfile(argv[0],"/../iconx") finds the location of iconx.
  */
-char *installdir(char *prog) {
-   char buf1[MaxPath + 6], buf2[MaxPath];
+char *relfile(char *prog, char *mod) {
+   static char baseloc[MaxPath];
+   char buf[MaxPath];
 
-   if (findexe(prog, buf1, sizeof(buf1)) == NULL)
-      return NULL;
-   if (followsym(buf1, buf2, sizeof(buf2)) != NULL)
-      strcpy(buf1, buf2);
-   strcat(buf1, "/../..");
-   canonize(buf1);
-   return salloc(buf1);
+   if (baseloc[0] == 0) {		/* if argv[0] not already found */
+      if (findexe(prog, baseloc, sizeof(baseloc)) == NULL) {
+	 fprintf(stderr, "cannot find location of %s\n", prog);
+         exit(EXIT_FAILURE);
+	 }
+      if (followsym(baseloc, buf, sizeof(buf)) != NULL)
+         strcpy(baseloc, buf);
+   }
+
+   strcpy(buf, baseloc);		/* start with base location */
+   strcat(buf, mod);			/* append adjustment */
+   canonize(buf);			/* canonize result */
+   if (mod[strlen(mod)-1] == '/')	/* if trailing slash wanted */
+      strcat(buf, "/");			/* append to result */
+   return salloc(buf);			/* return allocated string */
    }
 
 /*
