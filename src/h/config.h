@@ -184,9 +184,9 @@
 #ifndef NoWildCards
    #if NT
       #define WildCards 1
-   #else				/* NT || ... */
+   #else				/* NT */
       #define WildCards 0
-   #endif				/* NT || ... */
+   #endif				/* NT */
 #else					/* NoWildCards */
    #define WildCards 0
 #endif					/* NoWildCards */

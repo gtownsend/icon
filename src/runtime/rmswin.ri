@@ -707,13 +707,8 @@ LRESULT_CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
       break;
    case WM_HSCROLL:
    case WM_VSCROLL:
-#if NT
       for(n=0; n < ws->nChildren && ws->child[n].win != (HWND)lp; n++){
          }
-#else					/* NT */
-      for(n=0; n < ws->nChildren && ws->child[n].win != (HWND)LOWORD(lp); n++){
-         }
-#endif					/* NT */
       if (n == ws->nChildren) break;
       i = GetScrollPos(ws->child[n].win, SB_CTL);
       GetScrollRange(ws->child[n].win, SB_CTL, &imin, &imax);

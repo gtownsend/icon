@@ -92,14 +92,6 @@ long len;
    long tally = 0;
    long n = 0;
 
-#if NT && MICROSOFT
-   /*
-    * Under NT/MSVC++, ftell() used in Icon where() returns bad answers
-    * after a wlongread().  We work around it here by fseeking after fread.
-    */
-   long pos = ftell(fd);
-#endif					/* NT && MICROSOFT */
-
 #ifdef XWindows
    if (isatty(fileno(fd))) wflushall();
 #endif					/* XWindows */
@@ -107,18 +99,12 @@ long len;
    while (len > 0) {
       n = fread(ts, width, (int)((len < MaxIn) ? len : MaxIn), fd);
       if (n <= 0) {
-#if NT && MICROSOFT
-         fseek(fd, pos + tally, SEEK_SET);
-#endif					/* NT && MICROSOFT */
          return tally;
 	 }
       tally += n;
       ts += n;
       len -= n;
       }
-#if NT && MICROSOFT
-   fseek(fd, pos + tally, SEEK_SET);
-#endif					/* NT && MICROSOFT */
    return tally;
    }
 
