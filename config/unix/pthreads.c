@@ -5,10 +5,7 @@
  * provides POSIX threads and semaphores.  It has these drawbacks compared
  * to architecture-specific code:
  *
- *    It is typically slower.
- *
- *    It is more sensitive to the accumulation of uncollected co-expressions.
- *    The message "System error ... cannot create thread" is symptomatic.
+ *    It is typically much slower.
  *
  *    It requires Icon 9.4.1 built with "#define CoClean" in order to free
  *    threads and semaphores when co-expressions ARE collected.

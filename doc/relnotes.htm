@@ -124,15 +124,13 @@ obsolete configurations removed.
 <P> Co-expression support requires specialized code for context switching
 that until now has been hardware-dependent.
 A new, portable set of context switching functions has been developed
-using POSIX threads and semaphores.
+using POSIX threads ("pthreads") and semaphores.
 The new functions have been tested under
 Linux, FreeBSD, Solaris, Irix, and Digital Unix,
 and on several hardware architectures including the Intel Itanium.
 
-<P> These pthreads configurations are more sensitive than others
-to the accumulation of uncollected co-expressions under heavy usage.
-Consequently, they are not used by default when platform-specific
-code is available.
+<P> Because platform-specific code is considerably faster,
+the pthreads version is used only when such code is not available.
 
 <H3> Library Changes </H3>
 
