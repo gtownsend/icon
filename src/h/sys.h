@@ -82,7 +82,3 @@
 #ifdef LoadFunc
    #include <dlfcn.h>
 #endif					/* LoadFunc */
-
-#if WildCards
-   #include "../h/filepat.h"
-#endif					/* WildCards */

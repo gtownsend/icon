@@ -181,16 +181,6 @@
    #define SysOpt
 #endif					/* SysOpt */
 
-#ifndef NoWildCards
-   #if NT
-      #define WildCards 1
-   #else				/* NT */
-      #define WildCards 0
-   #endif				/* NT */
-#else					/* NoWildCards */
-   #define WildCards 0
-#endif					/* NoWildCards */
-
 /*
  *  The following definitions assume ANSI C.
  */

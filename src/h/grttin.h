@@ -134,10 +134,6 @@
  */
 typedef int clock_t, time_t, fd_set;
 
-#if WildCards
-   typedef int FINDDATA_T;
-#endif					/* WildCards */
-
 #ifdef ReadDirectory
    typedef int DIR;
 #endif					/* ReadDirectory */

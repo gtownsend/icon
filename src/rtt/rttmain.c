@@ -1,9 +1,5 @@
 #include "rtt.h"
 
-#if !NT
-   #include "../h/filepat.h"		/* added for filepat change */
-#endif					/* NT */
-
 /*
  * prototypes for static functions.
  */
@@ -222,23 +218,7 @@ char **argv;
     * Scan file name arguments, and translate the files.
     */
    while (optind < argc)  {
-
-      #if WildCards
-         FINDDATA_T fd;
-
-         if (!FINDFIRST(argv[optind], &fd)) {
-            fprintf(stderr,"File %s: no match\n", argv[optind]);
-	    fflush(stderr);
-	    exit(EXIT_FAILURE);
-            }
-         do {
-            argv[optind] = FILENAME(&fd);
-         } while (FINDNEXT(&fd));
-         FINDCLOSE(&fd);
-      #else				/* WildCards */
-         trans(argv[optind]);
-      #endif				/* WildCards */
-
+      trans(argv[optind]);
       optind++;
       }
 
