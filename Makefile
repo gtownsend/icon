@@ -186,10 +186,12 @@ Benchmark-icont:
 
 Clean:
 		cd src;			$(MAKE) Clean
+		cd ipl;			$(MAKE) Clean
 		cd tests;		$(MAKE) Clean
 
 Pure:
 		rm -f bin/[a-z]*
+		cd ipl;			$(MAKE) Clean
 		cd src;			$(MAKE) Pure
 		cd tests;		$(MAKE) Clean
 
