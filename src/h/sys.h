@@ -43,7 +43,6 @@
       #define int_PASCAL int PASCAL
       #define LRESULT_CALLBACK LRESULT CALLBACK
       #define BOOL_CALLBACK BOOL CALLBACK
-      #include <windows.h>
       #include <mmsystem.h>
       #include <process.h>
       #include "../wincap/dibutil.h"
