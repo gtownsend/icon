@@ -9,9 +9,6 @@
  *
  *    It requires Icon 9.4.1 built with "#define CoClean" in order to free
  *    threads and semaphores when co-expressions ARE collected.
- *
- *    The C stack is created at the system default size, ignoring any
- *    COEXPSIZE environment variable.
  */
 
 #include <pthread.h>
