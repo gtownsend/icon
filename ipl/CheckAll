@@ -54,7 +54,7 @@ for d in procs gprocs mprocs; do
     for f in `cd $d; ls *.icn`; do
 	b=${f%.icn}
 	# allow undeclared identifiers in main() for use with code generators
-	(icont -o xxx -us $b.u2 2>&1  ||  echo "         -- failed in $b.u2") |
+	(icont -o xxx -us $b.u2 2>&1  ||  echo "   -- failed in $b.u2") |
 	    grep -v ': undeclared identifier, procedure main'
     done
 done
@@ -62,7 +62,7 @@ rm -f xxx
 
 
 #  Define function for silent compilation, echoing name only on error
-function compile {  icont -us $1  ||  echo "         -- failed in $1";  }
+function compile {  icont -us $1  ||  echo "   -- failed in $1";  }
 
 #  Build programs from "bipl" portion, using only "bipl" library.
 #  (For a better check, should really build using non-graphics version of Icon.)
@@ -84,9 +84,10 @@ export IPATH="../procs ../cfuncs ../gprocs"
 
 #  Try at least some of the packages
 
-export LPATH="../../incl  ../../gincl"
-export IPATH="../../procs ../../cfuncs ../../gprocs"
+export LPATH="../../incl ../../gincl"
+export IPATH="../../cfuncs ../../procs ../../gprocs"
 
 set -x
 (cd gpacks/vib;     make clean;  make)
 (cd gpacks/tiger;   make clean;  make)
+(cd gpacks/weaving; make clean;  make)
