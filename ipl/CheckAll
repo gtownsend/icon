@@ -1,45 +1,49 @@
-#!/bin/ksh
+#!/bin/ksh -p
 #
-#  Test-build all IPL components
-#  taking care to use minimal IPATH and LPATH
+#  Test-build all IPL components and run other sanity checks
 
+#  Set minimal path needed.  Not all systems have all these directories
+V9BIN=`cd ../bin; echo $PWD`
+export PATH=$V9BIN:/usr/xpg4/bin:/usr/ccs/bin:/bin:/usr/bin
 
-IC=${IC-../../bin/icont}
+#  List timestamp of icont we'll be using
+ls -lg $V9BIN/icont
 
-function compile { $IC -us $1 || echo "         -- failed in $1"; }
+#  Use default Icon options
+unset BLKSIZE STRSIZE MSTKSIZE COEXPSIZE TRACE NOERRBUF FPATH IPATH LPATH
 
+#  Define function for silent program compile, echoing name only on error
+function compile { icont -us $1 || echo "         -- failed in $1"; }
 
+#  Clean out old versions of compiled procedures
 rm -f */*.u[12]
-(cd procs; ls -ld `whence $IC`)
 
-(echo cfuncs:; cd cfuncs; LPATH=               make ICONT=$IC -s cfunc.u2)
-(echo procs:;  cd procs;  LPATH="../incl"                   $IC -usc *icn)
-(echo gprocs:; cd gprocs; LPATH="../incl ../gincl"          $IC -usc *icn)
-(echo mprocs:; cd mprocs; LPATH="../incl ../gincl ../mincl" $IC -usc *icn)
+#  Start with procedures, including cfuncs, needed by programs
+#  Use only include-files guaranteed to be present with each part of library
+(echo cfuncs:; cd cfuncs; LPATH=                            make -s cfunc.u2)
+(echo procs:;  cd procs;  LPATH="../incl"                   icont -usc *icn)
+(echo gprocs:; cd gprocs; LPATH="../incl ../gincl"          icont -usc *icn)
+(echo mprocs:; cd mprocs; LPATH="../incl ../gincl ../mincl" icont -usc *icn)
 
+#  Build programs from "bipl" portion, using only "bipl" library
 export LPATH="../incl"
 export IPATH="../procs ../cfuncs"
 (echo progs:; cd progs;  for f in *.icn; do compile $f; done)
 
+#  Build programs from "gipl" portion of distribution
 export LPATH="../incl  ../gincl"
 export IPATH="../procs ../cfuncs ../gprocs"
 (echo gprogs:; cd gprogs;  for f in *.icn; do compile $f; done)
 
-# skip mprogs; requires special MT-icon version
+# Skip mprogs, which requires a specially build MT-Icon version 
 # export LPATH="../incl  ../gincl  ../mincl"
 # export IPATH="../procs ../cfuncs ../gprocs ../mprocs"
 # (echo mprogs:; cd mprogs;  for f in *.icn; do compile $f; done)
 
-#  try at least some of the packages
-
-case $IC in
-   /*)	;;
-   *)	IC=../$IC;;
-esac
-
+#  Try at least some of the packages
 export LPATH="../../incl  ../../gincl"
 export IPATH="../../procs ../../cfuncs ../../gprocs"
 
 set -x
-(cd gpacks/vib;     make ICONT=$IC)
-(cd gpacks/tiger;   make IC=$IC)
+(cd gpacks/vib;     make clean;  make)
+(cd gpacks/tiger;   make clean;  make)
