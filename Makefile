@@ -80,7 +80,7 @@ Headers:
 
 Icon Icon-icont: Common
 		cd src/icont;		$(MAKE)
-		cd src/runtime;		$(MAKE) interp_all
+		cd src/runtime;		$(MAKE) 
 
 #
 # The compiler: rtt, the run-time system, and iconc.

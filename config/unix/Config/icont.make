@@ -16,10 +16,7 @@ PGMS=		icont
 
 all:		$(PGMS)
 
-common:
-		cd ../common; $(MAKE) $(ICOBJS)
-
-icont:		$(OBJS) common
+icont:		$(OBJS) $(COBJS)
 		$(CC) $(CFLAGS) $(LDFLAGS) -o icont $(OBJS) $(COBJS) $(LIBS)
 		cp icont ../../bin
 		strip ../../bin/icont

@@ -27,7 +27,7 @@ COBJS=	../common/long.o ../common/time.o ../common/save.o \
 	../common/rswitch.o ../common/redirerr.o ../common/xwindow.o \
 	../common/alloc.o ../common/munix.o
 
-ICOBJS=	long.o time.o save.o rswitch.o redirerr.o xwindow.o alloc.o
+ICOBJS=	long.o time.o save.o rswitch.o redirerr.o xwindow.o alloc.o munix.o
 
 OBJS=	$(XOBJS) $(COBJS)
 

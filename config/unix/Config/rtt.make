@@ -20,19 +20,22 @@ ICOBJS=	getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
 
 OBJ = $(ROBJS) $(POBJS) $(COBJS)
 
-all:
-	cd ../common; $(MAKE) $(ICOBJS)
-	$(MAKE) rtt
-
-rtt:	$(OBJ)
+rtt:	$(OBJ) $(COBJS)
 	$(CC) $(LDFLAGS) -o rtt $(OBJ)
 	cp rtt ../../bin
 	strip ../../bin/rtt
+
+all:
+	cd ../common; $(MAKE) $(ICOBJS)
+	$(MAKE) rtt
 
 library:	$(OBJ)
 		rm -rf rtt.a
 		ar qc rtt.a $(OBJ)
 		-(test -f ../../NoRanlib) || (ranlib rtt.a)
+
+$(COBJS):
+	cd ../common; $(MAKE) $(ICOBJS)
 
 $(ROBJS): rtt.h rtt1.h rttproto.h $(P_DOT_H)
 
