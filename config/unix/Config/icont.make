@@ -1,5 +1,9 @@
 MAKE=make
 
+
+HFILES =	../h/define.h ../h/config.h ../h/cpuconf.h ../h/gsupport.h \
+		   ../h/proto.h ../h/mproto.h ../h/typedefs.h ../h/cstructs.h
+
 TRANS=		trans.o tcode.o tlex.o lnklist.o tparse.o tsym.o tmem.o tree.o
 
 LINKR=		link.o lglob.o lcode.o llex.o lmem.o lsym.o opcode.o
@@ -10,22 +14,17 @@ COBJS=		../common/long.o ../common/getopt.o ../common/alloc.o \
 		   ../common/filepart.o ../common/strtbl.o ../common/ipp.o \
 		   ../common/munix.o
 
-ICOBJS=		long.o getopt.o alloc.o filepart.o strtbl.o ipp.o
 
-PGMS=		icont
-
-all:		$(PGMS)
 
 icont:		$(OBJS) $(COBJS)
 		$(CC) $(CFLAGS) $(LDFLAGS) -o icont $(OBJS) $(COBJS) $(LIBS)
 		cp icont ../../bin
 		strip ../../bin/icont
 
-$(OBJS):	../h/define.h ../h/config.h ../h/cpuconf.h ../h/gsupport.h \
-		   ../h/proto.h ../h/mproto.h \
-		   ../h/typedefs.h ../h/cstructs.h tproto.h
+$(OBJS):	$(HFILES) tproto.h
 
-$(COBJS):	../h/mproto.h
+$(COBJS):	$(HFILES)
+		cd ../common; $(MAKE)
 
 tunix.o:	tglobals.h
 tglobals.o:	tglobals.h

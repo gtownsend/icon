@@ -7,8 +7,17 @@ HDRS = ../h/define.h ../h/config.h ../h/typedefs.h ../h/monitor.h\
 
 GRAPHICSHDRS = ../h/graphics.h ../h/xwin.h
 
+COBJS=	../common/long.o ../common/time.o ../common/save.o \
+	../common/rswitch.o ../common/redirerr.o ../common/xwindow.o \
+	../common/alloc.o ../common/munix.o
+
+
 default: iconx
-all:	interp_all comp_all
+all:	 iconx comp_all
+
+$(COBJS):
+	cd ../common; $(MAKE)
+
 
 ####################################################################
 #
@@ -23,19 +32,10 @@ XOBJS=	xcnv.o xdata.o xdef.o xerrmsg.o xextcall.o xfconv.o xfload.o xfmath.o\
 	xrdebug.o xrlocal.o xrlrgint.o xrmemmgt.o xrmisc.o xrstruct.o xrsys.o\
 	xrwinrsc.o xrgfxsys.o xrwinsys.o xrwindow.o xfxtra.o
 
-COBJS=	../common/long.o ../common/time.o ../common/save.o \
-	../common/rswitch.o ../common/redirerr.o ../common/xwindow.o \
-	../common/alloc.o ../common/munix.o
-
-ICOBJS=	long.o time.o save.o rswitch.o redirerr.o xwindow.o alloc.o munix.o
-
 OBJS=	$(XOBJS) $(COBJS)
 
-interp_all:
-	cd ../common; $(MAKE) $(ICOBJS) $(XPM)
-	$(MAKE) iconx
-
 iconx: $(OBJS)
+	cd ../common; $(MAKE) $(XPM)
 	$(CC) $(LDFLAGS) -o iconx  $(OBJS) $(XPMLIB) $(XLIB) $(LIBS)
 	cp iconx ../../bin
 	strip ../../bin/iconx
@@ -276,9 +276,7 @@ xfxtra.o: fxtra.r $(HDRS)
 # Make entries for the compiler library
 #
 
-comp_all:
-	cd ../common; $(MAKE) $(ICOBJS) dlrgint.o
-	$(MAKE) db_lib
+comp_all: $(COBJS) db_lib
 
 db_lib: rt.db rt.a
 

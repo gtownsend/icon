@@ -10,15 +10,7 @@ COBJS=		../common/long.o ../common/getopt.o ../common/time.o\
 		  ../common/strtbl.o ../common/rtdb.o ../common/literals.o \
 		  ../common/alloc.o ../common/redirerr.o ../common/ipp.o
 
-ICOBJS=		long.o getopt.o time.o filepart.o identify.o munix.o\
-		  strtbl.o rtdb.o literals.o alloc.o redirerr.o ipp.o
 
-all:		common iconc
-
-
-# common code
-common:
-		cd ../common; $(MAKE) $(ICOBJS) $(XPM)
 
 iconc:		$(OBJS) $(COBJS)
 		$(CC) $(LDFLAGS) -o iconc $(OBJS) $(COBJS)
@@ -30,6 +22,7 @@ $(OBJS):	../h/config.h ../h/cpuconf.h ../h/cstructs.h ../h/define.h\
 		ccode.h cglobals.h cproto.h csym.h ctrans.h ctree.h
 
 $(COBJS):	../h/mproto.h
+		cd ../common; $(MAKE)
 
 ccode.o:	../h/lexdef.h ctoken.h
 chkinv.o:	ctoken.h

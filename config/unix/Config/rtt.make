@@ -10,24 +10,17 @@ P_DOT_H = $(PP_DIR)preproc.h $(PP_DIR)pproto.h ltoken.h ../h/mproto.h\
 POBJS = pout.o pchars.o  perr.o pmem.o  bldtok.o macro.o preproc.o\
 	evaluate.o files.o gettok.o pinit.o
 
-COBJS = ../common/getopt.o ../common/time.o ../common/filepart.o\
-	  ../common/identify.o ../common/strtbl.o\
-	  ../common/rtdb.o ../common/munix.o ../common/literals.o \
-	  ../common/alloc.o
-
-ICOBJS=	getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
-	  munix.o literals.o alloc.o
+COBJS = ../common/getopt.o ../common/time.o ../common/filepart.o \
+	  ../common/identify.o ../common/strtbl.o ../common/alloc.o \
+	  ../common/rtdb.o ../common/munix.o ../common/literals.o
 
 OBJ = $(ROBJS) $(POBJS) $(COBJS)
 
-rtt:	$(OBJ) $(COBJS)
+
+rtt:	$(OBJ)
 	$(CC) $(LDFLAGS) -o rtt $(OBJ)
 	cp rtt ../../bin
 	strip ../../bin/rtt
-
-all:
-	cd ../common; $(MAKE) $(ICOBJS)
-	$(MAKE) rtt
 
 library:	$(OBJ)
 		rm -rf rtt.a
@@ -35,7 +28,7 @@ library:	$(OBJ)
 		-(test -f ../../NoRanlib) || (ranlib rtt.a)
 
 $(COBJS):
-	cd ../common; $(MAKE) $(ICOBJS)
+	cd ../common; $(MAKE)
 
 $(ROBJS): rtt.h rtt1.h rttproto.h $(P_DOT_H)
 

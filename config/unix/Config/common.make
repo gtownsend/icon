@@ -4,14 +4,14 @@ OBJS=	long.o getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
 	munix.o literals.o rswitch.o alloc.o long.o getopt.o time.o\
 	save.o rswitch.o redirerr.o xwindow.o dlrgint.o ipp.o
 
-common:		doincl patchstr
+common:		doincl patchstr $(OBJS)
 
-doincl:		doincl.o
-		$(CC) $(LDFLAGS) -o doincl doincl.o
+doincl:		doincl.c
+		$(CC) $(CFLAGS) $(LDFLAGS) -o doincl doincl.c
 		-./doincl -o ../../bin/rt.h ../h/rt.h
 
-patchstr:	patchstr.o
-		$(CC) $(LDFLAGS) -o patchstr patchstr.o
+patchstr:	patchstr.c
+		$(CC) $(CFLAGS) $(LDFLAGS) -o patchstr patchstr.c
 		cp patchstr ../../bin
 
 xpm:
