@@ -409,6 +409,7 @@ struct header *hdr;
 
 #if MSDOS && !NT
    if (thisIsAnExeFile) {
+        static char exe_errmsg[] = "can't read MS-DOS .exe header";
 #if SCCX_MX
         if( thisIsIconx)
         {
@@ -417,7 +418,6 @@ struct header *hdr;
         else
 #endif                                  /* SCCX_MX */
         {
-            static char exe_errmsg[] = "can't read MS-DOS .exe header";
             fread (&bytesThatBeginEveryExe,
                     sizeof bytesThatBeginEveryExe, 1, fname);
             if (bytesThatBeginEveryExe[0] != 'M' ||
@@ -1182,6 +1182,13 @@ void inttrap()
  */
 void segvtrap()
    {
+   static int n = 0;
+
+   if (n != 0) {			/* only try traceback once */
+      fprintf(stderr, "[Traceback failed]\n");
+      exit(1);
+      }
+   n++;
 
 #if MVS || VM
 #if SASC
@@ -1190,6 +1197,7 @@ void segvtrap()
 #endif					/* MVS || VM */
 
    fatalerr(302, NULL);
+   exit(1);
    }
 
 /*

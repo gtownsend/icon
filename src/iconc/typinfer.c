@@ -4972,15 +4972,15 @@ struct argtyps *argtyps;
  * varsubtyp - examine a type and determine what kinds of variable
  *  subtypes it has and whether it has any non-variable subtypes.
  *  If the type consists of a single named variable, return its symbol
- *  table entry through the parameter "single".
+ *  table entry through the parameter "singl".
  */
-int varsubtyp(typ, single)
+int varsubtyp(typ, singl)
 #ifdef OptimizeType
 struct typinfo *typ;
 #else					/* OptimizeType */
 unsigned int *typ;
 #endif					/* OptimizeType */
-struct lentry **single;
+struct lentry **singl;
    {
    struct store *stv_stor;
    int subtypes;
@@ -5083,14 +5083,14 @@ struct lentry **single;
          }
       }
 
-   if (single != NULL) {
+   if (singl != NULL) {
       /*
        *  See if the type consists of a single named variable.
        */
       if (n_types == 1 && var_indx != -1)
-         *single = cur_proc->vartypmap[var_indx];
+         *singl = cur_proc->vartypmap[var_indx];
       else
-         *single = NULL;
+         *singl = NULL;
       }
 
    return subtypes;

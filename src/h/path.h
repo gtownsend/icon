@@ -1,1 +1,1 @@
-#define BinPath "/.automount/home/icon/v9/bin/"
+#define BinPath "/.automount/home/gmt/v9/bin/"

@@ -314,6 +314,7 @@ dptr da, dx;
    struct b_bignum *b;
    word i, blen;
    word d;
+   int sgn;
 
 #ifdef Double
 	{
@@ -330,7 +331,8 @@ dptr da, dx;
       return Succeeded;		/* got lucky; a simple integer suffices */
       }
 
-   x = x > 0 ? x : -x;
+   if (sgn = x < 0)
+      x = -x;
    blen = ln(x) / ln(B) + 0.99;
    for (i = 0; i < blen; i++)
       x /= B;
@@ -346,7 +348,7 @@ dptr da, dx;
       x -= d;
       }
      
-   b->sign = x < 0;
+   b->sign = sgn;
    return mkdesc(b, dx);
 }
 

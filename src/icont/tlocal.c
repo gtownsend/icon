@@ -282,11 +282,11 @@ int _stack = (8 * 1024);
 extern unsigned _stklen = 12 * 1024;
 #endif					/* TURBO */
 
-#if ZTC_386 || SCCX_MX
+#if ZTC_386
 #ifndef DOS386
 int _stack = (8 * 1024);
 #endif					/* DOS386 */
-#endif					/* ZTC_386 || SCCX_MX */
+#endif					/* ZTC_386 */
 
 #endif					/* MSDOS */
 

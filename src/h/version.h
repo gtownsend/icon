@@ -20,14 +20,14 @@
    /*
     * &version
     */
-    #define Version	"Icon Version 9.3.2c.  July 1, 1999"
+    #define Version	"Icon Version 9.3.2c.  December 20, 1999"
 
 #else					/* COMPILER */
 
    /*
     *  &version
     */
-   #define Version	"Icon Version 9.3.2.  July 1, 1999"
+   #define Version	"Icon Version 9.3.2.  December 20, 1999"
    
    /*
     * Version numbers to be sure ucode is compatible with the linker

@@ -157,8 +157,12 @@ function{1} close(f)
 
    body {
       FILE *fp;
+      int status;
 
       fp = BlkLoc(f)->file.fd;
+      status = BlkLoc(f)->file.status;
+      if ((status & (Fs_Read | Fs_Write)) == 0)
+	 return f;			/* if already closed */
 
       /*
        * Close f, using fclose, pclose, or wclose as appropriate.
@@ -1570,7 +1574,12 @@ function{1} flush(f)
 
    body {
       FILE *fp;
+      int status;
+
       fp = BlkLoc(f)->file.fd;
+      status = BlkLoc(f)->file.status;
+      if ((status & (Fs_Read | Fs_Write)) == 0)
+	 return f;			/* if already closed */
 
 #ifdef ReadDirectory
       if ((BlkLoc(f)->file.status & Fs_Directory) != 0)

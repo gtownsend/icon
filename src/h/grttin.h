@@ -237,18 +237,14 @@ typedef int clock_t, time_t, fd_set;
    /*
     * Convenience macros to make up for RTL's long-windedness.
     */
-   #begdef CnvShortInt(desc, s, max)
+   #begdef CnvCShort(desc, s)
 	{
-	struct descrip tmp;
-	if (!cnv:integer(desc,tmp)) runerr(101,desc);
-	if ((tmp.dword != D_Integer) || (IntVal(tmp) > max))
-	   MakeInt(max, &tmp);
-	s = (short) IntVal(tmp);
+	int tmp;
+	if (!cnv:C_integer(desc,tmp) || tmp > 0x7FFF || tmp < -0x8000)
+	   runerr(101,desc);
+	s = (short) tmp;
 	}
-   #enddef				/* CnvShortInt */
-   
-   #define CnvCShort(d,s) CnvShortInt(d,s,32767)
-   #define CnvCUShort(d,s) CnvShortInt(d,s,65535)
+   #enddef				/* CnvCShort */
    
    #define CnvCInteger(d,i) \
      if (!cnv:C_integer(d,i)) runerr(101,d);

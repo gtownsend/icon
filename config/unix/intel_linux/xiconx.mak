@@ -1,1 +1,1 @@
-XLIB= -L/usr/X11/lib -lX11
+XLIB= -L/usr/X11R6/lib -lX11

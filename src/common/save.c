@@ -91,7 +91,13 @@ int ef;
     * Construct the header.  The text and data region sizes must be multiples
     *  of 1024.
     */
+
+#ifdef NetBSD
+   hdr.a_midmag = ZMAGIC;
+#else
    hdr.a_magic = ZMAGIC;
+#endif
+
    tsize = (int)&etext;
    hdr.a_text = (tsize + 1024) & ~(1024-1);
    dsize = sbrk(0) - (int)&environ;

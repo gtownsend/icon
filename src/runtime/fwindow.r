@@ -1920,6 +1920,12 @@ function{*} WAttrib(argv[argc])
                if (!cnv:tmp_string(argv[n], sbuf)) 
                   runerr(109, argv[n]);
                /*
+                * Various parts of the code can't handle long attributes.
+		* (ugh.)
+                */
+	       if (StrLen(sbuf) > 127)
+	          runerr(145, argv[n]);
+               /*
                 * Read/write the attribute
                 */
                if (pass == 1) {
