@@ -53,12 +53,12 @@ Check:
 
 ZipFiles:  Ilib
 	rm -rf ilib *.zip
+	zip -qrX9 bipl.zip docs incl procs progs packs data cfuncs -x '*/CVS/*'
+	zip -qrX9 gipl.zip gdocs gincl gprocs gprogs gpacks gdata  -x '*/CVS/*'
+	zip -qrX9 mipl.zip mincl mprocs mprogs                     -x '*/CVS/*'
 	mkdir ilib
 	cp ../lib/*.* ilib
 	zip -qrX9 ilib.zip ilib
-	zip -qrX9 bipl.zip docs incl procs progs packs data cfuncs
-	zip -qrX9 gipl.zip gdocs gincl gprocs gprogs gpacks gdata
-	zip -qrX9 mipl.zip mincl mprocs mprogs
 	rm -rf ilib
 
 
