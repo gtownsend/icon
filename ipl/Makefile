@@ -24,7 +24,7 @@ Strays:
 Clean:
 	rm -rf ilib */*.u[12] */*.zip
 	rm -f `find *packs -name '*.u[12]'`
-	rm -f `find *progs -type f -perm -100`
+	rm -f `find *procs *progs -type f -perm -100`
 	cd cfuncs; $(MAKE) Clean
 	cd gpacks/vib; $(MAKE) Clean
 	cd gpacks/tiger; $(MAKE) clean

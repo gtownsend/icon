@@ -3,6 +3,10 @@
 #  Test-build all IPL components and run other sanity checks
 
 
+#  Combine stderr with stdout so both can be redirected together.
+exec 2>&1
+
+
 #  Set minimal path needed.  Not all systems have all these directories
 V9BIN=`cd ../bin; echo $PWD`
 export PATH=$V9BIN:/usr/xpg4/bin:/usr/ccs/bin:/bin:/usr/bin
@@ -40,15 +44,18 @@ done
 
 
 #  Check that link directives are sufficient for each procedure file
+#  Also checks for undeclared identifiers
 
-IPATH=./cfunc
+IPATH=./cfuncs
 rm -f xxx
 for d in procs gprocs mprocs; do
     export IPATH="$IPATH ./$d"
-    echo checking $d linkage: IPATH='"'$IPATH'"'
+    echo checking linkage in $d: IPATH='"'$IPATH'"'
     for f in `cd $d; ls *.icn`; do
 	b=${f%.icn}
-	icont -o xxx -us $b.u2  ||  echo "                -- failed in $b.u2"
+	# allow undeclared identifiers in main() for use with code generators
+	(icont -o xxx -us $b.u2 2>&1  ||  echo "         -- failed in $b.u2") |
+	    grep -v ': undeclared identifier, procedure main'
     done
 done
 rm -f xxx
