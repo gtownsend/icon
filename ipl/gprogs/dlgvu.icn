@@ -6,7 +6,7 @@
 #
 #	Authors:  Gregg M. Townsend and William S. Evans
 #
-#	Date:     February 27, 2003
+#	Date:     February 28, 2003
 #
 ############################################################################
 #
@@ -41,7 +41,7 @@
 #	-p	    use slower, more precise coordinate conversion
 #	-q	    quiet mode: no commentary to stdout
 #	-t	    load only maps traversed by paths, ignoring others
-#	-f logfile  record interactively-placed features to this file
+#	-o logfile  specify output log to use instead of standard output
 #
 #	-l abcd     display only layers a, b, c, d
 #	-x abcd     exclude layers a, b, c, d
@@ -92,17 +92,16 @@
 #	is probably drawing offscreen.  It's not smart about that.  Be
 #	patient, and it will soon display the visible region.
 #
-#	To display the latitude / longitude of a location, and a
-#	scale bar, hold down the right mouse button.
+#	To display the latitude / longitude of a location, and a scale bar,
+#	hold down the right mouse button.
 #
 #	To record a labeled feature, shift-click the left mouse button.
-#	Enter a name in the pop-up dialog box.  The location and name
-#	will be written to the log file and added to the feature layer
-#	of the map.  
+#	Enter a name in the pop-up dialog box.  The location and name are
+#	written to the log file and added to the feature layer of the map.  
 #
-#	To record an anonymous feature to the log file, shift-click with
+#	To record an anonymous location to the log file, shift-click with
 #	the right mouse button instead.  No dialog box appears.  A sequence
-#	of anonymous features functions as a path when read by a subsequent
+#	of anonymous locations can be read as a path by a subsequent
 #	program run.
 #
 ############################################################################
@@ -456,12 +455,12 @@ procedure main(args)
    initattrib()
 
    # process command options
-   opts := options(args, "f:l:x:cdnpqt")
-   if \opts["f"] then {
-      if opts["f"] == "-" then
+   opts := options(args, "o:l:x:cdnpqt")
+   if \opts["o"] then {
+      if opts["o"] == "-" then
          logfile := &output
       else
-         logfile := open(opts["f"], "w") | stop("cannot write ", opts["f"])
+         logfile := open(opts["o"], "w") | stop("cannot write ", opts["o"])
       }
    else
       logfile := &output
