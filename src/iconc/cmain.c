@@ -67,7 +67,7 @@ extern char *optarg;		/* argument associated with option */
 /*
  *  main program
  */
-void main(argc,argv)
+int main(argc,argv)
 int argc;
 char **argv;
    {
@@ -437,7 +437,7 @@ Deliberate Syntax Error
       execute (ofile, efile, argv+optind+1);
       }
 
-   exit(ret_code);
+   return ret_code;
    }
 
 /*
