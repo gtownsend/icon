@@ -8,17 +8,23 @@ SRC = $(TOP)/src
 
 
 Setup-Common:
-	cp $(name)/define.h $(SRC)/h
+	echo '#define Config "$(name)"'		 > $(SRC)/h/define.h
+	echo ''					>> $(SRC)/h/define.h
+	cat  $(name)/define.h			>> $(SRC)/h/define.h
+	echo ''					>> $(SRC)/h/define.h
 	cp $(name)/rswitch.[cs] $(SRC)/common
-	cp $(name)/Makedefs $(TOP)
+	echo '#  from config/unix/$(name)'	 > $(TOP)/Makedefs
+	echo ''					>> $(TOP)/Makedefs
+	cat $(name)/Makedefs			>> $(TOP)/Makedefs
 	echo ''					>> $(TOP)/Makedefs
 	if [ -f $(name)/custom.sh ]; then cd $(name); sh custom.sh; fi
 
 Setup-NoGraphics: Setup-Common
-	echo '# Graphics not enabled'		>> $(TOP)/Makedefs
+	echo '#  Graphics not enabled'		>> $(TOP)/Makedefs
+	echo '/* no Graphics */'		>> $(SRC)/h/define.h
 
 Setup-Graphics:  Setup-Common
-	echo '# Graphics enabled'		>> $(TOP)/Makedefs
+	echo '#  Graphics enabled'		>> $(TOP)/Makedefs
 	echo 'XL = -L../../bin -lXpm $$(XLIBS)'	>> $(TOP)/Makedefs
 	echo '#define Graphics 1'		>> $(SRC)/h/define.h
 

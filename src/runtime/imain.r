@@ -486,6 +486,15 @@ int *ip;
       #endif				/* TallyOpt */
 
       /*
+       * Announce version on stderr if -V is given.
+       */
+      case 'V':
+         fprintf(stderr, "%s  (%s, %s)\n", Version, Config, __DATE__);
+	 if (!argv[2])
+	    exit(0);
+         break;
+
+      /*
        * Set stderr to new file if -e option is given.
        */
 	 case 'e': {

@@ -28,7 +28,7 @@ $(OBJS):	$(HFILES) tproto.h
 $(COBJS):	$(HFILES)
 		cd ../common; $(MAKE)
 
-tunix.o:	tglobals.h
+tunix.o:	tglobals.h ../h/version.h
 tglobals.o:	tglobals.h
 util.o:		tglobals.h tree.h ../h/fdefs.h
 

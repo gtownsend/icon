@@ -3,6 +3,7 @@
  */
 
 #include "../h/gsupport.h"
+#include "../h/version.h"
 #include "tproto.h"
 #include "tglobals.h"
 
@@ -59,7 +60,7 @@ int main(int argc, char *argv[]) {
     * Process options. 
     * IMPORTANT:  When making changes here, also update usage() function.
     */
-   while ((c = getopt(argc, argv, "ce:f:o:stuv:ELP:X:")) != EOF)
+   while ((c = getopt(argc, argv, "ce:f:o:stuv:ELP:VX:")) != EOF)
       switch (c) {
          case 'c':			/* -c: compile only (no linking) */
             nolink = 1;
@@ -97,6 +98,9 @@ int main(int argc, char *argv[]) {
          case 'P':			/* -P program: execute from argument */
             txrun(savefile, optarg, &argv[optind]);
             break;			/*NOTREACHED*/
+         case 'V':
+            fprintf(stderr, "%s  (%s, %s)\n", Version, Config, __DATE__);
+            break;
          case 'X':			/* -X srcfile: execute single srcfile */
             txrun(copyfile, optarg, &argv[optind]);
             break;			/*NOTREACHED*/
@@ -245,7 +249,7 @@ void report(char *s) {
  */
 static void usage(void) {
    fprintf(stderr, "usage: %s %s\n",
-      progname, "[-cstuE] [-f s] [-o ofile] [-v i] file ... [-x args]");
+      progname, "[-cstuEV] [-f s] [-o ofile] [-v i] file ... [-x args]");
    fprintf(stderr, "       %s -X sourcefile [args]\n", progname);
    fprintf(stderr, "       %s -P 'program'  [args]\n", progname);
    exit(EXIT_FAILURE);

@@ -12,7 +12,7 @@
  *  These are the only two entries that change any more.
  */
 #define VersionNumber "9.4.0+"
-#define VersionDate "Autumn, 2001"
+#define VersionDate "December, 2001"
 
 /*
  * Version number to insure format of data base matches version of iconc
@@ -25,14 +25,14 @@
    /*
     * &version
     */
-    #define Version  "Icon Version " VersionNumber "c.  " VersionDate
+    #define Version  "Icon Version " VersionNumber "c, " VersionDate
 
 #else					/* COMPILER */
 
    /*
     *  &version
     */
-    #define Version  "Icon Version " VersionNumber ".  " VersionDate
+    #define Version  "Icon Version " VersionNumber ", " VersionDate
    
    /*
     * Version numbers to be sure ucode is compatible with the linker
