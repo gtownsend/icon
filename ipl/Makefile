@@ -12,12 +12,12 @@ cfuncs/libcfunc.so:  ../bin/icont
 	cd procs;  LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
 	cd gprocs; LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
 	if grep '^ *# *define LoadFunc' ../src/h/define.h >/dev/null; \
-	   then $(MAKE) Cfuncs; fi
+	   then $(MAKE) Cfunctions; fi
 
 
 #  Make C functions.  Only called if LoadFunc is defined.
 
-Cfuncs:
+Cfunctions:
 	cd cfuncs; LPATH= $(MAKE) ICONT=../../bin/icont
 	cp cfuncs/*.u? ../lib
 	cp cfuncs/libcfunc.so ../bin
