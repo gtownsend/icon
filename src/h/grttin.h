@@ -173,10 +173,7 @@ typedef int clock_t, time_t, fd_set;
       typedef int MCI_OPEN_PARMS, MCI_STATUS_PARMS, MCI_SEQ_SET_PARMS;
       typedef int CHOOSEFONT, CHOOSECOLOR, OPENFILENAME, HMENU, LPBITMAPINFO;
       typedef int childcontrol, CPINFO, BITMAPINFO, BITMAPINFOHEADER, RGBQUAD;
-      #ifdef FAttrib
-         typedef unsigned long mode_t;
-         typedef int HFILE, OFSTRUCT, FILETIME, SYSTEMTIME;
-      #endif				/* FAttrib */
+      typedef int BOOL, LPMSG, STARTUPINFO;
    #endif				/* MSWindows */
 
    /*
@@ -278,3 +275,8 @@ typedef int clock_t, time_t, fd_set;
    #enddef				/* GRFX_UNLINK */
 
 #endif					/* Graphics */
+
+#ifdef FAttrib
+   typedef unsigned long mode_t;
+   typedef int HFILE, OFSTRUCT, FILETIME, SYSTEMTIME;
+#endif				/* FAttrib */

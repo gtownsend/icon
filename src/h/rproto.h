@@ -168,15 +168,9 @@ void		xmfree		(void);
    int		bigrand		(dptr da, dptr dx);
 #endif					/* LargeInts */
 
-#ifdef MSWindows
-   #ifdef FAttrib
-      #if MSDOS
-         char *make_mode(unsigned short st_mode);
-         int strcasecmp(char *s1, char *s2);
-         int strncasecmp(char *s1, char *s2, int n);
-      #endif				/* MSDOS */
-   #endif				/* FAttrib */
-#endif					/* MSWindows */
+#ifdef FAttrib
+   char *make_mode(mode_t st_mode);
+#endif					/* FAttrib */
 
 #ifdef Graphics
    /*
@@ -307,7 +301,9 @@ void		xmfree		(void);
    int	wgetq		(wbp w, dptr res);
    FILE	*wopen		(char *nm, struct b_list *hp, dptr attr, int n, int *e);
    int	wputc		(int ci, wbp w);
+   #ifndef wsync
    void	wsync		(wbp w);
+   #endif				/* wsync */
    void	xdis		(wbp w, char *s, int n);
 
    #ifdef ConsoleWindow

@@ -3,11 +3,11 @@
 /*
  * millisec - returns execution time in milliseconds. Time is measured
  *  from the function's first call. The granularity of the time is
- *  generally more than one millisecond and on some systems it my only
- *  be accurate to the second.
+ *  generally larger than one millisecond and on some systems it may
+ *  only be accurate to the second.
  */
 
-#if UNIX
+#ifndef NoPosixTimes
 
 /*
  * For some unfathomable reason, the Open Group's "Single Unix Specification"
@@ -35,7 +35,7 @@ long millisec()
    return (long) ((1000.0 / CLK_TCK) * (t - starttime));
    }
 
-#else					/* UNIX */
+#else					/* NoPosixTimes */
 
 /*
  * On anything other than UNIX, just use the ANSI C clock() function.
@@ -52,4 +52,4 @@ long millisec()
    return (long) ((1000.0 / CLOCKS_PER_SEC) * (t - starttime));
    }
 
-#endif					/* UNIX */
+#endif					/* NoPosixTimes */

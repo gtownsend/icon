@@ -10,29 +10,17 @@ static char *tryfile	(char *buf, char *dir, char *name, char *extn);
  *  Define symbols for building file names.
  *  1. Prefix: the characters that terminate a file name prefix
  *  2. FileSep: the char to insert after a dir name, if any
- *  2. DefPath: the default IPATH/LPATH, if not null
- *  3. PathSep: allowable IPATH/LPATH separators, if not just " "
+ *  3. DefPath: the default IPATH/LPATH
+ *  4. PathSep: allowable IPATH/LPATH separators
+ *
+ *  All platforms use POSIX forms of file paths.
+ *  MS Windows implementations canonize local forms before parsing.
  */
 
-#if MSDOS
-   #define Prefix "/:\\"
-   #define DefPath ";"
-   #define FileSep '/'
-#endif					/* MSDOS */
-
-#if UNIX
-   #define Prefix "/"
-   #define FileSep '/'
-   #define PathSep " :"
-#endif					/* UNIX */
-
-#ifndef DefPath
-   #define DefPath ""
-#endif					/* DefPath */
-
-#ifndef PathSep
-   #define PathSep " "
-#endif					/* PathSep */
+#define Prefix "/"
+#define FileSep '/'
+#define PathSep " :"
+#define DefPath ""
 
 /*
  * pathfind(buf,path,name,extn) -- find file in path and return name.
@@ -52,12 +40,19 @@ char *buf, *path, *name, *extn;
    {
    char *s;
    char pbuf[MaxFileName];
+   char posix_s[_POSIX_PATH_MAX + 1];
 
    if (tryfile(buf, (char *)NULL, name, extn))	/* try curr directory first */
       return buf;
    if (!path)				/* if no path, use default */
       path = DefPath;
-   s = path;
+
+   #if CYGWIN
+      s = alloca(cygwin_win32_to_posix_path_list_buf_size(path));
+      cygwin_win32_to_posix_path_list(path, s);
+   #else				/* CYGWIN */
+      s = path;
+   #endif				/* CYGWIN */
 
    while ((s = pathelem(s, pbuf)) != 0)		/* for each path element */
       if (tryfile(buf, pbuf, name, extn))	/* look for file */
@@ -129,6 +124,12 @@ char *s;
    int n;
    char *p, *q;
 
+   #if CYGWIN
+      char posix_s[_POSIX_PATH_MAX + 1];
+      cygwin_conv_to_posix_path(s, posix_s);
+      s = posix_s;
+   #endif				/* CYGWIN */
+
    q = s;
    fp.ext = p = s + strlen(s);
    while (--p >= s) {
@@ -190,67 +191,13 @@ char *s, *t;
       }
    }
 
-#if MSDOS
-   #if NT
-      #include <sys/stat.h>
-      #include <direct.h>
-   #endif					/* NT */
-
-/*
- * this version of pathfind, unlike the one above, is looking on
- * the real path to find an executable.
- */
-int pathFind(char target[], char buf[], int n)
-   {
-   char *path;
-   register int i;
-   int res;
-   struct stat sbuf;
-
-   if ((path = getenv("PATH")) == 0)
-      path = "";
-
-   if (!getcwd(buf, n)) {		/* get current working directory */
-      *buf = 0;		/* may be better to do something nicer if we can't */
-      return 0;		/* find out where we are -- struggling to achieve */
-      }			/* something can be better than not trying */
-
-   /* attempt to find the icode file in the current directory first */
-   /* this mimicks the behavior of COMMAND.COM */
-   if ((i = strlen(buf)) > 0) {
-      i = buf[i - 1];
-      if (i != '\\' && i != '/' && i != ':')
-         strcat(buf, "/");
-      }
-   strcat(buf, target);
-   res = stat(buf, &sbuf);
-
-   while(res && *path) {
-      for (i = 0; *path && *path != ';'; ++i)
-         buf[i] = *path++;
-      if (*path)			/* skip the ; or : separator */
-         ++path;
-      if (i == 0)			/* skip empty fragments in PATH */
-         continue;
-      if (i > 0 && buf[i - 1] != '/' && buf[i - 1] != '\\' &&
-         buf[i - 1] != ':')
-            buf[i++] = '/';
-      strcpy(buf + i, target);
-      res = stat(buf, &sbuf);
-      /* exclude directories (and any other nasties) from selection */
-      if (res == 0 && sbuf.st_mode & S_IFDIR)
-         res = -1;
-      }
-   if (res != 0)
-      *buf = 0;
-   return res == 0;
-   }
+#if CYGWIN
 
 FILE *pathOpen(fname, mode)
    char *fname;
    char *mode;
    {
-   char buf[150 + 1];
+   char buf[_POSIX_PATH_MAX + 1];
    int i, use = 1;
 
    for( i = 0; buf[i] = fname[i]; ++i)
@@ -259,12 +206,13 @@ FILE *pathOpen(fname, mode)
       if (buf[i] == '/' || buf[i] == ':' || buf[i] == '\\')
          use = 0;
 
-   /* If a path has been given with the file name, don't bother to
-      use the PATH */
+      /* If a path has been given with the file name, don't bother to
+         use the PATH */
 
-   if (use && !pathFind(fname, buf, 150))
-       return 0;
+      if (use && !pathfind(buf, getenv("PATH"), fname, NULL))
+         return 0;
 
    return fopen(buf, mode);
    }
-#endif					/* MSDOS */
+
+#endif					/* CYGWIN */

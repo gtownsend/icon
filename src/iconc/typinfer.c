@@ -275,14 +275,12 @@ void typeinfer()
 
    if (trcname != NULL && strlen(trcname) != 0) {
 
-#if UNIX
       if (trcname[0] == '|') {
          FILE *popen();
 
          trcfile = popen(trcname+1, "w");
          }
       else
-#endif					/* UNIX */
 
       trcfile = fopen(trcname, "w");
 

@@ -51,11 +51,6 @@ char *libname;
 int ccomp(srcname, exename)
 char *srcname;
 char *exename;
-#if MSDOS
-   {
-   return EXIT_SUCCESS;			/* can't do from inside */
-   }
-#else					/* MSDOS */
    {
    struct lib *l;
    char sbuf[MaxFileName];		/* file name construction buffer */
@@ -82,7 +77,7 @@ char *exename;
 #ifdef Graphics
    lib_sz += strlen(" -L") +
              strlen(refpath) +
-	     strlen(" -lXpm ");
+	     strlen(" -lIgpx ");
    lib_sz += strlen(ICONC_XLIB);
 #endif						/* Graphics */
 
@@ -116,7 +111,7 @@ char *exename;
 #ifdef Graphics
    strcpy(s," -L");
    strcat(s, refpath);
-   strcat(s," -lXpm ");
+   strcat(s," -lIgpx ");
    strcat(s, ICONC_XLIB);
    s += strlen(s);
 #endif						/* Graphics */
@@ -133,4 +128,3 @@ char *exename;
 
    return EXIT_SUCCESS;
    }
-#endif					/* MSDOS */

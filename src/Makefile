@@ -10,7 +10,7 @@ Clean Pure:
 	cd preproc;	rm -f *.o pp
 	cd rtt;		rm -f *.o rtt
 	cd runtime;	rm -f *.o *.c rt.db rt.a rttcur.lst rttfull.lst iconx
-	cd icont;	rm -f *.o icont
+	cd icont;	rm -f *.o icont hdr.h ixhdr.hdr newhdr
 	cd wincap;	rm -f *.o *.a
 	cd xpm;		rm -f *.o *.a
 # force full runtime system rebuild

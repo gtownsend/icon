@@ -24,7 +24,7 @@ OBJ = $(ROBJS) $(POBJS) $(COBJS)
 rtt:	$(OBJ)
 	$(CC) $(LDFLAGS) -o rtt $(OBJ)
 	cp rtt ../../bin
-	strip ../../bin/rtt
+	strip ../../bin/rtt$(EXE)
 
 library:	$(OBJ)
 		rm -rf rtt.a

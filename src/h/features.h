@@ -26,6 +26,10 @@
    #endif				/* NT */
 #endif					/* MSDOS */
 
+#if CYGWIN
+   Feature(1, "_CYGWIN", "Cygwin")
+#endif					/* UNIX */
+
 #if UNIX
    Feature(1, "_UNIX", "UNIX")
 #endif					/* UNIX */

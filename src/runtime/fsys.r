@@ -313,6 +313,11 @@ function{0,1} open(fname, spec)
        */
       if (f == NULL) {
 #ifdef MSWindows
+
+#ifndef _S_IFDIR
+   #define _S_IFDIR S_IFDIR
+#endif					/* _S_IFDIR */
+
          char tempbuf[512];
 	 *tempbuf = '\0';
          if (strchr(fnamestr, '*') || strchr(fnamestr, '?')) {
@@ -328,7 +333,11 @@ function{0,1} open(fname, spec)
             struct stat fs;
             if (stat(fnamestr, &fs) == -1) fail;
 	    if (fs.st_mode & _S_IFDIR) {
+#if CYGWIN
+               cygwin_conv_to_win32_path(fnamestr, tempbuf); 
+#else					/* CYGWIN */
 	       strcpy(tempbuf, fnamestr);
+#endif					/* CYGWIN */
 	       if (tempbuf[strlen(tempbuf)-1] != '\\')
 	          strcat(tempbuf, "\\");
 	       strcat(tempbuf, "*.*");
@@ -1104,36 +1113,11 @@ function{0,1} chdir(s)
       return null
       }
    inline {
-      #if NT
-         int nt_chdir(char *);
-         if (nt_chdir(s) != 0)
-	    fail;
-      #else					/* NT */
-         if (chdir(s) != 0)
-	    fail;
-      #endif					/* NT */
+      if (chdir(s) != 0)
+         fail;
       return nulldesc;
    }
 end
-
-#if NT
-#ifdef MSWindows
-char *getenv(char *s)
-{
-static char tmp[1537];
-DWORD rv;
-rv = GetEnvironmentVariable(s, tmp, 1536);
-if (rv > 0) return tmp;
-return NULL;
-}
-#endif					/* MSWindows */
-
-#passthru #include <direct.h>
-int nt_chdir(char *s)
-{
-    return chdir(s);
-}
-#endif					/* NT */
 
 "delay(i) - delay for i milliseconds."
 
@@ -1195,7 +1179,6 @@ function{1} flush(f)
       }
 end
 
-#ifdef MSWindows
 #ifdef FAttrib
 
 "fattrib(str, att) - get the attribute of a file "
@@ -1212,12 +1195,6 @@ function{*} fattrib (fname, att[argc])
    body {
       tended char *s;
       struct stat fs;
-#if NT
-      HFILE hf;
-      OFSTRUCT of;
-      FILETIME ft1,ft2,ft3;
-      SYSTEMTIME st;
-#endif					/* NT */
       int fd, i;
       char *retval;
       char *temp;
@@ -1268,4 +1245,3 @@ function{*} fattrib (fname, att[argc])
    }
 end
 #endif					/* FAttrib */
-#endif					/* MSWindows */

@@ -47,11 +47,6 @@ static void	wordout		(word oword);
    static void	dumpblock	(char *addr,int count);
 #endif					/* DeBugLinker */
 
-#if MSDOS
-   extern long fileOffsetOfStuffThatGoesInICX;
-   /* defined in Globals.h, set in link.c, used below */
-#endif                                  /* MSDOS */
-
 word pc = 0;		/* simulated program counter */
 
 #define outword(n)	wordout((word)(n))

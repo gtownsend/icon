@@ -6,7 +6,6 @@
 #define MSDOS 1
 
 #define FAttrib
-#define AsmOver
 
 #define CComp "gcc"
 #define ExecSuffix ".exe"

@@ -176,7 +176,7 @@ char *outname;
          #if NT
             /*
              * The NT and Win95 direct execution batch file turns echoing off,
-             * launches wiconx, attempts to terminate softly via noop.bat,
+             * launches iconx, attempts to terminate softly via noop.bat,
              * and terminates the hard way (by exiting the DOS shell) if that
              * fails, rather than fall through and start executing machine code
              * as if it were batch commands.
@@ -185,7 +185,7 @@ char *outname;
             char script[2 * MaxPath + 200];
             sprintf(script,
                "@echo off\r\n%s %%0 %%1 %%2 %%3 %%4 %%5 %%6 %%7 %%8 %%9\r\n",
-               ((iconxloc!=NULL)?iconxloc:"wiconx"));
+               ((iconxloc!=NULL)?iconxloc:"iconx"));
             strcat(script,"noop.bat\r\n@echo on\r\n");
             strcat(script,
 	       "pause missing noop.bat - press ^c or shell will exit\r\n");
@@ -194,9 +194,7 @@ char *outname;
             hdrsize = strlen(script) + 1;	/* length includes \0 at end */
             fwrite(script, hdrsize, 1, outfile);	/* write header */
 	    }
-         #endif				/* NT */
-
-         #if UNIX
+         #else				/* NT */
             /*
              *  Generate a shell header that searches for iconx in this order:
              *     a.  location specified by ICONX environment variable
@@ -225,7 +223,7 @@ char *outname;
             hdrsize = strlen(script) + 1;	/* length includes \0 at end */
             fwrite(script, hdrsize, 1, outfile);	/* write header */
 	    }
-         #endif				/* UNIX */
+         #endif				/* NT */
 
       #else				/* ShellHeader */
          /*

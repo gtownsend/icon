@@ -5,6 +5,12 @@
 #include "../preproc/preproc.h"
 #include "../preproc/pproto.h"
 
+#if CYGWIN
+   #include <limits.h>
+   #include <string.h>
+   #include <sys/cygwin.h>
+#endif					/* CYGWIN */
+
 #define IsRelPath(fname) (fname[0] != '/')
 
 static void file_src (char *fname, FILE *f);
@@ -21,17 +27,11 @@ FILE *f;
    {
    union src_ref ref;
 
-   #if MSDOS
-      char *s;
-
-      /*
-       * Convert back slashes to slashes for internal consistency.
-       */
-      fname = (char *)strdup(fname);
-      for (s = fname; *s != '\0'; ++s)
-         if (*s == '\\')
-            *s = '/';
-   #endif				/* MSDOS */
+   #if CYGWIN
+      char posix_path[ _POSIX_PATH_MAX + 1 ];
+      cygwin_conv_to_posix_path( fname, posix_path );
+      fname = strdup( posix_path );
+   #endif				/* CYGWIN */
 
    ref.cs = new_cs(fname, f, CBufSize);
    push_src(CharSrc, &ref);
@@ -154,59 +154,31 @@ char **opt_args;
     *  that establishes these search locations.
     */
 
-   #if MSDOS
-   char *syspath;
-   char *cl_var;
-   char *incl_var;
-
-   incl_var = getenv("INCLUDE");
-   cl_var = getenv("CL");
-   n_paths = 0;
-
-   /*
-    * Check the CL environment variable for -I and -X options.
-    */
-   if (cl_var != NULL) {
-      s = cl_var;
-      while (*s != '\0') {
-         if (*s == '/' || *s == '-') {
-            ++s;
-            if (*s == 'I') {
-               ++n_paths;
-               ++s;
-               while (*s == ' ' || *s == '\t')
-                  ++s;
-               while (*s != ' ' && *s != '\t' && *s != '\0')
-                  ++s;
-               }
-            else if (*s == 'X')
-               incl_var = NULL;		/* ignore INCLUDE environment var */
+   #if CYGWIN
+      char *incl_var;
+      static char *sysdir = "/usr/include";
+      static char *windir = "/usr/include/w32api";
+      n_paths = 2;
+   
+      incl_var = getenv("C_INCLUDE_PATH");
+      if (incl_var != NULL) {
+         /*
+          * Add one entry for evry non-empty, colon-separated string in incl_var.
+          */
+         char *dir_start, *dir_end;
+   
+         dir_start = incl_var;
+         while( ( dir_end = strchr( dir_start, ':' ) ) != NULL ) {
+            if (dir_end > dir_start) ++n_paths;
+            dir_start = dir_end + 1;
             }
-         if (*s != '\0')
-            ++s;
+         if ( *dir_start != '\0' )
+            ++n_paths;     /* One path after the final ':' */
          }
-      }
-
-   /*
-    * Check the INCLUDE environment variable for standard places to
-    *  search.
-    */
-   if (incl_var == NULL)
-      syspath = "";
-   else {
-      syspath = (char *)strdup(incl_var);
-      if (*incl_var != '\0')
-         ++n_paths;
-      while (*incl_var != '\0')
-         if (*incl_var++ == ';' && *incl_var != '\0')
-            ++n_paths;
-      }
-   #endif				/* MSDOS */
-
-   #if UNIX
+   #else				/* CYGWIN */
       static char *sysdir = "/usr/include/";
       n_paths = 1;
-   #endif				/* UNIX */
+   #endif				/* CYGWIN */
 
    /*
     * Count the number of -I options to the preprocessor.
@@ -221,43 +193,6 @@ char **opt_args;
    incl_search = alloc((n_paths + 1) * sizeof(char *));
    j = 0;
 
-
-   #if MSDOS
-   /*
-    * Establish the standard locations to search before the -I options
-    *  on the preprocessor.
-    *  Get locations from -I options from the CL environment variable.
-    */
-   if (cl_var != NULL)
-      while (*cl_var != '\0') {
-         if (*cl_var == '/' || *cl_var == '-') {
-            ++cl_var;
-            if (*cl_var == 'I') {
-                  ++cl_var;
-                  while (*cl_var == ' ' || *cl_var == '\t')
-                     ++cl_var;
-                  i = 0;
-                  while (cl_var[i] != ' ' && cl_var[i] != '\t' &&
-                    cl_var[i] != '\0')
-                     ++i;
-                  s1 = alloc(i + 1);
-                  strncpy(s1, cl_var, i);
-                  s1[i] = '\0';
-                  /*
-                   * Convert back slashes to slashes for internal consistency.
-                   */
-                  for (s = s1; *s != '\0'; ++s)
-                     if (*s == '\\')
-                        *s = '/';
-                  incl_search[j++] = s1;
-                  cl_var += i;
-               }
-            }
-         if (*cl_var != '\0')
-            ++cl_var;
-         }
-   #endif				/* MSDOS */
-
    /*
     * Get the locations from the -I options to the preprocessor.
     */
@@ -267,14 +202,20 @@ char **opt_args;
          s1 = alloc(strlen(s) + 1);
          strcpy(s1, s);
 
-         #if MSDOS
+         #if CYGWIN
             /*
-             * Convert back slashes to slashes for internal consistency.
+             * Run s1 through cygwin_conv_to_posix_path; if the posix path
+             * differs from s1, reset s1 to a copy of the posix path.
              */
-            for (s = s1; *s != '\0'; ++s)
-               if (*s == '\\')
-                  *s = '/';
-         #endif				/* MSDOS */
+            {
+               char posix_path[ _POSIX_PATH_MAX ];
+               cygwin_conv_to_posix_path( s1, posix_path );
+               if (strcmp( s1, posix_path ) != 0) {
+                  free( s1 );
+                  s1 = salloc( posix_path );
+                  }
+               }
+         #endif				/* CYGWIN */
 
          incl_search[j++] = s1;
          }
@@ -283,32 +224,34 @@ char **opt_args;
     *  Establish the standard locations to search after the -I options
     *  on the preprocessor.
     */
+   #if CYGWIN
+      if (incl_var != NULL) {
+         /*
+          * The C_INCLUDE_PATH components are carved out of a copy of incl_var.
+          * The colons after non-empty directory names are replaced by null
+          * chars, and the pointers to the start of these names are stored
+	  *  in inc_search.
+          */
+         char *dir_start, *dir_end;
    
-   #if MSDOS
-      /*
-       * Get the locations from the INCLUDE environment variable.
-       */
-      s = syspath;
-      if (*s != '\0')
-         incl_search[j++] = s;
-      while (*s != '\0') {
-         if (*s == ';') {
-            *s = '\0';
-            ++s;
-            if (*s != '\0')
-               incl_search[j++] = s;
+         dir_start = salloc( incl_var );
+         while( ( dir_end = strchr( dir_start, ':' ) ) != NULL ) {
+            if (dir_end > dir_start) {
+               incl_search[j++] = dir_start;
+               *dir_end = '\0';
+               }
+            dir_start = dir_end + 1;
             }
-         else {
-            if (*s == '\\')
-               *s = '/';
-            ++s;
-            }
+         if ( *dir_start != '\0' )
+            incl_search[j++] = dir_start;
          }
-   #endif				/* MSDOS */
-
-   #if UNIX
+   
+      /* Finally, add the system dir(s) */
+      incl_search[j++] = sysdir;
+      incl_search[j++] = windir;
+   #else
       incl_search[n_paths - 1] = sysdir;
-   #endif				/* UNIX */
+   #endif				/* CYGWIN */
 
    incl_search[n_paths] = NULL;
    }

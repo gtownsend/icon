@@ -6,19 +6,9 @@ char *progname = "pp";
 /*
  * Establish command-line options.
  */
-
-#if UNIX
-   static char *ostr = "+CPD:I:U:o:";
-   static char *options =
-      "[-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath] [-ofile] [files]";
-#endif					/* UNIX */
-
-#if MSDOS
-   static char *ostr = "CPD:I:U:o:A:Z:J";
-   static char *options =
-      "[-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath] [-ofile]\n    \
-[-A(S|C|M|L|H)] [-Za] [-J] [files]";
-#endif					/* MSDOS */
+static char *ostr = "+CPD:I:U:o:";
+static char *options =
+   "[-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath] [-ofile] [files]";
 
 extern line_cntrl;
 
@@ -73,11 +63,6 @@ char **argv;
          case 'D': /* -D<id><definition> - predefine an identifier */
          case 'I': /* -I<path> - location to search for standard header files */
          case 'U': /* -U<id> - undefine predefined identifier */
-         #if MSDOS
-            case 'A':
-            case 'J':
-            case 'Z':
-         #endif				/* MSDOS */
             opt_lst[nopts] = c;
             opt_args[nopts] = optarg;
             ++nopts;

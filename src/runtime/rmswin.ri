@@ -24,6 +24,12 @@
 
 void wfreersc();
 int alc_rgb(wbp w, SysColor rgb);
+/*
+ * check_and_get_msg retreives the next message in *pMsg;
+ * returns 1 if regular message was retreived, 0 if quit message,
+ * -1 if there was an error.
+ */
+static int check_and_get_msg( MSG *pMsg );
 int numRealized;
 
 #ifndef min
@@ -201,105 +207,6 @@ char *lookcmdname(char *buf, char *s)
     s++;
     }
   return buf;
-}
-
-int mswinsystem(char *s)
-{
-   int i, rv, j, background = 0;
-   char s2[256], s3[256];
-   char **argv;
-   int argc;
-
-   DWORD d  = GetVersion();
-   int lo, hi, major, minor, iswin31;
-   lo = LOWORD(d);
-   hi = HIWORD(d);
-   major = lo & 0xFF;
-   minor = (lo & 0xFF00)>>8,
-   iswin31 = ((major == 3) && (minor <= 11));
-
-   strncpy(s2, s, 255);
-   s2[255] = '\0';
-
-   strncpy(s3, s, 255);
-   s3[255] = '\0';
-   for(i=0;s3[i];i++){
-      if (s3[i] == ' ' || s3[i] == '\t') {
-         s3[i] = '\0';
-         break;
-         }
-      }
-
-   for(i=strlen(s2)-1; i > 0 && (s2[i] == ' ' || s2[i] == '\t'); i--);
-
-   /*
-    * if it is a "background task", launch using WinExec.
-    */
-   if (i>0 && s2[i] == '&') {
-      s2[i] = '\0';
-      while (s2[--i] == ' ') s2[i] = '\0';
-      i = WinExec(s2, SW_SHOW);
-      if ( i >= 32 ) return 0;
-      return -1;
-      }
-
-   /*
-    * if we've got a reasonable operating system, launch using spawnvp
-    * and wait for _P_WAIT.  At the moment, this gives no indication of
-    * actually working; the program is launched but we don't wait for it.
-    */
-   if (!iswin31) {
-      argc = CmdParamToArgv(s, &argv);
-      rv = _spawnvp(_P_WAIT, s3, argv);
-      free(argv);
-      return rv;
-      }
-
-   /*
-    * this remaining code is a colossal kludge to support waiting for
-    * a launched application to terminate under Win32s, which ignores
-    * the _P_WAIT flag to the spawn* functions.
-    */
-
-   for(i=0;s2[i];i++){
-      if (s2[i] == ' ' || s2[i] == '\t' || s2[i] == '.') {
-         s2[i] = '\0';
-         break;
-         }
-      }
-   wlfree();
-   lookingfor = NULL;
-   EnumWindows(MakeProcInstance(myenumproc, mswinInstance), 0L);
-   i = WinExec(s, SW_SHOW);
-   if ( i >= 32 ) {
-      /*
-       * Wait for the task to finish.  First wait up to two seconds
-       *  for at least one new window to show up.
-       */
-      lookcmdname(s3, s2);
-      lookingfor = s3;
-      FoundNew = 0;
-      for(j=0; j<10; j++) {
-         EnumWindows(MakeProcInstance(myenumproc2, mswinInstance), 0L);
-         if (FoundNew) break;
-         Sleep(200);
-         }
-      if (FoundNew != 1) NewWin = NULL;
-      /*
-       * Now wait as long as we found a new window with our
-       * argv[0] in its title present.
-       */
-      for(;;) {
-         FoundIt = 0;
-         EnumWindows(MakeProcInstance(myenumproc3, mswinInstance), 0L);
-         if(!FoundIt) break;
-         Sleep(10);
-         pollevent();
-         }
-      return 0;
-      }
-   else return -1;
-
 }
 
 
@@ -660,7 +567,7 @@ void handle_mouse(wbp wb, UINT msg, WPARAM wp, LPARAM lp)
 	 eventcode = MOUSERIGHTDRAG;
       else if (MK_MBUTTON & wp)
 	 eventcode = MOUSEMIDDRAG;
-      else eventcode = MOUSEMOVED;
+      else eventcode = 0;
       break;
    case WM_LBUTTONDOWN:
       eventcode = MOUSELEFT;
@@ -679,6 +586,9 @@ void handle_mouse(wbp wb, UINT msg, WPARAM wp, LPARAM lp)
       break;
    case WM_RBUTTONUP:
       eventcode = MOUSERIGHTUP;
+      break;
+   default:
+      eventcode = 0;
       break;
       }
 
@@ -708,13 +618,16 @@ LRESULT_CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
    for (wb = wbndngs; wb; wb=wb->next) {
       ws = wb->window;
 
-      if (((ws->win == hwnd) || (ws->iconwin == hwnd) ||
-	   (ws->pix == hwnd) || (ws->initialPix == hwnd))) break;
+      if ((ws->win == hwnd) || (ws->iconwin == hwnd)) break;
       }
    if (msg == WM_QUIT) {
+#ifdef ConsoleWindow
       extern void closelogfile();
+#endif					/* ConsoleWindow */
       wfreersc();
+#ifdef ConsoleWindow
       closelogfile();
+#endif					/* ConsoleWindow */
       }
    else if (!wb) {
       /*
@@ -748,8 +661,7 @@ LRESULT_CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
    case WM_MOUSEMOVE:
       if (ws->curcursor)
          SetCursor(ws->curcursor);
-      if ((ws->inputmask & PointerMotionMask) ||
-	  ((MK_LBUTTON | MK_RBUTTON | MK_MBUTTON) & wp))
+      if ((MK_LBUTTON | MK_RBUTTON | MK_MBUTTON) & wp)
 	 handle_mouse(wb,msg,wp,lp);
       return 0;
    case WM_LBUTTONDOWN: case WM_RBUTTONDOWN: case WM_MBUTTONDOWN:
@@ -801,8 +713,13 @@ LRESULT_CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
       break;
    case WM_HSCROLL:
    case WM_VSCROLL:
+#if NT
+      for(n=0; n < ws->nChildren && ws->child[n].win != (HWND)lp; n++){
+         }
+#else					/* NT */
       for(n=0; n < ws->nChildren && ws->child[n].win != (HWND)LOWORD(lp); n++){
          }
+#endif					/* NT */
       if (n == ws->nChildren) break;
       i = GetScrollPos(ws->child[n].win, SB_CTL);
       GetScrollRange(ws->child[n].win, SB_CTL, &imin, &imax);
@@ -913,7 +830,9 @@ LRESULT_CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
       if (ws->iconwin == hwnd)
 	 ws->iconwin = NULL;
       if (ws->refcount > 0) {
+#ifdef ConsoleWindow
          closelogfile();
+#endif					/* ConsoleWindow */
 	 PostQuitMessage(0);
 	 return 0;
 	 }
@@ -921,7 +840,7 @@ LRESULT_CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 	 ws->refcount = -ws->refcount;
 	 }
       break;
-   case WM_MCINOTIFY:
+   case MM_MCINOTIFY:
       mciSendCommand(LOWORD(lp), MCI_CLOSE, 0, (DWORD)NULL);
       break;
    }
@@ -956,11 +875,11 @@ int pollevent()
    {
    wbp w;
    MSG m;
-   extern jmp_buf mark_sj;
+   int result;
 
    /* some while PeekMessage loops here, maybe one per window ? */
    while (PeekMessage(&m, NULL, 0, 0, PM_NOREMOVE)) {
-      if (GetMessage(&m, NULL, 0, 0) == 0) longjmp(mark_sj, -1);
+      if ((result = check_and_get_msg(&m)) <= 0) return result;
       TranslateMessage(&m);
       DispatchMessage(&m);
       }
@@ -1128,7 +1047,6 @@ int wgetq(wbp w, dptr res)
    wsp ws;
    int first = 0, i = 0, j;
    int hascaret = 0;
-   extern jmp_buf mark_sj;
    FILE *f;
 
    if (!w || !(ws = w->window) || !(ws->iconwin)) {
@@ -1155,7 +1073,7 @@ int wgetq(wbp w, dptr res)
 	 ws->hasCaret = 1;
          }
       i++;
-      if (GetMessage(&m, NULL, 0, 0) == 0) longjmp(mark_sj, -1);
+      if (check_and_get_msg(&m) <= 0) return -1;
       TranslateMessage(&m);
       DispatchMessage(&m);
       }
@@ -1676,6 +1594,24 @@ int alc_rgb(wbp w, SysColor rgb)
 	 }
       }
    return Succeeded;
+}
+
+/*
+ * Retrieve next message, returning 0 if WM_QUIT, -1 if there is an error.
+ */
+int check_and_get_msg( MSG *pMsg )
+{
+   BOOL result;
+   if ((result = GetMessage(pMsg, NULL, 0, 0)) <= 0)
+   {
+#ifdef ConsoleWindow
+      extern jmp_buf mark_sj;
+      longjmp(mark_sj, -1);
+#else					/* ConsoleWindow */
+      return (result < 0) ? -1 : 0;
+#endif					/* ConsoleWindow */
+   }
+   return 1;
 }
 
 /*
@@ -3822,18 +3758,6 @@ HDC CreatePixDC(wbp w, HDC hdc)
       }
    return hdc2;
    }
-
-int setinputmask(wbp w, char *val)
-{
-   wsp ws = w->window;
-   if (strchr(val,'m')) {
-      ws->inputmask |= PointerMotionMask;
-      }
-   else {
-      ws->inputmask &= ~PointerMotionMask;
-      }
-   return Succeeded;
-}
 
 int dc_maxcharwidth(HDC dc)
 {

@@ -1,8 +1,10 @@
-/*  munix.c -- special common code for Unix  */
+/*
+ *  munix.c -- special common code from Unix
+ *
+ *  (Originally used only under Unix, but now on all platforms.)
+ */
 
 #include "../h/gsupport.h"
-
-#if UNIX
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +33,13 @@ char *relfile(char *prog, char *mod) {
    char buf[MaxPath];
 
    if (baseloc[0] == 0) {		/* if argv[0] not already found */
+
+      #if CYGWIN
+         char posix_prog[_POSIX_PATH_MAX + 1];
+         cygwin_conv_to_posix_path(prog, posix_prog);
+         prog = posix_prog;
+      #endif				/* CYGWIN */
+
       if (findexe(prog, baseloc, sizeof(baseloc)) == NULL) {
          fprintf(stderr, "cannot find location of %s\n", prog);
          exit(EXIT_FAILURE);
@@ -96,8 +105,18 @@ static char *findonpath(char *name, char *buf, size_t len) {
 
    nlen = strlen(name);
    path = getenv("PATH");
+
    if (path == NULL || *path == '\0')
       path = ".";
+   #if CYGWIN
+      else {
+         char *posix_path;
+         posix_path = alloca(cygwin_win32_to_posix_path_list_buf_size(path));
+         cygwin_win32_to_posix_path_list(path, posix_path);
+         path = posix_path;
+         }
+   #endif				/* CYGWIN */
+
    end = path + strlen(path);
    for (next = path; next <= end; next = sep + 1) {
       sep = strchr(next, ':');
@@ -243,5 +262,3 @@ static char *canonize(char *path) {
    *out++ = '\0';
    return path;				/* return result */
    }
-
-#endif					/* UNIX */

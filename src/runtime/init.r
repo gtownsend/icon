@@ -36,6 +36,10 @@ FILE		*pathOpen       (char *fname, char *mode);
    #passthru   };
    #undef OpDef
 #endif					/* !COMPILER */
+
+#ifdef MSWindows
+   static void MSStartup(HINSTANCE hInstance, HINSTANCE hPrevInstance);
+#endif					/* MSWindows */
 
 /*
  * A number of important variables follow.
@@ -187,13 +191,7 @@ struct header *hdr;
    {
    FILE *fname = NULL;
    int n;
-
-#if MSDOS
-   int thisIsAnExeFile = 0;
-   char bytesThatBeginEveryExe[2] = {0,0};
-   unsigned short originalExeBytesMod512, originalExePages;
-   unsigned long originalExeBytes;
-#endif					/* MSDOS */
+   struct fileparts fp;
 
    if (!name)
       error(name, "No interpreter file supplied");
@@ -202,68 +200,31 @@ struct header *hdr;
     * Try adding the suffix if the file name doesn't end in it.
     */
    n = strlen(name);
+   fp = *fparse(name);
 
-#if MSDOS
-   if (n >= 4 && !stricmp(".exe", name + n - 4)) {
-      thisIsAnExeFile = 1;
-      fname = pathOpen(name, "rb");
-         /*
-          * ixhdr's code for calling iconx from an .exe passes iconx the
-          * full path of the .exe, so using pathOpen() seems redundant &
-          * potentially inefficient. However, pathOpen() first checks for a
-          * complete path, & if one is present, doesn't search Path; & since
-          * MS-DOS has a limited line length, it'd be possible for ixhdr
-          * to check whether the full path will fit, & if not, use only the
-          * name. The only price for this additional robustness would be
-          * the time pathOpen() spends checking for a path, which is trivial.
-          */
-      }
-   else {
-#endif					/* MSDOS */
-
-   if (n <= 4 || (strcmp(name+n-4,IcodeSuffix) != 0
-   && strcmp(name+n-4,IcodeASuffix) != 0)) {
-      char tname[100];
-      if ((int)strlen(name) + 5 > 100)
+   if ( IcodeSuffix[0] != '\0' && strcmp(fp.ext,IcodeSuffix) != 0
+   && ( IcodeASuffix[0] == '\0' || strcmp(fp.ext,IcodeASuffix) != 0 ) ) {
+      char tname[100], ext[50];
+      if (n + strlen(IcodeSuffix) + 1 > 100)
 	 error(name, "icode file name too long");
-      strcpy(tname,name);
-      strcat(tname,IcodeSuffix);
+      strcpy(ext,fp.ext);
+      strcat(ext,IcodeSuffix);
+      makename(tname,NULL,name,ext);
 
-#if MSDOS
-      fname = pathOpen(tname,"rb");	/* try to find path */
-#else					/* MSDOS */
-      fname = fopen(tname, "rb");
-#endif					/* MSDOS */
-
-#if NT
-    /*
-     * tried appending .exe, now try .bat or .cmd
-     */
-    if (fname == NULL) {
-       strcpy(tname,name);
-       strcat(tname,".bat");
-       fname = pathOpen(tname, "rb");
-       if (fname == NULL) {
-          strcpy(tname,name);
-          strcat(tname,".cmd");
-          fname = pathOpen(tname, "rb");
-          }
-      }
-#endif					/* NT */
+      #if MSDOS
+	  fname = pathOpen(tname,"rb");	/* try to find path */
+      #else					/* MSDOS */
+	  fname = fopen(tname, "rb");
+      #endif					/* MSDOS */
 
       }
 
    if (fname == NULL)			/* try the name as given */
-
-#if MSDOS
-      fname = pathOpen(name, "rb");
-#else					/* MSDOS */
-      fname = fopen(name, "rb");
-#endif					/* MSDOS */
-
-#if MSDOS
-      } /* end if (n >= 4 && !stricmp(".exe", name + n - 4)) */
-#endif					/* MSDOS */
+      #if MSDOS
+         fname = pathOpen(name, "rb");
+      #else					/* MSDOS */
+         fname = fopen(name, "rb");
+      #endif					/* MSDOS */
 
    if (fname == NULL)
       return NULL;
@@ -273,33 +234,19 @@ struct header *hdr;
 
 #ifdef Header
 
-#if MSDOS && !NT
-   #error
-  /*
-   * The MSDOS .exe-handling code assumes & requires that the executable
-   * .exe be followed immediately by the icode itself (actually header.h).
-   * This is because the following Header fseek() is relative to the
-   * beginning of the file, which in a .exe is the beginning of the
-   * executable code, not the beginning of some Icon thing; & I can't
-   * check & fix all the Header-handling logic because hdr.h wasn't
-   * included with my MS-DOS distribution so I don't even know what it does,
-   * let alone how to keep from breaking it. We're safe as long as
-   * Header & MSDOS are disjoint.
-   */
-#endif                                  /* MSDOS && !NT */
-
 #ifdef ShellHeader
    char buf[200];
 
    for (;;) {
       if (fgets(buf, sizeof buf-1, fname) == NULL)
 	 error(name, errmsg);
-#if NT
-      if (strncmp(buf, "rem [executable Icon binary follows]", 36) == 0)
-#else					/* NT */
-      if (strncmp(buf, "[executable Icon binary follows]", 32) == 0)
-#endif					/* NT */
-	 break;
+      #if NT
+         if (strncmp(buf, "rem [executable Icon binary follows]", 36) == 0)
+            break;
+      #else					/* NT */
+         if (strncmp(buf, "[executable Icon binary follows]", 32) == 0)
+            break;
+      #endif					/* NT */
       }
 
    while ((n = getc(fname)) != EOF && n != '\f')	/* read thru \f\n\0 */
@@ -311,30 +258,6 @@ struct header *hdr;
       error(name, errmsg);
 #endif					/* ShellHeader */
 #endif					/* Header */
-
-#if MSDOS && !NT
-   if (thisIsAnExeFile) {
-        static char exe_errmsg[] = "can't read MS-DOS .exe header";
-        {
-            fread (&bytesThatBeginEveryExe,
-                    sizeof bytesThatBeginEveryExe, 1, fname);
-            if (bytesThatBeginEveryExe[0] != 'M' ||
-                bytesThatBeginEveryExe[1] != 'Z')
-            {
-                error(name, exe_errmsg);
-            }
-            fread (&originalExeBytesMod512,
-                    sizeof originalExeBytesMod512, 1, fname);
-            fread (&originalExePages, sizeof originalExePages, 1, fname);
-            originalExeBytes = (originalExePages - 1)*512 +
-                                originalExeBytesMod512;
-        }
-        if (fseek(fname, originalExeBytes, 0))
-            error(name, errmsg);
-        if (ferror(fname) || feof(fname) || !originalExeBytes)
-            error(name, exe_errmsg);
-   }
-#endif                                  /* MSDOS && !NT */
 
    if (fread((char *)hdr, sizeof(char), sizeof(*hdr), fname) != sizeof(*hdr))
       error(name, errmsg);
@@ -374,7 +297,26 @@ struct header *hdr;
 
    prog_name = name;			/* Set icode file name */
 
-#if UNIX
+#ifdef MSWindows
+#ifdef NTConsole
+   {
+   STARTUPINFO si;
+
+   /*
+    * Initialize windows stuff.
+    */
+   GetStartupInfo(&si);
+   ncmdShow = si.wShowWindow;
+   if ( ncmdShow == SW_HIDE )
+      /* Started from command line, show normal windows in this case. */
+      ncmdShow = SW_SHOWNORMAL;
+   mswinInstance = GetModuleHandle( NULL );
+   MSStartup( mswinInstance, NULL );
+   }
+#endif                                        /* NTConsole */
+#endif                                        /* MSWindows */
+
+
    /*
     * Look for environment variable ICODE_TEMP=xxxxx:yyyyy as a message
     * from icont to delete icode file xxxxx and to use yyyyy for &progname.
@@ -388,7 +330,6 @@ struct header *hdr;
          prog_name = itval + nlen + 1;
          }
       }
-#endif					/* UNIX */
 
 #if COMPILER
    curstring = &rootstring;
@@ -465,9 +406,7 @@ struct header *hdr;
     * Catch floating-point traps and memory faults.
     */
    signal(SIGFPE, fpetrap);
-   #if UNIX
-      signal(SIGSEGV, segvtrap);
-   #endif				/* UNIX */
+   signal(SIGSEGV, segvtrap);
 
 #if !COMPILER
 #ifdef ExecImages
@@ -658,13 +597,10 @@ btinit:
    /*
     * Allocate and assign a buffer to stderr if possible.
     */
-
    if (noerrbuf)
       setbuf(stderr, NULL);
    else {
-      char *buf;
-
-      buf = (char *)malloc(BUFSIZ);
+      void *buf = malloc(BUFSIZ);
       if (buf == NULL)
          fatalerr(305, NULL);
       setbuf(stderr, buf);
@@ -673,7 +609,6 @@ btinit:
    /*
     * Start timing execution.
     */
-
    millisec();
    }
 
@@ -711,9 +646,7 @@ void envset()
        */
       dodump++;
       signal(SIGFPE, SIG_DFL);
-      #if UNIX
-         signal(SIGSEGV, SIG_DFL);
-      #endif				/* UNIX */
+      signal(SIGSEGV, SIG_DFL);
       }
    }
 
@@ -1048,6 +981,17 @@ void datainit()
    StrLen(k_subject) = 0;
    StrLoc(k_subject) = "";
 
+#if CYGWIN
+#ifdef MSwindows
+   if (i != EXIT_SUCCESS)
+   {
+      char exit_msg[40];
+
+      sprintf(exit_msg, "Terminated with exit code %d", i);
+      MessageBox(NULL, exit_msg, prog_name, MB_OK | MB_ICONSTOP);
+   }
+#endif					/* defined(MSwindows) */
+#endif					/* CYGWIN */
 
    StrLen(blank) = 1;
    StrLoc(blank) = " ";
@@ -1273,3 +1217,45 @@ C_integer bs, ss, stk;
    return coexp;
    }
 #endif					/* MultiThread */
+
+#ifdef MSWindows
+static void MSStartup(HINSTANCE hInstance, HINSTANCE hPrevInstance)
+   {
+   WNDCLASS wc;
+   #ifdef ConsoleWindow
+      extern FILE *flog;
+   
+      /*
+       * Select log file name.  Might make this a command-line option.
+       * Default to "WICON.LOG".  The log file is used by Wi to report
+       * translation errors and jump to the offending source code line.
+       */
+      if ((lognam = getenv("WICONLOG")) == NULL)
+         lognam = "WICON.LOG";
+      remove(lognam);
+      lognam = strdup(lognam);
+      flog = fopen(tmpnam(tmplognam), "w");
+   
+      if (flog == NULL) {
+         syserr("unable to open logfile");
+         }
+   #endif                             /* ConsoleWindow */
+   if (!hPrevInstance) {
+      #if NT
+         wc.style = CS_HREDRAW | CS_VREDRAW;
+      #else                           /* NT */
+         wc.style = 0;
+      #endif                          /* NT */
+      wc.lpfnWndProc = WndProc;
+      wc.cbClsExtra = 0;
+      wc.cbWndExtra = 0;
+      wc.hInstance  = hInstance;
+      wc.hIcon      = NULL;
+      wc.hCursor    = NULL;
+      wc.hbrBackground = GetStockObject(WHITE_BRUSH);
+      wc.lpszMenuName = NULL;
+      wc.lpszClassName = "iconx";
+      RegisterClass(&wc);
+      }
+   }
+#endif                                        /* MSWindows */

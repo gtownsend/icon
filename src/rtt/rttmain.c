@@ -33,16 +33,8 @@ static char *options =
  *  interpreted as relative to where rtt.exe is or where rtt.exe is
  *  invoked.
  */
-
-#if MSDOS
-    char *grttin_path = "..\\h\\grttin.h";
-    char *rt_path = "..\\h\\rt.h";
-#endif					/* MSDOS */
-
-#if UNIX
     char *grttin_path = "../src/h/grttin.h";
     char *rt_path = "../src/h/rt.h";
-#endif					/* UNIX */
 
 /*
  *  Note: rtt presently does not process system include files. If this
@@ -197,10 +189,8 @@ char **argv;
     */
    if ((int)strlen(patchpath) > 18)
       refpath = patchpath+18;
-   #if UNIX
-      else
-         refpath = relfile(argv[0], "/../");
-   #endif				/* UNIX */
+   else
+      refpath = relfile(argv[0], "/../");
 
    /*
     * Initialize the string table and indicate that File must be treated
@@ -332,7 +322,7 @@ char **argv;
     */
    while (optind < argc)  {
 
-      #if PatternMatch
+      #if WildCards
          FINDDATA_T fd;
 
          if (!FINDFIRST(argv[optind], &fd)) {
@@ -344,9 +334,9 @@ char **argv;
             argv[optind] = FILENAME(&fd);
          } while (FINDNEXT(&fd));
          FINDCLOSE(&fd);
-      #else				/* PatternMatch */
+      #else				/* WildCards */
          trans(argv[optind]);
-      #endif				/* PatternMatch */
+      #endif				/* WildCards */
 
       optind++;
       }

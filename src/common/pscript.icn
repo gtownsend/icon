@@ -1,6 +1,17 @@
 #  Program to sanitize Yacc output and  minor changes to it to suit the Icon
 #  translator.
 
+# procedure to skip optional white space.
+procedure sws()
+   return tab( many( ' \t' ) ) | ""
+end
+
+$ifdef _CYGWIN
+   $define YY_STATE "yystate"
+$else					# _CYGWIN
+   $define YY_STATE "yy_state"
+$endif					# _CYGWIN
+
 procedure main()
    local line, prefix
 
@@ -8,8 +19,8 @@ procedure main()
       if line == "#" then next		# omit lone #s -- illegal now
       else line ? {
          if write(="#endif") then next	# omit illegal stuff
-         else if (prefix := tab(find("yyerror("))) & ="yyerror(" &
-            tab(upto('"')+1) then {
+         else if (prefix := tab(find("yyerror"))) & ="yyerror" & sws() & ="(" &
+            sws() & ="\"" then {
             #
             # We are beyond the 'yyerror( "'. Write the part of the
             # line before the call, then decide what to do about
@@ -17,7 +28,7 @@ procedure main()
             #
             writes(prefix)
             if ="syntax error\"" then
-               writes("yyerror(yychar, yylval, yy_state")
+               writes("yyerror(yychar, yylval, ", YY_STATE)
             else if ="yacc stack overflow\"" then
                writes("tsyserr(\"parse stack overflow\"")
             else

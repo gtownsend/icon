@@ -208,11 +208,12 @@ FncDefV(writes)
       FncDefV(WinOpenDialog)
       FncDefV(WinSaveDialog)
       FncDefV(WinSelectDialog)
+   #endif				/* MSWindows */
+#endif					/* Graphics */
+
       #ifdef FAttrib
          FncDefV(fattrib)
       #endif				/* FAttrib */
-   #endif				/* MSWindows */
-#endif					/* Graphics */
 
 #ifdef MultiThread
    /*

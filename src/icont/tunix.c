@@ -276,7 +276,11 @@ static char *libpath(char *prog, char *envname) {
 
    s = getenv(envname);
    if (s != NULL)
-      strcpy(buf, s);
+      #if CYGWIN
+         cygwin_win32_to_posix_path_list(s, buf);
+      #else				/* CYGWIN */
+         strcpy(buf, s);
+      #endif				/* CYGWIN */
    else
       strcpy(buf, ".");
    strcat(buf, ":");

@@ -17,10 +17,6 @@ static void rmfile  (char *fname);
 static void report  (char *s);
 static void usage   (void);
 
-#ifdef ExpTools
-char *toolstr = "${TOOLS}";
-#endif					/* ExpTools */
-
 char *refpath;
 
 char patchpath[MaxPath+18] = "%PatchStringHere->";
@@ -232,15 +228,8 @@ char **argv;
          break;
       else if (strcmp(argv[optind],"-") == 0)
          src_file("-");				/* "-" means standard input */
-
-#if UNIX
-   /*
-    * Check for C linker options on the command line.
-    */
       else if (argv[optind][0] == '-')
-         addlib(argv[optind]);		/* assume linker option */
-#endif					/* UNIX */
-
+         addlib(argv[optind]);			/* assume linker option */
       else {
          fp = fparse(argv[optind]);		/* parse file name */
          if (*fp->ext == '\0' || smatch(fp->ext, SourceSuffix)) {
@@ -248,23 +237,10 @@ char **argv;
             src_file(buf);
             }
          else
-
-/*
- * Pass appropriate files on to linker.
- */
-
-#if UNIX
             /*
              * Assume all files that are not Icon source go to linker.
              */
             addlib(argv[optind]);
-#else					/* UNIX */
-            /*
-             * Pass no files to the linker.
-             */
-            quitf("bad argument %s",argv[optind]);
-#endif					/* UNIX */
-
          }
       optind++;
       }
@@ -332,10 +308,8 @@ char **argv;
    if (no_c_comp)			/* exit if no C compile wanted */
       exit(EXIT_SUCCESS);
 
-#if !MSDOS
    if (verbose > 0)
       report("Compiling and linking C code");
-#endif					/* !MSDOS */
 
    ret_code = ccomp(cfile, ofile);
    if (ret_code == EXIT_FAILURE) {
@@ -346,10 +320,8 @@ char **argv;
    /*
     * Finish by removing C files.
     */
-#if !MSDOS
    rmfile(cfile);
    rmfile(hfile);
-#endif					/* !MSDOS */
    rmfile(makename(buf,TargetDir,cfile,ObjSuffix));
 
    if (ret_code == EXIT_SUCCESS && optind < argc)  {
@@ -370,12 +342,9 @@ char *ofile, *efile, **args;
 
    int n;
    char **argv, **p;
+   char buf[MaxFileName];		/* file name construction buffer */
 
-#if UNIX
-      char buf[MaxFileName];		/* file name construction buffer */
-
-      ofile = salloc(makename(buf,"./",ofile,ExecSuffix));
-#endif					/* UNIX */
+   ofile = salloc(makename(buf,"./",ofile,ExecSuffix));
 
    for (n = 0; args[n] != NULL; n++)	/* count arguments */
       ;

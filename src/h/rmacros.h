@@ -445,17 +445,26 @@
    /*
     * Push descriptor.
     */
-   #define PushDesc(d)	{*++sp = ((d).dword); sp++;*sp =((d).vword.integr);}
+   #define PushDescSP(SP,d)  {*++SP=((d).dword); SP++; *SP =((d).vword.integr);}
 
    /*
     * Push null-valued descriptor.
     */
-   #define PushNull	{*++sp = D_Null; sp++; *sp = 0;}
+   #define PushNullSP(SP)	{*++SP = D_Null; SP++; *SP = 0;}
 
    /*
     * Push word.
     */
-   #define PushVal(v)	{*++sp = (word)(v);}
+   #define PushValSP(SP,v)	{*++SP = (word)(v);}
+
+   /*
+    * Shorter Versions of the Push*SP macros that assume sp points to the top
+    * of the stack.
+    */
+   #define PushAVal(x)		PushAValSP(sp,x)
+   #define PushDesc(d)		PushDescSP(sp,d)
+   #define PushNull		PushNullSP(sp)
+   #define PushVal(x)		PushValSP(sp,x)
 
    /*
     * Push address.  Once weird for DOS, now the same as PushVal.

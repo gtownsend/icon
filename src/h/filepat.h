@@ -1,5 +1,5 @@
 /*
- * Typedefs and macros for filename wildcard expansion on some systems.
+ * Typedefs and macros for filename wildcard expansion for Windows.
  *  The definitions provided here are:
  *
  *    typedef ... FINDFILE_T;
@@ -21,33 +21,21 @@
  *    // Does any cleanup required after doing filenaame wildcard expansion.
  *
  * Also, the macro WildCards will be defined to be 1 if there is file
- * pattern matching is supported, 0 otherwise.  If !WildCards, then a
- * default set of typedef/macros will be provided that will return only one
- * match, the original pattern.
+ * pattern matching is supported, 0 otherwise.
  */
 
 #if WildCards
-
-#if NT
-   #include <io.h>
-   typedef struct _FINDFILE_TAG {
-      long			handle;
-      struct _finddata_t	fileinfo;
-      } FINDDATA_T;
-   #define FINDFIRST(pattern, pfd)	\
-      ( ( (pfd)->handle = _findfirst ( (pattern), &(pfd)->fileinfo ) ) != -1L )
-   #define FINDNEXT(pfd) ( _findnext ( (pfd)->handle, &(pfd)->fileinfo ) != -1 )
-   #define FILENAME(pfd)	( (pfd)->fileinfo.name )
-   #define FINDCLOSE(pfd)	_findclose( (pfd)->handle )
-#endif					/* NT */
-
-#if MICROSOFT
-   #include <dos.h>
-   typedef struct _find_t FINDDATA_T;
-   #define FINDFIRST(pattern,pfd) (!_dos_findfirst((pattern),_A_NORMAL,(pfd)))
-   #define FINDNEXT(pfd)	( !_dos_findnext ( (pfd) ) )
-   #define FILENAME(pfd)	( (pfd)->name )
-   #define FINDCLOSE(pfd)	( (void) 0 )
-#endif					/* MICROSOFT */
-
+   #if NT
+      typedef struct _FINDFILE_TAG {
+         HANDLE           handle;
+         WIN32_FIND_DATAA fileinfo;
+         } FINDDATA_T;
+      #define FINDFIRST(pattern, pfd) ( \
+         ( (pfd)->handle = FindFirstFileA( (pattern), &(pfd)->fileinfo ) ) != \
+         INVALID_HANDLE_VALUE )
+      #define FINDNEXT(pfd) \
+         ( FindNextFileA( (pfd)->handle, &(pfd)->fileinfo ) != FALSE )
+      #define FILENAME(pfd)	( (pfd)->fileinfo.cFileName )
+      #define FINDCLOSE(pfd)	FindClose( (pfd)->handle )
+   #endif				/* NT */
 #endif					/* WildCards */

@@ -8,11 +8,11 @@ HDRS = ../h/define.h ../h/config.h ../h/typedefs.h ../h/monitor.h\
 	  ../h/rmacros.h ../h/rexterns.h ../h/rstructs.h \
 	  ../h/rproto.h ../h/mproto.h ../h/sys.h
 
-GRAPHICSHDRS = ../h/graphics.h ../h/xwin.h
+GRAPHICSHDRS = ../h/graphics.h ../h/xwin.h ../h/mswin.h
 
 COBJS =	../common/long.o ../common/time.o ../common/save.o \
 	../common/rswitch.o ../common/redirerr.o ../common/xwindow.o \
-	../common/alloc.o ../common/munix.o
+	../common/alloc.o ../common/filepart.o ../common/munix.o
 
 
 default: iconx
@@ -41,7 +41,7 @@ iconx: $(OBJS)
 	cd ../common; $(MAKE)
 	$(CC) $(RLINK) -o iconx  $(OBJS) $(XL) $(RLIBS) $(TL)
 	cp iconx ../../bin
-	strip ../../bin/iconx
+	strip ../../bin/iconx$(EXE)
 
 xcnv.o: cnv.r $(HDRS)
 	../../bin/rtt -x cnv.r
@@ -302,7 +302,7 @@ rt.a: ../common/rswitch.o ../common/long.o ../common/time.o\
       rmisc.o rstruct.o rsys.o rwinrsc.o rwinsys.o\
       rwindow.o rcolor.o rimage.o ../common/xwindow.o ../common/alloc.o
 	rm -f rt.a
-	ar qc rt.a `sed 's/$$/.o/' rttfull.lst` ../common/rswitch.o\
+	ar qc rt.a `sed 's/$$/.o/' rttcur.lst` ../common/rswitch.o\
 	    ../common/long.o ../common/time.o\
 	    ../common/xwindow.o ../common/alloc.o
 	ranlib rt.a 2>/dev/null || :

@@ -203,16 +203,12 @@ int m4;
 static FILE *m4pipe(filename)
 char *filename;
    {
-   #if UNIX
-      FILE *f;
-      char *s = alloc(4 + strlen(filename));
-      sprintf(s, "m4 %s", filename);
-      f = popen(s, "r");
-      free(s);
-      return f;
-   #else					/* UNIX */
-      return NULL;
-   #endif					/* UNIX */
+   FILE *f;
+   char *s = alloc(4 + strlen(filename));
+   sprintf(s, "m4 %s", filename);
+   f = popen(s, "r");
+   free(s);
+   return f;
    }
 
 /*
@@ -374,14 +370,12 @@ int ppch()
          fs = curfile;
          curfile = fs->prev;
 
-         #if UNIX
-            if (fs->m4flag) {			/* if m4 preprocessing */
-               void quit();
-               if (pclose(fs->fp) != 0)		/* close pipe */
-                  quit("m4 terminated abnormally");
-               }
-            else
-         #endif					/* UNIX */
+         if (fs->m4flag) {			/* if m4 preprocessing */
+            void quit();
+            if (pclose(fs->fp) != 0)		/* close pipe */
+               quit("m4 terminated abnormally");
+            }
+         else
             fclose(fs->fp);		/* close current file */
 
          free((char *)fs->fname);

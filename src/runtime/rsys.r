@@ -92,13 +92,13 @@ long len;
    long tally = 0;
    long n = 0;
 
-#if NT
+#if NT && MICROSOFT
    /*
     * Under NT/MSVC++, ftell() used in Icon where() returns bad answers
     * after a wlongread().  We work around it here by fseeking after fread.
     */
    long pos = ftell(fd);
-#endif					/* NT */
+#endif					/* NT && MICROSOFT */
 
 #ifdef XWindows
    if (isatty(fileno(fd))) wflushall();
@@ -107,18 +107,18 @@ long len;
    while (len > 0) {
       n = fread(ts, width, (int)((len < MaxIn) ? len : MaxIn), fd);
       if (n <= 0) {
-#if NT
+#if NT && MICROSOFT
          fseek(fd, pos + tally, SEEK_SET);
-#endif					/* NT */
+#endif					/* NT && MICROSOFT */
          return tally;
 	 }
       tally += n;
       ts += n;
       len -= n;
       }
-#if NT
+#if NT && MICROSOFT
    fseek(fd, pos + tally, SEEK_SET);
-#endif					/* NT */
+#endif					/* NT && MICROSOFT */
    return tally;
    }
 
@@ -162,27 +162,16 @@ dptr d;
 int idelay(n)
 int n;
    {
-   #if UNIX
+   #if MSDOS
+      Sleep(n);
+      return Succeeded;
+   #else				/* MSDOS */
       struct timeval t;
       t.tv_sec = n / 1000;
       t.tv_usec = (n % 1000) * 1000;
       select(1, NULL, NULL, NULL, &t);
       return Succeeded;
-   #endif					/* UNIX */
-
-   #if MSDOS
-      #if NT
-         #ifdef MSWindows
-            Sleep(n);
-            return Succeeded;
-         #else					/* MSWindows */
-            /* ? should be a way for NT console apps to sleep... */
-            return Failed;
-         #endif					/* MSWindows */
-      #else					/* NT */
-         return Failed;
-      #endif					/* NT */
-   #endif					/* MSDOS */
+   #endif				/* MSDOS */
    }
 
 #ifdef KeyboardFncs
@@ -266,12 +255,11 @@ int kbhit(void)
 #endif					/* KeyboardFncs */
 
 #ifdef FAttrib
-#ifdef MSWindows
 /*
  * make_mode takes mode_t type (an integer) input and returns the
  * file permission in the format of a string.
 */
-char *make_mode (unsigned short st_mode)
+char *make_mode (mode_t st_mode)
 {
    char *buf;
 
@@ -286,27 +274,17 @@ char *make_mode (unsigned short st_mode)
    else if ( st_mode & _S_IFREG ) buf[0] = '-';
    else			         buf[0] = '\?';
 
-   if (st_mode & S_IREAD) buf[1] = 'r';
-   else    buf[1] = '-';
-   if (st_mode & S_IWRITE) buf[2] = 'w';
-   else    buf[2] = '-';
-   if (st_mode & S_IEXEC) buf[3] = 'x';
-   else    buf[3] = '-';
-   if (st_mode & S_IREAD) buf[4] = 'r';
-   else    buf[4] = '-';
-   if (st_mode & S_IWRITE) buf[5] = 'w';
-   else    buf[5] = '-';
-   if (st_mode & S_IEXEC) buf[6] = 'x';
-   else    buf[6] = '-';
-   if (st_mode & S_IREAD) buf[7] = 'r';
-   else    buf[7] = '-';
-   if (st_mode & S_IWRITE) buf[8] = 'w';
-   else    buf[8] = '-';
-   if (st_mode & S_IEXEC) buf[9] = 'x';
-   else    buf[9] = '-';
+   if (st_mode & S_IREAD)  buf[1] = 'r';  else buf[1] = '-';
+   if (st_mode & S_IWRITE) buf[2] = 'w';  else buf[2] = '-';
+   if (st_mode & S_IEXEC)  buf[3] = 'x';  else buf[3] = '-';
+   if (st_mode & S_IREAD)  buf[4] = 'r';  else buf[4] = '-';
+   if (st_mode & S_IWRITE) buf[5] = 'w';  else buf[5] = '-';
+   if (st_mode & S_IEXEC)  buf[6] = 'x';  else buf[6] = '-';
+   if (st_mode & S_IREAD)  buf[7] = 'r';  else buf[7] = '-';
+   if (st_mode & S_IWRITE) buf[8] = 'w';  else buf[8] = '-';
+   if (st_mode & S_IEXEC)  buf[9] = 'x';  else buf[9] = '-';
 
    buf[10] = '\0';
    return buf;
 }
-#endif					/* MSWindows */
 #endif					/* FAttrib */

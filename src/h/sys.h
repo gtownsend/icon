@@ -3,11 +3,13 @@
  */
 
 /*
- * Universal (Standard ANSI C) includes.
+ * Universal (Standard 1989 ANSI C) includes.
  */
 #include <ctype.h>
 #include <errno.h>
+#include <limits.h>
 #include <math.h>
+#include <setjmp.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,14 +17,28 @@
 #include <time.h>
 
 /*
+ * POSIX (1003.1-1996) includes.
+ */
+#include <dirent.h>
+#include <fcntl.h>
+#include <grp.h>
+#include <pwd.h>
+#include <termios.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/times.h>
+#include <sys/types.h>
+
+/*
  * Operating-system-dependent includes.
  */
-#if MSDOS
-   #undef Type
-   #include <sys/types.h>
-   #include <sys/stat.h>
-   #include <fcntl.h>
 
+#if MSDOS
+   #include <windows.h>
+   #include <sys/cygwin.h>
+   #include <sys/select.h>
+   
    #ifdef MSWindows
       #define int_PASCAL int PASCAL
       #define LRESULT_CALLBACK LRESULT CALLBACK
@@ -32,22 +48,11 @@
       #include <process.h>
       #include "../wincap/dibutil.h"
    #endif				/* MSWindows */
-   #include <setjmp.h>
-   #define Type(d) (int)((d).dword & TypeMask)
+
+   #undef Type
    #undef lst1
    #undef lst2
 #endif					/* MSDOS */
-
-#if UNIX
-   #include <dirent.h>
-   #include <limits.h>
-   #include <unistd.h>
-   #include <sys/stat.h>
-   #include <sys/time.h>
-   #include <sys/times.h>
-   #include <sys/types.h>
-   #include <termios.h>
-#endif					/* UNIX */
 
 /*
  * Window-system-dependent includes.

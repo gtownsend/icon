@@ -37,11 +37,8 @@ char **opt_args;
 
 /*
  * mac_opts - handle options which affect what predefined macros are in
- *  effect when preprocessing starts. Some of these options may be system
- *  specific. The options may be on the command line. On some systems they
- *  may also be in environment variables or configurations files. Most
- *  systems will have some predefined macros which are not dependent on
- *  options; establish them also.
+ *  effect when preprocessing starts.  The options may be on the command
+ *  line.  Also establish predefined macros.
  */
 static void mac_opts(opt_lst, opt_args)
 char *opt_lst;
@@ -50,134 +47,20 @@ char **opt_args;
    int i;
 
    /*
-    *  Establish predefined macros and look for options in environment
-    *  variables and/or configuration files that affect predefined macros.
+    *  Establish predefined macros.
     */
-
-   #if UNIX
+   #if CYGWIN
+      do_directive("#define __CYGWIN32__\n");
+      do_directive("#define __CYGWIN__\n");
+      do_directive("#define __unix__\n");
+      do_directive("#define __unix\n");
+      do_directive("#define _WIN32\n");
+      do_directive("#define __WIN32\n");
+      do_directive("#define __WIN32__\n");
+   #else				/* CYGWIN */
       do_directive("#define unix 1\n");
       do_directive(PPInit);   /* defines that vary between Unix systems */
-   #endif				/* UNIX */
-
-   #if MSDOS
-   char *undef_model = "#undef M_I86SM\n#undef M_I86CM\n#undef M_I86MM\n"
-       "#undef M_I86LM\n#undef M_I86HM\n";
-   char *cl_var;
-
-   do_directive("#define MSDOS 1\n");
-   do_directive("#define M_I86 1\n");
-   do_directive("#define M_I86SM 1\n");  /* small memory model */
-
-   /*
-    * Process all applicable options from the CL environment variable.
-    */
-   cl_var = getenv("CL");
-   if (cl_var != NULL)
-      while (*cl_var != '\0') {
-         if (*cl_var == '/' || *cl_var == '-') {
-            ++cl_var;
-            switch (*cl_var) {
-               case 'U':
-                  /*
-                   * Undefine a specific identifier. Find the identifier
-                   *  by skipping white space then locating its end.
-                   */
-                  ++cl_var;
-                  while (*cl_var == ' ' || *cl_var == '\t')
-                     ++cl_var;
-                  i = 0;
-                  while (cl_var[i] != ' ' && cl_var[i] != '\t' &&
-                    cl_var[i] != '\0')
-                     ++i;
-                  undef_opt(cl_var, i); /* undefine the identifier */
-                  cl_var += i;
-                  break;
-               case 'u':
-                  do_directive("#undef MSDOS\n");
-                  do_directive("#undef M_I86\n");
-                  do_directive("#undef NO_EXT_KEYS\n");
-                  do_directive("#undef _CHAR_UNSIGED\n");
-                  break;
-               case 'D':
-                  /*
-                   * Define an identifier. If no defining string is given
-                   *  define it to "1".
-                   */
-                  ++cl_var;
-                  while (*cl_var == ' ' || *cl_var == '\t')
-                     ++cl_var;
-                  i = 0;
-                  while (cl_var[i] != ' ' && cl_var[i] != '\t' &&
-                    cl_var[i] != '\0')
-                     ++i;
-                  define_opt(cl_var, i, one_tok); /* define the identifier */
-                  cl_var += i;
-                  break;
-               case 'A':
-                  /*
-                   * Memory model. Define corresponding identifiers after
-                   *  after making sure all others are undefined.
-                   */
-                  ++cl_var;
-                  switch (*cl_var) {
-                     case 'S':
-                        /*
-                         * -AS - small memory model.
-                         */
-                        do_directive(undef_model);
-                        do_directive("#define M_I86SM 1\n");
-                        break;
-                     case 'C':
-                        /*
-                         * -AC - compact memory model.
-                         */
-                        do_directive(undef_model);
-                        do_directive("#define M_I86CM 1\n");
-                       break;
-                     case 'M':
-                        /*
-                         * -AM - medium memory model.
-                         */
-                        do_directive(undef_model);
-                        do_directive("#define M_I86MM 1\n");
-                        break;
-                     case 'L':
-                        /*
-                         * -AL - large memory model.
-                         */
-                        do_directive(undef_model);
-                        do_directive("#define M_I86LM 1\n");
-                        break;
-                     case 'H':
-                        /*
-                         * -AH - huge memory model.
-                         */
-                        do_directive(undef_model);
-                        do_directive("#define M_I86LM 1\n");
-                        do_directive("#define M_I86HM 1\n");
-                        break;
-                     }
-                  break;
-               case 'Z':
-                  ++cl_var;
-                  if (*cl_var == 'a') {
-                     /*
-                      * -Za
-                      */
-                     do_directive("#undef NO_EXT_KEYS\n");
-                     do_directive("#define NO_EXT_KEYS 1\n");
-                     }
-                  break;
-               case 'J':
-                   do_directive("#undef _CHAR_UNSIGED\n");
-                   do_directive("#define _CHAR_UNSIGNED 1\n");
-                   break;
-               }
-            }
-         if (*cl_var != '\0')
-            ++cl_var;
-         }
-   #endif				/* MSDOS*/
+   #endif				/* CYGWIN*/
 
    /*
     * look for options that affect macro definitions (-U, -D, etc).

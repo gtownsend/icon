@@ -38,6 +38,7 @@ void	ppecho		(void);
 int	ppinit		(char *fname, char *inclpath, int m4flag);
 int	prt_i_str	(FILE *f, char *s, int len);
 int	redirerr	(char *p);
+char	*relfile	(char *prog, char *mod);
 char	*salloc		(char *s);
 int	smatch		(char *s, char *t);
 char	*spec_str	(char *s);
@@ -45,17 +46,7 @@ char	*str_install	(struct str_buf *sbuf);
 int	tonum		(int c);
 void	lear_sbuf	(struct str_buf *sbuf);
 
-#ifdef ConsoleWindow
-   int Consolefprintf(FILE *file, char *format, ...);
-   int Consoleprintf(char *format, ...);
-   int Consoleputc(int c, FILE *file);
-   int Consolefflush(FILE *file);
-#endif					/* ConsoleWindow */
-
 #ifndef SysOpt
    int	getopt		(int argc, char * const argv[], const char *optstring);
 #endif					/* NoSysOpt */
 
-#if UNIX
-   char *relfile	(char *prog, char *mod);
-#endif

@@ -16,7 +16,13 @@ Global char *progname	Init("iconc");	/* program name for diagnostics */
 
 Global int debug_info	Init(0);	/* -fd, -t: generate debugging info */
 Global int err_conv     Init(0);	/* -fe: support error conversion */
-Global int largeints	Init(0);	/* -fl: support large integers */
+
+#ifdef LargeInts
+   Global int largeints	Init(1);	/* -fl: support large integers */
+#else					/* LargeInts */
+   Global int largeints	Init(0);	/* -fl: support large integers */
+#endif					/* LargeInts */
+
 Global int line_info	Init(0);	/* -fn, -fd, -t: generate line info */
 Global int m4pre	Init(0);	/* -m: use m4 preprocessor? [UNIX] */
 Global int str_inv	Init(0);	/* -fs: enable full string invocation */

@@ -13,19 +13,15 @@ static int iconx(int argc, char *argv[]);
 static void ixopts(int argc, char *argv[], int *ip);
 
 /*
- * Initial interpreter entry point, with hook for system-dependent actions.
+ * Initial interpreter entry point (for all remaining platforms).
  */
 int main(int argc, char *argv[]) {
-   #if MSDOS
-      return WinMain(argc, argv);
-   #else
-      return iconx(argc, argv);
-   #endif
+   return iconx(argc, argv);
 }
 
 /*
- * Initial icode sequence. This is used to invoke the main procedure with one
- *  argument.  If main returns, the Op_Quit is executed.
+ * Initial icode sequence. This is used to invoke the main procedure
+ *  with one argument.  If main returns, the Op_Quit is executed.
  */
 int iconx(int argc, char *argv[]) {
    int i, slen;
@@ -222,35 +218,38 @@ int *ip;
 
    #if NT
       /*
-       * if we didn't start with nticonx.exe or wiconx.exe, backup one
+       * if we didn't start with iconx.exe, backup one
        * so that our icode filename is argv[1].
        */
       {
-      char tmp[256], *t2;
+      char tmp[256], *t2, *basename, *ext;
       int len = 0;
       strcpy(tmp, argv[0]);
-      t2 = tmp;
-      while (*t2) {
+      for (t2 = tmp; *t2; t2++) {
+         switch (*t2) {
+	    case ':':
+	    case '/':
+	    case '\\':
+	       basename = t2 + 1;
+	       ext = NULL;
+	       break;
+	    case '.':
+	       ext = t2;
+	       break;
+	    default:
          *t2 = tolower(*t2);
-         t2++;
-         len++;
+	       break;
+	    }
          }
+      /* If present, cut the ".exe" extension. */
+      if (ext != NULL && !strcmp(ext, ".exe"))
+         *ext = 0;
 
       /*
        * if argv[0] is not a reference to our interpreter, take it as the
        * name of the icode file, and back up for it.
        */
-      #ifdef MSWindows
-         if (!((len == 6 && !strcmp(tmp+len-6, "wiconx")) ||
-               (len > 6 && !strcmp(tmp+len-7, "\\wiconx")) ||
-               (len == 10 && !strcmp(tmp+len-10, "wiconx.exe")) ||
-               (len > 10 && !strcmp(tmp+len-11, "\\wiconx.exe")))) {
-      #else				/* MSWindows */
-         if (!((len == 7 && !strcmp(tmp+len-7, "nticonx")) ||
-               (len > 7 && !strcmp(tmp+len-8, "\\nticonx")) ||
-               (len == 11 && !strcmp(tmp+len-11, "nticonx.exe")) ||
-               (len > 11 && !strcmp(tmp+len-12, "\\nticonx.exe")))) {
-      #endif				/* MSWindows */
+      if (strcmp(basename, "iconx")) {
          argv--;
          argc++;
          (*ip)--;

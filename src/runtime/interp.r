@@ -140,15 +140,14 @@ word xnargs;
  * Inside the interpreter loop, PushDesc, PushNull, PushAVal, and
  *  PushVal use rsp instead of sp for efficiency.
  */
-
 #undef PushDesc
 #undef PushNull
 #undef PushVal
 #undef PushAVal
-#define PushDesc(d)   {*++rsp=((d).dword); *++rsp=((d).vword.integr);}
-#define PushNull   {*++rsp = D_Null; *++rsp = 0;}
-#define PushVal(v)   {*++rsp = (word)(v);}
-#define PushAVal(x) PushVal(x)
+#define PushDesc(d)   PushDescSP(rsp,d)
+#define PushNull      PushNullSP(rsp)
+#define PushVal(v)    PushValSP(rsp,v)
+#define PushAVal(a)   PushVal(a)
 
 
 /*
@@ -393,7 +392,7 @@ dptr cargp;
 
 	 case Op_Str:		/* string */
 	    PutOp(Op_Astr);
-	    PushVal(GetWord)
+	    PushVal(GetWord);
 	    opnd = (word)strcons + GetWord;
 	    PutWord(opnd);
 	    PushAVal(opnd);
@@ -663,7 +662,7 @@ dptr cargp;
                            j = bp->lelem.first + i;
                            if (j >= bp->lelem.nslots)
                               j -= bp->lelem.nslots;
-                           PushDesc(bp->lelem.lslots[j])
+                           PushDesc(bp->lelem.lslots[j]);
                            }
                         }
 		  goto invokej;
@@ -674,7 +673,7 @@ dptr cargp;
                   bp = BlkLoc(value_tmp);
                   args = bp->record.recdesc->proc.nfields;
                   for (i = 0; i < args; i++) {
-                     PushDesc(bp->record.fields[i])
+                     PushDesc(bp->record.fields[i]);
                      }
                   goto invokej;
                   }

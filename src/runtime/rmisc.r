@@ -1561,23 +1561,16 @@ int c;
    return (isascii(c) && isprint(c));
    }
 
-#ifndef AsmOver
 /*
  * add, sub, mul, neg with overflow check
  * all return 1 if ok, 0 if would overflow
  */
 
-/*
- *  Note: on some systems an improvement in performance can be obtained by
- *  replacing the C functions that follow by checks written in assembly
- *  language.  To do so, add #define AsmOver to ../h/define.h.  If your
- *  C compiler supports the asm directive, put the new code at the end
- *  of this section under control of #else.  Otherwise put it a separate
- *  file.
- */
-
 extern int over_flow;
 
+/*
+ * add - integer addition with overflow checking
+ */
 word add(a, b)
 word a, b;
 {
@@ -1591,6 +1584,9 @@ word a, b;
      }
 }
 
+/* 
+ * sub - integer subtraction with overflow checking
+ */
 word sub(a, b)
 word a, b;
 {
@@ -1604,6 +1600,9 @@ word a, b;
       }
 }
 
+/*
+ * mul - integer multiplication with overflow checking
+ */
 word mul(a, b)
 word a, b;
 {
@@ -1624,7 +1623,9 @@ word a, b;
    return a * b;
 }
 
-/* MinLong / -1 overflows; need div3 too */
+/*
+ * mod3 - integer modulo with overflow checking (always rounds to 0)
+ */
 word mod3(a, b)
 word a, b;
 {
@@ -1645,7 +1646,7 @@ word a, b;
 	 /* First, we make b positive */
 	 if ( b < 0 ) b = -b;
 
-	 /* Make sure retval should have the same sign as 'a' */
+	 /* Make sure retval has the same sign as 'a' */
 	 retval = a % b;
 	 if ( ( a < 0 ) && ( retval > 0 ) )
 	    retval -= b;
@@ -1656,6 +1657,9 @@ word a, b;
    return retval;
 }
 
+/*
+ * div3 - integer divide with overflow checking (always rounds to 0)
+ */
 word div3(a, b)
 word a, b;
 {
@@ -1669,8 +1673,9 @@ word a, b;
    return ( a - mod3 ( a, b ) ) / b;
 }
 
-/* MinLong / -1 overflows; need div3 too */
-
+/*
+ * neg - integer negation with overflow checking
+ */
 word neg(a)
 word a;
 {
@@ -1681,7 +1686,6 @@ word a;
    over_flow = 0;
    return -a;
 }
-#endif					/* AsmOver */
 
 #if COMPILER
 /*
@@ -1799,26 +1803,3 @@ word *high;
    if (InRange(low, loc, high))
       deref(valp, valp);
    }
-
-#if MSDOS
-int strcasecmp(char *s1, char *s2)
-{
-   while (*s1 && *s2) {
-      if (tolower(*s1) != tolower(*s2))
-         return tolower(*s1) - tolower(*s2);
-      s1++; s2++;
-      }
-   return tolower(*s1) - tolower(*s2);
-}
-
-int strncasecmp(char *s1, char *s2, int n)
-{
-   int i, j;
-   for(i=0;i<n;i++) {
-      j = tolower(s1[i]) - tolower(s2[i]);
-      if (j) return j;
-      if (s1[i] == '\0') return 0; /* terminate if both at end-of-string */
-      }
-   return 0;
-}
-#endif					/* MSDOS */

@@ -20,7 +20,7 @@ COBJS =		../common/long.o ../common/getopt.o ../common/time.o\
 iconc:		$(OBJS) $(COBJS)
 		$(CC) -o iconc $(OBJS) $(COBJS)
 		cp iconc ../../bin
-		strip ../../bin/iconc
+		strip ../../bin/iconc$(EXE)
 
 $(OBJS):	../h/config.h ../h/cpuconf.h ../h/cstructs.h ../h/define.h\
 		../h/mproto.h ../h/typedefs.h ../h/gsupport.h \

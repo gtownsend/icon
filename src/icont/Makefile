@@ -21,7 +21,7 @@ COBJS =		../common/long.o ../common/getopt.o ../common/alloc.o \
 icont:		$(OBJS) $(COBJS)
 		$(CC) $(CFLAGS) $(LDFLAGS) -o icont $(OBJS) $(COBJS)
 		cp icont ../../bin
-		strip ../../bin/icont
+		strip ../../bin/icont$(EXE)
 		(cd ../../bin; rm -f icon; ln -s icont icon)
 
 $(OBJS):	$(HFILES) tproto.h
@@ -48,7 +48,7 @@ tsym.o:		tglobals.h tsym.h ttoken.h lfile.h keyword.h ../h/kdefs.h
 $(LINKR):	link.h lfile.h ../h/rt.h ../h/sys.h ../h/monitor.h \
 		   ../h/rstructs.h ../h/rmacros.h ../h/rexterns.h
 
-link.o:		tglobals.h ../h/header.h
+link.o:		tglobals.h hdr.h ../h/header.h
 lcode.o:	tglobals.h opcode.h keyword.h ../h/header.h \
 			../h/opdefs.h ../h/version.h
 lglob.o:	tglobals.h opcode.h ../h/opdefs.h ../h/version.h
@@ -56,6 +56,16 @@ llex.o:		tglobals.h opcode.h ../h/opdefs.h
 lmem.o:		tglobals.h
 lsym.o:		tglobals.h
 opcode.o:	opcode.h ../h/opdefs.h
+
+# hdr.h is always built but not always used
+hdr.h:		newhdr ixhdr.hdr
+		./newhdr -o hdr.h ixhdr.hdr
+newhdr:		newhdr.c ../h/define.h ../h/gsupport.h
+		$(CC) $(CFLAGS) $(LDFLAGS) -o newhdr newhdr.c
+ixhdr.hdr:	ixhdr.c ../h/define.h ../h/header.h ../h/define.h
+		$(CC) $(CFLAGS) $(LDFLAGS) -o ixhdr.hdr ixhdr.c
+		strip ixhdr.hdr
+
 
 
 

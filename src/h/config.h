@@ -7,12 +7,8 @@
  */
 
 /*
- *  A number of symbols are defined here.  Some are specific to individual
- *  to operating systems.  Examples are:
- *	MSDOS		MS-DOS for PCs; includes MS Windows
- *	UNIX		any UNIX system; also set for BeOS or Mac (Darwin)
- *
- *  Some definitions enable or disable certain Icon features, for example:
+ *  A number of symbols are defined here.
+ *  Some enable or disable certain Icon features, for example:
  *	NoCoexpr	disables co-expressions
  *	LargeInts	enables large integers
  *
@@ -113,7 +109,11 @@
    #define Polling
 
    #ifndef ICONC_XLIB
-      #define ICONC_XLIB "-L/usr/X11R6/lib -lX11"
+      #if CYGWIN
+         #define ICONC_XLIB "-luser32 -lgdi32 -lcomdlg32 -lwinmm"
+      #else				/* CYGWIN */
+         #define ICONC_XLIB "-L/usr/X11R6/lib -lX11"
+      #endif				/* CYGWIN */
    #endif				/* ICONC_XLIB */
 
    #ifdef ConsoleWindow
@@ -185,28 +185,20 @@
 /*
  * Features enabled by default under certain systems
  */
-#ifndef Pipes
-   #if UNIX
-      #define Pipes
-   #endif				/* UNIX */
+#ifndef NoPipes
+   #define Pipes
 #endif					/* Pipes */
 
-#ifndef KeyboardFncs
-   #if UNIX
-      #define KeyboardFncs
-   #endif				/* UNIX */
+#ifndef NoKeyboardFncs
+   #define KeyboardFncs
 #endif					/* KeyboardFncs */
 
-#ifndef ReadDirectory
-   #if UNIX
-      #define ReadDirectory
-   #endif				/* UNIX*/
+#ifndef NoReadDirectory
+   #define ReadDirectory
 #endif					/* ReadDirectory */
 
-#ifndef SysOpt
-   #if UNIX
-      #define SysOpt
-   #endif				/* UNIX*/
+#ifndef NoSysOpt
+   #define SysOpt
 #endif					/* SysOpt */
 
 #ifndef NoWildCards
@@ -333,13 +325,11 @@
 /*
  * Executable methodology.
  */
-
-#if UNIX
-   #undef Header
+#ifndef Header
    #define Header
    #undef ShellHeader
    #define ShellHeader
-#endif					/* UNIX */
+#endif					/* Header */
 
 /*
  *  Vsizeof is for use with variable-sized (i.e., indefinite)
