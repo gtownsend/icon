@@ -17,26 +17,26 @@
 #
 #  These functions manipulate raw (P6) PPM image files in memory.
 #  The images must not contain comment strings.
-# 
+#
 #  ppmwidth(s) -- return width of PPM image.
 #  ppmheight(s) -- return height of PPM image.
 #  ppmmax(s) -- return maximum value in PPM header.
 #  ppmdata(s) -- return data portion of PPM image.
-# 
+#
 #  ppmimage(s,p,f) -- quantify image s using palette p, with flags f.
 #     Returns an Icon image string.  Flag "o" selects ordered dithering.
 #     Defaults:  p="c6",  f="o"
-# 
+#
 #  ppmstretch(s,lo,hi,max) -- apply contrast stretch operation
 #     Returns a PPM string image that results from setting all
 #     values <= lo to zero, all values >= hi to max, with values
-#     between scaling linearly.  If hi = lo + 1, this becomes a 
+#     between scaling linearly.  If hi = lo + 1, this becomes a
 #     simple threshold operation.  If lo=0 and hi=ppmmax(s), this
 #     simply scales an image to a new maximum.
-# 
+#
 #     Requirements: 0 <= lo < hi <= ppmmax(s), 1 <= max <= 255.
 #     Defaults:	  lo=0, hi=ppmmax(s), max=255.
-# 
+#
 #  ppm3x3(s,a,b,c,d,e,f,g,h,i) -- apply 3x3 convolution to PPM image.
 #     The matrix of real numbers [[a,b,c],[d,e,f],[g,h,i]] is used
 #     as a transformation matrix applied independently to the three
@@ -457,7 +457,7 @@ static ppminfo ppmcrack(descriptor d)
 
 
 /*
- *  ppmrows(hdr, nbr, func, arg) -- extend rows and call driver function  
+ *  ppmrows(hdr, nbr, func, arg) -- extend rows and call driver function
  *
  *  Calls func(a, w, i, arg) for each row of the PPM image identified by hdr,
  *  where

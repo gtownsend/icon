@@ -23,70 +23,70 @@
 #   Version 9 of Icon.
 #
 ############################################################################
-# 
+#
 #   From Icon, loadfunc(libfile, funcname) loads a C function of the form
-# 	int func(int argc, descriptor argv[])
+#	int func(int argc, descriptor argv[])
 #   where "descriptor" is the structure type defined here.  The C
 #   function returns -1 to fail, 0 to succeed, or a positive integer
 #   to report an error.  Argv[1] through argv[argc] are the incoming
 #   arguments; the return value on success (or the offending value
 #   in case of error) is stored in argv[0].
-# 
+#
 #   In the macro descriptions below, d is a descriptor value, typically
 #   a member of the argv array.  IMPORTANT: many macros assume that the
 #   C function's parameters are named "argc" and "argv" as noted above.
 #
 ############################################################################
-# 
+#
 #   IconType(d) returns one of the characters {cfinprsCILRST} indicating
 #   the type of a value according to the key on page 247 of the Red Book.
 #   The character I indicates a large (multiprecision) integer.
-# 
+#
 #   Only a few of these types (i, r, f, s) are easily manipulated in C.
 #   Given that the type has been verified, the following macros return
 #   the value of a descriptor in C terms:
-# 
-# 	IntegerVal(d)	value of a integer (type 'i') as a C long
-# 	RealVal(d)	value of a real (type 'r') as a C double
-# 	FileVal(d)	value of a file (type 'f') as a C FILE pointer
-# 	FileStat(d)	status field of a file
-# 	StringVal(d)	value of a string (type 's') as a C char pointer
-# 			(copied if necessary to add \0 for termination)
-# 
-# 	StringAddr(d)	address of possibly unterminated string
-# 	StringLen(d)	length of string
-# 
+#
+#	IntegerVal(d)	value of a integer (type 'i') as a C long
+#	RealVal(d)	value of a real (type 'r') as a C double
+#	FileVal(d)	value of a file (type 'f') as a C FILE pointer
+#	FileStat(d)	status field of a file
+#	StringVal(d)	value of a string (type 's') as a C char pointer
+#			(copied if necessary to add \0 for termination)
+#
+#	StringAddr(d)	address of possibly unterminated string
+#	StringLen(d)	length of string
+#
 #	ListLen(d)	length of list
-# 
+#
 #   These macros check the type of an argument, converting if necessary,
 #   and returning an error code if the argument is wrong:
-# 
-# 	ArgInteger(i)		check that argv[i] is an integer
-# 	ArgReal(i)		check that argv[i] is a real number
-# 	ArgString(i)		check that argv[i] is a string
+#
+#	ArgInteger(i)		check that argv[i] is an integer
+#	ArgReal(i)		check that argv[i] is a real number
+#	ArgString(i)		check that argv[i] is a string
 #	ArgList(i)		check that argv[i] is a list
 #
 #   Caveats:
 #      Allocation failure is not detected.
 #
 ############################################################################
-# 
+#
 #   These macros return from the C function back to Icon code:
-# 
-# 	Return			return argv[0] (initially &null)
-# 	RetArg(i)		return argv[i]
-# 	RetNull()		return &null
-# 	RetInteger(i)		return integer value i
-# 	RetReal(v)		return real value v
-# 	RetFile(fp,status,name)	return (newly opened) file
-# 	RetString(s)		return null-terminated string s
-# 	RetStringN(s, n)	return string s whose length is n
-# 	RetAlcString(s, n)	return already-allocated string
-# 	RetConstString(s)	return constant string s
-# 	RetConstStringN(s, n)	return constant string s of length n
-# 	Fail			return failure status
-# 	Error(n)		return error code n
-# 	ArgError(i,n)		return argv[i] as offending value for error n
+#
+#	Return			return argv[0] (initially &null)
+#	RetArg(i)		return argv[i]
+#	RetNull()		return &null
+#	RetInteger(i)		return integer value i
+#	RetReal(v)		return real value v
+#	RetFile(fp,status,name)	return (newly opened) file
+#	RetString(s)		return null-terminated string s
+#	RetStringN(s, n)	return string s whose length is n
+#	RetAlcString(s, n)	return already-allocated string
+#	RetConstString(s)	return constant string s
+#	RetConstStringN(s, n)	return constant string s of length n
+#	Fail			return failure status
+#	Error(n)		return error code n
+#	ArgError(i,n)		return argv[i] as offending value for error n
 #
 ############################################################################
  */

@@ -18,10 +18,10 @@
 #  lgconv(I) converts a large integer into a string using a series of BCD
 #  adds.  (In contrast, the Icon built-in string() function accomplishes
 #  the same conversion using a series of divisions by 10.)
-# 
+#
 #  lgconv is typically 50% to 75% faster than string() on a Sun or Alpha.
 #  For some reason it is as much as 125% SLOWER on a SGI 4/380.
-# 
+#
 #  lgconv(I) works for all integer values of I.  Small integers are
 #  simply passed to string() for conversion.
 #
@@ -100,7 +100,7 @@ descriptor *argv;
 
    memset(bcdbuf, 0, 2 * nbcd * sizeof(long));	/* zero BCD buffers */
    powbuf[bcdlen-1] = 1;			/* init powbuf to 1 */
-   
+
    /* compute BCD equivalent of the bignum value */
    dgp = &big->digits[big->lsd];
    for (i = 0; i < nbig; i++) {
@@ -134,7 +134,7 @@ descriptor *argv;
       o++;
    if (big->sign)
       *--o = '-';
-   RetAlcString(o, p - o); 
+   RetAlcString(o, p - o);
    }
 
 

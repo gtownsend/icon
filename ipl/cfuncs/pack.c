@@ -17,27 +17,27 @@
 #
 #  s := pack(value, flags, width)
 #  x := unpack(string, flags)
-# 
+#
 #  Flag characters are as follows:
-# 
+#
 #     l -- little-endian [default]
 #     b -- big-endian
 #     n -- host platform's native packing order
-# 
+#
 #     i -- integer [default]
 #     u -- unsigned integer
 #     r -- real (host platform's native float or double format)
-# 
+#
 #  The default width is 4.
-# 
+#
 #  Integer values must fit in a standard Icon integer (not large integer).
 #  Consequently, a word-sized value cannot have the high bit set if unsigned.
 #  Floating values can only be converted to/from a string width matching
 #  sizeof(float) or sizeof(double).
-# 
+#
 #  Size/type combinations that can't be handled produce errors.
 #  Valid combinations produce failure if the value overflows.
-# 
+#
 #  Some of this code assumes a twos-complement architecture with 8-bit bytes.
 #
 ############################################################################
@@ -88,7 +88,7 @@ int pack(int argc, descriptor argv[])	/*: pack integer into bytes */
       if ((f = flags(StringAddr(argv[2]), StringLen(argv[2]))) == 0)
          ArgError(2, 205);		/* illegal flag string */
       }
-   else 
+   else
       f = flags("", 0);
 
    if (argc > 2) {
@@ -117,7 +117,7 @@ int pack(int argc, descriptor argv[])	/*: pack integer into bytes */
          RetStringN(memrev(obuf, u.buf, n), n);
       else
          RetStringN((char *)u.buf, n);
-      } 
+      }
 
    /*
     * pack integer value
@@ -173,7 +173,7 @@ int unpack(int argc, descriptor argv[])	/*: unpack integer from bytes */
       if ((f = flags(StringAddr(argv[2]), StringLen(argv[2]))) == 0)
          ArgError(2, 205);		/* illegal flag string */
       }
-   else 
+   else
       f = flags("", 0);
 
    if (f & F_REAL) {
@@ -194,7 +194,7 @@ int unpack(int argc, descriptor argv[])	/*: unpack integer from bytes */
       }
 
    /*
-    * unpack integer value 
+    * unpack integer value
     */
    if (f & F_BIG)
       s = memrev(u.buf, s, n);		/* put in little-endian order */
@@ -226,7 +226,7 @@ static int flags(char *s, int n)
    while (n--) switch(*s++) {
       case 'l':  f |= F_LTL;				break;
       case 'b':  f |= F_BIG;				break;
-      case 'n':  f |= (LNATIVE ? F_LTL : F_BIG); 	break;
+      case 'n':  f |= (LNATIVE ? F_LTL : F_BIG);	break;
       case 'i':  f |= F_INT;				break;
       case 'u':  f |= F_UNS + F_INT;			break;
       case 'r':  f |= F_REAL;				break;

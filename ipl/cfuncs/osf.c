@@ -17,11 +17,11 @@
 #
 #  osftable(id, index, len) returns one element from an OSF table() call.
 #  This function is for the OSF operating system, and fails on other systems.
-# 
+#
 #  See "man table" for a detailed description of the "table" system call
 #  and the formats of the structures returned; see /usr/include/table.h
 #  for a list of allowed ID values.
-# 
+#
 #  Defaults: index    0
 #            len    100
 #

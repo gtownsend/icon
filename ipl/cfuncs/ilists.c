@@ -23,9 +23,9 @@
 #      SListVal(d) returns an array of C char pointers (char *).
 #
 ############################################################################
-# 
+#
 #  Here is an example of using this interface:
-# 
+#
 #  1. gcc -I/opt/icon/ipl/cfuncs -shared -fPIC -o llib.so l.c
 #  where "l.c" is the C fragment below.
 #
@@ -48,9 +48,9 @@
 #    for (i=0; i<n; i++) printf("%s ", sa[i]); printf("\n");
 #    Return;
 #  }
-# 
+#
 #  2. The Icon program that loads "example" from the library llib.so:
-# 
+#
 #  procedure main()
 #     local e, L1, L2, L3
 #     e := loadfunc("./llib.so", "example")
@@ -67,7 +67,7 @@
 
 void cpslots(descriptor *, descriptor *, word, word);
 
-/*  
+/*
  * Given a descriptor of an Icon list of integers, this function returns
  * a C array containing the integers.
  *
@@ -78,7 +78,7 @@ void cpslots(descriptor *, descriptor *, word, word);
  */
 
 int *IListVal(descriptor d)		/*: make int[] array from list */
-   {  
+   {
    int *a;
    int n = ListLen(d);
    descriptor slot[n];
