@@ -10,14 +10,5 @@
 #define CComp "gcc"
 #define ExecSuffix ".exe"
 
-/*
- * Comment out the follwing line to compile Icon programs to Windows CMD
- * files. Otherwise, Icon programs will have executable binary headers.
- */
 #define BinaryHeader
-
-#ifdef BinaryHeader
-   #define IcodeSuffix ".exe"
-#else					/* BinaryHeader */
-   #define IcodeSuffix ".cmd"
-#endif					/* BinaryHeader */
+#define IcodeSuffix ".exe"
