@@ -2,13 +2,10 @@
  * pthreads.c -- Icon context switch code using POSIX threads and semaphores
  *
  * This code implements co-expression context switching on any system that
- * provides POSIX threads and semaphores.  It has these drawbacks compared
- * to architecture-specific code:
- *
- *    It is typically much slower.
- *
- *    It requires Icon 9.4.1 built with "#define CoClean" in order to free
- *    threads and semaphores when co-expressions ARE collected.
+ * provides POSIX threads and semaphores.  It requires Icon 9.4.1 built
+ * with "#define CoClean" in order to free threads and semaphores when
+ * co-expressions are collected.  It is typically much slower than
+ * platform-specific custom code, but of course it is much more portable.
  */
 
 #include <pthread.h>

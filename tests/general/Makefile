@@ -29,5 +29,5 @@ Test-options:
 
 
 Clean:
-		-rm -f *.u? foo.baz tmp1 tmp2 *.out
+		-rm -f *.u? *.c *.h foo.baz tmp1 tmp2 *.out
 		-rm -f `find * -type f -perm -100 ! -name 'Test-*' -print`

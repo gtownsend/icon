@@ -11,8 +11,8 @@
  *  Icon version number and date.
  *  These are the only two entries that change any more.
  */
-#define VersionNumber "9.4.0+"
-#define VersionDate "January, 2002"
+#define VersionNumber "9.4.1.b1"
+#define VersionDate "February, 2002"
 
 /*
  * Version number to insure format of data base matches version of iconc
@@ -25,7 +25,7 @@
    /*
     * &version
     */
-   #define Version  "Icon Version " VersionNumber "c, " VersionDate
+   #define Version  "Icon Version " VersionNumber "-C, " VersionDate
 
 #else					/* COMPILER */
 
@@ -35,8 +35,8 @@
    #define Version  "Icon Version " VersionNumber ", " VersionDate
 
    /*
-    * Version numbers to be sure ucode is compatible with the linker
-    * and icode is compatible with the run-time system.
+    * Version numbers to be sure that ucode is compatible with the linker
+    * and that icode is compatible with the run-time system.
     */
 
    #define UVersion "U9.0.00"
@@ -72,8 +72,3 @@
    #endif				/* FieldTableCompression */
 
 #endif					/* COMPILER */
-
-/*
- * Version number for event monitoring.
- */
-#define Eversion "9.0.00"
