@@ -6,7 +6,7 @@
 #
 #	Authors:  Gregg M. Townsend and William S. Evans
 #
-#	Date:     January 9, 2001
+#	Date:     May 7, 2002
 #
 ############################################################################
 #
@@ -151,7 +151,7 @@
 #	RR*.DDF, and MT*.DDF respectively.
 #
 #	Dlgvu has mainly been tested and tuned using "large scale" DLG
-#	files (1:24000 scale, covering 7.5 minute quadrangles).  Other 
+#	files (1:24000 scale, covering 7.5 minute quadrangles).  Other
 #	scales produce less attractive displays, partly due to different
 #	encodings:  For example, the same residential streets may be encoded
 #	as "Class 3 Roads" in 24K files but "Class 4 Roads" in 100K files.
@@ -295,8 +295,8 @@
 #
 ############################################################################
 #
-#  Links:  cartog, clipping, ddfread, geodat, graphics, io, numbers,
-#	options, pscript, random, strings, wildcard, zipread
+#  Links:  cartog, clipping, ddfread, geodat, graphics, io, mapnav,
+#	numbers, options, pscript, random, strings, wildcard, zipread
 #
 ############################################################################
 
@@ -310,6 +310,7 @@ link ddfread
 link geodat
 link graphics
 link io
+link mapnav
 link numbers
 link options
 link pscript
@@ -344,8 +345,8 @@ $define PSQGAP 2			# size of gap between squares
 $define XSIZE 30			# size of X on maps not loaded
 
 # PostScript output parameters
-$define PSMAX 9999			# maximum output coordinate
-$define PSPT 24				# size of point feature in PSMAX units
+$define PSSCALE 10			# scaling from pixels to PS units
+$define PSPT 24				# size of point feature in PS units
 $define PSLWI 120			# linewidth scaling factor
 
 
@@ -388,11 +389,7 @@ global opts				# command options
 global chosen				# cset of chosen layers
 
 global xmin, xmax, ymin, ymax		# data range
-global xleft, xright, ytop, ybot	# portion displayed
-
-global wwidth, wheight			# window dimensions
-global xctr, yctr, scale, aspect	# rendering factors
-global wproj				# corresponding projection
+global aspect				# input coordinate aspect ratio
 
 global attrib				# attribute style table
 global slist				# list of style records w/ seg lists
@@ -465,7 +462,7 @@ procedure main(args)
 
    # show initial screen
    winit()
-   wconfig()
+   mapinit(draw, , xmin, xmax, ymax, ymin, aspect)
    if WAttrib("label") == "--" then	# set window label, if not specified
       WAttrib("label=" || args[1])
    WAttrib("canvas=normal")		# make window visible
@@ -476,7 +473,7 @@ procedure main(args)
    if \opts["c"] then			# if just coverage wanted
       chosen := 'n'			# turn on names, turn off loaded paths
    else {
-      
+
       # finally: load in the data
       alllabels()			# show coverage while loading
       every c := !DLG_LAYERS do		# load by layers
@@ -516,36 +513,30 @@ procedure main(args)
       Event()
 
    # draw initial screen
-   view(xmin, xmax, ymax, ymin)
+   EraseArea()
+   mapgen()
 
    # process interactive commands
    repeat case e := Event() of {
-      &resize:		{ redraw() }
-      &lpress:		{ select() }
       &rpress:		{ locate() }
-      !"+=":		{ zoom(1 / ZOOMF) }
-      !"-_":		{ zoom(ZOOMF) }
-      Key_Left:		{ pan(e, -0.1, 0.0) }
-      Key_Right:	{ pan(e, +0.1, 0.0) }
-      Key_Up:		{ pan(e, 0.0, -0.1) }
-      Key_Down:		{ pan(e, 0.0, +0.1) }
-      !"0)" | Key_Home:	{ view(xmin, xmax, ymax, ymin) }
-      !"\n\r ":		{ draw() }
+      !"\n\r ":		{ mapgen() }
       !"pP" | Key_PrSc:	{ print(); Bg("white") }
+      !"aA":		{ chosen := &lcase; mapgen() }
+      !"xX":		{ chosen := ''; EraseArea(); mapgen() }
       !"qQ":		{ exit() }
-      !"aA":		{ chosen := &lcase; draw() }
-      !"xX":		{ chosen := ''; redraw() }
       any(&letters, e) & e: {
          e := map(e)
          if any(chosen, e) then {
             chosen --:= e
-            redraw()
+            EraseArea()
+            mapgen()
             }
          else {
             chosen ++:= e
-            draw()
+            mapgen()
             }
          }
+      default:		{ mapevent(e) }
       }
 end
 
@@ -583,7 +574,7 @@ procedure rtescan(arg)
          xmx <:= lon
          ymx <:= lat
          }
-      else if *points > 0 then {	
+      else if *points > 0 then {
          put(segs, points)
          points := []
          }
@@ -603,7 +594,7 @@ procedure rtescan(arg)
    t := table()
    t["g"] := r
    arg.ltable := t
-   
+
    n := 0
    every n +:= *segs[-nsegs to -1]
    if /opts["q"] then
@@ -771,7 +762,7 @@ procedure loadref(r)
       }
    if e[4] == "UTM" then
       r.zone := integer(e[6])
-   else	
+   else
       r.zone := -1
 
    return
@@ -855,22 +846,22 @@ procedure cmerge(A, B)
    if /A | /B then return \A | \B
    C := []
 
-   if A[1] + A[2] < B[1] + B[2] then 
+   if A[1] + A[2] < B[1] + B[2] then
       put(C, A[1], A[2])
    else
       put(C, B[1], B[2])
 
-   if A[3] - A[4] < B[3] - B[4] then 
+   if A[3] - A[4] < B[3] - B[4] then
       put(C, A[3], A[4])
    else
       put(C, B[3], B[4])
 
-   if A[5] + A[6] > B[5] + B[6] then 
+   if A[5] + A[6] > B[5] + B[6] then
       put(C, A[5], A[6])
    else
       put(C, B[5], B[6])
 
-   if A[7] - A[8] > B[7] - B[8] then 
+   if A[7] - A[8] > B[7] - B[8] then
       put(C, A[7], A[8])
    else
       put(C, B[7], B[8])
@@ -945,7 +936,7 @@ end
 procedure degc(d)
    local n, x
 
-   d := abs(d / DEGSCALE) + 0.0625		# 1/16 for rounding		
+   d := abs(d / DEGSCALE) + 0.0625		# 1/16 for rounding
    n := integer(d)
    x := "abcdefgh" [1 + integer(8 * (d - n))]
    return n || x
@@ -1077,7 +1068,7 @@ procedure loadpts(ddfile, r, attid)
          s := get(e)
          if s == "ATID" then {
             k := get(e) || get(e)
-            while k[4] ~== "F" do 
+            while k[4] ~== "F" do
                k := get(e) || get(e) | break
             a := \attid[k] | lcode
             }
@@ -1152,17 +1143,21 @@ procedure locate()
    Font("mono,bold,14")
 
    if &x < BOXW + 40 & &y < BOXH + 40 then
-      Popup(20, wheight - BOXH - 20, BOXW, BOXH, locproc)
+      Popup(20, WAttrib("height") - BOXH - 20, BOXW, BOXH, locproc, mapproj())
    else
-      Popup(20, 20, BOXW, BOXH, locproc)
+      Popup(20, 20, BOXW, BOXH, locproc, mapproj())
 
    return
 end
 
-procedure locproc()
-   local e, i, m, n, p, s, u, cx, dx, dy, ll, lat, lon, yoff
 
-   p := invp(wproj)			# get projection from screen to lat/lon
+
+#  locate(wproj) -- calculate scale and location using caller's projection
+
+procedure locproc(wproj)
+   local e, i, m, n, s, u, cx, dx, dy, ll, lat, lon, winv, yoff
+
+   winv := invp(wproj)			# get projection from screen to lat/lon
    dx := WAttrib("dx")			# get popup box coordinate system
    dy := WAttrib("dy")
 
@@ -1170,8 +1165,8 @@ procedure locproc()
    u := 90 * DEGSCALE / 1e7		# one meter, in latitude units
    m := 1e5				# start w/ big multiplier, and reduce
    repeat {
-      yoff := u * m / 2
-      ll := project(wproj, [xctr, yctr + yoff, xctr, yctr - yoff])
+      yoff := u * m
+      ll := project(wproj, [xmin, ymin + yoff, xmin, ymin])
       n := ll[4] - ll[2]
       if n <= SMAX then break
       m := m / 10
@@ -1189,11 +1184,11 @@ procedure locproc()
    cx := BOXW / 2
    FillRectangle(cx - n / 2, 55, n, 8)
    CenterString(cx, 70, s)
-   
+
    #  give coordinates of mouse location until button released
    until e === &rrelease do {
 
-      ll := project(p, [&x + 0.5, &y + 0.5])	# cvt screen coords to lat/lon
+      ll := project(winv, [&x + 0.5, &y + 0.5])	# cvt screen coords to lat/lon
       lon := get(ll) / DEGSCALE		# and scale from integer to real
       lat := get(ll) / DEGSCALE
 
@@ -1227,111 +1222,15 @@ end
 
 
 
-#  select() -- respond to mouse press, sweeping out a zoom area and redrawing
+#  draw(win, pjn) -- draw all selected map layers, without erasing first
 
-procedure select()
-   local xywh, xl, xr, yt, yb
-
-   setdraw(attrib["SWEEP"])		# set style for sweeping
-   xywh := Sweep()			# get bounds of swept area
-   if xywh[3 | 4] < 10 then		# if dimension < 10, ignore
-      fail
-
-   xl := xctr + (get(xywh) - wwidth / 2 - 0.5) / (scale * aspect)
-   yt := yctr - (get(xywh) - wheight / 2 - 0.5) / scale
-   xr := xl + (get(xywh) + 0.5) / (scale * aspect)
-   yb := yt - (get(xywh) + 0.5) / scale
-   view(xl, xr, yt, yb)
-   return
-end
-
-
-
-#  pan(nx, ny) -- shift center and redraw
-
-procedure pan(e, fx, fy)
-   local dx, dy, nx, ny
-
-   while Pending()[1] === e do
-      Event()				# consume duplicate pan events
-
-   if &shift then {			# if shift key down, pan by 1/10 as much
-      fx *:= 0.1
-      fy *:= 0.1
-      }
-
-   nx := integer(fx * wwidth)
-   ny := integer(fy * wheight)
-   dx := nx / (scale * aspect)
-   dy := ny / -scale
-
-   if nx > 0 then {
-      CopyArea(nx)
-      EraseArea(wwidth - nx)
-      }
-   else if nx < 0 then {
-      CopyArea(, , , , -nx)
-      EraseArea(, , -nx)
-      }
-
-   if ny > 0 then {
-      CopyArea(, ny)
-      EraseArea(, wheight - ny)
-      }
-   else if ny < 0 then {
-      CopyArea(, , , , , -ny)
-      EraseArea(, , , -ny)
-      }
-
-   view(xleft + dx, xright + dx, ytop + dy, ybot + dy, draw)
-   return
-end
-
-
-
-#  zoom(z) -- zoom by factor z (or to normal size if /z), then redraw
-
-procedure zoom(z)
-   view(xctr + z * (xleft - xctr), xctr + z * (xright - xctr),
-      yctr + z * (ytop - yctr), yctr + z * (ybot - yctr))
-   return
-end
-
-
-
-#  view(xleft, xright, ytop, ybot, proc) -- set viewed region and [re]draw 
-
-procedure view(xl, xr, yt, yb, proc)
-   xleft := xl
-   xright := xr
-   ytop := yt
-   ybot := yb
-   (\proc | redraw)()
-   return
-end
-
-
-
-#  redraw() -- erase window and draw selected map layers
-
-procedure redraw()
-   EraseArea()
-   draw()
-   return
-end
-
-
-
-#  draw() -- draw all selected map layers, without erasing first
-
-procedure draw()
+procedure draw(win, pjn)
    local a, d, v, arec
 
-   wconfig()
    every (arec := !slist) & any(chosen, arec.lcode) do {
       setdraw(arec) | next
       every d := !arec.segs do {
-         v := project(wproj, d)		# project to window x/y coords
+         v := project(pjn, d)		# project to window x/y coords
          every !v >:= 30000.0		# clamp to legal X values allowing dx/dy
          every !v <:= -30000.0		# clamp as floating to avoid lgint bug
          if *v = 2 then
@@ -1368,29 +1267,6 @@ procedure winit()
          every ymax <:= (!a.ltable).ocorners[4 | 6]
          }
    aspect := cos(dtor((ymax + ymin) / (2 * DEGSCALE)))
-   xleft := xmin
-   xright := xmax
-   ytop := ymax
-   ybot := ymin
-   return
-end
-
-
-
-#  wconfig() -- configure window and projection
-
-procedure wconfig()
-
-   wwidth := WAttrib("width")
-   wheight := WAttrib("height")
-   xctr := (xleft + xright) / 2
-   yctr := (ytop + ybot) / 2
-   scale := 0.99 * wwidth / (aspect * (xright - xleft))
-   scale >:= 0.99 * wheight / (ytop - ybot)
-   scale >:= 1000.0		# limit zoom to prevent floating overflow
-
-   # establish projection from internal to window coordinates
-   wproj := rectp(xctr, yctr, wwidth / 2, wheight /2, scale * aspect, -scale)
    return
 end
 
@@ -1419,7 +1295,7 @@ end
 #  sets r.px, r.py to progress bar position
 
 procedure drawlabel(r)
-   local x, y, w, h, n, d, u, s, tw, tmax, v
+   local x, y, w, h, n, d, u, s, tw, tmax, v, wproj
    static lc, uc
    initial {
       lc := string(&lcase)
@@ -1427,6 +1303,7 @@ procedure drawlabel(r)
       }
 
    # draw the bounding box
+   wproj := mapproj()
    v := copy(r.ocorners)
    put(v, r.ocorners[1], r.ocorners[2])
    v := project(wproj, v)		# project to window x/y coords
@@ -1435,14 +1312,10 @@ procedure drawlabel(r)
    DrawLine ! v
 
    # find the center and range
-   x := (r.ocorners[1] + r.ocorners[3] + r.ocorners[5] + r.ocorners[7]) / 4
-   y := (r.ocorners[2] + r.ocorners[4] + r.ocorners[6] + r.ocorners[8]) / 4
-   w := (r.ocorners[5] + r.ocorners[7] - r.ocorners[1] - r.ocorners[3]) / 2
-   h := (r.ocorners[4] + r.ocorners[6] - r.ocorners[2] - r.ocorners[8]) / 2
-   x := wwidth / 2 + scale * aspect * (x - xctr)
-   y := wheight / 2 - scale * (y - yctr)
-   w *:= scale * aspect
-   h *:= scale
+   x := (v[1] + v[3] + v[5] + v[7]) / 4
+   y := (v[2] + v[4] + v[6] + v[8]) / 4
+   w := (v[5] + v[7] - v[1] - v[3]) / 2
+   h := (v[4] + v[6] - v[2] - v[8]) / 2
 
    # trim the name
    s := r.arg.name
@@ -1529,40 +1402,34 @@ procedure print()
          fail
       }
 
-   Popup(, , 300, 50, popwrite, psfile)
+   Popup(, , 300, 50,
+      popwrite, [psfile, mapproj(), WAttrib("width"), WAttrib("height")])
    close(psfile)
    return
 end
 
-procedure popwrite(psfile)
+procedure popwrite(psargs)
    CenterString(150, 25, "Writing PostScript...")
-   return writeps(psfile)
+   return writeps ! psargs
 end
 
-procedure writeps(psfile)
-   local arec, color, style, width, ptoff
-   local a, m, w, h, pj, d, s, v, x, y, dx, dy, fx, fy
+procedure writeps(psfile, projn, wwidth, wheight)
+   local arec, color, style, width, ptoff, xmax, ymax, xmul, ymul
+   local a, b, m, w, h, pj, d, s, v, x, y, dx, dy, fx, fy
 
-   w := wwidth
-   h := wheight
-   if w >= h then {
-      m := PSMAX * scale / w
-      h := PSMAX * h / w
-      w := PSMAX
-      }
-   else {
-      m := PSMAX * scale / h
-      w := PSMAX * w / h
-      h := PSMAX
-      }
-   pj := rectp(xctr, yctr, w / 2., h / 2., m * aspect, m)	# set projection
+   b := project(invp(projn), [0, 0, wwidth, wheight])
+   xmax := PSSCALE * wwidth
+   ymax := PSSCALE * wheight
+   xmul := xmax / (b[3] - b[1])
+   ymul := ymax / (b[2] - b[4])
+   pj := rectp(b[1], b[4], 0, 0, xmul, ymul)		# set projection
 
    ptoff := PSPT / 2
    s := " 0 " || PSPT || " rlineto"
    s ||:= " " || PSPT || " 0 rlineto"
    s ||:= " 0 -" || PSPT || " rlineto"
 
-   epsheader(psfile, 0, 0, w, h, "r")
+   epsheader(psfile, 0, 0, PSSCALE * wwidth, PSSCALE * wheight, "r")
    every write(psfile, ![
       "1 setlinecap",
       "/cdivr { 65535 div 3 1 roll } bind def",
@@ -1589,11 +1456,11 @@ procedure writeps(psfile)
          if *v = 2 then {
             x := integer(get(v))
             y := integer(get(v))
-            if (0 <= x <= PSMAX) & (0 <= y <= PSMAX) then
+            if (0 <= x < xmax) & (0 <= y < ymax) then
                write(psfile, x - ptoff, " ", y - ptoff, " p")
             next
             }
-         v := Coalesce(ClipLine(v, 0, 0, w, h)) | next
+         v := Coalesce(ClipLine(v, 0, 0, xmax, ymax)) | next
          every a := !v do {
             x := integer(get(a))
             y := integer(get(a))
@@ -1684,7 +1551,7 @@ $define ROUTE "magenta-red"		# path foreground color
 
    deflayer("s", "weak reddish yellow")	# manmade structures
    def("2000299", , "pale reddish yellow")	# processing line
-   def("s")				
+   def("s")
    def("s-")				# uattributed, incl building outlines
    def("2000400")			# buildings as point nodes
    def("2000202", , "light moderate reddish yellow")	# wall
@@ -1733,7 +1600,7 @@ $define TRANSIT "dark blue"
    def("1800400Y", 1, TRANSIT)		# rapid transit station
 
    deflayer("u", "light gray")		# misc transpt: power, pipe, airport
-   def("u")	
+   def("u")
    def("u-", , "white-gray")		# unattrib segments incl airport runways
 $define UTILITY "strong purple-magenta"
    def("1900201", 1, UTILITY, "dashed")	# petroleum pipeline
