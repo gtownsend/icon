@@ -6,17 +6,12 @@
 static void add_tdef (char *name);
 
 /*
- * refpath is used to locate the standard include files for the Icon.
+ * refpath is used to locate the standard include files for the Icon
  *  run-time system. If patchpath has been patched in the binary of rtt,
  *  the string that was patched in is used for refpath.
  */
+char *refpath;
 char patchpath[MaxPath+18] = "%PatchStringHere->";
-
-#ifdef RefPath
-   char *refpath = RefPath;
-#else
-   char *refpath = "";
-#endif					/* RefPath */
 
 static char *ostr = "+ECPD:I:U:d:cir:st:x";
 
