@@ -1,0 +1,90 @@
+############################################################################
+#
+#	File:     permutat.icn
+#
+#	Subject:  Procedures for permutations
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 10, 2001
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  Links:  lists, seqops
+#
+############################################################################
+
+link lists
+link seqops
+
+procedure multireduce(i, j)		#: multi-reduction permutation
+   local indexes, result, parts
+
+   /j := 2
+
+   indexes := []
+
+   every put(indexes, 1 to j)
+
+   parts := ldecollate(indexes, srun(1, i))
+
+   result := []
+
+   every result |||:= !parts
+
+   return result
+
+end
+
+procedure permperiod(p)			#: period of permutation
+   local lengths
+
+   lengths := []
+
+   every put(lengths, *!cycles(p))
+
+   return lcml ! lengths
+
+end
+
+procedure cycles(p)			#: permutation cycles
+   local indices, cycle, cycles, i
+
+   cycles := []		# list of cycles
+
+   indices := set()
+
+   every insert(indices, 1 to *p)
+
+   repeat {
+      i := !indices | break
+      delete(indices, i)
+      cycle := set()
+      insert(cycle, i)
+      repeat {
+         i := integer(p[i])
+         delete(indices, i)
+         if member(cycle, i) then break	# done with cycle
+         else insert(cycle, i)		# new member of cycle
+         }
+      put(cycles, sort(cycle))
+      }
+
+   return cycles
+
+end
+
+procedure mutate(seq, mutation)		#: mutate sequence
+   local result
+
+   result := []
+
+   every put(result, seq[!mutation])
+
+   return result
+
+end

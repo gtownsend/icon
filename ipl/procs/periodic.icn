@@ -1,0 +1,182 @@
+############################################################################
+#
+#	File:     periodic.icn
+#
+#	Subject:  Procedures related to periodic sequences
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 10, 2001
+#
+############################################################################
+#
+#  Sqrt(i, j) produces a rational approximation to the square root of i
+#  with j iterations of the half-way method.  j defaults to 5.
+#
+############################################################################
+#
+#  Requires:  Large-integer arithmetic  
+#
+############################################################################
+#
+#  Links:  lists, numbers, rational, strings
+#
+############################################################################
+
+link lists
+link numbers
+link rational
+link strings
+
+record perseq(pre, rep)
+
+procedure Sqrt(i, j)		#: rational approximate to square root
+   local rat, half
+
+   /j := 5
+
+   half := rational(1, 2, 1)
+
+   rat := rational(integer(sqrt(i)), 1, 1)	# initial approximation
+
+   i := rational(i, 1, 1)
+
+   every 1 to j do
+      rat := mpyrat(half, addrat(rat, divrat(i, rat, 1), 1))
+
+   return rat
+
+end
+
+procedure rat2cf(rat)		#: continued fraction sequence for rational
+   local r, result, i, j
+
+   i := rat.numer
+   j := rat.denom
+
+   result := []
+
+   repeat {
+     put(result, rational(integer(i / j), 1, 1).numer)
+     r := i % j
+     i := j
+     j := r
+     if j = 0 then break
+     }
+
+   return perseq(result, [])
+
+end
+
+procedure cfapprox(lst)		#: continued-fraction approximation
+   local prev_n, prev_m, n, m, t
+
+   lst := copy(lst)
+
+   prev_n := [1]
+   prev_m := [0, 1]
+
+   put(prev_n, get(lst).denom) | fail
+
+   while t := get(lst) do {
+      n := t.denom * get(prev_n) + t.numer * prev_n[1]
+      m := t.denom * get(prev_m) + t.numer * prev_m[1]
+      suspend rational(n, m, 1)
+      put(prev_n, n)
+      put(prev_m, m)
+      if t.denom ~= 0 then {		# renormalize
+         every !prev_n /:= t.denom
+         every !prev_m /:= t.denom
+         }
+      }
+
+end
+
+procedure dec2rat(pre, rep)	#: convert repeating decimal to rational
+   local s
+
+   s := ""
+
+   every s ||:= (!pre | |!rep) \ (*pre + *rep)
+
+   return ratred(rational(s - left(s, *pre),
+      10 ^ (*pre + *rep) - 10 ^ *pre, 1))
+
+end
+
+procedure rat2dec(rat)		#: decimal expansion of rational
+   local  result, remainders, count, seq
+
+   rat := copy(rat)
+
+   result := ""
+
+   remainders := table()
+
+   rat.numer %:= rat.denom
+   rat.numer *:= 10
+
+   count := 0
+
+   while rat.numer > 0 do {
+      count +:= 1
+      if member(remainders, rat.numer) then {	# been here; done that
+         seq := perseq()
+         result ? {
+            seq.pre := move(remainders[rat.numer] - 1)
+            seq.rep := tab(0)
+            }
+         return seq
+         }
+      else insert(remainders, rat.numer, count)
+      result ||:= rat.numer / rat.denom
+      rat.numer %:= rat.denom
+      rat.numer *:= 10
+      }
+
+   return perseq([rat.denom], [])		# WRONG!!!
+
+end
+
+procedure repeater(seq, ratio, limit)		#: find repeat in sequence
+   local init, i, prefix, results, segment, span
+
+   /ratio := 2
+   /limit := 0.75
+
+   results := copy(seq)
+
+   prefix := []
+
+   repeat {
+      span := *results / ratio
+      every i := 1 to span do {
+         segment := results[1+:i] | next
+         if lequiv(lextend(segment, *results), results) then
+            return perseq(prefix, segment)
+         }
+      put(prefix, get(results)) |		# first term to prefix
+         return perseq(prefix, results)
+      if *prefix > limit * *seq then return perseq(seq, [])
+      }
+
+end
+
+procedure seqimage(seq)		#: sequence image
+   local result
+
+   result := ""
+
+   every result ||:= !seq.pre || ","
+
+   result ||:= "["
+
+   if *seq.rep > 0 then {
+      every result ||:= !seq.rep || ","
+      result[-1] := "]"
+      }
+   else result ||:= "]"
+
+   return result
+
+end

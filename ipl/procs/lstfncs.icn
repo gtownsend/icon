@@ -1,0 +1,78 @@
+############################################################################
+#
+#	File:     lstfncs.icn
+#
+#	Subject:  Procedure to produce lists from sequences
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 23, 2001
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  Links:  genrfncs, numbers
+#
+############################################################################
+
+link genrfncs
+link numbers
+
+procedure fiblist(l, m)
+   local result
+
+   /l := 128
+   /m := 8
+
+   result := []
+
+   every put(result, residue(fibseq(), m, 1)) \ l
+
+   return result
+
+end
+
+procedure multilist(l, m)
+   local result
+
+   /l := 128
+   /m := 8
+
+   result := []
+
+   every put(result, residue(multiseq(), m, 1)) \ l
+
+   return result
+
+end
+
+procedure primelist(l, m)
+   local result
+
+   /l := 128
+   /m := 8
+
+   result := []
+
+   every put(result, residue(primeseq(), m, 1)) \ l
+
+   return result
+
+end
+
+procedure List(L)		# called as List{e, l, m}
+   local l, m, result
+
+   l := \@L[2] | 128		# length
+   m := \@L[3] | 8		# modulus
+
+   result := []
+
+   every put(result, residue(|@L[1], m, 1)) \ l
+
+   return result
+
+end

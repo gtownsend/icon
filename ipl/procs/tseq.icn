@@ -1,0 +1,291 @@
+############################################################################
+#
+#	File:     tseq.icn
+#
+#	Subject:  Procedures to analyze T-sequences
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 10, 2001
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+
+$define MinLength 5	# minimum length for attempting analysis
+
+procedure get_analysis(seq)
+   local expression
+
+   if *seq < MinLength then return simageb(seq)
+
+   expression := (
+      get_scollate(seq) |
+      get_srepeat(seq) |
+      remod(seq, get_srun) |	# before sruns(), which would subsume it
+      remod(seq, get_sruns) |
+      get_splace(seq) |		# would subsume some runs
+      simageb(seq)
+      )
+
+   return expression
+
+end
+
+procedure get_scollate(seq)		#: find collation in sequence
+   local bound, deltas, i, j, poses, positions, oper, seqs
+   local results, result, k, count, oseq, m, nonperiod, facts, period
+
+   bound := (sbound ! seq)
+
+   speriod(seq) | fail		# only handle periodic case
+
+   deltas := table()
+   positions := table()
+
+   every  i := 1 to bound do {
+      poses := spositions(seq, i)
+      positions[i] := poses
+      j := sconstant(sdelta(poses)) | fail	# CONTRADICTION
+      /deltas[j] := []
+      put(deltas[j], i) 
+      }
+
+   oseq := list(*seq, 1)		# decollation order sequence
+
+   count := 0
+
+   every k := key(deltas) do {
+      count +:= 1
+      every j := !deltas[k] do
+         every m := !positions[j] do
+            oseq[m] := count
+      }
+
+   if *set(oseq) < 2 then fail		# not enough sequences
+
+#  oseq := srun([1, get(facts)]) | fail
+
+   seqs := sdecollate(oseq, seq) | fail
+
+   oper := "scollate(" || (simageb(oseq[1+:speriod(oseq)]) |
+      get_analysis(oseq))
+
+   every oper ||:= ", " || get_analysis(!seqs)
+
+   return oper || ")"
+
+end
+
+procedure get_splace(seq)		#: find motif along a path in sequence
+   local i, j, motif, seq2, path
+
+   if i := sconstant(seq) then return "srepeat(" || i || "," || *seq || ")"
+
+   every i := divisors(*seq) do {
+      motif := seq[1+:i]
+      every j := i + 1 to *seq by i do
+         if not sequiv(motif, sground(seq[j+:i], seq[1])) then break next
+      path := []
+      every put(path, seq[1 to *seq by i])
+      return "splace(" || get_analysis(motif) || ", " || get_analysis(path) || ")"
+      }
+
+   fail
+
+end
+
+procedure sground(seq, i)		#: ground sequence to i
+   local j
+
+   j := smin ! seq
+
+   every !seq -:= (j - i)
+
+   return seq
+
+end
+
+procedure get_srepeat(seq)		#: find repeat in sequence
+   local i
+
+   i := speriod(seq) | fail
+   return "srepeat(" || get_analysis(seq[1+:i]) || ", " || (*seq / i) || ")"
+
+end
+
+procedure speriod(seq)			#: period of sequence
+   local i, segment
+
+   every i := 1 | divisors(*seq) do {
+      segment := seq[1+:i]
+      if sequiv(sextend(segment, *seq), seq) then return i
+      }
+
+   fail
+
+end
+
+procedure remod(seq, p)			#: handle modulus
+   local nseq, bound
+
+   nseq := sunmod(seq)
+
+   if (sbound ! nseq) > (bound := sbound ! seq) then
+      return "smod(" || p(nseq) || ", " || bound || ")"
+   else return p(copy(seq))
+
+end
+
+procedure get_srun(seq)
+   local i, j, new_seq, dir
+
+   seq := copy(seq)
+
+   i := get(seq)
+   j := get(seq)
+
+   if j = i - 1 then dir := -1		# down going
+   else if j = i + 1 then dir := 1			# upgoing
+   else fail
+
+   new_seq := [i]
+
+   while i := get(seq) do {
+      if i = j + 1 then {
+         if dir = -1 then put(new_seq, j)
+         dir := 1
+         }
+      else if i =  j - 1 then {
+         if dir = 1 then put(new_seq, j)
+         dir := -1
+         }
+      else {
+         put(new_seq, j)
+         push(seq, i)		# put back non-continuing value
+         break
+         }
+      j := i
+      }
+
+   if *seq ~= 0 then fail
+
+   put(new_seq, j)
+
+   return "srun(" || get_analysis(new_seq) || ")"
+
+end
+
+procedure get_sruns(seq)
+   local i, j, seq1, seq2, dir
+
+   seq1 := []
+   seq2 := []
+
+   repeat {
+      i := get(seq) | {
+         put(seq2, j)
+         break					# end of road
+         }
+      j := get(seq) | fail			# isolated end point
+      if j = i - 1 then dir := -1		# down going
+      else if j = i + 1 then dir := 1		# up going
+      else fail
+      put(seq1, i)				# beginning point
+      while i := get(seq) do {
+         if i = j + dir then {
+            j := i
+            next
+            }
+         else {
+            push(seq, i)			# put back next value
+            put(seq2, j)
+            break
+            }
+         }
+      }
+
+   return "sruns(" || get_analysis(seq1) || ", " || get_analysis(seq2) || ")"
+
+end
+
+procedure sconstant(seq)		#: test for constant sequence
+
+   if *set(seq) = 1 then return !seq
+   else fail
+
+end
+
+
+procedure sdecollate(order, x)		#: sequence decollation
+   local lseq, i, j
+
+   x := spromote(x)
+
+   if *x = 0 then fail
+
+   order := copy(order)
+
+   lseq := list(sbound ! order)		# list of lists to return
+
+   every !lseq := []			# initially empty
+
+   every j := !x do {
+      i := get(order)	| fail
+      put(order, i)
+      put(lseq[i], j)
+      }
+
+   return lseq
+
+end
+
+procedure sdelta(seq)			#: sequence delta
+   local i, lseq, j
+
+   if *seq < 2 then fail
+
+   seq := copy(seq)
+
+   i := get(seq)
+
+   lseq := []
+
+   while j := get(seq) do {
+      put(lseq, j - i)
+      i := j
+      }
+
+   return lseq
+
+end
+
+procedure spositions(x1, x2)		#: positions of values in sequence
+  local lseq, count, i
+
+   x1 := copy(spromote(x1))
+   x2 := set(spromote(x2))
+
+   lseq := []
+
+   count := 0
+
+   while i := get(x1) do {
+      count +:= 1
+      if member(x2, integer(i)) then
+         put(lseq, count)
+      }
+
+   return lseq
+
+end
+
+procedure simageb(seq)			#: bracketed sequence image
+
+   if *seq = 1 then return seq[1]
+
+   return "sconcat(" || simage(seq) || ")"
+
+end
