@@ -22,6 +22,22 @@ $define TEXTWIDTH (20 + 7 * TEXTCHARS)		# space used for same
 $define LONGTEXT 50				# size of long text fields
 
 
+# alternate keypad symbols not always set
+
+$ifndef Key_KP_Left
+   $define Key_KP_Left Key_Left
+$endif
+$ifndef Key_KP_Right
+   $define Key_KP_Right Key_Right
+$endif
+$ifndef Key_KP_Up
+   $define Key_KP_Up Key_Up
+$endif
+$ifndef Key_KP_Down
+   $define Key_KP_Down Key_Down
+$endif
+
+
 # file names and commands for prototyping
 
 $ifdef _UNIX
@@ -29,12 +45,6 @@ $define EXECPROTO ("./" || PROTOEXE || " && rm -f " || PROTOEXE || " &")
 $endif
 
 $ifdef _MS_WINDOWS
-$error this configuration has not yet been tested
-$define PROTOEXE "vibproto.bat"
-$endif
-
-$ifdef _MSDOS
-$error this configuration has not yet been tested
 $define PROTOEXE "vibproto.exe"
 $endif
 
