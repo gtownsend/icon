@@ -1,22 +1,10 @@
-#  Makefile for configuring a Unix build.
-#
-#  (make Setup-[No]Graphics name=xxx_yyy)
+#  Makefile for cleaning up after setup.sh
 
-name = undefined
 TOP = ../..
 SRC = $(TOP)/src
 
 
-
-Setup-NoGraphics:
-	sh setup.sh $(name) NoGraphics
-
-Setup-Graphics:
-	sh setup.sh $(name) Graphics
-
-
 Clean:
-
 
 Pure:
 	rm -f $(TOP)/Makedefs

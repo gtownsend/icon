@@ -7,6 +7,7 @@
 #  configuration parameters
 VERSION=v940
 name=unspecified
+csw=custom
 dest=/must/specify/dest/
 
 
@@ -39,11 +40,11 @@ config/unix/$(name)/status src/h/define.h:
 
 Configure:	config/unix/$(name)/status
 		$(MAKE) Pure >/dev/null
-		cd config/unix; $(MAKE) Setup-NoGraphics name=$(name)
+		cd config/unix; sh setup.sh $(name) NoGraphics $(csw)
 
 X-Configure:	config/unix/$(name)/status
 		$(MAKE) Pure >/dev/null
-		cd config/unix; $(MAKE) Setup-Graphics name=$(name)
+		cd config/unix; sh setup.sh $(name) Graphics $(csw)
 
 
 # Get the status information for a specific system.

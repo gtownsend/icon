@@ -5,5 +5,5 @@
 #define UNIX 1
 #define LoadFunc
 
-#define CComp "cc"
+#define CComp "c89"
 #define COpts "-I/usr/openwin/include -ldl"

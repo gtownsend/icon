@@ -1,9 +1,12 @@
 #!/bin/sh
 #
-#  setup.sh configname [No]Graphics -- invoked by Makefile
+#  setup.sh -- invoked by top-level Makefile
+
+USAGE="usage: setup.sh configname [No]Graphics [pthreads]"
 
 NAME=$1
 GPX=$2
+CSW=$3
 TOP=../..
 SRC=$TOP/src
 
@@ -11,7 +14,12 @@ SRC=$TOP/src
 case "$GPX" in
    Graphics)	XL='-L../../bin -lXpm $(XLIBS)';;
    NoGraphics)	XL= ;;
-   *)		echo "usage: setup.sh configname [No]Graphics" 1>&2; exit 1;;
+   *)		echo "$USAGE" 1>&2; exit 1;;
+esac
+case "$CSW" in
+   custom | "")	;;
+   pthreads)	;;
+   *)		echo "$USAGE" 1>&2; exit 1;;
 esac
 
 # check that configuration exists
@@ -20,10 +28,14 @@ if [ ! -d "$NAME" ]; then
    exit 1
 fi
 
-# find and copy the context switch code
-# first try `uname -m`.[cs]; then rswitch.[cs]; otherwise use pthreads
+# find and copy the context switch code.
+# use pthreads version if specified, or as a last resort.
+# by default, look for `uname -m`.[cs] and then rswitch.[cs].
 ARCH=`uname -m`
-if [ -f $NAME/$ARCH.[cs] ]; then
+if [ "$CSW" = "pthreads" ]; then
+   RSW=pthreads.c
+   COCLEAN="#define CoClean"
+elif [ -f $NAME/$ARCH.[cs] ]; then
    RSW=`echo $NAME/$ARCH.[cs]`
    COCLEAN=
 elif [ -f $NAME/rswitch.[cs] ]; then
@@ -38,8 +50,10 @@ case $RSW in
    *.s)  cp $RSW $SRC/common/rswitch.s;;
 esac
 
+RSN=`echo $RSW | sed 's=.*/=='`
+
 # build the "define.h" file
-echo "#define Config \"$NAME\""			 > $SRC/h/define.h
+echo "#define Config \"$NAME, $RSN\""		 > $SRC/h/define.h
 echo "#define $GPX 1"				>> $SRC/h/define.h
 echo "$COCLEAN"					>> $SRC/h/define.h
 echo ""						>> $SRC/h/define.h
