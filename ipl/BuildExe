@@ -1,0 +1,33 @@
+#!/bin/ksh -p
+#
+#  BuildExe -- build executables in ./iexe
+#
+#  Includes programs from pack directories, but excludes mprogs.
+#  Assumes that ../bin and ./ilib have been built.
+
+set -x
+
+#  Set minimal path needed.  Not all systems have all these directories
+V9BIN=`cd ../bin; echo $PWD`
+export PATH=$V9BIN:/usr/xpg4/bin:/usr/ccs/bin:/bin:/usr/bin
+
+export IPATH=$PWD/ilib
+export LPATH=$PWD/ilib
+
+#  Use default Icon options for packages that include an Icon execution
+unset BLKSIZE STRSIZE MSTKSIZE COEXPSIZE TRACE NOERRBUF FPATH
+
+
+#  Build progs and gprogs
+cd iexe
+for f in ../progs/*icn ../gprogs/*icn; do
+    icont -us $f
+done
+cd ..
+
+
+#  Build packages
+for d in *packs/[a-z]*; do
+    echo $d
+    (cd $d; make Clean; make Iexe)
+done

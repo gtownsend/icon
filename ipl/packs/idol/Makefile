@@ -13,5 +13,11 @@ unix.u1: unix.icn
 idolmain.u1: idolmain.icn
 	icont -s -c idolmain
 
+
+#  Build executable and copy to ../../iexe.
+#  (Nothing done in this case because the executable doesn't stand alone.)
+Iexe:
+
+
 Clean:
 	rm -rf *.u[12] idol idolboot idolmain unix idolcode.env

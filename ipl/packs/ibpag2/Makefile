@@ -94,6 +94,11 @@ install: all
 	@echo "Done installing."
 	@echo ""
 
+#  Build executable and copy to ../../iexe.
+#  Nothing done in this case because the executable doesn't stand alone.
+Iexe:	
+
+
 #
 # Cleanup
 #

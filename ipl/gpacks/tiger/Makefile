@@ -23,6 +23,8 @@ test:
 install:	$(PROGS) $(SCRIPTS)
 		cp $(PROGS) $(SCRIPTS) $(DEST)
 
+Iexe:		$(MAKE) DEST=../../iexe install
+
 
 clean Clean:		
 		rm -f $(PROGS) *.u[12] *.out*

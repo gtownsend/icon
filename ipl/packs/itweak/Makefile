@@ -114,6 +114,11 @@ demo : sample-debug
 	@(DBG_INPUT=$(CMD); export DBG_INPUT; sample ipxref.icn)
 	@echo '-------------- session end ----------------------------'
 
+##### build executable and copy to ../../iexe
+##### (nothing done in this case because the executable doesn't stand alone)
+
+Iexe :
+
 ##### cleanup
 
 Clean :

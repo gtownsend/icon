@@ -1,4 +1,5 @@
-#  Makefile for testing dynamic loading of C functions from Icon
+#  Makefile for programs illustrating dynamic loading of C functions from Icon
+#
 #  It is assumed that the standard C functions exist on $FPATH
 
 
@@ -30,6 +31,11 @@ libnames.icn:	Makefile
 $(FUNCLIB):	$(FUNCS)
 		CC="$(CC)" CFLAGS="$(CFLAGS)" sh $(MKLIB) $(FUNCLIB) $(FUNCS)
 
+
+#  Copy progs to ../../iexe:
+#  nothing done here because these executables require libraries
+#  and don't stand alone
+Iexe:
 
 
 clean Clean:

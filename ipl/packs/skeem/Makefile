@@ -1,4 +1,3 @@
-SHELL=/bin/sh
 ICONT=icont
 IFLAGS=-us
 
@@ -8,6 +7,10 @@ SRC = skeem.icn skbasic.icn skcontrl.icn skdebug.icn skextra.icn skfun.icn \
 
 skeem:	$(SRC)
 	$(ICONT) $(IFLAGS) $(SRC)
+
+
+Iexe:	skeem
+	cp skeem ../../iexe/
 
 Clean:	
 	rm -f skeem *.u?

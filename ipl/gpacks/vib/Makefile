@@ -1,7 +1,5 @@
 #  Makefile for vib, the Visual Interface Builder
 
-SHELL=/bin/sh
-
 ICONT = icont
 IFLAGS = -us
 ITRAN = $(ICONT) $(IFLAGS)
@@ -29,6 +27,9 @@ ipd doc: ipd265.ps
 ipd265.ps:	ipd265.bibl fig1.ps fig2.ps
 	bib -t stdn -p /r/che/usr/ralph/docs/reg.index <ipd265.bibl | \
 	    psfig | psroff -t >ipd265.ps
+
+Iexe:	vib
+	cp vib ../../iexe/
 
 clean Clean:
 	rm -f vib *.ps *.u[12] app vibpro* core busy dlog
