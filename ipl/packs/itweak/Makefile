@@ -91,7 +91,7 @@ options.u1 : options.icn
 ##### 'sample' targets: the debugging stuff
 
 sample-debug :
-	make -f $(MAKEFILE) sample DEBUG=$(SAMPLE_INIT)
+	$(MAKE) -f $(MAKEFILE) sample DEBUG=$(SAMPLE_INIT)
 
 $(SAMPLE_INIT) : ipxref.u1 options.u1
 	@echo '*** This is how the program files are tweaked...'
@@ -101,7 +101,7 @@ $(SAMPLE_INIT) : ipxref.u1 options.u1
 
 sample-clean :
 	rm -f ipxref.u? options.u?
-	make -f $(MAKEFILE) sample
+	$(MAKE) -f $(MAKEFILE) sample
 
 ##### demo session
 

@@ -53,5 +53,5 @@ Check:
 
 Clean Pure:
 	rm -rf iexe */*.u[12] */*.zip
-	rm -f `find *procs *progs -type f -perm -100`
+	-rm -f `find *procs *progs -type f -perm -100 -print`
 	for d in cfuncs *packs/[a-z]*; do (cd $$d; make Clean); done

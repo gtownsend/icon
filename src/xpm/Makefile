@@ -8,6 +8,7 @@ include ../../Makedefs
 
 RM = rm -f
 AR = ar qc
+RANLIB = ranlib
 OBJS1 = data.o create.o misc.o rgb.o scan.o parse.o hashtable.o \
 	  XpmWrFFrP.o XpmRdFToP.o XpmCrPFData.o XpmCrDataFP.o \
 	  XpmWrFFrI.o XpmRdFToI.o XpmCrIFData.o XpmCrDataFI.o
@@ -19,6 +20,7 @@ OBJS1 = data.o create.o misc.o rgb.o scan.o parse.o hashtable.o \
 libXpm.a: $(OBJS1)
 	$(RM) $@
 	$(AR) $@ $(OBJS1)
+	$(RANLIB) $@ 2>/dev/null || :
 
 $(OBJS1): xpmP.h xpm.h
 

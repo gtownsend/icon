@@ -27,6 +27,8 @@ char *toolstr = "${TOOLS}";
 
 char *refpath;
 
+char patchpath[MaxPath+18] = "%PatchStringHere->";
+
 /*
  *  Define global variables.
  */
@@ -93,7 +95,10 @@ char **argv;
       }
    fprintf(stderr,"iconc library files found in %s\n",refpath);
 #else					/* ExpTools */
-   refpath = relfile(argv[0], "/../");
+   if ((int)strlen(patchpath) > 18)
+      refpath = patchpath+18;
+   else
+      refpath = relfile(argv[0], "/../");
 #endif					/* ExpTools */
 
    /*

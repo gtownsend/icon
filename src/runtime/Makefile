@@ -310,6 +310,7 @@ rt.a: ../common/rswitch.o ../common/long.o ../common/time.o\
 	ar qc rt.a `sed 's/$$/.o/' rttfull.lst` ../common/rswitch.o\
 	    ../common/long.o ../common/time.o\
 	    ../common/xwindow.o ../common/alloc.o
+	ranlib rt.a 2>/dev/null || :
 	cp rt.a rt.db ../common/dlrgint.o ../../bin
 
 cnv.o: cnv.r $(HDRS)

@@ -12,6 +12,7 @@ Setup-Common:
 	cp $(name)/rswitch.[cs] $(SRC)/common
 	cp $(name)/Makedefs $(TOP)
 	echo ''					>> $(TOP)/Makedefs
+	if [ -f $(name)/custom.sh ]; then cd $(name); sh custom.sh; fi
 
 Setup-NoGraphics: Setup-Common
 	echo '# Graphics not enabled'		>> $(TOP)/Makedefs

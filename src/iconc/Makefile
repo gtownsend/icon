@@ -59,7 +59,7 @@ types.o:	../h/lexdef.h ctoken.h
 #
 #../common/lextab.h ../common/yacctok.h ../common/fixgram ../common/pscript: \
 #			../common/tokens.txt ../common/op.txt
-#		cd ../common; make gfiles
+#		cd ../common; $(MAKE) gfiles
 #
 #cparse.c ctoken.h:	cgram.g ../common/pscript
 ## expect 218 shift/reduce conflicts

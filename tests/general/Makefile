@@ -23,5 +23,5 @@ Samples-iconc:
 
 
 Clean:
-		rm -f *.u? foo.baz *.out
-		rm -f `find [a-z]* -type f -perm -100`
+		-rm -f *.u? foo.baz *.out
+		-rm -f `find [a-z]* -type f -perm -100 -print`

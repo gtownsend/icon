@@ -16,7 +16,7 @@ patchstr:	patchstr.c
 		cp patchstr ../../bin
 
 xpmaybe:
-		-if [ "$(XL)" != "" ]; then $(MAKE) xpm; fi
+		-if [ "x$(XL)" != "x" ]; then $(MAKE) xpm; fi
 
 xpm:
 		cd ../xpm; $(MAKE) libXpm.a

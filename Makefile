@@ -22,7 +22,7 @@ config/unix/$(name)/status src/h/define.h:
 	:
 	: where xxxx is one of
 	:
-	@(cd config/unix; ls -d [a-z]*)
+	@cd config/unix; ls -d [a-z]*
 	:
 	@exit 1
 
@@ -35,11 +35,11 @@ config/unix/$(name)/status src/h/define.h:
 # Configure the code for a specific system.
 
 Configure:	config/unix/$(name)/status
-		make Pure >/dev/null
+		$(MAKE) Pure >/dev/null
 		cd config/unix; $(MAKE) Setup-NoGraphics name=$(name)
 
 X-Configure:	config/unix/$(name)/status
-		make Pure >/dev/null
+		$(MAKE) Pure >/dev/null
 		cd config/unix; $(MAKE) Setup-Graphics name=$(name)
 
 
@@ -164,6 +164,10 @@ Pure:
 		cd src;			$(MAKE) Pure
 		cd tests;		$(MAKE) Pure
 		cd config/unix; 	$(MAKE) Pure
+
+
+
+#  (This is used at Arizona to prepare source distributions.)
 
 Dist-Clean:
 		rm -rf `find * -type d -name CVS`

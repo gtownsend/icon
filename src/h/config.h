@@ -245,7 +245,7 @@
    #endif				/* NoIconify */
 
    #ifndef ICONC_XLIB
-      #define ICONC_XLIB "-lX11"
+      #define ICONC_XLIB "-L/usr/X11R6/lib -lX11"
    #endif				/* ICONC_XLIB */
 
    #ifdef ConsoleWindow

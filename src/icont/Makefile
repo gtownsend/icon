@@ -72,7 +72,7 @@ opcode.o:	opcode.h ../h/opdefs.h
 #
 #../common/lextab.h ../common/yacctok.h ../common/fixgram ../common/pscript: \
 #			../common/tokens.txt ../common/op.txt
-#		cd ../common; make gfiles
+#		cd ../common; $(MAKE) gfiles
 #
 #tparse.c ttoken.h:	tgram.g trash ../common/pscript
 ## expect 218 shift/reduce conflicts
