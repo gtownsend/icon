@@ -83,6 +83,9 @@
 #			weblinks /foo/bar /foo/baz  
 #		implies "-b /foo/".
 #
+#	If the environment variable WEBLINKS_INIT is set, its whitespace-
+#	separated words are prepended to the explicit command argument list.
+#
 ############################################################################
 #
 #	Examples (all assuming a web area rooted at /cs/www)
@@ -91,7 +94,8 @@
 #		weblinks -r /cs/www  /icon/books.htm
 #
 #		To check a personal hierarchy, with tracing:
-#		weblinks -R -t -r /cs/www -h /cs/www/people /~gmt/
+#		setenv WEBLINKS_INIT "-r /cs/www -h /cs/www/people"
+#		weblinks -R -t /~gmt/
 #
 #		To check with pruning:
 #		weblinks -R -t -r /cs/www -p /icon/library /icon/index.htm
@@ -109,7 +113,6 @@
 
 #  to do:
 #	add -u option (report unchecked URLs); -s should imply -u
-#	accept directive file (root, home, start, flags, prune, bound)
 #	provide way to ask for warnings about (e.g.) /http/html paths
 #	provide way to specify translation from http:lww... into file: /...
 #	provide way to specify translation from ftp:... into file: /...
@@ -144,7 +147,7 @@ global refto, reffrom
 
 
 procedure main(args)
-   local opts, url
+   local opts, url, tmp
 
    # initialize data structures
 
@@ -154,6 +157,12 @@ procedure main(args)
    refto := table()
    reffrom := table()
    nscanned := 0
+
+   # add arguments from the environment to the command line
+
+   tmp := list()
+   every put(tmp, words(getenv("WEBLINKS_INIT")))
+   while push(args, pull(tmp))
 
    # process command line
 
