@@ -5,18 +5,11 @@
  */
 
 #include "../h/gsupport.h"
-#include "tproto.h"
-
-#include "../h/header.h"
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 
 static	void	doiconx		(char *argv[]);
 static	void	hsyserr		(char *av, char *file);
 
 int main(int argc, char *argv[]) {
-   char fullpath[256];
    char *argvx[1000];
 
    /*
@@ -32,21 +25,24 @@ int main(int argc, char *argv[]) {
     * Shift the argument list to make room for iconx in argv[0].
     */
    do 
-      argvx[argc+1] = argv[argc];
+      argvx[argc + 1] = argv[argc];
    while (argc--);
 
-   doiconx(argvx);
-}
-
+   /*
+    * Pass the arglist and execute iconx.
+    */
+   doiconx(argvx);		
+   return EXIT_FAILURE;
+   }
+
 /*
  * doiconx(argv) - execute iconx, passing argument list.
  *
  *  To find the interpreter, first check the environment variable ICONX.
  *  If it defines a path, it had better work, else we abort.
  *
- *  If there's no $ICONX, but there's a hardwired path, try that.
- *  If THAT doesn't work, try searching $PATH for an "iconx" program.
- *  If nothing works, abort.
+ *  If there's no $ICONX, search $PATH for an "iconx" program.
+ *  Use it if possible.  If no iconx, then abort.
  */
 static void doiconx(char *argv[]) {
    char xcmd[256];
