@@ -16,7 +16,7 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 <BR> <SMALL> The University of Arizona </SMALL>
 
 <P> <SMALL> www.cs.arizona.edu/icon/v942/relnotes.htm
-<BR> Last updated March 11, 2003 </SMALL>
+<BR> Last updated March 21, 2003 </SMALL>
 <!-- $Id$ -->
 
 
@@ -178,6 +178,38 @@ Consequently, text files created on one platform can be
 read by an Icon program running on a different platform. 
 
 
+<H2> Limitations, bugs, and problems </H2>
+
+<P> Large integers cannot be used with <CODE>i to j</CODE>,
+with <CODE>seq()</CODE>, or with integer-valued keywords.
+
+<P> Large-integer literals are constructed at run-time, so such
+literals are best kept outside of loops.
+
+<P> Conversion of a large integer to a string is quadratic
+in the length of the integer.
+Conversion of a very large integer may take a long time.
+
+<P> Stack overflow checking uses a heuristic that is not always effective.
+Stack overflow in a co-expression is especially likely to escape
+detection and cause a mysterious program malfunction. 
+
+<P> If an expression such as 
+    <CODE> x := create <VAR>expr</VAR></CODE>
+is used in a loop, and <CODE>x</CODE> is not a global variable,
+uncollectable co-expressions accumulate with each iteration.
+This problem can be circumvented by making <CODE>x</CODE>
+a global variable or by assigning a value to <CODE>x</CODE>
+before the create operation, as in 
+    <BLOCKQUOTE><CODE>
+	x := &amp;null <BR>
+	x := create <VAR>expr</VAR>
+    </CODE></BLOCKQUOTE>
+
+<P> Integer overflow on exponentiation may not be detected during execution.
+Such overflow may occur during type conversion.
+
+
 <H2> Documentation </H2>
 
 <P> See the <A HREF=docguide.htm>documentation guide</A>
@@ -186,6 +218,7 @@ for an overview of the available Icon documentation.
 <P> For installation instructions, see
 <A HREF=install.htm>Installing Binaries</A> or
 <A HREF=build.htm>Building from Source</A> as appropriate.
+
 
 <H2> Acknowledgments </H2>
 
