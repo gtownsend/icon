@@ -46,9 +46,10 @@ else
    COCLEAN="#define CoClean"
 fi
 case $RSW in
-   *.c)  cp $RSW $SRC/common/rswitch.c;;
-   *.s)  cp $RSW $SRC/common/rswitch.s;;
+   *.c)  DRSW=rswitch.c;;
+   *.s)  DRSW=rswitch.s;;
 esac
+cp $RSW $SRC/common/$DRSW
 
 if [ "$RSW" = "pthreads.c" ]; then
    TL='$(TLIBS)'
@@ -70,6 +71,7 @@ echo "#  from config/$NAME"			 > $TOP/Makedefs
 echo ""						>> $TOP/Makedefs
 cat $NAME/Makedefs				>> $TOP/Makedefs
 echo ""						>> $TOP/Makedefs
+echo "RSW = $DRSW"				>> $TOP/Makedefs
 echo "TL = $TL"					>> $TOP/Makedefs
 echo ""						>> $TOP/Makedefs
 echo "#  $GPX"					>> $TOP/Makedefs
