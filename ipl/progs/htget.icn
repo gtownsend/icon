@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     October 21, 1999
+#	Date:     September 27, 2001
 #
 ############################################################################
 #
@@ -68,8 +68,8 @@ procedure main(args)
    if not (f := tconnect(host, port)) then
        stop ("cannot connect to ", host, ":", port)
 
-   write(f, req, " ", path, " HTTP/1.0")
-   write(f)
+   writes(f, req, " ", path, " HTTP/1.0\r\n")
+   writes(f, "\r\n")
    flush(f)
    seek(f, 1)
 
