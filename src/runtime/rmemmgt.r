@@ -45,12 +45,6 @@ dptr *qualfree;                 /* qualifier list free pointer */
 dptr *equallist;                /* end of qualifier list */
 
 int qualfail;                   /* flag: qualifier list overflow */
-
-/*
- *
- * Note: function calls beginning with "MM" are just empty macros
- * unless EventMon is defined.
- */
 
 /*
  * Allocated block size table (sizes given in bytes).  A size of -1 is used

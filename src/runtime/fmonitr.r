@@ -4,10 +4,6 @@
  *   This file contains event monitoring code, used only if EventMon
  *   (event monitoring) is defined.  Event monitoring is normally is
  *   not enabled.
- *
- *   When EventMon is undefined, most of the "MMxxxx" and "EVxxxx"
- *   entry points are defined as null macros in monitor.h.  See
- *   monitor.h for important definitions.
  */
 
 #ifdef EventMon
