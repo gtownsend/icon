@@ -38,8 +38,9 @@ dlrgint.o: ../h/rproto.h ../h/rexterns.h ../h/rmacros.h ../h/rstructs.h
 
 xwindow.o: ../h/graphics.h ../h/xwin.h
 
+#  for rswitch, $(CFLAGS) is deliberately omitted  (-O may cause problems)
 rswitch.o: FORCE
-	$(CC) -c $(CFLAGS) rswitch.[cs]
+	$(CC) -c rswitch.[cs]
 FORCE:
 
 

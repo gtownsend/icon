@@ -13,7 +13,7 @@ case "$SYS" in
    SunOS4*)
       ld -o $LIBNAME "$@";;
    SunOS5*)
-      $CC $CFLAGS -G -K pic -o $LIBNAME "$@" -lc -lsocket;;
+      $CC $CFLAGS -G -o $LIBNAME "$@" -lc -lsocket;;
    AIX*)
       # this may not be quite right; it doesn't seem to work yet...
       ld -bM:SRE -berok -bexpall -bnoentry -bnox -bnogc -brtl -o $LIBNAME "$@";;
