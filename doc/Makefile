@@ -8,11 +8,13 @@ HFAQ = /cs/www/icon/faq.htm
 TFAQ = /cs/www/icon/ftp/doc/faq.txt
 FFAQ = /cs/ftp/icon/doc/faq.txt
 
+MANPAGE = ../man/man1/icont.1
+
 
 default:  $(MADE)
 
-icont.txt: icont.1 clnroff.sed
-	nroff -man icont.1 | sed -f clnroff.sed | uniq >icont.txt
+icont.txt: $(MANPAGE) clnroff.sed
+	nroff -man $(MANPAGE) | sed -f clnroff.sed | uniq >icont.txt
 
 faq.txt:  faq.htm
 	lynx -nolist -dump faq.htm >faq.txt

@@ -1,0 +1,149 @@
+<!doctype html public "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Installing Version 9.4 of Icon under Unix</TITLE>
+    <LINK REL="STYLESHEET" TYPE="text/css" HREF="istyle.css">
+</HEAD>
+<BODY>
+
+<IMG SRC="cube128.gif" WIDTH=128 HEIGHT=128 ALT="" ALIGN=RIGHT>
+<H1>Installing Version 9.4 of Icon under Unix</H1>
+
+<P><SMALL> Last updated March 26, 2001
+<BR> by Gregg M. Townsend
+</SMALL>
+
+<P> <HR>
+
+<H2> Introduction </H2>
+
+<P> Here are the steps involved in building and installing
+<A HREF=ver94.htm>Version 9.4 of Icon</A> under Unix.
+To the programmer, this version is upwards compatible with previous ones;
+but to the installer, there are some significant differences:
+<UL>
+    <LI> The Icon program library is now part of the source distribution
+    <LI> Icon executables can be relocated without editing
+</UL>
+A more detailed discussion of changes is available
+<A HREF=files.htm>separately</A>.
+
+<P> These instructions assume that you have unpacked the Icon 
+distribution file onto a disk.
+All commands are issued in the top-level directory so created.
+
+<H2> Configuring </H2>
+
+<P> The Icon source package contains configurations for a variety of
+Unix platforms.
+Type <CODE>make Configure</CODE> to see the list of known configurations.
+A status report for any system can be viewed by entering
+<BLOCKQUOTE>
+	<CODE>make Status name=</CODE><VAR>name</VAR>
+</BLOCKQUOTE>
+Choose the configuration name that matches your system's
+architecture and operating system.
+
+<P> If your system is not among those listed, you will need to port the code.  
+This is usually a fairly simple matter that involves copying an existing
+configuration and editing it to match the target system.
+For more information, see
+<A HREF="http://www.cs.arizona.edu/icon/docs/ipd238.htm">
+Configuring the Source Code</A>.
+While that document has not been revised for the Icon 9.4 file structure,
+it is still correct in the essentials.
+
+<P> Most Unix systems include the X Window System; type
+<BLOCKQUOTE>
+	<CODE>make X-Configure name=</CODE><VAR>name</VAR>
+</BLOCKQUOTE>
+to configure Icon with graphics.
+If your system does not include the X window system, type
+<BLOCKQUOTE>
+	<CODE>make Configure name=</CODE><VAR>name</VAR>
+</BLOCKQUOTE>
+to configure Icon without graphics.
+
+<P> Installation using any of the supplied configurations <EM>should</EM>
+be routine, but some of those were contributed for systems we cannot test,
+and it is possible that some minor tweaking may be required.
+If so, or if you develop a new configuration, we'd like to hear about it
+by e-mail to
+<A HREF=mailto:icon-project@cs.arizona.edu>icon-project@cs.arizona.edu</A>.
+
+<H2> Building </H2> 
+
+<P> After Configuring, type <CODE>make</CODE> to build the Icon system.
+This single step now builds:
+<UL>
+    <LI> The icon translator and interpreter
+    <LI> Program library procedures
+    <LI> VIB and other graphics utilities, if graphics are enabled
+</UL>
+
+<P> There may be a few warnings on some platforms, but there should be
+no fatal errors.
+If there are problems, fix them in the <CODE>config/unix/</CODE>platform
+directory and repeat the configuration step.
+
+<H2> Testing </H2> 
+
+<P> To verify a successful build, type <CODE>make Samples</CODE>.
+This command runs a small set of automated tests.
+If no differences are reported, you have a functioning Icon system.
+
+<P> A more extensive test set is run by <CODE>make Test</CODE>.
+One of these tests displays values of Icon keywords
+(such as <CODE>&amp;date</CODE>) that can vary from run to run.
+No other differences should be reported.
+
+<P> A successful graphics build can be confirmed by executing
+<CODE>bin/colrbook</CODE>, the color book utility, with no arguments.
+It should display a spectrum of colors along the left and a set
+of recessed panes to the right.
+Click anywhere on the spectrum to fill colors in the panes.
+Click <CODE>QUIT</CODE> (in the upper left corner) to exit.
+
+<H2> Installing </H2> 
+
+<P> You can use Icon directly from the location in which it was built.
+To do this, simply add the <CODE>bin</CODE> directory to your shell's
+search path.
+See the Icon <A HREF=icont.txt>man page</A> for instructions on
+building and running Icon programs.
+Or see the Icon books, as supplemented by the
+<A HREF=ver94.htm>Version 9.4</A> notes.
+
+<P> If you wish to install the binaries elsewhere, copy the 
+<CODE>bin</CODE> and <CODE>lib</CODE> directories into another
+parent directory.
+For example, you could make them
+<CODE>/opt/icon/bin</CODE> and <CODE>/opt/icon/lib</CODE>, or
+<CODE>/usr/local/icon/bin</CODE> and <CODE>/usr/local/icon/lib</CODE>.
+They must share the same parent and retain the names
+<CODE>bin</CODE> and <CODE>lib</CODE>.
+
+<P> You can make symbolic links to the programs in the <CODE>bin</CODE>
+directory; for example, you can link <CODE>/usr/local/bin/icont</CODE>
+to <CODE>/opt/icon/bin/icont</CODE>.
+If you use symbolic links, you should link at least
+<CODE>icont</CODE>, <CODE>iconx</CODE>, and (if present) <CODE>vib</CODE>.
+You can additionally link any of the other executable utilities in the
+<CODE>bin</CODE> directory.
+
+<P> The Unix <CODE>man</CODE> page source code file,
+<CODE>man/man1/icont.1</CODE>,
+can be installed wherever is appropriate for your installation.
+
+<H2> Cleaning Up </H2>
+
+<P> Type <CODE>Make clean</CODE> to remove intermediate files created
+during the build process.  This command preserves the contents of the
+<CODE>bin</CODE> and <CODE>lib</CODE> directories, so the Icon system
+remains functional.
+
+<P> To restore everything to its original state, type <CODE>make Pure</CODE>.
+This removes all the newly built files and requires restarting at the
+configuration step for a rebuild.
+
+</BODY></HTML>
