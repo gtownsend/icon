@@ -17,7 +17,7 @@ test-loadfunc-iconc:  lib.so
 		@ echo Running btest
 		@ ./btest >btest.out
 		@ echo Checking btest
-		@ diff btest.out btest.std
+		@ diff btest.std btest.out
 
 test-loadfunc-icont:  lib.so
 		@ echo Translating btest
@@ -25,7 +25,7 @@ test-loadfunc-icont:  lib.so
 		@ echo Running btest
 		@ ./btest >btest.out
 		@ echo Checking btest
-		@ diff btest.out btest.std
+		@ diff btest.std btest.out
 
 lib.so:	bitcount.o
 		sh mklib.sh lib.so bitcount.o
