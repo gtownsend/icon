@@ -40,6 +40,9 @@ Newer standards maintain compatibility and present no problems.
 
 Icon is build using Makefiles and shell scripts, as defined by
 POSIX.2 (IEEE 1003.2-1992).
+Additionally, Icon uses Makefile <DFN>includes</DFN>,
+which are provided by nearly all modern Unix systems
+although they are not part of the official standard.
 
 
 <H3>C Compiler</H3>
@@ -77,7 +80,7 @@ some of which can still be seen in older configurations.
 
 Every different Icon configuration has its own subdirectory in the
 <CODE>config</CODE> directory of the Icon source tree.
-To add a new configuration, create a new directory, and copy in the
+To add a new configuration, create a new directory and copy in the
 <CODE>define.h</CODE>, <CODE>Makedefs</CODE>, and <CODE>status</CODE> files
 from the <CODE>posix</CODE> configuration directory.
 
@@ -201,11 +204,23 @@ Dynamic loading is enabled by
 </OL>
 
 <P> The second step is the hardest; on many systems, documentation
-discussing the building of shared libraries is scant or nonexistent.
+that discusses shared libraries is scant or nonexistent.
 
 <P> If problems are found while building, check especially the definitions
 of the <CODE>Makedefs</CODE> parameters
 <CODE>CFDYN</CODE> and <CODE>RLINK</CODE>.
+
+
+
+<H2> Feedback </H2>
+
+Please let us know if you complete a port to a new platform.
+Review the <CODE>status</CODE> file one last time and make
+sure it is correct.
+Send the files from the new configuration directory to
+<A HREF="mailto:icon-project@cs.arizona.edu">icon-project@cs.arizona.edu</A>.
+Please also tell us the values reported on that platform by the
+<CODE>uname -p</CODE> and <CODE>uname -m</CODE> commands.
 
 
 
