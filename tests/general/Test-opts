@@ -2,33 +2,38 @@
 #
 #  Test-opts -- test some Icon command options
 
-IC=${IC-icont}
-IC=../../bin/$IC
+#  prepend Icon binary directory to path
+PATH=../../bin:$PATH
 
 exec 2>&1
 set -e -x
 
 rm -f hello.u? hello
-$IC hello -x
+icont hello -x
 ./hello north
 
 rm -f hello.u? hello olleh
-$IC -u -s -o olleh hello.icn -x south
+icont -u -s -o olleh hello.icn -x south
 ./olleh east
 
 rm -f hello.u? hello olleh
-$IC -c -t -s hello
-$IC -u -s hello.u -x west
+icont -c -t -s hello
+icont -u -s hello.u -x west
 
 rm -f hello.u? hello
-$IC -X hello.icn world
+icont -X hello.icn world
 
 rm -f hello.u? hello
-cp hello.icn hello
+echo '#!../../bin/icont -X' | cat - hello.icn > hello
+chmod +x hello
+./hello galaxy
+
+rm -f hello.u? hello
+echo '#!/usr/bin/env icon' | cat - hello.icn > hello
 chmod +x hello
 ./hello universe
 
 rm -f hello.u? hello
-$IC -P 'procedure main(); write("HOWDY!"); end'
+icon -P 'procedure main(); write("HOWDY!"); end'
 
 : done

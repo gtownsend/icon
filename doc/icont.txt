@@ -4,8 +4,6 @@ NAME
 
 SYNOPSIS
        icont [ option ... ] file ... [ -x arg ... ]
-       icont -P 'program' [ arg ... ]
-       icont -X sourcefile [ arg ... ]
 
 DESCRIPTION
        Icont  translates  and  links programs written in the Icon
@@ -32,31 +30,22 @@ DESCRIPTION
        behind.  A directory of such files functions as a linkable
        library.
 
-       Two  special  forms  facilitate embedding Icon programs in
-       shell scripts.  The icont -P form can be used to  "inline"
-       a  small  source  program inside a shell script.  Alterna-
-       tively, an Icon source file  can  be  made  directly  exe-
-       cutable by beginning it with a comment such as
-            #!/bin/icont -X
-       (depending  on  the  local  path to icont) and setting the
-       execute permission bit.
-
 OPTIONS
        The following options are recognized by icont:
 
        -c  Stop after producing ucode files.
 
        -f s
-           Enable full string invocation by  preserving  unrefer-
+           Enable  full  string invocation by preserving unrefer-
            enced procedures during linking.
 
        -o file
            Write the executable program to the specified file.
 
-       -s  Suppress  informative  messages during translation and
+       -s  Suppress informative messages during  translation  and
            linking.
 
-       -t  Activate runtime tracing by arranging  for  &trace  to
+       -t  Activate  runtime  tracing  by arranging for &trace to
            have an initial value of -1 upon execution.
 
        -u  Diagnose undeclared identifiers.
@@ -72,9 +61,10 @@ OPTIONS
 
 TRANSLATION ENVIRONMENT
        Two environment variables control file search paths during
-       translation and linking.  These variables  contain  blank-
-       or  colon-separated  lists  of  directories to be searched
-       after the current directory.
+       translation  and  linking.  These variables contain blank-
+       or colon-separated lists of  directories  to  be  searched
+       after  the  current  directory  and  before  the  standard
+       library.
 
        IPATH
            Directories to search for for ucode files specified in
@@ -126,10 +116,13 @@ EXECUTION ENVIRONMENT
            value, it overrides the translation-time -t option.
 
 SEE ALSO
-       The Icon Programming  Language.   Griswold  and  Griswold,
+       icon(1), a simpler command interface  for  embedding  Icon
+       programs in scripts.
+
+       The  Icon  Programming  Language.   Griswold and Griswold,
        Peer-to-Peer, third edition, 1996.
 
-       Graphics  Programming  in  Icon.   Griswold,  Jeffery, and
+       Graphics Programming  in  Icon.   Griswold,  Jeffery,  and
        Townsend, Peer-to-Peer, 1998.
 
        Version 9.4 of Icon.  http://www.cs.arizona.edu/icon/v940.
@@ -137,7 +130,4 @@ SEE ALSO
 CAVEATS
        Icon executables do not stand alone; the iconx interpreter
        must be available.
-
-       Overflow of a coexpression  stack  can  produce  a  memory
-       fault.
 

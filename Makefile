@@ -93,7 +93,7 @@ Ibin:		bin/icont
 # Installation and packaging.
 
 
-# Installation:  "make Install dest=new-parent-directory"
+# Installation:  "make Install dest=new-icon-directory"
 
 D=$(dest)
 Install:
@@ -103,12 +103,14 @@ Install:
 		test -d $D/doc || mkdir $D/doc
 		test -d $D/man || mkdir $D/man
 		test -d $D/man/man1 || mkdir $D/man/man1
+		rm -f $D/bin/icon*
 		cp README $D
 		cp bin/[abcdefghijklmnopqrstuvwxyz]* $D/bin
-		rm -f $D/bin/libXpm* $D/bin/rt*
+		rm -f $D/bin/libXpm* $D/bin/rt* $D/bin/icon
+		(cd $D/bin; ln -s icont icon)
 		cp lib/*.* $D/lib
 		cp doc/*.* $D/doc
-		cp man/man1/icont.1 $D/man/man1
+		cp man/man1/*.* $D/man/man1
 
 
 # Bundle up for binary distribution.

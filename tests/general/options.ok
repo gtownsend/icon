@@ -1,5 +1,5 @@
 + rm -f 'hello.u?' hello
-+ ../../bin/icont hello -x
++ icont hello -x
 Translating:
 hello.icn:
   main
@@ -10,25 +10,32 @@ Executing:
 + ./hello north
 							Hello, north.
 + rm -f 'hello.u?' hello olleh
-+ ../../bin/icont -u -s -o olleh hello.icn -x south
++ icont -u -s -o olleh hello.icn -x south
 							Hello, south.
 + ./olleh east
 							Hello, east.
 + rm -f 'hello.u?' hello olleh
-+ ../../bin/icont -c -t -s hello
-+ ../../bin/icont -u -s hello.u -x west
++ icont -c -t -s hello
++ icont -u -s hello.u -x west
              :       main(list_1 = ["west"])
 							Hello, west.
-hello.icn    :    7  main failed
+hello.icn    :    5  main failed
 + rm -f hello.u1 hello.u2 hello
-+ ../../bin/icont -X hello.icn world
++ icont -X hello.icn world
 							Hello, world.
 + rm -f 'hello.u?' hello
-+ cp hello.icn hello
++ echo '#!../../bin/icont -X'
++ cat - hello.icn
++ chmod +x hello
++ ./hello galaxy
+							Hello, galaxy.
++ rm -f 'hello.u?' hello
++ echo '#!/usr/bin/env icon'
++ cat - hello.icn
 + chmod +x hello
 + ./hello universe
 							Hello, universe.
 + rm -f 'hello.u?' hello
-+ ../../bin/icont -P 'procedure main(); write("HOWDY!"); end'
++ icon -P 'procedure main(); write("HOWDY!"); end'
 HOWDY!
 + : done

@@ -7,7 +7,7 @@
 #  other Makefiles.
 
 
-MADE = icont.txt faq.txt
+MADE = icon.txt icont.txt faq.txt
 
 HFAQ = /cs/www/icon/faq.htm
 TFAQ = /cs/www/icon/ftp/doc/faq.txt
@@ -15,15 +15,18 @@ FFAQ = /cs/ftp/icon/doc/faq.txt
 
 RLSDIR = /cs/www/icon/v940
 
-MANPAGE = ../man/man1/icont.1
 
-
-#  (default:) rebuild icont.txt and faq.txt from nroff/html sources.
+#  (default:) rebuild icon.txt, icont.txt, and faq.txt from nroff/html sources.
 
 default:  $(MADE)
 
-icont.txt: $(MANPAGE) clnroff.sed
-	nroff -Tascii -man $(MANPAGE) | sed -f clnroff.sed | uniq >icont.txt
+icon.txt: ../man/man1/icon.1 clnroff.sed
+	nroff -Tascii -man ../man/man1/icon.1 | \
+	    sed -f clnroff.sed | uniq >icon.txt
+
+icont.txt: ../man/man1/icont.1 clnroff.sed
+	nroff -Tascii -man ../man/man1/icont.1 | \
+	    sed -f clnroff.sed | uniq >icont.txt
 
 faq.txt:  faq.htm
 	lynx -nolist -dump -justify=off faq.htm >faq.txt

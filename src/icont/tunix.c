@@ -119,6 +119,18 @@ int main(int argc, char *argv[]) {
          }
 
    /*
+    * If argv[0] ends in "icon" (instead of "icont" or anything else),
+    * process as "icon [options] sourcefile [arguments]" scripting shortcut.
+    */
+   n = strlen(argv[0]);
+   if (n >= 4 && strcmp(argv[0]+n-4, "icon") == 0) {
+      if (optind < argc)
+         txrun(copyfile, argv[optind], &argv[optind+1]);
+      else
+         usage();
+      }
+
+   /*
     * Allocate space for lists of file names.
     */
    n = argc - optind + 1;
@@ -249,10 +261,10 @@ void report(char *s) {
  * Print a usage message and abort the run.
  */
 static void usage(void) {
-   fprintf(stderr, "usage: %s %s\n",
-      progname, "[-cstuEV] [-f s] [-o ofile] [-v i] file ... [-x args]");
-   fprintf(stderr, "       %s -X sourcefile [args]\n", progname);
-   fprintf(stderr, "       %s -P 'program'  [args]\n", progname);
+   fprintf(stderr, "usage: icon  sourcefile   [args]\n");
+   fprintf(stderr, "       icon  -P 'program' [args]\n");
+   fprintf(stderr, "       icont %s\n",
+      "[-cstuEV] [-f s] [-o ofile] [-v i] file ... [-x args]");
    exit(EXIT_FAILURE);
    }
 
