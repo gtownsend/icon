@@ -24,5 +24,5 @@ install:	$(PROGS) $(SCRIPTS)
 		cp $(PROGS) $(SCRIPTS) $(DEST)
 
 
-clean:		
+clean Clean:		
 		rm -f $(PROGS) *.u[12] *.out*

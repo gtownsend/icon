@@ -23,5 +23,5 @@ all:		$(PROGS)
 
 $(PROGS): 	$(PROCS)
 
-clean:	
+clean Clean:
 		rm -f $(PROGS) *.u?
