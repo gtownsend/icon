@@ -149,6 +149,9 @@ char *s;
    n = fp.ext - q;
    strncpy(fp.name,q,n);
    fp.name[n] = '\0';
+   p = fp.ext;
+   fp.ext = fp.name + n + 1;
+   strcpy(fp.ext, p);
 
    return &fp;
    }
@@ -197,19 +200,17 @@ FILE *pathOpen(fname, mode)
    char *fname;
    char *mode;
    {
-   char buf[_POSIX_PATH_MAX + 1];
-   int i, use = 1;
+   char buf[MaxPath];
+   int i;
 
-   for( i = 0; buf[i] = fname[i]; ++i) {
-      /* find out if a path has been given in the file name */
-      if (buf[i] == '/' || buf[i] == ':' || buf[i] == '\\')
-         use = 0;
+   for (i = 0; fname[i] != '\0'; i++) {
+      if (fname[i] == '/' || fname[i] == ':' || fname[i] == '\\') {
+         /* fname contains an explicit path */
+         return fopen(fname, mode);
+         }
       }
 
-   /* If a path has been given with the file name, don't bother to
-      use the PATH */
-
-   if (use && !pathfind(buf, getenv("PATH"), fname, NULL))
+   if (!pathfind(buf, getenv("PATH"), fname, NULL))
       return 0;
 
    return fopen(buf, mode);
