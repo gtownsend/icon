@@ -1,0 +1,94 @@
+############################################################################
+#
+#	File:     hvc.icn
+#
+#	Subject:  Program to pick colors for Tek HVC space
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     November 14, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#      hvc is a simple color picker using HVC space.  The three sliders
+#   control hue, value, and chroma from left to right.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics under X11R5
+#
+############################################################################
+#
+#  Links: button, slider, evmux, graphics
+#
+############################################################################
+
+link button
+link slider
+link evmux
+link graphics
+
+$define BevelWidth 2
+$define WindowMargin 10
+
+record hvcrec(h, v, c)
+global settings, colr, sl, win
+global w, h, m
+
+procedure main(args)
+   local opts, cwin, ww, hh
+
+   win := Window("size=300,250", "font=Helvetica,bold,14", args)
+   w := WAttrib("width")
+   h := WAttrib("height")
+   m := WindowMargin
+
+   # a mutable color for displaying the selected color
+   # use a new binding to avoid disturbing fg/bg of win.
+   colr := NewColor(win) | stop("can't allocate mutable color")
+   cwin := Clone(win)
+   Bg(cwin, colr)
+   Color(win, colr, "TekHVC:0/0/0") |
+      stop("can't set HVC colors -- need X11R5")
+
+   ww := w - 3 * (m + 20) - 2 * m
+   hh := h - 30 - 4 * m
+   BevelRectangle(win, m, m, ww, hh, -BevelWidth)
+   EraseArea(cwin, m+BevelWidth, m+BevelWidth, ww-2*BevelWidth, hh-2*BevelWidth)
+
+   # set up sliders to control the colors
+   settings := hvcrec(0.50, 0.75, 0.25)			# initial positions
+   sl := hvcrec(
+      slider(win, sethvc, 1, w-3*m-60, m, 20, h-2*m, 0.0, settings.h, 1.0),
+      slider(win, sethvc, 2, w-2*m-40, m, 20, h-2*m, 0.0, settings.v, 1.0),
+      slider(win, sethvc, 3, w-m-20, m, 20, h-2*m, 0.0, settings.c, 1.0))
+   setcolor()						# download the colors
+
+   # set up sensors for quitting
+   quitsensor(win)					# q or Q
+   button(win, "QUIT", argless, exit, m, h - m - 20, 60, 20)
+
+   # enter event loop
+   evmux(win)
+end
+
+procedure sethvc(win, i, v)		# set color component i to value v
+   settings[i] := v
+   setcolor()
+end
+
+procedure setcolor()			# set the color in the color map
+   local hue, value, chroma, s
+   hue := integer(360 * settings.h + 0.5)
+   value := integer(100 * settings.v + 0.5)
+   chroma := integer(100 * settings.c + 0.5)
+   s := "TekHVC:" || hue || "/" || value || "/" || chroma
+   Color(win, colr, s)
+   GotoXY(win, m, h - 20 - 2 * m)
+   write(win, left(s, 20))
+   return
+end

@@ -1,0 +1,125 @@
+############################################################################
+#
+#	File:     rational.icn
+#
+#	Subject:  Procedures for arithmetic on rational numbers
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 20, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     These procedures perform arithmetic on rational numbers (fractions):
+#
+#     str2rst(s)    Convert the string representation of a rational number
+#                   (such as "3/2") to a rational number.
+#
+#     rat2str(r)    Convert the rational number r to its string
+#                   representation.
+#
+#     addrat(r1,r2) Add rational numbers r1 and r2.
+#
+#     subrat(r1,r2) Subtract rational numbers r1 and r2.
+#
+#     mpyrat(r1,r2) Multiply rational numbers r1 and r2.
+#
+#     divrat(r1,r2) Divide rational numbers r1 and r2.
+#
+#     negrat(r)     Produce negative of rational number r.
+#
+#     reciprat(r)   Produce the reciprocal of rational number r.
+#    
+############################################################################
+#
+#  Links: numbers
+#
+############################################################################
+
+link numbers
+
+record rational(numer,denom,sign)
+
+procedure str2rat(s)		# convert string to rational
+   local div, numer, denom, sign
+
+   s ? {
+      ="[" &
+      numer := integer(tab(upto('/'))) &
+      move(1) &
+      denom := integer(tab(upto(']'))) &
+      pos(-1)
+      } | fail
+
+   div := gcd(numer,denom) | fail
+   numer /:= div
+   denom /:= div
+
+   if numer * denom >= 0 then sign := 1	# dangerous -- potential overflow
+      else sign := -1
+
+   return rational(abs(numer),abs(denom),sign)
+
+end
+  
+procedure rat2str(r)		#: convert rational to string
+
+   return "[" || r.numer * r.sign || "/" || r.denom || "]"
+
+end
+ 
+procedure mpyrat(r1,r2)		#: multiply rationals
+   local numer, denom, div
+
+   numer := r1.numer * r2.numer
+   denom := r1.denom * r2.denom
+   div := gcd(numer,denom) | fail	# shouldn't fail
+
+   return rational(numer / div,denom / div, r1.sign * r2.sign)
+
+end
+
+procedure divrat(r1,r2)		#: divide rationals.
+
+   return mpyrat(r1,reciprat(r2))	# may fail
+
+end
+
+procedure reciprat(r)		#: reciprocal of rational
+
+   if r.numer = 0 then fail
+   else return rational(r.denom,r.numer,r.sign)
+
+end
+
+procedure negrat(r)		#: negative of rational
+
+   return rational(r.numer,r.denom,-r.sign)
+
+end
+
+procedure addrat(r1,r2)		#: sum of rationals
+   local denom, numer, div, sign
+
+   denom := r1.denom * r2.denom
+   numer := r1.sign * r1.numer * r2.denom +
+      r2.sign * r2.numer * r1.denom
+
+   if numer >= 0 then sign := 1
+      else sign := -1
+
+   div := gcd(numer,denom) | fail
+
+   return rational(abs(numer / div),abs(denom / div),sign)
+
+end
+
+procedure subrat(r1,r2)		#: difference of rationals
+
+   return addrat(r1,negrat(r2))
+
+end

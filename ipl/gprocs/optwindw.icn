@@ -1,0 +1,177 @@
+############################################################################
+#
+#	File:     optwindw.icn
+#
+#	Subject:  Procedures to open window with standard options
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     October 10, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	optwindow() opens a window, interpreting command options to
+#	set various window attributes.
+#
+############################################################################
+#
+#  optwindow(opttable, attribute...) -- open window based on option table
+#
+#  optwindow returns a new X-window configured according to a table of
+#  options such as that returned by options().  If a window cannot be
+#  opened, the program is aborted.
+#
+#  If any attribute arguments are supplied they are passed to the open call
+#  ahead of anything generated from the option table.
+#
+#  In general, upper-case letters are used for generic window options, and
+#  any letters not listed below are reserved for future use.  This leaves
+#  the lower-case letters for program-specific options.
+#
+#  The following options are recognized:
+#
+#	-B color	background color	default: "pale gray"
+#	-F color	foreground color	default: "black"
+#	-L label	window label (title) 	default: &progname (trimmed)
+#	-T font		text font		default: unspecified
+#
+#	-D display	window device		default: unspecified
+#	-X xpos		x position		default: unspecified
+#	-Y ypos		y position		default: unspecified
+#	-W width	window width		default: 500
+#	-H height	window height		default: 300
+#	-M margin	frame margin		default: 0
+#
+#	-S width,height	window size		default: 500,300 + margins
+#	-P xpos,ypos	window position		default: unspecified
+#	-G [wxh][+x+y]  geometry, in usual X terms (but NOTE: no negative x | y)
+#
+#	-!		echo the window creation call on stderr (for debugging)
+#
+#  -G is translated into -X -Y -W -H and overrides those values.
+#  -P and -S override values from -G, -X, -Y, -W, and -H.
+#
+#  Table values for {B,F,L,X,Y,W,H,M,P,S} are guaranteed to be set upon return.
+#
+#  The "margin" is the internal border between the actual window frame and the
+#  area used for display; you don't usually want to write right up to the edge.
+#  If a negative value is given for -M, a standard margin of 10 pixels is set.
+#  -M is added twice (for two margins) to -W and -H when calculating the actual
+#  window size so that -W and -H reflect the actual usable area.  If -W and -H
+#  are derived from -G, which specifies actual window sizes, -M is twice
+#  subtracted so that -W and -H always reflect the usable dimensions.
+#
+#  winoptions() can be used to combine the above options with other options
+#  for the options() call.
+#
+#  Example:
+#
+#	# get option table; allow standard options plus "-f filename"
+#	opts := options(args, winoptions() || "f:")
+#
+#	# set defaults if not given explicitly
+#	/opts["W"] := 400			# usable width
+#	/opts["H"] := 400			# usable height
+#
+#	# open the window
+#	win := optwindow(opts, "cursor=off")
+#
+#	# save actual values given by the window manager
+#	h := opts["H"]				# usable height
+#	w := opts["W"]				# usable width
+#	m := opts["M"]				# specified margin
+#
+#  (The usable area, then, is from (m,m) to (m+w, m+h).
+#
+############################################################################
+#
+#  Includes:  vdefns
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+
+$include "vdefns.icn"
+
+
+procedure winoptions()
+   return "!B:D:F:L:T:X+Y+W+H+M+G:P:S:"
+end
+
+
+procedure optwindow(opts, args[])		#: open window with options
+   local a, w
+   /opts["F"] := "black"
+   /opts["B"] := VBackground
+   /opts["L"] := (&progname ? { while tab(upto('/')+1); tab(0)})
+   /opts["W"] := 500
+   /opts["H"] := 300
+   (/opts["M"] := 0) | (if opts["M"] < 0 then opts["M"] := 10)
+   \opts["G"] ? {
+      if any(&digits) then {
+         opts["W"] := integer(tab(many(&digits))) - 2*opts["M"] | Optw_Err("G")
+         tab(any('xX')) | Optw_Err("G")
+         opts["H"] := integer(tab(many(&digits))) - 2*opts["M"] | Optw_Err("G")
+      }
+      if not pos(0) then {
+         opts["X"] := integer(tab(any('+-'))||tab(many(&digits)))|Optw_Err("G")
+         opts["Y"] := integer(tab(any('+-'))||tab(many(&digits)))|Optw_Err("G")
+      }
+      if not pos(0) then
+         Optw_Err("G")
+   }
+   \opts["P"] ? {
+      opts["X"] := integer(tab(many('+-0123456789'))) | Optw_Err("P")
+      move(1)
+      opts["Y"] := integer(tab(many('+-0123456789'))) | Optw_Err("P")
+      if not pos(0) then
+         Optw_Err("P")
+   }
+   \opts["S"] ? {
+      opts["W"] := integer(tab(many(&digits))) - 2*opts["M"] | Optw_Err("S")
+      move(1)
+      opts["H"] := integer(tab(many(&digits))) - 2*opts["M"] | Optw_Err("S")
+      if not pos(0) then
+         Optw_Err("S")
+   }
+   if \opts["X"] & \opts["Y"] then
+      put(args, "pos=" || opts["X"] || "," || opts["Y"])
+   put(args, "display=" || \opts["D"])
+   put(args, "width=" || (opts["W"] + 2 * opts["M"]))
+   put(args, "height=" || (opts["H"] + 2 * opts["M"]))
+   put(args, "fg=" || opts["F"])
+   put(args, "bg=" || opts["B"])
+   push(args, "x")
+   push(args, opts["L"])
+   if \opts["!"] then {
+      writes(&errout, "open(\"", args[1])
+      every writes(&errout, "\",\"", args[2 to *args])
+      write(&errout, "\")")
+      }
+   w := open ! args | stop(args[1], ": can't open window")
+   if \opts["T"] then
+      Font(w, opts["T"]) | stop(args[1], ": invalid font: ", opts["T"])
+
+   # store actual values returned after window placement
+   WAttrib(w, "pos") ? {
+      opts["X"] := integer(tab(many('+-0123456789')))
+      move(1)
+      opts["Y"] := integer(tab(many('+-0123456789')))
+   }
+   opts["P"] := opts["X"] || "," || opts["Y"]
+   opts["W"] := WAttrib(w, "width") - 2 * opts["M"]
+   opts["H"] := WAttrib(w, "height") - 2 * opts["M"]
+   opts["S"] := WAttrib(w, "width") || "," || WAttrib(w, "height")
+   return w
+end
+
+procedure Optw_Err(ch)
+   stop("bad specification: -", ch, " ", &subject)
+end

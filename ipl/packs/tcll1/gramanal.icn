@@ -1,0 +1,573 @@
+# GRAMANAL.ICN
+#
+#  LL(1)/LL(k) parser generator in Icon
+#	written by Dr. Thomas W. Christopher
+#
+#	generally useful grammar analysis routines
+
+#	symbId is a string
+
+record Symbol(
+	name,	# symbId
+	kind,	# string in
+		# { "Nonterminal","Terminal","ActionSymbol"}
+	minLeng)# integer, length of shortest terminal string
+		# that can be derived from this nonterminal
+record Production(
+	lhs,	  # Symbol, left hand side
+	rhs,	  # [ Symbol, ... ], right hand side
+	minLeng)  # minimum length of terminal string derivable from
+		  # lhs using this production
+
+global symbol		#table:symbId->Symbol
+global first		#table:Symbol->set(Symbol)
+global last		#table:Symbol->set(Symbol)
+global follow		#table:Symbol->set(Symbol)
+global productions	#table:Symbol->[Production,...]
+global selectionSet	#table:Production->Set(Symbol)
+			# set of symbols that choose this production
+			# if lhs is atop the stack
+global nonterminals	#set(Symbol)
+global terminals	#set(Symbol)
+global actions		#set(Symbol)
+global startSymbol	#Symbol
+global eoiSymbol	#Symbol, end of input
+global errorFile	#file
+global errorCount	#integer
+global warningCount	#integer
+global tooLong		#integer, too long for a sentence
+global defaultStartName	#string, default name of start symbol
+
+#######################################################################
+#
+#	calls to create grammars
+#
+
+procedure initGrammar(out)
+symbol := table()
+first := table()
+last := table()
+follow := table()
+productions := table()
+selectionSet := table()
+nonterminals := set()
+terminals := set()
+actions := set()
+fiducials := set()
+startSymbol := &null
+eoiSymbol := Symbol("EOI","Terminal")
+symbol["EOI"] := eoiSymbol
+errorFile := \out | &output
+errorCount := warningCount := 0
+tooLong := 10000
+defaultStartName := "start"
+return
+end
+
+procedure error(e[])
+errorCount +:= 1
+writes(errorFile,"Error: ")
+every writes(!e)
+write()
+end
+
+procedure warning(e[])
+warningCount +:= 1
+writes(errorFile,"Warning: ")
+every writes(!e)
+write()
+end
+
+procedure declareProduction(lhs,rhs)
+#	lhs: symbId
+#	rhs: [symbId,...]
+local	n,	#Symbol, the left hand side
+	r,	#[Symbol,...], the right hand side
+	s	#symbId, name of rhs element
+if /symbol[lhs] then {
+	n := symbol[lhs] := Symbol(lhs,"Nonterminal")
+	insert(nonterminals,n)
+} else {
+	n := symbol[lhs]
+	/n.kind := "Nonterminal"
+	if n.kind ~==="Nonterminal" then {
+		error(lhs||" is both nonterminal and "||n.kind)
+		fail
+	}
+}
+r := []
+every s := !rhs do {
+	/symbol[s] := Symbol(s)
+	put(r,symbol[s])
+}
+/productions[n] := []
+put(productions[n],Production(n,r))
+return
+end
+
+procedure declareAction(s)
+local t
+/symbol[s] := Symbol(s)
+t := symbol[s]
+/t.kind := "ActionSymbol"
+if t.kind ~== "ActionSymbol" then {
+	error(t.kind||" "||s||" being declared an ActionSymbol")
+	fail
+}
+insert(actions,t)
+return
+end
+
+procedure declareStartSymbol(s)
+local n
+if \startSymbol then {
+	error(
+		"attempt to redeclare start symbol from "||
+		startSymbol.name||
+		" to "||
+		s)
+	fail
+}
+if n := \symbol[s] then {
+	/n.kind := "Nonterminal"
+	if n.kind ~== "Nonterminal" then {
+		error( "attempt to declare " ||
+			n.kind || " " ||
+			s || " as start symbol")
+		fail
+	}
+	startSymbol := n
+	return
+}
+startSymbol := Symbol(s,"Nonterminal")
+symbol[s] := startSymbol
+insert(nonterminals,startSymbol)
+/productions[startSymbol] := []
+return
+end
+
+procedure declareEOI(s)
+local eoi
+if eoiSymbol.name == s then return
+if \symbol[s] then {
+	error(
+		"attempt to redeclare "||
+		symbol[s].kind||" "||
+		s||" as EOI symbol")
+	fail
+}
+remove(symbol,eoiSymbol.name)
+eoiSymbol.name := s
+symbol[s] := eoiSymbol
+return
+end
+
+procedure finishDeclarations()
+local	s	#Symbol
+
+insert(terminals,eoiSymbol)
+
+#what if no start symbol specified? Create one.
+if /startSymbol then {
+	declareStartSymbol(defaultStartName)
+}
+
+every s := !symbol do
+	case s.kind of {
+	&null : {
+		s.kind := "Terminal"
+		insert(terminals,s)
+		s.minLeng := 1
+		}
+	"Terminal": {
+		s.minLeng := 1
+		insert(terminals,s)
+		}
+	"ActionSymbol": {
+		s.minLeng := 0
+		insert(actions,s)
+		}
+	"Nonterminal": {
+		s.minLeng := tooLong
+		insert(nonterminals,s)
+		}
+	}
+return
+end
+
+#######################################################################
+#
+#	local utility procedures
+#
+
+# succeed returning s if s is a null-deriving symbol
+# (only valid after execution of findMinLeng() )
+#
+procedure isNullDeriving(s)
+if s.minLeng <= 0 then return s else fail
+end
+
+# succeed returning symbol s only if s is the specified type of symbol
+procedure isNonterminal(s)
+return member(nonterminals,s)	#returning s
+end
+
+procedure isTerminal(s)
+return member(terminals,s)	#returning s
+end
+
+procedure isActionSymbol(s)
+return member(actions,s)	#returning s
+end
+
+#######################################################################
+#
+#debugging & output routines
+#
+
+procedure writeIndented(s,i,l,b)
+# write string s, indenting by i positions any overflow lines,
+# breaking after characters in set b (if practical), with overall
+# line length l
+#
+local j,k,r,h
+/l := 72	#default line length
+/i := 8		#default indent
+if /b := ' \t'	#default break set--white space
+	then l+:=1
+r := l - i	#remaining length after indent
+if r <= 1 then fail
+#cut off initial i chars (or all of string if it's short):
+s ?:= (h := tab(i+1 | 0) & tab(0))
+repeat {
+	# find a position j at which to cut the line:
+	j := -1
+	if *s>r then {s ? every k := upto(b) & k <= r & j := k}
+	write(h,s[1:j+1])
+	s := s[j+1:0]
+	if *s = 0 then break
+	h := repl(" ",i)
+}
+return
+end
+
+procedure symbolToString(s)
+static nonIdChars
+initial nonIdChars:=~(&letters++&digits++'_')
+return if upto(nonIdChars,s) then "\"" || s || "\"" else s
+end
+
+procedure productionToString(p)
+local s
+s := symbolToString(p.lhs.name) || " ="
+every s ||:= " " || symbolToString((!p.rhs).name)
+return s||"."
+end
+
+procedure showProductions()
+local p,S,n,i
+write()
+write("Productions:")
+write("start:",startSymbol.name,",  EOI:",eoiSymbol.name)
+S:=table()
+every n:=!nonterminals do S[n.name]:=n
+S:=sort(S,1)
+every i:=1 to *S do S[i]:=S[i][2]
+every p := !productions[!S] do {
+	writeIndented(productionToString(p))
+}
+return
+end
+
+procedure showSymbol(s)
+	write(s.name,": ",\s.kind|"Type undefined",
+		", minLeng=",\s.minLeng|"Undefined")
+return
+end
+
+procedure showSymbols()
+local s
+write()
+write("Symbols:")
+every s := !symbol do {
+	showSymbol(s)
+}
+
+return
+end
+
+procedure showSymbolSet(prefix,s)
+local t, i, L
+t:=set()
+every insert(t,(!s).name)
+L:=sort(t)
+prefix ||:= "{"
+every i := 1 to *L-1 do prefix ||:= symbolToString(L[i]) || ", "
+prefix ||:= symbolToString(L[-1])
+prefix ||:= "}"
+writeIndented(prefix)
+
+return
+end
+
+procedure showSelectionSets()
+local p,s,L
+write()
+write("selection sets:")
+L := sort(selectionSet,3)
+while p:=get(L) & s:=get(L) do {
+	showSymbolSet("selection[ "||productionToString(p)||" ] = ",s)
+}
+return
+end
+
+procedure showSymbolSets(setName,s)
+local n,st,L
+L := sort(s,3)
+write()
+write(setName," sets:")
+while n := get(L) & st := get(L) do {
+	showSymbolSet(n.name||"=",st)
+}
+return
+end
+
+procedure showFirstSets()
+showSymbolSets("first",first)
+return
+end
+
+procedure showLastSets()
+showSymbolSets("last",last)
+return
+end
+
+procedure showFollowSets()
+showSymbolSets("follow",follow)
+return
+end
+
+#######################################################################
+#
+#	Grammar analysis
+#
+
+# compute the min lengths of terminal strings that can be derived
+# from nonterminals and starting from particular productions.
+#
+procedure findMinLeng()
+local n, ns, p, s, changes, leng
+
+every ns:=!symbol do case ns.kind of {
+	"Nonterminal":	ns.minLeng := tooLong
+	"Terminal":	ns.minLeng := 1
+	"ActionSymbol":	ns.minLeng := 0
+	}
+every p := !!productions do p.minLeng := tooLong
+### showSymbols() ####
+changes := 1
+while \changes do {
+	changes := &null
+	every n := !nonterminals  do {
+		every p := !productions[n] do {
+			leng := 0
+			every s := !p.rhs do {
+				leng +:= s.minLeng
+			}
+			p.minLeng := leng
+			### showSymbol(n) ###
+			if n.minLeng > leng then {
+			 changes := 1
+			 n.minLeng := leng
+			}
+		}
+	}
+}
+return
+end
+
+procedure checkMinLeng()
+ local n
+ every n := !nonterminals & n.minLeng >= tooLong do {
+	error(n.name," does not appear to derive a terminal string")
+ }
+ return
+end
+
+#
+# compute transitive closure of a relation
+#
+procedure transitiveClosure(s)
+local n,r,i,k
+
+every	k := key(s) &
+	i := key(s) &
+	member(s[i],k)
+  do {
+	s[i] ++:= s[k]
+}
+return
+end
+
+#
+#	generate exposed symbols on rhs or in string
+#	  "exposed" means preceded (Left) or followed (Right)
+#	  by nullable nonterminal or action symbols
+#	includes all symbols, nonterminal, terminal and action
+#
+procedure exposedLeft(p)
+ local s
+ case type(p) of {
+"Symbol":	p:=[p]
+"Production":	p:=p.rhs
+ }
+ every  s := !p  do {
+ 	suspend s
+	if not isNullDeriving(s) then fail
+ }
+ fail
+end
+
+procedure exposedRight(p)
+ local s
+ case type(p) of {
+"Symbol":	p:=[p]
+"Production":	p:=p.rhs
+ }
+ every s := p[*p to 1 by -1]  do {
+ 	suspend s
+	if not isNullDeriving(s) then fail
+ }
+ fail
+end
+
+#
+#	Compute Accessible Sets
+#
+
+procedure buildInitialAccessibleSets()
+local p, r, s
+
+s:=table()
+every s[!nonterminals] := set()
+every p := !!productions do {
+	every r := !p.rhs do {
+		insert(s[p.lhs],r)
+	}
+}
+return s
+end
+
+procedure findAccessibleSets()
+local s
+s := buildInitialAccessibleSets()
+transitiveClosure(s)
+return s
+end
+
+procedure findAccessibleSymbols()
+ local st,a
+ a := findAccessibleSets()
+ st := a[startSymbol]
+ insert(st,startSymbol)
+ insert(st,eoiSymbol)
+ return st
+end
+
+procedure checkAccessibility()
+ local s,st
+ st := findAccessibleSymbols()
+ every s := !(nonterminals|terminals|actions) do {
+	if not member(st,s) then
+	   error(s.name,
+	   " cannot appear in a sentential form")
+ }
+ return
+end
+
+#
+#	Compute First Sets
+#
+
+procedure initFirstSets()
+local p, r
+
+first := table()
+every first[!nonterminals] := set()
+
+every p := !!productions do {
+	every r := exposedLeft(p) do {
+		insert(first[p.lhs],r)
+	}
+}
+return
+end
+
+procedure findFirstSets()
+initFirstSets()
+transitiveClosure(first)
+return
+end
+
+#
+#	Compute last sets
+#
+procedure initLastSets()
+local p, r
+
+last:=table()
+every last[!nonterminals] := set()
+
+every p := !!productions do {
+	every r := exposedRight(p) do {
+		insert(last[p.lhs],r)
+	}
+}
+return
+end
+
+procedure findLastSets()
+initLastSets()
+transitiveClosure(last)
+return
+end
+
+procedure checkLnRRecursive()
+ local n
+ every n:= !nonterminals do {
+	if member(first[n],n) & member(last[n],n) then {
+		error(n.name," is both left and right recursive,",
+			" the grammar is ambiguous")
+	}
+ }
+ return
+end
+
+procedure findFollowSets()
+local n, p, rhs, x, y, i, j
+
+follow := table()
+
+every n := !nonterminals do follow[n] := set()
+
+every p := !productions[!nonterminals] &
+	rhs := p.rhs & *rhs>1
+  do {
+    every x := rhs[i:=1 to *rhs-1] & isNonterminal(x) do {
+      every y := rhs[j:=i+1 to *rhs] do {
+	every
+	  insert(
+	  	follow[x|isNonterminal(!last[x])],
+	  	isTerminal(y|!\first[y])
+	  )
+	if not isNullDeriving(y) then break #back to "every x" loop
+      }
+    }
+}
+every insert(
+	follow[isNonterminal(startSymbol|!last[startSymbol])],
+	eoiSymbol
+      )
+return
+end
+

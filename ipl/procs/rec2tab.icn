@@ -1,0 +1,31 @@
+############################################################################
+#
+#	File:     rec2tab.icn
+#
+#	Subject:  Procedure to write record as string
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 2, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure writes fields of a record as tab-separated string.
+#  Carriage returns in files are converted to vertical tabs.
+#  (Works for lists too.)
+#
+
+procedure rec2tab(x)
+   local i
+
+   i := *x - 1
+   every writes(map(!x, "\n", "\v"),"\t") \ i
+   write(map(x[-1], "\n", "\v"))
+
+   return
+
+end

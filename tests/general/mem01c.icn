@@ -1,0 +1,13 @@
+procedure main()
+   if (&features == "fixed regions") & not(&features == "multiple regions")
+      then {
+      write("This is a fixed-regions implementation without multiple-region")
+      write("support.\n")
+      write("The error message from this test should be different from the")
+      write("standard one, where regions can expand.  Specifically, this")
+      write("test should show inadequate space rather than value out of")
+      write("range.  This is to be expected; do not worry about it.")
+      }
+   write(image(every repl(repl("xxx",50),write(1 to 100))) | "failed")
+   write(image(repl(repl(repl(repl(&cset,100),100),100),100)) | "failed")
+end

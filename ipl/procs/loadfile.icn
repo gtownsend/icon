@@ -1,0 +1,64 @@
+############################################################################
+#
+#	File:     loadfile.icn
+#
+#	Subject:  Procedure to produce and load program on the fly
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 21, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  loadfile(exp, link, ...) produces and loads a program that generates
+#  the results of exp.  The trailing arguments name link
+#  files needed for the expression.  loadfile() returns a procedure
+#  that generates the results.
+#
+############################################################################
+#
+#  Requires:  MT-Icon, system(), pipes, /tmp
+#
+############################################################################
+#
+#  Links:  io
+#
+############################################################################
+
+link io
+
+procedure loadfile(exp, links[])	#: produce and load program
+   local output, prog
+   static name
+
+   output := tempfile("load", ".icn", "/tmp")
+
+   image(output) ? {
+      ="file("
+      name := tab(find(".icn"))
+      }
+
+   write(output, "invocable all")
+   every write(output, "link ", image(!links)) 
+   write(output, "procedure main(args)")
+   write(output, "   suspend ", exp)
+   write(output, "end")
+
+   close(output)
+
+   if system("mticont -o " || name || " -s " || name ||
+      " >/dev/null 2>/dev/null") ~= 0 then fail
+
+   remove(name || ".icn")		# remove source code file
+
+   #  Load the program
+
+   prog := load(name) | stop("*** load failure in loadfile")
+
+   return variable("main", prog)
+   
+end

@@ -1,0 +1,135 @@
+############################################################################
+#
+#  vibrect.icn -- procedures for defining an area object
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+
+$include "vibdefn.icn"
+
+##########################################################################
+# rect_obj:
+#    v       : vidget used for drawing rectangle
+#    proc    : name of user callback procedure
+#    id      : unique means of identifying a rectangle instance
+#    x,y,w,h : bounding box
+#    style   : inivisible, sunken, grooved, raised
+#    focus   : should focus lines be drawn around this object?
+##########################################################################
+record rect_obj(v, proc, id, x, y, w, h, style, focus)
+
+##########################################################################
+# create_rect() creates a rect instance and draws the rect if
+#               it is a first class object.
+##########################################################################
+procedure create_rect(x, y, w, h, style)
+   local r, id
+
+   id := next_id("region")
+   r := rect_obj(, "region_cb" || id, "region" || id, x, y, w, h, style, 0)
+   r.v := Vpane(ROOT, x, y, APPWIN, , id, style, w, h)
+   VRemove(ROOT, r.v, 1)
+   return r
+end
+
+##########################################################################
+# draw_rect() draws the given rect instance.
+##########################################################################
+procedure draw_rect(r)
+   if r.style == "invisible" then {
+      WAttrib(APPWIN, "linestyle=dashed")
+      DrawRectangle(APPWIN, r.x, r.y, r.w - 1, r.h - 1)
+      WAttrib(APPWIN, "linestyle=solid")
+   }
+   else
+      VDraw(r.v)
+   return r
+end
+
+##########################################################################
+# load_rect() restores a rect object from session code.
+##########################################################################
+procedure load_rect(r, o)
+   if o.sty ~== "" then
+      r.style := o.sty
+   else if integer(o.num) > 0 then
+      r.style := "grooved"
+   else
+      r.style := "invisible"
+   r.v := Vpane(ROOT, r.x, r.y, APPWIN, , r.id, r.style, r.w, r.h)
+   VRemove(ROOT, r.v, 1)
+end
+
+##########################################################################
+# save_rect() augments the record for saving a rect object.
+##########################################################################
+procedure save_rect(r, o)
+   r.typ := "Rect"
+   r.sty := o.style
+   return
+end
+
+##########################################################################
+# display_rect_atts() displays the attribute sheet with the current
+#                     attributes for the given rect instance.
+##########################################################################
+procedure display_rect_atts(object)
+   local t
+
+   t := table()
+   t["_style"]		:= object.style
+   t["a_id"]		:= object.id
+   t["b_callback"]	:= object.proc
+   t["c_x"]		:= object.x
+   t["d_y"]		:= object.y - CANVASY
+   t["e_width"]		:= object.w
+   t["f_height"]	:= object.h
+
+   repeat {
+      if rect_dialog(t) == "Cancel" then
+         fail
+
+      if illegal(t["a_id"], "ID", "s") |
+         illegal(t["b_callback"], "Callback", "p") |
+         illegal(t["c_x"], "X", "i") |
+         illegal(t["d_y"], "Y", "i") |
+         illegal(t["e_width"], "Width", MIN_W) |
+         illegal(t["f_height"], "Height", MIN_H)
+      then
+         next
+
+      object.v.style := object.style := t["_style"]
+      object.id		:= t["a_id"]
+      object.proc	:= t["b_callback"]
+      unfocus_object(object)
+      move_object(object,
+         t["c_x"], t["d_y"] + CANVASY, t["e_width"], t["f_height"])
+      focus_object(object)
+      break
+   }
+end
+
+
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure rect_dialog(win, deftbl)
+static dstate
+initial dstate := dsetup(win,
+   ["rect_dialog:Sizer::1:0,0,388,216:",],
+   ["_cancel:Button:regular::216,167,50,30:Cancel",],
+   ["_okay:Button:regular:-1:146,167,50,30:Okay",],
+   ["_style:Choice::4:281,62,92,84:",,
+      ["invisible","sunken","grooved","raised"]],
+   ["a_id:Text::40:13,14,360,19:ID:       \\=",],
+   ["b_callback:Text::40:13,35,360,19:callback: \\=",],
+   ["c_x:Text::3:13,62,101,19:       x: \\=",],
+   ["d_y:Text::3:13,88,101,19:       y: \\=",],
+   ["e_width:Text::3:132,62,101,19:   width: \\=",],
+   ["f_height:Text::3:132,88,101,19:  height: \\=",],
+   )
+return dpopup(win, deftbl, dstate)
+end
+#===<<vib:end>>===	end of section maintained by vib

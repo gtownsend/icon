@@ -1,0 +1,1044 @@
+############################################################################
+#
+#	File:     lists.icn
+#
+#	Subject:  Procedures to manipulate lists
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 20, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Contributor:  Richard L. Goerwitz
+#
+############################################################################
+#
+#	l_Bscan(e1)	begin list scanning
+#
+#	l_Escan(l_OuterEnvir, e2)
+#			end list scanning
+#
+#	l_any(l1,l2,i,j)
+#			any() for list scanning
+#
+#	l_bal(l1,l2,l3,l,i,j
+#			bal() for list scanning
+#
+#	l_find(l1,l2,i,j)
+#			find() fo rlist scanning
+#
+#	l_many(l1,l2,i,j)
+#			many() for list scanning
+#
+#	l_match(l1,l2,i,j)
+#			match() for list scanning
+#
+#	l_move(i)	move() for list scanning
+#
+#	l_pos(i)	pos() for list scanning
+#
+#	l_tab(i)	tab() for list scanning
+#
+#	l_upto(l1,l2,i,j)
+#			upto() for list scanning
+#
+#	lcomb(L,i)	list combinations
+#
+#	ldelete(L, spec)
+#			list deletion
+#
+#	lequiv(L1, L2)	list equivalence
+#
+#	lextend(L, i)	list extension
+#
+#	limage(L)	unadorned list image
+#
+#	linterl(L1, L2)	list interleaving
+#
+#	llpad(L, i, x)	list padding at left
+#
+#	lltrim(L, S)	list left trimming
+#
+#	lmap(L1,L2,L3)	list mapping
+#
+#	lpalin(L, x)	list palindrome
+#
+#	lpermute(L)	list permutations
+#
+#	lreflect(L, i)  returns L concatenated with its reversal to produce
+#			palindrome; the values of i determine "end
+#			conditions" for the reversal:
+#
+#				0	omit first and last elements
+#				1	omit first element
+#				2	omit last element
+#				3	don't omit element
+#
+#	lremvals(L, x1, x2, ...)
+#			remove values from list
+#
+#	lrepl(L, i)	list replication
+#
+#	lreverse(L)	list reverse
+#
+#	lrotate(L, i)	list rotation
+#
+#	lrpad(L, i, x)	list right padding
+#
+#	lrtrim(L, S)	list right trimming
+#
+#	lswap(L)	list element swap
+#
+#	lunique(L)	keep only unique list elements
+#
+#	lmaxlen(L, p)	returns the size of the largest value in L.
+#			If p is given, it is applied to each string as
+#			as a "length" procedure.  The default for p is
+#			proc("*", 1).
+#
+#	lminlen(L, p)	returns the size of the smallest value in L.
+#			If p is given, it is applied to each string as
+#			as a "length" procedure.  The default for p is
+#			proc("*", 1).
+#
+#	str2lst(s, i)	creates list with i-character lines from s.  The
+#			default for i is 1.
+#
+############################################################################
+#
+#		About List Mapping
+#
+#  The procedure lmap(L1,L2,L3) maps elements of L1 according to L2
+#  and L3.  This procedure is the analog for lists of the built-in
+#  string-mapping function map(s1,s2,s3). Elements in L1 that are
+#  the same as elements in L2 are mapped into the corresponding ele-
+#  ments of L3. For example, given the lists
+#  
+#     L1 := [1,2,3,4]
+#     L2 := [4,3,2,1]
+#     L3 := ["a","b","c","d"]
+#  
+#  then
+#  
+#     lmap(L1,L2,L3)
+#  
+#  produces a new list
+#  
+#     ["d","c","b","a"]
+#  
+#     Lists that are mapped can have any kinds of elements. The
+#  operation
+#  
+#     x === y
+#  
+#  is used to determine if elements x and y are equivalent.
+#  
+#     All cases in lmap are handled as they are in map, except that
+#  no defaults are provided for omitted arguments. As with map, lmap
+#  can be used for transposition as well as substitution.
+#  
+#  Warning:
+#
+#     If lmap is called with the same lists L2 and L3 as in
+#  the immediately preceding call, the same mapping is performed,
+#  even if the values in L2 and L3 have been changed. This improves
+#  performance, but it may cause unexpected effects.
+#  
+#     This ``caching'' of the mapping table based on L2 and L3
+#  can be easily removed to avoid this potential problem.
+#  
+############################################################################
+#
+#	About List Scanning by Richard L. Goerwitz
+#
+#  PURPOSE: String scanning is terrific, but often I am forced to
+#  tokenize and work with lists.  So as to make operations on these
+#  lists as close to corresponding string operations as possible, I've
+#  implemented a series of list analogues to any(), bal(), find(),
+#  many(), match(), move(), pos(), tab(), and upto().  Their names are
+#  just like corresponding string functions, except with a prepended
+#  "l_" (e.g. l_any()).  Functionally, the list routines parallel the
+#  string ones closely, except that in place of strings, l_find and
+#  l_match accept lists as their first argument.  L_any(), l_many(),
+#  and l_upto() all take either sets of lists or lists of lists (e.g.
+#  l_tab(l_upto([["a"],["b"],["j","u","n","k"]])).  Note that l_bal(),
+#  unlike the builtin bal(), has no defaults for the first four
+#  arguments.  This just seemed appropriate, given that no precise
+#  list analogue to &cset, etc. occurs.
+#
+#  The default subject for list scans (analogous to &subject) is
+#  l_SUBJ.  The equivalent of &pos is l_POS.  Naturally, these
+#  variables are both global.  They are used pretty much like &subject
+#  and &pos, except that they are null until a list scanning
+#  expression has been encountered containing a call to l_Bscan() (on
+#  which, see below).
+#
+#  Note that environments cannot be maintained quite as elegantly as
+#  they can be for the builtin string-scanning functions.  One must
+#  use instead a set of nested procedure calls, as explained in the
+#  _Icon Analyst_ 1:6 (June, 1991), p. 1-2.  In particular, one cannot
+#  suspend, return, or otherwise break out of the nested procedure
+#  calls.  They can only be exited via failure.  The names of these
+#  procedures, at least in this implementation, are l_Escan and
+#  l_Bscan.  Here is one example of how they might be invoked:
+#
+#      suspend l_Escan(l_Bscan(some_list_or_other), {
+#          l_tab(10 to *l_SUBJ) & {
+#              if l_any(l1) | l_match(l2) then
+#                  old_l_POS + (l_POS-1)
+#          }
+#      })
+#
+#  Note that you cannot do this:
+#
+#      l_Escan(l_Bscan(some_list_or_other), {
+#          l_tab(10 to *l_SUBJ) & {
+#              if l_any(l1) | l_match(l2) then
+#                  suspend old_l_POS + (l_POS-1)
+#          }
+#      })
+#
+#  Remember, it's no fair to use suspend within the list scanning
+#  expression.  l_Escan must do all the suspending.  It is perfectly OK,
+#  though, to nest well-behaved list scanning expressions.  And they can
+#  be reliably used to generate a series of results as well.
+#
+############################################################################
+#
+#  Here's another simple example of how one might invoke the l_scan
+#  routines:
+#
+#  procedure main()
+#
+#      l := ["h","e","l","l","o"," ","t","t","t","h","e","r","e"]
+#
+#      l_Escan(l_Bscan(l), {
+#          hello_list := l_tab(l_match(["h","e","l","l","o"]))
+#          every writes(!hello_list)
+#          write()
+#
+#          # Note the nested list-scanning expressions.
+#	   l_Escan(l_Bscan(l_tab(0)), {
+#	       l_tab(l_many([[" "],["t"]]) - 1)
+#              every writes(!l_tab(0))
+#	       write()
+#          })
+#      })
+#  
+#  end
+#
+#  The above program simply writes "hello" and "there" on successive
+#  lines to the standard output.
+#
+############################################################################
+#
+#  PITFALLS: In general, note that we are comparing lists here instead
+#  of strings, so l_find("h", l), for instance, will yield an error
+#  message (use l_find(["h"], l) instead).  The point at which I
+#  expect this nuance will be most confusing will be in cases where
+#  one is looking for lists within lists.  Suppose we have a list,
+#
+#      l1 := ["junk",[["hello"]," ",["there"]],"!","m","o","r","e","junk"]
+#
+#  and suppose, moreover, that we wish to find the position in l1 at
+#  which the list
+#
+#      [["hello"]," ",["there"]]
+#
+#  occurs.  If, say, we assign [["hello"]," ",["there"]] to the
+#  variable l2, then our l_find() expression will need to look like
+#
+#      l_find([l2],l1)
+#
+############################################################################
+#
+#  Extending scanning to lists is really very difficult.  What I think
+#  (at least tonight) is that scanning should never have been
+#  restricted to strings.  It should have been designed to operate on
+#  all homogenous one-dimensional arrays (vectors, for you LISPers).
+#  You should be able, in other words, to scan vectors of ints, longs,
+#  characters - any data type that seems useful.  The only question in
+#  my mind is how to represent vectors as literals.  Extending strings
+#  to lists goes beyond the bounds of scanning per-se.  This library is
+#  therefore something of a stab in the dark.
+#
+############################################################################
+#
+#  Links:  indicies
+#
+############################################################################
+#
+#  See also:  structs.icn
+#
+############################################################################
+
+link indices
+
+global l_POS
+global l_SUBJ
+
+record l_ScanEnvir(subject,pos)
+
+procedure l_Bscan(e1)			#: begin list scanning
+
+    #
+    # Prototype list scan initializer.  Based on code published in
+    # the _Icon Analyst_ 1:6 (June, 1991), p. 1-2.
+    #
+    local l_OuterEnvir
+    initial {
+	l_SUBJ := []
+	l_POS := 1
+    }
+
+    #
+    # Save outer scanning environment.
+    #
+    l_OuterEnvir := l_ScanEnvir(l_SUBJ, l_POS)
+
+    #
+    # Set current scanning environment to subject e1 (arg 1).  Pos
+    # defaults to 1.  Suspend the saved environment.  Later on, the
+    # l_Escan procedure will need this in case the scanning expres-
+    # sion as a whole sends a result back to the outer environment,
+    # and the outer environment changes l_SUBJ and l_POS.
+    #
+    l_SUBJ := e1
+    l_POS  := 1
+    suspend l_OuterEnvir
+
+    #
+    # Restore the saved environment (plus any changes that might have
+    # been made to it as noted in the previous run of comments).
+    #
+    l_SUBJ := l_OuterEnvir.subject
+    l_POS := l_OuterEnvir.pos
+
+    #
+    # Signal failure of the scanning expression (we're done producing
+    # results if we get to here).
+    #
+    fail
+
+end
+
+
+
+procedure l_Escan(l_OuterEnvir, e2)	#: end list scanning
+
+    local l_InnerEnvir
+
+    #
+    # Set the inner scanning environment to the values assigned to it
+    # by l_Bscan.  Remember that l_SUBJ and l_POS are global.  They
+    # don't need to be passed as parameters from l_Bscan.  What
+    # l_Bscan() needs to pass on is the l_OuterEnvir record,
+    # containing the values of l_SUBJ and l_POS before l_Bscan() was
+    # called.  l_Escan receives this "outer environment" as its first
+    # argument, l_OuterEnvir.
+    #
+    l_InnerEnvir := l_ScanEnvir(l_SUBJ, l_POS)
+
+    #
+    # Whatever expression produced e2 has passed us a result.  Now we
+    # restore l_SUBJ and l_POS, and send that result back to the outer
+    # environment.
+    #
+    l_SUBJ := l_OuterEnvir.subject
+    l_POS := l_OuterEnvir.pos
+    suspend e2
+
+    #
+    # Okay, we've resumed to (attempt to) produce another result.  Re-
+    # store the inner scanning environment (the one we're using in the
+    # current scanning expression).  Remember?  It was saved in l_Inner-
+    # Envir just above.
+    #
+    l_SUBJ := l_InnerEnvir.subject
+    l_POS := l_InnerEnvir.pos
+
+    #
+    # Fail so that the second argument (the one that produced e2) gets
+    # resumed.  If it fails to produce another result, then the first
+    # argument is resumed, which is l_Bscan().  If l_Bscan is resumed, it
+    # will restore the outer environment and fail, causing the entire
+    # scanning expression to fail.
+    #
+    fail
+
+end
+
+
+
+procedure l_any(l1,l2,i,j)		#: any() for list scanning
+
+    #
+    # Like any(c,s2,i,j) except that the string & cset arguments are
+    # replaced by list arguments.  l1 must be a list of one-element
+    # lists, while l2 can be any list (l_SUBJ by default).
+    #
+
+    local x, sub_l
+
+    /l1 & stop("l_any:  Null first argument!")
+    if type(l1) == "set" then l1 := sort(l1)
+
+    /l2 := l_SUBJ
+    if \i then {
+	if i < 1 then
+	    i := *l2 + (i+1)
+    }
+    else i := \l_POS | 1
+    if \j then {
+	if j < 1 then
+	    j := *l2 + (j+1)
+    }
+    else j := *l_SUBJ+1
+
+    (i+1) > j & i :=: j
+    every sub_l := !l1 do {
+	if not (type(sub_l) == "list", *sub_l = 1) then
+	    stop("l_any:  Elements of l1 must be lists of length 1.")
+	# Let l_match check to see if i+1 is out of range.
+	if x := l_match(sub_l,l2,i,i+1) then
+	    return x
+    }
+    
+end
+
+
+
+procedure l_bal(l1,l2,l3,l,i,j)		#: bal() for list scanning
+
+    local default_val, l2_count, l3_count, x, position
+
+    /l1 & stop("l_bal:  Null first argument!")
+    if type(l1) == "set" then l1 := sort(l1)  # convert to a list
+    if type(l2) == "set" then l1 := sort(l2)
+    if type(l3) == "set" then l1 := sort(l3)
+
+    if /l2 := l_SUBJ
+    then default_val := \l_POS | 1
+    else default_val := 1
+
+    if \i then {
+	if i < 1 then
+	    i := *l2 + (i+1)
+    }
+    else i := default_val
+
+    if \j then {
+	if j < 1 then
+	    j := *l2 + (j+1)
+    }
+    else j := *l_SUBJ+1
+
+    l2_count := l3_count := 0
+
+    every x := i to j-1 do {
+
+	if l_any(l2, l, x, x+1) then {
+	    l2_count +:= 1
+	}
+	if l_any(l3, l, x, x+1) then {
+	    l3_count +:= 1
+	}
+	if l2_count = l3_count then {
+	    if l_any(l1,l,x,x+1)
+	    then suspend x
+	}
+    }
+
+end
+
+    
+
+procedure l_comp(l1,l2)			# list comparison
+
+    #
+    # List comparison routine basically taken from Griswold & Griswold
+    # (1st ed.), p. 174.
+    #
+
+    local i
+
+    /l1 | /l2 & stop("l_comp:  Null argument!")
+    l1 === l2 & (return l2)
+
+    if type(l1) == type(l2) == "list" then {
+	*l1 ~= *l2 & fail
+	every i := 1 to *l1
+	do l_comp(l1[i],l2[i]) | fail
+	return l2
+    }
+
+end
+
+
+
+procedure l_find(l1,l2,i,j)		#: find() fo rlist scanning
+
+    #
+    # Like the builtin find(s1,s2,i,j), but for lists.
+    #
+
+    local x, old_l_POS, default_val
+
+    /l1 & stop("l_find:  Null first argument!")
+
+    if /l2 := l_SUBJ
+    then default_val := \l_POS | 1
+    else default_val := 1
+
+    if \i then {
+	if i < 1 then
+	    i := *l2 + (i+1)
+    }
+    else i := default_val
+
+    if \j then {
+	if j < 1 then
+	    j := *l2 + (j+1)
+    }
+    else j := *l_SUBJ+1
+
+    #
+    # See l_upto() below for a discussion of why things have to be done
+    # in this manner.
+    #
+    old_l_POS := l_POS
+
+    suspend l_Escan(l_Bscan(l2[i:j]), {
+	l_tab(1 to *l_SUBJ) & {
+	    if l_match(l1) then
+		old_l_POS + (l_POS-1)
+	}
+    })
+    
+end
+
+
+
+procedure l_many(l1,l2,i,j)		#: many() for list scanning
+
+    local x, old_l_POS, default_val
+
+    /l1 & stop("l_many:  Null first argument!")
+    if type(l1) == "set" then l1 := sort(l1)
+
+    if /l2 := l_SUBJ
+    then default_val := \l_POS | 1
+    else default_val := 1
+
+    if \i then {
+	if i < 1 then
+	    i := *l2 + (i+1)
+    }
+    else i := default_val
+
+    if \j then {
+	if j < 1 then
+	    j := *l2 + (j+1)
+    }
+    else j := *l_SUBJ+1
+
+    #
+    # L_many(), like many(), is not a generator.  We can therefore
+    # save one final result in x, and then later return (rather than
+    # suspend) that result.
+    #
+    old_l_POS := l_POS
+    l_Escan(l_Bscan(l2[i:j]), {
+	while l_tab(l_any(l1))
+	x := old_l_POS + (l_POS-1)
+    })
+
+    #
+    # Fails if there was no positional change (i.e. l_any() did not
+    # succeed even once).
+    #
+    return old_l_POS ~= x
+
+end
+
+
+
+procedure l_match(l1,l2,i,j)		#: match() for list scanning
+
+    #
+    # Analogous to match(s1,s2,i,j), except that s1 and s2 are lists,
+    # and l_match returns the next position in l2 after that portion
+    # (if any) which is structurally identical to l1.  If a match is not
+    # found, l_match fails.
+    #
+    local default_val
+
+    if /l1
+    then stop("l_match:  Null first argument!")
+    if type(l1) ~== "list"
+    then stop("l_match:  Call me with a list as the first arg.")
+
+    if /l2 := l_SUBJ
+    then default_val := \l_POS | 1
+    else default_val := 1
+
+    if \i then {
+	if i < 1 then
+	    i := *l2 + (i+1)
+    }
+    else i := default_val
+    
+    if \j then {
+	if j < 1 then
+	    j := *l2 + (j+1)
+    }
+    else j := *l_SUBJ+1
+
+    i + *l1 > j & i :=: j
+    i + *l1 > j & fail
+    if l_comp(l1,l2[i+:*l1]) then
+	return i + *l1
+
+end
+
+    
+
+procedure l_move(i)			#: move() for list scanning
+
+    /i & stop("l_move:  Null argument.")
+    if /l_POS | /l_SUBJ then
+	stop("l_move:  Call l_Bscan() first.")
+
+    #
+    # Sets l_POS to l_POS+i; suspends that portion of l_SUBJ extending
+    # from the old l_POS to the new one.  Resets l_POS if resumed,
+    # just the way matching procedures are supposed to.  Fails if l_POS
+    # plus i is larger than l_SUBJ+1 or if l_POS+i is less than 1.
+    #
+    suspend l_SUBJ[.l_POS:l_POS <- (0 < (*l_SUBJ+1 >= l_POS+i))]
+
+end
+
+
+
+procedure l_pos(i)			#: pos() for list scanning
+
+    local x
+
+    if /l_POS | /l_SUBJ
+    then stop("l_move:  Call l_Bscan() first.")
+
+    if i <= 0
+    then x := 0 < (*l_SUBJ+1 >= (*l_SUBJ+1)+i) | fail
+    else x := 0 < (*l_SUBJ+1 >= i) | fail
+
+    if x = l_POS
+    then return x
+    else fail
+
+end
+
+
+
+procedure l_tab(i)			#: tab() for list scanning
+
+    /i & stop("l_tab:  Null argument.")
+    if /l_POS | /l_SUBJ then
+	stop("l_tab:  Call l_Bscan() first.")
+
+    if i <= 0
+    then suspend l_SUBJ[.l_POS:l_POS <- 0 < (*l_SUBJ+1 >= (*l_SUBJ+1)+i)]
+    else suspend l_SUBJ[.l_POS:l_POS <- 0 < (*l_SUBJ+1 >= i)]
+
+end
+
+
+
+procedure l_upto(l1,l2,i,j)		#: upto() for list scanning
+
+    #
+    # See l_any() above.  This procedure just moves through l2, calling
+    # l_any() for each member of l2[i:j].
+    #
+
+    local old_l_POS, default_val
+
+    /l1 & stop("l_upto:  Null first argument!")
+    if type(l1) == "set" then l1 := sort(l1)
+
+    if /l2 := l_SUBJ
+    then default_val := \l_POS | 1
+    else default_val := 1
+
+    if \i then {
+	if i < 1 then
+	    i := *l2 + (i+1)
+    }
+    else i := default_val
+
+    if \j then {
+	if j < 1 then
+	    j := *l2 + (j+1)
+    }
+    else j := *l_SUBJ+1
+
+    #
+    # Save the old pos, then try arb()ing through the list to see if we
+    # can do an l_any(l1) at any position.
+    #
+    old_l_POS := l_POS
+
+    suspend l_Escan(l_Bscan(l2[i:j]), {
+	l_tab(1 to *l_SUBJ) & {
+	    if l_any(l1) then
+		old_l_POS + (l_POS-1)
+	}
+    })
+
+    #
+    # Note that it WILL NOT WORK if you say:
+    #
+    # l_Escan(l_Bscan(l2[i:j]), {
+    #     l_tab(1 to *l_SUBJ) & {
+    #         if l_any(l1) then
+    #             suspend old_l_POS + (l_POS-1)
+    #     }
+    # })
+    #
+    # If we are to suspend a result, l_Escan must suspend that result.
+    # Otherwise scanning environments are not saved and/or restored
+    # properly.
+    #
+    
+end
+
+procedure lblock(L1, L2)
+   local L3, i, j
+
+   if *L1 < *L2 then L1 := lextend(L1, *L2)
+   else if *L2 < *L1 then L2 := lextend(L2, *L1)
+
+   L3 := []
+
+    every i := 1 to *L1 do
+       every j := 1 to L2[i] do
+          put(L3, L2[i])
+
+      return L3
+
+end
+
+procedure lcomb(L,i)			#: list combinations
+   local j
+
+   if i < 1 then fail
+   suspend if i = 1 then [!L]
+      else [L[j := 1 to *L - i + 1]] ||| lcomb(L[j + 1:0],i - 1)
+
+end
+
+procedure ldelete(L, spec)		#: delete specified list elements
+   local i, tmp
+
+   tmp := indices(spec, *L) | fail		# bad specification
+
+   while i := pull(tmp) do
+      L := L[1+:i - 1] ||| L[i + 1:0]
+
+   return L
+
+end
+
+procedure lequiv(x,y)			#: compare lists for equivalence
+   local i
+
+   if x === y then return y
+   if type(x) == type(y) == "list" then {
+      if *x ~= *y then fail
+      every i := 1 to *x do
+         if not lequiv(x[i],y[i]) then fail
+      return y
+     }
+
+end
+	
+procedure lextend(L, i, x)			#: list extension
+   local j
+
+   until *L >= i do
+      put(L, x)
+
+   return L
+ 
+end
+
+procedure limage(L)			#: list image
+   local result
+
+   if type(L) ~== "list" then stop("*** invalid type to limage()")
+
+   result := ""
+
+   every result ||:= image(!L) || ","
+
+   return ("[" || result[1:-1] || "]") | "[]"
+
+end
+
+procedure linterl(L1, L2)		#: list interleaving
+   local L3, i
+
+   if *L1 < *L2 then L1 := lextend(L1, *L2)
+   else if *L2 < *L1 then L2 := lextend(L2, *L1)
+
+   L3 := []
+
+   every i := 1 to *L1 do
+      put(L3, L1[i], L2[i])
+
+   return L3
+
+end
+
+procedure llpad(L, i, x)		#: list padding at left
+
+   L := copy(L)
+
+   while *L < i do push(L, x)
+
+   return L
+
+end
+
+procedure lltrim(L, S)			#: list left trimming
+
+   L := copy(L)
+
+   while member(S, L[1]) do
+      get(L)
+
+    return L
+
+end
+
+procedure lmap(L1,L2,L3)		#: list mapping
+   static lmem2, lmem3, lmaptbl, tdefault
+   local i, a
+
+   initial tdefault := []
+
+   if type(a := L1 | L2 | L3) ~== "list" then runerr(108,a)
+   if *L2 ~= *L3 then runerr(208,L2)
+
+   L1 := copy(L1)
+
+   if not(lmem2 === L2 & lmem3 === L3) then {	# if an argument is new, rebuild
+      lmem2 := L2				# save for future reference
+      lmem3 := L3
+      lmaptbl := table(tdefault)		# new mapping table
+      every i := 1 to *L2 do			# build the map
+         lmaptbl[L2[i]] := L3[i]
+      }
+   every i := 1 to *L1 do			# map the values
+      L1[i] := (tdefault ~=== lmaptbl[L1[i]])
+   return L1
+
+end
+
+procedure lpalin(L, x)			#: list palindrome
+
+   L |||:= lreverse(L)
+
+   if /x then pull(L)
+
+   return L
+
+end
+
+procedure lpermute(L)			#: list permutations
+   local i
+
+   if *L = 0 then return []
+   suspend [L[i := 1 to *L]] ||| lpermute(L[1:i] ||| L[i+1:0])
+
+end
+
+procedure lreflect(L, i)		#: list reflection
+   local L1
+
+   /i :=0
+
+   if i > 3 then stop("*** invalid argument to lreflect()")
+
+   if i < 3 then L1 := copy(L)
+
+   return L ||| lreverse(
+      case i of {
+         0:   {get(L1); pull(L1); L1}
+         1:   {get(L1); L1}
+         2:   {pull(L1); L1}
+         3:   L
+         }
+      )
+
+end
+
+procedure lremvals(L, x[])		#: remove values from list
+   local result, y
+
+   result := []
+
+   every y := !L do
+      if y === !x then next
+      else put(result, y)
+
+   return result
+
+end
+
+
+procedure lrepl(L, i)			#: list replication
+   local j, k
+
+   i := (0 < integer(i)) | stop("*** invalid replication factor in lrepl()")
+
+   L := copy(L)
+
+   j := *L
+
+   every 1 to i - 1 do
+      every k := 1 to j do
+         put(L, L[k])
+
+   return L
+
+end
+
+procedure lreverse(L)			#: list reverse
+   local i
+
+   L := copy(L)
+
+   every i := 1 to *L / 2 do
+      L[i] :=: L[-i]
+
+   return L
+
+end
+
+procedure lrotate(L, i)			#: list rotation
+
+   /i := 1
+
+   L := copy(L)
+
+   if i > 0 then
+      every 1 to i do
+         put(L, get(L))
+   else
+      every 1 to -i do
+         push(L, pull(L))
+
+   return L
+
+end
+
+procedure lrpad(L, i, x)		#: list right padding
+
+   L := copy(L)
+
+   while *L < i do put(L, x)
+
+   return L
+
+end
+
+procedure lrtrim(L, S)			#: list right trimming
+
+   L := copy(L)
+
+   while member(S, L[-1]) do
+      pull(L)
+
+    return L
+
+end
+
+procedure lswap(L)			#: list element swap
+   local i
+
+   L := copy(L)
+
+   every i := 1 to *L by 2 do
+      L[i] :=: L[i + 1]
+
+   return L
+
+end
+
+procedure lunique(L)			#: keep only unique list elements
+   local result, culls, x
+
+   result := []
+   culls := set(L)
+
+   every x := !L do
+      if member(culls, x) then {
+         delete(culls, x)
+         put(result, x)
+         }
+
+   return result
+
+end
+
+procedure lmaxlen(L, p)			#: largest value in list
+   local i
+
+   if *L = 0 then fail
+
+   /p := proc("*", 1)
+
+   i := 2 ^ 31			# kludge
+
+   every i <:= p(!L)
+
+   return i
+
+end
+
+procedure lminlen(L, p)			#: smallest value in list
+   local i
+
+   if *L = 0 then fail
+
+   /p := proc("*", 1)
+
+   i := 0
+
+   every i >:= p(!L)
+
+   return i
+
+end
+
+procedure str2lst(s, i)			#: list from string
+   local L
+
+   /i := 1
+
+   L := []
+
+   s ? {
+      while put(L, move(i))
+      if not pos(0) then put(L, tab(0))
+      }
+
+   return L
+
+end

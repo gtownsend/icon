@@ -1,0 +1,62 @@
+############################################################################
+#
+#	File:     tablc.icn
+#
+#	Subject:  Program to tabulate characters in a file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 10, 1988
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This program tabulates characters and lists each character and
+#  the number of times it occurs. Characters are written using
+#  Icon's escape conventions.  Line termination characters and other
+#  control characters are included in the tabulation.
+#  
+#  Options: The following options are available:
+#  
+#       -a   Write the summary in alphabetical order of the charac-
+#            ters. This is the default.
+#  
+#       -n   Write the summary in numerical order of the counts.
+#  
+#       -u   Write only the characters that occur just once.
+#  
+############################################################################
+#
+#  Links: options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local ccount, unique, order, s, a, pair, rwidth, opts
+   unique := 0				# switch to list unique usage only
+   order := 3				# alphabetical ordering switch
+
+   opts := options(args,"anu")
+   if \opts["a"] then order := 3
+   if \opts["n"] then order := 4
+   if \opts["u"] then unique := 1
+
+   ccount := table(0)			# table of characters
+   while ccount[reads()] +:= 1
+   a := sort(ccount,order)
+   if unique = 1 then {
+      while s := get(a) do
+	 if get(a) = 1 then write(s)
+      }
+   else {
+      rwidth := 0
+      every rwidth <:= *!a
+      while s := get(a) do
+         write(left(image(s),10),right(get(a),rwidth))
+      }
+end

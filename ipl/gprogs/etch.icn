@@ -1,0 +1,153 @@
+############################################################################
+#
+#	File:     etch.icn
+#
+#	Subject:  Program for distributed Etch-A-Sketch
+#
+#	Author:   Clinton L. Jeffery
+#
+#	Date:     June 17, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+# A drawing program.  Invoked with one optional argument, the
+# name of a remote host on which to share the drawing surface.
+#
+# Dragging the left button draws black dots
+# The middle button draws a line from button press to the release point
+# The right button draws white dots
+# Control-L clears the screen
+# The Escape character exits the program
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  wopen, xcompat
+#
+############################################################################
+
+link wopen
+link xcompat
+
+procedure main(av)
+   local w1, w2, w3, w4, w5, w6, w, x1, xa, x2, xb, y1, ya, y2, yb, dragging,
+      da, xc, xd, yc, yd, dc, e
+   #
+   # open an etch window.  If there was a command line argument,
+   # attempt to open a second window on another display.  For
+   # each window, create a binding with reverse video for erasing.
+   #
+   w1 := WOpen("label=etch", "size=300,300") | stop("can't open window")
+   w2 := XBind(w1,"drawop=xor") | stop("can't XBind w2")
+   w3 := XBind(w1,"reverse=on") | stop("can't XBind w3")
+   if *av>0 then {
+      w4 := WOpen("label=etch", "display="||av[1]||":0","size=300,300") |
+	  stop("can't open window, display=",av[1])
+      w5 := XBind(w4,"drawop=xor") | stop("Can't XBind w5")
+      w6 := XBind(w4,"reverse=on") | stop("Can't XBind w6")
+  }
+  repeat {
+      #
+      # wait for an available event on either display
+      #
+      w := Active() | stop("Active fails")
+      if (w === (w1|w2)) then {
+	  x1 := xa
+	  x2 := xb
+	  y1 := ya
+	  y2 := yb
+	  dragging := da
+      } else {
+	  x1 := xc
+	  x2 := xd
+	  y1 := yc
+	  y2 := yd
+	  dragging := dc
+      }
+      
+      case e := Event(w) of {
+	  #
+	  # Mouse down events specify an (x1,y1) point for later drawing.
+	  # (x2,y2) is set to null; each down event starts a new draw command.
+	  #
+	  &lpress | &mpress | &rpress: {
+	      x1 := &x
+	      y1 := &y
+	      x2 := y2 := &null
+	  }
+	  #
+	  # Mouse up events obtain second point (x2,y2), and draw a line.
+	  #
+	  &lrelease: {
+	      DrawLine(w1,\x1,\y1,&x,&y)
+	      DrawLine(\w4,\x1,\y1,&x,&y)
+	  }
+	  &mrelease: {
+	      DrawLine(w1,x1,y1,&x,&y)
+	      DrawLine(\w4,x1,y1,&x,&y)
+	      dragging := &null
+	  }
+	  &rrelease: {
+	      DrawLine(w3,x1,y1,&x,&y)
+	      DrawLine(\w6,x1,y1,&x,&y)
+	  }
+	  #
+	  # Drag events obtain a second point, (x2,y2), and draw a line
+	  # If we are drawing points, we update (x1,y1); if we are
+	  # drawing lines, we erase the "rubberband" line and draw a new
+	  # one at each drag event; a permanent line will be drawn when
+	  # the button comes up.
+	  #
+	  &ldrag : {
+	      DrawLine(w1,x1,y1,&x,&y)
+	      DrawLine(\w4,x1,y1,&x,&y)
+	      # left and right buttons use current position
+	      x1 := &x   # for subsequent operations
+	      y1 := &y
+	  }
+	  &rdrag : {
+	      DrawLine(w3,x1,y1,&x,&y)
+	      DrawLine(\w6,x1,y1,&x,&y)
+	      # left and right buttons use current position
+	      x1 := &x   # for subsequent operations
+	      y1 := &y
+	  }
+	  &mdrag: {
+	      if /dragging then dragging := 1
+	      else { # erase previous line, if any
+		  DrawLine(w2,x1,y1,\x2,\y2)
+		  DrawLine(\w5,x1,y1,\x2,\y2)
+	      }
+	      x2 := &x
+	      y2 := &y
+	      DrawLine(w2,x1,y1,x2,y2)
+	      DrawLine(\w5,x1,y1,x2,y2)
+	  }
+	  "\^l": {
+	      EraseArea(w1)
+	      EraseArea(\w4)
+	  }
+	  "\e": break
+      }
+      if (w === (w1|w2)) then {
+	  xa := x1
+	  xb := x2
+	  ya := y1
+	  yb := y2
+	  da := dragging
+      } else {
+	  xc := x1
+	  xd := x2
+	  yc := y1
+	  yd := y2
+	  dc := dragging
+      }
+  }
+end

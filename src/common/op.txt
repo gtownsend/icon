@@ -1,0 +1,61 @@
+#  This file contains tokens for symbols used in standard unary/binary syntax
+#
+#  operator      token      unary/binary/special    (see notes at bottom)
+
+   :=             ASSIGN     _ b
+   :=:            SWAP       _ b
+   <-             REVASSIGN  _ b
+   <->            REVSWAP    _ b
+   &    (:=  AUG) AND        s b   # unary form is for keywords
+   @    (:=  AUG) AT         s s   # control structures for activation
+   ^    (:=  AUG) CARET      u b
+   ||   (:=  AUG) CONCAT     _ b
+   --   (:=  AUG) DIFF       _ b
+   ===  (:=  AUG) EQUIV      _ b
+   **   (:=  AUG) INTER      _ b
+   |||  (:=  AUG) LCONCAT    _ b
+   -    (:=  AUG) MINUS      u b
+   %    (:=  AUG) MOD        _ b
+   ~=== (:=  AUG) NEQUIV     _ b
+   =    (:=  AUG) NMEQ       u b
+   >=   (:=  AUG) NMGE       _ b
+   >    (:=  AUG) NMGT       _ b
+   <=   (:=  AUG) NMLE       _ b
+   <    (:=  AUG) NMLT       _ b
+   ~=   (:=  AUG) NMNE       _ b
+   +    (:=  AUG) PLUS       u b
+   ?    (:=  AUG) QMARK      u s   # binary form is a control structure
+   ==   (:=  AUG) SEQ        _ b
+   >>=  (:=  AUG) SGE        _ b
+   >>   (:=  AUG) SGT        _ b
+   <<=  (:=  AUG) SLE        _ b
+   <<   (:=  AUG) SLT        _ b
+   ~==  (:=  AUG) SNE        _ b
+   /    (:=  AUG) SLASH      u b
+   *    (:=  AUG) STAR       u b
+   ++   (:=  AUG) UNION      _ b
+   \              BACKSLASH  u s   # binary form is a control structure
+   |              BAR        s s   # unary & binary forms are control strutures
+   !              BANG       u s   # binary form is a control structure
+   .              DOT        u s   # binary form is for field references
+   ~              TILDE      u _
+
+
+# notes,
+#
+#  (:=  AUG) indicates that the binary operator has an augmented
+#            assignment form. For example, the entry 
+#                 +    (:=  AUG) PLUS      ub
+#            acts like two entries:
+#                 +              PLUS      ub
+#                 +:=            AUGPLUS    b
+#             except that the compiler automatically combines the
+#             implementations for + and := to implement +:=.
+#  
+#  1st flag: _ - no unary form
+#            u - unary operator implemented by .rtt file
+#            s - unary form but special implementation within the compiler
+#
+#  2st flag: _ - no binary form
+#            b - binary operator implemented by .rtt file
+#            s - binary form but special implementation within the compiler

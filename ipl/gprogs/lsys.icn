@@ -1,0 +1,151 @@
+############################################################################
+#
+#       File:     lsys.icn
+#
+#	Subject:  Program to experiment with Lindenmayer systems
+#
+#	Author:   Stephen B. Wampler
+#
+#	Date:     June 17, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.0
+#
+############################################################################
+#
+#
+#   Comments: This program display Lindenmayer systems using
+#	turtle graphics.  There are some built-in L-systems,
+#       but users can easily modify these and construct new
+#	systems.
+#
+#	See the procedure 'helpmsg' for command line options
+#	(or run as 'lsys -help')
+#
+#	Waits for a window event before closing window
+#
+############################################################################
+#
+#	Requires:  Version 9 graphics and co-expressions (for glib.icn)
+#
+############################################################################
+#
+#	Links: glib, lsystem, wopen
+#
+############################################################################
+
+
+link glib		# need the turtle graphics stuff
+link lsystem		# ...and the L-System stuff
+link wopen
+
+global win, mono, h, w
+global Window, XMAX, YMAX
+
+global pre_defs
+
+procedure main (args)
+    local ls, arg, t
+
+    XMAX := YMAX := 700                 # physical screen size
+    w := h := 700.0
+   
+
+    init_pre_defs()			# table of predefined L-systems
+
+    ls := pre_defs["koch_island"]
+
+    while arg := get(args) do {
+       case arg of {
+          "-help"|"-h" : helpmsg()
+          "-order"|"-o": ls.order := integer(get(args))
+          "-dist" |"-d": ls.dist  := numeric(get(args))
+          "-delta"     : ls.delta := numeric(get(args))
+          "-axiom"|"-a": ls.axiom := get(args)
+          "-map"       : ls.rewrite[get(args)] := get(args)
+          "-file"|"-f" : ls := read_Lsystem(open(get(args)))
+          "-name"|"-n" : ls := \pre_defs[get(args)]
+          "-describe"  : {
+                         write_Lsystem(ls := \(pre_defs[write(get(args))]))
+                         write()
+                         }
+          }
+       if arg == ("-help"|"-h") then stop(helpmsg())
+       }
+
+    win := WOpen("label=L-System", "width="||XMAX, "height="||YMAX)
+    mono := WAttrib (win, "depth") == "1"
+    Window := set_window(win, point(0,0), point(w,h),
+                  viewport(point(0,0), point(XMAX, YMAX), win))
+
+    EraseArea(win)
+
+    t := turtle(Window, point(w/2, h/2), 0, create |"red")
+
+    eval_lsys(t,ls)
+# These two commands are behaviorally equivalent to the above line,
+#   but trade numerous recursive calls (above) for a *long* command
+#   string...
+#    s := build_cmd(ls)
+#    eval_cmd(t, s, ls.dist, ls.delta)
+
+    # sit and wait for an event on the window.
+    Event(win)
+    close(win)
+end
+
+procedure helpmsg()
+   write("Usage: Lsys [[-o n] [-d r] [-delta r] [-axiom s] [-map c s]... ]")
+   write("        [-f file] [-n name] [-describe name]")
+   write("   where")
+   write("     -o n		-- order of system")
+   write("     -d r		-- line length")
+   write("     -delta r		-- angle for turns")
+   write("     -axiom s		-- initial axiom")
+   write("     -map c S		-- rewrite rule mapping c into s")
+   write("     -f file		-- read Lsystem from file")
+   write("     -n name		-- use predefined Lsystem 'name'")
+   write("     -describe name	-- describe (and use) predefined Lsystem 'name'")
+   write(" ")
+   write("   Options are processed in order from left to right, e.g.")
+   write(" ")
+   write("     Lsys -n koch_island -o 3")
+   write(" ")
+   write("   displays an order 3 koch_island.")
+   write(" ")
+   write("   Available predefined Lsystems are:\n")
+   every write("     ",key(pre_defs))
+   stop()
+end
+
+procedure init_pre_defs()
+
+   pre_defs := table()
+
+   pre_defs["koch_island"] := Lsys(1,10,90,"F-F-F-F",
+                                   mk_map([["F","F-F+F+FF-F-F+F"]]))
+   pre_defs["box_swirls"] := Lsys(1,10,90,"F-F-F-F",
+                                   mk_map([["F","FF-F-F-F-F-F+F"]]))
+   pre_defs["squares"] := Lsys(1,10,90,"F-F-F-F",
+                                   mk_map([["F","FF-F-F-F-FF"]]))
+   pre_defs["soot"] := Lsys(1,10,90,"F-F-F-F",
+                                   mk_map([["F","FF-F--F-F"]]))
+   pre_defs["box_flake"] := Lsys(1,10,90,"F-F-F-F",
+                                   mk_map([["F","F-FF--F-F"]]))
+   pre_defs["dragon"] := Lsys(1,10,90,"L",
+                                   mk_map([["L","L+R+"],["R","-L-R"]]))
+   pre_defs["triangle"] := Lsys(1,10,60,"R",
+                                   mk_map([["L","R+L+R"],["R","L-R-L"]]))
+   pre_defs["flake"] := Lsys(1,10,60,"L",
+                                   mk_map([["L","L+R++R-L--LL-R+"],
+                                           ["R","-L+RR++R+L--L-R"]]))
+   pre_defs["near_hilbert"] := Lsys(1,10,90,"-R",
+        mk_map([["L","LL-R-R+L+L-R-RL+R+LLR-L+R+LL+R-LR-R-L+L+RR-"],
+               ["R","+LL-R-R+L+LR+L-RR-L-R+LRR-L-RL+L+R-R-L+L+RR"]]))
+
+end

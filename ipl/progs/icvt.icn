@@ -1,0 +1,97 @@
+############################################################################
+#
+#	File:     icvt.icn
+#
+#	Subject:  Program for ASCII/EBCDIC program conversion
+#
+#	Author:   Cheyenne Wills, modified by Ralph E. Griswold
+#
+#	Date:     September 7, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program converts Icon programs from ASCII syntax to EBCDIC syntax
+#  or vice versa. The option -a converts to ASCII, while the option
+#  -e converts to EBCDIC. The program given in standard input is written
+#  in coverted form to standard output.
+#
+############################################################################
+
+global outf,process,bb,quotechar
+global nrbrack,nlbrack,nrbrace,nlbrace,rbrack,lbrack,rbrace,lbrace
+
+procedure main(args)
+   local line
+
+   case map(args[1]) | stop("Usage: icvt -a | -e") of {
+       "-a" : {
+	   lbrace := "$("; nlbrace := "{"
+	   rbrace := "$)"; nrbrace := "}"
+	   lbrack := "$<"; nlbrack := "["
+	   rbrack := "$>"; nrbrack := "]"
+	   bb := '$'
+	   }
+       "-e" : {
+	   lbrace := "{"; nlbrace := "$(";
+	   rbrace := "}"; nrbrace := "$)";
+	   lbrack := "["; nlbrack := "$<";
+	   rbrack := "]"; nrbrack := "$>";
+	   bb := '[]{}'
+	   }
+       default :
+	   stop("Usage: icvt -a | -e")
+       }
+
+   process := standard
+
+   while line := read() do {
+       line ||:= "\n"
+       line ? while not pos(0) do
+	   process()
+       }
+
+end
+
+procedure standard()
+   writes(tab(upto( '"\'#' ++ bb))) | (writes(tab(0)) & return)
+
+   if match("#") then {
+       writes(tab(0))
+       }
+   else if any('\'"') then {
+       process := inquote
+       quotechar := move(1)
+       writes(quotechar)
+       }
+   else if match(lbrack) then {
+       move(*lbrack)
+       writes(nlbrack)
+       }
+   else if match(rbrack) then {
+       move(*rbrack)
+       writes(nrbrack)
+       }
+   else if match(lbrace) then {
+       move(*lbrace)
+       writes(nlbrace)
+       }
+   else if match(rbrace) then {
+       move(*rbrace)
+       writes(nrbrace)
+       }
+   else writes(move(1))
+   return
+end
+
+procedure inquote()
+   writes( tab(upto( quotechar ++ '\\')) ) |
+       (writes(tab(0)) & return)
+   writes(="\\") & writes(move(1)) & return
+   writes( =quotechar )
+   process := standard
+   return
+end

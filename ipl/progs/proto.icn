@@ -1,0 +1,217 @@
+############################################################################
+#
+#	File:     proto.icn
+#
+#	Subject:  Program to show Icon syntactic forms
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 3, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This program doesn't "do" anything.  It just contains an example of
+#  every syntactic form in Version 7 of Icon (or close to it).  It might
+#  be useful for checking programs that process Icon programs.  Note, however,
+#  that it does not contain many combinations of different syntactic forms.
+#
+############################################################################
+#
+#  Program note:
+#
+#     This program is divided into procedures to avoid overflow with
+#  default values for Icon's translator and linker.
+#
+############################################################################
+#
+#  Links: options
+#
+#  Requires:  co-expressions
+#
+############################################################################
+
+link options
+
+record three(x,y,z)
+record zero()
+record one(z)
+
+invocable all
+
+global line, count
+
+procedure main()
+   expr1()
+   expr2()
+   expr3()
+   expr4(1,2)
+   expr4{1,2}
+   expr5(1,2,3,4)
+end
+
+procedure expr1()
+   local x, y, z
+   local i, j
+   static e1
+
+   initial e1 := 0
+
+   exit()			# get out before there's trouble
+
+   ()
+   {}
+   ();()
+   []
+   [,]
+   x.y
+   x[i]
+   x[i:j]
+   x[i+:j]
+   x[i-:j]
+   (,,,)
+   x(,,,)
+   not x
+   |x
+   !x
+   *x
+   +x
+   -x
+end
+
+procedure expr2()
+   local x, i, y, j, c1, c2, s1, s2, a2, k, a1
+
+   .x
+   /x
+   =x
+   ?x
+   \x
+   ~x
+   @x
+   ^x
+   x \ i
+   x @ y
+   i ^ j
+   i * j
+   i / j
+   i % j
+   c1 ** c2
+   i + j
+   i - j
+   c1 ++ c2
+   c1 -- c2
+   s1 || s2
+   a1 ||| a2
+   i < j
+   i <= j
+   i = j
+   i >= j
+   i > j
+   i ~= j
+   s1 << s2
+   s1 == s2
+   s1 >>= s2
+   s1 >> s2
+   s1 ~== s2
+   x === y
+   x ~=== y
+   x | y
+   i to j
+   i to j by k
+   x := y
+   x <- y
+   x :=: y
+   x <-> y
+   i +:= j
+   i -:= j
+   i *:= j
+end
+
+procedure expr3()
+   local i, j, c1, c2, s1, s2, a1, a2, x, y, s
+
+   i /:= j
+   i %:= j
+   i ^:= j
+   i <:= j
+   i <=:= j
+   i =:= j
+   i >=:= j
+   i ~=:= j
+   c1 ++:= c2
+   c1 --:= c2
+   c1 **:= c2
+   s1 ||:= s2
+   s1 <<:= s2
+   s1 <<=:= s2
+   s1 ==:= s2
+   s1 >>=:= s2
+   s1 >>:= s2
+   s1 ~==:= s2
+   s1 ?:= s2
+   a1 |||:= a2
+   x ===:= y
+   x ~===:= y
+   x &:= y
+   x @:= y
+   s ? x
+   x & y
+   create x
+   return
+   return x
+   suspend x
+   suspend x do y
+   fail
+end
+
+procedure expr4()
+   local e1, e2, e, x, i, j, size, s, e3, X_
+
+   while e1 do break
+   while e1 do break e2
+   while e1 do next
+   case e of {
+     x:   fail
+     (i > j) | 1    :  return
+     }
+   case size(s) of {
+     1:   1
+     default:  fail
+     }
+   if e1 then e2
+   if e1 then e2 else e3
+   repeat e
+   while e1
+   while e1 do e2
+   until e1
+   until e1 do e2
+   every e1
+   every e1 do e2
+   x
+   X_
+   &cset
+   &null
+   "abc"
+   "abc_
+    cde"
+   'abc'
+   'abc_
+    cde'
+   "\n"
+   "^a"
+   "\001"
+   "\x01"
+   1
+   999999
+   36ra1
+   3.5
+   2.5e4
+   4e-10
+end
+
+procedure expr5(a,b,c[])
+end

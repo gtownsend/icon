@@ -1,0 +1,164 @@
+############################################################################
+#
+#	File:     complete.icn
+#
+#	Subject:  Procedure to complete partial input string
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.7
+#
+############################################################################
+#
+#	complete(s,st)	completes a s relative to a set or list of strings, st.
+#			Put differently, complete() lets you supply a
+#			partial string, s, and get back those strings in st
+#			that s is either equal to or a	substring of.
+#
+############################################################################
+#
+#  Lots of command interfaces allow completion of partial input.
+#  Complete() simply represents my personal sentiments about how this
+#  might best be done in Icon.  If you strip away the profuse comments
+#  below, you end up with only about thirty lines of actual source
+#  code.
+#
+#  I have arranged things so that only that portion of an automaton
+#  which is needed to complete a given string is actually created and
+#  stored.  Storing automata for later use naturally makes complete()
+#  eat up more memory.  The performance gains can make it worth the
+#  trouble, though.  If, for some reason, there comes a time when it
+#  is advisable to reclaim the space occupied by complete's static
+#  structures, you can just call it without arguments.  This
+#  "resets" complete() and forces an immediate garbage collection.
+#  
+# Example code:
+#
+#      commands := ["run","stop","quit","save","load","continue"]
+#      while line := read(&input) do {
+#          cmds := list()
+#          every put(cmds, complete(line, commands))
+#          case *cmds of {
+#              0 : input_error(line)
+#              1 : do_command(cmds[1])
+#              default : display_possible_completions(cmds)
+#          }
+#          etc...
+#
+#  More Iconish methods might include displaying successive
+#  alternatives each time the user presses the tab key (this would,
+#  however, require using the nonportable getch() routine).  Another
+#  method might be to use the first string suspended by complete().
+#
+#  NOTE: This entire shebang could be replaced with a slightly slower
+#  and much smaller program suggested to me by Jerry Nowlin and Bob
+#  Alexander.
+#
+#      procedure terscompl(s, st)
+#          suspend match(s, p := !st) & p
+#      end
+#
+#  This program will work fine for lists with just a few members, and
+#  also for cases where s is fairly large.  It will also use much less
+#  memory.
+#
+############################################################################
+
+procedure complete(s,st)
+
+    local dfstn, c, l, old_chr, chr, newtbl, str, strset
+    static t
+    initial t := table()
+
+    # No-arg invocation wipes out static structures & causes an
+    # immediate garbage collection.
+    if /s & /st then {
+	t := table()
+	collect()		# do it NOW
+	fail
+    }
+    type(st) == ("list"|"set") |
+	stop("error (complete):  list or set expected for arg2")
+
+    # Seriously, all that's being done here is that possible states
+    # are being represented by sets containing possible completions of
+    # s relative to st.  Each time a character is snarfed from s, we
+    # check to see what strings in st might represent possible
+    # completions, and store these in yet another set.  At some
+    # point, we either run into a character in s that makes comple-
+    # tion impossible (fail), or we run out of characters in s (in
+    # which case we succeed, & suspend each of the possible
+    # completions).
+
+    # Store any sets we have to create in a static structure for later
+    # re-use.
+    /t[st] := table()
+
+    # We'll call the table entry for the current set dfstn.  (It really
+    # does enable us to do things deterministically.)
+    dfstn := t[st]
+
+    # Snarf one character at a time from s.
+    every c := !s do {
+
+	# The state we're in is represented by the set of all possible
+	# completions before c was read.  If we haven't yet seen char
+	# c in this state, run through the current-possible-completion
+	# set, popping off the first character of each possible
+	# completion, and then construct a table which uses these
+	# initial chars as keys, and makes the completions that are
+	# possible for each of these characters into the values for
+	# those keys.
+	if /dfstn[st] then {
+
+	    # To get strings that start with the same char together,
+	    # sort the current string set (st).
+	    l := sort(st)
+	    newtbl := table()
+	    old_chr := ""
+	    # Now pop off each member of the sorted string set.  Use
+	    # first characters as keys, and then divvy up the full strings
+	    # into sets of strings having the same initial letter.
+	    every str := !l do {
+		str ? { chr := move(1) | next; str := tab(0) }
+		if old_chr ~==:= chr then {
+		    strset := set([str])
+		    insert(newtbl, chr, strset)
+		}
+		else insert(strset, str)
+	    }
+	    insert(dfstn, st, newtbl)
+	}
+
+	# What we've done essentially is to create a table in which
+	# the keys represent labeled arcs out of the current state,
+	# and the values represent possible completion sets for those
+	# paths.  What we need to do now is store that table in dfstn
+	# as the value of the current state-set (i.e. the current
+	# range of possible completions).  Once stored, we can then
+	# see if there is any arc from the current state (dfstn[st])
+	# with the label c (dfstn[st][c]).  If so, its value becomes
+	# the new current state (st), and we cycle around again for
+	# yet another c.
+	st := \dfstn[st][c] | fail
+	if *st = 1 & match(s,!st)
+	then break
+    }
+
+    # Eventually we run out of characters in c.  The current state
+    # (i.e. the set of possible completions) can simply be suspended
+    # one element at a time, with s prefixed to each element.  If, for
+    # instance, st had contained ["hello","help","hear"] at the outset
+    # and s was equal to "hel", we would now be suspending "hel" ||
+    # !set(["lo","p"]).
+    suspend s || !st
+
+end

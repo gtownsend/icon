@@ -1,0 +1,80 @@
+############################################################################
+#
+#	File:     iterfncs.icn
+#
+#	Subject:  Procedures for recursive functions using iteration
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 12, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures implement commonly referenced ``text-book''
+#  recursively defined functions, but using iteration.
+#
+#	acker(i, j)	  Ackermann's function
+#	fib(i, j)	  Generalized Fibonacci (Lucas) sequence
+#
+############################################################################
+#
+#  See also:  fastfncs.icn, memrfncs.icn, and recrfncs.icn
+#
+############################################################################
+
+procedure acker(i, j)
+
+   if i = 0 then return j + 1
+
+   value := list(i + 1)
+   place := list(i + 1)
+
+   value[1] := 1
+   place[1] := 0
+
+   repeat {				# new value[1]
+      value[1] +:= 1
+      place[1] +:= 1
+      every k := 1 to i do {		# propagate value
+         if place[k] = 1 then {		# initiate new level
+            value[k + 1] := value[1]
+            place[k + 1] := 0
+            if k ~= i then break next
+            }
+         else {
+            if place[k] = value[k + 1] then {
+               value[k + 1] := value[1]
+               place[k + 1] +:= 1
+               }
+            else break next
+            }
+         }
+         if place[i + 1] = j then return value[1]	# check for end
+      }
+
+end
+
+procedure fib(i, m)			# generalized Fibonacci sequence
+   local j, n, k
+
+   /m := 0
+
+   if i = 1 then return 1
+   if i = 2 then return m + 1
+
+   j := 1
+   k := m + 1
+
+   every 1 to i - 2 do {
+      n := j + k
+      j := k
+      k := n
+      }
+
+   return n
+
+end

@@ -1,0 +1,47 @@
+############################################################################
+#
+#	File:     pbkdump.icn
+#
+#	Subject:  Program to dump HP95 phone book file
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Program to dump data from a HP95 phone book (pbk) file.
+#
+############################################################################
+#
+#  Links: pbkform, bkutil
+#
+############################################################################
+#
+#  See also: pbkform.icn, pbkutil.icn, abkform.icn
+#
+############################################################################
+
+link pbkform,bkutil
+
+procedure main(args)
+   local fn, f, x
+
+   every fn := !args do {
+      f := open(fn,"u") | stop("Can't open ",fn)
+      x := pbk_read_id(f)
+      while x := pbk_read_data(f) do {
+	 write("Name:   ",x.name)
+	 write("Number: ",x.number)
+	 write("Address:")
+	 every write(!bk_format_lines(x.address))
+	 write()
+	 }
+      pbk_read_end(f) | write("Fail on end record")
+      close(f)
+      }
+end

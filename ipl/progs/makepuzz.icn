@@ -1,0 +1,330 @@
+############################################################################
+#
+#	File:     makepuzz.icn
+#
+#	Subject:  Program to make find-the-word puzzle
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     December 12, 1995
+#
+###########################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.19
+#
+###########################################################################
+#
+#     This program doesn't do anything fancy.  It simply takes a list
+#  of words, and constructs out of them one of those square
+#  find-the-word puzzles that some people like to bend their minds
+#  over.  Usage is:
+#
+#      makepuzz [-f input-file] [-o output-file] [-h puzzle-height]
+#         -w puzzle-width] [-t how-many-seconds-to-keep-trying]
+#         [-r maximum-number-of-rejects] [-s] [-d]
+#
+#  where input-file is a file containing words, one to a line
+#  (defaults to &input), and ouput-file is the file you would like the
+#  puzzle written to (defaults to &output).  Puzzle-height and width
+#  are the basic dimensions you want to try to fit your word game into
+#  (default 20x20).  If the -s argument is present, makepuzz will
+#  scramble its output, by putting random letters in all the blank
+#  spaces.  The -t tells the computer when to give up, and construct
+#  the puzzle (letting you know if any words didn't make it in).
+#  Defaults to 60 (i.e. one minute).  The -r argument tells makepuzz to
+#  run until it arrives at a solution with number-of-rejects or less
+#  un-inserted words.  -d turns on certain diagnostic messages.
+#
+#      Most of these options can safely be ignored.  Just type
+#  something like "makepuzz -f wordlist," where wordlist is a file
+#  containing about sixty words, one word to a line.  Out will pop a
+#  "word-find" puzzle.  Once you get the hang of what is going on,
+#  try out the various options.
+#
+#      The algorithm used here is a combination of random insertions
+#  and mindless, brute-force iterations through possible insertion
+#  points and insertion directions.  If you don't like makepuzz's per-
+#  formance on one run, run it again.  If your puzzle is large, try
+#  increasing the timeout value (see -t above).
+#
+############################################################################
+#
+#  Links: options, random, colmize
+#
+############################################################################
+
+link options
+link random
+link colmize
+
+global height, width, _debug_
+
+procedure main(a)
+
+    local usage, opttbl, inputfile, outputfile, maxrejects, puzzle,
+	wordlist, rejects, master_list, word, timeout, x, y, l_puzzle,
+	l_wordlist, l_rejects, no_ltrs, l_no_ltrs, try, first_time
+
+    # Filename is the only mandatory argument; they can come in any order.
+    usage := "makepuzz [-f infile] [-o outfile] [-h height] [-w width] _
+	[-t secs] [-r rejects] [-s]"
+
+    # Set up puzzle height and width (default 20x20); set up defaults
+    # such as the input & output files, time to spend, target reject
+    # count, etc.
+    opttbl := options(a, "w+h+f:o:t+sr+d") # stop(usage)
+    width  := \opttbl["w"] | 20
+    height := \opttbl["h"] | 20
+    timeout := &time + (1000 * (\opttbl["t"] | 60))
+    inputfile := open(\opttbl["f"], "r") | &input
+    outputfile := open(\opttbl["o"], "w") | &output
+    maxrejects := \opttbl["r"] | 0
+    _debug_ := \opttbl["d"] & try := 0
+    first_time := 1
+
+    # Set random number seed.
+    randomize()
+
+    # Read, check, and sort word list hardest to easiest.
+    master_list := list()
+    every word := "" ~== trim(map(!inputfile)) do {
+	upto(~(&lcase++&ucase), word) &
+	    stop("makepuzz:  non-letter found in ", word)
+	write(&errout, "makepuzz:  warning, ",3 > *word,
+	      "-letter word (", word, ")")
+	put(master_list, word)
+    }
+    master_list := sort_words(master_list)
+    if \_debug_ then write(&errout, "makepuzz:  thinking...")
+
+    # Now, try to insert the words in the master list into a puzzle.
+    # Stop when the timeout limit is reached (see -t above).
+    until &time > timeout & /first_time do {
+
+	first_time := &null
+	wordlist := copy(master_list); rejects := list()
+	puzzle := list(height); every !puzzle := list(width)
+	blind_luck_insert(puzzle, wordlist, rejects)
+	brute_force_insert(puzzle, wordlist, rejects, timeout)
+
+	# Count the number of letters left over.
+	no_ltrs := 0; every no_ltrs +:= *(!wordlist | !rejects)
+	l_no_ltrs := 0; every l_no_ltrs +:= *(!\l_wordlist | !\l_rejects)
+	# If our last best try at making a puzzle was worse...
+	if /l_puzzle |
+	    (*\l_wordlist + *l_rejects) > (*wordlist + *rejects) |
+	    ((*\l_wordlist + *l_rejects) = (*wordlist + *rejects) &
+	     l_no_ltrs > no_ltrs)
+	then {
+	    # ...then save the current (better) one.
+	    l_puzzle   := puzzle
+	    l_wordlist := wordlist
+	    l_rejects  := rejects
+	}
+
+	# Tell the user how we're doing.
+	if \_debug_ then
+	    write(&errout, "makepuzz:  try number ", try +:= 1, "; ",
+		  *wordlist + *rejects, " rejects")
+
+	# See the -r argument above.  Stop if we get to a number of
+	# rejects deemed acceptable to the user.
+	if (*\l_wordlist + *l_rejects) <= maxrejects then break
+    }
+
+    # Signal to user that we're done, and set puzzle, wordlist, and
+    # rejects to their best values in this run of makepuzz.
+    write(&errout, "makepuzz:  done")
+    puzzle   := \l_puzzle
+    wordlist := \l_wordlist
+    rejects  := \l_rejects
+
+    # Print out original word list, and list of words that didn't make
+    # it into the puzzle.
+    write(outputfile, "Original word list (sorted hardest-to-easiest): \n")
+    every write(outputfile, colmize(master_list))
+    write(outputfile, "")
+    if *rejects + *wordlist > 0 then {
+	write(outputfile, "Couldn't insert the following words: \n")
+	every write(outputfile, colmize(wordlist ||| rejects))
+	write(outputfile, "")
+    }
+
+    # Scramble (i.e. put in letters for remaining spaces) if the user
+    # put -s on the command line.
+    if \opttbl["s"] then {
+	every y := !puzzle do
+	    every x := 1 to *y do
+	        /y[x] := ?&ucase
+
+        # Print out puzzle structure (answers in lowercase).
+	every y := !puzzle do {
+	    every x := !y do
+		writes(outputfile, \x | " ", " ")
+	    write(outputfile, "")
+	}
+	write(outputfile, "")
+    }
+
+    # Print out puzzle structure, all lowercase.
+    every y := !puzzle do {
+	every x := !y do
+	    writes(outputfile, map(\x) | " ", " ")
+        write(outputfile, "")
+    }
+
+    # Exit with default OK status for this system.
+    every close(inputfile | outputfile)
+    exit()
+
+end
+
+
+procedure sort_words(wordlist)
+
+    local t, t2, word, sum, l
+
+    # Obtain a rough character count.
+    t := table(0)
+    every t[!!wordlist] +:= 1
+    t2 := table()
+
+    # Obtain weighted values for each word, essentially giving longer
+    # words and words with uncommon letters the highest values.  Later
+    # we'll reverse the order (-> hardest-to-easiest), and return a list.
+    every word := !wordlist do {
+	"" == word & next
+	sum := 0
+	every sum +:= t[!word]
+	insert(t2, word, (sum / *word) - (2 * *word))
+    }
+    t2 := sort(t2, 4)
+    l := list()
+
+    # Put the hardest words first.  These will get laid down when the
+    # puzzle is relatively empty.  Save the small, easy words for last.
+    every put(l, t2[1 to *t2-1 by 2])
+    return l
+
+end
+
+
+procedure blind_luck_insert(puzzle, wordlist, rejects)
+
+    local s, s2, s3, begy, begx, y, x, diry, dirx, diry2, dirx2, i
+    # global height, width
+
+    # Try using blind luck to make as many insertions as possible.
+    while s := get(wordlist) do {
+
+	# First try squares with letters already on them, but don't
+	# try every direction yet (we're relying on luck just now).
+	# Start at a random spot in the puzzle, and wrap around.
+	begy := ?height; begx := ?width
+	every y := (begy to height) | (1 to begy - 1) do {
+	    every x := (begx to width) | (1 to begx - 1) do  {
+		every i := find(\puzzle[y][x], s) do {
+		    diry := ?3; dirx := ?3
+		    s2 := s[i:0]
+		    diry2 := 4 > (diry + 2) | 0 < (diry - 2) | 2
+		    dirx2 := 4 > (dirx + 2) | 0 < (dirx - 2) | 2
+		    s3 := reverse(s[1:i+1])
+		    if insert_word(puzzle, s2, diry, dirx, y, x) &
+			insert_word(puzzle, s3, diry2, dirx2, y, x)
+		    then break { break break next }
+		}
+	    }
+	}
+
+	# If the above didn't work, give up on spaces with characters
+	# in them; use blank squares as well.
+	every 1 to 512 do
+	    if insert_word(puzzle, s, ?3, ?3, ?height, ?width) then
+	       break next
+	# If this word doesn't submit to easy insertion, save it for
+	# later.
+	put(rejects, s)
+    }
+
+    # Nothing useful to return (puzzle, wordlist, and rejects objects
+    # are themselves modified; not copies of them).
+    return
+
+end
+
+
+procedure brute_force_insert(puzzle, wordlist, rejects, timeout)
+
+    local s, start, dirs, begy, begx, y, x
+    
+    # Use brute force on the remaining forms.
+    if *rejects > 0 then {
+	wordlist |||:= rejects; rejects := []
+	while s := pop(wordlist) do {
+	    start := ?3; dirs := ""
+	    every dirs ||:= ((start to 3) | (1 to start-1))
+	    begy := ?height; begx := ?width
+	    every y := (begy to height) | (1 to begy - 1) do {
+		if &time > timeout then fail
+		every x := (begx to width) | (1 to begx - 1) do  {
+		    if insert_word(puzzle, s, !dirs, !dirs, y, x) then
+			break { break next }
+		}
+	    }
+	    # If we can't find a place for s, put it in the rejects list.
+	    put(rejects, s)
+	}
+    }
+
+    # Nothing useful to return (puzzle, wordlist, and rejects objects
+    # are themselves modified; not copies of them).
+    return
+
+end
+
+
+procedure insert_word(puzzle, s, ydir, xdir, y, x)
+
+    local incry, incrx, firstchar
+
+    # If s is zero length, we've matched it in it's entirety!
+    if *s = 0 then {
+	return
+
+    } else {
+
+	# Make sure there's enough space in the puzzle in the direction
+	# we're headed.
+	case ydir of {
+	    "3":  if (height - y) < (*s - 1) then fail
+	    "1":  if y < (*s - 1) then fail
+	}
+	case xdir of {
+	    "3":  if (width - x) < (*s - 1) then fail
+	    "1":  if x < (*s - 1) then fail
+	}
+
+	# Check to be sure everything's in range, and that both the x and
+	# y increments aren't zero (in which case, we aren't headed in any
+	# direction at all...).
+	incry := (ydir - 2); incrx := (xdir - 2)
+	if incry = 0 & incrx = 0 then fail
+	height >= y >= 1 | fail
+	width >= x >= 1 | fail
+
+	# Try laying the first char in s down at puzzle[y][x].  If it
+	# works, head off in some direction, and try laying down the rest
+	# of s along that vector.  If at any point we fail, we must
+	# reverse the assignment (<- below).
+	firstchar := !s
+	((/puzzle[y][x] <- firstchar) | (\puzzle[y][x] == firstchar)) &
+	    insert_word(puzzle, s[2:0], ydir, xdir, y + incry, x + incrx) &
+		suspend
+	fail
+    }
+
+end

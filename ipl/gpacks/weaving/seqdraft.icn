@@ -1,0 +1,1878 @@
+############################################################################
+#
+#	File:     seqdraft.icn
+#
+#	Subject:  Program to create sequence-based weaving drafts
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 19, 1999
+#
+############################################################################
+#
+#  This is a program forcreating sequence-based weaving drafts.
+#
+#  To create a woven image from a draft, it writes an include file and then
+#  compiles and executes seqweave.icn, which includes this file, to produce
+#  the image.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics, system(), /tmp, gridplot.icn and
+#  seqweave.icn.
+#
+############################################################################
+#
+#  Links:  weavutil, interact, io, tables, vsetup, xcode, weaving, expander,
+#	   ximage, palettes, patutils
+#
+############################################################################
+#
+link expander
+link interact
+link io
+link navitrix
+link palettes
+link patutils
+link tables
+link vsetup
+link weaving
+link weavutil
+link xcode
+link ximage
+
+global db_entries			# list of specifications in database
+global sdb_file				# name of database file
+global database				# database of specifications
+global def_entries			# list of definitions
+global open_proc			# procedure needing navitrix
+global spec				# current specification
+global touched				# database changed switch
+global vidgets				# table of interface tools
+global symmetry				# symmetry vidget
+
+global current_db
+global current_lib
+global defn_db
+global expr_db
+global plte_db
+global ties_db
+global defn_lib
+global expr_lib
+global plte_lib
+global ties_lib
+
+global lib_procs
+global lib_type
+global defn_procs
+global expr_procs
+global plte_procs
+global ties_procs
+global read_def, write_def, paste_def, copy_def, new_tie
+global display_tie, display_def, read_pal, write_pal, paste_pal, copy_pal
+global display_pal
+
+record procs(new, read, write, copy, paste, display)
+record pdb(table)
+
+$define NameDefault	  "untitled_01"
+$define ThreadingDefault  "seq(0)"
+$define TreadlingDefault  "seq(0)"	# treadled as drawn in
+$define WarpColorsDefault "seq(0)"
+$define WeftColorsDefault "seq(0)"
+$define BreadthDefault	  "128"
+$define LengthDefault	  "128"
+$define ShaftsDefault	  "10"
+$define TreadlesDefault	  "10"
+$define LinksDefault	  []
+$define PaletteDefault	  "g2"
+$define ColorsDefault	  "PaletteChars(Palette)"
+
+$define DefWidth	  120		# width of definition field
+$define ExprWidth	  120		# width of expression field
+$define NameWidth	  40		# width of name field
+$define	SymWidth	  15		# width of definition field
+$define FieldWidth (SymWidth + 1)
+
+procedure main()
+   local root, root_cur, shortcuts_cur, process
+
+   nav_init()
+
+   init()
+
+   root := vidgets["root"]
+
+   repeat {			# event loop
+      case Active() of {
+         &window    :  {
+            root_cur := root
+            shortcuts_cur := shortcuts
+            process := "weavport"
+            }
+         nav_window :  {
+            root_cur := nav_root
+            shortcuts_cur := nav_keyboard
+            process := "navitrix"
+            }
+         }
+      ProcessEvent(root_cur, , shortcuts_cur)
+      case process of {
+         "weavport"  :  next
+         "navitrix"  :  {
+            case nav_state of {
+               "Cancel"  :  nav_state := &null
+               "Okay"    :  {
+                  open_proc()
+                  nav_state := &null
+                  }
+               default   :  next
+               }
+            WAttrib(nav_window, "canvas=hidden")
+            }
+         }
+      process := "weavport"
+      }
+
+end
+
+#  Set parameters for smooth blend
+
+procedure blend_spec()
+
+   spec.colors := "PaletteChars(Palette)"
+   spec.warp_colors := "seq(0)"
+   spec.weft_colors := "seq(0)"
+
+   palette()
+
+   return
+
+end
+
+#  Clear the table of definitions.
+
+procedure clear_defs()
+
+   if AskDialog("Do you really want to clear the definition table?") ==
+      "No" then fail
+
+   spec.defns := table()
+   refresh_lib()
+
+   return
+
+end
+
+#  Clear the database of specifications (a default one is then added).
+
+procedure clear_sdb()
+
+   if AskDialog("Are you sure you want to clear the current database?") ==
+      "No" then fail
+
+   database := table()
+
+   sdb_file := &null
+
+   new_spec()
+
+   refresh_sdb()
+
+   return
+
+end
+
+procedure swapt_cb()
+
+   spec.threading :=: spec.treadling
+
+   refresh_sdb()
+
+   return
+
+end
+
+procedure swapc_cb()
+
+   spec.warp_colors :=: spec.weft_colors
+
+   refresh_sdb()
+
+   return
+
+end
+
+procedure color_writ_cb()
+
+   spec.weft_colors := spec.warp_colors
+
+   refresh_sdb()
+
+   return
+
+end
+
+#  Specify colors from palette
+
+procedure colors()
+   local input, line, c
+   static file, number
+
+   repeat {
+      if TextDialog("Colors:", , spec.colors, ExprWidth) == "Cancel" then fail
+      spec.colors := dialog_value[1]
+      return
+      }
+
+end
+
+#  Edit specification comments.
+
+procedure comments()
+
+   repeat {
+      case TextDialog("Comments:", , spec.comments, ExprWidth,
+         ["Default", "Okay", "Cancel"], 2) of {
+            "Cancel"   :  fail
+            "Default"  :  {
+               spec.comments := &dateline		# default comments
+               next
+               }
+            "Okay"     :  {
+               spec.comments := dialog_value[1]
+               break
+               }
+            }
+      }
+
+   return
+
+end
+
+#  Callback for selection of an item from the expressions text-list.
+
+procedure configuration_cb(vidget, value)
+
+   case vidget.id of {
+      "drawdown"  :  drawdown_spec()
+      "blend"     :  blend_spec()
+      }
+
+   return
+
+end
+
+procedure database_cb(vidget, value)
+
+   case value[1] of {
+      "load @L"  :  open_file(load_db)
+      "save"     :  save_db()
+      "clear"    :  clear_db()
+      }
+
+   return
+
+end 
+
+procedure copy_tie()
+   local output
+
+   output := open("/tmp/tieup", "w") | {
+      Notice("Cannot copy.")
+      fail
+      }
+
+   write(output, spec.tieup)
+
+   close(output)
+
+   return
+
+end
+
+#  Make the expression in the current dialog into a definition.
+
+procedure define(s)
+
+   if TextDialog("Add definition:", ["name", "definition"], [, s],
+      [SymWidth, ExprWidth]) == "Cancel" then fail
+
+   spec.defns[dialog_value[1]] :=  dialog_value[2]
+   refresh_lib()
+
+   return
+
+end
+
+procedure dir_tieup_cb()
+   local row, i, tie
+
+   row := "1" || repl("0", spec.shafts - 1)
+
+   tie := row
+
+   every i := 1 to spec.treadles - 1 do
+      tie ||:= rotate(row, -i)
+
+   spec.tieup := tie2pat(spec.shafts, spec.treadles, tie)
+
+   refresh_sdb()
+
+   return
+
+end
+
+#  Display all the current definitions.
+
+procedure display_defs()
+   local definition, lines, i
+
+   if *def_entries = 0 then {
+      Notice("The definition table is empty.")
+      fail
+      }
+
+   lines := []
+
+   every definition := !def_entries do
+      put(lines, left(definition, 12) ||
+         left(spec.defns[definition], ExprWidth))
+
+   push(lines, "", "name             definition ")
+
+   Notice ! lines
+
+   return
+
+end
+
+#  Display a specification.
+
+procedure display_spec(dspec)
+   local lines, s, lst
+
+   /dspec := spec
+
+   lines := [
+      "Specifications:",
+      "",
+      left("Name", FieldWidth) || dspec.name,
+      left("Breadth", FieldWidth) || dspec.breadth,
+      left("Length", FieldWidth) || dspec.length,
+      left("Shafts", FieldWidth) || dspec.shafts,
+      left("Treadles", FieldWidth) || dspec.treadles,
+      left("Threading", FieldWidth) || dspec.threading,
+      left("Treadling", FieldWidth) || dspec.treadling,
+      left("Warp Colors", FieldWidth) || dspec.warp_colors,
+      left("Weft Colors", FieldWidth) || dspec.weft_colors,
+      left("Tieup", FieldWidth) || dspec.tieup,
+      left("Palette", FieldWidth) || dspec.palette,
+      left("Colors", FieldWidth) || dspec.colors,
+      left("Comments", FieldWidth) || (\dspec.comments | "")
+      ]
+
+   if *dspec.defns > 0 then {
+      put(lines, "", "Definitions:", "")
+      every put(lines, left(s := !keylist(dspec.defns), FieldWidth) ||
+         (\dspec.defns[s] | "") \ 1)
+      }
+
+   Notice ! lines
+
+   return
+
+end
+
+# Set parameters for drawdown.
+
+procedure drawdown_spec()
+
+   spec.palette := "g2"
+   spec.colors := image("01")
+   spec.warp_colors := "|0"
+   spec.weft_colors := "|1"
+
+   return
+
+end
+
+#  Duplicate the current specification and make it current.
+
+procedure dupl_spec()
+   local head, serial, count, i, name
+   static notdigit
+
+   initial notdigit := &cset -- &digits
+
+   spec.name ? {		# SHOULD CHECK TO AVOID OVERWRITING EXISTING
+      i := 0
+      every i := upto(notdigit)
+      head := tab(i)
+      head ||:= tab(many(notdigit))
+      serial := tab(0)
+      if *serial = 0 then serial := 0
+      count := serial + 1
+      if *count <= *serial then count := right(count, *serial, "0")
+      else count := "1" || repl("0", *count - 1)
+      name := head || count
+      } | {
+        Notice("Name generation failed.")
+        fail
+        }
+
+   repeat {
+      if \database[name] then {
+         case TextDialog("Name in use.", "new name", spec.name, 30) of {
+            "Cancel"  :  fail
+            "Okay"    :  {
+               name := dialog_value[1]
+               next
+               }
+             }
+          }
+       else break
+       }
+ 
+   spec := copy(spec)
+   spec.name := name
+   spec.defns := copy(spec.defns)
+
+   database[name] := spec
+
+   refresh_lib()
+
+   refresh_sdb()
+
+   return
+
+end
+
+#  Items for the File menu.
+
+procedure file_cb(vidgets, value)
+
+   case value[1] of {
+      "generate"    :  weaveit()
+      "open    @O"  :  open_file(load_sdb)
+      "save    @S"  :  save_sdb()
+      "save as @U"  :  save_as_sdb()
+      "export  @X"  :  write_draft()
+      "export all"  :  write_all()
+      "import"      :  read_draft()
+      "revert  @V"  :  revert()
+      "show grids"  :  show_grids()
+      "quit    @Q"  :  quit()
+      "clear   @Z"  :  clear_sdb()
+      }
+
+   return
+
+end
+
+#  Set the height.
+
+procedure height()
+
+   repeat {
+      case TextDialog("Height:", , spec.length, NameWidth,
+         ["Default", "Okay", "Cancel"], 2) of {
+            "Cancel" :  fail
+            "Default":  {
+               spec.length := LengthDefault
+               next
+               }
+            "Okay"   :  {
+               spec.length := dialog_value[1]
+               break
+               }
+            }
+      }
+
+   return
+
+end
+
+#  Initialize the application.
+
+procedure init()
+   local atts
+
+   atts := ui_atts()
+   push(atts, "posx=10", "posy=10")
+
+   (WOpen ! atts) | ExitNotice("Cannot open interface window.")
+
+   vidgets := ui()
+
+   symmetry := vidgets["symmetry"]
+
+   VSetState(symmetry, "none")
+   VSetState(vidgets["library"], "expressions")
+
+   database := table()
+
+   #  As yet undefined procedures
+
+   read_def := write_def := paste_def := copy_def := display_def := new_tie :=
+      display_tie := write_pal := paste_pal := copy_pal := read_pal :=
+         display_pal := 1
+
+   defn_procs := procs(new_def, read_def, write_def, copy_def, paste_def, display_def)
+   plte_procs := procs(new_pal, read_pal, write_pal, copy_pal, paste_pal, display_pal)
+   ties_procs := procs(new_tie, read_tie, write_tie, copy_tie, paste_tie, display_tie)
+
+   lib_procs := ties_procs
+   lib_type := "tdb"
+
+   
+   defn_db := table()
+   expr_db := table()
+   plte_db := table()
+   ties_db := table()
+   defn_lib := table()
+   expr_lib := table()
+   plte_lib := table()
+   ties_lib := table()
+
+   current_db := ties_db
+   current_lib := ties_lib
+
+   new_spec(1)
+
+   touched := &null
+
+   return
+
+end
+
+procedure launch()
+
+   if system("mtrxedit &") ~= 0 then
+      Notice("Cannot launch tie-up editor.")
+
+   Raise()
+
+end
+
+procedure libraries_cb(vidget, value)
+
+   lib_procs := case value of {
+      "definitions"  :  defn_procs
+      "expressions"  :  expr_procs
+      "palettes"     :  plte_procs
+      "tie-ups"      :  ties_procs
+      }
+
+   lib_type := case value of {
+      "definitions"  :  "ddb"
+      "expressions"  :  "edb"
+      "palettes"     :  "pdb"
+      "tie-ups"      :  "tdb"
+      }
+
+   return
+
+end
+
+
+#  Callback for selection from the definitions text-list.
+
+procedure lib_cb(vidget, value)
+   local i
+   static fields, selections
+
+   initial {
+      fields := ["threading", "treading"]
+      selections := [1, 1]
+      }
+
+   if /value then fail
+
+   case lib_type of {
+      "ddb":  {
+         if TextDialog(value, , value) == "Cancel" then fail
+            spec.defns[value] := dialog_value[1]
+            }
+      "edb"  :  {
+         if ToggleDialog(, fields, selections) == "Cancel" then fail
+         selections := dialog_value
+         if \selections[1] then spec.threading := current_lib[value]
+         if \selections[2] then spec.treadling := current_lib[value]
+         }
+      "pdb"  :  {
+         spec.palette := value
+         colors()
+         }
+      "tdb"  :  update_loom(pat2tier(current_lib[value]))
+      }
+
+   refresh_sdb()
+
+   return
+
+end
+
+#  Load a specification database.  If sw is null, it replaces the current
+#  database.  If sw is 1, it is merged with the current database.  If sw
+#  is 2, the database reverts to the last one loaded.
+
+procedure load_sdb(sw)
+   local input, db, caption, name
+
+   input := open(nav_file) | {
+      return FailNotice("Cannot open " || image(nav_file) || ".")
+      }
+
+   db := xdecode(input) | {
+      Notice("Cannot decode database.")
+      fail
+      }
+
+   sdb_file := nav_file
+
+   close(input)
+
+   if type(db) == ("list" | "sdb") then {
+      name := db[2]
+      db := db[1]
+      }
+   else {
+      Notice("Bad database format.")
+      fail
+      }
+
+   database := if sw === 1 then tblunion(database, db) else db
+
+   if type(db) ~== "table" then {
+      Notice("Internal error in loading specification database.")
+      fail
+      }
+
+   refresh_sdb(name)
+   refresh_lib()			# NEED TO SET UP
+
+   return
+
+end
+
+#  Load a database.
+
+procedure load_db()
+   local input, db, caption, name
+
+   initial (ddb, edb, pdb, tdb, Palette_)	# protect from voracious linker
+
+   input := open(nav_file) | {
+      return FailNotice("Cannot open " || image(nav_file) || ".")
+      }
+
+   db := xdecode(input) | {
+      Notice("Cannot decode database.")
+      close(input)
+      fail
+      }
+
+   close(input)
+
+   if type(db) ~== lib_type then {
+      Notice("Bad database format: " || type(db) || ".")
+      fail
+      }
+
+   db := db.table
+
+   refresh_db(db)
+
+   return
+
+end
+
+#  Configure loom.
+
+procedure loom()
+   local tie_line
+
+   repeat {
+      if TextDialog("Loom:", ["shafts", "treadles"],
+         [spec.shafts, spec.treadles], 3)  == "Cancel" then fail
+      spec.shafts <- (0 < dialog_value[1]) &
+      spec.treadles <- (0 < dialog_value[2]) | {
+         Notice("Invalid specification.")
+         next
+         }
+      refresh_sdb()
+      return
+      }
+
+end
+
+#  Add (or overwrite) definition.
+
+procedure new_def()
+
+   if TextDialog("Add definition:", ["name", "definition"], , 
+      [SymWidth, ExprWidth]) == "Cancel" then fail
+
+   spec.defns[dialog_value[1]] := dialog_value[2]
+   refresh_lib()
+
+   return
+
+end
+
+#  Create a fresh, empty definitions table.
+
+procedure new_defs()
+
+   spec.defns := table()
+
+   return
+
+end
+
+#  Create a new specification from the default.
+
+procedure new_spec(sw)
+
+   spec := weaving()
+   spec.name := NameDefault
+   spec.breadth := BreadthDefault
+   spec.length := LengthDefault
+   spec.shafts := ShaftsDefault
+   spec.treadles := TreadlesDefault
+   spec.threading := ThreadingDefault
+   spec.treadling := TreadlingDefault
+   spec.palette := PaletteDefault
+   spec.colors := ColorsDefault
+   spec.warp_colors := WarpColorsDefault
+   spec.weft_colors := WeftColorsDefault
+   spec.comments := &dateline
+
+   new_defs()
+
+   if /sw then rename_spec()
+
+   dir_tieup_cb()
+
+   database[spec.name] := spec
+   refresh_sdb()
+
+   return
+
+end
+
+#  Set procedure for using file from navitrix.
+
+procedure open_file(p)
+
+   WAttrib(nav_window, "canvas=normal")
+
+   open_proc := p
+
+   return
+
+end
+
+procedure palette()
+
+   repeat {
+      case TextDialog("Palette:", , spec.palette, ExprWidth,
+         ["Default", "Okay", "Cancel"], 2) of {
+            "Cancel"   : fail
+            "Default"  :  {
+               spec.palette := PaletteDefault
+               next
+               }
+            "Okay"     :  {
+               spec.palette := dialog_value[1]
+               break
+               }
+            }
+      }
+
+   colors()
+
+   return
+
+end
+
+#  Items for the Parameters menu.
+
+procedure parameters_cb(vidget, value)
+
+   case vidget.id of {
+      "threading"  :  threading()
+      "treadling"  :  treadling()
+      "warp"       :  warp_colors()
+      "weft"       :  weft_colors()
+      "width"      :  width()
+      "height"     :  height()
+      "loom"       :  loom()
+      "palette"    :  palette()
+      "colors"     :  colors()
+      }
+
+   return
+
+end
+
+procedure paste_tie()
+   local input, tieup
+
+   input := open("/tmp/tieup") | {
+         Notice("Cannot paste.")
+         fail
+         }
+
+   tieup := read(input) | {
+      Notice("Cannot process tie-up.")
+      close(input)
+      fail
+      }
+
+   close(input)
+
+   update_loom(tieup)
+
+   refresh_sdb()
+
+   return
+
+end
+
+procedure update_loom(tieup)
+   local dims
+
+   dims := tiledim(tieup)
+   spec.shafts := dims.h
+   spec.treadles := dims.w
+   spec.tieup := tieup
+
+   return
+
+end
+
+#  Quit the application.
+
+procedure quit()
+
+   if /touched then exit()
+
+   case SaveDialog("Save specification database?", sdb_file) of {
+      "Cancel"  :  fail
+      "No"      :  exit()
+      "Yes"     :  {
+         save_sdb()
+         exit()
+         }
+      }
+
+   return
+
+end
+
+#  Read draft.
+
+procedure read_draft()
+   local path, file_type, input, pfd
+   static file
+
+   repeat {
+      file_type :=  TextDialog("Read draft:", , file, 60,
+         ["PFD", "WVP", "WIF", "PWL", "Cancel"])
+      if file_type == "Cancel" then fail
+      file := dialog_value[1]
+      input := open(file) | {
+         Notice("Cannot open file.")
+         next
+         }
+      case file_type of {
+         "PFD":  {
+            pfd := expandpfd(readpfd(input)) | {
+               Notice("Could not decode PFD.")
+               next
+               }
+            spec.name := pfd.name
+            spec.threading := "!" || image(pfd.threading)
+            spec.treadling := "!" || image(pfd.treadling)
+            spec.warp_colors := "!" || image(pfd.warp_colors)
+            spec.weft_colors := "!" || image(pfd.weft_colors)
+            spec.palette := pfd.palette
+            spec.colors := image(pfd.colors)
+            spec.shafts := pfd.shafts
+            spec.treadles := pfd.treadles
+            spec.tieup := pfd.tieup
+            }
+         default  :  {
+            Notice(file_type || " not supported.")
+            next
+            }
+         }
+      close(input)
+      return
+      }
+
+   refresh_sdb()
+
+end
+
+procedure read_file()
+
+   return read_tie()		# FOR NOW
+
+end
+
+procedure read_tie()
+   local input, tieup, dims
+
+   repeat {
+      if OpenDialog("Read tie-up:") == "Cancel" then fail
+      input := open(dialog_value) | {
+         Notice("Cannot open file.")
+         next
+         }
+      tieup := read(input) | {
+         Notice("Cannot read tie-up.")
+         close(input)
+         next
+         }
+      close(input)
+      dims := tiledim(tieup)
+      spec.shafts := dims.w
+      spec.treadles := dims.h
+      spec.tieup := tieup
+      refresh_sdb()
+      return
+      }
+
+end
+
+#  Refresh the database
+
+procedure refresh_db(db)
+
+   current_db := db
+
+   case lib_type of {
+      "edb"  :  expr_db := db
+      "pdb"  :  plte_db := db
+      }					# FINISH
+
+   VSetItems(vidgets["db"], keylist(db)) 
+
+   touched := 1
+
+   return
+
+end
+
+#  Refresh the database
+
+procedure refresh_lib(lib)
+
+   if /lib then fail					#  NEEDS SETUP
+
+   current_lib := lib
+
+   VSetItems(vidgets["lib"], keylist(lib)) 
+
+   touched := 1
+
+   return
+
+end
+
+#  Refresh the specification database.
+
+procedure refresh_sdb(name, sw)
+
+   VSetItems(vidgets["specifications"], db_entries := keylist(database))
+
+   if \name then spec := database[name]
+   else spec := database[db_entries[-1]]
+
+   update()
+
+   if /sw then touched := 1
+
+   return
+
+end
+
+#  Edit the specification name.
+
+procedure rename_spec(sw)
+   local old_name, name
+
+   old_name := spec.name
+   name := spec.name
+
+   if OpenDialog("Name:", name) == "Cancel" then fail
+   else {
+       spec.name := dialog_value
+       database[spec.name] := spec
+       if /sw then delete(database, old_name)
+       refresh_sdb()
+       }
+
+   return
+
+end
+
+# Revert to last saved database
+
+procedure revert()
+   local tbl, input
+
+   input := open(\sdb_file) | {
+      Notice("Cannot open specificationdatabase.")
+      fail
+      }
+
+   tbl := xdecode(input) | {
+      Notice("Cannot decode database.")
+      fail
+      }
+
+   close(input)
+
+   if type(tbl) == "sdb" then {
+      name := tbl[2]
+      tbl := tbl[1]
+      }
+   else {
+      Notice("Bad database format.")
+      fail
+      }
+
+   database := tbl
+
+   refresh_sdb(name)
+   refresh_lib()
+
+   return
+
+end
+
+#  Save the current database to a specified file.
+
+procedure save_as_sdb()
+   local output, file
+
+   repeat {
+      if OpenDialog("Save specification database:", sdb_file) == "Cancel" then fail
+      file := dialog_value
+      if exists(file) then {
+         if AskDialog("Overwrite existing file?") == "No" then fail
+         }
+      output := open(file, "w") | {
+         Notice("Cannot open database file for writing.")
+         next
+         }
+      sdb_file := file
+      xencode(sdb(database, spec.name), output)
+      close(output)
+      touched := &null
+      return
+      }
+
+end
+
+#  Save the current table of definitions to a file.
+
+procedure save_defs()
+   local output, file
+
+   repeat {
+      if OpenDialog("Save definitions:") == "Cancel" then fail
+      file := dialog_value
+      if exists(file) then {
+         if AskDialog("Overwrite existing file?") == "No" then next
+         }
+      output := open(file, "w") | {
+         Notice("Cannot open definitions file for writing.")
+         next
+         }
+      xencode(spec.defns, output)
+      close(output)
+      return
+      }
+
+end
+
+#  Save the current database.
+
+procedure save_sdb()
+   local output
+
+   if /sdb_file then {			# NEEDS WORK
+      repeat{
+         if OpenDialog("Save specification database:") == "Cancel" then fail
+         sdb_file := dialog_value
+         break
+         }
+      }
+
+   output := open(sdb_file, "w") | {
+      Notice("Cannot write database file.")
+      sdb_file := ""
+      fail
+      }
+
+   xencode(sdb(database, spec.name), output)
+
+   close(output)
+
+   touched := &null
+
+   return
+
+end
+
+#  Keyboard shortcuts.
+
+procedure shortcuts(e)
+
+   if e === "\r" then weaveit()	# quick generation initiation
+   else if &meta then case map(e) of {
+      "0"  :  write(ximage(database))	# ... undocumented
+      "1"  :  launch()			# ... undocumented
+      "2"  :  show_error()		# ... only available as a shortcut
+      "3"  :  ()
+      "4"  :  ()
+      "5"  :  ()
+      "6"  :  ()
+      "7"  :  ()
+      "8"  :  ()
+      "9"  :  ()
+      "a"  :  ()
+      "b"  :  ()
+      "c"  :  lib_procs.copy()		# Update menu
+      "d"  :  dupl_spec()		# File menu
+      "e"  :  write_draft()		# File menu
+      "f"  :  ()
+      "g"  :  show_grids()		# File menu
+      "h"  :  ()
+      "i"  :  display_spec()		# Specification menu
+      "j"  :  ()
+      "k"  :  comments()
+      "l"  :  open_file(load_db)	# Database menu
+      "m"  :  rename_spec()
+      "n"  :  new_spec()		# Specification menu
+      "o"  :  open_file(load_sdb)	# File menu
+      "p"  :  lib_procs.paste()		# Update menu
+      "q"  :  quit()			# File menu
+      "r"  :  lib_procs.read()		# Update menu
+      "s"  :  save_sdb()		# File menu
+      "t"  :  ()
+      "u"  :  save_as_sdb()		# File menu
+      "v"  :  revert()			# File menu
+      "w"  :  lib_procs.write()		# Update menu
+      "x"  :  write_draft()		# file menu
+      "y"  :  ()
+      "z"  :  clear_sdb()		# File menu
+      }
+
+   return
+
+end
+
+procedure show_error()
+   local input, log
+
+   input := open("/tmp/err") | {
+      Notice("Cannot open error log.")
+      fail
+      }
+
+   log := ["Error log:", ""]
+
+   while put(log, read(input))
+
+   close(input)
+
+   Notice ! log
+
+   return
+
+end
+
+#  Show plots of grids
+#
+#  COMBINE CODE WITH weaveit()
+
+procedure show_grids()
+   local path, i, tie_line
+
+   WAttrib("pointer=watch")
+
+   write_spec("include.wvp", spec, "w", VGetState(symmetry)) | {
+      Notice("Cannot open include file for writing.")
+      fail
+      }
+
+   path := dpath("plotgrid.icn") | {
+      Notice("Fatal error; cannot find grid plotting program.")
+      fail
+      }
+
+   remove("/tmp/err")
+
+   if system("icont -s " || path || "  >/dev/null 2>/tmp/err") ~= 0 then {
+      Notice("Error during compilation.")
+      WAttrib("pointer=arrow")
+      fail
+      }
+
+   if system("plotgrid >/dev/null 2>/tmp/err") ~= 0 then {
+      Notice("Runtime error.")
+      WAttrib("pointer=arrow")
+      fail
+      }
+
+   Raise()
+
+   WAttrib("pointer=arrow")
+
+   return
+
+end
+
+#  Callback for item selected from specifications list.
+
+procedure spec_cb(vidget, value)
+   local state
+   static db, sw
+
+   initial db := vidgets["specifications"]
+
+   if /value then return		# deselected item
+
+   if \sw then {			# prevent loop from internal call
+      sw := &null
+      return
+      }
+
+   state := VGetState(db)		# save state to restore position
+
+   repeat {
+      case TextDialog("Specification " || value, , , ,
+         ["Delete", "Display", "Okay", "Cancel"], 3) of {
+            "Cancel"   :  fail
+            "Okay"     :  {
+#              spec.name := value
+#              spec := database[spec.name]
+               refresh_lib()
+               sw := 1
+               refresh_sdb(value, sw)
+               VSetState(db, state)
+               return
+               }
+            "Delete"   :  {
+               if value == spec.name then {
+                  Notice("You cannot delete the current specification.")
+                  next
+                  }
+               delete(database, value)
+               refresh_sdb()
+               return
+               } 
+            "Display"  :  {
+               display_spec(database[value])
+               next
+               }
+            }
+      }
+
+end
+
+#  Items for the Specification menu.
+
+procedure specification_cb(vidget, value)
+
+   case value[1] of {
+      "new       @N"  :  new_spec()
+      "duplicate @D"  :  dupl_spec()
+      "rename    @M"  :  rename_spec()
+      "comment   @K"  :  comments()
+      "display   @I"  :  display_spec()
+      }
+
+   return
+
+end
+
+procedure str_draw_cb()
+
+   spec.threading := "seq()"
+   spec.treadling := "seq()"
+
+   refresh_sdb()
+
+   return
+
+end
+
+#  Edit the threading specification.
+
+procedure threading()
+   local input, line
+   static file, number
+
+   initial number := 1
+
+   repeat {
+      case TextDialog("Threading:", , spec.threading, ExprWidth,
+         ["Read", "Define", "Default", "Copy Treadling", "Okay", "Cancel"], 5) of {
+            "Read"            :  {
+                repeat {
+                   if TextDialog("Threading file:", ["name", "line"],
+                      [file, number], [60, 5]) == "Cancel" then fail
+                   input := open(dialog_value[1]) | {
+                      Notice("Cannot open file.")
+                      next
+                      }
+                   file := dialog_value[1]
+                   every 1 to number do
+                      line := read(input) | {
+                         Notice("Short file.")
+                         close(input)
+                         break next
+                         }
+                   spec.threading := line
+                   close(input)
+                   break
+                   }
+                }
+            "Define"          :  {
+               define(dialog_value[1])
+               break
+               }
+            "Cancel"          :  fail
+            "Default"         :  {
+               spec.threading := ThreadingDefault
+               next
+               }
+            "Copy Treadling"  :  {
+               spec.threading := spec.treadling
+               next
+               }
+            "Okay"            :  {
+               spec.threading := dialog_value[1]
+               break
+               }
+            }
+     }
+
+   return
+
+end
+
+procedure to_db_cb()
+
+   return
+
+end
+
+procedure db_all_to_lib_cb()
+   local lib
+
+   case lib_type of {
+      "pdb":  lib := plte_lib := current_db
+      }					# FINISH
+
+   refresh_lib(lib)
+
+   return
+
+end
+
+#  Edit the treadling expression.
+
+procedure treadling()
+   local file, input, line
+   static number
+
+   initial number := 1
+
+   repeat {
+      case TextDialog("Treadling:", , spec.treadling, ExprWidth,
+         ["Read", "Define", "Default", "Copy Threading", "Okay", "Cancel"], 5) of {
+            "Define" :  {
+               define(dialog_value[1])
+               break
+               }
+            "Cancel" :  fail
+            "Read"   :  {
+                repeat {
+                   if TextDialog("Treadling file:", ["name", "line"],
+                      [file, number], [60, 5]) == "Cancel" then fail
+                   input := open(dialog_value[1]) | {
+                      Notice("Cannot open file.")
+                      next
+                      }
+                   file := dialog_value[1]
+                   every 1 to number do
+                      line := read(input) | {
+                         Notice("Short file.")
+                         close(input)
+                         break next
+                         }
+                   spec.treadling := line
+                   close(input)
+                   break
+                   }
+                }
+            "Default":  {
+               spec.treadling := TreadlingDefault
+               next
+               }
+            "Copy Threading":  {
+               spec.treadling := spec.threading
+               next
+               }
+            "Okay"   :  {
+               spec.treadling := dialog_value[1]
+               break
+               }
+            }
+      }
+
+   return
+
+end
+
+procedure tromp_writ_cb()
+
+   spec.treadling := spec.threading
+
+   refresh_sdb()
+
+   return
+
+end
+
+#  Update the display on the interface
+#  GET RID OF REVERSIBLE DRAWING IN FAVOR OF ERASURE
+
+procedure update()
+   static previous_name, sx, sy
+
+   initial {
+      sx := vidgets["placeholder"].ax
+      sy := vidgets["placeholder"].ay + WAttrib("leading") + 2	# AD HOC
+      }
+
+   #  Update selection information on interface.
+
+   WAttrib("drawop=reverse")
+
+   DrawString(sx, sy, \previous_name)
+   DrawString(sx, sy, spec.name)
+
+   WAttrib("drawop=copy")
+
+   previous_name := spec.name
+
+   return
+
+end
+
+procedure update_cb(vidget, value)
+
+   case value[1] of {
+      "read  @R"  :  lib_procs.read()  
+      "write @W"  :  lib_procs.write()
+      "copy  @C"  :  lib_procs.copy()
+      "paste @P"  :  lib_procs.paste()
+      "new"       :  lib_procs.new()
+      }
+
+   return
+
+end
+
+procedure warp_colors()
+   local input, line
+   static file, number
+
+   repeat {
+      case TextDialog("Warp colors:", , spec.warp_colors, ExprWidth,
+         ["Read", "Define", "Default", "Copy Weft Colors", "Okay", "Cancel"], 5) of {
+            "Read"               :  {
+                repeat {
+                   if TextDialog("Color file:", ["name", "line"],
+                      [file, number], [60, 5]) == "Cancel" then fail
+                   input := open(dialog_value[1]) | {
+                      Notice("Cannot open file.")
+                      next
+                      }
+                   file := dialog_value[1]
+                   every 1 to number do
+                      line := read(input) | {
+                         Notice("Short file.")
+                         close(input)
+                         break next
+                         }
+                   spec.warp_colors := line
+                   close(input)
+                   break
+                   }
+                }
+            "Define"            :  {
+               define(dialog_value[1])
+               break
+               }
+            "Cancel"            :  fail
+            "Default"           :  {
+               spec.warp_colors := WarpColorsDefault
+               next
+               }
+            "Okay"              :  {
+               spec.warp_colors := dialog_value[1]
+               break
+               }
+            "Copy Weft Colors"  : {
+               spec.warp_colors := spec.weft_colors
+               next
+               }
+            }
+      }
+
+   return
+
+end
+
+#  Create a weaving from the current specification.
+
+procedure weaveit()
+   local path, i, tie_line, pdb
+
+   WAttrib("pointer=watch")
+
+   write_spec("include.wvp", spec, "w", VGetState(symmetry)) | {
+      Notice("Cannot open include file for writing.")
+      fail
+      }
+
+   path := dpath("seqweave.icn") | {
+      Notice("Fatal error; cannot find weaving generation program.")
+      fail
+      }
+
+   pdb := open("/tmp/pdb", "w") | {
+      Notice("Cannot write palette information.")
+      fail
+      }
+
+   xencode(plte_lib, pdb)
+
+   close(pdb)
+
+   remove("/tmp/err")
+
+   if system("icont -s " || path || "  >/dev/null 2>/tmp/err") ~= 0 then {
+      Notice("Error during compilation.")
+      WAttrib("pointer=arrow")
+      fail
+      }
+
+   if system("seqweave >/dev/null 2>/tmp/err") ~= 0 then {
+      Notice("Runtime error.")
+      WAttrib("pointer=arrow")
+      fail
+      }
+
+   Raise()
+
+   WAttrib("pointer=arrow")
+
+   return
+
+end
+
+procedure weft_colors()
+   local input, line
+   static file, number
+
+   repeat {
+      case TextDialog("Weft colors:", , spec.weft_colors, ExprWidth,
+         ["Read", "Define", "Default", "Copy Warp Colors", "Okay", "Cancel"], 5) of {
+            "Read"              :  {
+                repeat {
+                   if TextDialog("Color file:", ["name", "line"],
+                      [file, number], [60, 5]) == "Cancel" then fail
+                   input := open(dialog_value[1]) | {
+                      Notice("Cannot open file.")
+                      next
+                      }
+                   file := dialog_value[1]
+                   every 1 to number do
+                      line := read(input) | {
+                         Notice("Short file.")
+                         close(input)
+                         break next
+                         }
+                   spec.weft_colors := line
+                   close(input)
+                   break
+                   }
+                }
+            "Define"            :  {
+               define(dialog_value[1])
+               break
+               }
+            "Cancel"            :  fail
+            "Default"           :  {
+               spec.weft_colors := WeftColorsDefault
+               next
+               }
+            "Okay"              :  {
+               spec.weft_colors := dialog_value[1]
+               break
+               }
+            "Copy Warp Colors"  : {
+               spec.weft_colors := spec.warp_colors
+               next
+               }
+            }
+      }
+
+   return
+
+end
+
+#  Edit the width.
+
+procedure width()
+
+   repeat {
+      case TextDialog("Breadth:", , spec.breadth, NameWidth,
+         ["Default", "Okay", "Cancel"], 2) of {
+            "Cancel"   :  fail
+            "Default"  :  {
+               spec.breadth := BreadthDefault
+               next
+               }
+            "Okay"     :  {
+               spec.breadth := dialog_value[1]
+               break
+               }
+            }
+      }
+
+   return
+
+end
+
+#  Write the all drafts.
+
+procedure write_all()
+   local path, file_type, file, spec
+
+   repeat {
+      case TextDialog("Save drafts for all:", , , ,
+         ["PFD", "WVP", "WIF", "PWL", "TIE", "Cancel"]) of {
+         "PFD"  :  {
+            path := dpath("wvp2pfd.icn") | {
+            Notice("Cannot open conversion program.")
+               next
+               }
+            WAttrib("pointer=watch")
+            every spec := !database do {
+               file := spec.name || ".pfd"
+               write_spec("include.wvp", spec, VGetState(symmetry))
+               if system("icont -s " || path || " -x > " || file) ~= 0 then {
+                  Notice("Attempt to write pattern-form draft failed.")
+                  WAttrib("pointer=arrow")
+                  break break
+                  }
+               }
+            WAttrib("pointer=arrow")
+            return
+            }
+         "WVP"     :  {
+            WAttrib("pointer=watch")
+            every spec := !database do {
+               file := spec.name || ".wvp"
+               write_spec(file, spec, , VGetState(symmetry))
+               }
+            WAttrib("pointer=arrow")
+            return
+            }
+         "Cancel"  :  fail
+         default   :  {
+            Notice(file_type || " not supported yet.")
+            next
+            }
+         }
+      }
+
+end
+
+#  Write draft for current specification.
+
+procedure write_draft()
+   local path, file_type, file
+
+   repeat {
+      file_type :=  TextDialog("Save draft:", , spec.name, 60,
+         ["WVP", "PFD", "WIF", "PWL", "TIE", "Cancel"])
+      if file_type == "Cancel" then fail
+      file := dialog_value[1]
+      if exists(file) then {
+         if AskDialog("Overwrite existing file?") == "No" then next
+         }
+      case file_type of {
+         "WVP"    :  {
+            file ||:= ".wvp"
+            write_spec(file, spec, , VGetState(symmetry))
+            return
+            }
+         "PFD"    :  {
+            file ||:= ".pfd"
+            WAttrib("pointer=watch")
+            write_spec("include.wvp", spec, , VGetState(symmetry))
+            path := dpath("wvp2pfd.icn") | {
+               Notice("Cannot open conversion program.")
+               fail
+               }
+            if system("icont -s " || path || " -x > " || file) ~= 0 then {
+               Notice("Attempt to write pattern-form draft failed.")
+               WAttrib("pointer=arrow")
+               break
+               }
+            WAttrib("pointer=arrow")
+            return
+            }
+         default  :  {
+            Notice(file_type || " not supported.")
+            next
+            }
+         }
+      }
+
+end
+
+procedure write_file()
+
+   return write_tie()		# FOR NOW
+
+end
+
+procedure write_tie()
+   local output
+
+   repeat {
+      if OpenDialog("Write tie-up:") == "Cancel" then fail
+      output := open(dialog_value, "w") | {
+         Notice("Cannot open file for writing.")
+         next
+         }
+      write(output, spec.tieup)
+      close(output)
+      return
+      }
+
+end
+
+procedure save_db(); return; end
+procedure clear_db(); return; end
+procedure new_pal(); return; end
+procedure as_thread_cb2(); return; end
+procedure bands_cb(); return; end
+procedure clr_as_warp_cb(); return; end
+procedure db_to_lib_cb(); return; end
+procedure lib_all_to_db_cb(); return; end
+procedure lib_to_db(); return; end
+procedure str_draw_th_cb(); return; end
+procedure str_draw_tr_cb(); return; end
+procedure swapc_tb(); return; end
+procedure th_peak_cb(); return; end
+procedure tieup_cb(); return; end
+procedure tr_peak_cb(); return; end
+procedure warp_straight_cb(); return; end
+procedure warp_peak_cb(); return; end
+procedure weft_peaks_cb(); return; end
+procedure weft_straight_cb(); return; end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=610,460", "bg=pale gray", "label=Sequence Drafting"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,610,460:Sequence Drafting",],
+   ["as_thread:Button:check::130,388,105,20:as threaded",as_thread_cb2],
+   ["bands:Button:check::380,370,105,20:bands",bands_cb],
+   ["blend:Button:check::378,282,105,20:blend",configuration_cb],
+   ["clr_as_warp:Button:check::261,388,105,20:as warp",clr_as_warp_cb],
+   ["colors:Button:check::483,205,105,20:color keys",parameters_cb],
+   ["colorw:Button:check::261,300,105,20:as weft",color_writ_cb],
+   ["database:Menu:pull::136,1,64,21:Database",database_cb,
+      ["load @L","save","clear"]],
+   ["db:List:w::189,58,130,165:",],
+   ["db_all_to_lib:Button:regular::150,99,35,20:<<",db_all_to_lib_cb],
+   ["db_to_lib:Button:regular::150,153,35,20:<",db_to_lib_cb],
+   ["drawdown:Button:check::378,264,105,20:drawdown",configuration_cb],
+   ["dt:Button:check::380,352,105,20:direct",dir_tieup_cb],
+   ["file:Menu:pull::1,1,36,21:File",file_cb,
+      ["generate","open    @O","save    @S","save as @U","export  @X",
+      "export all","import","revert  @V","clear   @Z","show grids",
+      "quit    @Q"]],
+   ["height:Button:check::483,169,105,20:height",parameters_cb],
+   ["label1:Label:::48,39,49,13:library",],
+   ["label10:Label:::270,244,77,13:warp colors",],
+   ["label11:Label:::38,244,49,13:library",],
+   ["label12:Label:::515,244,56,13:symmetry",],
+   ["label2:Label:::219,39,56,13:database",],
+   ["label3:Label:::391,412,42,13:draft:",],
+   ["label4:Label:::384,244,91,13:configuration",],
+   ["label5:Label:::152,244,63,13:threading",],
+   ["label6:Label:::500,37,70,13:parameters",],
+   ["label7:Label:::152,330,63,13:treadling",],
+   ["label8:Label:::401,331,42,13:tie-up",],
+   ["label9:Label:::273,331,77,13:weft colors",],
+   ["lib:List:w::15,58,130,165:",lib_cb],
+   ["lib_all_to_db:Button:regular::150,74,35,20:>>",lib_all_to_db_cb],
+   ["lib_to_db:Button:regular::150,178,35,20:>",lib_to_db],
+   ["library:Choice::4:14,263,106,84:",libraries_cb,
+      ["definitions","expressions","palettes","tie-ups"]],
+   ["line1:Line:::0,23,729,23:",],
+   ["loom:Button:check::483,133,105,20:loom",parameters_cb],
+   ["palette:Button:check::483,187,105,20:palette",parameters_cb],
+   ["sd:Button:check::130,263,105,20:straight",str_draw_th_cb],
+   ["specification:Menu:pull::38,1,99,21:Specification",specification_cb,
+      ["new       @N","duplicate @D","rename    @M","comment   @K","display   @I"]],
+   ["specifications:List:w::342,58,130,165:",spec_cb],
+   ["specs:Label:::381,39,42,13:drafts",],
+   ["str_draw:Button:check::130,352,105,20:straight",str_draw_tr_cb],
+   ["swapc:Button:check::261,417,105,20:swap",swapc_tb],
+   ["swapt:Button:check::130,417,105,20:swap",swapt_cb],
+   ["symmetry:Choice::4:494,262,99,84:",,
+      ["none","horizontal","vertical","both"]],
+   ["th_peak:Button:check::130,281,105,20:peaks",th_peak_cb],
+   ["threading:Button:check::483,61,105,20:threading",parameters_cb],
+   ["tieup:Menu:pull::250,1,50,21:Tie-up",tieup_cb,
+      ["display","rotate 90 cw","rotate 90 ccw","rotate 180","flip horizontal",
+      "flip vertical","flip left diagonal","flip right diagonal","shift horizontal","shift vertical",
+      "invert"]],
+   ["tr_peak:Button:check::130,370,105,20:peaks",tr_peak_cb],
+   ["treadling:Button:check::483,79,105,20:treadling",parameters_cb],
+   ["tromp:Button:check::130,299,105,20:as treadled",tromp_writ_cb],
+   ["update:Menu:pull::199,1,50,21:Update",update_cb,
+      ["new","read  @R","write @W","copy  @C","paste @P",
+      "display"]],
+   ["waor_straight:Button:check::261,264,105,20:straight",warp_straight_cb],
+   ["warp:Button:check::483,97,105,20:warp colors",parameters_cb],
+   ["warp_peak:Button:check::261,282,105,20:peaks",warp_peak_cb],
+   ["weft:Button:check::483,115,105,20:weft colors",parameters_cb],
+   ["weft_peaks:Button:check::261,370,105,20:peaks",weft_peaks_cb],
+   ["weft_straight:Button:check::261,352,105,20:straight",weft_straight_cb],
+   ["width:Button:check::483,151,105,20:width",parameters_cb],
+   ["placeholder:Rect:invisible::438,408,125,23:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

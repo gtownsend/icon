@@ -1,0 +1,68 @@
+############################################################################
+#
+#	File:     filtskel.icn
+#
+#	Subject:  Program skeleton for generic filter
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     July 16, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Generic filter skeleton in Icon.
+#
+#  This program is not intended to be used as is -- it serves as a
+#  starting point for creation of filter programs.  Command line
+#  options, file names, and tabbing are handled by the skeleton.  You
+#  need only provide the filtering code.
+#
+#  As it stands, filter.icn simply copies the input file(s) to
+#  standard output.
+#
+#  Multiple files can be specified as arguments, and will be processed
+#  in sequence.  A file name of "-" represents the standard input file.
+#  If there are no arguments, standard input is processed.
+#
+############################################################################
+#
+#  Links: options
+#
+############################################################################
+
+link options
+
+procedure main(arg)
+   local opt, tabs, Detab, fn, f, line
+   #
+   #  Process command line options and file names.
+   #
+   opt := options(arg,"t+")      # e.g. "fs:i+r." (flag, string, integer, real)
+   if *arg = 0 then arg := ["-"] # if no arguments, standard input
+   tabs := (\opt["t"] | 8) + 1   # tabs default to 8
+   Detab := tabs = 1 | detab     # if -t 0, no detabbing
+   #
+   #  Loop to process files.
+   #
+   every fn := !arg do {
+      f := if fn == "-" then &input else
+	    open(fn) | stop("Can't open input file \"",fn,"\"")
+      #
+      #  Loop to process lines of file (in string scanning mode).
+      #
+      while line := Detab(read(f)) do line ? {
+	 write(line)       # copy line to standard output
+	 }
+      #
+      #  Close this file.
+      #
+      close(f)
+      }
+   #
+   #  End of program.
+   #
+end

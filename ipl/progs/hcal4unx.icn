@@ -1,0 +1,950 @@
+############################################################################
+#
+#	File:     hcal4unx.icn
+#
+#	Subject:  Program for Jewish/Civil calendar in UNIX
+#
+#	Author:   Alan D. Corre (ported to UNIX by Richard L. Goerwitz)
+#
+#	Date:     January 3, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.16
+#
+############################################################################
+#
+#  This work is respectfully devoted to the authors of two books
+#  consulted with much profit: "A Guide to the Solar-Lunar Calendar"
+#  by B. Elihu Rothblatt published by our sister Hebrew Dept. in
+#  Madison, Wis., and "Kiddush HaHodesh" by Rabbenu Moses ben Maimon,
+#  on whom be peace.
+#
+#  The Jewish year harmonizes the solar and lunar cycle, using the
+#  19-year cycle of Meton (c. 432 BCE). It corrects so that certain
+#  dates shall not fall on certain days for religious convenience. The
+#  Jewish year has six possible lengths, 353, 354, 355, 383, 384, and
+#  385 days, according to day and time of new year lunation and
+#  position in Metonic cycle.  Time figures from 6pm previous night.
+#  The lunation of year 1 is calculated to be on a Monday (our Sunday
+#  night) at ll:11:20pm. Our data table begins with a hypothetical
+#  year 0, corresponding to 3762 B.C.E.  Calculations in this program
+#  are figured in the ancient Babylonian unit of halaqim "parts" of
+#  the hour = 1/1080 hour.
+#
+#  Startup syntax is simply hebcalen [date], where date is a year
+#  specification of the form 5750 for a Jewish year, +1990 or 1990AD
+#  or 1990CE or -1990 or 1990BC or 1990BCE for a civil year.
+#
+############################################################################
+#
+#  Revised October 25, 1993 by Ralph E. Griswold to use dopen().
+#
+############################################################################
+#
+#  Links: io, iolib
+#
+############################################################################
+#
+#  Requires: UNIX, hebcalen.dat, hebcalen.hlp
+#
+############################################################################
+#
+#  See also: hebcalen.icn
+#
+############################################################################
+
+link io
+link iolib
+
+record date(yr,mth,day)
+record molad(day,halaqim)
+
+global cyr,jyr,days_in_jyr,current_molad,current_day,infolist
+
+
+#------- the following sections of code have been modified  - RLG -------#
+
+procedure main(a)
+    local n, p
+
+    iputs(getval("ti"))
+    display_startup_screen()
+
+    if *a = 0 then {
+    #put()'ing an asterisk means that user might need help
+	n := 1; put(a,"*")
+    }
+    else n := *a
+    every p := 1 to n do {
+	initialize(a[p]) | break
+	process() | break
+    }
+    iputs(getval("te"))
+
+end
+
+
+
+procedure display_startup_screen()
+
+    local T
+
+    clear()
+    banner("PERPETUAL JEWISH/CIVIL CALENDAR","by","ALAN D. CORRE")
+    # Use a combination of tricks to be sure it will be up there a sec.
+    every 1 to 10000
+    T := &time; until &time > (T+450)
+
+    return
+
+end
+
+
+
+procedure banner(l[])
+
+    # Creates a banner to begin hebcalen.  Leaves it on the screen for
+    # about a second.
+
+    local m, n, CM, COLS, LINES
+
+    CM    := getval("cm")
+    COLS  := getval("co")
+    LINES := getval("li")
+    (COLS > 55, LINES > 9) |
+	stop("\nSorry, your terminal just isn't big enough.")
+
+    if LINES > 20 then {
+	# Terminal is big enough for banner.
+	iputs(igoto(CM,1,3))
+	writes("+",repl("-",COLS-3),"+")
+	iputs(igoto(CM,1,4))
+	writes("|")
+	iputs(igoto(CM,COLS-1,4))
+	writes("|")
+
+	m := 0
+	every n := 5 to (*l * 3) + 4 by 3 do {
+	    iputs(igoto(CM,1,n))
+	    writes("|",center(l[m+:=1],COLS-3),"|")
+	    every iputs(igoto(CM,1,n+(1|2))) & writes("|")
+	    every iputs(igoto(CM,COLS-1,n+(1|2))) & writes("|")
+	}
+	
+	iputs(igoto(CM,1,n+3))
+	writes("+",repl("-",COLS-3),"+")
+	iputs(igoto(CM,1,n+4))
+	write(" Copyright (c) Alan D. Corre, 1990")
+    }
+    else {
+	# Terminal is extremely short
+	iputs(igoto(CM,1,(LINES/2)-1))
+	write(center(l[1],COLS))
+	write(center("Copyright (c) Alan D. Corre, 1990",COLS))
+    }	
+
+    return
+
+end
+
+
+
+procedure get_paths()
+
+    local paths, p
+
+    suspend "./" | "/usr/local/lib/hebcalen/"
+    paths := getenv("PATH")
+    \paths ? {
+	tab(match(":"))
+	while p := 1(tab(find(":")), move(1))
+	do suspend "" ~== trim(p,'/ ') || "/"
+	return "" ~== trim(tab(0) \ 1,'/ ') || "/"
+    }
+
+end
+
+
+
+procedure instructions(filename)
+
+    # Gives user access to a help file which is printed out in chunks
+    # by "more."
+
+    local helpfile, pager, ans, more_file
+
+    iputs(igoto(getval("cm"),1,2))
+    writes("Do you need instructions? [ny]  ")
+    ans := map(read())
+    "q" == ans & fail
+
+    if "y" == ans then {
+	clear()
+	write()
+	dopen(helpfile := filename) |
+	   stop("Can't find your hebcalen.hlp file!")
+	iputs(igoto(getval("cm"),1,getval("li")))
+	boldface()
+	writes("Press return to continue.")
+	normal()
+	"q" == map(read()) & fail
+    }
+
+    return \helpfile | "no help"
+
+end
+
+
+
+procedure clear()
+    local i
+
+    # Clears the screen.  Tries several methods.
+
+    if not iputs(getval("cl"))
+    then iputs(igoto(getval("cm"),1,1))
+    if not iputs(getval("cd"))
+    then {
+	every i := 1 to getval("li") do {
+	    iputs(igoto(getval("cm"),1,i))
+	    iputs(getval("ce"))
+	}
+	iputs(igoto(getval("cm"),1,1))
+    }
+
+end
+
+
+
+procedure initialize_list()
+
+    # Put info of hebcalen.dat into a global list
+
+    local infile,n
+
+    infolist := list(301)
+    if not (infile := dopen("hebcalen.dat")) then
+	stop("\nError:  cannot open hebcalen.dat")
+
+    # The table is arranged at twenty year intervals with 301 entries.
+    every n := 1 to 301 do
+	infolist[n] := read(infile)
+    close(infile)
+
+end
+
+
+
+procedure initialize_variables()
+
+    # Get the closest previous year in the table.
+
+    local line, quotient
+
+    quotient := jyr.yr / 20 + 1
+    # Only 301 entries. Figure from last if necessary.
+    if quotient > 301 then quotient := 301
+    # Pull the appropriate info, put into global variables.
+    line := infolist[quotient]
+
+    line ? {
+	current_molad.day := tab(upto('%'))
+	move(1)
+	current_molad.halaqim := tab(upto('%'))
+	move(1)
+	cyr.mth := tab(upto('%'))
+	move(1)
+	cyr.day := tab(upto('%'))
+	move(1)
+	cyr.yr := tab(upto('%'))
+	days_in_jyr := line[-3:0]
+    }
+
+    # Begin at rosh hashana.
+    jyr.day := 1
+    jyr.mth := 7
+    return
+
+end
+
+
+
+procedure initialize(yr)
+
+    local year
+    static current_year
+
+    # initialize global variables
+    initial {
+	cyr := date(0,0,0)
+	jyr := date(0,0,0)
+	current_molad := molad(0,0)
+	initialize_list()
+	current_year := get_current_year()
+    }
+
+    clear()
+    #user may need help
+    if yr == "*" then {
+	instructions("hebcalen.hlp") | fail
+	clear()
+	iputs(igoto(getval("cm"),1,2))
+	write("Enter a year.  By default, all dates are interpreted")
+	write("according to the Jewish calendar.  Civil years should")
+	write("be preceded by a + or - sign to indicate occurrence")
+	write("relative to the beginning of the common era (the cur-")
+	writes("rent civil year, ",current_year,", is the default):  ")
+	boldface()
+	year := read()
+	normal()
+	"q" == map(year) & fail
+    }
+    else year := yr
+
+    "" == year & year := current_year
+    until jyr.yr := cleanup(year) do {
+	writes("\nI don't consider ")
+	boldface()
+	writes(year)
+	normal()
+	writes(" a valid date.  Try again:  ")
+	boldface()
+	year := read()
+	normal()
+	"q" == map(year) & fail
+	"" == year & year := current_year
+    }
+
+    clear()
+    initialize_variables()
+    return
+
+end
+
+
+
+procedure get_current_year()
+    local c_date
+
+    &date ? c_date := tab(find("/"))
+    return "+" || c_date
+end
+
+
+
+procedure cleanup(str)
+
+    # Tidy up the string. Bugs still possible.
+
+    if "" == trim(str) then return ""
+
+    map(Strip(str,~(&digits++'ABCDE+-'))) ? {
+
+	if find("-"|"bc"|"bcd")
+	then return (0 < (3761 - (0 ~= checkstr(str))))
+	else if find("+"|"ad"|"ce")
+	then return ((0 ~= checkstr(str)) + 3760)
+	else if 0 < integer(str)
+	then return str
+	else fail
+	
+    }
+
+end
+
+
+
+procedure Strip(s,c)
+    local s2
+
+    s2 := ""
+    s ? {
+	while s2 ||:= tab(upto(c))
+	do tab(many(c))
+	s2 ||:= tab(0)
+    }
+    return s2
+
+end
+
+
+
+procedure checkstr(s)
+
+    # Does preliminary work on string before cleanup() cleans it up.
+
+    local letter,n,newstr
+
+    newstr := ""
+    every newstr ||:= string(integer(!s))
+    if 0 = *newstr | "" == newstr
+    then fail
+    else return newstr
+
+end
+
+
+
+procedure process()
+    local ans, yj, n
+
+    # Extracts information about the specified year.
+
+    local msg, limit, dj, dc, month_count, done
+    static how_many_per_screen, how_many_screens
+    initial {
+	how_many_per_screen := how_many_can_fit()
+	(how_many_screens := seq()) * how_many_per_screen >= 12
+    }
+
+    # 6019 is last year handled by the table in the usual way.
+    if jyr.yr > 6019
+    then msg := "Calculating.  Years over 6019 take a long time."
+    else msg := "Calculating."
+    if jyr.yr <= 6019 then {
+	limit := jyr.yr % 20 
+	jyr.yr := ((jyr.yr / 20) * 20)
+    }
+    else {
+	limit := jyr.yr - 6000
+	jyr.yr := 6000
+    }
+    
+    ans := "y"
+    establish_jyr()
+    iputs(igoto(getval("cm"),1,2))
+    writes(msg)
+    every 1 to limit do {
+	# Increment the years, establish the type of Jewish year
+	cyr_augment()
+	jyr_augment()
+	establish_jyr()
+    }
+
+    clear() 
+    while ("y"|"") == map(ans) do {
+
+	yj := jyr.yr
+	dj := days_in_jyr
+
+	month_count := 0
+	# On the variable how_many_screens, see initial { } above
+	every n := 1 to how_many_screens do {
+	    clear()
+	    every 1 to how_many_per_screen do {
+		write_a_month()
+		(month_count +:= 1) = 12 & break
+	    }
+	    if month_count < 12 | (12 % (13 > how_many_per_screen)) = 0
+	    then {
+
+		iputs(igoto(getval("cm"),1,getval("li")-2))
+		boldface()
+		writes(status_line(yj,dj))
+		normal()
+
+		if month_count < 12 | jyr.mth = 6 then {
+		    iputs(igoto(getval("cm"),1,getval("li")-1))
+		    writes("Press return to continue.  ")
+		    "q" == map(read()) & fail
+		}
+	    }
+	}
+
+	if jyr.mth = 6 then {
+	    if (12 % (13 > how_many_per_screen)) = 0
+	    then clear()
+	    write_a_month()
+	}
+	iputs(igoto(getval("cm"),1,getval("li")-2))
+	boldface()
+	writes(status_line(yj,dj))
+	normal()
+
+	iputs(igoto(getval("cm"),1,getval("li")-1))
+	writes("Display the next year? [yn]  ")
+	ans := read()
+
+    }
+    return
+
+end
+
+
+
+procedure how_many_can_fit()
+
+    local LINES, how_many
+
+    LINES := getval("li") + 1
+    (((8 * (how_many := 1 to 14)) / LINES) = 1)
+
+    return how_many - 1
+
+end
+
+
+
+procedure cyr_augment()
+
+    # Make civil year a year later, we only need consider Aug,Sep,Nov.
+
+    local days,newmonth,newday
+
+    if cyr.mth = 8 then
+	days := 0 else
+	if cyr.mth = 9 then
+	days := 31 else
+	if cyr.mth = 10 then
+	days := 61 else
+	stop("Error in cyr_augment")
+
+    writes(".")
+
+    days := (days + cyr.day-365+days_in_jyr)
+    if isleap(cyr.yr + 1) then days -:= 1
+
+    # Cos it takes longer to get there.
+    if days <= 31 then {newmonth := 8; newday := days} else
+	if days <= 61 then {newmonth := 9; newday := days-31} else
+	{newmonth := 10; newday := days-61} 
+
+    cyr.mth := newmonth
+    cyr.day := newday
+    cyr.yr +:= 1
+    if cyr.yr = 0 then cyr.yr := 1
+
+    return
+
+end
+
+
+
+procedure header()
+    local COLS
+
+    # Creates the header for Jewish and English side.  Bug:  This
+    # routine, as it stands, has to rewrite the entire screen, in-
+    # cluding blank spaces.  Many of these could be elminated by
+    # judicious line clears and/or cursor movement commands.  Do-
+    # ing so would certainly speed up screen refresh for lower
+    # baud rates.  I've utilized the ch command where available,
+    # but in most cases, plain old spaces must be output.
+
+    static make_whitespace, whitespace
+    initial {
+	COLS := getval("co")
+	if getval("ch") then {
+	    # Untested, but it would offer a BIG speed advantage!
+	    make_whitespace := create |iputs(igoto(getval("ch"),(COLS-53)+25))
+	}
+	else {
+	    # Have to do things this way, since we don't know what line
+	    # we are on (cm commands usually default to row/col 1).
+	    whitespace := repl(" ",COLS-53)
+	    make_whitespace := create |writes(whitespace)
+	}
+    }
+
+    writes(repl(" ",7),"S",repl(" ",2),"M",repl(" ",2),"T",repl(" ",2),"W",
+	   repl(" ",2),"T",repl(" ",2),"F",repl(" ",2))
+    boldface()
+    writes("S")
+    normal()
+    @make_whitespace
+    writes("S",repl(" ",2),"M",repl(" ",2),"T",repl(" ",2),"W",
+        repl(" ",2),"T",repl(" ",2),"F",repl(" ",2))
+    boldface()
+    writes("S")
+    normal()
+    iputs(getval("ce"))
+    write()
+
+end
+
+
+
+procedure write_a_month()
+
+    # Writes a month on the screen
+
+    header()
+    every 1 to 5 do {
+	writes(make_a_line())
+	iputs(getval("ce"))
+	write()
+    }
+    if jyr.day ~= 1 then {
+	writes(make_a_line())
+	iputs(getval("ce"))
+	write()
+    }
+    iputs(getval("ce"))
+    write()
+
+    return
+
+end
+
+
+
+procedure status_line(a,b)
+
+    # Create the status line at the bottom of screen.
+
+    local sline,c,d
+
+    c := cyr.yr
+    if (cyr.day = 1) & (cyr.mth = 1) then c -:= 1
+    d := { if isleap(c) then 366 else 365 }
+    if getval("co") > 79 then {
+	sline := ("Year of Creation: " || a || "  Days in year: " || b ||
+		  "  Civil year: " || c || "  Days in year: " || d)
+    }
+    else {
+	sline := ("Jewish year " || a || " (" || b || " days)," ||
+		  " Civil year " || c || " (" || d || " days)")
+    }
+
+    return center(sline,getval("co"))
+
+end
+
+
+
+procedure boldface()
+    
+    static bold_str, cookie_str
+    initial {
+	if bold_str := getval("so")
+	then cookie_str := repl(getval("bc") | "\b", getval("sg"))
+	else {
+	    if bold_str := getval("ul")
+	    then cookie_str := repl(getval("bc") | "\b", getval("ug"))
+	}
+    }	    
+    
+    iputs(\bold_str)
+    iputs(\cookie_str)
+    return
+
+end
+
+
+
+procedure normal()
+
+    static UN_bold_str, cookie_str
+    initial {
+	if UN_bold_str := getval("se")
+	then cookie_str := repl(getval("bc") | "\b", getval("sg"))
+	else {
+	    if UN_bold_str := getval("ue")
+	    then cookie_str := repl(getval("bc") | "\b", getval("ug"))
+	}
+    }	    
+    
+    iputs(\UN_bold_str)
+    iputs(\cookie_str)
+    return
+
+end
+
+
+#--------------------- end modified sections of code ----------------------#
+
+# Okay, okay a couple of things have been modified below, but nothing major.
+
+procedure make_a_line()
+#make a single line of the months
+local line,blanks1,blanks2,start_point,end_point,flag,fm
+static number_of_spaces
+initial number_of_spaces := getval("co")-55
+
+#consider the first line of the month
+  if jyr.day = 1 then {
+    line := mth_table(jyr.mth,1)
+#setting flag means insert civil month at end of line    
+    flag := 1 } else
+    line := repl(" ",3)
+#consider the case where first day of civil month is on Sunday    
+  if (cyr.day = 1) & (current_day = 1) then flag := 1
+#space between month name and beginning of calendar
+  line ||:= repl(" ",2)
+#measure indentation for first line
+  line ||:= blanks1 := repl(" ",3*(current_day-1))
+#establish start point for Hebrew loop
+  start_point := current_day
+#establish end point for Hebrew loop and run civil loop
+  every end_point := start_point to 7 do {
+    line ||:= right(jyr.day,3)
+    if not j_augment() then {jyr_augment(); establish_jyr(); current_day -:= 1; if current_day = 0 then current_day := 7}
+    d_augment()
+    if jyr.day = 1 then break }
+#measure indentation for last line
+  blanks2 := repl(" ",3*(7-end_point))
+  line ||:= blanks2; line ||:= repl(" ",number_of_spaces); line ||:= blanks1
+  every start_point to end_point do {
+    line ||:= right(cyr.day,3)
+    if (cyr.day = 1) then flag := 1 
+    augment()}
+  line ||:= blanks2 ||:= repl(" ",3)
+  fm := cyr.mth
+  if cyr.day = 1 then
+    if cyr.mth = 1 then fm := 12 else fm := cyr.mth - 1
+  if \flag then line ||:= mth_table(fm,2) else
+    line ||:= repl(" ",3)
+return line
+end
+
+procedure mth_table(n,p)
+#generates the short names of Jewish and Civil months. Get to civil side
+#by adding 13 (=max no of Jewish months)
+static corresp
+initial corresp := ["NIS","IYA","SIV","TAM","AV ","ELU","TIS","HES","KIS",
+"TEV","SHE","ADA","AD2","JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP",
+"OCT","NOV","DEC"]
+  if (p ~= 1) & (p ~= 2) then stop("ERROR IN MTH-TABLE") else
+    if p = 2 then n +:= 13
+return corresp[n]
+end
+
+procedure d_augment()
+#increment the day of the week
+  current_day +:= 1
+  if current_day = 8 then current_day := 1
+return
+end
+
+procedure augment()
+#increments civil day, modifies month and year if necessary, stores in
+#global variable cyr
+  if cyr.day < 28 then
+    cyr.day +:= 1 else
+  if cyr.day = 28 then {
+    if (cyr.mth ~= 2) | ((cyr.mth = 2) & isleap(cyr.yr)) then
+      cyr.day := 29 else {
+        cyr.mth := 3
+	cyr.day  := 1}} else
+  if cyr.day = 29 then {
+    if cyr.mth ~= 2 then
+      cyr.day := 30 else {
+      cyr.mth := 3
+      cyr.day := 1}} else
+  if cyr.day = 30 then {
+    if is_31(cyr.mth) then
+      cyr.day := 31 else {
+      cyr.mth +:= 1
+      cyr.day := 1}} else {
+      cyr.day := 1
+      if cyr.mth ~= 12 then
+        cyr.mth +:= 1 else {
+        cyr.mth := 1
+        cyr.yr +:= 1
+        if cyr.yr = 0
+	  then cyr.yr := 1}}
+return
+end
+
+procedure is_31(n)
+#civil months with 31 days
+return n = 1 | n = 3 | n = 5 | n = 7 | n = 8 | n = 10 | n = 12
+end
+
+procedure isleap(n)
+#checks for civil leap year
+  if n > 0 then
+return (n % 400 = 0) | ((n % 4 = 0) & (n % 100 ~= 0)) else
+return (n % 400 = -1) | ((n % 4 = -1) & (n % 100 ~= -1))
+end
+
+procedure j_augment()
+#increments jewish day. months are numbered from nisan, adar sheni is 13.
+#procedure fails at elul to allow determination of type of new year
+  if jyr.day < 29 then
+    jyr.day +:= 1 else
+  if (jyr.day = 30) | always_29(jyr.mth) | ((jyr.mth = 8) & 
+    (days_in_jyr % 5 ~= 0)) | ((jyr.mth = 9) & ((days_in_jyr = 353) |
+    (days_in_jyr = 383))) then
+    jyr.mth +:= jyr.day := 1 else
+  if jyr.mth = 6 then fail else
+  if ((jyr.mth = 12) & (days_in_jyr < 383)) | (jyr.mth = 13) then
+    jyr.mth := jyr.day := 1 else
+  jyr.day := 30
+return
+end
+
+procedure always_29(n)
+#uncomplicated jewish months with 29 days
+return n = 2 | n = 4 | n = 10
+end
+
+procedure jyr_augment()
+#determines the current time of lunation, using the ancient babylonian unit
+#of 1/1080 of an hour. lunation of tishri determines type of year. allows
+#for leap year. halaqim = parts of the hour
+local days, halaqim
+  days := current_molad.day + 4
+  if days_in_jyr <= 355 then {
+    halaqim :=  current_molad.halaqim + 9516
+    days := ((days +:= halaqim / 25920) % 7)
+    if days = 0 then days := 7
+    halaqim := halaqim % 25920} else {
+    days +:= 1
+    halaqim := current_molad.halaqim + 23269
+    days := ((days +:= halaqim / 25920) % 7)
+    if days = 0 then days := 7
+    halaqim := halaqim % 25920}
+  current_molad.day := days
+  current_molad.halaqim := halaqim
+#reset the global variable which holds the current jewish date
+  jyr.yr +:= 1 #increment year
+  jyr.day := 1
+  jyr.mth := 7
+  establish_jyr()
+return
+end
+
+procedure establish_jyr()
+#establish the jewish year from get_rh
+local res
+  res := get_rh(current_molad.day,current_molad.halaqim,no_lunar_yr(jyr.yr))
+  days_in_jyr := res[2]
+  current_day := res[1]
+return
+end    
+
+procedure isin1(i)
+#the isin procedures are sets of years in the Metonic cycle
+return i = (1 | 4 | 7 | 9 | 12 | 15 | 18)
+end
+
+procedure isin2(i)
+return i = (2 | 5 | 10 | 13 | 16)
+end
+
+procedure isin3(i)
+return i = (3 | 6 | 8 | 11 | 14 | 17 | 0)
+end
+
+procedure isin4(i)
+return i = (1 | 2 | 4 | 5 | 7 | 9 | 10 | 12 | 13 | 15 | 16 | 18)
+end
+
+procedure isin5(i)
+return i = (1 | 4 | 9 | 12 | 15)
+end
+
+procedure isin6(i)
+return i = (2 | 5 | 7 | 10 | 13 | 16 | 18)
+end
+
+procedure no_lunar_yr(i)
+#what year in the metonic cycle is it?
+return i % 19
+end
+
+procedure get_rh(d,h,yr)
+#this is the heart of the program. check the day of lunation of tishri
+#and determine where breakpoint is that sets the new moon day in parts
+#of the hour. return result in a list where 1 is day of rosh hashana and
+#2 is length of jewish year
+local c,result
+  c := no_lunar_yr(yr)
+  result := list(2)
+  if d = 1 then {
+  		result[1] := 2
+                if (h < 9924) & isin4(c) then result[2] := 353 else
+		if (h < 22091) & isin3(c) then result[2] := 383 else
+		if (h > 9923) & (isin1(c) | isin2(c)) then result[2] := 355 else
+		if (h > 22090) & isin3(c) then result[2] := 385
+		} else
+  if d = 2 then {
+  		if ((h < 16789) & isin1(c)) |
+		   ((h < 19440) & isin2(c)) then {
+				                 result[1] := 2
+					         result[2] := 355
+					         } else
+		if (h < 19440) & isin3(c) then  {
+				                 result[1] := 2
+					         result[2] := 385
+					         } else
+  		if ((h > 16788) & isin1(c)) |
+		   ((h > 19439) & isin2(c)) then {
+				                 result[1] := 3
+					         result[2] := 354
+					         } else
+                if (h > 19439) & isin3(c) then  {
+				                 result[1] := 3
+					         result[2] := 384
+					         }
+		} else
+  if d = 3 then {
+  		if (h < 9924) & (isin1(c) | isin2(c)) then {
+							   result[1] := 3
+							   result[2] := 354
+							   } else
+		if (h < 19440) & isin3(c) then {
+					       result[1] := 3
+					       result[2] := 384
+					       } else
+		if (h > 9923) & isin4(c) then {
+					      result[1] := 5
+					      result[2] := 354
+					      } else
+		if (h > 19439) & isin3(c) then {
+					       result[1] := 5
+					       result[2] := 383}
+		} else
+  if d = 4 then {
+  		result[1] := 5
+		if isin4(c) then result[2] := 354 else
+		if h < 12575 then result[2] := 383 else
+		result[2] := 385
+		} else
+  if d = 5 then {
+                if (h < 9924) & isin4(c) then {
+					      result[1] := 5
+					      result[2] := 354} else
+		if (h < 19440) & isin3(c) then {
+					       result[1] := 5
+					       result[2] := 385
+					       } else
+		if (9923 < h < 19440) & isin4(c) then {
+						      result[1] := 5
+						      result[2] := 355
+						      } else
+		if h > 19439 then {
+		  		  result[1] := 7
+                		  if isin3(c) then result[2] := 383 else
+		                    result[2] := 353
+				  }
+		} else
+  if d = 6 then {
+	        result[1] := 7
+	        if ((h < 408) & isin5(c)) | ((h < 9924) & isin6(c)) then
+	      					result[2] := 353 else
+	        if ((h < 22091) & isin3(c)) then result[2] := 383 else
+	        if ((h > 407) & isin5(c)) | ((h > 9923) & isin6(c)) then
+	      					result[2] := 355 else
+	        if (h > 22090) & isin3(c) then result[2] := 385
+	        } else
+  if d = 7 then	if (h < 19440) & (isin5(c) | isin6(c)) then {
+							  result[1] := 7
+							  result[2] := 355
+							  } else
+		if (h < 19440) & isin3(c) then {
+					       result[1] := 7
+					       result[2] := 385
+					       } else {
+					              result[1] := 2
+						      if isin4(c) then
+						        result[2] := 353 else
+							result[2] := 383}
+return result
+end

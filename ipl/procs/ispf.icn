@@ -1,0 +1,93 @@
+############################################################################
+#
+#	File:     ispf.icn
+#
+#	Subject:  Procedures to communicate between Icon and ISPF
+#
+#	Author:   Alan Beale
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  The functions ispqry, ispexec, ispcopy and isprepl must be installed
+#  in the extcall module of iconx for these procedures to do anything useful.
+#
+#     These procedures provide an interface between Icon and ISPF:
+#
+#     ISPQry()        returns &null if ISPF services are available, or
+#                     fails if not
+#
+#     ISPExec(cmd)    Sends an ISPEXEC command to ISPF.  Returns the
+#                     ISPF return code if less than 12.  Otherwise,
+#                     causes run-time error 500, and prints an error
+#                     message if errors are not trapped.  If errors
+#                     are trapped, the message is in &errorvalue.
+#
+#     ISPVcopy(var)   Returns the value of a variable in the ISPF
+#                     "function pool", or fails if the named variable
+#                     is not defined.  ISPF errors are handled as by
+#                     ISPExec.
+#
+#     ISPVrepl(var,val) Stores a new value in an ISPF variable (or
+#                     creates the variable if it does not exist).
+#                     Returns 0 if successful.  ISPF errors are handled
+#                     as by ISPExec.
+#
+# The first time ISPF is called, CONTROL ERRORS RETURN is established.
+# This can be overridden if desired by a call to ISPExec for that
+# purpose.
+#
+############################################################################
+#
+#  Requires:  CMS of MVS
+#
+############################################################################
+
+procedure ISPQry()     # detect presence or absence of ISPF
+   return callout("ispqry")
+end
+
+procedure ISPExec(cmd)    # transmit an ISPEXEC request to ISPF
+   local result 
+
+   result := callout("ispexec", cmd)
+   if type(result) == "string" then {
+      if result[1+:4] ~== "ISPF" then result := "ISPF error: "||result
+      if &error = 0 then write(&errout, result)
+      runerr(500, result)
+   }
+   else return result
+end
+
+procedure ISPVcopy(var)     # get value of an ISPF "function" variable
+   local result
+
+   if not (result := callout("ispcopy", var||" ")) then fail
+#
+#   Note: ispcopy returns either "=value", if the variable was found,
+#         or "!msg" if an ISPF error occurred other than "variable not
+#         defined" (which is a failure condition).
+#
+   if result[1] == "=" then return result[2:0]
+   result = result[2:0]
+   if result[1+:4] ~== "ISPF" then result := "ISPF error: "||result
+   if &error = 0 then write(&errout, result)
+   runerr(500, result)
+end
+
+procedure ISPVrepl(var,value)   # assign to an ISPF variable
+   local result
+
+   result := callout("isprepl", var||" ", value)
+   if type(result) == "string" then {
+      if result[1+:4] ~== "ISPF" then result := "ISPF error: "||result
+      if &error = 0 then write(&errout, result)
+      runerr(500, result)
+   }
+   else return result
+end

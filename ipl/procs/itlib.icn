@@ -1,0 +1,481 @@
+############################################################################
+#    
+#	File:     itlib.icn
+#	
+#	Subject:  Procedures for termlib-type tools
+#	
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.33
+#
+############################################################################
+#
+#  The following library represents a series of rough functional
+#  equivalents to the standard UNIX low-level termcap routines.  They
+#  are not meant as exact termlib clones.  Nor are they enhanced to
+#  take care of magic cookie terminals, terminals that use \D in their
+#  termcap entries, or, in short, anything I felt would not affect my
+#  normal, day-to-day work with ANSI and vt100 terminals.  There are
+#  some machines with incomplete or skewed implementations of stty for
+#  which itlib will not work.  See the BUGS section below for work-
+#  arounds.
+#
+############################################################################
+#
+#  setname(term)
+#	Use only if you wish to initialize itermlib for a terminal
+#  other than what your current environment specifies.  "Term" is the
+#  name of the termcap entry to use.  Normally this initialization is
+#  done automatically, and need not concern the user.
+#
+#  getval(id)
+#	Works something like tgetnum, tgetflag, and tgetstr.  In the
+#  spirit of Icon, all three have been collapsed into one routine.
+#  Integer valued caps are returned as integers, strings as strings,
+#  and flags as records (if a flag is set, then type(flag) will return
+#  "true").  Absence of a given capability is signalled by procedure
+#  failure.
+#
+#  igoto(cm,destcol,destline) - NB:  default 1 offset (*not* zero)!
+#	Analogous to tgoto.  "Cm" is the cursor movement command for
+#  the current terminal, as obtained via getval("cm").  Igoto()
+#  returns a string which, when output via iputs, will cause the
+#  cursor to move to column "destcol" and line "destline."  Column and
+#  line are always calculated using a *one* offset.  This is far more
+#  Iconish than the normal zero offset used by tgoto.  If you want to
+#  go to the first square on your screen, then include in your program
+#  "iputs(igoto(getval("cm"),1,1))."
+#
+#  iputs(cp,affcnt)
+#	Equivalent to tputs.  "Cp" is a string obtained via getval(),
+#  or, in the case of "cm," via igoto(getval("cm"),x,y).  Affcnt is a
+#  count of affected lines.  It is only relevant for terminals which
+#  specify proportional (starred) delays in their termcap entries.
+#
+############################################################################
+#
+#  BUGS:  I have not tested these routines much on terminals that
+#  require padding.  These routines WILL NOT WORK if your machine's
+#  stty command has no -g option (tisk, tisk).  This includes 1.0 NeXT
+#  workstations, and some others that I haven't had time to pinpoint.
+#  If you are on a BSD box, try typing "sh -c 'stty -g | more'" it may
+#  be that your stty command is too clever (read stupid) to write its
+#  output to a pipe.  The current workaround is to replace every in-
+#  stance of /bin/stty with /usr/5bin/stty (or whatever your system
+#  calls the System V stty command) in this file.  If you have no SysV
+#  stty command online, try replaceing "stty -g 2>&1" below with, say,
+#  "stty -g 2>&1 1> /dev/tty."  If you are using mainly modern ter-
+#  minals that don't need padding, consider using iolib.icn instead of
+#  itlib.icn.
+#
+############################################################################
+#
+#  Requires: UNIX, co-expressions
+#
+############################################################################
+#
+#  See also: iscreen.icn, iolib.icn, itlibdos.icn
+#
+############################################################################
+
+
+global tc_table, tty_speed
+record true()
+
+
+procedure check_features()
+
+    local in_params, line
+    # global tty_speed
+
+    initial {
+	find("unix",map(&features)) |
+	    er("check_features","unix system required",1)
+	find("o-expres",&features) |
+	    er("check_features","co-expressions not implemented - &$#!",1)
+	system("/bin/stty tabs") |
+	    er("check_features","can't set tabs option",1)
+    }
+
+    # clumsy, clumsy, clumsy, and probably won't work on all systems
+    tty_speed := getspeed()
+    return "term characteristics reset; features check out"
+
+end
+
+
+
+procedure setname(name)
+
+    # Sets current terminal type to "name" and builds a new termcap
+    # capability database (residing in tc_table).  Fails if unable to
+    # find a termcap entry for terminal type "name."  If you want it
+    # to terminate with an error message under these circumstances,
+    # comment out "| fail" below, and uncomment the er() line.
+
+    #tc_table is global
+    
+    check_features()
+
+    tc_table := table()
+    tc_table := maketc_table(getentry(name)) | fail
+    # er("setname","no termcap entry found for "||name,3)
+    return "successfully reset for terminal " || name
+
+end
+
+
+
+procedure getname()
+
+    # Getname() first checks to be sure we're running under UNIX, and,
+    # if so, tries to figure out what the current terminal type is,
+    # checking successively the value of the environment variable
+    # TERM, and then the output of "tset -".  Terminates with an error
+    # message if the terminal type cannot be ascertained.
+
+    local term, tset_output
+
+    check_features()
+
+    if not (term := getenv("TERM")) then {
+	tset_output := open("/bin/tset -","pr") |
+	    er("getname","can't find tset command",1)
+	term := !tset_output
+	close(tset_output)
+    }
+    return \term |
+	er("getname","can't seem to determine your terminal type",1)
+
+end
+
+
+
+procedure er(func,msg,errnum)
+
+    # short error processing utility
+    write(&errout,func,":  ",msg)
+    exit(errnum)
+
+end
+
+
+
+procedure getentry(name, termcap_string)
+
+    # "Name" designates the current terminal type.  Getentry() scans
+    # the current environment for the variable TERMCAP.  If the
+    # TERMCAP string represents a termcap entry for a terminal of type
+    # "name," then getentry() returns the TERMCAP string.  Otherwise,
+    # getentry() will check to see if TERMCAP is a file name.  If so,
+    # getentry() will scan that file for an entry corresponding to
+    # "name."  If the TERMCAP string does not designate a filename,
+    # getentry() will scan /etc/termcap for the correct entry.
+    # Whatever the input file, if an entry for terminal "name" is
+    # found, getentry() returns that entry.  Otherwise, getentry()
+    # fails.
+
+    local f, getline, line, nm, ent1, ent2, entry
+
+    # You can force getentry() to use a specific termcap file by cal-
+    # ling it with a second argument - the name of the termcap file
+    # to use instead of the regular one, or the one specified in the
+    # termcap environment variable.
+    /termcap_string := getenv("TERMCAP")
+
+    if \termcap_string ? (not match("/"), pos(1) | tab(find("|")+1), =name)
+    then {
+	# if entry ends in tc= then add in the named tc entry
+	termcap_string ?:= tab(find("tc=")) ||
+	    # Recursively fetch the new termcap entry w/ name trimmed.
+	    (move(3), getentry(tab(find(":")), "/etc/termcap") ?
+	     (tab(find(":")+1), tab(0)))
+	return termcap_string
+    }
+    else {
+
+	# The logic here probably isn't clear.  The idea is to try to use
+	# the termcap environment variable successively as 1) a termcap en-
+	# try and then 2) as a termcap file.  If neither works, 3) go to
+	# the /etc/termcap file.  The else clause here does 2 and, if ne-
+	# cessary, 3.  The "\termcap_string ? (not match..." expression
+	# handles 1.
+
+	if find("/",\termcap_string)
+	then f := open(termcap_string)
+	/f := open("/etc/termcap") |
+	    er("getentry","I can't access your /etc/termcap file",1)
+
+	getline := create read_file(f)
+    
+	while line := @getline do {
+	    if line ? (pos(1) | tab(find("|")+1), =name, any(':|')) then {
+		entry := ""
+		while (\line | @getline) ? {
+		    if entry ||:= 1(tab(find(":")+1), pos(0))
+		    then {
+			close(f)
+			# if entry ends in tc= then add in the named tc entry
+			entry ?:= tab(find("tc=")) ||
+			    # recursively fetch the new termcap entry
+			    (move(3), getentry(tab(find(":"))) ?
+			        # remove the name field from the new entry
+			     	(tab(find(":")+1), tab(0)))
+			return entry
+		    }
+		    else {
+			\line := &null # must precede the next line
+			entry ||:= trim(trim(tab(0),'\\'),':')
+		    }
+		}
+	    }
+	}
+    }
+
+    close(f)
+    er("getentry","can't find and/or process your termcap entry",3)
+ 
+end
+
+
+
+procedure read_file(f)
+
+    # Suspends all non #-initial lines in the file f.
+    # Removes leading tabs and spaces from lines before suspending
+    # them.
+
+    local line
+
+    \f | er("read_tcap_file","no valid termcap file found",3)
+    while line := read(f) do {
+	match("#",line) & next
+	line ?:= (tab(many('\t ')) | &null, tab(0))
+	suspend line
+    }
+
+    fail
+
+end
+
+
+
+procedure maketc_table(entry)
+
+    # Maketc_table(s) (where s is a valid termcap entry for some
+    # terminal-type): Returns a table in which the keys are termcap
+    # capability designators, and the values are the entries in
+    # "entry" for those designators.
+
+    local k, v, decoded_value
+
+    /entry & er("maketc_table","no entry given",8)
+    if entry[-1] ~== ":" then entry ||:= ":"
+    
+    /tc_table := table()
+
+    entry ? {
+
+	tab(find(":")+1)	# tab past initial (name) field
+
+	while tab((find(":")+1) \ 1) ? {
+	    &subject == "" & next
+	    if k := 1(move(2), ="=")
+	    then decoded_value := Decode(tab(find(":")))
+	    else if k := 1(move(2), ="#")
+	    then decoded_value := integer(tab(find(":")))
+	    else if k := 1(tab(find(":")), pos(-1))
+	    then decoded_value := true()
+	    else er("maketc_table", "your termcap file has a bad entry",3)
+	    /tc_table[k] := decoded_value
+	    &null
+	}
+    }
+
+    return tc_table
+
+end
+
+
+
+procedure getval(id)
+
+    /tc_table := maketc_table(getentry(getname())) |
+	er("getval","can't make a table for your terminal",4)
+
+    return \tc_table[id] | fail
+	# er("getval","the current terminal doesn't support "||id,7)
+
+end
+
+
+
+procedure Decode(s)
+    local new_s, chr, chr2
+
+    # Does things like turn ^ plus a letter into a genuine control
+    # character.
+
+    new_s := ""
+
+    s ? {
+
+	while new_s ||:= tab(upto('\\^')) do {
+	    chr := move(1)
+	    if chr == "\\" then {
+		new_s ||:= {
+		    case chr2 := move(1) of {
+			"\\" : "\\"
+			"^"  : "^"
+			"E"  : "\e"
+			"b"  : "\b"
+			"f"  : "\f"
+			"n"  : "\n"
+			"r"  : "\r"
+			"t"  : "\t"
+			default : {
+			    if any(&digits,chr2) then {
+				char(integer("8r"||chr2||move(2 to 0 by -1))) |
+				    er("Decode","bad termcap entry",3)
+			    }
+			   else chr2
+			}
+		    }
+		}
+	    }
+	    else new_s ||:= char(ord(map(move(1),&lcase,&ucase)) - 64)
+	}
+	new_s ||:= tab(0)
+    }
+
+    return new_s
+
+end
+
+
+
+procedure igoto(cm,col,line)
+
+    local colline, range, increment, padding, str, outstr, chr, x, y
+
+    if \col > (tc_table["co"]) | \line > (tc_table["li"]) then {
+	colline := string(\col) || "," || string(\line) | string(\col|line)
+	range := "(" || tc_table["co"]-1 || "," || tc_table["li"]-1 || ")"
+	er("igoto",colline || " out of range " || (\range|""),9)
+    } 
+
+    # Use the Iconish 1;1 upper left corner & not the C-ish 0 offsets
+    increment := -1
+    outstr := ""
+    
+    cm ? {
+	while outstr ||:= tab(find("%")) do {
+	    tab(match("%"))
+	    if padding := integer(tab(any('23')))
+	    then chr := (="d" | "d")
+	    else chr := move(1)
+	    if case \chr of {
+		"." :  outstr ||:= char(line + increment)
+		"+" :  outstr ||:= char(line + ord(move(1)) + increment)
+		"d" :  {
+		    str := string(line + increment)
+		    outstr ||:= right(str, \padding, "0") | str
+		}
+	    }
+	    then line :=: col
+	    else {
+		case chr of {
+		    "n" :  line := ixor(line,96) & col := ixor(col,96)
+		    "i" :  increment := 0
+		    "r" :  line :=: col
+		    "%" :  outstr ||:= "%"
+		    "B" :  line := ior(ishift(line / 10, 4), line % 10)
+		    ">" :  {
+			x := move(1); y := move(1)
+			line > ord(x) & line +:= ord(y)
+			&null
+		    }
+		} | er("goto","bad termcap entry",5)
+	    }
+	}
+    return outstr || tab(0)
+    }
+
+end
+
+
+
+procedure iputs(cp, affcnt)
+
+    local baud_rates, char_rates, i, delay, PC, minimum_padding_speed, char_time
+
+    static num_chars, char_times
+    # global tty_speed
+
+    initial {
+	num_chars := &digits ++ '.'
+	char_times := table()
+	# Baud rates in decimal, not octal (as in termio.h)
+	baud_rates := [0,7,8,9,10,11,12,13,14,15,16]
+	char_rates := [0,333,166,83,55,41,20,10,10,10,10]
+	every i := 1 to *baud_rates do {
+	    char_times[baud_rates[i]] := char_rates[i]
+	}
+    }
+
+    type(cp) == "string" |
+	er("iputs","you can't iputs() a non-string value!",10)
+
+    cp ? {
+	delay := tab(many(num_chars))
+	if ="*" then {
+	    delay *:= \affcnt |
+		er("iputs","affected line count missing",6)
+	}
+	writes(tab(0))
+    }
+
+    if (\delay, tty_speed ~= 0) then {
+	minimum_padding_speed := getval("pb")
+	if /minimum_padding_speed | tty_speed >= minimum_padding_speed then {
+	    PC := tc_table["pc"] | "\000"
+	    char_time := char_times[tty_speed] | (return "speed error")
+	    delay := (delay * char_time) + (char_time / 2)
+	    every 1 to delay by 10
+	    do writes(PC)
+	}
+    }
+
+    return
+
+end
+
+
+
+procedure getspeed()
+
+    local stty_g, stty_output, c_cflag, o_speed
+
+    stty_g := open("/bin/stty -g 2>&1","pr") |
+	er("getspeed","Can't access your stty command.",4)
+    stty_output := !stty_g
+    close(stty_g)
+
+    \stty_output ? {
+	# tab to the third field of the output of the stty -g cmd
+        tab(find(":")+1) & tab(find(":")+1) &
+	c_cflag := integer("16r"||tab(find(":")))
+    } | er("getspeed","Unable to unwind your stty -g output.",4)
+
+    o_speed := iand(15,c_cflag)
+    return o_speed
+
+end

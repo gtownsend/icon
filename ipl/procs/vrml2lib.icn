@@ -1,0 +1,510 @@
+############################################################################
+#
+#	File:     vrml2lib.icn
+#
+#	Subject:  Procedures to support construction of VRML 2.0 files
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 19, 1997
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This file contains record declarations for VRML 2.0 nodes.
+#
+#  Note: Although VRML 2.0 allows node fields to be given in any order,
+#  they must be specified in the order given in the record declarations
+#  that follow.
+#
+#  Group nodes require list arguments for lists of nodes.
+#  
+############################################################################
+#
+############################################################################
+
+record Anchor(
+   children,
+   bboxCenter,
+   bboxSize,
+   url,
+   parameter,
+   decsription,
+   addChildren,
+   removeChildren
+   )
+
+record Appearance(
+   material,
+   texture,
+   textureTransform
+   )
+
+record AudioClip(
+   url,
+   duration,
+   starttime,
+   stopTime,
+   pitch,
+   loop,
+   isActive,
+   duration_changed
+   )
+
+record Background(
+   skyColor,
+   skyAngle,
+   groundCOlor,
+   groundAngle,
+   backUrl,
+   bottomUrl,
+   frontUrl,
+   leftUrl,
+   rightUrl,
+   topUrl,
+   set_bind,
+   bind_changed
+   )
+
+record Billboard(
+   children,
+   axixOfRotation,
+   bboxCenter,
+   bboxSize,
+   addChildren,
+   removeChildren
+   )
+
+record Box(
+   size
+   )
+
+record Collision(
+   children,
+   collide,
+   bboxCenter,
+   bboxSize,
+   proxy,
+   collideTime,
+   addChildren,
+   removeChildren
+   )
+
+record Color(
+   color
+   )
+
+record ColorInterpolator(
+   key,
+   keyValue,
+   set_fraction,
+   value_changed
+   )
+
+record Comment(
+   text
+   )
+
+record Cone(
+   height,
+   bottomRadius,
+   side,
+   bottom
+   )
+
+record Coordinate(
+   point
+   )
+
+record CoordinateInterpolator(
+   key,
+   keyValue,
+   set_fraction,
+   value_changed
+   )
+
+record Cylinder(
+   radius,
+   height,
+   side,
+   top,
+   bottom
+   )
+
+record CylinderSensor(
+   enabled,
+   diskAngle,
+   autoOffset,
+   maxAngle,
+   minAngle,
+   isActive,
+   rotation_changed,
+   trackPoint_changed
+   )
+
+record DirectionalLight(
+   on,
+   intensity,
+   ambientIntensity,
+   color,
+   direction
+   )
+
+record ElevationGrid(
+   xDimension,
+   xSpacing,
+   zDimension,
+   zSpacing,
+   height,
+   color,
+   colorPerVertex,
+   normal,
+   normalPerVertex,
+   texCoord,
+   ccw,
+   solid,
+   creaseAngle,
+   set_height
+   )
+
+record Extrusion(
+   crossSection,
+   spine,
+   scale,
+   orientation,
+   beginCap,
+   endCap,
+   ccw,
+   solid,
+   convex,
+   creaseAngle,
+   set_spine,
+   set_crossSection,
+   set_scale,
+   set_orientation
+   ) 
+
+record Fog(
+   color,
+   visibilityRange,
+   fogType,
+   set_bind,
+   bind_changed
+   )
+
+record FontStyle(
+   family,
+   style,
+   size,
+   spacing,
+   justify,
+   horizontal,
+   leftToRight,
+   topToBottom,
+   language
+   )
+
+record Group(
+   children,
+   bboxCenter,
+   bboxSize,
+   addChildren,
+   removeChildren
+   )
+
+record ImageTexture(
+   url,
+   repeatS,
+   repeatT
+   )
+
+record Include(
+   name
+   )
+
+record IndexedFaceSet(
+   coord,
+   coordIndex,
+   texCoord,
+   texCoordIndex,
+   color,
+   colorIndex,
+   colorPerVertex,
+   normal,
+   normalIndex,
+   normalPerVertex,
+   ccw,
+   convex,
+   solid,
+   creaseAngle,
+   set_coordIndex,
+   set_texCoordIndex,
+   set_colorIndex,
+   set_normalIndex
+   )
+
+record IndexedLineSet(
+   coord,
+   coordIndex,
+   color,
+   colorIndex,
+   colorPerVertex,
+   set_coordIndex,
+   set_colorIndex
+   )
+
+record Inline(
+   url,
+   bboxCenter,
+   bboxSize
+   )
+
+record LOD(
+   center,
+   level,
+   range
+   )
+
+record Material(
+   diffuseColor,
+   ambientIntensity,
+   emissiveColor,
+   shininess,
+   specularColor,
+   transparency
+   )
+
+record MovieTexture(
+   url,
+   loop,
+   speed,
+   startTime,
+   stopTime,
+   repeatS,
+   repeatT,
+   isActive,
+   duration_changed
+   )
+
+record NavigationInfo(
+   type,
+   speed,
+   avatarSize,
+   headlight,
+   visibilityLimit,
+   set_bind,
+   isBound
+   )
+
+record Normal(
+   vector
+   )
+
+record NormalInterpolator(
+   key,
+   keyValue,
+   set_fraction,
+   value_changed
+   )
+
+record OrientationInterpolator(
+   key,
+   keyValue,
+   set_fraction,
+   value_changed
+   )
+
+record PixelTexture(
+   image,
+   repeatS,
+   repeatT
+   )
+
+record PlaneSensor(
+   enabled,
+   autoOffset,
+   offset,
+   maxPosition,
+   minPosition,
+   isActive,
+   translation_changed,
+   trackPoint_changed
+   )
+
+record PointLight(
+   on,
+   location,
+   radius,
+   intensity,
+   ambientIntensity,
+   color,
+   attenuation
+   )
+
+record PointSet(
+   coord,
+   color
+   )
+
+record PositionInterpolator(
+   key,
+   keyValue,
+   set_fraction,
+   value_changed
+   )
+
+record ProximitySensor(
+   enabled,
+   center,
+   size,
+   isActive,
+   enterTime,
+   exitTIme,
+   position_changed,
+   orientation_cahnged
+   )
+
+record ScalarInterpolator(
+   key,
+   keyValue,
+   set_fraction,
+   value_changed
+   )
+
+record Script(
+   url,
+   mustEvaluate,
+   directOutput,
+   list
+   )
+
+record Shape(
+   appearance,
+   geometry
+   )
+
+record Sound(
+   source,
+   intensity,
+   location,
+   direction,
+   minFront,
+   minBack,
+   maxFront,
+   maxBack,
+   priority,
+   spatialize
+   )
+
+record Sphere(
+   radius
+   )
+
+record SphereSensor(
+   enabled,
+   autoOffset,
+   offset,
+   isActive,
+   rotation_changed,
+   trackPoint_changed
+   )
+
+record SpotLight(
+   on,
+   location,
+   direction,
+   radius,
+   intensity,
+   ambientIntensity,
+   color,
+   attenuation,
+   beamWidth,
+   cutOffAngle
+   )
+
+record Switch(
+   children,
+   choice,
+   whichChoice
+   )
+
+record Text(
+   string,
+   length,
+   maxExtent,
+   fontStyle
+   )
+
+record TextureCoordinate(
+   point
+   )
+
+record TextureTransform(
+   translation,
+   rotation,
+   scale,
+   center
+   )
+
+record TimeSensor(
+   enabled,
+   startTime,
+   stopTime,
+   cycleInterval,
+   loop,
+   isActive,
+   time,
+   cycleTime,
+   fraction_changed
+   )
+
+record TouchSensor(
+   enabled,
+   isActive,
+   isOver,
+   touchTime,
+   hitPoint_changed,
+   hitNOrmal_changed,
+   hitTexCoord_changed
+   )
+
+record Transform(
+   children,
+   translation,
+   rotation,
+   scale,
+   scaleOrientation,
+   bboxCenter,
+   bboxSize,
+   center,
+   addChildren,
+   removeChildren
+   )
+
+record Viewpoint(
+   position,
+   orientation,
+   fieldOfView,
+   description,
+   jump,
+   set_bind,
+   isBound,
+   bindTime
+   )
+
+record VisibilitySensor(
+   enabled,
+   center,
+   size,
+   isActive,
+   enterTime,
+   exitTIme
+   )
+
+record WorldInfo(
+   title,
+   info
+   )

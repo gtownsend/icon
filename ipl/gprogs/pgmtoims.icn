@@ -1,0 +1,111 @@
+############################################################################
+#
+#	File:     pgmtoims.icn
+#
+#	Subject:  Program to make an image from a PGM file
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     May 23, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Usage:  pgmtoims [-gn] [file]
+#
+#  Pgmtoims reads a PGM rawbits file and writes an Icon image string.
+#  The "-gn" option (2 <= n <= 64) selects the palette; g41 is the
+#  default.
+#
+#  Note that only rawbits-format PGM files can be read.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local opts, g, cs, f, w, h, maxv, data, s, i, n, ln
+
+   # Process options.
+   opts := options(args, "g+")
+   g := \opts["g"] | 41
+   if g < 2 | g > 64 | *args > 1 then
+      stop("usage: ", &progname, " [-gn] [file]")
+
+   # Select the set of image characters according to the palette.
+   cs := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz{}"
+   cs := cs[1+:g]
+
+   # Open the file and read it into memory.
+   if *args = 1 then
+      f := open(args[1], "ru") | stop("can't open ", args[1])
+   else
+      f := &input
+   s := ""
+   while s ||:= reads(f, 1000)
+
+   # Crack the file header.
+   s ? {
+      ws()
+      if ="P" & any('1346') then
+         stop("input is not in PGM format; convert via \"ppmtopgm\"")
+      if ="P2" then
+         stop("input is not in *raw* PGM format")
+      if not ="P5" then
+         stop("input is not a PGM file")
+      ws()
+      w := tab(many(&digits))		# image width
+      ws()
+      h := tab(many(&digits))		# image height
+      ws()
+      maxv := tab(many(&digits))	# maximum byte value in input
+      tab(any(' \t\r\n'))
+      data := tab(0)			# image data
+      }
+
+   # Calculate the translation from input to output data bytes.
+   s := ""
+   every i := 0 to maxv do 
+      s ||:= cs[1 + (g * i) / (maxv + 1)]
+
+   # Figure out a reasonable line length for output,
+   # assuming not too many backslashes.
+   n := 79 > w / seq(1)
+   if w % n > 0 then
+      n +:= 1
+
+   # Translate the data a line at a time, and write.
+   map(data, &cset, s) ? {
+      write("\"", w, ",g", g, ",_")
+      while not pos(0) do wdata(move(w) | tab(0), n)
+      write("\"")
+      }
+end
+
+
+#  wdata(s, n) -- write one line of data with max linelength n
+
+procedure wdata(s, n)
+   s ? while not pos(0) do 
+      write(image(move(n) | tab(0)) [2:-1], "_")
+   return
+end
+
+
+#  ws() -- skip whitespace.
+
+procedure ws()
+   while tab(many(' \t\r\n')) | (="#" & tab(upto('\n')))
+   return
+end

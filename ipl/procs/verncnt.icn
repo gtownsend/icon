@@ -1,0 +1,39 @@
+############################################################################
+#
+#	File:     verncnt.icn
+#
+#	Subject:  Procedure to compute number of n-digit versum numbers
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 2, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure produces an approximation to the number of n-digit
+#  versum numbers, using a recurrence described in "Versum Numbers" in
+#  Icon Analyst 35.
+#
+############################################################################
+
+procedure verncnt(n)		#: number of n-digit versum numbers
+
+   return case integer(n) of {
+      1       :        4
+      2       :       14
+      3       :       93
+      4       :      256
+      5       :     1793
+      6       :     4872
+      7       :    34107
+      8       :    92590
+      9       :   648154
+      10      :  1759313
+      default :  19 * verncnt(n - 2)
+      }
+
+end

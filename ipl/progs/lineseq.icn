@@ -1,0 +1,39 @@
+############################################################################
+#
+#	File:     lineseq.icn
+#
+#	Subject:  Program to write a sequence of values on a line
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 18, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program reads values on separate lines and strings them together
+#  on a single line.  The default separator is a blank; other separating
+#  strings can be specified by the -s option
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local opts, sep
+
+   opts := options(args, "s:")
+   sep := \opts["s"] | " "
+
+   every writes(!&input, sep)
+
+   write()
+
+end

@@ -1,0 +1,58 @@
+############################################################################
+#
+#	File:     bold.icn
+#
+#	Subject:  Procedures to enbolden and underscore text
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 10, 1988
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#  These procedures produce text with interspersed characters suit-
+#  able for printing to produce the effect of boldface (by over-
+#  striking) and underscoring (using backspaces).
+#  
+#       bold(s)        bold version of s
+#  
+#       uscore(s)      underscored version of s
+#  
+############################################################################
+
+procedure bold(s)
+   local c
+   static labels, trans, max
+   initial {
+      labels := "1"
+      trans := repl("1\b",4) || "1"
+      max := *labels
+      trans := bold(string(&lcase))
+      labels := string(&lcase)
+      max := *labels
+      }
+   if *s <= max then
+      return map(left(trans,9 * *s),left(labels,*s),s)
+   else return bold(left(s,*s - max)) ||
+      map(trans,labels,right(s,max))
+end
+
+procedure uscore(s)
+   static labels, trans, max
+   initial {
+      labels := "1"
+      trans := "_\b1"
+      max := *labels
+      trans := uscore(string(&lcase))
+      labels := string(&lcase)
+      max := *labels
+      }
+   if *s <= max then
+      return map(left(trans,3 * *s),left(labels,*s),s)
+   else return uscore(left(s,*s - max)) ||
+      map(trans,labels,right(s,max))
+end

@@ -1,0 +1,106 @@
+############################################################################
+#
+#	File:     trees.icn
+#
+#	Subject:  Procedures for manipulating trees and dags
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 27, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#       depth(t)	compute maximum depth of tree t
+#  
+#       ldag(s)		construct a dag from the string s
+#
+#       ltree(s)	construct a tree from the string s
+#
+#       stree(t)	construct a string from the tree t
+#
+#       tcopy(t)	copy tree t
+#
+#       teq(t1,t2)	compare trees t1 and t2
+#  
+#       visit(t)	visit, in preorder, the nodes of the tree t
+#  
+############################################################################
+
+procedure depth(ltree)			#: depth of tree
+   local count
+
+   count := 0
+   every count <:= 1 + depth(ltree[2 to *ltree])
+   return count
+
+end
+
+procedure ldag(stree,done)		#: construct dag from string
+   local L
+
+   /done := table()
+   if L := \done[stree] then return L
+   stree ?
+      if L := [tab(upto('('))] then {
+         move(1)
+         while put(L,ldag(tab(bal(',)')),done)) do
+            move(1)
+         }
+      else L := [tab(0)]
+   return done[stree] := L
+
+end
+
+procedure ltree(stree)			#: construct tree from string
+   local L
+
+   stree ?
+      if L := [tab(upto('('))] then {
+         move(1)
+         while put(L,ltree(tab(bal(',)')))) do
+            move(1)
+         }
+      else L := [tab(0)]
+   return L
+
+end
+
+procedure stree(ltree)			#: construct string from tree
+   local s
+
+   if *ltree = 1 then return ltree[1]
+   s := ltree[1] || "("
+   every s ||:= stree(ltree[2 to *ltree]) || ","
+   return s[1:-1] || ")"
+
+end
+
+procedure tcopy(ltree)			#: tree copy
+   local L
+
+   L := [ltree[1]]
+   every put(L,tcopy(ltree[2 to *ltree]))
+   return L
+
+end
+
+procedure teq(L1,L2)			#: tree equivalence
+   local i
+
+   if *L1 ~= *L2 then fail
+   if L1[1] ~== L2[1] then fail
+   every i := 2 to *L1 do
+      if not teq(L1[i],L2[i]) then fail
+   return L2
+
+end
+
+procedure visit(ltree)			#: visit nodes of tree
+
+   suspend ltree | visit(ltree[2 to *ltree])
+
+end

@@ -1,0 +1,85 @@
+############################################################################
+#
+#	File:     lsysmap.icn
+#
+#	Subject:  Program to map L-system symbols
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 18, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program maps the symbols in L-Systems.
+#
+#  The following options are supported:
+#
+#	-i s	input symbols for mapping; default &ucase
+#	-o s	output symbols for mapping; default &ucase
+#	-a	put symbols for axiom production in alphabetical
+#		  order (ignores -i and -o)
+#	
+#  symbol strings are given on the command line, as in
+#
+#	lsysmap -i ABCD -o DCBA <exam.lys
+#
+#  There is little error checking.  It's possible to produce an invalid
+#  L-system by creating duplicate nonterminals or changing metacharacters.
+#
+#  The program handles two-level grammars using the first axiom symbol.
+#
+############################################################################
+#
+#  Links:  options, strings
+#
+############################################################################
+
+link options
+link strings
+
+procedure main(args)
+   local isyms, osyms, line, defs, axiom, i, opts, symbols, done
+
+   opts := options(args, "i:s:a")
+
+   if /opts["a"] then {
+      isyms := \opts["i"] | &ucase
+      osyms := \opts["o"] | &ucase
+      if *isyms ~= *osyms then
+         stop("*** input and output strings not of equal length")
+      }
+
+   defs := []
+   symbols := ''
+
+   while line := read() do {
+      put(defs, line)
+      line ? {
+         if ="axiom:" then {
+            if not(/axiom := move(1)) then	# not first axiom
+            done := 1			# turn off gathering nontrminals 
+            }
+         else if =\axiom & ="->" & /isyms then isyms := tab(0)
+         if /done & find("->") then symbols ++:= move(1)
+         }
+      }
+
+   isyms := deletec(isyms, &cset -- symbols)
+   isyms := ochars(isyms)
+   osyms := csort(isyms)
+
+   every i := 1 to *defs do {
+      defs[i] ?:= {
+         (="axiom:" || map(move(1), isyms, osyms)) |
+         (find("->") & map(tab(0), isyms, osyms)) |
+         tab(0)
+         }
+      }
+         
+   every write(!defs)
+
+end

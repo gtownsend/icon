@@ -1,0 +1,58 @@
+############################################################################
+#
+#	File:     lcseval.icn
+#
+#	Subject:  Procedure to evaluate linear congruence parameters
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 23, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  rcseval(a, c, m) evaluates the constants used in a linear congruence
+#  recurrence for generating a sequence of pseudo-random numbers.
+#  a is the multiplicative constant, c is the additive constant, and
+#  m is the modulus.
+#
+#  Any line of output starting with asterisks indicates a problem.
+#
+#  See Donald E. Knuth, "Random Numbers" in The Art of Computer Programming,
+#  Vol. 2, Seminumerical Algorithms, Addison-Wesley, Reading, Massachusetts,
+#  1969, pp. 1-160.
+#
+############################################################################
+#
+#  Deficiency:  The modulus test for a assumes m is a power of 2.
+#
+############################################################################
+#
+#  Requires:  large integers
+#
+############################################################################
+
+procedure lcseval(a, c, m)
+   local b, s
+
+   write("a=", a, " (should not have a regular pattern of digits)")
+   write("c=", c)
+   write("m=", m, " (should be large)")
+
+   if (m / 100) < a < (m - sqrt(m)) then write("a passes range test")
+   else write("*** a fails range test")
+   if a % 8 = 5 then write("a passes mod test")
+   else write("*** a fails mod test")
+   if (c % 2) ~= 1 then write("c relatively prime to m")
+   else write("*** c not relatively prime to m")
+   write("c/m=", c / real(m), " (should be approximately 0.211324865405187)")
+
+   b := a - 1
+
+   every s := seq() do
+      if (b ^ s) % m = 0 then stop("potency=", s, " (should be at least 5)")
+
+end

@@ -1,0 +1,36 @@
+############################################################################
+#
+#	File:     lrgapprx.icn
+#
+#	Subject:  Procedure to approximate integer values
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 14, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure produces an approximate of an integer value in the
+#  form n.nx10^n.
+#
+#  It is primarily useful for large integers.
+#
+############################################################################
+
+procedure lrgapprx(i)
+   local head, carry
+
+   i ? {
+      head := move(2) | return i
+      if carry := move(1) then {
+         if carry > 5 then head +:= 1
+         move(-1)
+         }
+      return real(head / 10.0) || "x10^" || (*tab(0) + 1)
+      }
+
+end

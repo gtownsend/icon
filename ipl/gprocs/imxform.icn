@@ -1,0 +1,487 @@
+############################################################################
+#
+#	File:     imxform.icn
+#
+#	Subject:  Procedures to transform image matrices
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 27, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This file contains procedures that maniplated matrices that represent
+#  images.
+#
+############################################################################
+#
+#  Requires:  Version 8.11, graphics
+#
+############################################################################
+#
+#  Links:  factors, imsutils, random, strings
+#
+############################################################################
+
+link factors
+link imsutils
+link random
+link strings
+
+#
+#  Reduces a image matrix to the smallest equivalent one.
+
+procedure imxreduce(rows)
+
+   rows := imxcollap(rows)
+   rows := imxrotate(rows, 90)
+   rows := imxcollap(rows)
+   rows := imxrotate(rows, -90)
+
+   return rows
+
+end
+
+procedure imxcollap(rows)
+   local size, fact
+
+   size := *rows
+   every fact := !pfactors(size) do {
+      while rowdupl(rows, fact) do {
+         size /:= fact
+         rows := rows[1+:size]
+         }
+      }
+
+   return rows
+
+end
+
+procedure rowdupl(rows, n)
+   local span, i, j
+
+   if *rows % n ~= 0 then fail
+
+   span := *rows / n
+
+   every i := 1 to n - 1 do
+      every j := 1 to span do
+         if rows[j] ~== rows[i * span + j] then fail
+
+   return
+
+end
+
+#
+#  Produces the inclusive "or" of two image matrices.
+
+procedure imxor(rows1, rows2)
+   local i, j
+
+   if (*rows1 ~= *rows2) | (**rows1 ~= **rows2) then fail
+
+   rows1 := copy(rows1)
+
+   every i := 1 to *rows1 do
+      every j := upto('1', rows2[i]) do
+         rows1[i][j] := "1"
+
+   return rows1
+
+end
+
+#
+#  Produces the "and" of two image matrices.
+
+procedure imxand(rows1, rows2)
+   local i, j
+
+   if (*rows1 ~= *rows2) | (**rows1 ~= **rows2) then fail
+
+   rows1 := copy(rows1)
+
+   every i := 1 to *rows1 do
+      every j := upto('0', rows2[i]) do
+         rows1[i][j] := "0"
+
+   return rows1
+
+end
+
+#
+#  Produces the exclusive "or" of two image matrices.
+
+procedure imxxor(rows1, rows2)
+   local i, j
+
+   if (*rows1 ~= *rows2) | (**rows1 ~= **rows2) then fail
+
+   rows1 := copy(rows1)
+
+   every i := 1 to *rows1 do
+      every j := 1 to **rows1 do
+         rows1[i][j] := if rows1[i][j] == rows2[i][j] then "0" else "1"
+
+   return rows1
+
+end
+
+#
+#  Scrambles a image matrix by shuffling it.  If dir is "h", the columns of each row
+#  are scrambled; if "v", the the rows are scrambled.  If "b", bits are
+#  scrambled throughout the image matrix.
+
+procedure imxscramb(rows, dir)
+   local i, all
+
+   case dir of {
+      "h":  {
+          every i := 1 to *rows do
+             rows[i] := shuffle(rows[i])
+          }
+      "v":  rows := shuffle(rows)
+      "b" | &null:  {
+         all := ""
+         every all ||:= !rows
+         all := shuffle(all)
+         every i := 1 to *rows do {
+            rows[i] := left(all, *rows[1])
+            all[1 +: *rows[1]] := ""
+            }
+         }
+      default:   stop("*** illegal specification in scramble()")
+      }
+
+   return rows
+
+end 
+
+#
+#  Create bit-shifted copy of a image matrix.  If dir is "h", then the
+#  shift is horizontal; if "v", vertical. The default is horizontal.
+#  Positive shift is to the right for horizontal shifts, downward for vertical
+#  shifts.  The default shift is 0 and the default direction is horizontal.
+
+procedure imxshift(rows, shift, dir)
+   local i
+
+   /shift := 0
+
+   rows := copy(rows)
+
+   case dir of {
+      "h" | &null: {			# horizontal shift
+         every i := 1 to *rows do
+            rows[i] := rotate(rows[i], -shift)
+         }
+      "v": {				# vertical shift
+         if shift > 0 then
+            every 1 to shift do
+               push(rows, pull(rows))
+         else if shift < 0 then
+            every 1 to -shift do
+               put(rows, pop(rows))
+         }
+      default:  stop("*** illegal specification in imxshift()")
+      }
+
+   return rows
+
+end
+
+#
+#  Place a border around a image matrix.  l, r, t, and b specify the number of bits
+#  to add at the left, right, top, and bottom, respectively.  c specifies
+#  the color of the border, "0" for white, "1" for black.
+
+procedure imxborder(rows, l, r, t, b, c)
+   local i, row, left, right
+
+   /l := 1
+   /r := 1
+   /t := 1
+   /b := 1
+   /c := "0"
+
+   if l = r = t = b = 0 then return rows
+
+   row := repl(c, *rows[1] + l + r)
+   left := repl(c, l)
+   right := repl(c, r)
+
+   every i := 1 to *rows do
+       rows[i] := left || rows[i] || right
+
+   every 1 to t do
+      push(rows, row)
+
+   every 1 to b do
+      put(rows, row)
+
+   return rows
+
+end
+
+#
+#  Crop a image matrix.  l, r, t, and b specify the number of bits
+#  to crop at the left, right, top, and bottom, respectively.
+
+procedure imxcrop(rows, l, r, t, b)
+   local i
+
+   /l := 0
+   /r := 0
+   /t := 0
+   /b := 0
+
+   if l = r = t = b = 0 then return rows
+
+   if ((*rows[1] - l - r) | (*rows - t - b)) < 4 then fail
+
+   every 1 to t do
+      get(rows)
+
+   every 1 to b do
+      pull(rows)
+
+   every i := 1 to *rows do
+       rows[i] := rows[i][l + 1 : -r]
+
+   return rows
+
+end
+
+#  Creates a tile in every other pixel is discarded.  dir determines the
+#  direction is which the halving is done.  If dir is "b" or null, it's
+#  done both vertically and horizontally.  If dir is "v", it's only done
+#  vertically, while if dir is "v", it's done only vertically.
+#  If choice is "o" or null, odd-numbered rows or columns are kept;
+#  if "e", the even-numbered ones.
+
+procedure imxhalve(rows, dir, choice)
+   local newrows, i
+
+   choice := if choice === ("o" | &null) then 1 else 0
+   newrows := []
+
+   case dir of {
+      "v": {
+         every i := choice to *rows by 2 do
+            put(newrows, rows[i])
+         }
+      "h":  every put(newrows, decollate(!rows, choice))
+      "b" | &null: return imxhalve(imxhalve(rows, "v", choice), "h", choice)
+      }
+
+   return newrows
+
+end
+         
+#
+#  Creates a tile in which each pixel doubled.  dir determines the
+#  direction in which the doubling is done.  If dir is "b" or null, it's
+#  done both horizontally and vertically.  If dir is "v", it's only done
+#  vertically, while if dir is "h", it's done only horizontally.
+
+procedure imxdouble(rows, dir)
+   local row, newrows
+
+   newrows := []
+
+   case dir of {
+      "v":  {
+         every row := !rows do
+            put(newrows, row, row)
+         }
+      "h":  {
+         every row := !rows do
+            put(newrows, collate(row, row))
+         }
+      "b" | &null: return imxdouble(imxdouble(rows, "v"), "h")
+      }
+
+   return newrows
+
+end
+
+#
+#  Flip image matrix.  The possible values of dir are "h" (horizontal flip),
+#  "v" (vertical flip), "l" (left diagonal), and "r" (right diagonal).
+#  (The left diagonal extends from the upper left corner to the bottom
+#  right corner; the right diagonal from the upper right to the lower
+#  left.
+
+procedure imxflip(rows, dir)
+   local newrows, x, y, i
+
+   case dir of {
+      "l": {
+         newrows := list(*rows[1], repl("0", *rows))
+         every y := 1 to *rows do
+            every x := 1 to *rows[1] do
+               if rows[y, x] == "1" then
+                  newrows[-x, -y] := "1"
+         }
+      "r": {
+         newrows := list(*rows[1], repl("0", *rows))
+         every y := 1 to *rows do
+            every x := 1 to *rows[1] do
+               if rows[y, x] == "1" then
+                  newrows[x, y] := "1"
+         }
+      "h":  {
+         newrows := copy(rows)
+         every i := 1 to *rows do
+            newrows[i] := reverse(newrows[i])
+         }
+      "v":  {
+         newrows := copy(rows)
+         every i := 1 to *rows / 2 do
+           newrows[i] :=: newrows[-i]
+         }
+      default:  stop("*** illegal flip specification in imxflip()")
+      }
+
+   return newrows
+      
+end
+
+#
+#  Invert white and black bits in image matrix specification
+
+procedure imxinvert(rows)
+   local i
+
+   every i := 1 to *rows do
+      rows[i] := map(rows[i], "10", "01")
+
+   return rows
+
+end
+
+#
+#  Reduce image matrix to its smallest equivalent form (with at least 4 columns).
+#  Limited to square image matrices for portability -- other possibilities exist
+#  for operating on and/or producing image matrices that are not square.
+
+
+procedure imxminim(rows)
+   local halfw, halfh, i
+
+   if (*rows ~= *rows[1]) | (*rows % 2 ~= 0) then return rows
+
+   repeat {
+  
+      if *rows[1] < 8 then break		# can't reduce to < 4 columns
+
+      halfw := *rows[1] / 2
+      halfh := *rows / 2
+   
+      every i := 1 to halfh do			# check rows in top and bottom
+         if (rows[i] ~== rows[i + halfh]) |
+            (rows[i][1+:halfw] ~== rows[i][0-:halfw]) then break break
+   
+      every 1 to halfh do			# reducible; remove rows
+         pop(rows)
+   
+      every i := 1 to halfh do			# truncate rows
+         rows[i] := rows[i][1+:halfw]
+   
+      }
+
+   return rows
+
+end
+
+#  Create rotated copy of a image matrix.  If dir is "cw" or "90", rotation is 90
+#  degrees clockwise; if "ccw" or "-90", 90 degrees counter-clockwise.
+#  If dir is "180", rotation is 180 degrees.  The default is "cw".
+
+procedure imxrotate(rows, dir)
+   local newrows, i, row, pix
+
+   case string(dir) of {
+      "ccw" | "-90":  {			# counter-clockwise
+         newrows := list(*rows[1], "")
+         every row := !rows do  {
+            i := 0
+            every pix := !row do
+               newrows[i -:= 1] ||:= pix
+            }
+        }
+      "cw" | "90" | &null:  {			# clockwise
+         newrows := list(*rows[1], "")
+         every row := !rows do {
+            i := 0
+            every pix := !row do
+               newrows[i +:= 1] := pix || newrows[i]
+            }
+         }
+      "180": {
+         newrows := []
+         every push(newrows, reverse(!rows))
+         }
+      default:  stop("*** illegal rotation specification in imxrotate()")
+   }
+
+   return newrows
+
+end
+
+#
+#  Trim border whitespace from image matrix
+
+procedure imxtrim(rows)
+
+   while (*rows > 4) & not(upto('1', rows[1])) do
+      get(rows)
+
+   while (*rows > 4) & not(upto('1', rows[-1])) do
+      pull(rows)
+
+   rows := imxrotate(rows, "cw")
+
+   while (*rows > 4) & not(upto('1', rows[1])) do
+      get(rows)
+
+   while (*rows > 4) & not(upto('1', rows[-1])) do
+      pull(rows)
+ 
+   return imxrotate(rows, "ccw")
+
+end
+
+#
+#  Centers non-white portion of image matrix
+
+procedure imxcenter(rows, w, h)
+   local rw, rh, vert, horz, t, l
+
+   rows := imxtrim(rows)
+
+   rw := *rows[1]
+   rh := *rows
+
+   if (rh = h) & (rw = w) then return rows
+   if (rh > h) | (rw > w) then fail
+
+   horz := w - rw
+   vert := h - rh
+   l := horz / 2
+   t := vert / 2
+
+   return imxborder(rows, l, horz - l, t, vert - t)
+
+end
+
+#  Create a blank i-by-j image matrix
+
+procedure imxcreate(i, j)
+
+   return list(i, repl("0", j))
+
+end

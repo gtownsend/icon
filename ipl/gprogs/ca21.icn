@@ -1,0 +1,122 @@
+############################################################################
+#
+#	File:     ca21.icn
+#
+#	Subject:  Program to investigate cellular automata
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 21, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program displays the time-sequence development on one-dimensional
+#  cellular automata in which the state of a cell depends only on the
+#  two cells adjacent to it -- 2,1 automata.
+#
+#  See "Theory and Applications of Cellular Automata", Stephan Wolfram,
+#  World Scientic, 1986 for an explanation for the method and rule
+#  encoding.
+#
+#  The options supported are:
+#
+#	-r i	rule i, default 110
+#	-w i	width (number of cells), default 200
+#	-h i	height (number of time steps), default width
+#	-s	seed first row at random with <= width / 2 cells
+#	-R	randomize the run
+#	-e s	initialize first row with seeds at positions generated
+#		   by Icon expression e.
+#	-i s	save final image in file named s; default no image
+#	-H	use hidden window; if no image file specified, ca21.gif
+#		   is used
+#
+#  The -e option is powerful but somewhat strange.  For example, to
+#  seed every other cell in the first row, use
+#
+#	-e 'seq(1,2')
+#
+#  which generates 1, 3, 5, 7, ... and seeds those cells (cells are
+#  numbered starting at 1).
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics; system(), pipes, /tmp for -e option
+#
+############################################################################
+#
+#  Links:  evallist, genrfncs, options, convert, random, wopen
+#
+############################################################################
+
+link evallist
+link genrfncs
+link options
+link convert
+link random
+link wopen
+
+procedure main(args)
+   local opts, rule, bits, binary, i, j, phi, width, height, v, old, new
+   local ilist, name, canvas
+
+   opts := options(args, "w+h+r+sRe:i:H")
+
+   width := \opts["w"] | 200
+   height := \opts["h"] | width
+   rule := \opts["r"] | 110
+   if \opts["R"] then randomize()
+   name := \opts["i"]
+   if \opts["H"] then {
+      canvas := "canvas=hidden"
+      /name := "ca21.gif"
+      }
+   else canvas := "canvas=normal"
+
+   WOpen(canvas, "width=" || width, "height=" || height) |
+      stop("*** cannot open window")
+
+   bits := create !right(exbase10(rule, 2), 8, "0")
+   binary := create ("1" | "0") || ("1" | "0") || ("1" | "0")
+
+   phi := table()
+
+   while phi[@binary] := @bits
+
+   new := repl("0", width)
+
+   if \opts["e"] then {
+      ilist := evallist(opts["e"], width, "seqfncs") |
+         stop("invalid initialization expression")
+      every i := !ilist do {
+         new[i] := "1"
+         DrawPoint(i- 1, 0)
+         }
+      }
+   else if \opts["s"] then {			# random, scattered seeds
+      every 1 to width / 2 do {
+         new[i := ?width] := "1"
+         DrawPoint(i - 1, 0)
+         } 
+      }
+   else {
+      new[width / 2] := "1"		# single, centered seed
+      DrawPoint(width / 2 - 1, 0)
+      }
+
+   every j := 2 to height do {
+      old := new
+      new := repl("0", width)
+      every i := 2 to width - 1 do {
+         new[i] := v := phi[old[i - 1 : i + 2]]
+         if v == "1" then DrawPoint(i - 1, j - 1)
+         }
+      }
+
+   WriteImage(\name)
+
+end

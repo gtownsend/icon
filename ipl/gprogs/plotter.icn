@@ -1,0 +1,199 @@
+############################################################################
+#
+#	File:     plotter.icn
+#
+#	Subject:  Program to display planes of 3-space coordinates
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 22, 1997
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program plots planes for coordinates in 3-space.
+#
+############################################################################
+#
+#  Requires: Version 9 graphics  
+#
+############################################################################
+#
+#  Links:  interact, io, ptutils, vsetup
+#
+############################################################################
+
+link interact
+link io
+link ptutils
+link vsetup
+
+global coords
+global h_off
+global half
+global size
+global pane
+global plane
+global root
+global scale
+global size
+global v_off
+global vidgets
+
+procedure main()
+
+   vidgets := ui()
+   root := vidgets["root"]
+
+   VSetItems(vidgets["coords"], filelist("*.crd"))
+   VSetState(vidgets["plane"], "xy")
+
+   size := vidgets["pane"].uw
+   half := size / 2
+
+   pane := Clone("bg=white", "dx=" || (vidgets["pane"].ux + half),
+      "dy=" || (vidgets["pane"].uy + half))
+   Clip(pane, -half, -half, size, size)
+
+   EraseArea(pane, -half, -half, size, size)
+
+   scale := 10
+   h_off := 0
+   v_off := 0
+
+   GetEvents(root, , shortcuts)
+
+end
+
+procedure offset_cb()
+
+   repeat {
+      if TextDialog("Set offset:", ["horizontal", "vertical"],
+         [h_off, v_off], 5) == "Cancel" then fail
+      if h_off <- integer(dialog_value[1]) &
+         v_off <- integer(dialog_value[2]) then break
+      else {
+         Notice("Nonnumeric offset value.")
+         next
+         }
+      }
+
+   return
+
+end
+
+procedure scale_cb()
+
+   repeat {
+      if TextDialog("Set scale:", , scale, 5) == "Cancel" then fail
+      if scale := integer(dialog_value[1]) then break
+      else {
+         Notice("Nonnumeric scale value.")
+         next
+         }
+      }
+
+   return
+
+end
+
+procedure file_cb(vidgets, value)
+
+   case value[1] of {
+      "clear @C":     clear_cb()
+      "plot @P":      plot_cb()
+      "quit @Q":      exit()
+      "snapshot @S":  snapshot(pane, -half, -half, size, size)
+      }
+
+   return
+
+end
+
+procedure coord_cb(vidget, value)
+   local input
+
+   input := open(value) | {
+      Notice("Cannot open " || image(value) || ".")
+      fail
+      }
+
+   coords := []
+
+   every put(coords, coord2pt(!input))
+
+   close(input)
+
+   return
+
+end
+
+procedure plot_cb()
+   local p
+
+   every p := !coords do {
+      case plane of { 
+         "xy":  DrawPoint(pane, scale * p.x + h_off, scale * p.y + v_off)
+         "yz":  DrawPoint(pane, scale * p.y + h_off, scale * p.z + v_off)
+         "xz":  DrawPoint(pane, scale * p.x + h_off, scale * p.z + v_off)
+         }
+      }
+
+end
+
+procedure plane_cb(vidget, value)
+
+   plane := value
+
+   return
+
+end
+
+procedure clear_cb()
+
+   EraseArea(pane, -half, -half, size, size)
+
+   return
+
+end
+
+procedure shortcuts(e)
+
+   if &meta then case map(e) of {			# fold case
+         "c":   clear_cb()
+         "p":   plot_cb()
+         "q":	exit()
+         "s":	snapshot(pane, -half, -half, size, size)
+         }
+
+   return
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=633,459", "bg=gray-white"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,633,459:",],
+   ["clear:Button:regular::82,101,50,20:clear",clear_cb],
+   ["coords:List:w::13,198,190,244:",coord_cb],
+   ["file:Menu:pull::28,5,36,21:File",file_cb,
+      ["clear @C","plot @P","snapshot @S","quit @Q"]],
+   ["label1:Label:::28,45,35,13:plane",],
+   ["label2:Label:::50,174,105,13:coordinate file",],
+   ["line1:Line:::0,30,640,30:",],
+   ["offset:Button:regular::143,72,50,20:offset",offset_cb],
+   ["plane:Choice::3:25,68,43,63:",plane_cb,
+      ["xy","xz","yz"]],
+   ["plot:Button:regular::81,71,50,20:plot",plot_cb],
+   ["scale:Button:regular::144,101,50,20:scale",scale_cb],
+   ["pane:Rect:grooved::220,43,400,400:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

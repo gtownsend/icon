@@ -1,0 +1,134 @@
+.TH IDOL 1 "10 March 1991"
+.UC 4
+.SH NAME
+idol \- Icon-Derived Object Language
+.SH SYNOPSIS
+.B idol
+[
+.B option...
+]
+mainfile otherfiles
+[
+.B \-x
+arguments
+]
+.SH DESCRIPTION
+.PP
+.I Idol
+is an object-oriented preprocessor for Version 8+ Icon.
+It is a front-end for
+.I icont(1)
+; typically one invokes idol on
+a source file (extension .iol) which is translated into an
+Icon source file (extension .icn) which is translated into a
+file suitable for interpretation by the Icon interpreter.
+.PP
+On systems with directories, Idol typically stores its generated class
+library code in a separate directory from the source code.  If the
+environment variable IDOLENV is defined, Idol uses this directory for
+generated code.  If no IDOLENV is defined, Idol creates a subdirectory
+named idolcode.env, and removes it after successful compilation 
+if the creation occured for a single source file.
+.PP
+Producing an executable is skipped when the first file on the
+list contains only classes and no Icon entities.  Idol uses an
+Icon translator selected by the environment variable ICONT, if
+it is present.
+.PP
+The
+.B \-c
+option suppresses the linking phase normally done by
+.I Icont.
+.PP
+The
+.B \-t
+option suppresses
+.B all
+translation by
+.I Icont;
+it is useful on systems for which Icon does not support the
+.br
+.B system\(\)
+function.
+.PP
+The
+.B \-s
+option suppresses removal of
+.B \.icn
+files after translation by
+.I Icont;
+normally they are deleted after a successful translation.
+.PP
+The
+.B \-quiet
+option suppresses most Idol-specific console messages.
+.PP
+The
+.B \-strict
+option causes
+.I Idol
+to generate code which is paranoid about ensuring encapsulation.
+.PP
+The
+.B \-ic
+option causes
+.I Idol
+to generate code that is
+.I Icon-compatible.
+The code will be slightly slower, but allows method invocation using
+a traditional Icon procedure call.  Such procedure calls are of the form
+class_method(o,args...).  Inherited methods cannot currently be so
+invoked, the class that defines the method must be explicitly named in
+the procedure call. 
+.PP
+The
+.B \-version
+option causes
+.I Idol
+to print out its version and date of creation, and then exit.
+.PP
+The second and following files on the command line may include
+extensions
+.B \.icn
+,
+.B \.u1
+, and
+.B \.cl\.
+The first two Idol treats as
+Icon source code which should be translated and linked into the
+resulting executable.  Files with extension
+.B \.cl
+are treated as class names which are linked into the resulting executable.
+Class names are case sensitive; Deque.cl is a different class than deque.cl.
+If the operating system does not support case sensitive filenames, such
+class names will not coexist peacefully.
+.PP
+.SH AUTHOR
+.PP
+Clinton Jeffery, cjeffery@cs.arizona.edu
+.PP
+.SH FILES
+.PP
+.nf
+idol                          The Idol translator itself.
+.br
+prog.iol                      Idol source files
+.br
+prog.icn                      Icon code (non-classes) from prog.iol
+.br
+idolcode.env/i_object.*       Icon code for the Idol object type
+.br
+idolcode.env/classname.icn    Icon files generated for each class
+.br
+idolcode.env/classname.u[12]  Translated class files
+.br
+idolcode.env/classname        Class specification/interface
+.fi
+.SH SEE ALSO
+.PP
+.br
+"Programming in Idol: An Object Primer"
+.br
+(U of Arizona Dept of CS Technical Report #90-10)
+.br
+serves as a user's guide and reference manual for Idol

@@ -1,0 +1,63 @@
+############################################################################
+#
+#	File:     sername.icn
+#
+#	Subject:  Procedure to produce serialized names
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 27, 1997
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  sername(p, s, n, i) produces a series of names of the form
+#  p<nnn>s.  If n is given it determines the number of digits in
+#  <nnn>.  If i is given it resets the sequence to start with i.  <nnn> is
+#  an right-adjusted integer padded with zeros.
+#
+#  Ordinarily, the arguments only are given on the first call. Subsequent
+#  calls without arguments give the next name.
+#
+#  For example, sername("image", ".gif", 3, 0) produces "image000.gif",
+#  and subsequently, sername() produces "image001.gif", image002.gif",
+#  and so on.
+#
+#  The defaults, if sername() is first called without any arguments is
+#  as for the call sername("file", 3, 0, "").
+#
+#  If any argument changes on subsequent calls, all non-null arguments are
+#  reset.
+#
+############################################################################
+
+procedure sername(p, s, n, i)
+   static prefix, suffix, cols, serial, name, first
+
+   initial {
+      prefix := "file"
+      suffix := ""
+      cols := 3
+      serial := 0
+      first := serial
+      }
+
+   # See if anything has changed.
+
+   if not(p === prefix & s === suffix & n === cols & first === i) then {
+      prefix := \p
+      suffix := \s
+      cols := \n
+      first := serial := \i
+      }
+
+   name := prefix || right(serial, cols, "0") || suffix
+
+   serial +:= 1
+
+   return name
+
+end

@@ -1,0 +1,157 @@
+############################################################################
+#
+#	File:     enqueue.icn
+#
+#	Subject:  Procedures for queued events
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	These procedures manipulate Icon window events.
+#
+#	Enqueue(W, eventcode, x, y, modkeys, interval) posts an event.
+#
+#	pack_modkeys(s)		encodes the modifier keys for an event.
+#	unpack_modkeys(n)	decodes a modifier key value.
+#
+#	pack_intrvl(n)		encodes an event interval.
+#	unpack_intrval(n)	decodes an event interval.
+#
+############################################################################
+#
+#      Icon's event queue is a list accessed via Pending(); the list
+#   can be inspected or altered by the Icon program.  An event is stored
+#   as three consecutive entries on the list.  The first is the event code:
+#   a string for a keypress, or an integer for any other event.  The next
+#   two list entries are integers, interpreted as a packed structure:
+#	0000 0000 0000 0SMC  XXXX XXXX XXXX XXXX   (second entry)
+#	0EEE MMMM MMMM MMMM  YYYY YYYY YYYY YYYY   (third entry)
+#
+#   The fields have these meanings:
+#	X...X	&x: 16-bit signed x-coordinate value
+#	Y...Y	&y: 16-bit signed y-coordinate value
+#	SMC	&shift, &meta, and &control (modifier keys)
+#	E...M	&interval, interpreted as  M * 16 ^ E
+#	0	currently unused; should be zero
+#
+#
+#      pack_modkeys(s) encodes a set of modifier keys, returning an
+#   integer with the corresponding bits set.  The string s contains
+#   any combination of the letters c, m, and s to specify the bits
+#   desired.
+#
+#      pack_intrvl(n) encodes an interval of n milliseconds and returns
+#   a left-shifted integer suitable for combining with a y-coordinate.
+#
+#      unpack_modkeys(n) returns a string containing 0 to 3 of the
+#   letters c, m, and s, depending on which modifier key bits are
+#   set in the argument n.
+#
+#      unpack_intrvl(n) discards the rightmost 16 bits of the integer
+#   n (the y-coordinate) and decodes the remainder to return an
+#   integer millisecond count.
+#
+#      Enqueue([window,] eventcode, x, y, modkeys, interval) synthesizes
+#   and enqueues an event for a window, packing the interval and modifier
+#   keys (specified as above) into the correct places.  Default values
+#   are:
+#	eventcode = &null
+#	x = 0
+#	y = 0
+#	interval = 0
+#	modkeys = ""
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+
+#  pack_intrvl(n) -- encode event interval
+
+procedure pack_intrvl(n)			#: encode event interval
+   local e
+
+   n := integer(n) | runerr(101, n)	# ensure integer
+   n <:= 0				# ensure nonnegative
+   e := 0				# assume exponent of 0
+
+   while n >= 16r1000 do {		# if too big
+      n := ishift(n, -4)		# reduce significance
+      e +:= 16r1000			# increase exponent
+   }
+   return ishift(e + n, 16)		# return shifted result
+end
+
+
+#  unpack_intrvl(n) -- decode event interval
+
+procedure unpack_intrvl(n)			#: decode event interval
+   local e
+
+   n := integer(n) | runerr(101, n)	# ensure integer
+   e := iand(ishift(n, -28), 7)		# exponent
+   n := iand(ishift(n, -16), 16rFFF)	# mantissa
+   return ishift(n, 4 * e)
+end
+
+
+#  pack_modkeys(s) -- encode modifier keys
+
+procedure pack_modkeys(s)			#: encode modifier keys
+   local b, c
+
+   b := 0
+   s := string(s) | runerr(103, s)		# ensure string value
+   every c := !s do case c of {			# set bit for each flag
+      "c":	b := ior(b, 16r10000)
+      "m":	b := ior(b, 16r20000)
+      "s":	b := ior(b, 16r40000)
+      default:	runerr(205, s)			# diagnose bad flag
+      }
+   return b					# return result
+end
+
+
+#  unpack_modkeys(n) -- decode modifier keys
+
+procedure unpack_modkeys(n)			#: decode modifier keys
+   local s
+
+   n := integer(n) | runerr(101, n)		# ensure integer
+   s := ""
+   if iand(n, 16r10000) ~= 0 then s ||:= "c"	# check each bit
+   if iand(n, 16r20000) ~= 0 then s ||:= "m"
+   if iand(n, 16r40000) ~= 0 then s ||:= "s"
+   return s					# return result string
+end
+
+
+#  Enqueue(window, eventcode, x, y, modkeys, interval) -- enqueue event
+
+procedure Enqueue(win, eventcode, x, y, modkeys, interval)	#: enqueue event
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if type(win) ~== "window" then {
+      win :=: eventcode :=: x :=: y :=: modkeys :=: interval
+      win := &window
+      }
+   /x := 0
+   /y := 0
+   x +:= WAttrib(win, "dx")
+   y +:= WAttrib(win, "dy")
+   return put(Pending(win),
+      eventcode,
+      ior(pack_modkeys(\modkeys | ""), iand(x, 16rFFFF)),
+      ior(pack_intrvl(\interval | 0), iand(y, 16rFFFF)))
+end

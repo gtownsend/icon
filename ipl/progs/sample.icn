@@ -1,0 +1,30 @@
+############################################################################
+#
+#	File:     sample.icn
+#
+#	Subject:  Program to "sample" input stream
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 21, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program filters the input stream, producing every ith
+#  value, starting at 1.  i is given as a command-line argument; default 0.
+#
+############################################################################
+
+procedure main(args)
+    local line, skip
+
+    skip := integer(args[1]) | 0
+
+    while write(read()) do
+       every 1 to skip do read()
+
+end

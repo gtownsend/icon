@@ -1,0 +1,182 @@
+$define Win_Size   1500
+$define BG         "white"
+$define FG         "black"
+$define COLOR_LIST ["yellow", "blue", "green", "red", "orange", "brown", "gray", "purple", "pink"]
+
+# set the default for DrawTree_Box_R
+procedure drawtree_box_default(fg, bg)
+
+   local draw_record
+
+   draw_record                 := DrawTree_Box_R()
+
+   draw_record.win_width       := Win_Size
+   draw_record.win_height      := Win_Size - 200
+   if /fg then draw_record.fg  := FG else draw_record.fg := fg
+   if /bg then draw_record.bg  := BG else draw_record.bg := bg
+   draw_record.color_list      := ["red", "blue", "green", "orange"]
+   draw_record.num_color       := 4
+   draw_record.win             := WOpen("canvas=hidden", 
+                                  "size=" || draw_record.win_width || "," || draw_record.win_height,
+                                  "bg=" || draw_record.bg, "fg=" || draw_record.fg,
+                                  "dx=10", "dy=10")
+
+   draw_record.box_size         := 20
+   draw_record.draw_box_size    := 16
+   
+   set_box_shape(draw_record)
+
+   draw_record.menu := ["background", format_box_cb, "total box size", format_box_cb, "visible box size",  format_box_cb, "snapshot", format_box_cb]
+
+   return draw_record
+
+end
+
+
+procedure set_box_shape(draw_record)
+
+   local  y_num, x_num, x, y
+
+   draw_record.grid_x :=  table()
+   draw_record.grid_y :=  table()
+   draw_record.grid_x_coor :=  table()
+   draw_record.grid_y_coor :=  table()
+   
+   y_num := 0
+   x_num := 0
+   every y := 0 to draw_record.win_height by draw_record.box_size do {
+      draw_record.grid_y[y_num] := y
+      draw_record.grid_y_coor[y] :=  y_num
+      y_num +:= 1
+   }
+
+   every x := 0 to draw_record.win_width by draw_record.box_size do {
+      draw_record.grid_x[x_num] := x
+      draw_record.grid_x_coor[x] :=  x_num
+      x_num +:= 1
+   }
+
+   draw_record.y_num := y_num
+   draw_record.x_num := x_num
+
+   draw_record.x_start := table()
+ 
+   return 
+
+end
+
+
+
+# draw the tree in a seperated with line between each node
+procedure drawtree_box(draw_record, children)
+
+   local id, x, y
+
+   every id := 0 to children.num_children do {
+       if children.num_gen[id] == 0 then break
+
+       x := integer(((draw_record.x_num - children.num_gen[id]) / 2) + 1)
+       draw_record.x_start[id] := x
+   }
+
+   EraseArea(draw_record.win)
+
+   every id := 0 to children.num_children do {
+       y := children.all[id].generation
+       x := children.all[id].gen_id + draw_record.x_start[y]
+       DrawRectangle(draw_record.win, 
+                     draw_record.grid_x[x],
+                     draw_record.grid_y[y],
+                     draw_record.draw_box_size,
+                     draw_record.draw_box_size)
+   }
+   
+end
+
+
+# event handler 
+procedure event_handler_box(draw_record, children, event)
+
+   local x, y, gen, id, x_id
+
+   if event == &lpress then {
+
+       x := &x
+       y := &y
+
+       while /draw_record.grid_x_coor[x] do {
+           x -:= 1
+           if x == 0 then return fail
+       }     
+                                                                       
+       while /draw_record.grid_y_coor[y] do {
+           y -:= 1
+           if y == -1 then return fail
+       }     
+
+       y    := draw_record.grid_y_coor[y]
+       x    := draw_record.grid_x_coor[x]
+       if /draw_record.x_start[y] then return fail
+       x_id := x - draw_record.x_start[y] 
+
+       every id := 0 to children.num_children do {      
+           if y == children.all[id].generation then
+             if x_id == children.all[id].gen_id then {
+                 fill_boxes(draw_record, children, id, x, y)                 
+                 break;
+              }
+       }
+
+   }
+
+   else if event == &mpress then {
+
+       y := &y
+       while /draw_record.grid_y_coor[y] do {
+           y -:= 1
+           if y == -1 then return fail
+       }     
+       y := draw_record.grid_y_coor[y]
+       if /draw_record.x_start[y] then return fail       
+
+       every id := 0 to children.num_children do {      
+           if y == children.all[id].generation then {
+              x := children.all[id].gen_id + draw_record.x_start[y]
+              Fg(draw_record.win, COLOR_LIST[children.all[id].gen_id % 
+                                             *COLOR_LIST + 1])
+              fill_boxes(draw_record, children, id, x, y)                 
+           }
+       }
+   
+       Fg(draw_record.win, draw_record.fg)
+   }
+
+  else if event == &rpress then 
+        drawtree_box(draw_record, children)
+
+end    
+
+
+procedure fill_boxes(draw_record, children, child, x, y)
+
+   local id
+
+    FillRectangle(draw_record.win, 
+                  draw_record.grid_x[x],
+                  draw_record.grid_y[y],
+                  draw_record.draw_box_size,
+                  draw_record.draw_box_size)
+
+    every id := !children.all[child].children_id do {
+        y := children.all[id].generation
+        x := children.all[id].gen_id + draw_record.x_start[y]
+        fill_boxes(draw_record, children, id, x, y)                         
+   }
+
+end  
+
+
+
+
+
+

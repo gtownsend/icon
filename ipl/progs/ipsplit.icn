@@ -1,0 +1,85 @@
+############################################################################
+#
+#	File:     ipsplit.icn
+#
+#	Subject:  Program to split Icon program into files
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 10, 1988
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This progam reads an Icon program and writes each procedure to
+#  a separate file. The output file names consist of the procedure
+#  name with .icn appended.  If the -g option is specified, any glo-
+#  bal, link, and record declarations are written to that file. Oth-
+#  erwise they are written in the file for the procedure that
+#  immediately follows them.
+#  
+#     Comments and white space between declarations are attached to
+#  the next following declaration.
+#  
+#  Notes:
+#
+#     The program only recognizes declarations that start at the
+#  beginning of lines.  Comments and interline white space between
+#  declarations may not come out as intended.
+#  
+#     If the -g option is not specified, any global, link, or record
+#  declarations that follow the last procedure are discarded.
+#  
+############################################################################
+#
+#  Links: options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local line, x, i, proctable, proclist, comments, gfile, gname, ofile
+   local opts
+
+   comments := []
+ 
+   opts := options(args,"g:")
+   if gname := \opts["g"] then {
+      gfile := open(gname,"w") | stop("*** cannot open ",gname)
+      }
+
+   proctable := table()
+   while line := read() do {
+      if line ? {
+         ="procedure" &			#  procedure declaration
+         tab(many(' ')) &
+         proctable[tab(upto('('))] := x := []
+         } then {
+            while put(x,get(comments))	#  save it
+            put(x,line)
+            i := 1
+            while line := read() do {
+               put(x,line)
+               if line == "end" then break
+               }
+            }
+					#  other declarations
+         else if \gfile & line ? =("global" | "record" | "link")
+         then {
+            while write(gfile,get(comments))
+            write(gfile,line)
+            }
+         else put(comments,line)
+         }
+   while write(\gfile,get(comments))
+   proclist := sort(proctable,3)	#  sort procedures
+   while x := get(proclist) do {	#  output procedures
+      ofile := open(x || ".icn","w") | stop("cannot write ",x,".icn")
+      every write(ofile,!get(proclist))
+      close(ofile)
+      }
+end

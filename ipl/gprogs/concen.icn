@@ -1,0 +1,243 @@
+############################################################################
+#
+#	File:     concen.icn
+#
+#	Subject:  Program to play solitaire card game Concentration
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     December 4, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  usage: concen [winoptions] [ncards]
+#
+#     Concentration, as presented here, is a simple solitaire game.
+#  When the program starts, there are 52 playing cards, face down.
+#  They may be turned over by clicking on them with the mouse.  Only
+#  two cards may be face up at a time; if they are the same rank
+#  (e.g. two sevens), they are removed.  The object is to clear the
+#  table.
+#
+#     (For an interesting discussion of two-person Concentration, see
+#  Ian Stewart's "Mathematical Recreations" column in the October,
+#  1991, edition of Scientific American, entitled "Concentration:
+#  A Winning Strategy".)
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: drawcard, options, optwindw, random, graphics
+#
+############################################################################
+
+link drawcard
+link options
+link optwindw
+link random
+link graphics
+
+global deck				# full deck of cards
+global nleft				# number of cards left
+global nup				# number of cards face up
+global uprank				# rank of upturned cards, if all same
+
+global ncols, nrows			# number of columns and rows
+global cardw, cardh			# card width and height
+global margin, gap			# outside margin, gap between cards
+global mono				# GC for pattern, iff mono screen
+
+global cd				# card record, indexed by position
+record cdrec(
+   label,				# member of &letters as per Icon book
+   status)				# status flag
+global VACANT, DOWN, UP			# status flag values
+
+#  main program.
+
+procedure main(args)
+   local i, j, e
+
+   initialize(args)
+   newgame()
+   while e := Event() do {
+      if e === QuitEvents() then
+         break
+      if e === (&lrelease | &mrelease | &rrelease) then {
+         i := (&y - margin + gap/2) / (cardh + gap)
+         j := (&x - margin + gap/2) / (cardw + gap)
+         click(i, j)
+         }
+      }
+end
+
+#  initialize(args) -- process options, initialize globals, open window
+
+procedure initialize(args)
+   local opts, ncards
+
+   cardw := 80
+   cardh := 124
+   VACANT := 0
+   DOWN := 1
+   UP := 2
+
+   opts := options(args, winoptions())		# get command options
+
+   ncards := integer(args[1]) | 52		# get size of deck
+   ncards -:= ncards % 2			# ensure even
+   ncards <:= 2					# ensure at least 2 cards
+   ncards >:= 52				# ensure at most 52 cards
+   deck :=
+      ("aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ" ? move(ncards))
+
+   if ncards <= 10 then
+      nrows := 2
+   else if ncards <= 21 then
+      nrows := 3
+   else if ncards <= 36 then
+      nrows := 4
+   else
+      nrows := 5
+   ncols := (ncards + nrows - 1) / nrows
+
+   /opts["M"] := 20
+   margin := opts["M"]
+   gap := margin / 2
+   /opts["W"] := ncols * cardw + (ncols - 1) * gap
+   /opts["H"] := nrows * cardh + (nrows - 1) * gap
+   /opts["B"] := "deep moderate green"
+   &window := optwindow(opts)
+   if WAttrib("depth") = 1 then {
+      mono := Clone(&window, "fg=white", "bg=black", "fillstyle=textured")
+      Pattern(mono, "4,2,8,2,8")
+      FillRectangle(mono, 0, 0, 2 * margin + opts["W"], 2 * margin + opts["H"])
+      }
+   randomize()
+   return
+end
+
+#  newgame() -- lay out cards, face down, for a new game
+
+procedure newgame()
+   local i, j, s
+
+   nleft := *deck
+   nup := 0
+   cd := []
+   every put(cd, cdrec(!deck, DOWN))
+   every i := *cd to 2 by -1 do
+      cd[?i] :=: cd[i]
+
+   every i := 0 to nrows-1 do
+      every j := 0 to ncols-1 do
+         if cardno(i, j) then
+            setcard(i, j, "-")
+
+   return
+end
+
+#  click(i, j) -- process a click on the card in row i, column j
+
+procedure click(i, j)
+   local c
+
+   case nup of {	# action depends on the number of cards already face up
+
+      0: {
+         #  no cards are face up.  turn this one up.
+         c := cd[cardno(i, j)] | fail
+         if c.status = DOWN then {
+            setcard(i, j, c.label)
+            c.status := UP
+            nup := 1
+            uprank := crank(c.label)
+            }
+         }
+
+      1: {
+         #  one is face up.  it might be the one clicked.
+         c := cd[cardno(i, j)] | fail
+         if c.status = UP then {
+            setcard(i, j, "-")
+            c.status := DOWN
+            nup := 0
+            }
+         else if c.status = DOWN then {
+            setcard(i, j, c.label)
+            c.status := UP
+            nup := 2
+            if uprank ~= crank(c.label) then
+               uprank := &null
+            }
+         }
+
+      2: {
+         #  two are face up.  it doesn't matter what card was clicked.
+         #  remove the two up-cards if they match, or turn back over if not.
+         every i := 0 to nrows-1 do
+            every j := 0 to ncols-1 do
+               if c := cd[cardno(i, j)] then
+                  if c.status = UP then {
+                     if \uprank then {
+                        setcard(i, j, &null)
+                        c.status := VACANT
+                        nleft -:= 1
+                        }
+                     else {
+                        setcard(i, j, "-")
+                        c.status := DOWN
+                        }
+                     nup -:= 1
+                     }
+         #  if no cards are left, the game is won.
+         #  show all cards face up as a reward.
+         if nleft = 0 then
+            every i := 0 to nrows-1 do
+               every j := 0 to ncols-1 do
+                  if c := cd[cardno(i, j)] then {
+                     setcard(i, j, c.label)
+                     c.status := UP
+                     nup +:= 1
+                     }
+         }
+      default:
+         #  presumably there are 52 cards face up after a win.
+         #  start a new game with this new click.
+         newgame()
+      }
+   return
+end
+
+#  setcard(i, j, c) -- redraw card c at location (i,j), or background if /c
+
+procedure setcard(i, j, c)
+   local x, y
+   x := margin + j * (cardw + gap)
+   y := margin + i * (cardh + gap)
+   drawcard(x, y, \c) |
+      FillRectangle(\mono, x, y, cardw, cardh) |
+      EraseArea(x, y, cardw, cardh)
+   return
+end
+
+#  cardno(i, j) -- return index (1 to 52) if location is valid
+
+procedure cardno(i, j)
+   return (0 <= i) & (0 <= j < ncols) & *deck >= (ncols * i + j + 1)
+end
+
+#  crank(label) -- return rank (1 to 13) of card with given label
+
+procedure crank(label)
+   static fulldeck
+   initial fulldeck := string(&letters)
+   return fulldeck ? find(label) % 13
+end

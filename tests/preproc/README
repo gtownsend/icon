@@ -1,0 +1,39 @@
+This directory contains tests for a C preprocessor, pp, which is based
+on the ANSI C standard. pp normally is included only as a part of rtt, but it
+can be built as a separate processor.  See src/preproc.
+
+The subdirectory stand here has the expected output of the tests that are
+run via the Makefile. The actual output is put in local.
+
+This preprocessor has an non-standard multi-line macro definition that
+allows embedded preprocessor directives. This feature is used in the
+files:
+
+    begdef.c
+    errmac10.c
+    errmac20.c
+    errmac4.c
+    glnargs.h  (used in glnargs.c)
+    glnmulti.c
+    macnest.c
+    paste.c
+    recurse.c
+    redef.c
+    stringiz.c
+    undef.c
+    wh_sp.c
+
+Most tests always produce the same output, but there are a few exceptions.
+One exception is
+
+   special.c
+
+it tests __DATE__ and __TIME__.
+
+The other exceptions only differ from platform to platform. The test
+
+   sys.c
+
+include the system include file ctype.h. In addition, command line
+error tests may produce different "usage" messages on platforms where
+pp supports platform-specific command line options.

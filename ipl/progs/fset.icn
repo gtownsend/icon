@@ -1,0 +1,213 @@
+############################################################################
+#
+#	File:     fset.icn
+#
+#	Subject:  Program to do set operations on file specifications
+#
+#	Author:   Thomas R. Hicks
+#
+#	Date:     June 10, 1988
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#   The UNIX shell provides for the specification of filenames
+#  using ``wildcards''.  Each wildcard specification may be
+#  thought of as defining a set of names (that is, those that
+#  match the specification).  Fset allows the user to apply the
+#  set operations of intersection, union, and difference to
+#  these filename sets. The resultant list may then be used as
+#  an argument to other shell commands.
+#
+#  Fset's argument is an expression composed of legal UNIX file
+#  specifications, parenthesis, and the following set opera-
+#  tors:
+#
+#	&&   intersection
+#	++   union
+#	--   difference
+#
+#  Because characters that have special meaning to the shell
+#  occur frequently in the arguments used for fset, it is
+#  advisable to quote the arguments consistently.
+#
+#  The use of fset is illustrated by the following examples:
+#
+#	fset 'g*--*.icn'
+#
+#  produces the list (set) of filenames for files beginning
+#  with g, excluding those ending with .icn.
+#
+#  Similarly,
+#
+#	fset '*'
+#
+#  produces all files in the current directory excluding the .
+#  and .. files.
+#
+#	fset '((*--*.icn)++c*)'
+#  and
+#
+#	fset '(*--*.icn)++c*'
+#
+#  produces the complement of all filenames ending with .icn in
+#  addition to all filenames beginning with c.
+#
+#	fset '(((c? && c*)))'
+#
+#  is a redundant, but legal, specification for all two-
+#  character filenames that begin with c, while
+#
+#	fset '.*'
+#
+#  produces the set of filenames for all hidden files, exclud-
+#  ing the . and ..  files.
+#
+#  Limitations:
+#
+#  Multiple command line arguments, formed by omitting the
+#  quotes around the file set expression, are permitted.  Their
+#  use is limited, however, since parentheses do not get past
+#  the shell's command-line expansion.
+#
+#  Almost any legal file specification will work when enclosed
+#  in quotes except that the simple grammar that is used cannot
+#  handle blanks adjacent to parentheses.
+#
+#  File names that begin or end in ``questionable'' characters
+#  such as *, ?, +, -, and &, probably will not work.
+#
+#  A file specification that, when interpreted by the shell,
+#  produces no matching filename will be placed (unchanged) in
+#  the result.
+#
+############################################################################
+#
+#  See also:  gcomp.icn
+#
+############################################################################
+#
+#  Requires:  UNIX
+#
+############################################################################
+
+procedure main(args)
+   local i, fyls, arglist
+   if *args = 0 then return
+   if *args > 1 then
+      every i := 2 to *args do
+         args[1] ||:= (" " || args[i])
+   (arglist := parse(args[1])) |
+      stop("Invalid file specification expression")
+   case type(arglist) of {
+      "string"	: fyls := mkfset(arglist)
+      "list"	: fyls := exec(arglist)
+      default	: stop("Main: bad type -can't happen")
+      }
+   fyls := sort(fyls)
+   every write(!fyls," ")
+end
+
+procedure Exp()			# file spec expression parser
+   local a
+   suspend (a := [Factor(),=Op(),Factor()] & [a[2],a[1],a[3]]) |
+      Factor() |
+      (a := [="(",Exp(),=")"] & .a[2])
+end
+
+procedure Factor()		# file spec expression parser
+   local a
+   suspend (a := [Term(),=Op(),Term()] & [a[2],a[1],a[3]]) |
+      Term() |
+      (a := [="(",Factor(),=")"] & .a[2])
+end
+
+procedure Name()		# file spec name matcher
+   static valid
+   initial valid := ~'()'
+   suspend (any(~valid) || fail) | tab(find(Op()) | many(valid))
+end
+
+procedure Non()			# file spec expression parser
+   local a
+   suspend a := [Name(),=Op(),Name()] & [a[2],a[1],a[3]]
+end
+
+procedure Op()			# file spec operation matcher
+   suspend !["++","--","&&"]
+end
+
+procedure Term()		# file spec expression parser
+   local a
+   suspend (a := [="(",Non(),=")"] & .a[2]) |
+           Name()
+end
+
+procedure bldfset(arg)		# build file set, excluding . and ..
+   local line
+   static dotfiles
+   initial dotfiles := set([".",".."])
+   line := read(open("echo " || arg,"rp"))
+   return str2set(line,' ') -- dotfiles
+end
+
+procedure exec(lst)		# process file spec list recursively
+   return setops(lst[1])(exec2(lst[2]),exec2(lst[3]))
+end
+
+procedure exec2(arg)		# helping procedure for exec
+   case type(arg) of {
+      "string"	: return mkfset(arg)
+      "list"	: return exec(arg)
+      default	: stop("exec2: can't happen")
+      }
+end
+
+procedure mkfset(fspec)		# make file list from specification
+   if fspec == "*" then
+      fspec := "* .*"
+   return bldfset(fspec)
+end
+
+procedure parse(str)		# top level of parsing procedures
+   local res
+   str ? (res := Exp() & pos(0)) | fail
+   return res
+end
+
+procedure sdiff(f1,f2)		# set difference
+   return f1 -- f2
+end
+
+procedure setops(op)		# return correct set operaton
+   case op of {
+      "++"	: return sunion
+      "&&"	: return sinter
+      "--"	: return sdiff
+      }
+end
+
+procedure sinter(f1,f2)		# set intersection
+   return f1 ** f2
+end
+
+procedure str2set(str,delim)	# convert delimited string into a set
+   local fset, f
+   fset := set()
+   str ? {
+      while f := (tab(upto(delim))) do {
+         insert(fset,f)
+         move(1)
+         }
+      if "" ~== (f := tab(0)) then
+         insert(fset,f)
+      }
+   return fset
+end
+
+procedure sunion(f1,f2)		# set union
+   return f1 ++ f2
+end

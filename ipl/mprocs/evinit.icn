@@ -1,0 +1,89 @@
+############################################################################
+#
+#	File:     evinit.icn
+#
+#	Subject:  Procedures for event monitoring
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 5, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This file provides initialization for event monitors.
+#
+#  This file is intended for use with event monitors running under
+#  MT Icon.
+#
+############################################################################
+
+$include "evdefs.icn"
+
+procedure EvInit(f,input,output,error)
+   if not MTEvInit(f,input,output,error) then fail
+   return
+end
+
+procedure EvTerm(win)
+  if &eventsource === (Monitored | EventSource) then {
+    if type(win) == "window" then
+      Event(win)
+    }
+end
+#
+# MultiThread EventMon support, from file mtsupport.icn
+#
+
+global Monitored, EventSource, MTEventMask
+
+#
+# If EvInit is called with a string or a list, run as a standalone MT-based
+# event monitor -- load the icode file and overload certain EvMon symbols.
+#
+# This operation is skipped if &eventsource has already been initialized,
+#  presumably by some event broker such as Eve.
+#
+procedure MTEvInit(f,input,output,error)
+
+   if \&eventsource then return
+
+   if type(f) == "string" then {
+      &eventsource := EventSource := Monitored := load(f,,input,output,error) | fail
+      EvGet     :=: MTEvGet
+      }
+   else if type(f) == "list" then {
+      &eventsource := EventSource := Monitored := load(f[1],f[2:0],input,output,error) | fail
+      EvGet     :=: MTEvGet
+      }
+   return &eventsource
+end
+
+procedure MTEvGet(c,flag)
+   static lastcset
+   initial {
+      lastcset := ''
+      }
+
+   if c ~=== lastcset then {
+     lastcset := c
+     eventmask(\(Monitored | EventSource) ,\c | &cset,&main)
+     }
+   return MTEvGet(c,flag)
+end
+
+#
+# Eve-specific extensions to the general model
+#
+procedure EvQuit()
+  EvSignal("quit")
+end
+
+procedure EvSignal(x)
+   if type(x) == "cset" then
+      write(&errout, "EvSignal(", image(x), ") is ambiguous.")
+   return x @ &eventsource
+end

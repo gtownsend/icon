@@ -1,0 +1,94 @@
+############################################################################
+#
+#	File:     ihelp.icn
+#
+#	Subject:  Program to give on-line help for Icon
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     December 5, 1989
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  ihelp -- Program to display "help" information
+#
+#       ihelp [-f helpfile] [item] [keyword ...]
+#
+#  The optional item name specifies the section of the help file which
+#  is to be displayed.  If no item name is specified a default section
+#  will be displayed, which usually lists the help items that are
+#  available.  An initial substring of the item name that differentiates
+#  it from other items is sufficient.
+#
+#  If keyword(s) are specified, then only lines that contain all of the
+#  keywords, in any order, are displayed.  The keywords do not have to
+#  correspond to whole words in the help text; only to text fragments.
+#
+#  All item name and keyword matches are case independent.
+#
+#  The help file name is taken from environment variable "HELPFILE".  If
+#  HELPFILE is not in the environment, file "help" in the current
+#  directory is used.  A help file name specified in the -f option
+#  overrides.
+#
+#  The help files are formatted as follows:
+#
+#       default text lines
+#       -
+#       one
+#       item "one" text lines
+#       -
+#       two
+#       item "two" text lines
+#       ...
+#
+#  Sections are separated by lines containing a single "-".  Item names
+#  are the first line following a separator line.
+#
+############################################################################
+#
+#  Links: options
+#
+############################################################################
+
+
+link options
+
+
+procedure main(arg)
+   local defaultHelpFile, opts, fn, f, item, line, keywords, i, lline, k
+
+   #
+   #  Initialize.
+   #
+   defaultHelpFile := "ihelp.dat"
+   opts := options(arg,"f:")
+   fn := \opts["f"] | "" ~== getenv("HELPFILE") | defaultHelpFile
+   f := open(fn) | stop("Can't open help file \"",fn,"\"")
+   #
+   #  Look for the specified section, if one was.
+   #
+   if item := map(arg[1]) then {
+      line := ""
+      until item == map(line[1:*item + 1]) do {
+	 while read(f) ~== "-"
+	 line := read(f) | stop("No help for ",item)
+	 }
+      }
+   #
+   #  Output the section lines that contain the keywords.
+   #
+   write(line)
+   keywords := arg[2:0] | []
+   every i := 1 to *keywords do keywords[i] := map(keywords[i])
+   while "-" ~== (line := read(f)) do {
+      lline := map(line)
+      if not (every k := !keywords do if not find(k,lline) then break) then
+	    write(line)
+      }
+end
+

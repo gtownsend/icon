@@ -1,0 +1,140 @@
+# Read in parse tables produced by TCLL1
+#	(written by Thomas W. Christopher)
+#
+link xcode #xcode is provided by the Icon Programming Library
+invocable all
+
+record  LL1(sel,deflt,
+	terminals,actions,
+	fiducials,firstFiducials,
+	minLengRHS,
+	start,eoi)
+
+procedure readLL1(filename)
+local g,s,f
+f:=open(filename) | fail
+s:=xdecode(f) | fail
+g:=unpackLL1(s)
+close(f)
+return g
+end
+
+procedure unpackLL1(h)
+local	startSymbol,
+	eoiSymbol,
+	rhsList,
+	selIn,
+	defltIn,
+	termList,
+	actionList,
+	fiducList,
+	firstFiduc,
+	minLengRhs
+
+local r,i,n,t,s,
+ actionSet,terminalSet,
+ defaultTable,selTable,
+ fiducialSet,firstFiducials,
+ minLengRHS
+
+# the following must be in the same order they were listed in
+# return statement of genLL1() in module "ll1.icn". With the
+# exception of rhsList, they are in the same order as in record
+# LL1.
+
+rhsList := get(h)
+selIn := get(h)
+defltIn := get(h)
+termList:= get(h)
+actionList:=get(h)
+fiducList:=get(h)
+firstFiduc:=get(h)
+minLengRhs:=get(h)
+startSymbol := get(h)[1]
+eoiSymbol := get(h)[1]
+
+every r:= !rhsList & i := 1 to *r do r[i]:=r[i][1]
+
+actionSet:=set()
+every insert(actionSet,(!actionList)[1])
+terminalSet:=set()
+every insert(terminalSet,(!termList)[1])
+defaultTable:=table()
+every n:=key(defltIn) do defaultTable[n[1]]:=defltIn[n]
+selTable:=table()
+every n:=key(selIn) do {
+	/selTable[n[1]] := t := table()
+	every s:= key(selIn[n]) do {
+		t[s[1]] := selIn[n][s]
+	}
+}
+fiducialSet:=set()
+every insert(fiducialSet,(!fiducList)[1])
+firstFiducials:=table()
+every n:=key(firstFiduc) &
+	s:=firstFiduc[n] do {
+		firstFiducials[n[1]]:=set()
+		every insert(firstFiducials[n[1]],(!s)[1])
+}
+minLengRHS:=table()
+every n:=key(minLengRhs) do
+	minLengRHS[n[1]]:=minLengRhs[n]
+
+return LL1(selTable,defaultTable,
+	terminalSet,actionSet,
+	fiducialSet,firstFiducials,
+	minLengRHS,
+	startSymbol,eoiSymbol)
+
+end
+
+procedure showStructure(h, indent)
+local t,i
+/indent:=""
+i := indent||" "
+case type(h) of {
+"string": write(indent,"\"",h,"\"")
+"list":	{write(indent,"[")
+	every showStructure(!h,i)
+	write(indent,"]")
+	}
+"table":{write(indent,"table")
+	t := sort(h,3)
+	while showStructure(get(t),i) do {
+		write(indent,"->")
+		showStructure(get(t),i)
+		write(indent,"---")
+	  }
+	write(indent,"end table")
+	}
+"set": {write(indent,"{")
+	every showStructure(!h,i)
+	write(indent,"}")
+	}
+}
+return
+end
+
+procedure showLL1(g)
+write("start symbol")
+showStructure( g.start)
+write("eoi symbol")
+showStructure( g.eoi)
+write("action set")
+showStructure( g.actions)
+write("terminal set")
+showStructure( g.terminals)
+write("default table")
+showStructure( g.deflt)
+write("selection table")
+showStructure( g.sel)
+write("fiducial set")
+showStructure( g.fiducials)
+write("first fiducials")
+showStructure( g.firstFiducials)
+write("minimum length RHSs")
+showStructure( g.minLengRHS)
+return
+end
+
+

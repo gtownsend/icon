@@ -1,0 +1,49 @@
+############################################################################
+#
+#	File:     spokes.icn
+#
+#	Subject:  Procedure to draw spokes
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  spokes(x, y, radius1, radius2, n, m) draws spokes.
+#
+############################################################################
+
+
+procedure spokes(x, y, radius1, radius2, n, m)
+   local angle1, incr1, angle2, incr2
+
+   angle1 := 0.0
+   incr1 := 2 * &pi / n
+
+   every 1 to n do {
+      suspend rays(x + radius1 * cos(angle1), y + radius1 * sin(angle1),
+         radius2, m, angle1)
+      angle1 +:= incr1
+      }
+
+end
+
+procedure rays(xc, yc, r, m, angle)
+   local incr
+
+   incr := 2 * &pi / m 
+
+   every 1 to m do {
+      suspend Point(xc, yc)
+      suspend Point(xc + r * cos(angle), yc + r * sin(angle))
+      suspend Point(xc, yc)
+      angle +:= incr
+      }
+
+end
+

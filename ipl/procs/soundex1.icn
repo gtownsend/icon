@@ -1,0 +1,85 @@
+############################################################################
+#
+#	File:     soundex1.icn
+#
+#	Subject:  Procedures for Soundex algorithm
+#
+#	Author:   John David Stone
+#
+#	Date:     April 30, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  When names are communicated by telephone, they are often transcribed
+#  incorrectly.  An organization that has to keep track of a lot of names has
+#  a need, therefore, for some system of representing or encoding a name that
+#  will mitigate the effects of transcription errors.  One idea, originally
+#  proposed by Margaret K. Odell and Robert C. Russell, uses the following
+#  encoding system to try to bring together occurrences of the same surname,
+#  variously spelled:
+#
+#  Encode each of the letters of the name according to the
+#  following equivalences:
+#
+#        a, e, h, i, o, u, w, y -> *
+#        b, f, p, v             -> 1
+#        c, g, j, k, q, s, x, z -> 2
+#        d, t                   -> 3
+#        l                      -> 4
+#        m, n                   -> 5
+#        r                      -> 6
+#
+#
+#  If any two adjacent letters have the same code, change the code for the
+#  second one to *.
+#
+#  The Soundex representation consists of four characters: the initial letter
+#  of the name, and the first three digit (non-asterisk) codes corresponding
+#  to letters after the initial.  If there are fewer than three such digit
+#  codes, use all that there are, and add zeroes at the end to make up the
+#  four-character representation.
+#
+############################################################################
+
+procedure soundex(name)
+local coded_name, new_name
+
+    coded_name := encode(strip(name))
+    new_name := name[1]
+    every pos := 2 to *coded_name do {
+        if coded_name[pos] ~== "*" then
+            new_name := new_name || coded_name[pos]
+        if *new_name = 4 then
+            break
+    }
+    return new_name || repl ("0", 4 - *new_name)
+end
+
+procedure encode(name)
+
+    name := map(name, &ucase, &lcase)
+    name := map(name, "aehiouwybfpvcgjkqsxzdtlmnr",
+        "********111122222222334556")
+    every pos := *name to 2 by -1 do
+        if name[pos - 1] == name[pos] then
+            name[pos] := "*"
+    return name
+end
+
+procedure strip(name)
+local result, ch
+
+static alphabet
+
+initial alphabet := string(&letters)
+
+    result := ""
+    every ch := !name do
+        if find(ch, alphabet) then
+            result ||:= ch
+    return result
+end

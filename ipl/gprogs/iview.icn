@@ -1,0 +1,63 @@
+############################################################################
+#
+#	File:     iview.icn
+#
+#	Subject:  Program to display image files
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 22, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program is modeled after the Unix xview(1) utility.  It takes
+#  a list of image files on the command line and displays them in
+#  order.  The character "n" typed when the mouse cursor is in the
+#  image window goes to the next image.  The character "q" terminates
+#  the display.
+#
+#  This program can, of course, only display image types that Icon
+#  understands.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  wopen
+#
+############################################################################
+
+link wopen
+
+procedure main(args)
+   local name, posx, posy
+
+   posx := posy := 20
+
+   every name := !args do {
+      WOpen("image=" || name, "posx=" || posx, "posy=" || posy) | {
+         write(&errout, "*** cannot open image: ", name)
+         next
+         }
+      repeat {
+         case Event() of {
+            "n":  {
+               posx := WAttrib("posx")
+               posy := WAttrib("posy")
+               WClose()
+               break
+               }
+            "q":  exit()
+            }
+         }
+      }
+
+end
+            
+

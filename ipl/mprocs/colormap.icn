@@ -1,0 +1,232 @@
+############################################################################
+#
+#	File:     colormap.icn
+#
+#	Subject:  Procedures to map type event to color
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 1, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  colormap(palette) returns a table that maps event-monitoring codes
+#  for allocation events into RGB specifications for Icon. The
+#  argument is the name of a palette, as given in the MemMon
+#  system.  The default for palette is "standard".
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+$include "evdefs.icn"
+
+procedure colormap(palette)
+   static maps
+   local x
+
+   initial {
+      maps := table()
+
+#  Color map for doc.clr
+
+      x := table()
+
+      x[E_Coexpr]        := "18724,18724,18724"
+      x[E_String]        := "65535,65535,65535"
+      x[E_Tvsubs]        := "65535,65535,65535"
+      x[E_File]          := "56172,56172,56172"
+      x[E_Refresh]       := "18724,18724,18724"
+      x[E_Lrgint]        := "65535,65535,65535"
+      x[E_Real]          := "65535,65535,65535"
+      x[E_Record]        := "28086,28086,28086"
+      x[E_Set]           := "28086,28086,28086"
+      x[E_Selem]         := "46810,46810,46810"
+      x[E_List]          := "18724,18724,18724"
+      x[E_Lelem]         := "37448,37448,37448"
+      x[E_Table]         := "18724,18724,18724"
+      x[E_Telem]         := "56172,56172,56172"
+      x[E_Tvtbl]         := "37448,37448,37448"
+      x[E_Slots]         := "28086,28086,28086"
+      x[E_Cset]          := "46810,46810,46810"
+
+      maps["doc"] := x
+
+#  Color map for lw.clr
+
+      x := table()
+
+      x[E_Coexpr]        := "28086,28086,28086"
+      x[E_String]        := "65535,65535,65535"
+      x[E_Tvsubs]        := "65535,65535,56172"
+      x[E_File]          := "09362,00000,00000"
+      x[E_Refresh]       := "09362,00000,00000"
+      x[E_Lrgint]        := "65535,65535,65535"
+      x[E_Real]          := "65535,65535,65535"
+      x[E_Record]        := "65535,65535,65535"
+      x[E_Set]           := "09362,18724,18724"
+      x[E_Selem]         := "09362,18724,18724"
+      x[E_List]          := "37448,37448,37448"
+      x[E_Lelem]         := "37448,37448,37448"
+      x[E_Table]         := "65535,65535,56172"
+      x[E_Telem]         := "65535,65535,56172"
+      x[E_Tvtbl]         := "65535,65535,56172"
+      x[E_Slots]         := "18724,18724,18724"
+      x[E_Cset]          := "09362,09362,09362"
+
+      maps["lw"] := x
+
+#  Color map for pastel.clr
+
+      x := table()
+
+      x[E_Coexpr]        := "65535,46810,28086"	# peach
+      x[E_String]        := "56172,28086,09362"	# reddish brown
+      x[E_Tvsubs]        := "56172,28086,09362"	# reddish brown
+      x[E_File]          := "00000,00000,28086"	# dark blue
+      x[E_Refresh]       := "37448,00000,00000"	# dark red
+      x[E_Lrgint]        := "65535,65535,00000"	# yellow
+      x[E_Real]          := "65535,28086,28086"	# salmon
+      x[E_Record]        := "65535,46810,28086"	# peach
+      x[E_Set]           := "56172,46810,65535"	# light purple
+      x[E_Selem]         := "56172,28086,65535"	# medium purple
+      x[E_List]          := "18724,37448,56172"	# medium blue
+      x[E_Lelem]         := "18724,56172,65535"	# pastel blue
+      x[E_Table]         := "46810,65535,37448"	# light yellow-green
+      x[E_Telem]         := "18724,56172,18724"	# light green
+      x[E_Tvtbl]         := "09362,37448,09362"	# dark green
+      x[E_Slots]         := "37448,65535,65535"	# light blue
+      x[E_Cset]          := "65535,65535,46810"	# ivory
+
+      maps["pastel"] := x
+
+#  Color map for qms.clr
+
+      x := table()
+
+      x[E_Coexpr]        := "37448,18724,00000"	# brown
+      x[E_String]        := "65535,65535,46810"	# ivory
+      x[E_Tvsubs]        := "65535,65535,46810"	# ivory
+      x[E_File]          := "56172,65535,00000"	# light green
+      x[E_Refresh]       := "37448,18724,00000"	# brown
+      x[E_Lrgint]        := "65535,46810,28086"	# peach
+      x[E_Real]          := "65535,65535,00000"	# yellow
+      x[E_Record]        := "56172,00000,65535"	# magenta
+      x[E_Set]           := "37448,00000,00000"	# medium red
+      x[E_Selem]         := "65535,00000,00000"	# red
+      x[E_List]          := "00000,46810,46810"	# medium cyan
+      x[E_Lelem]         := "00000,65535,65535"	# cyan
+      x[E_Table]         := "00000,37448,00000"	# dark green
+      x[E_Telem]         := "00000,65535,00000"	# green
+      x[E_Tvtbl]         := "28086,65535,00000"	# light green
+      x[E_Slots]         := "37448,00000,56172"	# purple
+      x[E_Cset]          := "65535,56172,00000"	# yellow orange
+
+      maps["qms"] := x
+
+#  Color map for qmscomb.clr
+
+      x := table()
+
+      x[E_Coexpr]        := "37448,18724,00000"	# brown
+      x[E_String]        := "65535,65535,46810"	# ivory
+      x[E_Tvsubs]        := "65535,65535,46810"	# ivory
+      x[E_File]          := "56172,65535,00000"	# light green
+      x[E_Refresh]       := "37448,18724,00000"	# brown
+      x[E_Lrgint]        := "65535,46810,28086"	# peach
+      x[E_Real]          := "65535,65535,00000"	# yellow
+      x[E_Record]        := "56172,00000,65535"	# magenta
+      x[E_Set]           := "65535,00000,00000"	# red
+      x[E_Selem]         := "65535,00000,00000"	# red
+      x[E_List]          := "00000,65535,65535"	# cyan
+      x[E_Lelem]         := "00000,65535,65535"	# cyan
+      x[E_Table]         := "00000,65535,00000"	# green
+      x[E_Telem]         := "00000,65535,00000"	# green
+      x[E_Tvtbl]         := "00000,65535,00000"	# green
+      x[E_Slots]         := "37448,00000,56172"	# purple
+      x[E_Cset]          := "65535,56172,00000"	# yellow orange
+
+      maps["qmscomb"] := x
+
+#  Color map for rt.clr
+
+      x := table()
+
+      x[E_Coexpr]        := "37448,28086,18724"	# light brown
+      x[E_String]        := "65535,65535,46810"	# ivory
+      x[E_Tvsubs]        := "65535,28086,56172"	# pink
+      x[E_File]          := "37448,00000,56172"	# purple
+      x[E_Refresh]       := "00000,00000,37448"	# navy blue
+      x[E_Lrgint]        := "65535,46810,28086"	# peach
+      x[E_Real]          := "65535,65535,00000"	# yellow
+      x[E_Record]        := "65535,37448,00000"	# orange
+      x[E_Set]           := "37448,00000,00000"	# dark red
+      x[E_Selem]         := "56172,00000,00000"	# red
+      x[E_List]          := "18724,46810,65535"	# pastel blue
+      x[E_Lelem]         := "09362,28086,46810"	# medium blue
+      x[E_Table]         := "00000,28086,00000"	# dark green
+      x[E_Telem]         := "00000,46810,00000"	# medium green
+      x[E_Tvtbl]         := "28086,65535,28086"	# light green
+      x[E_Slots]         := "37448,28086,18724"	# light brown
+      x[E_Cset]          := "46810,28086,00000"	# reddish brown
+
+      maps["rt"] := x
+
+#  Color map for sun.clr
+
+      x := table()
+
+      x[E_Coexpr]        := "37448,28086,18724"	# light brown
+      x[E_String]        := "65535,65535,46810"	# ivory
+      x[E_Tvsubs]        := "65535,28086,56172"	# pink
+      x[E_File]          := "37448,00000,56172"	# purple
+      x[E_Refresh]       := "00000,00000,37448"	# navy blue
+      x[E_Lrgint]        := "65535,46810,28086"	# peach
+      x[E_Real]          := "65535,65535,00000"	# yellow
+      x[E_Record]        := "65535,37448,00000"	# orange
+      x[E_Set]           := "46810,00000,00000"	# dark red
+      x[E_Selem]         := "56172,00000,00000"	# red
+      x[E_List]          := "18724,46810,65535"	# pastel blue
+      x[E_Lelem]         := "09362,28086,46810"	# medium blue
+      x[E_Table]         := "00000,28086,00000"	# dark green
+      x[E_Telem]         := "00000,37448,00000"	# medium green
+      x[E_Tvtbl]         := "00000,65535,00000"	# light green
+      x[E_Slots]         := "37448,28086,18724"	# light brown
+      x[E_Cset]          := "46810,28086,00000"	# reddish brown
+
+      maps["sun"] := x
+
+#  Color map for standard colors
+
+      x := table()
+
+      x[E_Coexpr]        := "deep gray"
+      x[E_String]        := "pale yellow"
+      x[E_Tvsubs]        := "yellow"
+      x[E_File]          := "pale gray"
+      x[E_Refresh]       := "deep gray"
+      x[E_Lrgint]        := "pale brown"
+      x[E_Real]          := "pale purple"
+      x[E_Record]        := "magenta"
+      x[E_Set]           := "dark red"
+      x[E_Selem]         := "red"
+      x[E_List]          := "dark blue green"
+      x[E_Lelem]         := "blue green"
+      x[E_Table]         := "dark green"
+      x[E_Telem]         := "green"
+      x[E_Tvtbl]         := "light green"
+      x[E_Slots]         := "purple"
+      x[E_Cset]          := "orange"
+
+      maps["standard"] := x
+      }
+
+   return \maps[\palette | "standard"]
+
+end

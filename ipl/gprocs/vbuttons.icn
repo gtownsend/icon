@@ -1,0 +1,418 @@
+############################################################################
+#
+#	File:     vbuttons.icn
+#
+#	Subject:  Procedures for buttons
+#
+#	Authors:  Jon Lipp and Gregg M. Townsend
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Vidgets defined in this file:
+#
+#	Vbutton
+#	Vtoggle
+#	Vcheckbox  (obsolete)
+#	Vmessage
+#	Vline
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: vstyle
+#
+############################################################################
+
+link vstyle
+
+############################################################################
+# Vbutton
+############################################################################
+record Vbutton_rec (win, s, callback, id, style, aw, ah, data,
+   ax, ay, uid, P, D, V)
+
+procedure Vbutton(params[])
+   local self, frame, x, y, ins
+   static procs, type
+
+   initial {
+      procs := Vstd(event_Vbutton, draw_Vbutton, outline_Vidget,
+         resize_Vbutton, inrange_Vpane, init_Vbutton, couplerset_Vbutton)
+      type := proc("type", 0)	# protect attractive names
+      }
+   if ins := Vinsert_check(params) then {
+      frame := pop(params); x := pop(params); y:= pop(params)
+      }
+   self := Vbutton_rec ! params[1:8|0]
+   Vwin_check(self.win, "Vbutton()")
+   if type(\self.s) ~== "string" & not numeric(self.s) then
+      _Vbomb("invalid label passed to Vbutton()")
+   if (\self.aw, not numeric(self.aw) ) then
+      _Vbomb("invalid aw parameter to Vbutton()")
+   if (\self.ah, not numeric(self.ah) ) then
+      _Vbomb("invalid ah parameter to Vbutton()")
+
+   self.uid := Vget_uid()
+   Vset_style(self, self.style)
+   self.V := procs
+   self.P := Vstd_pos()
+   self.V.init(self)
+
+   if \ins then VInsert(frame, self, x, y)
+   return self
+end
+
+procedure draw_Vbutton(self)
+   self.D.draw_off(self)
+end
+
+procedure couplerset_Vbutton(self)
+   self.V.draw(self)
+end
+
+#
+#  Dragging mouse over edge toggles mouse "on" or "off".
+#
+procedure event_Vbutton(self, e)
+   local out
+
+   if \self.callback.locked then fail
+   if e === (&lpress|&mpress|&rpress) then {
+      self.D.draw_on(self)
+      repeat {
+	 e := Event(self.win)
+	 if self.V.inrange(self, &x, &y) then {
+	    if e === (&lrelease|&mrelease|&rrelease) then {
+	       self.D.draw_off(self)
+	       self.callback.V.set(self.callback, self)
+	       return self.id
+               }
+	    else if \out then {
+	       self.D.draw_on(self)
+	       out := &null
+               }
+            }
+	 else
+	    if e === (&ldrag|&mdrag|&rdrag) & /out then {
+	       self.D.draw_off(self)
+	       out := 1
+               }
+	    else if e === (&lrelease|&mrelease|&rrelease) then {
+	       self.D.draw_off(self)
+	       break
+               }
+         }
+      return
+      }
+end
+
+procedure init_Vbutton (self)
+   local p
+
+   p := \self.callback
+   self.callback := Vbool_coupler()
+   add_clients_Vinit(self.callback, p, self)
+   self.D.init(self)
+end
+
+procedure resize_Vbutton(s, x, y, w, h)
+   
+   resize_Vidget(s, x, y, w, h)
+   Vset_style(s, s.style)
+   s.D.init(s)
+end
+
+
+############################################################################
+# Vtoggle
+############################################################################
+
+procedure Vtoggle(params[])
+   local frame, x, y, ins, self
+   static procs, type
+
+   initial {
+      procs := Vstd(event_Vtoggle, draw_Vtoggle, outline_Vidget,
+         resize_Vidget, inrange_Vpane, init_Vbutton,
+         couplerset_Vbutton,,,,, set_value_Vtoggle)
+      type := proc("type", 0)
+      }
+
+   if ins := Vinsert_check(params) then {
+      frame := pop(params); x := pop(params); y:= pop(params)
+      }
+   self := Vbutton_rec ! params[1:8|0]
+   Vwin_check(self.win, "Vtoggle()")
+   if type(\self.s) ~== "string" & not numeric(self.s) then
+      _Vbomb("invalid label passed to Vtoggle()")
+   if (\self.aw, not numeric(self.aw) ) then
+      _Vbomb("invalid aw parameter to Vtoggle()")
+   if (\self.ah, not numeric(self.ah) ) then
+      _Vbomb("invalid ah parameter to Vtoggle()")
+
+
+   self.uid := Vget_uid()
+   Vset_style(self, self.style)
+   self.V := procs
+   self.P := Vstd_pos()
+   self.V.init(self)
+   if \ins then VInsert(frame, self, x, y)
+   return self
+end
+
+procedure draw_Vtoggle(self)
+   if \self.callback.value then
+      self.D.draw_on(self)
+   else
+      self.D.draw_off(self)
+end
+
+
+#
+#  Basically same functionality as for Vbutton with the exception
+#  of maintaining the state of the toogle between events.
+#
+procedure event_Vtoggle(self, e)
+   local out, new, original
+
+   if \self.callback.locked then fail
+   if e === (&lpress|&mpress|&rpress) then {
+      if /self.callback.value then {
+         new := self.D.draw_on
+         original := self.D.draw_off
+      }
+      else {
+         new := self.D.draw_off
+         original := self.D.draw_on
+      }
+      new(self)
+      repeat {
+         e := Event(self.win)
+         if self.V.inrange(self, &x, &y) then {
+            if e === (&lrelease|&mrelease|&rrelease) then {
+               self.callback.V.toggle(self.callback, self)
+               self.data := self.callback.value
+               return self.id
+            }
+            else if \out then {
+               new(self)
+               out := &null
+            }
+         }
+         else
+            if e === (&ldrag|&mdrag|&rdrag) & /out then {
+               original(self)
+               out := 1
+            }
+            else if e === (&lrelease|&mrelease|&rrelease) then {
+               original(self)
+               break
+            }
+      }
+      return
+   }
+end
+
+procedure set_value_Vtoggle(self, value)
+
+   if \value then
+      self.callback.V.set(self.callback)
+   else
+      self.callback.V.unset(self.callback)
+
+   self.data := self.callback.value
+   draw_Vtoggle(self)
+   return
+end
+
+############################################################################
+# Vcheckbox
+############################################################################
+record Vcheckbox_rec (win, callback, id, size, aw, ah, data,
+   ax, ay, cw, uid, P, V, D)
+
+procedure Vcheckbox(params[])
+   local frame, x, y, ins, self, p
+   static procs
+
+   initial {
+      procs := Vstd(event_Vtoggle, draw_Vtoggle, outline_Vidget,
+                   resize_Vidget, inrange_Vpane,  ,
+                   couplerset_Vbutton,,,,, set_value_Vtoggle)
+   }
+
+   if ins := Vinsert_check(params) then {
+      frame := pop(params); x := pop(params); y:= pop(params)
+      }
+   self := Vcheckbox_rec ! params[1:5|0]
+   if ( \self.size, not numeric(self.size) ) then
+      _Vbomb("invalid size parameter to Vcheck_box()")
+   Vwin_check(self.win, "Vcheck_box()")
+   self.uid := Vget_uid()
+   self.V := procs
+   self.P := Vstd_pos()
+   self.D := Vstd_draw(draw_off_Vcheckbox, draw_on_Vcheckbox)
+
+## Init
+#  PMIcon fix.
+#   self.cw := Clone(self.win, "linewidth=2")
+   self.cw := WAttrib(self.win, "linewidth")
+   /self.size := 15
+   self.aw := self.ah := self.size
+
+   p := \self.callback
+   self.callback := Vbool_coupler()
+   add_clients_Vinit(self.callback, p, self)
+
+   if \ins then VInsert(frame, self, x, y)
+   return self
+end
+
+procedure draw_on_Vcheckbox(self)
+   local x, y, sz
+
+   x := self.ax
+   y := self.ay
+   sz := self.size
+#  PMIcon fix.
+   WAttrib(self.win, "linewidth=2")
+   DrawSegment(self.win, x+1, y+1, x+sz-1, y+sz-1, x+1, y+sz-1, x+sz-1, y+1)
+#  PMIcon fix.
+   WAttrib(self.win, "linewidth="||self.cw)
+   self.V.outline(self)
+end
+
+procedure draw_off_Vcheckbox(self)
+   local x, y, sz
+
+   x := self.ax
+   y := self.ay
+   sz := self.size
+#  PMIcon fix.
+   WAttrib(self.win, "reverse=on", "linewidth=2")
+   DrawSegment(self.win, x+1, y+1, x+sz-1, y+sz-1, x+1, y+sz-1, x+sz-1, y+1)
+#  PMIcon fix.
+   WAttrib(self.win, "reverse=off", "linewidth="||self.cw)
+   self.V.outline(self)
+end
+
+############################################################################
+# Vmessage
+############################################################################
+
+procedure Vmessage(params[])
+   static procs, type
+   local frame, x, y, ins, self
+
+   initial {
+      procs := Vstd(null_proc, draw_Vmessage, outline_Vidget,
+         resize_Vidget, null_proc, init_Vmessage, null_proc)
+      type := proc("type", 0)	# protect attractive names
+      }
+
+   if ins := Vinsert_check(params) then {
+      frame := pop(params); x := pop(params); y:= pop(params)
+      }
+   self := Vbutton_rec ! params[1:3|0]
+   Vwin_check(self.win, "Vmessage()")
+   if type(\self.s) ~== "string" & not numeric(self.s) then
+      _Vbomb("invalid label passed to Vmessage()")
+
+   self.uid := Vget_uid()
+   self.V := procs
+   self.D := Vstd_draw()
+   self.P := Vstd_pos()
+   self.V.init(self)
+   if \ins then VInsert(frame, self, x, y)
+   return self
+end
+
+procedure draw_Vmessage(self)
+
+   GotoXY(self.win, self.ax+self.D.basex, self.ay+self.D.basey)
+   writes(self.win, self.s)
+#   self.V.outline(self)
+end
+
+procedure init_Vmessage(self)
+   local TW, FH, ascent, descent
+
+   /self.s := ""
+   /self.aw := (TW := TextWidth(self.win, self.s))
+   ascent := WAttrib(self.win, "ascent")
+   descent := WAttrib(self.win, "descent")
+   /self.ah := FH := ascent + descent
+
+   self.D.basex := (self.aw - TW) / 2
+   self.D.basey := (self.ah - FH) / 2 + ascent
+end
+
+############################################################################
+# Vline
+#
+#  I know, I know, this vidgie is not well designed or efficient.
+############################################################################
+record Vline_rec (win, ax1, ay1, ax2, ay2, aw, ah, id, uid, P, V)
+
+procedure Vline(params[])
+   local self
+   static procs
+
+   initial procs := Vstd(null_proc, draw_Vline, null_proc,
+                        resize_Vline, null_proc, null_proc,
+                        null_proc)
+   self := Vline_rec ! params[1:6|0]
+   Vwin_check(self.win, "Vline()")
+   if not numeric(self.ax1) then
+      _Vbomb("invalid coordinate parameter to Vline()")
+   if not numeric(self.ax2) then
+      _Vbomb("invalid coordinate parameter to Vline()")
+   if not numeric(self.ay1) then
+      _Vbomb("invalid coordinate parameter to Vline()")
+   if not numeric(self.ay2) then
+      _Vbomb("invalid coordinate parameter to Vline()")
+   self.uid := Vget_uid()
+   self.V := procs
+   self.P := Vstd_pos()
+
+   return self
+end
+
+procedure resize_Vline(frame, self)
+   local x, y, w, h, x1, y1, x2, y2
+
+   x := frame.ax
+   y := frame.ay
+   w := frame.aw
+   h := frame.ah
+   x1 := self.ax1
+   y1 := self.ay1
+   x2 := self.ax2
+   y2 := self.ay2
+
+   self.ax1 := x + ( (/x1, 0) | (x1 <= -1 , w+x1) |
+      (-1 < x1 < 0, w + x1*w) | (0 < x1 < 1, w*x1) | x1 )
+   self.ay1 := y + ( (/y1, 0) | (y1 <= -1 , h+y1) |
+      (-1 < y1 < 0, h + y1*h) | (0 < y1 < 1, h*y1) | y1 )
+   self.ax2 := x + ( (/x2, w) | (x2 <= -1 , w+x2) |
+      (-1 < x2 < 0, w + x2*w) | (0 < x2 < 1, w*x2) | x2 )
+   self.ay2 := y + ( (/y2, h) | (y2 <= -1 , h+y2) |
+      (-1 < y2 < 0, h + y2*h) | (0 < y2 < 1, h*y2) | y2 )
+end
+
+procedure draw_Vline(self)
+   DrawGroove(self.win, self.ax1, self.ay1, self.ax2, self.ay2)
+end
+
+procedure erase_Vline(self)
+   DrawGroove(self.win, self.ax1, self.ay1, self.ax2, self.ay2, 0)
+end

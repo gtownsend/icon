@@ -1,0 +1,133 @@
+############################################################################
+#
+#	File:     xgamma.icn
+#
+#	Subject:  Program to configure X color correction
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     November 14, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Xgamma sets the root window properties that provide device-independent
+#  color under X windows.  Icon derives the default value of the "gamma"
+#  attribute from these properties.
+#
+#  Ideally, color properties would be set automatically based on 
+#  specifications provided by the manufacturer of the monitor.
+#  Lacking such specifications, xgamma synthesizes intensity ramps
+#  for an ideal monitor characterized by a given gamma value.
+#
+#  The phosphor colors, which must also be set, are set to those of a
+#  Sony Trinitron monitor based on values from the X11R5 distribution.
+#
+#  There are three ways to call xgamma:
+#  
+#	xgamma m.n	set color properties using gamma value m.n
+#	xgamma none	remove color properties
+#	xgamma		report gamma attribute inferred by Icon
+#
+#  A pipe to "xcmsdb" is opened, so that program must be in the current
+#  search path.
+#
+#  The default gamma attribute calculated by Icon does not always exactly
+#  match the value set by xgamma.  The reason for this is unclear.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics under X11R5
+#
+############################################################################
+#
+#  Links: wopen
+#
+############################################################################
+
+link wopen
+
+global ofile
+
+procedure main(args)
+   local gamma
+
+   if *args = 0 then {
+      WOpen("canvas=hidden", "size=200,100") | stop("can't open window")
+      write(left(WAttrib("gamma") + 0.005, 4))
+      return
+      }
+
+   if map(args[1]) == ("none" | "off" | "remove") then {
+      system("xcmsdb -remove")
+      return
+      }
+
+   gamma := real(args[1]) | 2.5
+   ofile := open("xcmsdb", "wp") | stop("can't open pipe to xcmsdb")
+
+   write(ofile, "SCREENDATA_BEGIN        0.3")
+   header()
+   matrices()
+   ramps(gamma)
+   write(ofile, )
+   write(ofile, "SCREENDATA_END")
+end
+
+
+procedure header()
+   every write(ofile, ![
+      "",
+      "    NAME                Unknown monitor",
+      "    PART_NUMBER         3",
+      "    MODEL               Unknown",
+      "    SCREEN_CLASS        VIDEO_RGB",
+      "    REVISION            2.0",
+      ])
+end
+
+
+procedure matrices()
+   # Trinitron specs from X11R5 contrib/clients/xcrtca/monitors
+   every write(ofile, "    ", \![
+      "COLORIMETRIC_BEGIN",
+      "    XYZtoRGB_MATRIX_BEGIN",
+      "         3.061645878834450   -1.278267953801873   -0.444951165661258",
+      "        -1.032702121385028    1.976844500877421    0.008133037520752",
+      "         0.057063919003669   -0.199057800043321    0.779596768525705",
+      "    XYZtoRGB_MATRIX_END",
+      "    RGBtoXYZ_MATRIX_BEGIN",
+      "         0.422396751969335    0.297093836421011    0.237981555762915",
+      "         0.220555266059938    0.660453956058605    0.118990777881458",
+      "         0.025397273061447    0.146890261130091    1.295677359153649",
+      "    RGBtoXYZ_MATRIX_END",
+      "COLORIMETRIC_END",
+      ])
+end
+
+
+procedure ramps(gamma)
+   write(ofile, "    INTENSITY_PROFILE_BEGIN 0 3")
+   every hue("RED" | "GREEN" | "BLUE", gamma)
+   write(ofile, "    INTENSITY_PROFILE_END")
+end
+
+
+procedure hue(c, gamma)
+   local i, x, v
+   static hextab
+   initial every put((hextab := []), !"0123456789abcdef" || !"0123456789abcdef")
+
+   write(ofile, "    INTENSITY_TBL_BEGIN    ", c, "    256")
+   every i := 0 to 255 do {
+      x := hextab[i + 1]
+      v := (i / 255.0) ^ gamma
+      if v < 0.0001 then		# avoid "e" notation
+         v := 0.0
+      write(ofile, "            0x", x, x, " ", left(v, 8, "0"))
+      }
+   write(ofile, "    INTENSITY_TBL_END")
+end

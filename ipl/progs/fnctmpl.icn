@@ -1,0 +1,70 @@
+############################################################################
+#
+#	File:     fnctmpl.icn
+#
+#	Subject:  Program to produce function templates
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 27, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program processes the rt.db database for the Icon compiler produced
+#  by rtt and produces procedures for each Icon function to be used by
+#  iftrace.icn.
+#
+#  The data base is expected from standard input.
+#
+############################################################################
+
+procedure main()
+   local line, header, proto, rettype, name, varargs
+
+   while line := read() do
+      line ? {
+         if pos(0) then {
+            header := read() | stop("eof")
+            proto := read() | stop("eof")
+            header ? {
+               if ="$endsect" then exit()
+               tab(upto('{'))
+               tab(upto(',') + 1)
+               if =("*" | "1+") then rettype := "suspend"
+               else rettype := "return"
+               }
+            proto ? {
+               ="\"" | next
+               name := tab(bal(' ')) | stop("bad proto")
+               name := trim(name,',')
+               name ?:= {
+                  map(move(1),&lcase,&ucase) || tab(0)
+                  }
+               name ?:= {
+                  if find("...") then {
+                     varargs := 1
+                     tab(upto('(') + 1) || "x[])"
+                     }
+                  else {
+                     varargs := &null
+                     tab(0)
+                     }
+                  }
+               }
+            write("procedure ",name)
+            if /varargs then write("   ",rettype," ",name)
+            else {
+               name ?:= {
+                  tab(upto('('))
+                  }
+               write("   ",rettype," ",name," ! x")
+               }
+            write("end\n")
+            }
+        else if ="$endsect" then exit()
+        }
+end

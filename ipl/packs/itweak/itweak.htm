@@ -1,0 +1,725 @@
+<HTML>
+<HEAD>
+<TITLE>Itweak: Interactive Icon Debugging</TITLE>
+<!-- $Id$ -->
+</HEAD>
+<BODY BGCOLOR=#FFFFDF>
+
+<CENTER>
+<H1><EM>itweak</EM><BR>An Interactive Debugging Utility for the<BR>Icon Programming Language</H1>
+<P>Release 2.21
+<P>H&aring;kan S&ouml;derstr&ouml;m (<tt>hs@soderstrom.se</tt>)
+<P>S&ouml;derstr&ouml;m Programvaruverkstad AB<BR>Bandhagsv&auml;gen 51<BR>S-122 42 Enskede, Sweden
+</CENTER>
+
+<H2>Contents</H2>
+
+<OL>
+<LI><A HREF="#intro">Introduction, Acknowledgements and Non-Warranty</A>
+<LI><A HREF="#prereq">Prerequisites</A>
+<LI><A HREF="#install">Installing <EM>itweak</EM></A>
+  <UL>
+  <LI><A HREF="#unix">Unix</A>
+  <LI><A HREF="#other-platforms">Other Platforms, or Platforms Without Make</A>
+  </UL>
+<LI><A HREF="#samples">Debugging Samples</A>
+  <UL>
+  <LI><A HREF="#canned-session">Canned Debugging Session</A>
+  <LI><A HREF="#sample-commands">Sample Debugging Commands</A>
+  </UL>
+<LI><A HREF="#preparing-debug">Preparing for a Debugging Session</A>
+  <UL>
+  <LI><A HREF="#tweak-link">Tweaking and Linking an Icon Program</A>
+  <LI><A HREF="#re-tweaking">Note on Re-Tweaking Files</A>
+  <LI><A HREF="#quirks-limit"><EM>itweak</EM> Quirks and Limitations</A>
+  </UL>
+<LI><A HREF="#debug-session">The Debugging Session</A>
+  <UL>
+  <LI><A HREF="#start-session">Starting a Debugging Session</A>
+  <LI><A HREF="#env-variables">Run-Time Environment Variables</A>
+  <LI><A HREF="#debug-commands">Debugging Commands: Overview</A>
+    <UL>
+    <LI><A HREF="#keyw-abbrev">Keyword Abbreviations</A>
+    <LI><A HREF="#breakpoints">
+    <LI><A HREF="#expressions">Expressions</A>
+    <LI><A HREF="#printing-cmd">Commands for Printing</A>
+    </UL>
+  <LI><A HREF="#run-quirks-limit">Run-Time Quirks, Limitations</A>
+  </UL>
+<LI><A HREF="#performance">Performance Considerations</A>
+<LI><A HREF="#impl-notes">Implementation Notes (The Hidden Art of Tweaking)</A>
+</OL>
+
+<BLOCKQUOTE>Copyright &copy; 1994-1996 Hakan Soderstrom and Soderstrom Programvaruverkstad AB, Sweden. Permission to use, copy, modify, distribute, and sell this software and its documentation for any purpose is hereby granted without fee, provided that the above copyright notice and this permission notice appear in all copies of the software and related documentation.
+</BLOCKQUOTE>
+
+<H2><A NAME="intro">1. Introduction, Acknowledgements and Non-Warranty</A></H2>
+
+<P><EM>itweak</EM> is an Icon interactive debugging utility. The idea is that
+you compile your Icon program to ucode files (<tt>.u1</tt>, <tt>.u2</tt>).
+<EM>itweak</EM> then tweaks the ucode, inserting potential breakpoints.
+The resulting ucode files are linked with a debugging run-time and off
+you go.
+
+<P>The <EM>itweak</EM> system provides you with many of the facilities
+you would 
+expect from an interactive debugger, including the ability to evaluate
+a wide range of Icon expressions.
+Personally I wouldn't like to be without this tool, but I may be biased.
+It can be used both for finding bugs and to convince oneself that an
+Icon program indeed works the intended way.
+
+<P><EM>itweak</EM> owes a lot to the pioneering <em>debugify</em> system
+by Charles A. Shartsis.
+This heritage is gratefully acknowledged. What <EM>itweak</EM>
+offers over <em>debugify</em> is radically improved performance (in time as
+well as space) and a more fully-fledged run-time system.
+
+<P>The author believes the software is useful but wouldn't imagine it is
+free from bugs.
+The software is provided "as-is" and without warranty of any kind.
+Please send bug reports, change requests, and other comments to the
+address above.
+
+<H2><A NAME="prereq">2. Prerequisites</A></H2>
+
+<P><EM>itweak</EM> has been tested with Icon 8.10 and 9.0 under Unix
+(SunOS 4.1.4) and DOS.
+The software is completely written in Icon, and should be as portable
+as Icon itself.
+
+<H2><A NAME="install">3. Installing <EM>itweak</EM></A></H2>
+
+<P>Installation is straightforward.
+For Unix there is a makefile that does most of the job.
+
+<H3><A NAME="unix">Unix</A></H3>
+
+<P>Under Unix, type <tt>make</tt> in the installation directory.
+The following files are generated.
+<DL>
+<DT>itweak<DD>an Icon 'executable'.
+Copy it to a commonly accessible directory and include it in your
+PATH.
+<DT>dbg_run.u1, dbg_run.u2
+<DD>These files constitute the <em>debugging run-time</em> system which will
+be linked with your tweaked programs.
+Make the debugging run-time available to the Icon linker by including
+its directory in the IPATH environment variable.
+Or, alternatively, make sure that the <tt>dbg_run.u</tt> files are
+present in the same directory as the program you are going to debug.
+</DL>
+
+<H3><A NAME="other-platforms">Other Platforms, or Platforms Without Make</A></H3>
+
+<P><EM>itweak</EM> comes with two Icon source files, <tt>itweak.icn</tt> and <tt>dbg_run.icn</tt>.
+Run the following command to produce the <EM>itweak</EM> program,
+<P><CODE>
+  icont itweak.icn
+</CODE>
+<P>Put <EM>itweak</EM> (the resulting file) in a commonly accessible directory and
+include it in your PATH.
+(If you can, you should of course use the Icon compiler to produce <EM>itweak</EM>.)
+Now run the following command,
+<P><CODE>
+  icont -c dbg_run.icn
+</CODE>
+<P>The resulting files (<tt>dbg_run.u1, dbg_run.u2</tt>) constitute the
+<em>debugging run-time</em> system which will be linked with your
+tweaked programs.
+
+<P>Make the debugging run-time available to the Icon linker by including
+its directory in the IPATH environment variable.
+Or, alternatively, make sure that the <tt>dbg_run.u</tt> files are
+present in the same directory as the program you are going to debug.
+
+<H2><A NAME="samples">4. Debugging Samples</A></H2>
+
+<P>There are at least two ways you may examine <EM>itweak</EM> without
+committing yourself too heavily to it.
+
+<H3><A NAME="canned-session">Canned Debugging Session</A></H3>
+
+<P>The <EM>itweak</EM> distribution comes with a demo.
+Under Unix, type <tt>make demo</tt> to make it happen.
+
+<P>On other platforms, or on platforms without <EM>make:</EM> do the following commands.
+<P><CODE>
+  icont -c ipxref.icn<BR>
+  icont -c options.icn<BR>
+  itweak -o samp_ini.icn ipxref options<BR>
+  icont -c samp_ini.icn<BR>
+  icont -o sample ipxref.u1 options.u1<BR>
+  setenv DBG_INPUT demo.cmd<BR>
+  sample ipxref.icn<BR>
+</CODE>
+<P>The commands compile and tweak a sample program.
+The source files are <tt>ipxref.icn</tt> and <tt>options.icn</tt>.
+The resulting 'executable' is called <tt>sample</tt>.
+The last command runs a canned debugging session.
+
+<P>Debugging commands for the demo are taken from the file <tt>demo.cmd</tt>.
+To make the demo more meaningful you should open an editor on
+<tt>demo.cmd</tt> and compare it to the output of the debugging session.
+The commands are annotated.
+
+<H3><A NAME="sample-commands">Sample Debugging Commands</A></H3>
+
+<P>Read this to get a first impression of what kinds of debugging commands
+<EM>itweak</EM> offer.
+For reading convenience all commands are spelled out fully.
+(Commands may be abbreviated as long as the abbreviation is unambiguous.)
+
+<P>Set a breakpoint on a source code line and then let the program run to
+its first break.
+<P><CODE>
+  break 88
+  goon
+</CODE>
+<P>In the following examples we omit the <tt>goon</tt> command which makes
+the program continue until the next break (or until it exits).
+
+<P>Print the current value of a simple variable (<tt>word</tt>).
+<P><CODE>
+  print word
+</CODE>
+<P>Attach a macro which automatically prints <tt>word</tt> every time we hit
+this breakpoint.
+<P><CODE>
+  do .<BR>
+  print word<BR>
+  end<BR>
+</CODE>
+<P>Attach a condition to the breakpoint which causes a break only if
+<tt>word</tt> contains the string <tt>buffer</tt>.
+<P><CODE>
+  cond . word == "buffer"
+</CODE>
+<P>The dot means <em>the current breakpoint</tt>.
+
+<P>Now some more advanced printing:
+Print every value generated by an expression.
+This is useful if the variable contains a list, for example.
+<P><CODE>
+  eprint !resword
+</CODE>
+<P>You may use subscripting and record field references when printing an
+expression:
+<P><CODE>
+  print prec[1].pname
+</CODE>
+<P>The printing commands actually accept almost all Icon expressions.
+You may invoke procedures or Icon functions, for instance.
+
+<P>You may use the <tt>info</tt> command to get information about a
+ breakpoint, source files, local or global variables, among other things:
+<P><CODE>
+  info break .<BR>
+  info files<BR>
+  info local<BR>
+  info global<BR>
+</CODE>
+<P>These are not all commands.
+Please refer to the special section on
+<A HREF="#debug-commands">debugging commands</A>.
+The <EM>itweak</EM> on-line help contains details about all available commands.
+
+<H2><A NAME="preparing-debug">5. Preparing for a Debugging Session</A></H2>
+
+<P>In order to debug an Icon program you will need to go through
+the following major steps.
+These steps assume you have installed <EM>itweak</EM> as described above.
+<OL>
+<LI>Compile the Icon source files (usually <tt>icont -c</tt>).
+<LI>Tweak some or all of the program's ucode files.
+<LI>Compile the Icon source file generated by <EM>itweak</EM>.
+<LI>Link the tweaked files.
+<LI>Run an interactive debugging session.
+</OL>
+
+<P>The demo described in the previous section provides an example.
+The next few sections go more into detail.
+
+<H3><A NAME="tweak-link">Tweaking and Linking an Icon Program</A></H3>
+
+<P>Let us assume you have a program built from source files named
+<tt>alpha.icn</tt>, <tt>beta.icn</tt>, and <tt>gamma.icn</tt>.
+Compile all source files, but do not link them yet.
+A suitable command is
+<P><CODE>
+  icont -c alpha.icn beta.icn gamma.icn
+</CODE>
+<P>This will produce <tt>.u1</tt> and <tt>.u2</tt> (i.e. ucode) files for
+each of the source files.
+
+<P>It is not necessary to tweak all files. However, you will be able to set
+breakpoints only in tweaked files. In order to illuminate this point, let
+us assume you decide to tweak only files <tt>alpha</tt> and <tt>gamma</tt>.
+Do this the following way.
+Note that the <EM>itweak</EM> command takes base file names, omitting the file
+name extension (<tt>.u1</tt>, for example).
+<P><CODE>
+  itweak alpha gamma
+</CODE>
+<P>The above command will tweak <tt>alpha.u1</tt> and <tt>gamma.u1</tt> and one of
+the <tt>.u2</tt> files.
+It is important to tweak the files in a single <EM>itweak</EM> command.
+For reasons described in the <A HREF="#quirks-limit">quirks</A> section
+the general recommendation is that you include the file containing the
+<B>main</B> procedure in the set of tweaked files.
+
+<P>Whenever a ucode file is tweaked the original file is saved under a
+different name.
+A <tt>.u1</tt> file will have its extension changed to <tt>.u1~</tt>.
+A tweaked <tt>.u2</tt> file will have its extension changed to <tt>.u2~</tt>.
+
+<P>Later, when running the program, reference will only be made to source
+files, not to ucode files.
+
+<P>The <EM>itweak</EM> command produces an additional Icon file.
+Its default name is <tt>dbg_init.icn</tt>.
+You may change the name of this file by using the <tt>-o</tt> command line option.
+For instance, the following is a possible command,
+<P><CODE>
+  itweak -o proginit.icn alpha gamma
+</CODE>
+<P>This command will generate a file named <tt>proginit.icn</tt>, but
+otherwise perform the same function as the <EM>itweak</EM> command above.
+You must compile the generated Icon file.
+The following command does this (now assuming the default name has been used).
+<P><CODE>
+  icont -c dbg_init.icn
+</CODE>
+<P>Finally link the program as you would normally do it.
+Like this, for instance,
+<P><CODE>
+  icont alpha.u beta.u gamma.u
+</CODE>
+<P>The <EM>itweak</EM> command tweaks one of the <tt>.u2</tt> files involved.
+It inserts the equivalent of <B>link</B> statements.
+This will, in effect, add <tt>dbg_init.icn</tt> and <tt>dbg_run.u</tt> to
+the link list.
+The <tt>dbg_init.u</tt> files will usually be present in the current
+directory.
+Of course the <tt>dbg_run.u</tt> files may also reside in the current
+directory.
+However, it is often more useful to have the run-time files in a
+separate directory which is included in the IPATH environment
+variable.
+
+If the linkage is successful, the result is an executable program
+<tt>alpha</tt> (under Unix).
+
+<H3><A NAME="re-tweaking">Note on Re-Tweaking Files</A></H3>
+
+<P>Usually you would develop a program in an edit-compile-debug cycle.
+<EM>itweak</EM> notices if a file is already tweaked and does not tweak it a
+second time. Thus you may run the same <EM>itweak</EM> command after you have
+modified and compiled just one of the source files. This means the
+<EM>itweak</EM> command is suited for inclusion in a Makefile.
+
+<H3><A NAME="quirks-limit"><EM>itweak</EM> Quirks and Limitations</A></H3>
+
+<P><EM>itweak</EM> and the debugging run-time introduce numerous
+global names for its own use.
+A common prefix is used on all such names to minimize the risk of name
+clashes with your program.
+The prefix is '<tt>__dbg_</tt>' (beginning with a double underscore).
+It is, of course, possible for the target program to interfere with
+the debugging run-time, possibly causing it to crash.
+
+<P><EM>itweak</EM> detects the <B>main</B> Icon procedure of your program.
+It inserts code for executing a parameterless procedure named
+<tt>__dbg_init</tt> before anything else.
+This procedure initializes the run-time environment.
+(The procedure is generated by <EM>itweak</EM> as part of the <tt>dbg_init.icn</tt> file.)
+
+<P>If you omit the file containing <B>main</B> from the set of tweaked
+files you must modify your program to invoke <tt>__dbg_init</tt> before
+execution reaches a tweaked file.
+Otherwise the program will terminate with a run-time error.
+
+<P>This is one reason why tweaked ucode files are not suited for shared
+libraries.
+Tweaking a file in a way marks it for a particular program.
+You (or somebody else) may attempt to tweak the same file in order to
+use it in a different program, but <EM>itweak</EM> will not touch it,
+because it has been tweaked already.
+There will probably be a conflict at linkage time, however: <em>__dbg_init:
+inconsistent redeclaration</em>.
+What you have to do in this case is erase the ucode files and
+recompile and tweak from scratch.
+
+<P>For each tweaked file <EM>itweak</EM> creates a global variable
+holding a set of active breakpoints.
+The name of this variable contains the base name of the file.
+This limits file names to the syntax accepted as Icon identifiers.
+
+<H2><A NAME="debug-session">6. The Debugging Session</A></H2>
+
+<P>This section describes what a debugging session looks like.
+
+<H3><A NAME="start-session">Starting a Debugging Session</A></H3>
+
+<P>After having tweaked and linked your program according to the
+description above you should be able to start it as usual.
+It will behave slightly different, however.
+After starting up a '<tt>$</tt>' prompt will appear (on standard error).
+The prompt means you are expected to enter a debugging command (on
+standard input).
+
+<P>Detailed command descriptions are available on-line through the
+<tt>help</tt> command.
+Type <tt>help</tt> to see a list of available commands.
+Type <tt>help <i>command</i></tt> to get a description of a particular
+command.
+
+<H3><A NAME="env-variables">Run-Time Environment Variables</A></H3>
+
+<P>Environment variables may be used to re-direct debugging
+input and output.
+
+<DL>
+<DT>DBG_INPUT<DD>if set to a file name will cause debugging commands
+to be read from the file.
+If end-of-file is encountered remaining commands will be taken from
+standard input.
+
+<DT>DBG_OUTPUT<DD>if set to a file name will cause debugging output to
+be written to the file.
+</DL>
+
+<H3><A NAME="debug-commands">Debugging Commands: Overview</A></H3>
+
+<P>The debugging commands will enable you to control and monitor the
+execution of your program.
+This section contains general information and some examples.
+Detailed descriptions are available on-line through the <tt>help</tt> command.
+
+<H4><A NAME="keyw-abbrev">Keyword Abbreviations</A></H4>
+
+<P>All debugging command keywords may be abbreviated as long as the
+abbreviation is unambiguous.
+For instance, <tt>goon nobreak</tt> may usually be written <tt>g no</tt>.
+
+<P>The reason we say <em>usually</em> is that you may define new commands
+by means of the <tt>macro</tt> command.
+Macro names are subject to the same abbreviation rules as built-in
+commands.
+
+<H4><A NAME="breakpoints">Breakpoints</A></H4>
+
+<H5><A NAME="setting-clearing-brk">Setting and Clearing a Breakpoint</A></H5>
+
+<P>The <tt>break</tt> command defines a breakpoint on a source line or on a
+number of consecutive source lines.
+The break will take effect <B>after</B> the expression on the source
+line has been evaluated.
+(This is a difference from most other debuggers where breaks occur
+before the source line is executed.)
+
+<P>In some cases the break occurs in a slightly different place from
+where you would expect it.
+This is the reason the <tt>break</tt> command optionally covers more
+than one source line.
+By setting breakpoints on a few lines around the interesting spot you
+may make sure that there really is a break.
+
+<P>A source line cannot have more than one breakpoint.
+Each <tt>break</tt> command silently supersedes any previous breakpoints
+it happens to overlap.
+
+The <tt>clear breakpoint</tt> removes a breakpoint.
+
+<H5><A NAME="identifying-brk">Identifying Breakpoints</A></H5>
+
+<P>A breakpoint is identified by a small integer, the <em>breakpoint
+number</em>.
+The <tt>break</tt> command prints the breakpoint number of the
+breakpoint it creates.
+The breakpoint number can be used in other debugging commands.
+
+<P>You may identify a breakpoint by its literal breakpoint number, or by
+the special symbols '<tt>.</tt>' (dot) and '<tt>$</tt>' (dollar).
+Dot means the <em>current</em> breakpoint, i.e. the breakpoint that
+caused the current break.
+Dollar means the <em>last</em> breakpoint defined by a <tt>break</tt>
+command.
+
+<P>Use the <tt>info breakpoint</tt> command to see the definition of a
+breakpoint (or all breakpoints).
+
+<H5><A NAME="tailoring-brk">Tailoring a Breakpoint</A></H5>
+
+<P>A plain breakpoint as created by <tt>break</tt> is unconditional.
+There are several ways you may modify its behavior to suit your needs.
+
+<UL>
+<LI>The <tt>ignore</tt> command sets an <em>ignore counter</em> on a
+breakpoint.
+A breakpoint having a non-zero ignore counter does not cause a break
+when execution runs into it.
+Instead of causing a break the ignore counter is decremented by one.
+Setting an ignore counter to a negative value effectively disables
+the breakpoint.
+
+<LI>The <tt>condition</tt> command defines a condition for a
+breakpoint.
+The condition will be evaluated each time execution reaches the
+breakpoint.
+If the condition fails the breakpoint does not cause a break.
+
+<LI>The <tt>do</tt> command attaches an anonymous macro (one or more
+debugging commands) to a breakpoint.
+The macro is executed whenever the breakpoint causes a break.
+</UL>
+
+<P>When a plain break occurs a special macro called the <em>prelude</em> is
+executed.
+The standard prelude prints the breakpoint number and the location of
+the breakpoint.
+In a similar way a special macro called the <em>postlude</em> is
+executed just before execution is resumed after a break.
+The standard postlude is empty.
+
+<P>The prelude and postlude are ordinary macros which you may redefine by
+means of the <tt>set</tt> command.
+
+<P>Note that the prelude is not executed if a break is caused by a
+breakpoint with a <tt>do</tt> macro.
+
+<H5><A NAME="brk-0">Breakpoint 0 (Zero)</A></H5>
+
+<P>Breakpoint zero is special.
+The <tt>next</tt> debugging command causes a break to occur after the
+next source line has been executed (or after a specified number of
+lines).
+A break caused by a <tt>next</tt> command is treated as if defined by
+breakpoint number zero.
+(This is the case even if there is an ordinary breakpoint on the same
+source line.)
+Breakpoint number zero may be assigned a condition, a <tt>do</tt> macro,
+or an ignore count, just like other breakpoints.
+It may not be cleared, however.
+
+<H4><A NAME="expressions">Expressions</A></H4>
+
+<P>Expressions may be included in the various print commands and in
+breakpoint conditions.
+Expressions may be formed from
+<UL>
+<LI>a large subset of Icon operators, including subscripting and
+record field references,
+<LI>integer, string, list literals,
+<LI>locals from the current procedure,
+<LI>globals,
+<LI>procedure and function invocations,
+<LI>a subset of the Icon keywords.
+</UL>
+
+<P>A few keywords have been added or altered:
+<DL>
+<DT>&amp;bp, &amp;breakpoint<DD>The breakpoint number of the current
+breakpoint (integer).
+
+<DT>&amp;file<DD>The source file name of the current breakpoint (string).
+
+<DT>&amp;line<DD>The source line number of the current breakpoint (integer).
+
+<DT>&amp;proc<DD>The name of the procedure where the current breakpoint
+occurred (string).
+</DL>
+
+<P>Expression evaluation is guarded by error conversion.
+An Icon error during evaluation should cause a conflict message, but
+not terminate the program.
+
+<H4><A NAME="printing-cmd">Commands for Printing</A></H4>
+
+<P>There are several debugging commands for evaluating and printing
+expressions.
+
+<P>The <tt>print</tt> command takes any number of expressions separated by
+semicolon.
+The command evaluates and prints the image of the first value returned
+by each expression.
+This is a common way to inspect variables, for instance.
+
+<P>The <tt>eprint</tt> command (<em>e</em> as in <B>every</B>) takes a single
+expression and prints the image of every value it generates.
+The following example shows a simple way of printing the contents of a
+list,
+<P><CODE>
+  eprint !mylist
+</CODE>
+<P>The <tt>fprint</tt> command (<em>f</em> as in <em>format</em>)
+expects a format string followed by any number of expressions.
+The format string can be any expression returning a string-convertible
+value.
+The expressions must be separated by semicolon.
+The format string may contain placeholders.
+The remaining expressions are expected to return values to insert into
+the format string, replacing the placeholders.
+In this case the actual value is used, not the image.
+A conflict is generated if any of the values is not
+string-convertible, so you may have to use the <B>image</B> function,
+or some other explicit conversion.
+
+<P>The <tt>fprint</tt> command is useful when you care about the appearance
+of the output.
+
+<P>The <tt>fprint</tt> command does not print a newline unless it is
+explicitly included in the output.
+Usually it can be inserted at the end of the format string.
+
+<P>A format string placeholder is basically a percent (<tt>%</tt>) character
+followed by a digit 1-9.
+Thus there can be up to nine different placeholders.
+A particular placeholder ('<tt>%1</tt>' for example) may occur any
+number of times.
+Each occurrence of '<tt>%1</tt>' will be replaced by the value of the
+first expression after the format string.
+Each occurrence of '<tt>%2</tt>' will be replaced by the value of the
+second expression after the format string, and so on.
+
+<P>A plain placeholder represents a variable-length field.
+It is possible to specify a fixed-length field.
+Add '<tt>&lt;</tt>' for a left-justified, or '<tt>></tt>' for a
+right-justified field.
+Also add the length of the field.
+For instance, '<tt>%1&lt;20</tt>' defines a left-justified field with a fixed
+length of 20 characters.
+
+<P>To print a percent character, double the character in the format
+string (<tt>%%</tt>).
+Backslash (<tt>\</tt>) can also be used to quote other characters.
+
+<P>A placeholder for which there is no value is silently replaced by its
+placeholder number.
+
+<H3><A NAME="run-quirks-limit">Run-Time Quirks, Limitations</A></H3>
+
+<P>The <EM>itweak</EM> algorithm for deciding source line limits is
+rather simple-minded.
+This is the reason breaks do not always occur exactly where you
+expect.
+
+<P>The implementation of the alternation (<tt>|</tt>) control structure is
+naive; works only in simple cases.
+(See <cite>The Icon Analyst,</cite> Number 23, April 1994.)
+
+<P>It is currently not possible to list macro definitions (including
+<tt>do</tt> macros).
+
+<P>A few commands use the <em>display file</em>: <tt>frame, info globals,
+where</tt>.
+The display file is simply the output from the <B>display</B> Icon
+function.
+Writing the display file requires write permission in the current
+directory.
+
+<P>It should be possible to negate a breakpoint condition, but this is
+not implemented yet.
+
+<P>It is possible to invoke a target program procedure in an expression.
+This can be useful for side effects.
+The run-time is not fully re-entrant, however, so if there is a
+breakpoint in the procedure the run-time may get confused when it
+returns.
+(No fatal error should occur.)
+
+<P>Escaping characters in <tt>fprint</tt> format strings do not always work.
+Beware of the following format string.
+It generates a long, long output.
+<CODE>"foo/year=%1<20\1994\n"</CODE>
+
+<H2><A NAME="performance">7. Performance Considerations</A></H2>
+
+<P>My main dissatisfaction with the <em>debugify</em> package was
+performance.
+Thus a lot of effort has gone into finding ways to minimize the
+debugging overhead.
+The following performance measurements were made on a Sun SPARCstation
+IPC under SunOS 4.1.3 with 24 Mb of memory.
+
+<P>A tweaked ucode file will be less than 2 times the size of the
+untweaked file (<em>debugify:</em> 5 times).
+A tweaked program without any breakpoints (<tt>goon nobreak</tt>) runs
+approximately 4 times slower than an untweaked program
+(<em>debugify:</em> 200 times; this easily becomes unbearable).
+The <EM>itweak</EM> program itself runs at over 3 times the speed of
+<em>debugify</em>.
+
+<P>The increased performance carries a certain cost: Only a single
+potential breakpoint is created per source line.
+No provision is made for setting variables.
+The code is not executable unless certain global variables (created by
+<EM>itweak</EM>) have been initialized.
+
+<P>Debugging commands are compiled to an internal representation as they
+are entered.
+This is especially important for expressions.
+Expressions are parsed with simple string matching, backtracking and
+all.
+They are immediately unwound and converted to a postfix notation.
+This means that breakpoint conditions and macros can be evaluated
+efficiently.
+
+<H2><A NAME="impl-notes">8. Implementation Notes (The Hidden Art of Tweaking)</A></H2>
+
+<P>The Icon source code generated by <EM>itweak</EM> mainly creates and initializes
+a number of global variables.
+An Icon <B>set</B> is created for each tweaked source file.
+The sets are used to hold breakpoint line numbers.
+
+<P><EM>itweak</EM> creates a potential breakpoint on every source line
+it finds in the ucode file.
+A potential breakpoint consists of code testing the current line
+number against the set of breakpoint line numbers for the
+current source file.
+
+<P>If the test says 'yes' then a jump is made to code added at the end of
+the current procedure.
+This code collects the values and names of all locals and calls the
+debugging run-time.
+The same code is used for all potential breakpoints in one procedure.
+This means that besides potential breakpoints a chunk of code is added
+at the end of every procedure.
+
+<P>A global variable named <tt>__dbg_test</tt> is used to test for
+breakpoints.
+It may be set to different Icon functions to achieve various effects.
+The function will be called with two parameters: a set of breakpoint
+line numbers and an integer line number.
+The following values are currently used,
+
+<DL>
+<DT>member<DD>This is the initial value.
+The effect is to check if there is a breakpoint on the current line.
+
+<DT>integer<DD>Always fails (since a set cannot be converted to an
+integer).
+Used to implement the <tt>goon nobreak</tt> command.
+
+<DT>2<DD>(integer 2)
+The effect is to cause the second parameter to be returned.
+Hence always succeeds.
+Used to implement the <tt>next</tt> command which causes a break on
+every potential breakpoint.
+</DL>
+
+<P>The debugging run-time is a procedure.
+It must fail in order not to disturb the logic of the current
+procedure.
+
+<P>It surprises me that it is possible to do this amount of tweaking to
+an Icon program.
+I have debugged fairly complex programs without noticing any
+unexpected weirdness (like tweaked program logic).
+However, <EM>itweak</EM> as a whole is a case of reverse engineering.
+Someone with greater theoretical insight may be able to detect cracks
+in the tweaking scheme.
+Please tell me in such case.
+
+</BODY>
+</HTML>

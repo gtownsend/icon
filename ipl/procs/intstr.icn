@@ -1,0 +1,37 @@
+############################################################################
+#
+#	File:     intstr.icn
+#
+#	Subject:  Procedure to create string from bits
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     April 2, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  intstr() -- Creates a string consisting of the raw bits in the low
+#  order "size" bytes of integer i.
+#
+#  This procedure is normally used for processing of binary data
+#  to be written to a file.
+#
+#  Note that if large integers are supported, this procedure still
+#  will not work for integers larger than the implementation defined
+#  word size due to the shifting in of zero-bits from the left in the
+#  right shift operation.
+#
+
+procedure intstr(i,size)
+   local s
+   s := ""
+   every 1 to size do {
+      s := char(iand(i,16rFF)) || s
+      i := ishift(i,-8)
+      }
+   return s
+end

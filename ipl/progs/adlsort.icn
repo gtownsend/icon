@@ -1,0 +1,92 @@
+############################################################################
+#
+#	File:     adlsort.icn
+#
+#	Subject:  Program to sort address list entries
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 19, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#    This program sorts entries in address lists.  The options are:
+#
+#	-c	by country
+#	-n	by name
+#	-z	by ZIP code
+#
+# 	The default is -n.  If more than one option is specified, the
+#	order of dominance is -n -z -c.
+#
+############################################################################
+#
+#  See also: address.doc, adlcount.icn, adlfiltr.icn, adllist.icn,
+#     adlsort,icn, labels.icn
+#
+#  Links: adlutils, options, namepfx
+#
+############################################################################
+
+link adlutils, options, namepfx
+
+procedure main(args)
+   local item, item_lists, opts, sort_method, get_item, add, names, prefixes
+   local prefix
+
+   item_lists := table()
+
+   sort_method := "n"			# The default is sorting by name.
+   get_item := get_lastname
+
+   opts := options(args,"cnz")
+
+   if \opts["c"] then {			# If more than one given, last applies.
+      sort_method := "c"
+      get_item := get_country
+      }
+   if \opts["z"] then {
+      sort_method := "z"
+      get_item := get_zipcode
+      }
+   if \opts["n"] then {
+      sort_method := "n"
+      get_item := get_lastname
+      }
+
+   while add := nextadd() do {
+      item := get_item(add)
+      /item_lists[item] := []
+      put(item_lists[item],add)
+      }
+       
+   item_lists := sort(item_lists,3)
+
+   if sort_method == ("c" | "z") then {
+      while get(item_lists) do
+         every writeadd(!get(item_lists))
+      }
+
+   else if sort_method == "n" then {
+      while get(item_lists) do {
+         names := get(item_lists)
+         if *names = 1 then writeadd(names[1])	# avoid flap for common case
+         else {
+            prefixes := table()
+            every add := !names do {
+               prefix := namepfx(add.text)
+               /prefixes[prefix] := []
+               put(prefixes[prefix],add)
+               }
+            prefixes := sort(prefixes,3)
+            while get(prefixes) do
+               every writeadd(!get(prefixes))
+            }
+         }
+      }
+
+end

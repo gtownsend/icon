@@ -1,0 +1,89 @@
+############################################################################
+#
+#	File:     str2toks.icn
+#
+#	Subject:  Procedures to convert string to tokens
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:	  March 3, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.2
+#
+############################################################################
+#
+#  str2toks:  cset x string x integer x integer -> strings
+#             (c, s, i, j)                      -> s1, s2, ...
+#
+#      Suspends portions of s[i:j] delimited by characters in c.  The
+#      usual defaults for s, i, and j apply, although str2toks is not
+#      meant as a primitive scanning function (note that it suspends
+#      strings, and not integer positions).
+#
+#      Defaults:
+#
+#          c     ~(&letters ++ &digits)
+#          s     &subject
+#          i     &pos if s is defaulted, otherwise 1
+#          j     0
+#
+#  Basically, this file is just a very simple piece of code wrapped up
+#  with some sensible defaults, and isolated in its own procedure.
+#
+############################################################################
+#
+#  Example:
+#
+#      "hello, how are ya?" ? every write(str2toks())
+#
+#  The above expression would write to &output, on successive lines,
+#  the words "hello", "how", "are", and finally "ya" (skipping the
+#  punctuation).  Naturally, the beginning and end of the line count
+#  as delimiters.
+#
+#  Note that if i > 1 or j < *s+1 some tokens may end up appearing
+#  truncated.  Normally, one should simply use the defaults for i and
+#  j - and for s as well when inside a scanning expression.
+#
+############################################################################
+
+procedure str2toks(c, s, i, j)
+
+    local token, default_val
+
+    /c := ~(&letters ++ &digits)
+
+    if /s := &subject
+    then default_val := &pos
+    else default_val := 1
+
+    if \i then {
+	if i < 1 then
+	    i := *s + (i+1)
+    }
+    else i := default_val
+	
+    if \j then {
+	if j < 1 then
+	    j := *s + (j+1)
+    }
+    else j := *s+1
+
+    s[i:j] ? {
+	tab(many(c))
+	while token := tab(upto(c)) do {
+	    suspend token
+	    tab(many(c))
+	}
+	suspend "" ~== tab(0)
+    }
+
+end
+	
+	

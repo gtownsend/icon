@@ -1,0 +1,106 @@
+############################################################################
+#
+#	File:     shadpaper.icn
+#
+#	Subject:  Program to generate mutant shadow weave wallpaper
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 10, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program is based on the Painter weave "Shadow Op Art".
+#
+############################################################################
+#
+#  Links:  random, tieutils, weavegif, weavutil
+#
+############################################################################
+
+link random
+link tieutils
+link weavegif
+link weavutil
+
+global anchors
+global palpat
+global palindromes
+
+procedure main(args)
+   local tieup, palette, mutant, win, colorways, i
+
+   randomize()
+
+   # In this instantiation, the tieup and palindrome sequence
+   # basis are fixed.  Anchors are shuffled (permuted randomly),
+   # but the palindromes attached to the anchors.  That is,
+   # the anchors and attached palindromes are permuted together.
+
+   # The c1 palette is used and pairs of contrasting colors
+   # selected at random.  Note:  Colors that are browser-safe
+   # need to be used.
+
+   anchors := "1234567"
+   palpat := "82143657"
+   colorways := ["eJ", ",A", "A5", "@z"]
+   tieup := tie2tier("8;8;1010101001010101101010010101011010100101_
+      010110101001010101101010")
+   palette := "c1"
+
+   palindromes := list(*palpat)
+
+   every i := 1 to *palpat do
+      palindromes[i] := "[" || palpat[1:i] || "!" || palpat[i] || "]"
+
+   mutant := draft()
+   mutant.name := "Shadow Weave Variation"
+   mutant.palette := palette
+   mutant.tieup := tieup
+
+   every 1 to 10 do {
+      anchors := shuffle(anchors)
+      mutant.threading := "[" || thread(1) || "|]"
+      anchors := shuffle(anchors)
+      mutant.treadling := "[" || thread(1) || "|]"
+#     mutant.warp_colors := ?colorways
+#     mutant.weft_colors := reverse(mutant.warp_colors)
+#     win := weavegif(expandpfd(mutant))
+#     WriteImage(win, "weaving.gif")
+#     WClose(win)
+      mutant.warp_colors := "60"
+      mutant.weft_colors := "06"
+      win := weavegif(expandpfd(mutant))
+      WriteImage(win, "bandw.gif")
+      WDelay(win, 10000)
+      WClose(win)
+      }
+
+   # Because of a memory leak (possibly in X), it is necessary to
+   # terminate this program at intervals and start up a new version.
+
+   system("wallpapr &")
+
+   exit()
+
+end
+
+#  Compute sequence as pattern-form.
+
+procedure thread(i)
+   local result
+
+   if i = *palpat then return ""
+
+   result := "-[" || anchors[i] || "-[" || palindromes[i] ||
+      thread(i + 1) || "]]"
+
+   if i = 1 then result := result[2:0]
+
+   return result
+
+end

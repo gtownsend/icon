@@ -1,0 +1,110 @@
+############################################################################
+#
+#	Name:	 ibwriter.icn
+#
+#	Title:	 Ibpag2 parser/library writer
+#
+#	Author:	 Richard L. Goerwitz
+#
+#	Version: 1.7
+#
+############################################################################
+#
+#  Given a grammar, an action table, a goto table, an open output
+#  file, an open iiparser file, and a module name, sends to the output
+#  file a fully loaded LR parser with run-time constructible action
+#  and goto tables.  The iiparser file contains the base LR parser
+#  that the output file uses.
+#
+############################################################################
+#
+#  Links: itokens, ximage
+#
+#  See also: iiparse.icn
+#
+############################################################################
+
+#link itokens, ximage
+link ximage
+
+# defined in itokens.icn
+# record ib_TOK(sym, str)
+
+procedure ibwriter(iiparse_file, outfile, grammar, atbl, gtbl, module)
+
+    local token, next_token, start_symbol, rule_list, ttbl
+
+    /module      := ""
+    start_symbol := grammar.start
+    rule_list    := grammar.rules
+    ttbl         := grammar.tbl
+    next_token   := create itokens(iiparse_file, 1)
+
+    #
+    # Copy tokens in iiparse_file to outfile.  Whenever we find a $
+    # (RHSARG), process: If we find $$, output $; If we find $module,
+    # output image(module); and other such stuff.  Note that
+    # copy_iiparse_tokens suspends tokens before writing them.  It
+    # also blocks writing of any token whose sym field matches the
+    # string given as arg 3.
+    #
+    every token := copy_iiparse_tokens(next_token, outfile, "RHSARG")
+    do {
+	if token.sym == "RHSARG" then {
+	    if (token := @next_token).sym == "RHSARG" then {
+		writes(outfile, token.str)
+		next
+	    }
+	    token.sym == "IDENT" | iohno(60, "line "|| line_number)
+	    writes(outfile, " ")
+	    case token.str of {
+		# copy $module name over as a literal
+		"module"              : writes(outfile, image(module))
+		# use ximage to copy over action, goto, and token tables,
+		# as well as the production list (used only for debugging)
+		"atbl_insertion_point": writes(outfile, ximage(atbl)) 
+		"gtbl_insertion_point": writes(outfile, ximage(gtbl))
+		"ttbl_insertion_point": writes(outfile, ximage(ttbl))
+		"rule_list_insertion_point"    :
+		    writes(outfile, ximage(rule_list))
+		# use image to copy the start symbol into the output file
+		"start_symbol_insertion_point" :
+		    writes(outfile, image(start_symbol))
+		# add the module name to anything else beginning with $
+		default               : writes(outfile, token.str, module, " ")
+	    }
+	}
+    }
+
+    return
+
+end
+
+
+#
+# copy_iiparse_tokens:  coexpression x file x string  -> ib_TOK records
+#                       (next_token,   out,   except) -> token records
+#
+#     Copy Icon code to output stream, also suspending as we go.
+#     Insert separators between tokens where needed.  Do not output
+#     any token whose sym field matches except.  The point in
+#     suspending tokens as we go is to enable the calling procedure to
+#     look for signal tokens that indicate insertion or termination
+#     points.  Fail on EOF.
+#
+procedure copy_iiparse_tokens(next_token, out, except)
+
+    local separator, T
+
+    separator := ""
+    while T := @next_token do {
+	if \T.sym then suspend T
+	if \T.sym == \except then next
+	if any(&digits ++ &letters ++ '_.', \T.str, 1, 2) & \T.sym ~== "DOT"
+	then writes(out, separator)
+	writes(out, T.str)
+	if any(&digits ++ &letters ++ '_.', \T.str, -1, 0) & \T.sym ~== "DOT"
+	then separator := " " else separator := ""
+    }
+
+end

@@ -1,0 +1,534 @@
+############################################################################
+#
+#	File:     bevel.icn
+#
+#	Subject:  Procedures for drawing beveled objects
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     April 1, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	These procedures draw objects having a raised or sunken appearance.
+#
+#	BevelReset(win)				sets/resets shading colors.
+#
+#	BevelCircle(win, x, y, r, bw)		draws a beveled circle.
+#
+#	BevelDiamond(win, x, y, r, bw)		draws a beveled diamond.
+#
+#	BevelTriangle(win, x, y, r, o, bw)	draws a beveled triangle.
+#
+#	BevelSquare(win, x, y, r, bw)		draws a beveled square.
+#
+#	FillSquare(win, x, y, r)		fills a square.
+#
+#	FillDiamond(win, x, y, r)		fills a diamond.
+#
+#	FillTriangle(win, x, y, r, o)		fills a triangle.
+#
+#	RidgeRectangle(win, x, y, w, h, bw)	draws a ridged rectangle.
+#
+#	GrooveRectangle(win, x, y, w, h, bw)	draws a grooved rectangle.
+#
+#	BevelRectangle(win, x, y, w, h, bw)	draws a beveled rectangle.
+#
+#	DrawRidge(win, x1, y1, x2, y2, w)	draws a ridged line.
+#
+#	DrawGroove(win, x1, y1, x2, y2, w)	draws a grooved line.
+#
+############################################################################
+#
+#  These procedures allow the drawing of buttons and other objects
+#  with a three-dimensional appearance.  They are intended to be
+#  used like other graphics primitives (DrawRectangle() etc.).
+#  However, this abstraction fails if the background color changes
+#  or if clipping is set, due to the use of cached graphics contexts.
+#
+#  BevelReset(win) -- set/reset colors for beveling
+#	This procedure is called automatically by the others.
+#	It can be called explicitly if the background color is changed.
+#
+#  BevelCircle(win, x, y, r, bw) -- draw beveled circle
+#  BevelDiamond(win, x, y, r, bw) -- draw beveled diamond
+#  BevelTriangle(win, x, y, r, o, bw) -- draw beveled triangle
+#  BevelSquare(win, x, y, r, bw) -- draw beveled square
+#	These procedures draw a figure centered at (x,y) and having
+#	a "radius" of r.  bw is the bevel width, in pixels.
+#       o is the triangle orientation: "n", "s", "e", or "w".
+#
+#  FillSquare(win, x, y, r) -- fill square centered at (x,y)
+#  FillDiamond(win, x, y, r) -- fill diamond centered at (x,y)
+#  FillTriangle(win, x, y, r, o) -- fill triangle centered at (x,y)
+#	These procedures complement the beveled outline procedures
+#	by filling a figure centered at (x,y).  Fillcircle is already
+#	an Icon function and so is not included here.
+#
+#  RidgeRectangle(win, x, y, w, h, bw) -- draw ridged rectangle
+#  GrooveRectangle(win, x, y, w, h, bw) -- draw grooved rectangle
+#  BevelRectangle(win, x, y, w, h, bw) -- draw beveled rectangle
+#	These procedures draw a rectangle with the given external
+#	dimensions and border width.  Beveled rectangles are raised
+#	if bw > 0 or sunken if bw < 0.
+#
+#  DrawRidge(win, x1, y1, x2, y2, w) -- draw a ridged line
+#  DrawGroove(win, x1, y1, x2, y2, w) -- draw a grooved line
+#	These procedures draw a groove or ridge of width 2 at any angle.
+#	If w = 0, a groove or ridge is erased to the background color.
+#
+#  For BevelSquare() and FillSquare(), the width drawn is 2 * r + 1,
+#  not just 2 * r.  This is necessary to keep the visual center at the
+#  specified (x, y) and is consistent with the other centered procedures
+#  and the built-in function FillCircle.
+#
+############################################################################
+#
+#  Includes:  vdefns
+#
+############################################################################
+#
+#  Links:  graphics
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+
+$include "vdefns.icn"
+
+link graphics
+
+
+global bev_table
+record bev_record(shadow, hilite)
+
+
+#  BevelReset(win) -- set/reset colors for beveling
+#
+#  Called automatically the first time a beveling procedure is called;
+#  must also be called explicitly if the background color is changed.
+#  (Pale, weak background colors work best with beveling.)
+
+procedure BevelReset(win)	#: set colors for beveled drawing
+   local b, h, l, s, hilite, shadow, lhilite, lshadow
+
+   /win := &window
+   /bev_table := table()
+
+   if b := \bev_table[win] then {
+      Uncouple(b.hilite)
+      Uncouple(b.shadow)
+      b := &null
+      }
+
+   if WAttrib(win, "depth") >= 4 then {
+
+      HLS(ColorValue(Bg(win))) ? {
+         h := tab(many(&digits))
+         move(1)
+         l := tab(many(&digits))
+         move(1)
+         s := tab(0)
+         }
+   
+      case l of {
+          0 <= l < 10 & l:	  { lshadow := 25;	lhilite := 50 }
+         10 <= l < 25 & l:	  { lshadow := 0;	lhilite := l + 25 }
+         25 <= l < 75 & l:	  { lshadow := l - 25;	lhilite := l + 25 }
+         75 <= l < 90 & l:	  { lshadow := l - 25;	lhilite := 100 }
+         default:		  { lshadow := 50;	lhilite := 75 }
+         }
+      s /:= 2
+   
+      shadow := Clone(win, "fg=" || HLSValue(h || ":" || lshadow || ":" || s),
+         "linewidth=1", "linestyle=solid", "fillstyle=solid", "drawop=copy")
+      hilite := Clone(shadow,
+         "fg=" || HLSValue(h || ":" || lhilite || ":" || s))
+      b := bev_record(\shadow, \hilite)
+      }
+
+   if /b then {
+      shadow := Clone(win,
+         "linewidth=1", "linestyle=solid", "fillstyle=solid", "drawop=copy")
+      hilite := Clone(shadow, "fillstyle=textured", "pattern=gray")
+      b := bev_record(shadow, hilite)
+      }
+
+   bev_table[win] := bev_record(shadow, hilite)
+   return win
+end
+
+
+#  bev_lookup(win) -- look up and return bev_record for a window.
+#
+#  (Internal procedure)
+
+procedure bev_lookup(win)
+   local b, dx, dy
+   b := \(\bev_table)[win] | bev_table[BevelReset(win)]
+   dx := "dx=" || WAttrib(win, "dx")
+   dy := "dy=" || WAttrib(win, "dy")
+   every WAttrib(b.shadow | b.hilite, dx, dy)
+   return b
+end
+
+
+#  BevelCircle(win, x, y, r, bw) -- draw beveled circle
+
+procedure BevelCircle(win, x, y, r, bw)		#: draw beveled circle
+   local b, upper, lower, a
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if type(win) ~== "window" then
+      return BevelCircle((\&window | runerr(140)), win, x, y, r)
+   b := bev_lookup(win)
+
+   /r := 6
+   /bw := 2
+   if bw >= 0 then {
+      upper := b.hilite
+      lower := b.shadow
+      }
+   else {
+      upper := b.shadow
+      lower := b.hilite
+      bw := -bw
+      }
+
+   a := -&pi / 8
+   while (bw -:= 1) >= 0 do {
+      DrawCircle(lower, x, y, r, a, &pi)
+      DrawCircle(upper, x, y, r, a + &pi, &pi)
+      r -:= 1
+      }
+   return win
+end
+
+
+#  BevelDiamond(win, x, y, r, bw) -- draw beveled diamond
+
+procedure BevelDiamond(win, x, y, r, bw)	#: draw beveled diamond
+   local b, upper, lower
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if type(win) ~== "window" then
+      return BevelDiamond((\&window | runerr(140)), win, x, y, r)
+   b := bev_lookup(win)
+
+   /r := 6
+   /bw := 3
+   if bw >= 0 then {
+      upper := b.hilite
+      lower := b.shadow
+      }
+   else {
+      upper := b.shadow
+      lower := b.hilite
+      bw := -bw
+      }
+
+   while (bw -:= 1) >= 0 do {
+      DrawLine(lower, x - r, y, x, y + r, x + r, y)
+      DrawLine(upper, x - r, y, x, y - r, x + r, y)
+      r -:= 1
+      }
+   return win
+end
+
+
+#  BevelTriangle(win, x, y, r, o, bw) -- draw beveled triangle
+
+procedure BevelTriangle(win, x, y, r, o, bw)
+   local b, upper, lower
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if type(win) ~== "window" then
+      return BevelTriangle((\&window | runerr(140)), win, x, y, r, o)
+   b := bev_lookup(win)
+
+   /r := 6
+   /bw := 2
+   if bw >= 0 then {
+      upper := b.hilite
+      lower := b.shadow
+      }
+   else {
+      upper := b.shadow
+      lower := b.hilite
+      bw := -bw
+      }
+
+   while (bw -:= 1) >= 0 do {
+      case o of {
+         default: {  #"n"
+            DrawLine(lower, x - r, y + r, x + r, y + r, x, y - r)
+            DrawLine(upper, x - r, y + r, x, y - r)
+            }
+         "s": {
+            DrawLine(lower, x, y + r, x + r, y - r)
+            DrawLine(upper, x, y + r, x - r, y - r, x + r, y - r)
+            }
+         "e": {
+            DrawLine(lower, x - r, y + r, x + r, y)
+            DrawLine(upper, x - r, y + r, x - r, y - r, x + r, y)
+            }
+         "w": {
+            DrawSegment(lower, x - r, y, x + r, y + r, x + r, y + r, x + r, y-r)
+            DrawLine(upper, x - r, y, x + r, y - r)
+            }
+         }
+      r -:= 1
+      }
+   return win
+end
+
+
+#  BevelSquare(win, x, y, r, bw) -- draw beveled square
+
+procedure BevelSquare(win, x, y, r, bw)		#: draw beveled square
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if type(win) ~== "window" then
+      return BevelSquare((\&window | runerr(140)), win, x, y, r)
+   /r := 6
+   return BevelRectangle(win, x - r, y - r, 2 * r + 1, 2 * r + 1, bw)
+end
+
+
+#  RidgeRectangle(win, x, y, w, h, bw) -- draw ridged rectangle
+
+procedure RidgeRectangle(win, x, y, w, h, bw)	#: draw ridged rectangle
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if type(win) ~== "window" then
+      return RidgeRectangle((\&window | runerr(140)), win, x, y, w, h)
+   /bw := 2
+   return GrooveRectangle(win, x, y, w, h, -bw)
+end
+
+
+#  GrooveRectangle(win, x, y, w, h, bw) -- draw grooved rectangle
+
+procedure GrooveRectangle(win, x, y, w, h, bw)	#: draw grooved rectangle
+   local abw
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if type(win) ~== "window" then
+      return GrooveRectangle((\&window | runerr(140)), win, x, y, w, h)
+
+   /x := -WAttrib(win, "dx")
+   /y := -WAttrib(win, "dy")
+   /w := WAttrib(win, "width") - (x + WAttrib(win, "dx"))
+   /h := WAttrib(win, "height") - (y + WAttrib(win, "dy"))
+
+   if w < 0 then
+      x -:= (w := -w)
+   if h < 0 then
+      y -:= (h := -h)
+
+   /bw := 2
+   if bw >= 0 then
+      bw := (bw + 1) / 2
+   else
+      bw := -((-bw + 1) / 2)
+   abw := abs(bw)
+
+   BevelRectangle(win, x, y, w, h, -bw)
+   BevelRectangle(win, x + abw, y + abw, w - 2 * abw, h - 2 * abw, bw)
+   return win
+end
+
+
+#  BevelRectangle(win, x, y, w, h, bw) -- draw beveled rectangle
+#
+#  bw is the border width (>0 for raised bevel, <0 for sunken bevel).
+#  (x,y,w,h) bounds the entire beveled rectangle, not the usable area inside.
+
+procedure BevelRectangle(win, x, y, w, h, bw)	#: draw beveled rectangle
+   local b, upper, lower, xx, yy
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if type(win) ~== "window" then
+      return BevelRectangle((\&window | runerr(140)), win, x, y, w, h)
+   b := bev_lookup(win)
+
+   /x := -WAttrib(win, "dx")
+   /y := -WAttrib(win, "dy")
+   /w := WAttrib(win, "width") - (x + WAttrib(win, "dx"))
+   /h := WAttrib(win, "height") - (y + WAttrib(win, "dy"))
+
+   if w < 0 then
+      x -:= (w := -w)
+   if h < 0 then
+      y -:= (h := -h)
+
+   /bw := 2
+   if bw >= 0 then {
+      upper := b.hilite
+      lower := b.shadow
+      }
+   else {
+      upper := b.shadow
+      lower := b.hilite
+      bw := -bw
+      }
+
+   xx := x + w
+   yy := y + h
+   FillRectangle(lower, x, yy, w, -bw, xx, y, -bw, h)
+
+   while (bw -:= 1) >= 0 do {
+      DrawLine(upper, x, yy -:= 1, x, y, xx -:= 1, y)
+      x +:= 1
+      y +:= 1
+      }
+
+   return win
+end
+
+
+#  DrawRidge(win, x1, y1, x2, y2, w) -- draw a ridged line
+#
+#  If w is negative, a groove is drawn instead.
+
+procedure DrawRidge(win, x1, y1, x2, y2, w)	#: draw ridged line
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if type(win) ~== "window" then
+      return DrawRidge((\&window | runerr(140)), win, x1, y1, x2, y2)
+   /w := 2
+
+   DrawGroove(win, x1, y1, x2, y2, -w)
+   return win
+end
+
+
+#  DrawGroove(win, x1, y1, x2, y2, w) -- draw a grooved line
+#
+#  If w > 0, draw groove of width 2.
+#  If w = 0, erase groove/ridge of width 2.
+#  If w < 0, draw ridge of width 2.
+#
+#  Horizontal and vertical grooves fill the same pixels as lines drawn
+#  linewidth=2.  Angled grooves are not necessarily the same, though.
+
+procedure DrawGroove(win, x1, y1, x2, y2, w)	#: draw grooved line
+   local a, n, b, upper, lower, fg
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if type(win) ~== "window" then
+      return DrawGroove((\&window | runerr(140)), win, x1, y1, x2, y2)
+
+   /w := 2
+   x1 := integer(x1)
+   y1 := integer(y1)
+   x2 := integer(x2)
+   y2 := integer(y2)
+
+   if w ~= 0 then {			# if really drawing
+      b := bev_lookup(win)
+      upper := b.shadow
+      lower := b.hilite
+      }
+   else {
+      fg := Fg(win)			# if erasing, draw in bg color
+      Fg(win, Bg(win))
+      upper := lower := win
+      }
+
+   a := atan(y2 - y1, x2 - x1)
+   if a < 0 then
+      a +:= &pi
+   n := integer(8 * a / &pi)
+
+   if w < 0 then			# if groove/ridge swap
+      upper :=: lower
+   if n = 2 then			# if tricky illumination angle
+      upper :=: lower
+
+   if 2 <= n <= 5 then {		# approximately vertical
+      DrawLine(upper, x1 - 1, y1, x2 - 1, y2)
+      DrawLine(lower, x1, y1, x2, y2)
+      }
+   else {				# approximately horizontal
+      DrawLine(upper, x1, y1 - 1, x2, y2 - 1)
+      DrawLine(lower, x1, y1, x2, y2)
+      }
+
+   Fg(win, \fg)				# restore foreground if changed
+   return win
+end
+
+
+#  FillSquare(win, x, y, r) -- fill square centered at (x,y)
+
+procedure FillSquare(win, x, y, r)		#: draw filled square
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+   if type(win) ~== "window" then
+      return FillSquare((\&window | runerr(140)), win, x, y)
+   return FillRectangle(win, x - r, y - r, 2 * r + 1, 2 * r + 1)
+end
+
+
+#  FillDiamond(win, x, y, r) -- fill diamond centered at (x,y)
+
+procedure FillDiamond(win, x, y, r)		#: draw filled diamond
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+   if type(win) ~== "window" then
+      return FillDiamond((\&window | runerr(140)), win, x, y)
+   return FillPolygon(win, x - r, y, x, y + r + 1, x + r + 1, y, x, y - r - 1)
+end
+
+
+#  FillTriangle(win, x, y, r, o) -- fill triangle centered at (x,y)
+#
+#  r is "radius" (1/2 of side of enclosing square)
+#  o is orientation ("n", "s", "e", "w")
+
+procedure FillTriangle(win, x, y, r, o)		#: draw filled triangle
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+   if type(win) ~== "window" then
+      return FillTriangle((\&window | runerr(140)), win, x, y, r)
+   return case o of {
+      default:  #"n"
+         FillPolygon(win, x - r - 1, y + r + 1, x, y - r, x + r + 1, y + r + 1)
+      "s":
+         FillPolygon(win, x - r, y - r, x, y + r, x + r, y - r)
+      "e":
+         FillPolygon(win, x - r, y - r, x + r, y, x - r, y + r)
+      "w":
+         FillPolygon(win, x + r + 1, y - r - 1, x - r, y, x + r + 1, y + r + 1)
+      }
+end
+

@@ -1,0 +1,198 @@
+
+
+
+
+
+
+                         Graphic Traces
+
+
+Introduction
+
+   Several graphical components of the Icon program library rely
+on the concept of graphic traces.  A graphic trace is simply a
+sequence of points.
+
+   The purpose of graphic traces is to separate the computation
+of the geometrical components of figures from the rendering of
+them.  This allows procedures that generate points to be used in
+a variety of ways.  For example, they can be used by rendering
+procedures to draw figures.  Alternatively, the points need not
+produce any figure at all, but they simply could be written to a
+file for later use or analysis.  This approach also allows dif-
+ferent kinds of rendering procedures to use the same graphic
+traces.  For example, the rendering might be done directly by
+drawing functions like XDrawPoint() or by using turtle graphics.
+The same graphic trace - sequence of points - also can be used in
+different ways.  For example, individual points can be draw, suc-
+cessive points can be connected by lines, or the points can be
+used as locii for drawing other figures.
+
+Points
+
+   In the abstract, a point is a location in n-dimensional space.
+We'll limit our considerations to two dimensions, although most
+of the ideas are easily generalized.  The natural concrete
+representation of a point is an object with coordinate values.  A
+record provides the natural programming interpretation of this:
+
+        record Point(x, y)
+
+Thus Point(200, 100) creates a point at with x-y coordinates
+200,100.
+
+   A typical graphic trace procedure looks like this:
+
+        procedure polygon(n, r)
+           local angle, incr
+
+           angle := 0
+           incr := 2 * &pi / n
+
+           every 1 to n do {
+              suspend Point(r * cos(angle), r * sin(angle))
+              angle +:= incr
+              }
+
+        end
+
+
+   Dealing with points as objects with coordinate values is very
+
+
+
+                              - 1 -
+
+
+
+
+
+
+
+
+natural and intuitively appealing.  The drawing functions, how-
+ever, require coordinate positions as x-y argument pairs, as in
+
+        XDrawLine(200, 100, 300, 200)
+
+which draws a line from 200,100 to 300,200.
+
+   There are good reasons why the drawling functions require x-y
+argument pairs.  It is more efficient to represent points in this
+way, and in some cases it is simpler to compute a series of x-y
+values than it is to create points.
+
+   Argument pairs can be stored in lists, as in
+
+        point_list := [p1.x, p1.y, p2.x, p2.y]
+
+and supplied to drawing functions using list invocation:
+
+        XDrawLine ! point_list
+
+
+   There really is no way to reconcile the two different
+representation of points, one as objects with coordinate values
+and the other as argument pairs.  Conversion between the two
+representations is simple, however, and utility procedures are
+provided for this.  Since graphic traces are designed to provide
+a high level of abstraction, we will deal with points as objects
+and leave the conversion to argument pairs, when needed, to the
+rendering domain.
+
+Producing_and_Using_Graphic_Traces
+
+   The Icon program library currently contains several collec-
+tions of procedures for generating graphic traces:
+
+        curves.icn      various plane curves
+        rstars.icn      regular stars
+        fstars.icn      ``fractal stars''
+
+See these procedures for examples of how graphic traces can be
+produced.
+
+   The procedures in gtrace.icn and xgrtrace.icn provide various
+operations on graphic traces.
+
+   In order to perform a sequence of operations on graphic
+traces, it is helpful to use ``packaged'' calls, in which a pro-
+cedure and an argument list for it are encapsulated in an object.
+See calls.icn.
+
+   Two programs in the current library use graphic traces:
+rstarlab.icn and fstarlab.icn. These programs use the procedures
+rstars.icn and fstars.icn mentioned earlier.  These programs
+allow points from graphic traces to be used in various ways.
+
+
+
+                              - 2 -
+
+
+
+
+
+
+
+
+Turtle graphics (see turtle.icn) are used by default for render-
+ing.
+
+Limitations_of_Graphic_Traces
+
+   A graphic trace is just a sequence of points. It contains no
+context for these points, other than the order in which they
+occur. For example, there is no information in a graphic trace
+(unless it is contrived) to identify transitions between parts of
+a composite object.
+
+   Procedures that use graphic traces can, of course, use
+separately derived contextual information or coding techniques,
+such as buffering the points, to circumvent some kinds of prob-
+lems.
+
+   By their nature, graphic graces are most appropriate for
+applications in which all points (except perhaps the first) are
+treated in the same way.
+
+
+
+Ralph E. Griswold
+
+Department of Computer Science
+The University of Arizona
+
+June 8, 1993
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                              - 3 -
+
+

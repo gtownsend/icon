@@ -1,0 +1,54 @@
+############################################################################
+#
+#	File:     feval.icn
+#
+#	Subject:  Procedure to evaluate string as function call
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 8, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure analyzes a string representing an Icon function or
+#  procedure call and evaluates the result.
+#
+#  It assumes the string is well-formed.  The arguments can only be
+#  Icon literals. Escapes, commas, and parentheses in strings literals
+#  are not handled.
+#
+############################################################################
+#
+#  Links:  ivalue
+#
+############################################################################
+
+invocable all
+
+link ivalue
+
+procedure feval(s)
+   local fnc, argl
+
+   s ? {
+      fnc := tab(upto('(')) | {
+         write(&errout, "*** syntax error")
+         fail
+         }
+      fnc := proc(fnc, 3 to 1 by -1) | {
+         write(&errout, "*** invalid function or operation")
+         fail
+         }
+      move(1)
+
+      argl := []
+      while put(argl, ivalue(tab(upto(',)')))) do move(1)
+
+      suspend fnc ! argl
+      }
+
+end

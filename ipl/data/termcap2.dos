@@ -1,0 +1,140 @@
+# From: Norman H. Azadian <naz@hasler.ascom.ch>
+# /etc/termcap	880901	NHA
+# For IBM PC and friends.
+
+#
+# Monochrome IBMPC.
+#	This is a termcap for the NANSI.SYS device driver.
+#	It is the same as the ANSI termcap, except NANSI supports additionally
+#	line & char insert & delete (AL,al, DL,dl, DC,dc, IC,ic).
+#
+nansi-mono|mono:\
+	:AL=\E[%dL:al=\E[1L:\
+	:DC=\E[%dP:dc=\E[1P:DL=\E[%dM:dl=\E[1M:\
+	:IC=\E[%d@:ic=\E[1@:\
+	:tc=ansi-mono:
+
+
+#
+# monochrome ANSI
+#
+ansi-mono:\
+	:am:\
+	:bc=\E[1D:bl=^G:bs:\
+	:cd=\E[2J:ce=\E[K:cl=\E[2J\E[H:cm=\E[%i%d;%dH:co#80:\
+	:DO=\E[%dB:do=\E[B:\
+	:ho=\E[H:\
+	:K1=\200G:K2=\200I:K4=\200O:K5=\200Q:\
+	:k0=\200;:k1=\200<:k2=\200=:k3=\200>:k4=\200?:k5=\200@:\
+	:k6=\200A:k7=\200B:k8=\200C:k9=\200D:\
+	:kb=^H:kC=\200w:kD=\200S:kd=\200P:kE=\200u:kH=\200O:kh=\200G:\
+	:kI=\200R:kl=\200K:kN=\200Q:kP=\200I:kr=\200M:kS=\200v:ku=\200H:\
+	:LE=\E[%dD:le=\E[1D:li#25:\
+	:l0=F1:l1=F2:l2=F3:l3=F4:l4=F5:l5=F6:l6=F7:l7=F8:l8=F9:l9=F10:\
+	:mb=\E[5m:md=\E[1m:me=\E[0m:mk=\E[8m:mr=\E[7m:ms:\
+	:nd=\E[C:\
+	:RI=\E[%dC:rc=\E[u:\
+	:sc=\E[s:se=\E[0m:so=\E[7m:\
+	:te=\E[0m:ti=\E[0m:\
+	:UP=\E[%dA:ue=\E[0m:up=\E[A:us=\E[4m:\
+	:xd=\E[B:xs:
+
+
+#
+# Color IBMPC.
+#	This is a termcap for the NANSI.SYS device driver.
+#	It is the same as the ANSI termcap, except NANSI supports
+#	character & line insert & delete, while ANSI does not.
+#
+nansi-color|color:\
+	:AL=\E[%dL:al=\E[1L:\
+	:DC=\E[%dP:dc=\E[1P:DL=\E[%dM:dl=\E[1M:\
+	:IC=\E[%d@:ic=\E[1@:\
+	:tc=ansi-color:
+
+#
+# ANSI Color
+#
+ansi-color:\
+	:am:\
+	:bc=\E[1D:bl=^G:bs:\
+	:cd=\E[2J:ce=\E[K:cl=\E[2J\E[H:cm=\E[%i%d;%dH:co#80:\
+	:DO=\E[%dB:do=\E[B:\
+	:ho=\E[H:\
+	:K1=\200G:K2=\200I:K4=\200O:K5=\200Q:\
+	:k0=\200;:k1=\200<:k2=\200=:k3=\200>:k4=\200?:k5=\200@:\
+	:k6=\200A:k7=\200B:k8=\200C:k9=\200D:\
+	:kb=^H:kC=\200w:kD=\200S:kd=\200P:kE=\200u:kH=\200O:kh=\200G:\
+	:kI=\200R:kl=\200K:kN=\200Q:kP=\200I:kr=\200M:kS=\200v:ku=\200H:\
+	:LE=\E[%dD:le=\E[1D:li#25:\
+	:l0=F1:l1=F2:l2=F3:l3=F4:l4=F5:l5=F6:l6=F7:l7=F8:l8=F9:l9=F10:\
+	:mb=\E[5m:md=\E[1m:me=\E[0m:mk=\E[8m:mr=\E[47;30m:ms:\
+	:nd=\E[C:\
+	:RI=\E[%dC:rc=\E[u:\
+	:sc=\E[s:se=\E[40;37m:so=\E[47;30m:\
+	:te=\E[0m:ti=\E[40;37m:\
+	:UP=\E[%dA:ue=\E[37m:up=\E[A:us=\E[32m:\
+	:xd=\E[B:xs:
+
+
+
+#
+# Monochrome IBMPC, especially lobotomized for /usr/games/larn.
+#	Each capability (that larn requires) must start on a new line.
+#	Must not use 2nd %i in :cm capability, although it should be there.
+#
+larn-mono|hack-mono:\
+	:al=\E[L:\
+	:bc=\E[D:\
+	:bs:\
+	:ce=\E[K:\
+	:cl=\E[2J:\
+	:cm=\E[%i%2;%2H:\
+	:co#80:\
+	:dc=\E[P:\
+	:dl=\E[M:\
+	:ho=\E[H:\
+	:ic=\E[@:\
+	:li#25:\
+	:mb=\E[5m:\
+	:md=\E[7m:\
+	:me=\E[0m:\
+	:mk=\E[8m:\
+	:mr=\E[7m:\
+	:nd=\E[C:\
+	:se=\E[0m:\
+	:so=\E[1m:\
+	:te=\E[0m:\
+	:ti=\E[0m:\
+	:ue=\E[0m:\
+	:up=\E[A:\
+	:us=\E[4m:\
+	:xd=\E[B:\
+	:xs:
+	
+#
+# Color IBMPC, especially lobotomized for /usr/games/larn.
+#	Each capability (that larn requires) must start on a new line.
+#	Must not use 2nd %i in :cm capability, although it should be there.
+#
+larn-color|hack-color:\
+	:bc=\E[D:\
+	:bs:\
+	:ce=\E[K:\
+	:cl=\E[2J:\
+	:cm=\E[%i%2;%2H:\
+	:co#80:\
+	:he=\E[44;37m:\
+	:hi=\E[32m:\
+	:ho=\E[H:\
+	:li#25:\
+	:nd=\E[C:\
+	:se=\E[44;37m:\
+	:so=\E[31m:\
+	:te=\E[0m:\
+	:ti=\E[44;37m:\
+	:ue=\E[m:\
+	:up=\E[A:\
+	:us=\E[1m:\
+	:xd=\E[B:\
+	:xs:

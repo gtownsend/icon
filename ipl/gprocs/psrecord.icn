@@ -1,0 +1,555 @@
+############################################################################
+#
+#	File:     psrecord.icn
+#
+#	Subject:  Procedures for PostScript record of window
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     May 10, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# 	Contributors: Stephen B. Wampler and Ralph E. Griswold
+#
+############################################################################
+#
+#	These procedures intercept graphics calls in order to produce
+#	a PostScript copy of what is drawn.  The record is decidedly
+#	imperfect.
+#
+############################################################################
+#
+#     These procedures produce a PostScript record of the screen display
+#  of an Icon program.  The technique used is to intercept calls to
+#  graphics functions and write PostScript before calling the built-in
+#  versions.
+#
+#     Because the X emulation is imperfect, psrecord works best for
+#  programs designed with it in mind.  Not all function calls are
+#  intercepted; some such as CopyArea cannot be handled at all.  The
+#  list of functions is in the internal routine PS_swap().  It is assumed
+#  that there is only a single window and a single graphics context;
+#  programs that switch among multiple graphics contexts will not be
+#  recorded properly.
+#
+#     PostScript recording is enabled by calling PSEnable(window, filename)
+#  any time after after the window has been opened.  (The procedures in
+#  "autopost.icn" may be used for this.)  Defaults for PSEnable are
+#  &window and "xlog.ps".  At the end, PSDone() should be called to
+#  properly terminate the file; when PSDone() is not called, the file is
+#  still be legal but lacks the "showpage" command needed for printing.
+#
+#     If the argument to PSDone is non-null, no showpage is written.
+#  This is recommended for Encapsulated PostScript that is to be
+#  placed in documents, since otherwise the bounding box resulting
+#  from showpage may interfere with document layout.  showpage is, of
+#  course, needed for PostScript that is to be printed stand-alone.
+#
+#     Additional procedures provide more detailed control but must be used
+#  with care.  PSDisable() and PSEnable() turn recording off and back on;
+#  any graphics state changes during this time (such as changing the
+#  foreground color) are lost.  PSSnap() inserts a "copypage" command in
+#  the output; this prints a snapshot of the partially constructed page
+#  without erasing it.  PSRaw() writes a line of PostScript to the output
+#  file.
+#
+#     PSStart(window, filename) is similar to PSEnable except that it
+#  always starts a fresh output file each time it is called.
+#
+#     The output file is legal Encapsulated PostScript unless PSSnap is
+#  used; PSSnap renders the output nonconforming because by definition
+#  an EPS file consists of a single page and does not contain a "copypage"
+#  command.  It should be possible to postprocess such output to make a
+#  set of legal EPS files.
+#
+#     Some of the other limitations are as follows:
+#         Only a few font names are recognized, and scaling is inexact.
+#         Newlines in DrawString() calls are not interpreted.
+#         Output via write() or writes() is not recorded.
+#         The echoing of characters by read() or reads() is not recorded.
+#         DrawCurve output is approximated by straight line segments.
+#         Window resizing is ignored.
+#         Drawing arguments must be explicit; few defaults are supplied.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+global PS_active, PS_f, PS_win, PS_width, PS_height
+
+#########################  External Functions  #########################
+
+#  PSEnable(window, filename) -- enable PostScript recording.
+#
+#  window and filename are significant only on the very first call.
+
+procedure PSEnable(w, f)		#: enable PostScript recording
+   initial PS_init(w, f)
+   if /PS_active := 1 then
+      PS_swap()
+   return
+end
+
+#  PSSnap() -- take snapshot at this point
+
+procedure PSSnap()			#: take PostScript snapshot
+   static inited
+   if /PS_active then
+      fail
+   if /inited := 1 then {
+      seek(PS_f, 1)
+      write(PS_f, "%! nonconforming.......")	# overwrite 1st line
+      seek(PS_f, 0)
+   }
+   PS_out("copypage")
+   return
+end
+
+#  PSRaw(s) -- output a line of raw PostScript (at user's own risk)
+
+procedure PSRaw(s)			#: output raw PostScript
+   if /PS_active then
+      fail
+   return write(PS_f, s)
+end
+
+#  PSDisable() -- temporarily turn off recording
+
+procedure PSDisable()			#: disable PostScript recording
+   if \PS_active := &null then
+      PS_swap()
+   return
+end
+
+#  PSDone(sw) -- terminate output
+
+procedure PSDone(sw)			#: terminate PostScript recording
+   initial PS_init()
+   PSDisable()
+   if /sw then PS_out("showpage") 	# if sw nonnull, do not output
+   PS_out("%%EOF")
+   close(PS_f)
+   return
+end
+
+#########################  Internal Functions  #########################
+
+#  PS_swap() -- swap local functions for the real versions
+
+procedure PS_swap()
+   PS_attrib :=: WAttrib
+   PS_bg :=: Bg
+   PS_clip :=: Clip
+   PS_drawarc :=: DrawArc
+   PS_drawcircle :=: DrawCircle
+   PS_drawcurve :=: DrawCurve
+   PS_drawline :=: DrawLine
+   PS_drawrect :=: DrawRectangle
+   PS_drawpoint :=: DrawPoint
+   PS_drawsegment :=: DrawSegment
+   PS_drawstring :=: DrawString
+   PS_erasearea :=: EraseArea
+   PS_fg :=: Fg
+   PS_fillarc :=: FillArc
+   PS_fillcircle :=: FillCircle
+   PS_fillrect :=: FillRectangle
+   PS_fillpoly :=: FillPolygon
+   PS_flush :=: WFlush
+   PS_font :=: Font
+   return
+end
+
+#  PS_init(w, f) -- initialize recording system
+
+procedure PS_init(a[])
+   if /PS_active then PSStart ! a
+   return
+end
+
+procedure PSStart(a[])
+local fname, scale, psw, psh, llx, lly
+
+   if \PS_active then PSDone()
+   PS_afix(a)
+   PS_win := \a[1] | \&window | runerr(140, a[1])
+   fname := \a[2] | "xlog.ps"
+   PS_f := open(fname, "w") | stop("can't open", fname)
+
+   # calculate output scaling
+   # max (&default) scaling is 1.0 (72 pixels per inch)
+   # max size image allowed comes within 0.5" of all four borders
+   PS_width := WAttrib(PS_win, "width")
+   PS_height := WAttrib(PS_win, "height")
+   scale := 1.0
+   scale >:= 72 * (8.5 - 0.5 - 0.5) / PS_width
+   scale >:= 72 * (11.0 - 0.5 - 0.5) / PS_height
+
+   # position window in center of page
+   psw := integer(scale * PS_width + 0.9999)	# width in ps coords
+   psh := integer(scale * PS_height + 0.9999)	# height
+   llx := integer((72 * 8.5 - psw) / 2)		# center horizontally
+   lly := integer((72 * 11.0 - psh) / 2)	# center vertically
+   if lly + psh < 72 * 9.5 then
+      lly := integer(72 * 9.5 - psh)		# but not over 1.5" from top
+
+   # write EPS header
+   PS_out("%!PS-Adobe-3.0 EPSF-3.0")
+   PS_out("%%BoundingBox:", llx, lly, llx + psw + 1, lly + psh + 1)
+   PS_out("%%Creator:", &progname)
+   PS_out("%%CreationDate:", &dateline)
+   PS_out("%%EndComments")
+   PS_out()
+
+   every PS_out(![			# output PostScript file header
+
+      # define variables now so that bound procs get correct versions
+      "/BGR 0 def /BGG 0 def /BGB 0 def",
+
+      # shorthand procedures
+      "/bd {bind def} bind def",
+      "/m {moveto} bd",
+      "/l {lineto} bd",
+      "/s {stroke} bd",
+      "/f {fill} bd",
+
+      # construct a rectangular path; usage is: w h x y <r>
+"/r {moveto dup 0 exch rlineto exch 0 rlineto neg 0 exch rlineto closepath} bd",
+
+      # procedures for remembering state
+      "/fg {setrgbcolor} bd",					# foreground
+      "/bg {/BGB exch def /BGG exch def /BGR exch def} bd",	# background
+      "/ft {findfont exch dup neg matrix scale makefont setfont} bd", # font
+
+      # A new clip path may not be inside old path as needed by PS.
+      # Save the old context, pop back to full-screen graphics state,
+      # restore other context, and set clip path.
+      "/cp {currentfont currentrgbcolor grestore gsave setrgbcolor setfont",
+      "     r clip newpath } bd",
+
+      # drawing procedures
+      "/t {moveto show newpath} bd",				# text string
+      "/p {0.5 0 360 arc fill} bd",				# point
+      "/g {moveto lineto stroke} bd",				# line segment
+      "/pf {closepath fill} bd",				# filled polygon
+      "/c {0 360 arc stroke} bd",				# circle
+      "/cf {0 360 arc fill} bd",				# filled circle
+      "/a {gsave translate 1.0 exch scale arc stroke grestore} bd",	# arc
+      "/af {gsave translate 1.0 exch scale 0 0 moveto arc fill grestore} bd",
+      "/er {gsave r BGR BGG BGB setrgbcolor fill grestore} bd",	# erase area
+   ])
+
+   # establish coordinate system
+   PS_out(llx, lly + psh, "translate")
+   PS_out(psw + 1, -(psh + 1), "0 0 r clip newpath")
+   PS_out(scale, -scale, "scale")
+   PS_out("0.5 0.5 translate")
+   PS_out("gsave")				# save full-window gpx env
+
+   # swap our routines for those of Icon
+   if /PS_active := 1 then
+      PS_swap()
+
+   # note graphics values in PS file
+   Font(PS_win, Font(PS_win))
+   Fg(PS_win, Fg(PS_win))
+   Bg(PS_win, Bg(PS_win))
+
+   PS_out(PS_width, PS_height, "0 0 er")	# fill background
+   write(PS_f)
+return
+end
+
+#  PS_out(s, s, ...) -- output strings to PS file, with spaces between
+
+procedure PS_out(a[])
+   if /a[1] then
+      return
+   writes(PS_f, get(a))
+   while writes(PS_f, " ", get(a))
+   write(PS_f)
+   return
+end
+
+#  PS_path(a, s) -- output path from a[2..*] followed by command s
+
+procedure PS_path(a, s)
+   local i
+
+   PS_out(a[2], a[3], "m")
+   every i := 4 to *a - 3 by 2 do
+      PS_out(a[i], a[i+1], "l")
+   PS_out(a[-2], a[-1], "l", s)
+   return
+end
+
+#  PS_afix(a) -- fix arg list to ensure that first arg is a window
+
+procedure PS_afix(a)
+   if not (type(a[1]) == "window") then
+      push(a, &window)
+   return a
+end
+
+####################  Icon Function Substitutes  ####################
+
+procedure PS_flush(a[])		# replaces WFlush
+   # we don't know why they're flushing, but we'll flush, too
+   flush(PS_f)
+   return PS_flush ! a
+end
+
+
+procedure PS_bg(a[])		# replaces Bg
+   PS_afix(a)
+   # note that following line fails if there is no a[2]
+   PS_out(PS_color(a[2]), "bg")
+   return PS_bg ! a
+end
+
+procedure PS_fg(a[])		# replaces Fg
+   PS_afix(a)
+   # note that following line fails if there is no a[2]
+   PS_out(PS_color(a[2]), "fg")
+   return PS_fg ! a
+end
+
+procedure PS_color(color)	# parse color, return string of PS r, g, b
+   local r, g, b
+   (ColorValue(PS_win, color) | fail) ? {
+      r := tab(many(&digits));  move(1)
+      g := tab(many(&digits));  move(1)
+      b := tab(many(&digits))
+      }
+   return (r / 65535.0) || " " || (g / 65535.0) || " " || (b / 65535.0)
+end
+
+procedure PS_drawpoint(a[])	# replaces DrawPoint
+   local i
+
+   PS_afix(a)
+   every i := 2 to *a by 2 do
+      PS_out(a[i], a[i+1], "p")
+   return PS_drawpoint ! a
+end
+
+procedure PS_drawsegment(a[])	# replaces DrawSegment
+   local i
+
+   PS_afix(a)
+   every i := 2 to *a by 4 do
+      PS_out(a[i], a[i+1], a[i+2], a[i+3], "g")
+   return PS_drawsegment ! a
+end
+
+procedure PS_drawline(a[])	# replaces DrawLine
+   local i
+
+   PS_afix(a)
+   if *a == 5 then
+      PS_out(a[2], a[3], a[4], a[5], "g")
+   else
+      PS_path(a, "s")
+   return PS_drawline ! a
+end
+
+procedure PS_drawcurve(a[])	# replaces DrawCurve -- approx with line segs
+   local i
+
+   PS_afix(a)
+   PS_path(a, "s")
+   return PS_drawcurve ! a
+end
+
+procedure PS_drawrect(a[])	# replaces DrawRectangle
+   local i
+
+   PS_afix(a)
+   every i := 2 to *a by 4 do
+      PS_out(a[i+2], a[i+3], a[i], a[i+1], "r s")
+   return PS_drawrect ! a
+end
+
+procedure PS_fillrect(a[])	# replaces FillRectangle
+   local i
+
+   PS_afix(a)
+   every i := 2 to *a by 4 do
+      PS_out(a[i+2], a[i+3], a[i], a[i+1], "r f")
+   return PS_fillrect ! a
+end
+
+procedure PS_fillpoly(a[])	# replaces FillPolygon
+   local i
+
+   PS_afix(a)
+   PS_path(a, "pf")
+   return PS_fillpoly ! a
+end
+
+
+procedure PS_clip(a[])		# replaces Clip
+   PS_area(a, "cp")
+   return PS_clip ! a
+end
+
+procedure PS_erasearea(a[])	# replaces EraseArea
+   PS_area(a, "er")
+   return PS_erasearea ! a
+end
+
+procedure PS_area(a, cmd)	# generate w, h, x, y, and cmd, with defaults
+   local x, y, w, h
+   PS_afix(a)
+
+   x := \a[2] | 0
+   y := \a[3] | 0
+   w := (0 ~= \a[4]) | PS_width
+   h := (0 ~= \a[5]) | PS_height
+   PS_out(w, h, x, y, cmd)
+end
+
+procedure PS_drawcircle(a[])	# replaces DrawCircle
+   PS_arc(a, 0, "")
+   return PS_drawcircle ! a
+end
+
+procedure PS_fillcircle(a[])	# replaces FillCircle
+   PS_arc(a, 0, "f")
+   return PS_fillcircle ! a
+end
+  
+procedure PS_drawarc(a[])	# replaces DrawArc
+   PS_arc(a, 1, "")
+   return PS_drawarc ! a
+end
+
+procedure PS_fillarc(a[])	# replaces FillArc
+   PS_arc(a, 1, "f")
+   return PS_fillarc ! a
+end
+
+procedure PS_arc(a, n, f)	# handle draw/fill arc/circle, append f to cmd
+   local x, y, w, h, ar, a1, a2, r, i
+   static mul
+   initial mul := 180 / &pi
+
+   PS_afix(a)
+   every i := 2 to *a by (5 + n) do {
+      x := a[i]
+      y := a[i+1]
+      w := a[i+2] 
+      h := a[i+2+n]
+      a1 := (\a[i+n+3] * mul) | 0.0
+      a2 := (\a[i+n+4] * mul) | 360.0
+      if n = 1 then {		# if DrawArc
+         r := w / 2.0			# radius
+         x +:= r			# center coordinates
+         y +:= r
+         }
+      else
+         r := w
+      if w = h & abs(a2) > 359.99 then	# if circle
+         PS_out(x, y, r, "c" || f)
+      else {				# general case
+         if a2 < 0 then {
+            a1 := a1 + a2	# ensure counterclockwise arc (in PS coords)
+            a2 := -a2
+            }
+         if w = 0 then
+            ar := 0.0
+         else
+            ar := real(h) / real(w)
+         PS_out("0 0", r, a1, a1 + a2, ar, x, y, "a" || f)
+         }
+      }
+   return
+end
+
+procedure PS_font(a[])	     	# replaces Font (very crudely)
+   local ret, xname, psname, n
+
+   PS_afix(a)
+   if not (ret := PS_font ! a) then
+      fail
+   if xname := \a[2] then {
+      map(xname) ? {
+         if tab(many(&digits)) & ="x" & tab(many(&digits)) & pos(0) then
+            psname := "/Courier"
+         else if find("fixed" | "courier" | "typewriter") & find("bold") then
+            psname := "/Courier-Bold"
+         else if find("fixed" | "courier" | "typewriter") then
+            psname := "/Courier"
+         else if find("helvetica" | "sans") & find("bold") then
+            psname := "/Helvetica-Bold"
+         else if find("helvetica" | "sans") & find("oblique") then
+            psname := "/Helvetica-Oblique"
+         else if find("helvetica" | "sans") then
+            psname := "/Helvetica"
+         else if find("times") & find("bold")then
+            psname := "/Times-Bold"
+         else if find("times") & find("italic")then
+            psname := "/Times-Italic"
+         else if find("times") then
+            psname := "/Times-Roman"
+         else if find("bold") then
+            psname := "/Palatino-Bold"
+         else if find("italic") then
+            psname := "/Palatino-Italic"
+         else
+            psname := "/Palatino-Roman"
+         }
+      n := WAttrib(PS_win, "ascent") + 1	# could possibly be smarter
+      PS_out(n, psname, "ft  %", xname)
+      }
+   return ret
+end
+
+procedure PS_drawstring(a[])		# replaces DrawString
+   PS_afix(a)
+   PS_psstring(a[4])
+   PS_out("", a[2], a[3], "t")
+   return PS_drawstring ! a
+end
+
+procedure PS_psstring(s)		# output a string as a PS string
+   s ? {
+      writes(PS_f, "(")
+      while writes(PS_f, tab(upto('()\\'))) do
+         writes(PS_f, "\\", move(1))
+      writes(PS_f, tab(0), ")")
+   }
+   return
+end
+
+#  PS_attrib() -- handle WAttrib calls
+#
+#  Any attribute that is accepted here should also be checked and set to
+#  the correct value during initialization in order to catch attributes
+#  that were set on the open() call.
+
+procedure PS_attrib(alist[])		# replaces WAttrib
+   local win, ret, name, val, a
+
+   PS_afix(alist)
+   ret := alist
+   ret := PS_attrib ! alist
+   win := pop(alist)			# remove window arg
+   every a := !alist do a ? {		# process each attribute
+      name := tab(upto('=')) | next
+      move(1)
+      val := tab(0)
+      case name of {
+         "fg":    Fg(win, val)
+         "bg":    Bg(win, val)
+         "font":  Font(win, val)
+         }
+      }
+   return a ~=== ret			# return value or fail if WAttrib failed
+end

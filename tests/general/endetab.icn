@@ -1,0 +1,145 @@
+# test type conversion and error handling in entab/detab
+
+procedure main ()
+   s := "rutabaga"
+   if entab('1987') ~== "1789" then write ("oops 1")
+   if detab('1492') ~== "1249" then write ("oops 2")
+   if entab("    ","3") ~== "\t\t" then write ("oops 3")
+   if detab("\t\t","3") ~== "    " then write ("oops 4")
+   ferr (103, entab, [])
+   ferr (103, detab, [])
+   ferr (103, entab, [[]])
+   ferr (103, detab, [[]])
+   ferr (101, entab, [s,2,3,&lcase])
+   ferr (101, detab, [s,4,5,&ucase])
+   ferr (210, entab, [s,7,4])
+   ferr (210, entab, [s,6,6])
+   ferr (210, detab, [s,8,5])
+   ferr (210, detab, [s,3,3])
+
+   endetab1()
+
+   end
+
+
+# ferr(err,func,arglst) -- call func(args), verify that error "err" is produced
+
+procedure ferr (err, func, args)
+   local val
+
+   val := ""
+   every val ||:= image(!args) || ","
+   val := val[1:-1]
+   msg := "oops -- " || image(func) || "(" || val || ") "
+   &error := 1
+   if func!args
+      then write (msg, "succeeded")
+   else if &error ~= 0
+      then write (msg, "failed but no error")
+   else if &errornumber ~= err
+      then write (msg, "got error ",&errornumber," instead of ",err)
+   &error := 0
+   return
+   end
+
+## Test driver for entab and detab
+#
+#  Input is read from standard input.  Commentary and error reports go to
+#  standard output.
+#
+#  Input lines are first preprocessed by interpreting escape sequences \a, \b,
+#  \n, \r, and \t and trimming a trailing '$' character.
+#  
+#  Input lines beginning with "=" establish tab stop settings.  Each numeric
+#  field specifies a tab stop, according to the entab/detab specs.
+#  
+#  All other lines are passed through entab and then detab, and the results are
+#  checked.  The characters "!" and "." are replaced by spaces before calling
+#  entab; "!" positions are expected to be replaced by tabs, with "." positions
+#  disappearing.  For example, "abcd!...ijk" tests that entab("abcd    ijk")
+#  returns "abcd\tijk".
+#  
+#  The result of each entab call is then passed to detab, with results expected
+#  to match the original entab argument (or its detab, if it had any tabs).
+
+procedure endetab1 ()
+   params := setup ("=")		# start with default tabs (no args)
+   while line := escape (read ()) do {	# read and preprocess line
+      if line[1] == "=" then
+         params := setup (line)		# '=' line sets tab stops (arg list)
+      else {
+         s := map (line, "!.", "  ")	# turn "!." characters into spaces
+         params[1] := s
+         t := invoke (entab, params)	# run entab
+         if t ~== interp (line) then {	# check results
+            write ("entab failed for: ", map(line,"\t\r\n\b\007","!RNBA"))
+            write ("  returned value: ", map(t,   "\t\r\n\b\007","!RNBA"))
+         } else {
+            if upto ('\t', s) then	# detab input if it had a tab
+               s := invoke (detab, params)
+            params[1] := t
+            t := invoke (detab, params)	# detab the result of the entab
+            if t ~== s then {		# compare results
+               write ("detab failed for: ", map(line,"\t\r\n\b\007","!RNBA"))
+               write ("  returned value: ", map(t,   "\t\r\n\b\007","!RNBA"))
+               }
+            }
+         }
+   }
+   end
+
+procedure escape (line)		# interpret escape sequences and trim one '$'
+   if line[-1] == "$" then
+      line := line[1:-1]
+   s := ""
+   line ? 
+      while not pos (0) do {
+         s ||:= tab (upto ('\\') | 0)
+         s ||:= (="\\" & case (c := move(1)) of {
+	    "a": "\007"
+            "b": "\b"
+            "n": "\n"
+            "r": "\r"
+            "t": "\t"
+            default: "\\" || c
+         })
+      }
+   return s
+   end
+
+procedure interp (pattern)	# interpret metacharacters '!.'
+   s := ""
+   pattern ? 
+      while not pos (0) do {
+         tab (many ('.'))
+         s ||:= tab (upto ('.') | 0)
+      }
+   return map (s, "!", "\t")
+   end
+
+procedure setup (line)		# interpret and report a column spec line
+   p := [&null]
+   line ? while tab (upto (&digits)) do
+      put (p, integer (tab (many (&digits))))
+   writes ("testing entab/detab(s")
+   every writes (",", \!p)
+   write (")")
+   return p
+   end
+
+procedure invoke (func, a)	# invoke a function with a list of up to 10 args
+   return case *a of {
+      0:  func ()
+      1:  func (a[1])
+      2:  func (a[1], a[2])
+      3:  func (a[1], a[2], a[3])
+      4:  func (a[1], a[2], a[3], a[4])
+      5:  func (a[1], a[2], a[3], a[4], a[5])
+      6:  func (a[1], a[2], a[3], a[4], a[5], a[6])
+      7:  func (a[1], a[2], a[3], a[4], a[5], a[6], a[7])
+      8:  func (a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8])
+      9:  func (a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9])
+      10: func (a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10])
+      default: stop ("too many args for invoke")
+   }
+   end

@@ -1,0 +1,206 @@
+############################################################################
+#
+#	File:     profiler.icn
+#
+#	Subject:  Program to display number magnitudes
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 21, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program displays successive numbers by lines of corresponding
+#  height.  When the display area is full, it scrolls from right to
+#  left.
+#
+#  If the -p option is given, data is taken from standard input; this
+#  is useful when input is piped into the program.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: interact, vsetup
+#
+############################################################################
+
+link interact
+link vsetup
+
+global vidgets
+global root
+global strip
+global state
+global reset
+global input
+global scale
+global fnc
+
+global width
+global height
+
+procedure main(args)
+
+   init(args)
+
+   display()
+
+end
+
+procedure init(args)
+
+   vidgets := ui()
+
+   root := vidgets["root"]
+
+   state := &null
+   scale := 1
+   fnc := 1			# linear scaling  :-)
+   if args[1] == "-p" then input := &input
+
+   width :=  vidgets["strip"].uw
+   height :=  vidgets["strip"].uh
+
+   strip := Clone("dx=" || vidgets["strip"].ux, "dy=" || vidgets["strip"].uy)
+   Clip(strip, 0, 0, width, height)
+
+end
+
+procedure display()
+   local n
+
+   repeat {
+      repeat {
+         while (*Pending() > 0) | \state | /input do
+            ProcessEvent(root, , shortcuts)
+         n := read(input) | {
+            Notice("End of data")
+            break
+            }
+         n := integer(fnc(n * scale)) | {
+            Notice("Nonnumeric data; terminating input")
+            break
+            }
+         n >:= height			# Motif bug avoidance
+         EraseArea(strip, width - 1, 0, width - 1, height)
+         DrawLine(strip, width - 1, height - n, width - 1, height)
+         CopyArea(strip, 1, 0, width - 1, height, 0, 0)
+         }
+   input := &null
+   }
+
+end
+
+procedure file_cb(vidget, value)
+
+   case value[1] of {
+      "open      @O":  load()
+      "snapshot  @S":  return snapshot(strip)
+      "quit      @Q":  exit()
+      }
+   
+   fail
+
+end
+
+procedure configure_cb(vidget, value)
+
+   case value[1] of {
+      "scale":  {
+         repeat {
+            if TextDialog(, "scale", scale, 10) == "Okay" then {
+               scale := (0 < numeric(dialog_value[1])) | {
+                  Notice("Invalid scale value")
+                  next
+                  }
+               reset_cb()
+               return
+               }
+            else fail			# user canceled
+            }
+         }
+      "function":  {
+         repeat {
+            if TextDialog(,  "function", fnc, 10) == "Okay" then {
+               (proc | numeric)(fnc <-dialog_value[1]) | {
+                  Notice("Invalid function specification")
+                  next
+                  }
+               reset_cb()
+               return
+               }
+            else fail			# user canceled
+            }
+         }
+      }
+
+   fail
+
+end
+procedure pause_cb(vidget, value)
+
+   state := value
+
+   return
+
+end
+
+procedure reset_cb()
+
+   EraseArea(strip)
+
+   return
+
+end
+
+procedure shortcuts(e)
+
+   if &meta then
+      case map(e) of {
+         "o":  load()
+         "q":  exit()
+         "s":  return snapshot(strip)
+         }
+   else fail
+
+end
+
+procedure load()
+
+   if load_file() == "Okay" then {
+      input := dialog_value
+      reset_cb()
+      return
+      }
+   else fail
+
+end
+
+  
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=477,255", "bg=gray-white"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,477,255:",],
+   ["configure:Menu:pull::36,0,71,21:Configure",configure_cb,
+      ["scale","function"]],
+   ["file:Menu:pull::0,1,36,21:File",file_cb,
+      ["open      @O","snapshot  @S","quit      @q"]],
+   ["line1:Line:::0,22,477,22:",],
+   ["pause:Button:regular:1:11,43,42,20:pause",pause_cb],
+   ["reset:Button:regular::11,76,42,20:reset",reset_cb],
+   ["strip:Rect:grooved::63,37,400,200:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

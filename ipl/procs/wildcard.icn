@@ -1,0 +1,186 @@
+############################################################################
+#
+#	File:     wildcard.icn
+#
+#	Subject:  Procedures for UNIX-like wild-card pattern matching
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     September 26, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This is a kit of procedures to deal with UNIX-like filename wild-card
+#  patterns containing *, ?, and [...].  The meanings are as of the
+#  pattern characters are the same as in the UNIX shells csh and sh.
+#  They are described briefly in the wild_pat() procedure.
+#
+#  These procedures are interesting partly because of the "recursive
+#  suspension" technique used to simulate conjunction of an arbitrary
+#  number of computed expressions.
+#
+#
+#  The public procedures are:
+#
+#  wild_match(pattern,s,i1,i2) : i3,i4,...,iN
+#  wild_find(pattern,s,i1,i2) : i3,i4,...,iN
+#
+#  wild_match() produces the sequence of positions in "s" past a
+#  substring starting at "i1" that matches "pattern", but fails if there
+#  is no such position.  Similar to match(), but is capable of
+#  generating multiple positions.
+#
+#  wild_find() produces the sequence of positions in "s" where
+#  substrings begin that match "pattern", but fails if there is no such
+#  position.  Similar to find().
+#
+#  "pattern" can be either a string or a pattern list -- see wild_pat(),
+#  below.
+#
+#  Default values of s, i1, and i2 are the same as for Icon's built-in
+#  string scanning procedures such as match().
+#
+#
+#  wild_pat(s) : L
+#
+#  Creates a pattern element list from pattern string "s".  A pattern
+#  element is needed by wild_match() and wild_find().  wild_match() and
+#  wild_find() will automatically convert a pattern string to a pattern
+#  list, but it is faster to do the conversion explicitly if multiple
+#  operations are done using the same pattern.
+#
+
+procedure wild_match(plist,s,i1,i2) # i3,i4,...,iN
+#
+#  Produce the sequence of positions in s past a string starting at i1
+#  that matches the pattern plist, but fails if there is no such
+#  position.  Similar to match(), but is capable of generating multiple
+#  positions.
+#
+   /i1:= if /s := &subject then &pos else 1 ; /i2 := 0
+   plist := (if type(plist) == "string" then wild_pat else copy)(plist)
+   suspend s[i1:i2] ? (wild_match1(plist) & i1 + &pos - 1)
+end
+
+
+procedure wild_find(plist,s,i1,i2) # i3,i4,...,iN
+#
+#  Produce the sequence of positions in s where strings begin that match
+#  the pattern plist, but fails if there is no such position.  Similar
+#  to find().
+#
+   local p
+   /i1 := if /s := &subject then &pos else 1 ; /i2 := 0
+   if type(plist) == "string" then plist := wild_pat(plist)
+   s[i1:i2] ? suspend (
+	 wild_skip(plist) &
+	 p := &pos &
+	 tab(wild_match(plist))\1 &
+	 i1 + p - 1)
+end
+
+
+procedure wild_pat(s) # L
+#
+#  Produce pattern list representing pattern string s.
+#
+   local c,ch,chars,complement,e,plist,special
+   #
+   #  Create a list of pattern elements.  Pattern strings are parsed
+   #  and converted into list elements as follows:
+   #
+   #	* --> 0			Match any substring (including empty)
+   #	? --> 1			Matches any single character
+   #	[abc] --> 'abc'		Matches single character in 'abc' (more below)
+   #	abc --> "abc"		Matches "abc"
+   #	\			Escapes the following character, causing it
+   #				to be considered part of a string to match
+   #				rather than one of the special pattern
+   #				characters.
+   #
+   plist := []
+   s ? {
+      until pos(0) do {
+	 c := &null
+	 #
+	 #  Put pattern element on list.
+	 #
+	 e := (="*" & 0) | (="?" & 1) | (="\\" & move(1)) |
+	       (="[" & c := (=("]" | "!]" | "!-]" | "") || tab(find("]"))) &
+		     move(1)) |
+	       move(1) || tab(upto('*?[\\') | 0)
+	 #
+	 #  If it's [abc], create a cset.  Special notations:
+	 #
+	 #	   A-Z means all characters from A to Z inclusive.
+	 #	   ! (if first) means any character not among those specified.
+	 #	   - or ] (if first, or after initial !) means itself.
+	 #
+	 \c ? {
+	    complement := ="!" | &null
+	    special := '-]'
+	    e := ''
+	    while ch := tab(any(special)) do {
+	       e ++:= ch
+	       special --:= ch
+	       }
+	    while chars := tab(find("-")) do {
+	       move(1)
+	       e ++:= chars[1:-1] ++
+		     &cset[ord(chars[-1]) + 1:ord(move(1)) + 2]
+	       }
+	    e ++:= tab(0)
+	    if \complement then e := ~e
+	    }
+	 if type(e) == "string" == type(plist[-1]) then plist[-1] ||:= e
+	 else put(plist,e)
+	 }
+      }
+   return plist
+end
+
+
+procedure wild_skip(plist) # s1,s2,...,sN
+#
+#  Used privately -- match a sequence of strings in s past which a match
+#  of the first pattern element in plist is likely to succeed.	This
+#  procedure is used for heuristic performance improvement by
+#  wild_match() for the "*" pattern element by matching only strings
+#  where the next element is likely to succeed, and by wild_find() to
+#  attempt matches only at likely positions.
+#
+   local x,t
+   x := plist[1]
+   suspend tab(
+      case type(x) of {
+	 "string": find(x)
+	 "cset": upto(x)
+	 default: &pos to *&subject + 1
+	 }
+      )
+end
+
+
+procedure wild_match1(plist,v) # s1,s2,...,sN
+#
+#  Used privately by wild_match() to simulate a computed conjunction
+#  expression via recursive suspension.
+#
+   local c
+   if c := pop(plist) then {
+      suspend wild_match1(plist,case c of {
+	 0: wild_skip(plist)
+	 1: move(1)    
+	 default: case type(c) of {
+	       "cset": tab(any(c))
+	       default: =c
+	       } 
+	 })
+      push(plist,c)
+      }
+   else return v
+end

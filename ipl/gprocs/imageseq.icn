@@ -1,0 +1,60 @@
+############################################################################
+#
+#	File:     imageseq.icn
+#
+#	Subject:  Procedure to write sequences of images
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 26, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures provide help for applications that write sequences
+#  of images.
+#
+#  seq_init(opts) initializes the naming parameters from the table opts.
+#  opts["n"] is the name, opts["f"] is the first number, and opts["c"]
+#  is the number of columns for the serial number.
+#
+#  save_image(win, x, y, w, h) write the specified area of win using the
+#  next name in sequence.  There is no check for duplicate names if the
+#  numbering wraps around.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics 
+#
+############################################################################
+
+global prefix__				# hope for no collisions
+global count__
+global width__
+
+procedure seq_init(opts)
+
+   prefix__ := if /opts | /opts["n"] then "image" else opts["n"]
+   count__ := if /opts | /opts["f"] then 0 else opts["f"] - 1
+   width__ := if /opts | /opts["c"] then 3 else opts["c"]
+
+   return
+
+end
+
+procedure save_image(win, x, y, w, h)
+
+   initial seq_init(/prefix__)		# initialize if prefix__ null.
+
+   if type(win) ~== "window" then {
+      win :=: x :=: y :=: w :=: h
+      win := &window
+      }
+
+   return WriteImage(win, prefix__ || right(count__ +:= 1, width__, "0") ||
+      ".gif", x, y, w, h)
+
+end

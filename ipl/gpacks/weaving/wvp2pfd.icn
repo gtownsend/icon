@@ -1,0 +1,136 @@
+############################################################################
+#
+#	File:     wvp2pfd.icn
+#
+#	Subject:  Program to convert seqdraft include files to pfds
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 19, 1999
+#
+############################################################################
+#
+#  This program includes include.wvp from seqdraft and converts them
+#  to patter-form drafts.
+#
+#  IMPORTANT:  This program must be compiled and executed in a directory
+#  containing the file include.wvp for the desired weaving.
+#
+############################################################################
+#
+#  Requires:  large integers
+#
+############################################################################
+#
+#  Links:  expander, weaving, weavutil, lists, options
+#
+############################################################################
+#
+#  Note:   The include file may contain link declarations.
+#
+############################################################################
+
+link expander
+link weaving
+link weavutil
+link lists
+link options
+link weaveseq
+
+$include "include.wvp"
+
+global canvas
+global cmod
+global colors
+global height
+global modulus
+global width
+global threading
+global tieup
+global tieups
+global transcribe
+global treadling
+global warp_colors
+global weft_colors
+global shafts
+global treadles
+
+procedure main()
+
+$ifdef Randomize
+   randomize()
+$endif
+
+$ifndef Pattern_form
+   transcribe := 1
+$endif
+
+#  The weaving-generation process is now done by two procedures, the first to
+#  initialize the edges and the second to actually create the weaving.  This
+#  has been done to allow possible extensions.
+
+   init()
+
+   weave()
+
+end
+
+# Initialize the weaving.
+
+procedure init()
+   local m, n, v
+
+   shafts := Shafts
+   treadles := Treadles
+
+   colors := Colors
+
+   width := Breadth
+   height := Length
+
+   threading := ""
+   every threading ||:= |sconvert(Threading, shafts) \ width
+
+   treadling := ""
+   every treadling ||:= |sconvert(Treadling, treadles) \ height
+
+   warp_colors := ""
+   every warp_colors ||:= |sconvert(WarpColors, *colors) \ width 
+
+   weft_colors := ""
+   every weft_colors ||:= |sconvert(WeftColors, *colors) \ height
+
+   tieup := pat2tier(Tieup).matrix
+
+   return
+
+end
+
+# Create the weaving.
+
+procedure weave()
+   local k, tieup
+
+   tieup := Tieup
+
+   if not upto(';', tieup) then tieup := "8;8;" || tieup	# OLD STYLE
+
+   write(Name)
+   write(threading)
+   write(treadling)
+   write(warp_colors)
+   write(weft_colors)
+   write(Palette)
+   write(Colors)
+   write(Shafts)
+   write(Treadles)
+   write(Tieup)
+   return
+
+end
+
+procedure sconvert(s, n)
+
+   return possym(abs(integer(s) % n) + 1)
+
+end

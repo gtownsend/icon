@@ -1,0 +1,743 @@
+############################################################################
+#
+#	File:     gpxtest.icn
+#
+#	Subject:  Program to test graphics procedures
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 1, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program exercises a wide variety of graphics operations.  Several
+#  independent output tests are run in square cells within a window.  The
+#  resulting image can be compared with a standard image to determine its
+#  correctness.  
+#
+#  The "Dialog" button brings up an interactive dialog box test; the
+#  "Quit" button exits the program.
+#
+#  Some variations among systems are expected in the areas of fonts,
+#  attribute values, and availability of mutable colors.  The first test,
+#  involving window resizing, produces results that do not exactly fit the
+#  grid pattern of the other tests; that is also expected.
+#
+#  This program is designed for a color display, but it also works on
+#  monochrome systems.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: button, dsetup, evmux, graphics
+#
+############################################################################
+
+link button
+link dsetup
+link evmux
+link graphics
+
+
+$define CELL 80				# size of one test "cell"
+$define HALF (CELL / 2)			# half a cell
+$define GAP 10				# gap between cells
+
+$define NWIDE 6				# number of cells across
+$define NHIGH 4 			# number of cells down
+
+$define WIDTH (NWIDE * (CELL + GAP))	# total width
+$define HEIGHT (NHIGH * (CELL + GAP))	# total height
+
+$define ABET "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"
+
+
+global cx, cy				# current cell indices
+
+
+##############################  Overall control  ##############################
+
+
+procedure main(args)
+   local x, y
+
+   # Start with a medium window; shrink, test defaults, grow.
+   Window("size=300,300", "bg=light-weak-reddish-yellow", args)
+   VSetFont()
+
+   # The following sequence *should* have no permanent effect
+   WAttrib("drawop=xor", "fillstyle=masked", "pattern=checkers", "linewidth=5")
+   DrawCircle(CELL / 2, CELL / 2, CELL / 3)
+   EraseArea()
+   WAttrib("drawop=copy", "fillstyle=solid", "linewidth=1")
+
+   # Shrink the window, test defaults, grow to final size.
+   deftest()
+   WAttrib("size=" || WIDTH || "," || HEIGHT)
+   WAttrib("width=" || WIDTH)			# should be no-op
+   WAttrib("size=" || WIDTH || "," || HEIGHT)	# should be no-op
+
+   # Make a simple background.
+   if WAttrib("depth") > 1 then
+      Fg("44000,39000,24000")
+   every y := (3 * CELL / 2) to (2 * HEIGHT) by 7 do
+      DrawLine(0, y, 2 * y, 0)
+   Fg("#000")
+
+   # Run a series of tests confined to small, square cells.
+   cx := cy := 0			# current cell (already filled)
+   cell(simple)
+   cell(lines)
+   cell(rects)
+   cell(star)
+   cell(pretzel)
+   cell(spiral)
+   cell(arcs)
+   cell(copying)
+   cell(rings)
+   cell(fontvars)
+   cell(stdfonts)
+   cell(stdpats)
+   cell(patts)
+   cell(attribs)
+   cell(gamma)
+   cell(balls)
+   cell(slices)
+   cell(details)
+   cell(rainbow)
+   cell(whale)
+   cell(cheshire)
+
+   # Use the final cell area for Dialog and Quit buttons.
+   buttonrow(&window, WIDTH - CELL - GAP/2, HEIGHT - GAP / 2, CELL, 2 * GAP,
+      0, - 3 * GAP, "Quit", argless, exit, "Dialog", argless, dltest)
+   quitsensor(&window)
+   sensor(&window, 'Dd', argless, dltest)
+   evmux(&window)
+end
+
+
+## cell(proc) -- run a test in the next available cell
+#
+#  Proc is called with a private graphics context assigned to &window.
+#  Clipping set to cell boundaries and the origin is at the center.
+
+procedure cell(proc)
+   local x, y, stdwin
+
+   if (cx +:= 1) >= NWIDE then {
+      cx := 0
+      cy +:= 1
+      }
+   x := integer((cx + .5) * (CELL + GAP))
+   y := integer((cy + .5) * (CELL + GAP))
+
+   stdwin := &window
+   &window := Clone("dx=" || x, "dy=" || y, "bg=white")
+   ClearOutline(-HALF - 1, -HALF - 1, CELL + 1, CELL + 1)
+   Clip(-HALF, -HALF, CELL, CELL)
+   proc()
+   Uncouple(&window)
+   &window := stdwin
+end
+
+
+##############################  Cell Tests  ##############################
+
+
+## arcs() -- draw a series of arcs forming a tight spiral
+#
+#  Tests DrawCircle with angle limits.
+
+procedure arcs()
+   local r, a, d
+
+   r := 2
+   a := 0
+   d := &pi / 10
+   while r < HALF do {
+      DrawCircle(0, 0, r, a, d)
+      r +:= 1
+      a +:= d
+      d +:= &pi / 40
+      }
+end
+
+
+## attribs() -- test WAttrib().
+#
+#  For each of several attributes we should be able to inquire the current
+#  setting, set it to that value, and get it back again.  If that works,
+#  display some system-dependent attributes in the cell window.
+
+procedure attribs()
+   local alist, afail, n, a, f, cw, ch, cl, v1, v2
+
+   alist := [
+      "fg", "bg", "reverse", "drawop", "gamma", "font", "leading", 
+      "linewidth", "linestyle", "fillstyle", "pattern",
+      "clipx", "clipy", "clipw", "cliph", "dx", "dy",
+      "label", "pos", "posx", "posy", "size", "height", "width", "canvas",
+      "resize", "echo", "cursor", "x", "y", "row", "col", "pointer",
+      "pointerx", "pointery", "pointerrow", "pointercol", 
+      ]
+   afail := []
+
+   every a := \!alist do {
+      v1 := WAttrib(a)		| { put(afail, a); next }
+      WAttrib(a || "=" || v1)	| { put(afail, a || "=" || v1); next }
+      v2 := WAttrib(a)		| { put(afail, a); next }
+      v1 == v2		| { put(afail, a || ": " || v1 || "/" || v2); next }
+      }
+
+   Translate(-HALF, -HALF)
+   GotoRC(1, 1)
+
+   if *afail > 0 then {
+      Font("sans,bold,10")
+      WWrite("FAILED:")
+      every WWrite("  ", !afail)
+      every write(&errout, "WAttrib() failure: ", !afail)
+      fail
+      }
+
+   f := WAttrib("font") | "[FAILED]"
+   cw := WAttrib("fwidth") | "[FAILED]"
+   ch := WAttrib("fheight") | "[FAILED]"
+   cl := WAttrib("leading") | "[FAILED]"
+   Font("sans,10")
+   WWrite("display=", WAttrib("display") | "[FAILED]")
+   WWrite("  (", WAttrib("displaywidth") | "????", "x", 
+      WAttrib("displayheight") | "????", "x", WAttrib("depth") | "??", ")") 
+   every a := "gamma" | "pointer" do
+      WWrite(a, "=", WAttrib(a) | "[FAILED]")
+   WWrite("vfont=", f)
+   WWrite("  (", cw, "x", ch, ", +", cl, ")")
+end
+
+
+## balls() -- draw a grid of spheres
+#
+#  Tests DrawImage using g16 palette.
+
+procedure balls()
+   every DrawImage(-HALF + 2 to HALF by 20, -HALF + 2 to HALF by 20, 
+      " 16 , g16 , FFFFB98788AEFFFF_
+      FFD865554446AFFF FD856886544339FF E8579BA9643323AF_
+      A569DECA7433215E 7569CDB86433211A 5579AA9643222108_
+      4456776533221007 4444443332210007 4333333222100008_
+      533322221100000A 822222111000003D D41111100000019F_
+      FA200000000018EF FFA4000000028EFF FFFD9532248BFFFF")
+end
+
+
+## cheshire() -- cheshire cat display
+#
+#  Tests mutable colors, WDelay, various drawing operations.
+
+procedure cheshire()
+   local face, eyes, grin, i, g
+
+   if (face := NewColor("white")) & 
+   (eyes := NewColor("black")) & (grin := NewColor("black")) then {
+      Fg("gray")
+      FillRectangle(-HALF, -HALF)
+      Fg(face)
+      FillArc(-HALF, .3 * CELL, CELL, -HALF)
+      FillPolygon(0, 0, -.35 * CELL, -.35 * CELL, -.35 * CELL, 0)
+      FillPolygon(0, 0, .35 * CELL, -.35 * CELL, .35 * CELL, 0)
+      Fg(eyes)
+      WAttrib("linewidth=2")
+      DrawCircle(-.18 * CELL, -.0 * CELL, 3, , , .18 * CELL, -.0 * CELL, 3)
+      Fg(grin)
+      DrawCircle(0, -HALF, .7 * CELL, &pi / 3, &pi / 3)
+      WDelay(500)
+      every i := 0 to 30 by 2 do {
+         WDelay(100)
+         g := i * 65535 / 60
+         Color(eyes, g || "," || g || "," || g)
+         g := 65535 - g
+         Color(face, g || "," || g || "," || g)
+         }
+      every i := 0 to 26 by 2 do {
+         WDelay(100)
+         g := i * 65535 / 60
+         Color(grin, g || "," || g || "," || g)
+         }
+      }
+   else {
+      Translate(-HALF + 4, -HALF)
+      GotoRC(1, 1)
+      WWrite("this test\nrequires\nmutable\ncolors")
+      }
+end
+
+
+## copying() -- test CopyArea
+#
+#  Tests hidden canvas, overlapping copies, and generation
+#  of background color for missing source pixels.
+
+procedure copying()
+   local win, o, w, h
+
+   win := WOpen("canvas=hidden", "size=" || CELL || "," || CELL) | {
+      GotoRC(1, 1)
+      WWrite("Can't get\nhidden\ncanvas")
+      fail
+      }
+   every DrawCircle(win, HALF, HALF, HALF - 2 to sqrt(2) * HALF by 3)
+
+   o := 5		# offset for copy
+   w := CELL / 4	# width of square to be copied
+   h := w / 2		# half of that, for centering
+   Bg(win, "black")
+
+   CopyArea(win, -o, -o, w, w, 0, 0)
+   CopyArea(win, HALF - h, -o, w, w, HALF - h, 0)
+   CopyArea(win, CELL + o, -o, -w, w, CELL - w, 0)
+
+   CopyArea(win, -o, HALF - h, w, w, 0, HALF - h)
+   CopyArea(win, CELL + o, HALF - h, -w, w, CELL - w, HALF - h)
+
+   CopyArea(win, -o, CELL + o, w, -w, 0, CELL - w)
+   CopyArea(win, HALF - h, CELL + o, w, -w, HALF - h, CELL - w)
+   CopyArea(win, CELL + o, CELL + o, -w, -w, CELL - w, CELL - w)
+
+   CopyArea(win, o, o, w, w, HALF - w, HALF - w)
+   CopyArea(win, CELL - o, o, -w, w, HALF, HALF - w)
+   CopyArea(win, o, CELL - o, w, -w, HALF - w, HALF)
+   CopyArea(win, CELL - o, CELL - o, -w, -w, HALF, HALF)
+
+   CopyArea(win, &window, , , , , -HALF, -HALF)
+   close(win)
+end
+
+
+## deftest() -- test defaults
+#
+#  Tests x/y/w/h defaulting by adjusting the window size several times.
+#  Also exercises "drawop=reverse" incidentally.
+#
+#  This test must be run first.  It uses the entire window and leaves
+#  results in the first cell.
+
+procedure deftest()
+   WAttrib("drawop=reverse")
+   WAttrib("size=" || CELL || "," || CELL / 2)
+   FillArc()
+   FillArc(, , CELL / 4)
+   FillArc(3 * CELL / 4)
+   WAttrib("height=" || CELL)
+   DrawArc(, CELL / 2)
+   WAttrib("drawop=copy")
+end
+
+
+## details() -- test drawing details
+#
+#  Tests some of the details of filling and stroking.
+
+procedure details()
+   Shade("light gray")
+   FillRectangle()
+
+   WAttrib("linewidth=7", "fg=white")
+   DrawLine(10, 10, 10, 25, 30, 25, 20, 10)
+   WAttrib("linewidth=1", "fg=black")
+   DrawLine(10, 10, 10, 25, 30, 25, 20, 10)
+
+   Fg("white")
+   DrawRectangle(-5, -5, -25, -30)
+   Fg("black")
+   DrawArc(-5, -5, -25, -30)
+
+   Fg("white")
+   FillArc(5, -5, 24, -30)
+   Fg("black")
+   DrawArc(5, -5, 24, -30)
+
+   Shade("light gray")
+   FillCircle(17, -17, 6)
+   Fg("black")
+   DrawCircle(17, -17, 6)
+
+   Fg("white")
+   FillPolygon(-5,20, -17,23, -20,35, -23,23, -35,20, -23,17, -20,5, -17,17)
+   Fg("black")
+   DrawPolygon(-5,20, -17,23, -20,35, -23,23, -35,20, -23,17, -20,5, -17,17)
+end
+
+
+## fontvars() -- test font variations
+#
+#  Tests various font characteristics combined with standard font names.
+#  Also exercises Shade, GoToXY, WWrites.
+
+procedure fontvars()
+   Translate(-HALF + 4, -HALF)
+   Shade("gray")
+   FillRectangle(-4)
+   Shade("black")
+   GotoXY(0, 0)
+   WWrites("\nFonts...")
+   WWrites("\n", if Font("mono,12") then ABET else "no mono 12")
+   WWrites("\n", if Font("serif,italic") then ABET else "no SF ital")
+   WWrites("\n", if Font("sans,bold,18") then ABET else "no SN B 18")
+   WWrites("\n", if Font("fixed") then ABET else "no fixed!") 
+end
+
+
+## gamma() -- test gamma correction
+#
+#  Draws 50%-gray bars with various values of the gamma attribute, beginning
+#  with the system default.  Incidentally tests some font attributes.
+
+procedure gamma()
+   local g
+
+   GotoXY(0, -HALF + WAttrib("leading") - WAttrib("descent"))
+   every g := &null | 1.0 | 1.5 | 2.2 | 3.3 | 5.0 | 7.5 do {
+      Shade("gray")
+      WAttrib("gamma=" || \g)
+      FillRectangle(-4, WAttrib("y") + WAttrib("descent"),
+         -HALF, -WAttrib("leading"))
+      Shade("black")
+      WWrite(WAttrib("gamma"))
+      }
+end
+
+
+## lines() -- test line drawing
+#
+#  Tests proper drawing and joining of lines of various widths.  There
+#  once were problems here in Icon, and there still are in some X servers.
+
+procedure lines()
+   local i, y
+   y := -HALF - 6
+   every WAttrib("linewidth=" || (0 to 4)) do
+      tline(-HALF + 10, y +:= 15)
+end
+
+procedure tline(x, y)
+   DrawLine(x + 1, y, x + 3, y)
+   DrawLine(x - 1, y, x - 3, y)
+   DrawLine(x, y + 1, x, y + 3)
+   DrawLine(x, y - 1, x, y - 3)
+   x +:= 15
+   DrawLine(x - 3, y - 3, x + 3, y - 3)
+   DrawLine(x + 3, y - 3, x + 3, y + 3)
+   DrawLine(x + 3, y + 3, x - 3, y + 3)
+   DrawLine(x - 3, y + 3, x - 3, y - 3)
+   x +:= 15
+   DrawLine(x - 3, y - 3, x + 3, y + 3)
+   DrawLine(x - 3, y + 3, x + 3, y - 3)
+   x +:= 15
+   DrawLine(x, y - 4, x + 4, y)
+   DrawLine(x + 4, y, x, y + 4)
+   DrawLine(x, y + 4, x - 4, y)
+   DrawLine(x - 4, y, x, y - 4)
+   x +:= 15
+   DrawRectangle(x - 4, y - 4, 8, 8)
+end
+
+
+## patts() -- test custom patterns
+#
+#  Tests custom patterns in hex and decimal forms; tests fillstyle=masked.
+
+procedure patts()
+   local i, j, s, w
+
+   WAttrib("linewidth=4")
+   DrawCircle(0, 0, 0.38 * CELL)	# circle should persist after patts
+   WAttrib("linewidth=1")
+   Translate(-HALF, -HALF)
+   w := (CELL + 2) / 3;
+
+   WAttrib("fillstyle=masked")
+   s := ["8,#01552B552B552BFF", "8,#020E070420E07040",
+      "8,31,14,68,224,241,224,68,14", "8,#2020FF020202FF20", "4,#5A5A",
+      "8,#0ABBA0BE82BAAAEA", "8,#E3773E383E77E383", "8,#4545C71154547C11",
+      "8,#FF7F3F1F0F070301"]
+
+   every i := 0 to 2 do
+      every j := 0 to 2 do {
+         WAttrib("pattern=" || s[3 * i + j + 1])
+         FillRectangle(w * j, w * i, w, w)
+         }
+end
+
+
+## pretzel() -- draw a pretzel
+#
+#  Tests DrawCurve.
+
+procedure pretzel()
+   WAttrib("linewidth=3")
+   DrawCurve(20, -20, -5, 0, 20, 20, 35, 0, 0,
+      -20, -35, 0, -20, 20, 5, 0, -20, -20)
+end
+
+
+## rainbow() -- draw a rainbow
+#
+#  Tests several color naming variations.
+
+procedure rainbow()
+   local r, c, l
+
+   Shade("moderate blue-cyan")
+   FillRectangle()
+   WAttrib("fillstyle=solid")
+   r := 20
+   l := ["pink", "pale orange", "light yellow", "pale green", "pale blue",
+         "light bluish violet", " pale violet"]
+   WAttrib("linewidth=3")
+   every Fg(!l) do
+      DrawCircle(0, 20, r +:= 3, 0, -&pi)
+end
+
+
+## rects() -- draw rectangles
+#
+#  Tests rectangles specified with positive & negative width & height.
+
+procedure rects()
+   local r, a
+
+   WAttrib("drawop=reverse")
+   r := HALF
+   every a := 1 to 19 by 2 do
+      DrawRectangle(0, 0, r * cos(0.33 * a), r * sin(0.33 * a))
+end 
+
+
+## rings() -- draw a pile of rings
+#
+#  Tests linewidth and DrawCircle in combination.
+
+procedure rings()
+   local x, y
+   Translate(-HALF, -HALF)
+   FillRectangle()
+   every 1 to 15 do {
+      x := ?CELL
+      y := ?CELL
+      WAttrib("fg=black", "linewidth=5")
+      DrawCircle(x, y, 30)		# draw ring in black
+      WAttrib("fg=white", "linewidth=3")
+      DrawCircle(x, y, 30)		# color with white band
+      }
+end
+
+
+## simple() -- an easy first test
+#
+#  Tests DrawString, DrawCircle, FillRectangle, EraseArea, linestyles.
+
+procedure simple()
+   DrawCircle(0, 0, CELL / 3)
+   DrawString(-HALF + 4, -HALF + 12, "hello,")
+   DrawString(-HALF + 4, -HALF + 25, "world")
+   FillRectangle(0, 0)
+   EraseArea(10, 4, CELL / 5, CELL / 3)
+   WAttrib("linestyle=dashed")
+   DrawLine(HALF - 3, HALF, HALF - 3, -HALF)
+   WAttrib("linestyle=striped")
+   DrawLine(HALF - 6, HALF, HALF - 6, -HALF)
+end
+
+
+## slices() -- draw a pie with different-colored slices
+#
+#  Tests RandomColor, Shade, FillArc.
+
+procedure slices()
+   local n, a, da, ov
+
+   n := 10
+   da := 2 * &pi / n			# change in angle
+   a := -&pi / 2 - da			# current angle
+   ov := &pi / 1000			# small overlap
+
+   FillRectangle(-HALF, -HALF)
+   every 1 to n do {
+      Shade(RandomColor())
+      FillArc(-HALF, -CELL / 3, CELL, 2 * CELL / 3, a +:= da, da + ov)
+      }
+end
+
+
+## spiral() -- draw a spiral, one point at a time
+#
+#  Tests DrawPoint.
+
+procedure spiral()
+   local r, a, d
+
+   r := 3			# initial radius
+   a := 0			# initial start angle
+   while r < HALF do {
+      DrawPoint(r * cos(a), r * sin(a))
+      d := 1.0 / r
+      a +:= d
+      r +:= 2 * d
+      }
+end
+
+
+## star() -- draw a five-pointed star.
+#
+#  Tests FillPolygon and the even-odd winding rule.
+
+procedure star()
+   FillPolygon(-40, -10, 40, -10, -25, 40, 0, -40, 25, 40)
+end
+
+
+
+## stdfonts() -- test standard fonts
+#
+#  Shows the default font (the header line), standard fonts, and "fixed".
+
+procedure stdfonts()
+   Translate(-HALF + 4, -HALF)
+   Shade("gray")
+   FillRectangle(-4)
+   Shade("black")
+   GotoRC(1, 1)
+   WWrite(if Font("mono") then "mono" else "no mono!") 
+   WWrite(if Font("typewriter") then "typewriter" else "no typewriter!") 
+   WWrite(if Font("sans") then "sans" else "no sans!") 
+   WWrite(if Font("serif") then "serif" else "no serif!") 
+   WWrite(if Font("fixed") then "fixed" else "no fixed!") 
+end
+
+
+## stdpats() -- test standard patterns
+#
+#  Tests standard pattern names; tests fillstyle=textured.
+
+procedure stdpats()
+   local i, j, s, x, y
+
+   WAttrib("fillstyle=textured")
+   s := [
+      "black", "verydark", "darkgray", "gray", "lightgray", "verylight",
+      "white", "vertical", "diagonal", "horizontal", "grid", "trellis",
+      "checkers", "grains", "scales", "waves"]
+   every i := 0 to 3 do
+      every j := 0 to 3 do {
+         WAttrib("pattern=" || s[4 * i + j + 1])
+         x := -HALF + j * CELL / 4
+         y := -HALF + i * CELL / 4
+         FillRectangle(x, y)	# depends on opacity of patterns to work
+         }
+end
+
+
+## whale() -- draw a whale
+#
+#  Tests transparent and regular images, Capture, Zoom.
+
+procedure whale()
+   local s
+
+   Fg("moderate greenish cyan")
+   FillRectangle()
+   Translate(-HALF, -HALF)
+
+   DrawImage(3, 3, "32, c1, _
+      ~~~~~~~~~~~~000~~~~~~00~~~~~~~00_
+      ~~~~~~~~~~~0JJJ00~~~~0J00~~~00J0_
+      ~~~~~~~000000JJJJ0~~~0J0J000J0J0_
+      ~~~~~000iiiii000JJ0~~0JJJ0J0JJi0_
+      ~~~~06660ii000ii00J0~~00JJJJJ00~_
+      ~~~066000i06600iii00~~~~0iii0~~~_
+      ~~0066000i06000iiii0~~~~~0i0~~~~_
+      ~~0i0000iii000iiiiii0~~~~0i0~~~~_
+      ~0iiiiiiiiiiiiiiiiiii0~~0ii0~~~~_
+      ~00000iii0000iiiiiiiii00iiii0~~~_
+      0AAAAA000AAAA00iiiiiiiiiiiii0~~~_
+      0AAAAAAAAAAAAAA0iiiiiiiiiiii0~~~_
+      ~0000AAAAA0000AA0iiiiiiiiiiii0~~_
+      ~06060000060600AA0iiiiiiiiiii0~~_
+      ~060606060606000A0iiiii00iiii0~~_
+      ~~0~006060000000AA0iiiiiJ0iii0~~_
+      ~~~~~~00000000000A0iiii0JJ0ii0~~_
+      ~~~~~~00000000000A0iiiiJ0J0ii0~~_
+      ~~~0~~00000000000A0iii0JJ00i0~~~_
+      ~~060000000000000A0i0JJ0JJ0i0~~~_
+      ~~06060600000600AA0ii0JJ00ii0~~~_
+      ~00006060606060AA0iiii000ii0~~~~_
+      0AAA0000060600AAA0iiiiiiiii0~~~~_
+      0AAAAAAAA000AAAA0iiiiiiiiii0~~~~_
+      ~000AAAAAAAAAAA0iiiiiiiiii0~~~~~_
+      ~~0i0000AAAAA00iiiiiiiiiii0~~~~~_
+      ~~0iiiii00000iiiiiiiiiiii0~~~~~~_
+      ~~~0iiiiiiiiiiiiiiiiiiii0~~~~~~~_
+      ~~~~0iiiiiiiiiiiiiiiii00~~~~~~~~_
+      ~~~~~00iiiiiiiiiiiii00~~~~~~~~~~_
+      ~~~~~~~000iiiiiii000~~~~~~~~~~~~_
+      ~~~~~~~~~~0000000~~~~~~~~~~~~~~~")
+
+   s := Capture(, 0, 0, 36, 36)
+   DrawImage(0, 40, s)
+
+   Zoom(0, 0, 36, 36, 40, 20, 72, 72)
+end
+
+
+##############################  Dialog test  ##############################
+
+
+## dltest() -- dialog test
+#
+#  Present a dialog box with "Validate" and "Cancel" buttons.
+#  For "Validate", check all values, and repeat dialog if incorrect.
+#  For "Cancel", return immediately.
+
+procedure dltest()
+   while dlog() ~== "Cancel" do {
+      if dialog_value["button"] ~=== 1 then
+         { Notice("The button was not left dark."); next }
+      if dialog_value["xbox"] ~=== 1 then
+         { Notice("The checkbox was not checked."); next }
+      if dialog_value["slider"] < 0.8 then
+         { Notice("The slider was not set."); next }
+      if map(dialog_value["text"]) ~== "icon" then
+         { Notice("The text did not say `Icon'"); next }
+      Notice("All values were correct.")
+      return
+      }
+end
+
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure dlog(win, deftbl)
+static dstate
+initial dstate := dsetup(win,
+   ["dlog:Sizer::1:0,0,370,220:",],
+   ["button:Button:regular:1:291,21,56,21:button",],
+   ["cancel:Button:regular::198,174,100,30:Cancel",],
+   ["label1:Label:::20,25,252,13:Click this button and leave it dark:",],
+   ["label2:Label:::20,55,105,13:Check this box:",],
+   ["label3:Label:::20,85,238,13:Move this slider to the far right:",],
+   ["rule:Line:::20,157,350,157:",],
+   ["slider:Slider:h::273,86,76,15:0.0,1.0,0.5",],
+   ["text:Text::6:20,115,214,17:Enter the word `Icon': \\=here",],
+   ["validate:Button:regular:-1:75,174,100,30:Validate",],
+   ["xbox:Button:xbox:1:131,54,16,16:",],
+   )
+return dpopup(win, deftbl, dstate)
+end
+#===<<vib:end>>===	end of section maintained by vib

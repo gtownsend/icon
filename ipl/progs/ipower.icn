@@ -1,0 +1,52 @@
+############################################################################
+#
+#	File:     ipower.icn
+#
+#	Subject:  Program to write sequence of powers
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 29, 1996
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program generates integers in sequence.
+#
+#  The following options are supported:
+#
+#	-v i	value to be raise to power; default 2
+#	-b i	beginning power; default 1
+#	-e i	ending power; default no end
+#	-i i	increment; default 1
+#	-l i	limit on number of powers generated; default no limit
+#
+#  Large integer values are not supported.
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local opts, limit, start, stop, incr, i, base
+
+   opts := options(args, "v+b+e+i+l+")
+
+   limit := \opts["l"] | (2 ^ 32)		# good enough
+   base := \opts["v"] | 2
+   start := \opts["b"] | 1
+   stop := \opts["e"] | (2 ^ 64)		# sort of good enough
+   incr := \opts["i"] | 1
+
+   every i := seq(start, incr) \ limit do
+      if i > stop then exit()
+      else write(base ^ i)
+
+end

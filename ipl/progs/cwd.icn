@@ -1,0 +1,41 @@
+############################################################################
+#
+#	File:     cwd.icn
+#
+#	Subject:  Program to write current working directory
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 10, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program write the current working directory, shorn of it's
+#  path specification.
+#
+#  For appropriately named directories, it can be used as, for example,
+#
+#	ftp `cwd`
+#
+############################################################################
+#
+#  Requires:  UNIX
+#
+############################################################################
+
+procedure main()
+   local i
+
+   read(open("pwd", "p")) ? {
+      i := 0				# for safety
+      every i := upto('/')		# expect full path
+      tab(i + 1)
+      write(tab(0))
+      }
+
+end
+      

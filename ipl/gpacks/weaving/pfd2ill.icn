@@ -1,0 +1,330 @@
+############################################################################
+#
+#	File:     pfd2ill.icn
+#
+#	Subject:  Program to create weaving drafts
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 19, 1999
+#
+############################################################################
+#
+#  This program creates Encapsulated PostScript for pattern-form drafts
+#
+#  The following options are supported:
+#
+#	-g	draw grid lines on drawdown
+#	-h	hold windows open in visible (-v) mode
+#	-i	write image files
+#       -p	add showpage for printing
+#	-s i	cell size, default 6
+#	-v	show images during creation; default, don't
+#
+#
+#  Other options to be added include the control of layout and orientation.
+#
+#  Names of pattern-form drafts are taken from the command line.  For each,
+#  four Encapsulated PostScript files are created:
+#
+#	<base name>_tieup.eps (if given)
+#	<base name>_liftplan.eps (if given)
+#	<base name>_threading.eps
+#	<base name>_treadling.eps
+#	<base name>_drawdown.eps
+#	<base name>_pattern.eps (colored "drawdown")
+#
+#  Future plans call for handling "shaftplans" specifying what diagrams
+#  are wanted.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  basename, interact, options, psrecord, weavutil
+#
+############################################################################
+
+link basename
+link interact
+link options
+link psrecord
+link weaving
+link weavutil
+link ximage
+
+global canvas
+global cellsize
+global gridlines
+global hold
+global images
+global name
+global printing
+global weaving			# current weaving draft
+
+$define CellSize 6
+
+procedure main(args)
+   local opts, input, file
+
+   opts := options(args, "ghips+v")
+
+   if /opts["p"] then printing := 1
+   images := opts["i"]
+   if \opts["v"] then {
+       canvas := "canvas=normal"
+       hold := opts["h"]		# only if images are visible
+       }
+   else canvas := "canvas=hidden"
+
+   gridlines := opts["g"]
+
+   cellsize := \opts["s"] | CellSize
+
+   while file := get(args) do {
+      input := open(file) | {
+         Notice("Cannot open " || file)
+         next
+         }
+   name := basename(file, ".pfd")
+   weaving := expandpfd(readpfd(input))
+   weaving.tieup := pat2tier(weaving.tieup)
+   weaving.liftplan := pat2tier(\weaving.liftplan)
+   draw_panes()
+   close(input)
+   }
+
+end
+
+procedure clear_pane(win, n, m, size)
+   local x, y, width, height, save_fg
+
+   width := n * size + 1
+   height := m * size + 1
+
+   save_fg := Fg(win)
+
+   Fg(win, "black")
+
+   every x := 0 to width by size do
+      DrawLine(win, x, 0, x, height)
+
+   every y := 0 to height by size do
+      DrawLine(win, 0, y, width, y)
+
+   Fg(win, save_fg)
+
+   return
+
+end
+
+procedure draw_panes()
+   local i, j, x, y, treadle, k, treadle_list, c, color
+   local tieup_win, threading_win, treadling_win, liftplan_win
+   local drawdown_win, pattern_win
+
+   if \weaving.tieup then {
+
+      tieup_win := WOpen(canvas, "width=" || (cellsize * weaving.treadles),
+         "height=" || (cellsize * weaving.shafts))
+
+      PSStart(tieup_win, name || "_tieup.eps")
+
+      clear_pane(tieup_win, weaving.treadles, weaving.shafts, cellsize)
+
+      every i := 1 to weaving.shafts do
+         every j := 1 to weaving.treadles do {
+            if weaving.tieup.matrix[j, i] == "1" then 
+               fillcell(tieup_win, j, i, "black") 
+            }
+
+      PSDone(printing)
+
+      if \images then WriteImage(tieup_win, name || "_tieup.gif")
+
+      }
+
+   if \weaving.liftplan then {
+
+      liftplan_win := WOpen(canvas, "width=" || (cellsize * weaving.shafts),
+         "height=" || (cellsize * *weaving.treadling))
+
+      PSStart(liftplan_win, name || "_liftplan.eps")
+
+      clear_pane(liftplan_win, weaving.shafts, *weaving.treadling, cellsize)
+
+      every i := 1 to *weaving.treadling do
+         every j := 1 to weaving.treadles do {
+            if weaving.liftplan.matrix[i, j] == "1" then 
+               fillcell(liftplan_win, j, i, "black") 
+            }
+
+      PSDone(printing)
+
+      if \images then WriteImage(liftplan_win, name || "_liftplan.gif")
+
+      }
+
+   threading_win := WOpen(canvas, "width=" || (cellsize * *weaving.threading),
+      "height=" || (cellsize * (weaving.shafts)))
+
+   PSStart(threading_win, name || "_threading.eps")
+
+   clear_pane(threading_win, *weaving.threading, weaving.shafts + 1, cellsize)
+
+   every i := 1 to *weaving.threading do
+      fillcell(threading_win, i, weaving.threading[i] + 1, "black")
+
+   PSDone(printing)
+
+   every i := 1 to *weaving.threading do
+      fillcell(threading_win, i, 1, PaletteColor(weaving.palette,
+         weaving.colors[sympos(weaving.warp_colors[i])]))
+
+   if \images then WriteImage(threading_win, name || "_threading.gif")
+
+   treadling_win := WOpen(canvas, "height=" || (cellsize * *weaving.treadling),
+      "width=" || (cellsize * (weaving.treadles)))
+
+   PSStart(treadling_win, name || "_treadling.eps")
+
+   clear_pane(treadling_win, weaving.treadles + 1, *weaving.treadling, cellsize)
+   every i := 1 to *weaving.treadling do
+      fillcell(treadling_win, weaving.treadling[i] + 1, i, "black")
+
+   PSDone(printing)
+
+   every i := 1 to *weaving.treadling do
+      fillcell(treadling_win, 1, i, PaletteColor(weaving.palette,
+            weaving.colors[sympos(weaving.warp_colors[i])]))
+
+   if \images then WriteImage(treadling_win, name || "_treadling.gif")
+
+   pattern_win := WOpen(canvas, "width=" || (cellsize * *weaving.threading),
+      "height=" || (cellsize * *weaving.treadling))
+
+   PSStart(pattern_win, name || "_pattern.eps")
+
+   clear_pane(pattern_win, weaving.shafts, weaving.treadles, cellsize)
+
+   if *cset(weaving.warp_colors) = 1 then {		# warp solid black
+      Fg(pattern_win, PaletteColor(weaving.palette,
+         weaving.colors[sympos(weaving.warp_colors[1])]))
+      FillRectangle(pattern_win, 0, 0, *weaving.threading * cellsize,
+         *weaving.treadling * cellsize)
+      }
+   else {
+      every i := 0 to *weaving.threading - 1 do {	# warp striped
+         Fg(pattern_win, PaletteColor(weaving.palette,
+            weaving.colors[sympos(weaving.warp_colors[i + 1])]))
+         FillRectangle(pattern_win, i * cellsize, 0, cellsize - 1,
+            *weaving.treadling * cellsize)
+         }
+      }
+
+   Fg(pattern_win, "black")
+
+   treadle_list := list(weaving.treadles)
+   every !treadle_list := []
+
+   every i := 1 to weaving.treadles do
+      every j := 1 to weaving.shafts do
+         if weaving.tieup.matrix[i, j] == "1" then
+            every k := 1 to *weaving.threading do
+               if sympos(weaving.threading[k]) == j then
+                  put(treadle_list[i], k, 0)
+
+   every y := 1 to *weaving.treadling do {
+      treadle := sympos(weaving.treadling[y])
+         
+      color := PaletteColor(weaving.palette, 
+        weaving.colors[sympos(weaving.weft_colors[y])])
+      if *treadle_list[treadle] = 0 then next	# blank pick
+      every i := 1 to *treadle_list[treadle] by 2 do
+         fillcell(pattern_win, treadle_list[treadle][i], y, color)
+      }
+
+   Fg(pattern_win, "black")
+
+   if \gridlines then {
+      every x := 0 to WAttrib(pattern_win, "width") by cellsize do
+         DrawLine(pattern_win, x, 0, x, WAttrib(pattern_win, "height"))
+      every y := 0 to WAttrib(pattern_win, "height") by cellsize do
+         DrawLine(pattern_win, 0, y, WAttrib(pattern_win, "width"), y)
+      }
+
+   PSDone(printing)
+
+   if \images then WriteImage(pattern_win, name || "_pattern.gif")
+
+   drawdown_win := WOpen(canvas, "width=" || (cellsize * *weaving.threading),
+      "height=" || (cellsize * *weaving.treadling))
+
+   PSStart(drawdown_win, name || "_drawdown.eps")
+
+   clear_pane(drawdown_win, weaving.shafts, weaving.treadles, cellsize)
+
+   Fg(drawdown_win, "black")
+
+   FillRectangle(drawdown_win, 0, 0, *weaving.threading * cellsize,
+      *weaving.treadling * cellsize)
+
+   treadle_list := list(weaving.treadles)
+   every !treadle_list := []
+
+   every i := 1 to weaving.treadles do
+      every j := 1 to weaving.shafts do
+         if weaving.tieup.matrix[i, j] == "1" then
+            every k := 1 to *weaving.threading do
+               if sympos(weaving.threading[k]) == j then
+                  put(treadle_list[i], k, 0)
+
+   every y := 1 to *weaving.treadling do {
+      treadle := sympos(weaving.treadling[y])
+      if *treadle_list[treadle] = 0 then next	# blank pick
+      every i := 1 to *treadle_list[treadle] by 2 do
+         fillcell(drawdown_win, treadle_list[treadle][i], y, "white")
+      }
+
+   Fg(drawdown_win, "black")
+
+   if \gridlines then {
+      every x := 0 to WAttrib(drawdown_win, "width") by cellsize do
+         DrawLine(drawdown_win, x, 0, x, WAttrib(drawdown_win, "height"))
+      every y := 0 to WAttrib(drawdown_win, "height") by cellsize do
+         DrawLine(drawdown_win, 0, y, WAttrib(drawdown_win, "width"), y)
+      }
+
+   PSDone(printing)
+
+   if \images then WriteImage(drawdown_win, name || "_drawdown.gif")
+
+   if \hold then {
+      repeat {
+         if Event(Active()) === "q" then break
+         }
+      }
+
+   every WClose(tieup_win | \liftplan_win | threading_win | treadling_win |
+      pattern_win, drawdown_win)
+
+   return
+
+end
+
+procedure fillcell(win, n, m, color)
+   local  save_fg
+
+   save_fg := Fg(win)
+   Fg(win, color)
+
+   FillRectangle(win, (n - 1) * cellsize, (m - 1) * cellsize, cellsize,
+      cellsize)
+
+   Fg(win, save_fg)
+
+   return
+
+end

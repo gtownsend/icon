@@ -1,0 +1,265 @@
+############################################################################
+#
+#	File:     gettext.icn
+#
+#	Subject:  Procedures for gettext (simple text-base routines)
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     October 20, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  History:
+#       Version 1.19: December 28, 1993 (plt)
+#            Tested with DOS, DOS-386, OS/2, ProIcon, UNIX
+#            Modified link and OS statements.
+#            Open index file in untranslated mode for
+#              MS-DOS and OS/2 -- ignored by UNIX and Amiga
+#            Handle multiple, indexed citations.
+#            Change delimiter from <TAB> to char(255).
+#            Simplified binary search. 
+#        Version 1.20: August 5, 1995 (plt)
+#            Replace link statement with preprocessor include.
+#            Retrieve text for multiple keys on the same line.
+#            Correct debug printout of indexed and sequential
+#              search values.
+#
+############################################################################
+#
+#  Version:  1.19   December 28, 1993 - Phillip Lee Thomas
+#  Version:  1.20   August 5, 1995    - plt
+#
+############################################################################
+#
+#  Gettext() and associated routines allow the user to maintain a file
+#  of KEY/value combinations such that a call to gettext(KEY, FNAME)
+#  will produce value.  Gettext() fails if no such KEY exists.
+#  Returns an empty string if the key exists, but has no associated
+#  value in the file, FNAME.
+#
+#  The file format is simple.  Keys belong on separate lines, marked
+#  as such by an initial colon+colon (::).  Values begin on the line
+#  following their respective keys, and extend up to the next
+#  colon+colon-initial line or EOF.  E.g.
+#
+#    ::sample.1
+# or:
+#    ::sample.1  ::sample.2
+#
+#    Notice how the key above, sample.1, has :: prepended to mark it
+#    out as a key.  The text you are now reading represents that key's
+#    value.  To retrieve this text, you would call gettext() with the
+#    name of the key passed as its first argument, and the name of the
+#    file in which this text is stored as its second argument (as in
+#    gettext("sample.1","tmp.idx")).
+#    ::next.key
+#    etc...
+#
+#  For faster access, an indexing utility is included, idxtext.  Idxtext
+#  creates a separate index for a given text-base file.  If an index file
+#  exists in the same directory as FNAME, gettext() will make use of it.
+#  The index becomes worthwhile (at least on my system) after the text-
+#  base file becomes longer than 5 kilobytes.
+#
+#  Donts:
+#      1) Don't nest gettext text-base files.
+#      2) In searches, surround phrases with spaces or tabs in
+#        key names with quotation marks:   "an example"
+#      3) Don't modify indexed files in any way other than to append
+#         additional keys/values (unless you want to re-index).
+#
+#  This program is intended for situations where keys tend to have
+#  very large values, and use of an Icon table structure would be
+#  unwieldy.
+#
+#  BUGS:  Gettext() relies on the Icon runtime system and the OS to
+#  make sure the last text/index file it opens gets closed.
+#
+############################################################################
+#
+#  Links:  adjuncts
+#
+############################################################################
+#
+#         Invoke set_OS() before first call to gettext() or
+#           sequential_search()
+#
+#  Tested with UNIX, OS/2, DOS, DOS-386, ProIcon
+#
+############################################################################
+
+link adjuncts
+
+# declared in adjuncts.icn
+# global _slash, _baselen, _delimiter
+
+procedure gettext(KEY,FNAME)      #: search database by indexed term
+
+   local line, value
+   static last_FNAME, intext, inidx, off_set, off_sets
+
+   (/KEY | /FNAME) & stop("error (gettext):  null argument")
+
+   if FNAME == \last_FNAME then {
+      seek(intext, 1)
+      seek(\inidx, 1)
+      }
+   else {
+      # We've got a new text-base file.  Close the old one.
+      every close(\intext | \inidx)
+      # Try to open named text-base file.
+      intext := open(FNAME) | stop("gettext: file \"",FNAME,"\" not found")
+      # Try to open index file.
+      inidx := open(Pathname(FNAME) || getidxname(FNAME),"ru") | &null
+      }
+   last_FNAME := FNAME
+
+   # Find offsets, if any, for key KEY in index file.
+   # Then seek to the end and do a sequential search
+   # for any key/value entries that have been added
+   # since the last time idxtext was run.
+
+   if off_sets := get_offsets(KEY, inidx) then {
+      off_sets ?  {
+         while off_set := (move(1),tab(many(&digits))) do {
+            seek(intext, off_set)
+
+         # Find key.  Should be right there, unless the user has appended
+         # key/value pairs to the end without re-indexing, or else has not
+         # bothered to index in the first place.  In this case we're
+         # supposed to start a sequential search for KEY upto EOF.
+
+            while line := (read(intext) | fail) do {
+               line ? {
+                   if (="::",KEY)
+                     then break
+                  }
+               }
+
+         # Collect all text upto the next colon+colon line (::)
+         # or EOF.
+            value := ""
+            while line := read(intext) do {
+               find("::",line) & break
+               value ||:= line || "\n"
+               }
+
+         # Note that a key with an empty value returns an empty string.
+            suspend trim(value, '\n') || " (" || off_set || "-i)"
+            }
+         }
+      }
+
+   # Find additional values appended to file since last indexing.
+
+   seek(intext, \firstline - _OS_offset)
+   while value := sequential_search(KEY, intext) do
+      suspend trim(value,'\n') #|| " (" || off_set || "-s)"
+end
+
+procedure get_offsets(KEY, inidx)       #: binary search of index
+   local incr, bottom, top, loc, firstpart, offset, line
+
+   # Use these to store values likely to be reused.
+   static old_inidx, SOF, EOF
+
+   # If there's no index file, then fail.
+   if /inidx then
+      fail
+
+   # First line contains offset of last indexed byte in the main
+   # text file.  We need this later.  Save it.  Start the binary
+   # search routine at the next byte after this line.
+
+   seek(inidx, 1)
+   if not (inidx === \old_inidx) then {
+
+      # Get first line.
+      firstline := !inidx
+
+      # Set "bottom."
+      SOF := 1
+
+      # How big is this file?
+      seek(inidx, 0)
+      EOF := where(inidx)
+
+      old_inidx := inidx
+      }
+
+   # SOF, EOF constant for a given inidx file.
+   bottom := SOF ; top := EOF
+
+
+   # If bottom gets bigger than top, there's no such key.
+   until bottom >= top do {
+
+      loc := (top+bottom) / 2
+      seek(inidx, loc)
+
+      # Move past next newline.  If at EOF, break.
+
+      read(inidx)
+      if (where(inidx) > EOF) | (loc = bottom) | (loc = top) then {
+         break
+         }
+
+      # Check to see if the current line contains KEY.
+      if line := read(inidx) then {
+         line ? {
+
+            # .IDX file line format is KEY<delimiter>offset
+            firstpart := tab(upto(_delimiter))
+         
+            if KEY ==  firstpart then {
+               # return offset and addresses for any added material
+               return tab(1 - _OS_offset)
+               }
+
+         # Ah, this is what all binary searches do.
+         else {
+            if KEY >> firstpart
+            then bottom := loc
+            else top    := loc
+            }
+         }
+      }
+   else top := loc      # Too far, move back
+   }
+end
+
+# Perform sequential search of intext for all instances of KEY.
+
+procedure sequential_search(KEY, intext)  #: brute-force database search
+
+   local line, value, off_set
+   
+   # Collect all text upto the next colon+colon line (::)
+   # or EOF.
+
+   off_set := where(intext)
+   while (line := read(intext)) | fail do {
+      line  ? {
+         if =("::" || KEY) & (match(" " | "\t") | pos(0))
+         then break
+         else off_set := where(intext)
+         }
+      }
+   value := ""
+   while line := read(intext) do {
+      find("::", line) & break
+      value ||:= line || "\n"
+      }
+
+   # Debug information for sequential searching:
+   value := value[1:-1] || " (" || off_set || "-s)\n"
+
+   # Back up to allow for consecutive instances of KEY.
+   seek(intext, where(intext) - *line - 2)
+   suspend trim(value || "\n")
+end

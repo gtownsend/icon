@@ -1,0 +1,275 @@
+############################################################################
+#
+#	File:     subturtl.icn
+#
+#	Subject:  Procedures for turtle-graphics (subset version)
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     January 30, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures implement a simplified subset of the turtle.icn
+#  package.  The main omissions are scaling, TWindow(), THome(), and
+#  high-level primitives like TCircle().  Some procedures accept fewer
+#  arguments, omit defaults, or omit the return value.
+#
+############################################################################
+#
+#  The procedures are as follows:
+#
+#  TDraw(n) -- move forward and draw
+#  TSkip(n) -- skip forward without drawing
+#	The turtle moves forward n units.  n can be negative to move
+#	backwards.
+#
+#  TDrawto(x, y) -- draw to the point (x,y)
+#	The turtle turns and draws a line to the point (x,y).
+#	The heading is also set as a consequence of this movement.
+#
+#  TGoto(x, y) -- set location
+#	The turtle moves to the point (x,y) without drawing.
+#	The turtle's heading remains unaltered.
+#
+#  TRight(d) -- turn right
+#  TLeft(d) -- turn left
+#	The turtle turns d degrees to the right or left of its current
+#	heading.  Its location does not change, and nothing is drawn.
+#
+#  TFace(x, y) -- set heading
+#	The turtle turns to face directly to face the point (x,y).
+#	If the turtle is already at (x,y), the heading does not change.
+#
+#  TX() -- query current x position
+#  TY() -- query current y position
+#	The x- or y-coordinate of the turtle's current location is
+#	returned.
+#
+#  THeading() -- query heading
+#	The turtle's heading (in degrees) is returned.
+#
+#  TSave() -- save turtle state
+#  TRestore() -- restore turtle state
+#	TSave saves the current turtle window, location, and heading
+#	on an internal stack.  TRestore pops the stack and sets
+#	those values, or fails if the stack is empty.
+#
+#  TReset() -- clear screen and reinitialize
+#	The window is cleared, the turtle moves to the center of the
+#	screen without drawing, the heading is set to -90 degrees, and
+#	the TRestore() stack is	cleared.  These actions restore the
+#	initial conditions.
+#
+############################################################################
+#
+#  Links:  graphics
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  See also:  turtle.icn
+#
+############################################################################
+
+link graphics
+
+global T_x, T_y			# current location
+global T_deg			# current heading
+global T_stack			# turtle state stack
+
+
+#  TInit() -- initialize turtle system, opening window if needed
+
+procedure TInit()			#: initialize turtle system
+
+   initial {
+      if /&window then
+         WOpen("width=500", "height=500") | stop("can't open window")
+      T_stack := []
+      T_x := WAttrib("width") / 2 + 0.5
+      T_y := WAttrib("height") / 2 + 0.5
+      T_deg := -90.0
+   }
+
+   return
+
+end
+
+
+#  TReset() -- clear screen and stack, go to center, head -90 degrees
+
+procedure TReset()			#: reset turtle system
+   initial TInit()
+
+   EraseArea()
+   T_stack := []
+   T_x := WAttrib("width") / 2 + 0.5
+   T_y := WAttrib("height") / 2 + 0.5
+   T_deg := -90.0
+
+   return
+
+end
+
+
+#  TDraw(n) -- move forward n units while drawing a line
+
+procedure TDraw(n)			#: draw with turtle
+   local rad, x, y
+   initial TInit()
+
+   rad := dtor(T_deg)
+   x := T_x + n * cos(rad)
+   y := T_y + n * sin(rad)
+   DrawLine(T_x, T_y, x, y)
+   T_x := x
+   T_y := y
+
+   return
+
+end
+
+
+#  TDrawto(x, y) -- draw line to (x,y)
+
+procedure TDrawto(x, y)			#: draw to with turtle
+   initial TInit()
+
+   TFace(x, y)
+   DrawLine(T_x, T_y, x, y)
+   T_x := x
+   T_y := y
+
+   return
+
+end
+
+
+#  TSkip(n) -- move forward n units without drawing
+
+procedure TSkip(n)			#: skip with turtle
+   local rad
+   initial TInit()
+
+   rad := dtor(T_deg)
+   T_x +:= n * cos(rad)
+   T_y +:= n * sin(rad)
+
+   return
+
+end
+
+
+#  TGoto(x, y) -- move to (x,y) without drawing
+
+procedure TGoto(x, y)			#: goto with turtle
+   initial TInit()
+   T_x := x
+   T_y := y
+
+   return
+
+end
+
+
+#  TRight(d) -- turn right d degrees
+
+procedure TRight(d)			#: turn turtle right
+   initial TInit()
+
+   T_deg +:= d
+   T_deg %:= 360		# normalize
+
+   return
+
+end
+
+
+#  TLeft(d) -- turn left d degrees
+
+procedure TLeft(d)			#: turn turtle left
+   initial TInit()
+
+   T_deg -:= d
+   T_deg %:= 360		# normalize
+
+   return
+
+end
+
+
+#  TFace(x, y) -- turn to face (x,y), unless already there
+
+procedure TFace(x, y)			#: turn turtle to face point
+   initial TInit()
+
+   if x ~= T_x | y ~= T_y then
+      T_deg := rtod(atan(y - T_y, x - T_x))
+
+   return
+
+end
+
+
+#  TX() -- return current x location
+
+procedure TX(x)				#: turtle x coordinate
+   initial TInit()
+
+   return T_x
+
+end
+
+
+#  TY() -- return current y location
+
+procedure TY(y)				#: turtle y coordinate
+   initial TInit()
+
+   return T_y
+
+end
+
+
+#  THeading() -- return current heading
+
+procedure THeading()			#: turtle heading
+   initial TInit()
+
+   return T_deg
+
+end
+
+
+#  TSave() -- save turtle state
+
+procedure TSave()			#: save turtle state
+   initial TInit()
+
+   push(T_stack, T_deg, T_y, T_x)
+
+   return
+
+end
+
+
+#  TRestore() -- restore turtle state
+
+procedure TRestore()			#: restore turtle state
+   initial TInit()
+
+   T_x := pop(T_stack)
+   T_y := pop(T_stack)
+   T_deg := pop(T_stack)
+
+   return
+
+end

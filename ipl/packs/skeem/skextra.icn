@@ -1,0 +1,177 @@
+############################################################################
+#
+#	Name:	skextra.icn
+#
+#	Title:	Scheme in Icon
+#
+#	Author: Bob Alexander
+#
+#	Date:	March 23, 1995
+#
+#	Description: see skeem.icn
+#
+############################################################################
+
+#
+# skeem -- Scheme in Icon
+#
+# Some additional stuff not in the standard
+#
+
+#
+# Initialize
+#
+# List entries are described in skfun.icn.
+#
+procedure InitExtra()
+   #
+   # Functions
+   #
+   DefFunction([
+      ADD1,
+      ATOM_P,
+      BREAK,0,
+      BREAK_LEVEL,0,
+      EVAL,1,2,
+      QUIT,0,1,
+      READ_LINE,0,1,
+      RESUME,0,1,
+      SUB1,
+      TOP,0,
+      TRACE,&null,
+      UNTRACE,&null])
+   #
+   # Syntaxes
+   #
+   DefSyntax([
+      DEFINE_MACRO,"twoOrMore",
+      ITRACE,
+      ITRACEOFF,0,
+      ITRACEON,0,
+      REPEAT,"oneOrMore",
+      TRACE_ALL,0,
+      UNLESS,"oneOrMore",
+      WHEN,"oneOrMore"])
+   return
+end
+
+procedure EVAL(ex,env)
+   return Eval(ex,env)
+end
+
+procedure QUIT(exitCode)
+   exit(exitCode)
+end
+
+procedure WHEN(test,body[])
+   return if F ~=== (Eval(test) | fail)\1 then
+      EvalSeq(LList!body) | fail
+end
+
+procedure UNLESS(test,body[])
+   return if F === (Eval(test) | fail)\1 then
+      EvalSeq(LList!body) | fail
+end
+
+procedure REPEAT(count,body[])
+   local result
+   body := LList!body
+   every 1 to count do
+      result := EvalSeq(body) | fail
+   return result
+end
+
+procedure ATOM_P(arg)
+   return (LLIsNotPair(arg),T) | F
+end
+
+procedure BREAK()
+   local result
+   BreakLevel +:= 1
+   result := ReadEvalPrint((InputPortStack[1].file | &input)\1) | Failure
+   BreakLevel -:= 1
+   return Failure ~=== result
+end
+
+procedure BREAK_LEVEL()
+   return BreakLevel
+end
+
+procedure RESUME(value)
+   Resume := Value(\value | F)
+   fail
+end
+
+procedure TOP()
+   Resume := "top"
+   fail
+end
+
+procedure TRACE(funcs[])
+   local fn,result,element
+   if *funcs = 0 then {
+      result := LLNull
+      every result := LLPair((!sort(TraceSet)).name,result)
+      return LLInvert(result)
+      }
+   else every element := !funcs do {
+      fn := Eval(element) | fail
+      fn.traced := "true"
+      insert(TraceSet,fn)
+      return NIL
+      }
+end
+
+procedure UNTRACE(funcs[])
+   local fn,element
+   if *funcs = 0 then {
+      FTrace := &null
+      every (!TraceSet).traced := &null
+      }
+   else every element := !funcs do {
+      fn := Eval(element) | fail
+      fn.traced := &null
+      delete(TraceSet,fn)
+      }
+   return NIL
+end
+
+procedure ITRACEON()
+   return (&trace := -1,T)
+end
+
+procedure ITRACEOFF()
+   return (&trace := 0,F)
+end
+
+procedure ITRACE(expr)
+   local value
+   &trace := -1
+   value := Eval(expr) | Failure
+   &trace := 0
+   return Failure ~=== value
+end
+
+procedure TRACE_ALL()
+   return FTrace := T
+end
+
+procedure DEFINE_MACRO(arg)
+   local sym,value
+   return Error(DEFINE_MACRO,"Not implemented for now")
+##    return DEFINE(arg,,Macro)
+end
+
+procedure ADD1(n)
+   return n + 1
+end
+
+procedure SUB1(n)
+   return n - 1
+end
+
+procedure READ_LINE(port)
+   local f
+   f := (\port | InputPortStack[1]).file
+   return String(read(f)) | EOFObject
+end

@@ -1,0 +1,92 @@
+############################################################################
+#
+#	File:     patch.icn
+#
+#	Subject:  Procedures for UNIX-like patch(1)
+#
+#	Author:   Rich Morin
+#
+#	Date:     June 18, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure produces a sequence of edited items, reading a source
+#  stream (from) and a stream of difference records (diffs), as generated
+#  by dif.icn.
+#
+#  An optional parameter (rev) causes the edits to be made in reverse.
+#  This allows an old stream to be regenerated from a new stream and an
+#  appropriate stream of difference records.
+#
+#  The original patch(1) utility was written by Larry Wall, and is used
+#  widely in the UNIX community.  See also diffu.icn and patchu.icn, the
+#  utility program versions of dif.icn and patch.icn.
+#
+#  Usage:	patch(old, diff)	# patch old to new via diff
+#  		patch(new, diff, rev)	# patch new to old via diff
+#
+############################################################################
+#
+#  Requires: co-expressions
+#
+############################################################################
+
+procedure patch(from, diff, rev)
+  local c_diff, c_from, cnte, cnti, i, item, ldr, o
+
+  initial {
+    i := 1
+    o := 2
+    if \rev then
+      i :=: o
+      
+    c_diff := create !diff
+    c_from := create !from
+
+    cnti := item := 0
+    ldr  := @c_diff
+    cnte := ldr[i].pos
+  }
+
+  repeat {
+
+    while /ldr | cnti < cnte-1 do {		# copy old items
+      cnti +:= 1
+      if item := @c_from then
+        suspend item
+      else {
+        item := &null
+        break
+      }
+    }
+
+    if \ldr then {				# still have edits
+      every 1 to *ldr[i].diffs do {		# discard items
+        cnti +:= 1
+        @c_from | zot_patch("unexpected end of stream")
+      }
+
+      if *ldr[o].diffs > 0 then			# copy new items
+        suspend !ldr[o].diffs
+
+      if ldr := @c_diff then			# get next edit
+        cnte := ldr[i].pos
+      else
+        ldr := &null
+    }
+
+    if /item & /ldr then
+      fail
+  }
+
+end
+
+
+procedure zot_patch(msg)			# exit w/ message
+  write(&errout, "patch: ", msg)
+  exit(1)
+end

@@ -1,0 +1,45 @@
+############################################################################
+#
+#	File:     gcomp.icn
+#
+#	Subject:  Program to produce complement of file specification
+#
+#	Author:   William H. Mitchell, modified by Ralph E. Griswold	
+#
+#	Date:     December 27, 1989
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This program produces a list of the files in the current directory
+#  that do not appear among the arguments.  For example,
+#  
+#       gcomp *.c
+#  
+#  produces a list of files in the current directory that do
+#  not end in .c.  As another example, to remove all the files
+#  in the current directory that do not match Makefile, *.c, and *.h
+#  the following can be used:
+#  
+#       rm `gcomp Makefile *.c *.h`
+#  
+#  The files . and .. are not included in the output, but other
+#  `dot files' are.
+#
+############################################################################
+#
+#  Requires: UNIX
+#
+############################################################################
+
+procedure main(args)
+   local files
+   files := set()
+   read(open("echo * .*","rp")) ? while insert(files,tab(upto(' ') | 0)) do
+      move(1) | break
+   every delete(files,"." | ".." | !args)
+   every write(!sort(files))
+end

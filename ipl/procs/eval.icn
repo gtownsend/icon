@@ -1,0 +1,68 @@
+############################################################################
+#
+#	File:     eval.icn
+#
+#	Subject:  Procedure to evaluate string as a call
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 3, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure analyzes a string representing an Icon function or
+#  procedure call and evaluates the result.  Operators can be
+#  used in functional form, as in "*(2,3)".
+#
+#  This procedure cannot handle nested expressions or control structures.
+#
+#  It assumes the string is well-formed.  The arguments can only be
+#  Icon literals. Escapes, commas, and parentheses in strings literals
+#  are not handled.
+#
+#  In the case of operators that are both unary and binary, the binary
+#  form is used.
+#
+############################################################################
+#
+#  Links:  ivalue
+#
+############################################################################
+
+invocable all
+
+link ivalue
+
+procedure eval(expr)
+   local p, args, tok
+
+   &error := -1				# to prevent error termination ...
+
+   expr ? {
+      p := trim(tab(upto('(')), '\t ') | {
+         write(&errout, "*** syntax error")
+         fail
+         }
+      p := proc(p, 2 | 1 | 3) | {
+         write(&errout, "*** invalid operation")
+         fail
+         }
+      move(1)
+
+      args := []
+
+      repeat {
+         tab(many(' \t'))
+         tok := trim(tab(upto(',)'))) | break
+         put(args, ivalue(tok)) | fail	# fail on syntax error
+         move(1)
+         }
+
+      suspend p ! args
+      }
+
+end

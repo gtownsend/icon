@@ -1,0 +1,59 @@
+############################################################################
+#
+#	File:     randweb.icn
+#
+#	Subject:  Program to draw random web design
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 17, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program connects lines in all possible ways between i randomly
+#  selected points in a window.  The value of i is given on the command
+#  line (default 20).  Large values of i produce unattracttively dense
+#  structures.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#   Links: gobject, joinpair, random, wopen
+#
+############################################################################
+
+link gobject
+link joinpair
+link random
+link wopen
+
+procedure main(argl)
+   local i, j, k, angle, incr, points, size, radius
+
+   i := integer(argl[1]) | 20
+
+   size := 300
+   radius := size / 2
+
+   WOpen("label=random web", "width=" || size, "height=" || size) |
+      stop("*** cannot open window")
+
+   points := []
+
+   randomize()
+
+   every j := 1 to i do
+      put(points, Point(?size, ?size))
+
+   joinpair(points, points)
+
+   Event()
+
+end

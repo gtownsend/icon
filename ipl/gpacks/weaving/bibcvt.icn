@@ -1,0 +1,46 @@
+############################################################################
+#
+#	File:     bibcvt.icn
+#
+#	Subject:  Program to sanitize PageMaker tagged text
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 4, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  AD HOC.  For weaving bibliography.
+#
+############################################################################
+
+procedure main()
+   local paragraph, line, tag
+
+   paragraph := ""
+
+   while line := trim(read()) do {
+      line ? {
+        ="<" | stop("no tag")
+        tag := tab(upto('>'))
+        if tag ~== "Body text" then stop("unknown tag: ", tag)
+        move(1)
+        tab(many(' '))
+        if pos(0) then {
+           if *paragraph > 0 then {
+              write("<Body text>", trim(paragraph))
+              paragraph := ""
+              write("<space>")
+              }
+           }
+           else paragraph ||:= tab(0) || " "
+         }
+      }
+
+   if *paragraph > 0 then write("<Body text>", trim(paragraph))
+
+end

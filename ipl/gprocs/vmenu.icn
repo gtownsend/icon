@@ -1,0 +1,673 @@
+############################################################################
+#
+#	File:     vmenu.icn
+#
+#	Subject:  Procedures for vidget menus
+#
+#	Authors:  Jon Lipp and Gregg M. Townsend
+#
+#	Date:     August 14, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Vidgets defined in this file:
+#
+#	Vmenu_item
+#	Vmenu_bar_item
+#	Vmenu_frame
+#	Vpull_down_button
+#	Vmenu_set_items
+#	Vmenu_get_items
+#
+#  Utility procedures in this file:
+#	Vsub_menu()
+#	Vmenu_bar()
+#	Vpull_down_pick_menu()
+#	Vpull_down()
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  vstyle
+#
+############################################################################
+
+link vstyle
+
+############################################################################
+# Vmenu_item
+############################################################################
+record Vmenu_item_rec (win, s, callback, id, aw, ah, menu, ax, ay,
+   uid, P, D, V, style)
+
+procedure Vmenu_item(params[])
+   local self
+   static procs
+
+   initial procs := Vstd(event_Vmenu_item, draw_Vmenu_item, outline_menu_pane,
+                        resize_Vidget, inrange_Vpane, init_Vmenu_item,
+                        couplerset_Vmenu_item)
+   self := Vmenu_item_rec ! params
+   self.uid := Vget_uid()
+   if type(\self.callback) == "Vmenu_frame_rec" then {
+      self.menu := self.callback
+      self.callback := self.menu.callback
+      self.s ||:= " >"
+   }
+
+## Init
+   self.D := Vstd_draw(draw_off_entry, draw_on_entry)
+   self.P := Vstd_pos()
+   self.D.outline := 1
+   self.V := procs
+   self.V.init(self)
+
+   return self
+end
+
+#
+#  A menu item needs to be sized a little smaller than a normal
+#  button, so we steal the 2d init procedure.
+#
+procedure init_Vmenu_item(self)
+   local TW, FH, ascent, descent, basey
+
+   /self.s := ""
+   TW := TextWidth(self.win, self.s)
+   ascent := WAttrib(self.win, "ascent")
+   descent := WAttrib(self.win, "descent")
+   FH := ascent + descent
+   /self.aw := TW + 5
+   /self.ah := FH + 2
+
+   self.aw := 0 < self.aw | 1
+   self.ah := 0 < self.ah | 1
+
+   self.D.basex := (self.aw - TW + 1) / 2
+   basey := 1 + ascent
+   if FH <= 10 then basey := 8
+   self.D.basey := basey
+
+end
+
+procedure draw_Vmenu_item(s)
+   s.D.draw_off(s)
+end
+
+procedure draw_on_entry(s)
+   GotoXY(s.win, s.ax+s.D.basex, s.ay+s.D.basey)
+   writes(s.win, s.s)
+   BevelRectangle(s.win, s.ax, s.ay, s.aw, s.ah)
+end
+
+procedure draw_off_entry(s)
+   EraseArea(s.win, s.ax, s.ay, s.aw, s.ah)
+   GotoXY(s.win, s.ax+s.D.basex, s.ay+s.D.basey)
+   writes(s.win, s.s)
+end
+
+procedure couplerset_Vmenu_item(s)
+   s.V.draw(s)
+end
+
+#
+#  This is complicated....  if we drag off to the right while within the
+#  y-range of the menu item, call its submenu *if* one exists.  Else
+#  if there is a release not on the menu item, fall out of loop.  Else
+#  if released on menu item and there is *no* submenu, make a return
+#  value consisting of the id.  Else, continue through loop.
+#
+#  This will take return value of submenu (if successful choice) and pass
+#  it back up to menu bar item.
+#
+procedure event_Vmenu_item(self, e, sub)
+local  rv
+
+   self.D.draw_on(self)
+   (\self.menu).V.resize(self.menu, self.ax+self.aw-4, self.ay)
+   show_Vmenu_frame(\self.menu)
+   rv := V_FAIL
+   repeat {
+      if (\self.menu,
+         (&x >= self.ax+self.aw) & (self.ay <= &y <= self.ay+self.ah)) then {
+         rv := self.menu.F.pick(self.menu, e, 1) | &null
+         if \rv ~=== V_DRAGGING & \rv ~=== V_FAIL then
+            rv :=  (push(\rv, self.uid))
+         }
+
+      else if (\self.menu, e === (&lrelease|&mrelease|&rrelease)) then rv := &null
+      else if e === (&lrelease|&mrelease|&rrelease) then rv :=  [self.uid]
+      else if self.V.inrange(self, &x, &y) then rv := V_DRAGGING
+      if \rv === V_DRAGGING then {
+         e := Event(self.win)
+         if e === "\^s" then
+            until Event(self.win) === (&lpress|&mpress|&rpress) ;
+         rv := V_FAIL
+         }
+      else break
+      }
+   hide_Vmenu_frame(\self.menu)
+   self.D.draw_off(self)
+   if rv === V_FAIL then fail
+   return rv
+end
+
+############################################################################
+# Vmenu_bar_item
+############################################################################
+
+procedure Vmenu_bar_item(params[])
+   local self
+   static procs
+
+   initial procs := Vstd(event_Vmenu_bar_item, draw_Vmenu_item,
+                        outline_menu_pane, resize_Vmenu_bar_item, inrange_Vpane,
+                        null_proc, couplerset_Vmenu_item)
+   self := Vmenu_item_rec ! params
+   self.uid := Vget_uid()
+   if type(\self.menu) ~== "Vmenu_frame_rec" then
+      _Vbomb("Vmenu_bar_item must be created with a Vmenu_frame")
+
+## Init
+   Vset_style(self, V_RECT)
+   self.P := Vstd_pos()
+   self.V := procs
+   self.callback := (\self.menu).callback
+   self.D.init(self)
+
+   return self
+end
+
+#
+#  Resize ourselves, then tell our submenu to resize itself at the
+#  right location.
+#
+procedure resize_Vmenu_bar_item(self, x, y, w, h)
+
+   resize_Vidget(self, x, y, w, h)
+   (\self.menu).V.resize(self.menu, self.ax, self.ay+self.ah)
+end
+
+#
+#  Process events through a loop, grabbing focus:
+#  If release, fall out.  Else, if dragged off bottom, open up submenu.
+#  If dragged any other direction, fall out.
+#
+#  Take return value ( a list) from submenu, and reference callback tables
+#  to call correct callback for submenu choice made.
+#
+procedure event_Vmenu_bar_item(self, e)
+local rv, callback, i, t, labels
+
+   if e ~=== &lpress & e ~=== &mpress & e ~=== &rpress then
+      fail				# not our event
+   self.D.draw_on(self)
+   show_Vmenu_frame(\self.menu)
+   repeat {
+      if e === (&lrelease|&mrelease|&rrelease) then rv := &null
+      else if self.V.inrange(self, &x, &y) then rv := V_DRAGGING
+      else if (self.ax <= &x <= self.ax+self.aw) & (&y >= self.ay+self.ah) then
+         rv := (\self.menu).F.pick(self.menu, e)
+      if \rv === V_DRAGGING then {
+         e := Event(self.win)
+         rv := &null
+         }
+      else break
+   }
+   hide_Vmenu_frame(\self.menu)
+   self.D.draw_off(self)
+   if \rv === V_FAIL then
+      return &null
+   if \rv then {
+      callback := self.callback
+      labels := []
+      every i := !rv do {
+         t := callback[i]
+         callback := t[1]
+         put(labels, t[2])
+      }
+      return (\callback)(self, labels) | labels
+   }
+   return &null
+end
+
+
+############################################################################
+# Vmenu_frame
+############################################################################
+
+record Vmenu_frame_rec(win, callback, aw, ah, id, temp, drawn,
+   lookup, draw, ax, ay, uid, P, F, V)
+
+procedure Vmenu_frame(params[])
+local self
+static procs
+
+   initial {
+      procs := Vstd(event_Vframe, draw_Vframe, outline_menu_pane,
+                   resize_Vframe, inrange_Vpane, null_proc,
+                   couplerset_Vpane, insert_Vmenu_frame, null_proc,
+                   lookup_Vframe, set_abs_Vframe)
+   }
+
+   self := Vmenu_frame_rec ! params
+
+## Init
+   self.uid := Vget_uid()
+   self.V := procs
+   self.F := Vstd_draw()
+   self.F.pick := pick_Vmenu_frame
+   self.F.format := format_Vmenu_frame
+
+   self.P := Vstd_pos()
+   init_Vframe(self)
+   self.callback := table()
+   self.temp := open("vmenu", "g", "canvas=hidden")
+
+   return self
+end
+
+#
+#  Draw beveled, raised outline
+#
+procedure outline_menu_pane(self)
+   BevelRectangle(self.win, self.ax, self.ay, self.aw, self.ah)
+end
+
+#
+#  Find minimum bounding encompassing frame.  At the same time, set
+#  children to be flush against left edge.
+#
+procedure format_Vmenu_frame(self, width)
+local maxwidth, child
+
+   maxwidth := \width | Vmin_frame_width(self) + 4
+   every child := !self.lookup do {
+      child.P.w := maxwidth - 4
+   }
+   self.V.resize(self, 0, 0, maxwidth, Vmin_frame_height(self) + 2)
+end
+
+#
+#  Open up menu frame.  Copy window on temporary binding.
+#  Usually invoked by parent menu item.
+#
+procedure show_Vmenu_frame(self)
+
+   WAttrib(self.temp, "width="||(self.aw+10), "height="||(self.ah+10))
+   CopyArea(self.win, self.temp, self.ax, self.ay, self.aw+5, self.ah+5, 0, 0)
+   draw_Vframe(self)
+   self.drawn := 1
+end
+
+#
+#  Hide menu frame.  Copy contents of temporary binding back onto window.
+#  Also invoked by parent menu item.
+#
+procedure hide_Vmenu_frame(self)
+
+   CopyArea(self.temp, self.win, 0, 0, self.aw+5, self.ah+5, self.ax, self.ay)
+   self.drawn := &null
+end
+
+#
+#  Basically the event loop for the menu frame.  Routes events to the
+#  appropriate menu item.
+#
+procedure pick_Vmenu_frame(self, e, sub)
+local  focus, rv
+
+   /e := -1
+   if /self.drawn then
+      show_Vmenu_frame(self)
+   rv :=  V_DRAGGING
+   repeat {
+      focus := self.V.lookup(self, &x, &y) | &null
+      if (e === (&lrelease|&mrelease|&rrelease) & /focus) then fail
+      else if (/sub, &y < self.ay) | (\sub, &x < self.ax) then return V_DRAGGING
+      else if rv := (\focus).V.event(focus, e, sub) then return rv
+      else if (e === "\^s" & /focus) then
+         until Event(self.win) === (&lpress|&mpress|&rpress) ;
+      e := Event(self.win)
+   }
+end
+
+#
+#  Put the entries into the callback table of the frame as such: if the
+#  entry has a submenu, put its callback table and string label in, else
+#  put the callback procedure and string label in.
+#
+procedure insert_Vmenu_frame(self, vid, x, y)
+   local s
+
+   insert_Vframe(self, vid, x, y)
+   s := (type(vid.callback) == "table", vid.s[1:-2]) | vid.s
+   self.callback[\vid.uid] := [vid.callback, s]
+end
+
+############################################################################
+# wrappers for Vsub_menu and Vmwenu_bar
+############################################################################
+
+procedure Vsub_menu(w, p[])
+   local frame, id, name, callback, ypos, item
+
+   Vwin_check(w, "Vsub_menu()")
+
+   frame := Vmenu_frame(w)
+   id := 1
+   ypos := 0
+   while \(name := pop(p)) do {
+      callback := pop(p) | &null
+      if type(\name) ~== "string" & not numeric(name) then
+         _Vbomb("invalid label passed to Vsub_menu()")
+      image(callback) ? { if ="function" then
+         _Vbomb("Icon function" || tab(0) ||
+                "() not allowed as callback from sub_menu item")
+         }
+      item := Vmenu_item(w, name, callback, id)
+      VInsert(frame, item, 2, ypos)
+      id +:= 1
+      ypos +:= item.ah
+   }
+   VFormat(frame)
+   return frame
+end
+
+procedure Vmenu_bar(p[])
+   local parent, x, y, ins, frame, id, name, submenu, xpos, item, win
+
+   if ins := Vinsert_check(p) then {
+      parent := pop(p); x := pop(p); y:= pop(p)
+      }
+   win := pop(p)
+   Vwin_check(win, "Vmenu_bar()")
+
+   frame := Vframe(win)
+   xpos := id := 0
+   while name := pop(p) do {
+      submenu := pop(p) | &null
+      if type(\name) ~== "string" & not numeric(name) then
+         _Vbomb("invalid label passed to Vmenu_bar()")
+      if type(\submenu) ~== "Vmenu_frame_rec" then
+         _Vbomb("invalid menu parameter to Vmenu_bar()")
+      item := Vmenu_bar_item(win, name, , id, , , submenu )
+      VInsert(frame, item, xpos, 0)
+      id +:= 1
+      xpos +:= item.aw
+   }
+   VFormat(frame)
+   frame.V.outline := null_proc
+
+   if \ins then VInsert(parent, frame, x, y)
+
+   return frame
+end
+
+############################################################################
+# Vpull_down_button
+############################################################################
+
+record Vpull_down_button_rec (win, callback, id, sz, pd, data, s, style,
+   aw, ah, ax, ay, abx, uid, P, D, V)
+
+procedure Vpull_down_button(params[])
+local self
+local frame, x, y, ins
+static procs
+
+   initial procs := Vstd(event_Vpull_down_button, draw_Vpull_down_button,
+      outline_menu_pane, resize_Vpull_down_button, inrange_Vpane,
+      init_Vpull_down_button, couplerset_Vpull_down_button,,,,,
+      set_value_Vpull_down_button)
+   if ins := Vinsert_check(params) then {
+      frame := pop(params); x := pop(params); y:= pop(params)
+      }
+   self := Vpull_down_button_rec ! params
+   self.uid := Vget_uid()
+   if type(self.pd) ~== "Vmenu_frame_rec" then
+      _Vbomb("Vpull_down_button must be created with a Vpull_down")
+   Vset_style(self, V_RECT)
+   self.V := procs
+   self.P := Vstd_pos()
+   self.V.init(self)
+   if \ins then VInsert(frame, self, x, y)
+   return self
+end
+
+procedure draw_Vpull_down_button(self)
+
+   self.s := self.data[1:self.sz|0]
+   self.D.draw_off(self)
+   draw_Vpull_down_button_off(self)
+end
+
+procedure draw_Vpull_down_button_arrow(self)
+local x, y, sz
+
+   x := self.ax+self.abx; y := self.ay; sz := self.ah
+
+   FillPolygon(self.win, x+0.1*sz, y+0.2*sz, x+0.9*sz, y+0.2*sz,
+                x+0.5*sz, y+0.9*sz, x+0.1*sz, y+0.2*sz)
+end
+
+procedure draw_Vpull_down_button_off(self)
+local x, y
+
+   x := self.ax; y := self.ay
+   EraseArea(self.win, x+self.abx+1, y+1, self.aw-self.abx-1, self.ah-1)
+   DrawRectangle(self.win, x+self.abx, y, self.aw-self.abx, self.ah)
+   draw_Vpull_down_button_arrow(self)
+end
+
+procedure draw_Vpull_down_button_on(self)
+
+   FillRectangle(self.win, self.ax+self.abx+1, self.ay+1, self.aw-self.abx, self.ah)
+   WAttrib(self.win, "reverse=on")
+   draw_Vpull_down_button_arrow(self)
+   WAttrib(self.win, "reverse=off")
+end
+
+procedure resize_Vpull_down_button(self, x, y, w, h)
+
+   resize_Vidget(self, x, y, w, h)
+   self.pd.F.format(self.pd, self.aw)
+   self.pd.V.resize(self.pd, self.ax, self.ay+self.ah)
+end
+
+procedure couplerset_Vpull_down_button(self, name, value)
+
+   self.D.draw_off(self)
+end
+
+
+procedure event_Vpull_down_button(self, e)
+local rv
+
+   if \self.callback.locked then fail
+   draw_Vpull_down_button_on(self)
+   show_Vmenu_frame(\self.pd)
+   rv := V_DRAGGING
+   repeat {
+      if \e === (&lrelease|&mrelease|&rrelease) then rv := &null
+      else if self.V.inrange(self, &x, &y) then rv := V_DRAGGING
+      else if (self.ax <= &x <= self.ax+self.aw) & (&y >= self.ay+self.ah) then
+         rv := (\self.pd).F.pick(self.pd, e)
+      if \rv === V_DRAGGING then {
+         e := Event(self.win)
+         rv := &null
+         }
+      else break
+   }
+   if rv === V_FAIL then rv := &null
+   draw_Vpull_down_button_off(self)
+   hide_Vmenu_frame(\self.pd)
+   if \rv then {
+      self.data := self.pd.callback[rv[1]][2]
+      self.V.draw(self)
+      self.callback.V.set(self.callback, self, self.data)
+      return self.data
+      }
+end
+
+procedure set_value_Vpull_down_button(self, value)
+
+   self.data := \value | ""
+end
+
+procedure init_Vpull_down_button(self)
+local p
+
+   /self.data := ""
+   self.s := self.data
+   /self.sz := 24
+   self.aw := WAttrib(self.win, "fwidth")*self.sz + 8
+   self.ah := WAttrib(self.win, "fheight")
+
+   self.abx := self.aw
+# make little arrow box on end.
+   self.aw +:= WAttrib(self.win, "fheight")
+
+   p := \self.callback
+   self.callback := Vcoupler()
+   add_clients_Vinit(self.callback, p, self)
+
+   self.D.init(self)
+   self.D.basex := 4
+end
+
+
+############################################################################
+# Vmenu_set_items(self,data)
+#
+# data is a list of one or more strings, and possibly lists:
+# any string can be followed in the list by a list of data for a submenu
+############################################################################
+
+procedure Vmenu_set_items(self, data)
+   local cb, item
+
+   cb := !!self.lookup[1].callback
+   item := self.lookup[1]
+   item.menu := Vmenu_set_submenu(self.win, data, cb)
+   item.callback := item.menu.callback
+   VResize(self)
+   return
+end
+
+procedure Vmenu_set_submenu(win, data, cbk)
+   local a, c, e, i, lbl
+
+   if type(data) ~== "list" | *data = 0 then
+      _Vbomb("empty or invalid menu list for VSetItems()")
+   data := copy(data)			# make copy to consume and destroy
+
+   a := [win]
+   while *data > 0 do {
+      put(a, string(get(data))) |
+         _Vbomb("invalid menu list entry for VSetItems()")
+      if type(data[1]) == "list" then
+         put(a, Vmenu_set_submenu(win, get(data), cbk))
+      else
+         put(a, cbk)
+      }
+   return Vsub_menu ! a
+end
+
+############################################################################
+# Vmenu_get_items
+############################################################################
+
+procedure Vmenu_get_items(self)
+   return Vmenu_get_submenu(self)[2]
+end
+
+procedure Vmenu_get_submenu(frame)
+   local l, r
+
+   l := list()
+   every r := !frame.lookup do {
+      if /r.menu then
+         put(l, r.s)
+      else {
+         put(l, r.s[1:-2])
+         put(l, Vmenu_get_submenu(\r.menu))
+         }
+      }
+   return l
+end
+
+
+
+############################################################################
+#  Utilities.
+############################################################################
+
+#
+#  Well this is a wrapper for combining a Vpull_down and a
+#  Vpull_down_button.
+#
+#  Vpull_down_pick_menu([frame, x, y, ] w, s, callback, id, size, centered)
+#
+#  s - a list of string labels for the entries.
+#  size - is the number of charcters in the data field to be displayed.
+#  centered - non-&null if entries are centered in pull_down.
+#
+procedure Vpull_down_pick_menu(params[])
+local frame, x, y, ins, pd, self
+
+   if ins := Vinsert_check(params) then {
+      frame := pop(params); x := pop(params); y:= pop(params)
+      }
+   put(params); put(params); put(params); put(params);
+   Vwin_check(params[1], "Vpull_down_pick_menu()")
+   pd := Vpull_down ! (params[1:3] ||| [\params[6] | &null])
+   self := Vpull_down_button ! ([params[1]] ||| params[3:6] ||| [pd])
+
+   if \ins then VInsert(frame, self, x, y)
+   return self
+end
+
+#
+#  Vpulldown(..) produces a pull-down list, invoked by
+#
+#  obj.F.pick(obj)
+#
+#  returns the string value of the object picked.
+#
+#  p[] is a list of strings to enter into the list;
+#  centered is &null for right justified entries, 1 for centered.
+#
+#  (This procedure does not support the optional VInsert parameters.)
+#
+procedure Vpull_down(win, s, centered)
+local cv, frame, id, name, style, ypos
+local max, i, TW, FH, item, string_list
+
+   Vwin_check(win, "Vpull_down()")
+   if type(s) ~== "list" then
+      _Vbomb("data parameter to Vpull_down must be a list of strings")
+   frame := Vmenu_frame(win)
+   ypos := id := 1
+   if \centered then {
+      max := 0
+      every i := !s do max <:= (TextWidth(win, i) + 6)
+      }
+   string_list := copy(s)
+   while name := pop(string_list) do {
+      name := \name | ""
+      item := Vmenu_item(win, name, , name, max)
+      VInsert(frame, item, 1, ypos)
+      id +:= 1
+      ypos +:= item.ah
+   }
+   VFormat(frame)
+   return frame
+end

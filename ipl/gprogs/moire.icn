@@ -1,0 +1,98 @@
+############################################################################
+#
+#	File:     moire.icn
+#
+#	Subject:  Program to display Moire patterns
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 19, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program displays moire patterns.
+#
+#  The following options are supported:
+#
+#	-g	run continuously; ignore user events; default: process user
+#		  events
+#	-i i	initial size, deafult 50
+#	-k i	increment, default 1
+#	-l i	limit on number of iterations, default 2 ^ 10
+#	-p s	palette, default "c2"
+#	-s i	size of window (width/height); default 256
+#
+#  This program is based on material given in "FractalVision",
+#  Dick Oliver, Sams Publishing, 1992, pp. 185-190.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  colrlist, interact, options, wopen
+#
+############################################################################
+
+link colrlist
+link interact
+link options
+link wopen
+
+procedure main(args)
+   local extent, size, colors, ncolors, k, x, i, y, j, c, palette
+   local opts, init, incr, limit, run
+
+   opts := options(args, "gs+p:i+k+l+")
+
+   palette := \opts["p"] | "c2"
+   extent := \opts["s"] | 256
+   init := \opts["i"] | 50
+   incr := \opts["k"] | 1
+   limit := \opts["l"] | (2 ^ 10)
+   run := opts["g"]
+
+   size := extent / 2
+
+   WOpen("label=moire", "height=" || extent, "width=" || extent,
+      "dx=" ||  size, "dy=" || size, "bg=light gray") |
+         ExitNotice("Cannot open window.")
+
+   colors := colrplte(palette) | ExitNotice("Invalid palette.")
+   ncolors := *colors
+
+   every k := seq(init, incr) \ limit do {
+      x := k
+      every i := 0 to size do {
+         y := x
+         every j := i to size do {
+            c := colors[?ncolors]
+            Fg(c)
+            DrawPoint(
+               i, j,
+               j, i,
+               j, -i,
+               i, -j,
+               -i, -j,
+               -j, -i,
+               -j, i,
+               -i, j
+               )
+            y +:= k
+            }
+         x +:= k
+         }
+      Fg("black")
+      if /run then repeat case Event() of {
+         "q":   exit()
+         "s":   snapshot()
+         "n":   break
+         }
+      }
+
+end

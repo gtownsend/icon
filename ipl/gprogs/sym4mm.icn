@@ -1,0 +1,250 @@
+############################################################################
+#
+#	File:     sym4mm.icn
+#
+#	Subject:  Program to draw symmetrically
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 18, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program draws with the eight symmetries of the square - 4mm
+#  symmetry.
+#
+#  It is based on a simple drawing program by Gregg Townsend.
+#
+#  Pressing the left mouse button draws a point.  Dragging with the left mouse
+#  button depressed draws a line.  Pressing and dragging with the middle mouse
+#  depressed shows a dashed straight line, which is drawn solid when
+#  the middle mouse button is released.  Dragging with the right mouse
+#  button depressed erases in the vicinity of the mouse pointer.
+#
+#  Typing "f" toggles restriction of drawing to the "generating region"
+#  which is shaded when drawing is restricted.
+#
+#  Typing "g" toggles the grid lines.
+#
+#  Typing "p" toggles the background in the generating region.
+#
+#  Typing "c" clears the window.
+#
+#  Typing "s" takes a snapshot, writing a GIF file.  File names begin with
+#  a prefix, followed by three digits starting at 000 and increasing, and
+#  terminated by .GIF.
+#
+#  Typing "q" terminates the session.
+#
+#  Grid lines and shading are only provided for servers that support mutable
+#  colors.
+#
+#  The options supported are:
+#
+#	-w i	width of the window, default 512
+#	-h i	height of the winodw, default 512
+#	-s i	size of square, default 512x512; supercedes -w and -h
+#	-p s	prefix for image files, default "sym"
+#
+#  Note:  Although the window does not have to be square, the application is
+#  designed to work with a square window.
+#
+############################################################################
+#
+#  Requires:  Graphics
+#
+############################################################################
+#
+#  Links:  options, xio
+#
+############################################################################
+
+link options
+link xio
+
+procedure main(args)
+   local x, y, opts, number, w, h, prefix, curr, alt, restrict, xc, yc, grid
+   local xd, yd, nonrestrict, palt, pattern, pcurr, x1, y1, x2, y2, delta
+
+   opts := options(args, "w+h+s+p:")
+
+   number := -1
+
+   w := \opts["w"] | 512
+   h := \opts["h"] | 512
+   w := h := \opts["s"]
+   prefix := \opts["p"] | "sym"
+
+   restrict := 1			# initially restricted
+   nonrestrict := &null
+
+   WOpen("size=" || w || "," || h) | stop("*** cannot open window")
+
+   xc := w / 2
+   yc := h / 2
+
+   w -:= 1			# adjustment for 0-origin indexing
+   h -:= 1
+
+   curr := "light blue"
+   pcurr := "pink"
+   alt := "white"
+   palt := "white"
+
+   Pattern("2,#01")
+
+   if grid := NewColor(curr) then {
+      drawgrid(w, h, grid)
+      }
+
+   if pattern := NewColor(pcurr) then {
+      shade(w, h, pattern)
+      }
+
+   repeat case Event() of {
+      "f": {
+          restrict :=: nonrestrict
+          Color(\pattern, pcurr :=: palt)
+          }
+      "q": {
+         exit()
+         }
+      "c":  {
+         EraseArea()
+         if \grid then {
+            drawgrid(w, h, grid)
+            shade(w, h, pattern)
+            }
+         }
+      "s":  {
+         Color(\grid, "white")
+         Color(\pattern, "white")
+         WriteImage(prefix || right(number +:= 1, 3, 0) || ".gif")
+         Color(\grid, curr)
+         Color(\pattern, pcurr)
+         }
+      "g":  {
+         Color(\grid, curr :=: alt)
+         }
+      "p":  {
+         Color(\pattern, pcurr :=: palt)
+         }
+      &lpress: {
+         if \restrict & ((real(&x) / (&y + 0.0001) < 1.0) | (&x > xc) |
+            (&y > yc)) then next
+         every DrawPoint(&x | (w - &x), &y | (h - &y))
+         every DrawPoint(&y | (w - &y), &x | (h - &x))
+         x := &x
+         y := &y
+         }
+      &ldrag: {
+         if \x then {			# just in case (for artificial events)
+            if \restrict & ((real(x) / (y + 0.0001)  < 1.0) | (x > xc) |
+               (y > yc)) then next
+            DrawLine(x, y, &x, &y)
+            DrawLine(w - x, y, w - &x, &y)
+            DrawLine(x, h - y, &x, h - &y)
+            DrawLine(w - x, h - y, w - &x, h - &y)
+            DrawLine(y, x, &y, &x)
+            DrawLine(w - y, x, w - &y, &x)
+            DrawLine(y, h - x, &y, h - &x)
+            DrawLine(w - y, h - x, w - &y, h - &x)
+            }
+         x := &x
+         y := &y
+         }
+      &lrelease: {
+         x := y := &null
+         }
+      &mpress: {
+         x1 := xd := &x
+         y1 := yd := &y
+         WAttrib("linestyle=dashed")
+         WAttrib("drawop=reverse")
+         DrawLine(x1, y1, xd, yd)		# start trace line
+         }
+      &mdrag: {
+         DrawLine(x1, y1, xd, yd)		# erase current trace line
+         xd := &x
+         yd := &y
+         DrawLine(x1, y1, xd, yd)		# draw new trace line
+         }
+      &mrelease: {
+         DrawLine(x1, y1, xd, yd)		# erase trace line
+         WAttrib("drawop=copy")
+         WAttrib("linestyle=solid")
+         x2 := &x
+         y2 := &y
+         if \restrict then {			# adjust end points
+            if ((x1 > xc) & (x2 > xc)) | ((y1 > yc) & (y2 > yc)) then next
+            if x2 > x1 then {
+               x1 :=: x2
+               y1 :=: y2
+               }
+            if x1 > xc then {
+               y1 := y2 + ((xc - x2) * (y1 - y2)) / (x1 - x2)
+               x1 := xc
+               }
+            if y2 > yc then {
+               x2 := x1 - ((x1 - x2) * (y1 - yc)) / (y1 - y2)
+               y2 := yc
+               }
+            if y1 > y2 then {
+               y1 :=: y2
+               x1 :=: x2
+               }
+            if y1 > x1 then next
+            if y2 > x2 then {
+               delta := real(x2 - x1) / (y2 - y1)
+               x2 := (x1 - y1 * delta) / (1 - delta)
+               y2 := x2
+               }
+            }
+         DrawLine(x1, y1, x2, y2)
+         DrawLine(w - x1, y1, w - x2, y2)
+         DrawLine(x1, h - y1, x2, h - y2)
+         DrawLine(w - x1, h - y1, w - x2, h - y2)
+         DrawLine(y1, x1, y2, x2)
+         DrawLine(w - y1, x1, w - y2, x2)
+         DrawLine(y1, h - x1, y2, h - x2)
+         DrawLine(w - y1, h - x1, w - y2, h - x2)
+         x := &x
+         y := &y
+         }
+      &rpress | &rdrag: {
+         every EraseArea((&x - 2) | (w - &x - 2),
+            (&y - 2) | (h - &y - 2), 5, 5)
+         every EraseArea((&y - 2) | (w - &y - 2),
+            (&x - 2) | (h - &x - 2), 5, 5)
+         }
+      }
+end
+
+procedure drawgrid(w, h, grid)
+
+   Fg(grid)
+   DrawLine(0, 0, w, h)
+   DrawLine(w, 0, 0, h)
+   DrawLine(0, h / 2, w, h / 2)
+   DrawLine(w / 2, 0, w / 2, h)
+   Fg("bleck")
+
+   return
+
+end
+
+procedure shade(w, h, pattern)
+
+   Fg(pattern)
+   WAttrib("fillstyle=textured")
+   FillPolygon(1, 0, w / 2, 1, w / 2, h / 2, 1, 0)
+   WAttrib("fillstyle=solid")
+   Fg("black")
+
+   return
+
+end

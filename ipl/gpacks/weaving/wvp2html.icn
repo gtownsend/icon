@@ -1,0 +1,60 @@
+############################################################################
+#
+#	File:     wvp2html.icn
+#
+#	Subject:  Program to create web pages for WVP weaving images
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 19, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  AD HOC.  Skeleton was derived from a CyberStudio page.  Images are
+#  assumed to be 128x128.
+#
+#  The name of a directory, <d> is given on the command line.  The .wvp
+#  files are expected in WVP/<d>/*.wvp and the image files in GIF/<d>/*.gif
+#
+#  The pages are written to HTML/<d>/<name>.html.  If this subdirectory
+#  does not exist, it is created.
+#
+############################################################################
+#
+#  Links:  basename
+#
+############################################################################
+
+link basename
+
+procedure main(args)
+   local page, i, directory, name, input, output, files
+
+   $include "wvppage"
+
+   directory := args[1] | stop("*** no directory given")
+
+   files := open("ls WVP/" || directory || "/*.wvp", "p")
+
+   system("mkdir HTML/" || directory || " 2>/dev/null")
+
+   while name := read(files) do {
+      name := basename(name, ".wvp")
+      page[6] := name
+      page[30] := image(" ../../GIF/" || directory || "/" || name || ".gif")
+      output := open("HTML/" || directory || "/" || name || ".html", "w") |
+         stop("*** cannot open page for writing")
+      every write(output, page[1 to 33])
+      input := open("WVP/" || directory || "/" || name || ".wvp") |
+         stop("*** cannot open .wvp file")
+      while write(output, read(input))
+      every write(output, page[35 to *page])
+      close(input)
+      close(output)
+      }
+
+end

@@ -1,0 +1,322 @@
+############################################################################
+#
+#	File:     vradio.icn
+#
+#	Subject:  Procedures for radio buttons
+#
+#	Authors:  Jon Lipp and Gregg M. Townsend
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Vidgets defined in this file:
+#	Vradio_entry
+#	Vradio_frame
+#
+#  Utility procedures in this file:
+#	Vradio_buttons()
+#	Vvert_radio_buttons()
+#	Vhoriz_radio_buttons()
+#	init_format_Vrb()
+#	format_Vradio_frame()	
+#
+############################################################################
+
+link vstyle
+
+############################################################################
+# Vradio - the radio button.
+############################################################################
+
+record Vradio_entry_rec (win, s, callback, id, style, aw, ah, don, ax, ay, uid, P, D, V)
+
+#
+# Creation procedure.
+#
+procedure Vradio_entry(params[])
+   local self
+   static procs
+
+   initial procs := Vstd(event_Vradio_entry, draw_Vradio_entry,
+      outline_radio_pane, resize_Vidget, inrange_Vpane, init_Vradio_entry,
+                        couplerset_Vradio_entry)
+   self := Vradio_entry_rec ! params
+   self.uid := Vget_uid()
+   Vset_style(self, self.style)
+   self.V := procs
+   self.P := Vstd_pos()
+   self.V.init(self)
+   return self
+end
+
+procedure init_Vradio_entry (self)
+   local p
+
+   if /self.callback then 
+      _Vbomb("must pass a coupler variable to a Vradio_entry button")
+   self.D.init(self)
+end
+
+
+#
+#  Draw the frame around the radio buttons.
+#
+procedure outline_radio_pane(self)
+   GrooveRectangle(self.win, self.ax, self.ay, self.aw, self.ah)
+end
+
+
+#
+#  Draw the radio button.  If coupler's value is this id, draw "on".
+#
+procedure draw_Vradio_entry(self)
+   if self.callback.value === self.id then {
+      self.D.draw_on(self)
+      self.don := 1
+      }
+   else {
+      self.D.draw_off(self)
+      self.don := &null
+      }
+end
+
+#
+#  The coupler notified us, turn "off".
+#
+procedure couplerset_Vradio_entry(self)
+   self.D.draw_off(self)
+   self.don := &null
+end
+
+#
+#  If first time in this button, set coupler, draw "on".
+#  If mouse releases on me, return my own record structure.
+#
+procedure event_Vradio_entry(self, e)
+
+   if self.callback.value ~=== self.id | /self.don then {
+      self.callback.V.set(self.callback, self, self.id)
+      self.D.draw_on(self)
+      self.don := 1
+      }
+   if \e === (&lrelease|&mrelease|&rrelease) then 
+      return self
+end
+
+
+############################################################################
+# Vradio_frame
+############################################################################
+
+record Vradio_frame_rec(win, cv, callback, id, aw, ah, data,
+   lookup, draw, ax, ay, uid, P, V)
+
+#
+# Creation procedure.
+#
+procedure Vradio_frame(params[])
+   local self, p
+   static procs
+
+   initial {
+      procs := Vstd(event_Vradio_frame, draw_Vframe, outline_radio_pane,
+                   resize_Vframe, inrange_Vpane, init_Vframe,
+                   couplerset_Vpane, insert_Vframe, null_proc,
+                   lookup_Vframe, set_abs_Vframe, set_value_Vradio_frame)
+   }
+
+   self := Vradio_frame_rec ! params
+   self.uid := Vget_uid()
+   self.V := procs
+   self.P := Vstd_pos()
+   self.V.init(self)
+   p := \self.callback
+   self.callback := Vcoupler()
+   add_clients_Vinit(self.callback, p, self)
+   
+   return self
+end
+
+#
+#  Distribute mouse event to proper radio button.  If returns
+#  a value, (mouse released) notify callbacks, return text label
+#  of radio button selected.
+#
+procedure event_Vradio_frame(self, e, x, y)
+   local focus, rv
+
+   if \self.callback.locked then fail
+   if e ~=== &lpress & e ~=== &mpress & e ~=== &rpress then fail
+   focus := self.V.lookup(self, x, y)
+   (\focus).V.event(focus, e)
+   repeat {
+      e := Event(self.win)
+      if e === "\^s" then
+         until Event(self.win) === (&lpress|&mpress|&rpress) ;
+      if self.V.inrange(self, &x, &y) then 
+         focus := self.V.lookup(self, &x, &y)
+      if rv := (\focus).V.event(focus, e) then {
+         self.data := rv.s
+         self.callback.V.set(self.callback, rv, rv.s)
+         return rv.s
+      }
+   }
+end
+
+#
+#  Set the radio frame according to string label passed in.  Match with
+#  string label of a button.  Null sets to no button.
+#
+procedure set_value_Vradio_frame(self, value)
+   local old, kid, id, s, k
+
+   if (/value | *value = 0 | value === V_DUMMY_ID) then {
+      kid := &null
+      id := V_DUMMY_ID
+      s := ""
+      }
+   else {
+      kid := self.cv.curr_id
+      id := self.cv.value
+      s := self.data
+      every (k := !self.lookup | fail) do 
+         if value === k.s then {
+            id := k.id
+            kid := k
+            s := value
+            break
+            }
+      }
+
+   old := self.cv.curr_id
+   self.cv.curr_id := kid
+   self.cv.value := id
+   self.data := s
+
+   self.callback.V.set(self.callback, self, self.data)
+
+   (\old).D.draw_off(old)	# clear current button
+   (\kid).D.draw_on(kid)	# set new button
+
+   return
+end
+
+############################################################################
+# Vradio_buttons -
+# Construct radio buttons. Parameters:
+# 	w - window, proc - the callback procedure,
+#	s[] - a list of button labels. 
+############################################################################
+procedure Vradio_buttons(params[])
+   return Vvert_radio_buttons ! params
+end
+
+
+#
+# params: (w, s, callback, id, style)
+#
+procedure Vvert_radio_buttons(params[])
+   local frame, x, y, ins, win, s, callback, id, style
+   local rb_frame, max, cv, i, rb, first, uncentered
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if ins := Vinsert_check(params) then {
+      frame := pop(params); x := pop(params); y:= pop(params)
+      }
+   win := params[1]
+   s := params[2]
+   callback := params[3]
+   id := params[4]
+   style := params[5]
+   uncentered := params[6]
+
+   Vwin_check(win, "Vradio_buttons()")
+   if type(s) ~== "list" then 
+      _Vbomb("data parameter to Vradio_buttons must be a list of strings") 
+   cv := Vmenu_coupler()
+   rb_frame := Vradio_frame(win, cv, callback, id)
+   if /uncentered then {
+      max := 0
+      every i := !s do max <:= TextWidth(win, i)
+      max +:= 8
+      }
+   if \style == (V_CIRCLE | V_CHECK | V_DIAMOND | 
+	 V_CHECK_NO | V_CIRCLE_NO | V_DIAMOND_NO) then
+      max +:= 4 + WAttrib(win, "fheight")
+   every i := 1 to *s do {
+      rb := Vradio_entry(win, s[i], cv, i, style, max)
+      VInsert(rb_frame, rb, 0, (i-1)*rb.ah)
+   }
+
+   init_format_Vrb(rb_frame)
+   format_Vradio_frame(rb_frame)
+
+   if \ins then VInsert(frame, rb_frame, x, y)
+   return rb_frame
+end
+
+procedure Vhoriz_radio_buttons(params[])
+   local frame, x, y, ins, win, s, callback, id, style, hpos
+   local rb_frame, max, cv, i, rb, first
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if ins := Vinsert_check(params) then {
+      frame := pop(params); x := pop(params); y:= pop(params)
+      }
+   win := params[1]
+   s := params[2]
+   callback := params[3]
+   id := params[4]
+   style := params[5]
+
+   Vwin_check(win, "Vradio_buttons()")
+   if type(s) ~== "list" then
+      _Vbomb("data parameter to Vradio_buttons must be a list of strings")
+   cv := Vmenu_coupler()
+   rb_frame := Vradio_frame(win, cv, callback, id)
+   hpos := 0
+   every i := 1 to *s do {
+      rb := Vradio_entry(win, s[i], cv, i, style)
+      VInsert(rb_frame, rb, hpos, 0)
+      hpos +:= rb.aw
+   }
+
+   init_format_Vrb(rb_frame)
+   rb_frame.V.resize(rb_frame, 0, 0, Vmin_frame_width(rb_frame), 
+      Vmin_frame_height(rb_frame))
+
+   if \ins then VInsert(frame, rb_frame, x, y)
+   return rb_frame
+end
+
+#
+#  Set to no radio button selected, format size of frame.
+#	
+procedure init_format_Vrb(rb_frame)
+
+   rb_frame.cv.value :=  V_DUMMY_ID
+   rb_frame.cv.curr_id := &null
+   rb_frame.data := ""
+end
+
+#
+#  Get size of frame based on entries.
+#
+procedure format_Vradio_frame(self, width)
+local maxwidth, child
+
+   maxwidth := \width | Vmin_frame_width(self) + 4
+   every child := !self.lookup do {
+      child.P.w := maxwidth
+   }
+   self.V.resize(self, 0, 0, maxwidth, Vmin_frame_height(self))
+end

@@ -1,0 +1,79 @@
+############################################################################
+#
+#	File:     cvtsum.icn
+#
+#	Subject:  Program to count conversion event tuples
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 25, 1996
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program counts conversion events that occur during the monitoring
+#  of Icon program execution.
+#
+############################################################################
+#
+#  Requires:  MT Icon and event monitoring
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+link evinit
+link numbers
+link typecode
+
+$include "evdefs.icn"
+
+procedure main(args)
+   local counts, total, futile, triple, target, value, failure
+
+   EvInit(args)
+
+   counts := table(0)
+   total := -1			# account for first vacuous entry
+   futile := 0
+   failure := 0
+
+   while EvGet(ConvMask) do
+      case &eventcode of {
+         E_Aconv:   {
+            total +:= 1
+            if total % 1000 = 0 then writes(&errout, ".")
+            counts[triple] +:= 1
+            target := typecode(&eventvalue)
+            triple := target
+            }
+         E_Tconv:   {
+            value := typecode(&eventvalue)
+            if value == target then futile +:= 1
+            triple ||:= value
+            }
+         E_Nconv:   triple ||:= " S"
+         E_Sconv:   triple ||:= " S"
+         E_Fconv:   {
+            failure +:= 1
+            triple ||:= " F"
+            }
+         default:   stop("*** illegal event code")
+         }
+
+   delete(counts,&null)
+
+   counts := sort(counts, 3)
+
+   while write(get(counts), right(get(counts),6))
+
+   write("\ntotal = ",total,"\n")
+   write(fix(futile / real(total), .01, 3, 2),"% futile")
+   write(fix(failure / real(total), .01, 3, 2),"% failed")
+
+end

@@ -1,0 +1,46 @@
+############################################################################
+#
+#	File:     listev.icn
+#
+#	Subject:  Program to list events
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 16, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program list events.  Event information is written
+#  by using image().
+#
+#  This program is called as
+#
+#	listev tp args
+#
+############################################################################
+#
+#  Requires:   Version 9.0 MT Icon with event monitoring
+#
+############################################################################
+#
+#  Links: evinit, options
+#
+############################################################################
+
+$include "etdefs.icn"
+
+link evinit
+link options
+
+procedure main(args)
+
+   EvInit(args) | stop("*** cannot load TP")
+
+   while EvGet(T_Mask1) do 
+      write(image(&eventcode), " : ", image(&eventvalue))
+
+end

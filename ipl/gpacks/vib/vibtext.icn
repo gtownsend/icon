@@ -1,0 +1,163 @@
+############################################################################
+#
+#  vibtext.icn -- procedures for defining a text object
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+
+$include "vdefns.icn"
+$include "vibdefn.icn"
+
+##########################################################################
+# text_input_obj:
+#    v       : vidget used for drawing text input object
+#    proc    : name of user callback procedure
+#    id      : unique means of identifying instance
+#    x,y,w,h : bounding box
+#    label   : label of text input object
+#    value   : (editable) value of text input object
+#    length  : max number of chars that value can hold
+#    focus   : should focus lines be drawn around this object?
+##########################################################################
+record text_input_obj(v, proc, id, x, y, w, h, label, value, length, focus)
+
+##########################################################################
+# create_text_input() creates a text instance and draws the text object if
+#                     it is a first class object.
+##########################################################################
+procedure create_text_input(x, y, label, value, length)
+   local r, id
+
+   id := next_id("text_input")
+   r := text_input_obj(, "text_input_cb" || id, "text_input" || id,
+                        x, y, 0, 0, label, value, length, 0)
+   r.v := Vtext(ROOT, x, y, APPWIN, label || "\\=" || value, , id, length)
+   r.w := r.v.aw
+   r.h := r.v.ah
+   VRemove(ROOT, r.v, 1)
+   return r
+end
+
+##########################################################################
+# draw_text_input() draws the given text object.
+##########################################################################
+procedure draw_text_input(r)
+   r.length := r.v.MaxChars +:= (r.w - r.v.aw) / VFWidth
+   VResize(r.v)
+   VDraw(r.v)
+   return r
+end
+
+##########################################################################
+# update_text_input_bb() makes resizing work a character at a time.
+##########################################################################
+procedure update_text_input_bb(object)
+   local wxv, n
+
+   wxv := object.v.aw - VFWidth * object.v.MaxChars	# width excluding value
+   n := (object.w - wxv) / VFWidth			# num chars for value
+   n <:= 1
+   n <:= *object.value
+   object.w := wxv + VFWidth * n	# force width to char boundary
+   object.h := object.v.ah		# disallow height change
+end
+
+##########################################################################
+# load_text_input() restores a text object from session code.
+##########################################################################
+procedure load_text_input(r, o)
+   o.lbl ? {
+      r.label := tab(find("\\\\="))
+      move(3)
+      r.value := tab(0)
+      }
+   r.length := o.num
+   r.v := Vtext(ROOT, r.x,r.y, APPWIN, r.label||"\\="||r.value,, r.id, r.length)
+   r.w := r.v.aw
+   r.h := r.v.ah
+   VRemove(ROOT, r.v, 1)
+end
+
+##########################################################################
+# save_text_input() augments the record for saving a text_input object.
+##########################################################################
+procedure save_text_input(r, o)
+   r.typ := "Text"
+   r.lbl := image(o.label)[2:-1] || "\\\\=" || image(o.value)[2:-1]
+   r.num := o.length
+   return
+end
+
+##########################################################################
+# display_text_input_atts() displays the attribute sheet with the current
+#                           attributes for the given text instance.
+##########################################################################
+procedure display_text_input_atts(object)
+   local t
+
+   t := table()
+   t["a_id"]		:= object.id
+   t["b_callback"]	:= object.proc
+   t["c_x"]		:= object.x
+   t["d_y"]		:= object.y - CANVASY
+   t["e_label"]		:= object.label
+   t["f_value"]		:= object.value
+   t["g_length"]	:= object.length
+
+   repeat {
+      if text_dialog(t) == "Cancel" then
+         fail
+
+      if illegal(t["a_id"], "ID", "s") |
+         illegal(t["b_callback"], "Callback", "p") |
+         illegal(t["c_x"], "X", "i") |
+         illegal(t["d_y"], "Y", "i") |
+         illegal(t["e_label"], "Label", "l") |
+         illegal(t["f_value"], "Value", "l") |
+         illegal(t["g_length"], "Length", 1) |
+         illegal(t["g_length"], "Length", *t["f_value"])
+      then
+         next
+
+      object.id		:= t["a_id"]
+      object.proc	:= t["b_callback"]
+      object.label	:= t["e_label"]
+      object.value	:= t["f_value"]
+      object.length	:= t["g_length"]
+
+      unfocus_object(object)
+      EraseArea(object.x, object.y, object.w, object.h)
+
+      object.v.MaxChars := object.length
+      object.v.s := object.label
+      VSetState(object.v, object.value)
+      VResize(object.v)
+      object.w := object.v.aw
+
+      move_object(object, t["c_x"], t["d_y"] + CANVASY)
+      focus_object(object)
+      break
+   }
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure text_dialog(win, deftbl)
+static dstate
+initial dstate := dsetup(win,
+   ["text_dialog:Sizer::1:0,0,460,230:",],
+   ["_cancel:Button:regular::250,180,50,30:Cancel",],
+   ["_okay:Button:regular:-1:180,180,50,30:Okay",],
+   ["a_id:Text::40:13,14,360,19:ID:       \\=",],
+   ["b_callback:Text::40:13,35,360,19:callback: \\=",],
+   ["c_x:Text::3:13,62,101,19:       x: \\=",],
+   ["d_y:Text::3:13,83,101,19:       y: \\=",],
+   ["e_label:Text::50:13,109,430,19:   label: \\=",],
+   ["f_value:Text::50:13,130,430,19:   value: \\=",],
+   ["g_length:Text::3:258,83,185,19:maximum value length: \\=",],
+   )
+return dpopup(win, deftbl, dstate)
+end
+#===<<vib:end>>===	end of section maintained by vib

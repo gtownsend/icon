@@ -1,0 +1,248 @@
+############################################################################
+#
+#	File:     patterns.icn
+#
+#	Subject:  Procedures for SNOBOL4-style pattern matching
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 10, 1988
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#  These procedures provide procedural equivalents for most SNOBOL4
+#  patterns and some extensions. 
+#
+#  Procedures and their pattern equivalents are:
+#  
+#       Any(s)         ANY(S)
+#  
+#       Arb()          ARB
+#  
+#       Arbno(p)       ARBNO(P)
+#  
+#       Arbx(i)        ARB(I)
+#  
+#       Bal()          BAL
+#  
+#       Break(s)       BREAK(S)
+#  
+#       Breakx(s)      BREAKX(S)
+#  
+#       Cat(p1,p2)     P1 P2
+#  
+#       Discard(p)     /P
+#  
+#       Exog(s)        \S
+#  
+#       Find(s)        FIND(S)
+#  
+#       Len(i)         LEN(I)
+#  
+#       Limit(p,i)     P \ i
+#  
+#       Locate(p)      LOCATE(P)
+#  
+#       Marb()         longest-first ARB
+#  
+#       Notany(s)      NOTANY(S)
+#  
+#       Pos(i)         POS(I)
+#  
+#       Replace(p,s)   P = S
+#  
+#       Rpos(i)        RPOS(I)
+#  
+#       Rtab(i)        RTAB(I)
+#  
+#       Span(s)        SPAN(S)
+#  
+#       String(s)      S
+#  
+#       Succeed()      SUCCEED
+#  
+#       Tab(i)         TAB(I)
+#  
+#       Xform(f,p)     F(P)
+#  
+#     The following procedures relate to the application and control
+#  of pattern matching:
+#  
+#       Apply(s,p)     S ? P
+#  
+#       Mode()         anchored or unanchored matching (see Anchor
+#                      and Float)
+#  
+#       Anchor()       &ANCHOR = 1  if Mode := Anchor
+#  
+#       Float()        &ANCHOR = 0  if Mode := Float
+#  
+#  In addition to the procedures above, the following expressions
+#  can be used:
+#  
+#       p1() | p2()    P1 | P2
+#  
+#       v <- p()       P . V  (approximate)
+#  
+#       v := p()       P $ V  (approximate)
+#  
+#       fail           FAIL
+#  
+#       =s             S  (in place of String(s))
+#  
+#       p1() || p2()   P1 P2  (in place of Cat(p1,p2))
+#  
+#  Using this system, most SNOBOL4 patterns can be satisfactorily
+#  transliterated into Icon procedures and expressions. For example,
+#  the pattern
+#  
+#          SPAN("0123456789") $ N "H" LEN(*N) $ LIT
+#  
+#  can be transliterated into
+#  
+#          (n <- Span('0123456789')) || ="H" ||
+#             (lit <- Len(n))
+#  
+#  Concatenation of components is necessary to preserve the
+#  pattern-matching properties of SNOBOL4.
+#  
+#  Caveats: Simulating SNOBOL4 pattern matching using the procedures
+#  above is inefficient.
+#  
+############################################################################
+
+global Mode, Float
+
+procedure Anchor()			#  &ANCHOR = 1
+   suspend ""
+end
+
+procedure Any(s)			#  ANY(S)
+   suspend tab(any(s))
+end
+
+procedure Apply(s,p)			#  S ? P
+   local tsubject, tpos, value
+   initial {
+      Float := Arb
+      /Mode := Float			#  &ANCHOR = 0 if not already set
+      }
+   suspend (
+      (tsubject := &subject) &
+      (tpos := &pos) &
+      (&subject <- s) &
+      (&pos <- 1) &
+      (Mode() & (value := p())) &
+      (&pos <- tpos) &			# to restore on backtracking
+      (&subject <- tsubject) &		# note this sets &pos
+      (&pos <- tpos) &			# to restore on evaluation
+      value
+      )
+end
+
+procedure Arb()				#  ARB
+   suspend tab(&pos to *&subject + 1)
+end
+
+procedure Arbno(p)			#  ARBNO(P)
+   suspend "" | (p() || Arbno(p))
+end
+
+procedure Arbx(i)			#  ARB(I)
+   suspend tab(&pos to *&subject + 1 by i)
+end
+
+procedure Bal()				#  BAL
+   suspend Bbal() || Arbno(Bbal)
+end
+
+procedure Bbal()			#  used by Bal()
+   suspend (="(" || Arbno(Bbal) || =")") | Notany("()")
+end
+
+procedure Break(s)			#  BREAK(S)
+   suspend tab(upto(s) \ 1)
+end
+
+procedure Breakx(s)			#  BREAKX(S)
+   suspend tab(upto(s))
+end
+
+procedure Cat(p1,p2)			#  P1 P2
+   suspend p1() || p2()
+end
+
+procedure Discard(p)			#  /P
+   suspend p() & ""
+end
+
+procedure Exog(s)			#  \S
+   suspend s
+end
+
+procedure Find(s)			#  FIND(S)
+   suspend tab(find(s) + 1)
+end
+
+procedure Len(i)			#  LEN(I)
+   suspend move(i)
+end
+
+procedure Limit(p,i)			#  P \ i
+   local j
+   j := &pos
+   suspend p() \ i
+   &pos := j
+end
+
+procedure Locate(p)			#  LOCATE(P)
+   suspend tab(&pos to *&subject + 1) & p()
+end
+
+procedure Marb()			# max-first ARB
+   suspend tab(*&subject + 1 to &pos by -1)
+end
+
+procedure Notany(s)			#  NOTANY(S)
+   suspend tab(any(~s))
+end
+
+procedure Pos(i)			#  POS(I)
+   suspend pos(i + 1) & ""
+end
+
+procedure Replace(p,s)			#  P = S
+   suspend p() & s
+end
+
+procedure Rpos(i)			#  RPOS(I)
+   suspend pos(-i) & ""
+end
+
+procedure Rtab(i)			#  RTAB(I)
+   suspend tab(-i)
+end
+
+procedure Span(s)			#  SPAN(S)
+   suspend tab(many(s))
+end
+
+procedure String(s)			#  S
+   suspend =s
+end
+
+procedure Succeed()			#  SUCCEED
+   suspend |""
+end
+
+procedure Tab(i)			#  TAB(I)
+   suspend tab(i + 1)
+end
+
+procedure Xform(f,p)			#  F(P)
+   suspend f(p())
+end

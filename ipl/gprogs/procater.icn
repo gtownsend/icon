@@ -1,0 +1,185 @@
+############################################################################
+#
+#	File:     procater.icn
+#
+#	Subject:  Program to display concatenation sizes
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 18, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program displays successive numbers by lines of corresponding
+#  height.  When the display area is full, it scrolls from right to
+#  left.
+#
+#  In this version, input is piped in.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: interact, vsetup
+#
+############################################################################
+
+link interact
+link vsetup
+
+global vidgets
+global root
+global strip
+global state
+global gc_gray
+global gc_black
+global reset
+global scale
+
+global width
+global height
+
+procedure main(args)
+
+   init(args)
+
+   display()
+
+end
+
+procedure init(args)
+
+   WOpen ! ui_atts()
+
+   vidgets := ui()
+
+   root := vidgets["root"]
+
+   state := &null
+   scale := 1
+
+   width :=  vidgets["strip"].uw
+   height :=  vidgets["strip"].uh
+
+   strip := Clone("dx=" || vidgets["strip"].ux, "dy=" || vidgets["strip"].uy)
+   Clip(strip, 0, 0, width, height)
+   gc_gray := Clone(strip, "fg=gray")
+   gc_black := Clone(strip, "fg=black")
+
+end
+
+procedure display()
+   local n, gc
+
+   repeat {
+      repeat {
+         while (*Pending() > 0) | \state do
+            ProcessEvent(root, , shortcuts)
+         n := read() | {
+            Notice("End of data.")
+            fail
+            }
+         n ? {
+            if ="a" then {
+               n := tab(0)
+               gc := gc_gray
+               }
+            else gc := gc_black
+            }
+         n := scale * integer(n) | {
+            Notice("Nonnumeric data; terminating.")
+            break
+            }
+         n >:= height			# Motif bug avoidance
+         CopyArea(strip, 1, 0, width - 1, height, 0, 0)
+         EraseArea(strip, width - 1, 0, width, height)
+         DrawLine(gc, width - 1, height - n, width - 1, height)
+         }
+   }
+
+end
+
+procedure file_cb(vidget, value)
+
+   case value[1] of {
+      "snapshot  @S":  return snapshot(strip, 0, 0, width, height)
+      "quit      @Q":  exit()
+      }
+   
+   fail
+
+end
+
+procedure configure_cb(vidget, value)
+
+   case value[1] of {
+      "scale":  {
+         repeat {
+            if TextDialog(, "scale", scale, 10) == "Okay" then {
+               scale := (0 < numeric(dialog_value[1])) | {
+                  Notice("Invalid scale value.")
+                  next
+                  }
+               reset_cb()
+               return
+               }
+            else fail			# user canceled
+            }
+         }
+      }
+
+   fail
+
+end
+procedure pause_cb(vidget, value)
+
+   state := value
+
+   return
+
+end
+
+procedure reset_cb()
+
+   EraseArea(strip)
+
+   return
+
+end
+
+procedure shortcuts(e)
+
+   if &meta then
+      case map(e) of {
+         "q":  exit()
+         "s":  return snapshot(strip, 0, 0, width, height)
+         }
+   else fail
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=477,255", "bg=gray-white"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,477,255:",],
+   ["configure:Menu:pull::36,0,71,21:Configure",configure_cb,
+      ["scale"]],
+   ["file:Menu:pull::0,1,36,21:File",file_cb,
+      ["open      @O","snapshot  @S","quit      @q"]],
+   ["line1:Line:::0,22,477,22:",],
+   ["pause:Button:regular:1:11,43,42,20:pause",pause_cb],
+   ["reset:Button:regular::11,76,42,20:reset",reset_cb],
+   ["strip:Rect:grooved::63,37,400,200:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

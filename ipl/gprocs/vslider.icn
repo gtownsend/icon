@@ -1,0 +1,387 @@
+############################################################################
+#
+#	File:     vslider.icn
+#
+#	Subject:  Procedures for sliders
+#
+#	Authors:  Jon Lipp and Gregg M. Townsend
+#
+#	Date:     April 1, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Vidgets defined in this file:
+#	Vvslider
+#	Vhslider
+#
+#  Utility procedures in this file:
+#	Vvert_slider()
+#	Vhoriz_slider()
+#
+############################################################################
+#
+#  Includes: vdefns.icn
+#
+############################################################################
+#
+#  Links:  vidgets
+#
+############################################################################
+
+link vidgets
+
+$include "vdefns.icn"
+
+record Vslider_rec (win, callback, id, aw, ah, discont,
+   ax, ay, data, pad, ws, cv_range, rev, pos, uid, drawn, P, V)
+
+############################################################################
+# Vvslider
+############################################################################
+
+procedure procs_Vvslider()
+   static procs
+   initial procs := Vstd(event_Vvslider, draw_Vvslider, outline_Vslider,
+                        resize_Vvslider, inrange_Vpane, init_Vvslider,
+                        couplerset_Vvslider,,,,,set_value_Vvslider)
+   return procs
+end
+
+procedure Vvslider(params[])
+   local self
+
+   self := Vslider_rec ! params[1:7|0]
+   Vwin_check(self.win, "Vvert_slider()")
+   if (\self.aw, not numeric(self.aw) ) then
+      _Vbomb("invalid width parameter to Vvert_slider()")
+   if (\self.ah, not numeric(self.ah) ) then
+      _Vbomb("invalid length parameter to Vvert_slider()")
+   
+   self.uid := Vget_uid()
+   self.V := procs_Vvslider()
+   self.P := Vstd_pos()
+
+   self.V.init(self)
+   return self
+end
+
+procedure draw_Vvslider(s)
+local val
+
+   s.drawn := 1
+   s.V.outline(s)
+   val := (s.callback.value - s.callback.min) * s.ws / s.cv_range
+   if \s.rev then
+      val := s.ws - val + s.pad
+   else
+      val +:= s.pad
+   s.pos := val
+   draw_Vvslider_bar(s)
+end
+
+procedure event_Vvslider(s, e)
+local value
+
+   if \s.callback.locked then fail
+   if e === (&lpress|&mpress|&rpress) then
+      until e === (&lrelease|&mrelease|&rrelease) do {
+         value := ((&y - s.ay - s.pad) / s.ws) * s.cv_range
+         if \s.rev then
+            s.callback.V.set(s.callback, s, s.callback.max - value, s.discont)
+         else
+            s.callback.V.set(s.callback, s, s.callback.min + value, s.discont)
+         s.data := s.callback.value
+         update_Vvslider(s, 1)
+         e := Event(s.win)
+         }
+   else
+      fail				# not our event
+   if \s.discont then
+      s.callback.V.set(s.callback, s, s.callback.value)
+   update_Vvslider(s)
+   return s.callback.value
+end
+
+procedure update_Vvslider(s, active)
+local val
+
+   val := (s.callback.value - s.callback.min) * s.ws / s.cv_range
+   if \s.rev then
+      val := s.ws - val + s.pad
+   else
+      val +:= s.pad
+   s.pos := val
+   draw_Vvslider_bar(s, active)
+   return s.callback.value
+end
+
+procedure draw_Vvslider_bar(s, active)
+local ww, d
+
+   ww := s.aw - 4
+   EraseArea(s.win, s.ax + 2, s.ay + 2, ww, s.ah - 4)
+   if \active then {
+      d := -1
+      FillRectangle(s.win, s.ax + 4, s.ay + s.pos - ww + 2, ww - 4, 2 * ww - 4)
+      }
+   else
+      d := 1
+   BevelRectangle(s.win, s.ax + 2, s.ay + s.pos - ww, ww, 2 * ww, d)
+   BevelRectangle(s.win, s.ax + 3, s.ay + s.pos, ww - 2, 1 - ww, d)
+   BevelRectangle(s.win, s.ax + 3, s.ay + s.pos, ww - 2, ww - 1, d)
+end
+
+procedure set_value_Vvslider(s, value)
+   couplerset_Vvslider(s, , value)
+   return
+end
+
+procedure couplerset_Vvslider(s, caller, value)
+
+   value := numeric(value) | s.callback.min
+   if s.callback.value === value then fail
+   s.callback.V.set(s.callback, caller, value)
+   s.data := s.callback.value
+   if \s.drawn then
+      update_Vvslider(s)
+end
+
+procedure init_Vvslider(s)
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   /s.aw := VSlider_DefWidth
+   /s.ah := VSlider_DefLength
+   s.aw <:= VSlider_MinWidth
+   s.ah <:= VSlider_MinAspect * s.aw
+   if /s.callback | type(s.callback) == "procedure" then
+      _Vbomb("Vvslider requires a coupler variable callback")
+   s.pad := s.aw - 2
+   s.ws := real(s.ah - 2 * s.pad)
+   s.cv_range := s.callback.max - s.callback.min
+   init_Vpane(s)
+end
+
+procedure resize_Vvslider(s, x, y, w, h)
+
+   resize_Vidget(s, x, y, w, h)
+   if s.aw > s.ah then {
+      s.V := procs_Vhslider()
+      return s.V.resize(s, x, y, w, h)
+      }
+   s.pad := s.aw - 2
+   s.ws := real(s.ah - 2 * s.pad)
+   s.cv_range := s.callback.max - s.callback.min
+end
+
+
+############################################################################
+# Vhslider 
+############################################################################
+
+procedure procs_Vhslider()
+   static procs
+
+   initial procs := Vstd(event_Vhslider, draw_Vhslider, outline_Vslider,
+                        resize_Vhslider, inrange_Vpane, init_Vhslider,
+                        couplerset_Vhslider,,,,,set_value_Vhslider)
+   return procs
+end
+
+procedure Vhslider(params[])
+   local self
+
+   self := Vslider_rec ! params[1:7|0]
+   self.aw :=: self.ah
+   Vwin_check(self.win, "Vhoriz_slider()")
+   if (\self.ah, not numeric(self.ah) ) then
+      _Vbomb("invalid width parameter to Vhoriz_slider()")
+   if (\self.aw, not numeric(self.aw) ) then
+      _Vbomb("invalid length parameter to Vhoriz_slider()")
+
+   self.uid := Vget_uid()
+   self.V := procs_Vhslider()
+   self.P := Vstd_pos()
+
+   self.V.init(self)
+   return self
+end
+
+procedure draw_Vhslider(s)
+local val
+
+   s.drawn := 1
+   s.V.outline(s)
+   val := (s.callback.value - s.callback.min) * s.ws / s.cv_range
+   if \s.rev then
+      val := s.ws - val + s.pad
+   else
+      val +:= s.pad
+   s.pos := val
+   draw_Vhslider_bar(s)
+end
+
+procedure event_Vhslider(s, e)
+local value
+
+   if \s.callback.locked then fail
+   if e === (&lpress|&mpress|&rpress) then
+      until e === (&lrelease|&mrelease|&rrelease) do {
+         value := ((&x - s.ax - s.pad) / s.ws) * s.cv_range
+         if \s.rev then
+            s.callback.V.set(s.callback, s, s.callback.max - value, s.discont)
+         else
+            s.callback.V.set(s.callback, s, s.callback.min + value, s.discont)
+         s.data := s.callback.value
+         update_Vhslider(s, 1)
+         e := Event(s.win)
+         }
+   else
+      fail				# not our event
+   if \s.discont then
+      s.callback.V.set(s.callback, s, s.callback.value)
+   update_Vhslider(s)
+   return s.callback.value
+end
+
+procedure update_Vhslider(s, active)
+local val
+
+   val := (s.callback.value - s.callback.min) * s.ws / s.cv_range
+   if \s.rev then
+      val := s.ws - val + s.pad
+   else
+      val +:= s.pad
+   s.pos := val
+   draw_Vhslider_bar(s, active)
+   return s.callback.value
+end
+
+procedure draw_Vhslider_bar(s, active)
+local hh, d
+
+   hh := s.ah - 4
+   EraseArea(s.win, s.ax + 2, s.ay + 2, s.aw - 4, hh)
+   if \active then {
+      d := -1
+      FillRectangle(s.win, s.ax + s.pos - hh + 2, s.ay + 4, 2 * hh - 4, hh - 4)
+      }
+   else
+      d := 1
+   BevelRectangle(s.win, s.ax + s.pos - hh, s.ay + 2, 2 * hh, hh, d)
+   BevelRectangle(s.win, s.ax + s.pos, s.ay + 3, 1 - hh, hh - 2, d)
+   BevelRectangle(s.win, s.ax + s.pos, s.ay + 3, hh - 1, hh - 2, d)
+end
+
+procedure set_value_Vhslider(s, value)
+   couplerset_Vhslider(s, , value)
+   return
+end
+
+procedure couplerset_Vhslider(s, caller, value)
+
+## break a cycle in callbacks by checking value.
+   value := numeric(value) | s.callback.min
+   if s.callback.value === value then fail
+   s.callback.V.set(s.callback, caller, value)
+   s.data := s.callback.value
+   if \s.drawn then
+      update_Vhslider(s)
+end
+
+procedure init_Vhslider(s)
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   /s.ah := VSlider_DefWidth
+   /s.aw := VSlider_DefLength
+   s.ah <:= VSlider_MinWidth
+   s.aw <:= VSlider_MinAspect * s.ah
+   if /s.callback | type(s.callback) == "procedure" then
+      _Vbomb("Vhslider requires a coupler variable callback")
+   s.pad := s.ah - 2
+   s.ws := real(s.aw - 2 * s.pad)
+   s.cv_range := s.callback.max - s.callback.min
+   init_Vpane(s)
+end
+
+procedure resize_Vhslider(s, x, y, w, h)
+
+   resize_Vidget(s, x, y, w, h)
+   if s.aw < s.ah then {
+      s.V := procs_Vvslider()
+      return s.V.resize(s, x, y, w, h)
+      }
+   s.pad := s.ah - 2
+   s.ws := real(s.aw - 2 * s.pad)
+   s.cv_range := s.callback.max - s.callback.min
+end
+
+############################################################################
+# Utilities - slider wrapper procedures.
+############################################################################
+
+procedure outline_Vslider(s)
+   BevelRectangle(s.win, s.ax, s.ay, s.aw, s.ah, -2)	# draw trough
+end
+
+procedure Vmake_slider(slider_type, w, callback, id, length, width,
+                       min, max, init, discontinuous)
+local cv, sl, cb, t
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   /min := 0
+   /max := 1.0
+   if not numeric(min) | not numeric(max) | (\init, not numeric(init)) then
+      _Vbomb("non-numeric min, max, or init parameter passed to Vxxxxx_slider()")
+   if max < min then { min :=: max; t := 1 }
+   cv := Vrange_coupler(min, max, init)
+   sl := slider_type(w, cv, id, width, length, discontinuous)
+   sl.rev := t
+   
+   add_clients_Vinit(cv, callback, sl)
+   return sl
+end
+
+############################################################################
+# Vvert_slider(w, callback, id, width, length, lower_bound, upper_bound,
+#              initial_value) 
+############################################################################
+procedure Vvert_slider(params[])
+local frame, x, y, ins, t, self
+
+   if ins := Vinsert_check(params) then {
+      frame := pop(params); x := pop(params); y:= pop(params)
+      }
+
+   params[6] :=: params[7]
+   push(params, Vvslider)
+   self :=  Vmake_slider ! params
+   if \ins then VInsert(frame, self, x, y)
+   return self
+end
+
+############################################################################
+# Vhoriz_slider(w, callback, id, width, length, left_bound, right_bound,
+#              initial_value) 
+############################################################################
+procedure Vhoriz_slider(params[])
+local frame, x, y, ins, self
+
+   if ins := Vinsert_check(params) then {
+      frame := pop(params); x := pop(params); y:= pop(params)
+      }
+
+   push(params, Vhslider)
+   self :=  Vmake_slider ! params
+   if \ins then VInsert(frame, self, x, y)
+   return self
+end

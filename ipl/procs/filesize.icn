@@ -1,0 +1,35 @@
+############################################################################
+#
+#	File:     filesize.icn
+#
+#	Subject:  Procedure to get the size of a file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 9, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  filesize(s)	returns the number of characters in the file named s; it
+#		fails if s cannot be opened.
+#
+############################################################################
+
+procedure filesize(s)			#: file size
+   local input, size
+
+   input := open(s) | fail
+
+   size := 0
+
+   while size +:= *reads(input, 10000)
+
+   close(input)
+
+   return size
+
+end

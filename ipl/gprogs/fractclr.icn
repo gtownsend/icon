@@ -1,0 +1,36 @@
+############################################################################
+#
+#	File:     fractclr.icn
+#
+#	Subject:  Program to map Fractint color maps to Icon color lists
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 1, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#   This program converts Fractint .map files to lists of Icon colors.
+#
+############################################################################
+
+procedure main()
+   local line, output
+
+   while line := read() do
+      line ? {
+         tab(upto(&digits))
+         writes(tab(many(&digits)) * 256, ",")
+         tab(upto(&digits))
+         writes(tab(many(&digits)) * 256, ",")
+         tab(upto(&digits))
+         writes(tab(many(&digits)) * 256)
+         if not pos(0) then write(output, "\t", tab(0))
+         else write(output)
+         }
+
+end

@@ -1,0 +1,46 @@
+############################################################################
+#
+#	File:     patword.icn
+#
+#	Subject:  Procedures to find letter patterns
+#
+#	Author:   Kenneth Walker
+#
+#	Date:     December 2, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     The procedure patword(s) returns a letter pattern in which each
+#  different character in s is assigned a letter.  For example,
+#  patword("structural") returns "abcdebdcfg".
+#
+############################################################################
+
+procedure patword(s)
+    local numbering, orderS, orderset, patlbls
+    static labels, revnum
+
+    initial {
+	labels := &lcase || &lcase
+	revnum := reverse(&cset)
+	}
+
+# First map each character of s into another character, such that the
+# the new characters are in increasing order left to right (note that
+# the map function chooses the rightmost character of its second
+# argument, so things must be reversed.
+#
+# Next map each of these new characters into contiguous letters.
+
+    numbering := revnum[1 : *s + 1] | stop("word too long")
+    orderS := map(s, reverse(s), numbering)
+    orderset := string(cset(orderS))
+    patlbls := labels[1 : *orderset + 1] | stop("too many characters")
+
+    return map(orderS, orderset, patlbls)
+
+end

@@ -1,0 +1,93 @@
+############################################################################
+#
+#	File:     filecnvt.icn
+#
+#	Subject:  Program to convert line terminators
+#
+#	Author:   Beth Weiss
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This program copies a text file, converting line terminators. It is
+#  called in the form
+#
+#	filecnvt [-i s1] [-o s2] infile outfile
+#
+#  The file name "-" is taken to be standard input or output, depending
+#  on its position, although standard input/output has limited usefulness,
+#  since it translates line terminators according the the system
+#  being used.
+#
+#     The options are:
+#
+#	-i s1	assume the input file has line termination for the
+#  		  system designated by s1. The default is "u".
+#
+#	-o s2	write the output file with line terminators for the
+#		  system designated by s2. The default is "u".
+#
+#  The designations are:
+#
+#	d	MS-DOS ("\n\r"); also works for the Atari ST
+#	m	Macintosh ("\r")
+#	u	UNIX ("\n"); also works for the Amiga
+#  
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local T, input, output, input_eoln, output_eoln, last_part, line, result
+
+   T := options(args, "i:o:")
+
+   if args[1] == "-" then
+      input := &input
+   else
+      input := open(args[1], "ru") | stop("*** cannot open ", args[1], "***")
+
+   if args[2] == "-" then
+      output := &output
+   else
+      output := open(args[2], "wu") | stop("*** cannot open ", args[2], "***")
+
+   input_eoln  := \eoln(T["i"]) | "\n"
+   output_eoln := \eoln(T["o"]) | "\n"
+
+   last_part := ""
+
+   while line := reads(input, 10000) do {	# magic number
+      (last_part || line) ? {
+         while result := tab(find(input_eoln)) do {
+            writes(output, result, output_eoln)
+            move(*input_eoln)
+         }
+         # Saving the last part of each read and prepending it to the next
+         # ensures that eoln symbols that span reads aren't missed.
+         last_part := tab(0)
+      }
+   }
+
+   writes(output, last_part)
+
+   close(input)
+   close(output)
+end
+
+procedure eoln(file_type)
+   case file_type of {
+      "u" : return "\n"
+      "d" : return "\r\n"
+      "m" : return "\r"
+   }
+end

@@ -1,0 +1,616 @@
+############################################################################
+#
+#	File:     vc.icn
+#
+#	Subject:  Program to coordinate visualization programs
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 1, 1997
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program loads and runs multiple MPs.  It is based on the original
+#  visualization coordinator, Eve, written by Clint Jeffery.
+#
+#  This is a work in progress.  At the moment, it works in demonstration
+#  mode with only hard-coded SPs and MPs available.
+#
+#  The following interface features are provided:
+#
+#	File menu
+#
+#	   snapshot @S	   take snapshot of selected visualization
+#	   quit     @Q     exit from vc
+#
+#	Pause toggle (@P) to stop and start visualization
+#
+#	Speed control slider for SP events
+#
+#	Display of clock ticks in SP
+#
+############################################################################
+#
+#  The following features remain to be implemented:
+#
+#     disabling and enabling MPs
+#     adding and removing MPs
+#     specification of SPs and MPs not in hard-coded list
+#     specification of input data for SPs
+#     attempt to position MP windows in a useful way
+#     provide for changing SPs
+#     provide for continued visualization when SP terminates
+#
+#  Also, there are numerous small problems that need to be fixed, as
+#  well as better documentation.
+#
+############################################################################
+#
+#  Requires:  Version 9 MT Icon, event monitoring, and graphics
+#
+############################################################################
+#
+#  Links:  basename, evutils, interact, lists, vsetup
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+link basename
+link evutils
+link interact
+link lists
+link vsetup
+
+$include "evdefs.icn"
+
+$define EventIter 10		# number of SP events per check on interface
+
+$define BlkSize 500000		# region sizes for SP and MPs
+$define StrSize 500000
+$define MstkSize 20000
+
+$define On   1			# initial selection states for MPs
+$define Off  &null
+
+#  vc's knowledge about MPs is stored in a list of records of type "mp_rec".
+
+record mp_rec(name, prog, mask, enabled)
+
+global mps                      # list of EMs
+global mpath			# path to MPs
+global spath			# path to SPs and data
+global pause			# pause vidget
+global unioncset                # union of MPs' csets
+global root                     # root vidget
+global EventCodeTable           # table of MPs to call for each event
+global delayval                 # amount of delay per event
+global candidates               # list of potential MPs to run
+global ticksum                  # number of clock ticks elapsed in SP
+global vc_handlers               # procedures for each event vc handles itself
+global vc_queue 	        # queue used for MP-MP communication
+global vidgets			# table of vidgets
+global state			# paused/running toggle
+global mps_names		# MP names
+global mps_selected		# MPs selected
+global program			# SP
+
+global SourceProgram		# source-code file for SP
+global Coordination		# indicate MPs are running under a coordinator
+
+procedure main()
+
+   init()			# initialize interface, SP, and MPs
+
+   run()			# process events
+
+end
+
+procedure able_mps()
+   local mp_names, mp_enabled, rec, i
+
+   mp_names := []
+   mp_enabled := []
+
+   every rec := !mps do {
+      put(mp_names, rec.name)
+      put(mp_enabled, rec.enabled)
+      }
+
+   if ToggleDialog("MP state", mp_names, mp_enabled) ==
+      "Cancel" then fail
+
+   every i := 1 to *mps do
+      mps[i].enabled := dialog_value[i]
+
+   union_mask()
+
+   return
+
+end
+
+procedure add_mps()
+   local i
+
+   if ToggleDialog( "Select monitoring programs:", mps_names, mps_selected) ==
+      "Cancel" then fail
+
+   mps_selected := candidates := dialog_value
+
+   mps := []
+
+   every i := 1 to *candidates do {
+      if /candidates[i] then next		# skip unselected MPs
+      else put(mps, mp(mpath || mps_names[i]))
+      }
+
+   every i := 1 to *mps do
+      mps[i].mask := @mps[i].prog
+
+   union_mask()
+
+   return
+
+end
+
+# broadcast() - send event to interested MPs
+#
+procedure broadcast(x, except)
+
+   /vc_queue := []
+
+   put(vc_queue, x, except)
+
+   flush_queue()
+
+   return
+
+end
+
+#  Write the current elapsed SP clock ticks.
+#
+procedure drawtime(val)
+   static odo, odo_x, odo_y
+
+   initial {
+      odo := vidgets["odometer"]
+      odo_x := vidgets["odometer"].ax
+      odo_y := vidgets["odometer"].ay + vidgets["odometer"].ah - 6
+      }
+
+   GotoXY(odo_x, odo_y)
+   WWrites(right(val, 6))
+
+end
+
+#  Handle file menu.
+#
+procedure file_cb(vidget, value)
+
+   case value[1] of {
+      "quit     @Q":  exit()
+      "snapshot @S":  snap_view()
+      }
+
+   return
+
+end
+
+#  Flush events produced during MP-MP communcation. This code is similar to
+#  vc's main loop.
+#
+procedure flush_queue()
+   local c, mask, x, except, monitor
+
+   while *vc_queue > 0 do {
+      x := pop(vc_queue)
+      except := pop(vc_queue) |
+         ExitNotice("Malformed broadcast queue.")
+      every monitor := (except ~=== !mps) do
+	 if mask := event( , , monitor.prog) then {
+	    if mask ~=== monitor.mask then {
+	       while type(mask) ~== "cset" do {
+		  #
+		  # An MP (probably) has raised a flag.
+		  # Pass it on to all the others except the mp itself.
+		  #
+		  put(vc_queue, mask)
+		  put(vc_queue, monitor)
+		  if not (mask := event( , , monitor.prog)) then
+         	     unschedule(monitor)	# MP terminated
+                  break next
+		  }
+	       if monitor.mask ~===:= mask then
+		  union_mask()
+	       }
+	    }
+	 else {
+            unschedule(monitor)			# MP terminated
+	    break
+	    }
+      }
+
+end
+
+#  Initialize the vc, load SP, load MPs.
+#
+procedure init()
+   local i, attribs, info
+
+   Coordination := 1				# post vc's presence
+
+   mpath := "/home/ralph/ibin/"
+   spath := "/home/ralph/SVP/SPs/"
+
+   attribs := ui_atts()				# vc's window attributes
+   push(attribs, "posx=10", "posy=10")		# add initial positioning
+
+   (WOpen ! attribs) | stop("*** can't open window for vc")
+
+   vidgets := ui()				# table of vidgets
+     
+   root := vidgets["root"]			# root vidget
+
+   delayval := 0				# start at fastest speed
+   VSetState(vidgets["speed"], delayval)
+
+   pause := vidgets["pause"]
+   VSetState(pause, 1)				# start paused to allow setup
+
+   ticksum := 0
+
+   load_prg() | ExitNotice("Monitoring cancelled in specifying SP.")
+
+   vc_handlers := table()		# procedures for events vc handles
+
+   vc_handlers[E_Tick] := vc_tick			
+   vc_handlers[E_Error] := vc_error
+
+   mps_names := [
+      "program",
+      "roll",
+      "algae",
+      "napoleon",
+      "allocviews",
+      "tinylist",
+      "scater",
+      "locus"
+      ]
+   mps_selected := [
+      On,		# program
+      On,		# roll
+      Off,		# algae
+      Off,		# napoleon
+      Off,              # allocviews
+      Off,              # tinylist
+      Off,              # scater
+      Off		# locus
+      ]
+
+   add_mps() | ExitNotice("Monitoring cancelled in specifying MPs.")
+
+   info := WOpen("lines=" || *mps + 5, "columns=32", "bg=white-gray",
+      "label=monitoring")
+
+   WWrite(info, " SP: ", basename(program))
+   WWrite(info)
+   WWrite(info, " MPs:")
+   every WWrite(info, "     ", basename((!mps).name))
+
+   Raise()	# bring control window to the front (may not make active)
+
+   return
+
+end
+
+# Load SP.
+
+procedure load_prg()
+   static input, sps
+
+   initial {
+      sps := [
+         "chess",		# chess playing
+         "concord",		# concordance
+         "macho",		# recursive descent parsing
+         "sortnews",		# news sorting
+         "pool",		# population growth
+         "singles",		# bridge tournamen scheduling
+#        "beards",		# parser constructor
+#        "yhcheng",		# line editor
+         "rsg"			# random sentence generation
+         ]
+      }
+
+   repeat {
+      SelectDialog( "Select source program:", sps, sps[1]) == "Okay" | fail
+
+      program := spath || dialog_value
+      SourceProgram := program || ".icn"
+
+      #  Note:  Currently, the input data for the SP must be in the same
+      #  directory as the SP, have the same base name as the SP, and
+      #  have the suffix ".dat".
+
+      &eventsource := load(
+         program,
+         ,
+         open(spath || dialog_value || ".dat"),
+         open("/dev/null", "w"),
+         open("/dev/null", "w"),
+         BlkSize,
+         StrSize,
+         MstkSize
+         ) | {
+            Notice("Can't load " || dialog_value || ".")
+            next
+            }
+
+      return
+
+      }
+
+end
+
+# mp() - create and initialize a mp_rec.
+#
+procedure mp(name)
+   local rec
+
+   rec := mp_rec(name)
+   rec.prog := load(
+      rec.name,
+      ,
+      &input,
+      &output,
+      &errout,
+      BlkSize,
+      StrSize,
+      MstkSize
+      ) | ExitNotice("Can't load " || image(rec.name) || ".")
+
+   variable("&eventsource", rec.prog) := &current |
+      ExitNotice("Internal inconsistency; no event source.")
+
+   every variable("Monitored" | "EventSource", rec.prog) := &eventsource
+
+   /rec.mask := ''
+   /rec.enabled := 1
+
+   return rec
+
+end
+
+#  Handle pause toggle.
+
+procedure pause_cb(vidget, value)
+
+   state := value
+
+   return
+
+end
+
+#  vc's main loop
+#
+procedure run()
+   local monitor, mask
+
+   repeat {							
+      delay(delayval)
+
+      #  Process interface events before going on to SP events.
+
+      while (*Pending() > 0) | \state do
+         ProcessEvent(root, , shortcuts)
+  
+      #  Process several SP events before going back to check for
+      #  interface events.
+
+      every 1 to EventIter do {
+         EvGet(unioncset) | Exit()		# exit on termination of SP
+
+         # Call vc's own handler for this event, if there is one.
+
+         (\vc_handlers[&eventcode])()
+
+         # Forward the event to those MPs that want it.
+
+         every monitor := !EventCodeTable[&eventcode] do {	
+            if mask := event( , , monitor.prog) then {		
+	       if mask ~=== monitor.mask then {			
+	          while type(mask) ~== "cset" do {			
+
+                     # The MP (probably) has raised a signal; pass it on, then
+                     # return to the mp to get his next event request.
+
+                     broadcast(mask, monitor)
+                     if not (mask := event( , , monitor.prog)) then {	
+                        unschedule(monitor)	# MP terminated
+                        break next
+		        }						
+                     }
+                  if monitor.mask ~===:= mask then union_mask()
+                  }						
+               }
+            else unschedule(monitor)		# MP terminated
+            }
+         }							
+      }								
+
+end
+
+#  Exit when SP is done.
+
+procedure Exit()
+
+   ExitNotice("Source program terminated normally.")
+
+end
+
+#  Handle keyboard shortcuts.
+
+procedure shortcuts(e)
+
+   if &meta then
+      case map(e) of {			# fold case
+         "s":   snap_view()
+         "q":	exit()			
+         "p":   VSetState(pause, if \state then &null else 1)
+         }
+
+   return
+
+end
+
+#  Take snapshot of MP's visualization window.
+
+procedure snap_view()
+   local mp_names, rec, win
+
+   mp_names := []
+
+   every rec := !mps do
+      put(mp_names, basename(rec.name))
+
+   if SelectDialog("Select MP visualization:", mp_names) == "Cancel" then fail
+
+   dialog_value := mpath || dialog_value
+
+   every rec := !mps do
+      if rec.name == dialog_value then {
+         win := \variable("Visualization", rec.prog) |
+            return FailNotice("No image available from " || rec.name)
+         snapshot(
+            win,
+            0,
+            0,
+            \WAttrib(win, "clipw" | "width"),
+            \WAttrib(win, "cliph" | "height")
+            ) | return FailNotice("Cannot produce image file.")
+         return
+         }
+
+   return FailNotice("MP not found.")
+
+end
+
+#  Control speed of event stream.
+
+procedure speed_cb(vidget, value)
+
+   delayval := sqrt(value)
+
+   return
+
+end
+
+#  Determine the set of events required by the union of all MPs, including
+#  vc's and user input needs.
+#
+procedure union_mask()
+   local monitor, c
+   static tickset
+
+   initial tickset := E_Tick ++ E_Error
+
+   #  EventCodeTable is keyed by events.  For each event, the corresponding
+   #  value is a list of MPs that need that event.
+
+   EventCodeTable := table()
+   EventCodeTable[E_Tick] := []
+   EventCodeTable[E_Error] := []
+
+   unioncset := tickset
+
+   #  Go through the list of MPs, and for each one that is currently
+   #  enabled, add it to the list for each of its event codes.
+
+   every monitor := !mps do {
+      if \monitor.enabled then {
+	 unioncset ++:= monitor.mask
+	 every c := !monitor.mask do {
+            /EventCodeTable[c] := []
+	    put(EventCodeTable[c], monitor)
+	    }
+	 }
+      }
+
+   return
+
+end
+
+#  Remove MP from list of MPs.
+#
+procedure unschedule(MP)
+   local newmps, monitor
+
+   mps := lremvals(mps, MP)		# remove MP
+
+   union_mask()				# recompute the union mask
+
+   return
+
+end
+
+#  Handle run-time error in SP.
+#
+procedure vc_error()
+
+   #  If error conversion is on in the SP, ignore the error.
+   #  Otherwise, display the error information and then terminate
+   #  monitoring.
+
+   if keyword("error", &eventsource) = 0 then 
+      ExitNotice(
+         "run-time error " || image(&eventvalue),
+         "",
+	 "file " || keyword("file", &eventsource) ||
+            ", line " || keyword("line", &eventsource),
+         "",
+	 keyword("errortext", &eventsource),
+         "",
+	 "offending value: " || image(keyword("errorvalue", &eventsource))
+         )
+
+   else return
+         
+end
+
+#  Handle clock tick events in the SP.
+#
+procedure vc_tick()
+
+   drawtime(ticksum +:= &eventvalue)
+
+   return
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=253,220", "bg=gray-white", "label=vc"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,253,220:visualization coordinator",],
+   ["elapsed:Label:::10,156,91,13:elapsed time:",],
+   ["fast:Label:::209,103,28,13:fast",],
+   ["file:Menu:pull::1,2,36,21:File",file_cb,
+      ["snapshot @S","quit     @Q"]],
+   ["label1:Label:::151,156,77,13:clock ticks",],
+   ["line1:Line:::0,25,252,25:",],
+   ["pause:Button:regular:1:10,54,50,20:pause",pause_cb],
+   ["slow:Label:::10,103,28,13:slow",],
+   ["speed:Slider:h:1:48,103,150,15:100,0,0",speed_cb],
+   ["odometer:Rect:invisible::103,153,41,20:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

@@ -1,0 +1,122 @@
+############################################################################
+#
+#	File:     callcnt.icn
+#
+#	Subject:  Program to count calls
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 8, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program tabulates calls in a monitored program.
+#
+############################################################################
+#
+#  Links:  evinit, opsyms
+#
+############################################################################
+#
+#  Requires:  MT Icon and event monitoring
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+link evinit
+link opsyms
+
+$include "evdefs.icn"
+
+procedure main(args)
+   local opertable, fnctable, rectable, proctable, opmap, output, mask, oper
+   local count, fnc
+
+   EvInit(args)
+
+   opertable := table(0)
+   fnctable := table(0)
+   proctable := table(0)
+
+   opmap := opsyms()
+
+   output := open("callcnt", "x", "height=800",	# If this fails, output goes to
+      "width=200")				# standard output
+
+   write(output, " Tabulating calls for ", args[1])
+
+   mask := E_Ocall ++ E_Fcall ++ E_Pcall
+
+   while EvGet(mask) do
+      case &eventcode of {
+         E_Ocall:  opertable[&eventvalue] +:= 1
+         E_Fcall:  fnctable[&eventvalue] +:= 1
+         E_Pcall:  proctable[&eventvalue] +:= 1
+         }
+
+   opertable := sort(opertable,3)
+   fnctable := sort(fnctable,3)
+   rectable :=copy(fnctable)
+   proctable := sort(proctable,3)
+
+   write(output, "\n operation calls\n")
+   while oper := get(opertable) do {
+      count := get(opertable)
+      write(output, " ", left(\opmap[oper], 20), right(count, 7))
+      }
+
+   write(output, "\n function calls\n")
+   while fnc := get(fnctable) do {
+      count := get(fnctable)
+      write(output, " ", left(fname(fnc), 20), right(count, 7))
+      }
+
+   write(output, "\n record constructor calls\n")
+   while fnc := get(rectable) do {
+      count := get(rectable)
+      write(output, " ", left(cname(fnc), 20), right(count, 7))
+      }
+
+   write(output, "\n procedure calls\n")
+   while write(output, " ", left(pname(get(proctable)), 20),
+      right(get(proctable), 7))
+
+   Event(\output)				# wait for event if window
+
+end
+
+procedure cname(f)
+
+   return image(f) ? {
+      ="function "
+      if ="record constructor " then return tab(0)
+      else fail
+      }
+
+end
+
+procedure fname(f)
+
+   return image(f) ? {
+      ="function "
+      if ="record constructor " then fail
+      else tab(0)
+      }
+
+end
+
+procedure pname(p)
+
+   return image(p) ? {
+      ="procedure "
+      tab(0)
+      }
+
+end

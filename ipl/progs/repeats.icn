@@ -1,0 +1,48 @@
+############################################################################
+#
+#	File:     repeats.icn
+#
+#	Subject:  Program to repeat stream
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 21, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program repeat the input stream.  The following options are
+#  supported:
+#
+#	-l i	limit on length of input stream; default 1000.
+#	-r i	number of time input stream is repeated; default no limit.
+#
+#  Note that the input stream must be limited, since it is stored internally.
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local opts, limit, repeats, values
+
+   opts := options(args, "l+r+")
+
+   limit := \opts["l"] | 1000
+   repeats := \opts["2"] | (2 ^ 20)		# kludge ...
+
+   values := []
+
+   every put(values, !&input) \ limit
+
+   every 1 to repeats do
+      every write(!values)
+
+end

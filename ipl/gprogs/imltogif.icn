@@ -1,0 +1,85 @@
+############################################################################
+#
+#	File:     imltogif.icn
+#
+#	Subject:  Program to convert image strings to GIF files
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 23, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program converts a list of image strings given in standard input
+#  to corresponding GIF images.
+#
+############################################################################
+#
+#  The options supported are:
+#
+#	-n s	sets prefix for image file names to s, default "image"
+#	-c i	number of columns for serial numbers in file names;
+#		  default 4
+#	-f i	first number, default 1
+#	-p	treats image string as a pattern and fills a square
+#		   window of its maximum dimension
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  imageseq, imutils, numbers, options, wopen
+#
+############################################################################
+
+link imageseq
+link imutils
+link numbers
+link options
+link wopen
+
+procedure main(args)
+   local count, ims, image, w, h, s, opts, pattern, prefix
+
+   count := 0
+
+   opts := options(args, "n:c+f+p")
+   /opts["c"] := 4
+
+   seq_init(opts)
+   pattern := opts["p"]
+
+   while ims := read() do {
+      count +:= 1
+      w := imswidth(ims)
+      h := imsheight(ims)
+      if (w | h) = 0 then {
+         write(&errout, "line ", count, ": bad image string")
+         next
+         }
+      if \pattern then w := h := max(w,h)
+      image := WOpen("canvas=hidden", "size=" || w || "," || h) | {
+         write(&errout, "line ", count, ": cannot open window")
+         next
+         }
+      if \pattern then {
+         WAttrib(image, "fillstyle=opaquepatterned")
+         Pattern(image, ims)
+         FillRectangle(image)
+         }
+      else DrawImage(image, 0, 0, ims) | {
+         write(&errout, "line ", count, ":  cannot draw image")
+         WClose(image)
+         next
+         }
+      save_image(image)
+      WClose(image)
+      }
+
+end

@@ -1,0 +1,603 @@
+############################################################################
+#
+#  vibfile.icn -- procedures for reading and writing specs to files
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+
+$include "vibdefn.icn"
+$include "vdefns.icn"
+
+############################################################################
+# constants and globals that are used only in this file:
+############################################################################
+$define PTITLE "#===<<vib prototype file>>==="
+$define HEADER "#===<<vib:begin>>===\tmodify using vib; do not remove this marker line"
+$define TRAILER "#===<<vib:end>>===\tend of section maintained by vib"
+$define XHEADER "#===<<xie:begin>>==="	# for detecting old files
+$define XTRAILER "#===<<xie:end>>==="
+$define HMATCH 20	# number of chars that must match in header
+$define TMATCH 18	# number of chars that must match in trailer
+global	USER_PREFIX,	# user code preceding spec
+        USER_SUFFIX	# user code following spec
+
+############################################################################
+# new_session() creates a new, empty VIB session
+############################################################################
+procedure new_session()
+   local fname
+
+   if not flush_session() then fail
+   SIZER := create_sizer()
+   clear_screen()
+   SESSION := newname()
+   label_session()
+   USER_PREFIX := USER_SUFFIX := &null
+   return
+end
+
+############################################################################
+# load_session() reads in a saved VIB session file so that it can be
+#                re-edited.
+############################################################################
+procedure load_session(s)
+   local line, ifile, l, o
+
+   ifile := open(s, "r") | fail
+   clear_screen()
+
+   USER_PREFIX := USER_SUFFIX := ""
+   while line := read(ifile) do {
+      if line ? match((HEADER | XHEADER)[1 +: HMATCH]) then
+         break
+      if line ? match("# Session Code:") then {
+         Notice("Old file format; use uix to convert")
+         USER_PREFIX := USER_SUFFIX := &null
+         fail
+         }
+      USER_PREFIX ||:= line
+      USER_PREFIX ||:= "\n"
+      line := &null
+      }
+
+   DIRTY := &null
+   if not (\line ? match((HEADER | XHEADER)[1 +: HMATCH])) then {
+      Notice("No interface section found; creating one")
+      USER_PREFIX ||:= "\n\n\n"
+      DIRTY := 1
+      }
+
+   while o := load_object(ifile) do case o.typ of {
+      "Button"    : init_object(load_button,       button_obj(),       o)
+      "Text"      : init_object(load_text_input,   text_input_obj(),   o)
+      "Scrollbar" : init_object(load_slider,       slider_obj(),       o)
+      "Slider"    : init_object(load_slider,       slider_obj(),       o)
+      "Line"      : init_object(load_line,         line_obj(),         o)
+      "Rect"      : init_object(load_rect,         rect_obj(),         o)
+      "Label"     : init_object(load_label,        label_obj(),        o)
+      "Message"   : init_object(load_label,        label_obj(),        o)
+      "Choice"    : init_object(load_radio_button, radio_button_obj(), o)
+      "Menu"      : init_object(load_menu,         menu_obj(),         o)
+      "Sizer"     : init_object(load_sizer,        sizer_obj(),        o)
+      "Check"     : init_object(load_xbox,         button_obj(),       o)
+      "List"      : init_object(load_list,         list_obj(),         o)
+      }
+
+   while USER_SUFFIX ||:= read(ifile) do
+      USER_SUFFIX ||:= "\n"
+   close(ifile)
+   return
+end
+
+#############################################################################
+# init_object() initializes an object record and calls a proc to register it.
+#############################################################################
+procedure init_object(proc, r, o)
+   r.id := o.id
+   r.proc := o.proc
+   r.x := integer(o.x)
+   r.y := o.y + CANVASY
+   r.w := integer(o.w)
+   r.h := integer(o.h)
+   r.focus := 0
+   push(O_LIST, r)			# must precede proc call
+   proc(r, o)				# call object-specific procedure
+   update_bb(r)
+   draw_object(r)
+end
+
+############################################################################
+# load_object() reads the next object from a saved session file.
+############################################################################
+procedure load_object(f)
+   local c, s, l, r
+
+   # find a line where the first nonblank character is a "["
+   repeat {
+      while (c := reads(f, 1)) & upto(' \t\f', c)
+      if \c == "[" then
+         break
+      s := (c || read(f)) | fail
+      if s ? match((TRAILER | XTRAILER)[1 +: TMATCH]) then
+         fail
+      }
+
+   # load the list of values
+   l := load_strings(f) | fail
+
+   # break them down into an ext_rec record
+   r := ext_rec()
+   s := get(l) | fail
+   s ? {
+      r.id  := tab(upto(':')) | fail;  move(1)
+      r.typ := tab(upto(':')) | fail;  move(1)
+      r.sty := tab(upto(':')) | fail;  move(1)
+      r.num := tab(upto(':')) | fail;  move(1)
+      r.x   := tab(upto(',')) | fail;  move(1)
+      r.y   := tab(upto(',')) | fail;  move(1)
+      r.w   := tab(upto(',')) | fail;  move(1)
+      r.h   := tab(upto(':')) | fail;  move(1)
+      r.lbl := tab(0)
+      }
+   r.proc := get(l) | ""
+   r.etc := get(l) | []
+   return r
+end
+
+############################################################################
+# load_strings() reads a list of strings after "[" has already been consumed.
+############################################################################
+procedure load_strings(f)
+   local l, c, s, n
+
+   l := []
+   n := 0
+   while c := reads(f, 1) do case c of {
+
+      "]":	return l		# end of list
+      ",":	(n <:= *l) | put(l, &null)
+      " ":	next			# whitespace: do nothing
+      "\t":	next
+      "\r":	next
+      "\n":	next
+      "[":	put(l, load_strings(f))	# nested list
+
+      "\"": {				# string constant
+         s := ""
+         while (c := reads(f, 1)) & not upto('"\n"', c) do
+            if s == "\\" then
+               s ||:= reads(f, 1)
+            else
+               s ||:= c
+         put(l, s)
+         }
+
+      default: {			# anything else: consume to separator
+         s := c
+         while (c := reads(f, 1)) & not upto(',] \t\r\n', c) do
+            s ||:= c
+         put(l, s)
+         if c == "]" then
+            return l
+         }
+      }
+
+   fail					# EOF hit
+end
+
+############################################################################
+# save_session() saves the current session to a file.  If "pflag" is set,
+#                the standard prefix is used (for prototype mode).
+############################################################################
+procedure save_session(s, pflag)
+   local ofile
+
+   sanity_check() | fail
+   ofile := open(s, "w")
+   if /ofile then {
+      Notice("Could not open " || s, "(FILE WAS NOT SAVED)")
+      fail
+      }
+   if /SIZER.dlog then
+      save_app(ofile, pflag, s)
+   else
+      save_dlog(ofile, pflag, s)
+   close(ofile)
+   if /pflag then
+      DIRTY := &null
+   return
+end
+
+############################################################################
+# sanity_check() issues warnings if certain things don't look right.
+############################################################################
+procedure sanity_check()
+   local messages, npush, ndflt, nrect, nlist, o
+
+   messages := []
+   npush := ndflt := nrect := nlist := 0
+   every o := !O_LIST do {
+      case type(o) of {
+         "button_obj": {
+            if /o.toggle then npush +:= 1
+            if \o.dflt then ndflt +:= 1
+            }
+	 "rect_obj": {
+	    nrect +:= 1
+	    }
+	 "list_obj": {
+	    nlist +:= 1
+	    }
+      }
+   }
+
+   if \SIZER.dlog then {
+      if ndflt > 1 then
+         put(messages, "",
+            "More than one button is marked as the default.",
+            "Only one will be used.")
+      if npush = 0 then
+         put(messages, "",
+            "There is no non-toggle button, so it will not",
+            "be possible to dismiss the dialog box.")
+      if nrect > 0 | nlist > 0 then
+         put(messages, "",
+	    "There are one or more regions or text lists,",
+	    "but these do not function in dialog boxes.")
+   }
+   else {
+      if ndflt > 0 then
+         put(messages, "",
+            "A button is marked as a dialog default,",
+            "but this is not a dialog specification.")
+   }
+
+   if *messages = 0 then
+      return
+
+   push(messages, "Warning:")
+   case TextDialog(messages, , , , ["Continue", "Cancel"], 2) of {
+      "Continue":  return
+      "Cancel":    fail
+   }
+end
+
+############################################################################
+# save_app() saves the session as an application.  If "pflag" is set,
+#                the standard prefix is used (for prototype mode).
+############################################################################
+procedure save_app(ofile, pflag, filename)
+   local id
+
+   id := ("" ~== \SIZER.id) | "ui"
+
+   if \pflag then
+      write(ofile, PTITLE, "\n\n")
+   if \pflag | /USER_PREFIX then {
+      if /pflag then
+	 ipl_header(ofile, filename, "Program to", "vsetup")
+      app_prologue(ofile, id, pflag)
+      if /pflag then
+         save_procs(ofile)
+      }
+   else
+      writes(ofile, USER_PREFIX)
+
+   write(ofile, HEADER)
+   write(ofile, "procedure ", id, "_atts()")
+   writes(ofile, "   return [\"size=", SIZER.x + SIZER.w, ",",
+      SIZER.y - CANVASY + SIZER.h, "\", \"bg=", VBackground, "\"")
+   writes(ofile, ", \"label=", "" ~== SIZER.label, "\"")
+   write(ofile, "]")
+   write(ofile,"end")
+   write(ofile)
+   write(ofile, "procedure ", id, "(win, cbk)")
+   write(ofile, "return vsetup(win, cbk,")
+   output_spec(ofile, SIZER)
+   output_all(ofile, O_LIST)
+   write(ofile, "   )")
+   write(ofile, "end")
+   write(ofile, TRAILER)
+
+   if /pflag & \USER_SUFFIX then
+      writes(ofile, USER_SUFFIX)
+   return
+end
+
+############################################################################
+# save_procs() generates empty callback procedures in lexical order.
+############################################################################
+procedure save_procs(ofile)
+   local o, t, l
+
+   t := table()
+   every o := !O_LIST do
+      t["" ~== \o.proc] := o
+   l := sort(t, 3)
+   while get(l) do {
+      o := get(l)
+      writes(ofile, "procedure ", o.proc, "(vidget, ")
+      if type(o) == "rect_obj" then
+         write(ofile, "e, x, y)")
+      else
+         write(ofile, "value)")
+      write(ofile, "   return")
+      write(ofile, "end")
+      write(ofile)
+      }
+   return
+end
+
+############################################################################
+# save_dlog() saves the session as a dialog.  If "pflag" is set,
+#                the standard prefix is used (for prototype mode).
+############################################################################
+procedure save_dlog(ofile, pflag, filename)
+   local id
+
+   id := ("" ~== \SIZER.id) | "dl"
+
+   if \pflag then
+      dlog_prototype(ofile, id)
+   else if /USER_PREFIX then {
+      ipl_header(ofile, filename, "Procedure to", "dsetup")
+      dlog_prologue(ofile)
+      }
+   else
+      writes(ofile, USER_PREFIX)
+
+   write(ofile, HEADER)
+   write(ofile, "procedure ", id, "(win, deftbl)")
+   write(ofile, "static dstate")
+   write(ofile, "initial dstate := dsetup(win,")
+   output_spec(ofile, SIZER)
+   output_all(ofile, O_LIST)
+   write(ofile, "   )")
+   write(ofile, "return dpopup(win, deftbl, dstate)")
+   write(ofile, "end")
+   write(ofile, TRAILER)
+
+   if /pflag & \USER_SUFFIX then
+      writes(ofile, USER_SUFFIX)
+   return
+end
+
+############################################################################
+# output_all() outputs the members of an object list, sorted by ID,
+# but with rectangles last so that they can enclose other objects.
+############################################################################
+record output_rec(obj, key)
+
+procedure output_all(f, l)
+   local t, e, k
+
+   t := []
+   every e := !l do {
+      if type(e) == "rect_obj" then
+         k := "~" || right(e.w * e.h, 20) || e.id  # rects last, by area
+      else
+         k := e.id
+      put(t, output_rec(e, k))
+      }
+   t := sortf(t, 2)
+   every e := !t do
+      output_spec(f, e.obj)
+   return
+end
+
+############################################################################
+# output_spec() outputs the spec for an object.
+############################################################################
+procedure output_spec(f, o)
+   local r
+
+   # set standard fields
+   r := ext_rec(o)
+   r.id := o.id
+   r.proc := o.proc
+   r.x := o.x
+   r.y := o.y - CANVASY
+   r.w := o.w
+   r.h := o.h
+   # set type-dependent fields
+   case type(o) of {
+      "sizer_obj"          : save_sizer(r, o)
+      "button_obj"         : save_button(r, o)
+      "text_input_obj"     : save_text_input(r, o)
+      "line_obj"           : save_line(r, o)
+      "rect_obj"           : save_rect(r, o)
+      "slider_obj"         : save_slider(r, o)
+      "radio_button_obj"   : save_radio_button(r, o)
+      "label_obj"          : save_label(r, o)
+      "menu_obj"           : save_menu(r, o)
+      "list_obj"           : save_list_obj(r, o)
+      }
+   writes(f, "   [\"")
+   writes(f, r.id, ":", r.typ, ":", r.sty, ":", r.num, ":")
+   writes(f, r.x, ",", r.y, ",", r.w, ",", r.h, ":")
+   writes(f, r.lbl, "\",")
+   if /SIZER.dlog then
+      writes(f, r.proc)
+   if \r.etc then
+      output_list(f, r.etc)
+   write(f, "],")
+   return
+end
+
+############################################################################
+# output_list() outputs a list in Icon form preceded by ",\n".
+############################################################################
+procedure output_list(f, a)
+   local prefix, elem, n
+   static indent
+   initial indent := "   "
+
+   n := 0
+   indent ||:= "   "
+   writes(f, ",\n", indent, "[")
+   prefix := ""
+   while elem := get(a) do
+      if type(elem) == "list" then {
+         output_list(f, elem)
+         prefix := ",\n" || indent
+         n := 0
+         }
+      else {
+         writes(f, prefix, image(elem))
+         if (n +:= 1) % 5 = 0 then
+            prefix := ",\n" || indent
+         else
+            prefix := ","
+         }
+   writes(f, "]")
+   indent := indent[1:-3]
+end
+
+############################################################################
+# prototype() saves, compiles, and executes the current session.
+############################################################################
+procedure prototype()
+   local f, line
+
+   if f := open(PROTOFILE) then {
+      line := read(f)
+      close(f)
+      if \line & not (line ? =PTITLE) then {
+         Notice("Cannot create protype file " || PROTOFILE || ":",
+            "it already contains something that is not a VIB prototype")
+         fail
+         }
+      }
+
+   # write source file
+   if save_session(PROTOFILE, 1) then {
+      # translate and execute
+      WAttrib("pointer=" || ("wait" | "watch"))
+      system(BUILDPROTO)
+      remove(PROTOFILE)
+      WAttrib("pointer=" || ("left ptr" | "arrow"))
+      system(EXECPROTO)
+      }
+end
+
+############################################################################
+# newname() invents a name when creating a new file.
+############################################################################
+procedure newname()
+   local s, i, f
+
+   every i := seq() do {
+      s := "app" || i || ".icn"		# invent "app<n>.icn" file name
+      if f := open(s) then
+         close(f)			# can't use this name; already exists
+      else
+         return s			# found a safe new name
+      }
+end
+
+############################################################################
+# ipl_header() writes a standard IPL application header.
+############################################################################
+procedure ipl_header(ofile, filename, subject, links)
+   local hline, date
+
+   hline := repl("#", 76)
+   &dateline ? {
+      tab(upto(',') + 2)
+      date := tab(upto(',') + 6)
+   }
+
+   write(ofile, hline)
+   write(ofile, "#\n#\tFile:     ", filename)
+   write(ofile, "#\n#\tSubject:  ", subject, " ...")
+   write(ofile, "#\n#\tAuthor:   ")
+   write(ofile, "#\n#\tDate:     ", date)
+   write(ofile, "#\n", hline)
+   write(ofile, "#\n#\n#\n", hline)
+   write(ofile, "#\n#  Requires:\n#\n", hline)
+   write(ofile, "#\n#  Links: ", links)
+   write(ofile, "#\n", hline)
+   write(ofile)
+   return
+end
+
+############################################################################
+# app_prologue() writes a main program and other code for a new application.
+############################################################################
+procedure app_prologue(f, id, pflag)
+   local vecho, e
+
+   if \pflag then
+      vecho := ", VEcho"
+   else
+      vecho := ""
+
+   every write(f, ![
+   "#  This vib interface specification is a working program that responds",
+   "#  to vidget events by printing messages.  Use a text editor to replace",
+   "#  this skeletal program with your own code.  Retain the vib section at",
+   "#  the end and use vib to make any changes to the interface.",
+   "",
+   "link vsetup",
+   "",
+   "procedure main(args)",
+   "   local vidgets, root, paused",
+   "",
+   "   (WOpen ! " || id || "_atts()) | stop(\"can't open window\")",
+   "   vidgets := " || id || "(" || vecho  || ")\t\t\t\t# set up vidgets",
+   "   root := vidgets[\"root\"]"
+   ])
+
+   # generate a sample VSetItems call for every list object (prototyping only)
+   if \pflag then
+      every e := !O_LIST do
+         if type(e) == "list_obj" then
+            write(f, "   VSetItems(vidgets[\"", e.id,
+               "\"], [\"a\", \"b\", \"c\", \"d\"])");
+
+   every write(f, ![
+   "",
+   "   paused := 1\t\t\t\t\t# flag no work to do",
+   "   repeat {",
+   "      # handle any events that are available, or",
+   "      # wait for events if there is no other work to do",
+   "      while (*Pending() > 0) | \\paused do {",
+   "         ProcessEvent(root, QuitCheck)",
+   "         }",
+   "      # if <paused> is set null, code can be added here",
+   "      # to perform useful work between checks for input",
+   "      }",
+   "end",
+   ""])
+end
+
+############################################################################
+# dlog_prologue() writes a header for a dialog file.
+############################################################################
+procedure dlog_prologue(f)
+every write(f, ![
+   "#  Link this dialog specification with the rest of your program code.",
+   "#  Use vib to make any changes.",
+   "",
+   "link dsetup",
+   ""])
+end
+
+############################################################################
+# dlog_prototype() writes a header for a dialog protyping run.
+############################################################################
+procedure dlog_prototype(f, id)
+   write(f, PTITLE)
+   write(f)
+   write(f, "link dsetup, graphics")
+   write(f)
+   write(f, "procedure main(args)")
+   write(f, "   remove(", image(PROTOEXE), ")")
+   write(f, "   dproto(", id, ", , ",
+      SIZER.x + SIZER.w, ", ", SIZER.y - CANVASY + SIZER.h, ", args)")
+   write(f, "end")
+   write(f)
+end

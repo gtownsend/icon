@@ -1,0 +1,382 @@
+############################################################################
+#
+#	File:     interpp.icn
+#
+#	Subject:  Program to interpret Icon programs
+#
+#	Author:   Jerry Nowlin
+#
+#	Date:     December 30, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#    This program is kind of like an interactive version of BASIC in that Icon
+#  expressions are entered with line numbers and you can resequence them list
+#  them etc. and execute all the lines entered.  There is no editor built
+#  in.  You have to retype a line to change it.
+#
+#    Documentation is lacking but there is a "?" help command that lists all
+#  the other commands.
+#
+############################################################################
+#
+#  See also:  interpe.icn
+#
+############################################################################
+
+global	WHITE,	# the white space cset
+	MFLAG,	# the modified flag
+	PRTBL	# the program table
+
+procedure main(arg)
+   local line, lno, pline
+
+#	define the needed cset
+	WHITE := ' \t\n\f'
+
+#	initialize the program table
+	PRTBL := table()
+
+#	initialize the modified flag
+	MFLAG := 0
+
+#	get all the input
+	writes("Icon> ")
+	while line := read() do {
+
+#		scan the input line
+		line ? {
+
+#			skip any initial white space
+			tab(many(WHITE))
+
+#			check for program lines (they have line numbers)
+			if lno := tab(many(&digits)) & tab(many(WHITE)) then {
+
+#				get the program line
+				pline := tab(0)
+
+#				store the line in the program table
+				PRTBL[numeric(lno)] := pline
+
+#				set the modified flag
+				MFLAG +:= 1
+			}
+
+#			read command
+			else if (tab(upto(WHITE)) | tab(0)) ==
+				("read" | "r") then {
+				readprog()
+
+#				clear the modified flag
+				MFLAG := 0
+			}
+
+#			write command
+			else if (tab(upto(WHITE)) | tab(0)) ==
+				("write" | "w") then {
+				writeprog()
+
+#				clear the modified flag
+				MFLAG := 0
+			}
+
+#			delete command
+			else if (tab(upto(WHITE)) | tab(0)) ==
+				("delete" | "d") then {
+				delprog()
+
+#				set the modified flag
+				MFLAG +:= 1
+			}
+
+#			sequence command
+			else if (tab(upto(WHITE)) | tab(0)) ==
+				("sequence" | "s") then {
+				seqprog()
+			}
+
+#			list command
+			else if (tab(upto(WHITE)) | tab(0)) ==
+				("list" | "l") then {
+				listprog()
+			}
+
+#			execute command
+			else if (tab(upto(WHITE)) | tab(0)) ==
+				("execute" | "e") then {
+				execprog()
+			}
+
+#			help command
+			else if (tab(upto(WHITE)) | tab(0)) ==
+				("help" | "h" | "?") then {
+				helpprog()
+			}
+
+#			quit command
+			else if (tab(upto(WHITE)) | tab(0)) ==
+				("quit" | "q") then {
+				quitprog()
+			}
+
+#			invalid syntax input
+			else {
+				write("Syntax Error: ",line)
+				helpprog()
+			}
+		}
+		writes("Icon> ")
+	}
+
+end
+
+procedure execprog()
+   local runargs, out, prog, line, command
+
+	static	tmpfile
+
+	initial tmpfile := "TMPFILE.icn"
+
+#	get any runtime arguments
+	runargs := tab(0)
+
+#	create the temporary Icon file
+	(out := open(tmpfile,"w")) |
+
+#	or mention the problem and fail
+	(write("I can't open '",tmpfile,"' for writing") & fail)
+
+#	sort the program table
+	prog := sort(PRTBL)
+
+#	put the program in the file
+	every line := !prog do {
+		write(out,line[2])
+	}
+	close(out)
+
+#	format the command to execute the program
+	command := "icont -s " || tmpfile || " -x " || runargs
+
+#	add the command to remove the temporary file
+	command ||:= " ; rm -f " || tmpfile
+
+#	execute the command
+	system(command)
+
+end
+
+procedure seqprog()
+   local begno, incno, prog, lno, l
+
+#	initialize the sequencing numbers
+	begno := incno := 10
+
+#	skip any white space
+	tab(many(WHITE))
+
+#	get an initial line number
+	begno := numeric(tab(many(&digits)))
+
+#	skip any white space
+	tab(many(WHITE))
+
+#	get a increment number
+	incno := numeric(tab(many(&digits)))
+
+#	sort the program table
+	prog := sort(PRTBL)
+
+#	reinitialize it
+	PRTBL := table()
+
+#	sequence the program lines starting with begno by incno
+	lno := begno
+	every l := !prog do {
+		PRTBL[lno] := l[2]
+		lno +:= incno
+	}
+
+end
+
+procedure readprog()
+   local readfile, response, in, lno, line
+
+#	get a possible command line file name
+	tab(many(WHITE))
+	readfile := tab(upto(WHITE) | 0)
+
+#	if there was no file with the command get one
+	if /readfile | *readfile = 0 then {
+		writes("Read file name: ")
+		readfile := read()
+	}
+
+#	make sure a modified file has been written
+	if MFLAG > 0 then {
+		writes("Write before reading over current program? ")
+		response := read()
+		if any('yY',response) then
+			writeprog()
+	}
+
+#	initialize the program table
+	PRTBL := table()
+
+#	read the program from the read file
+	in := open(readfile,"r")
+	lno := 10
+	every line := !in do {
+		PRTBL[lno] := line
+		lno +:= 10
+	}
+	close(in)
+
+#	tell them what you did
+	write("Read '",readfile,"'...",*PRTBL," lines")
+
+end
+
+procedure writeprog()
+   local writefile, prog, out, l
+
+#	get a possible command line file name
+	tab(many(WHITE))
+	writefile := tab(upto(WHITE) | 0)
+
+#	if there was no file with the command get one
+	if /writefile | *writefile = 0 then {
+		writes("Write file name: ")
+		writefile := read()
+	}
+
+#	sort the program table
+	prog := sort(PRTBL)
+
+#	write the program to the write file
+	out := open(writefile,"w")
+	every l := !prog do {
+		write(out,l[2])
+	}
+	close(out)
+
+#	tell them what you did
+	write("Write '",writefile,"'...",*PRTBL," lines")
+
+end
+
+procedure delprog()
+   local begno, endno, prog, l, lno
+
+#	initialize the line numbers
+	begno := 0
+	endno := 99999
+
+#	skip any white space
+	tab(many(WHITE))
+
+#	get an initial line number
+	begno := endno := numeric(tab(many(&digits)))
+
+#	skip any white space
+	tab(many(WHITE))
+
+#	get a final line number
+	endno := numeric(tab(many(&digits)))
+
+#	sort the program table
+	prog := sort(PRTBL)
+
+#	reinitialize it
+	PRTBL := table()
+
+#	delete the program lines between the optional numbers
+	every l := !prog do {
+		lno := numeric(l[1])
+		if (lno < begno) | (lno > endno) then PRTBL[lno] := l[2]
+	}
+
+end
+
+procedure listprog()
+   local begno, endno, prog, l, lno
+
+#	initialize the line numbers
+	begno := 0
+	endno := 99999
+
+#	skip any white space
+	tab(many(WHITE))
+
+#	get an initial line number
+	begno := endno := numeric(tab(many(&digits)))
+
+#	skip any white space
+	tab(many(WHITE))
+
+#	get a final line number
+	endno := numeric(tab(many(&digits)))
+
+#	sort the program table
+	prog := sort(PRTBL)
+
+#	list the program lines between the optional numbers
+	every l := !prog do {
+		lno := numeric(l[1])
+		if (lno >= begno) & (lno <= endno) then
+			write(right(lno,5),": ",l[2])
+		if lno > endno then break
+	}
+
+end
+
+procedure helpprog()
+
+	static helpmsg
+
+#	define the help message
+	initial {
+		helpmsg := [
+		"<<< Icon Expression Syntax >>>",
+		"",
+		"lineno expression",
+		"",
+		"<<< Command Summary >>>",
+		" (1st character works)",
+		"",
+		"read [ file ]",
+		"write [ file ]",
+		"list [ begno [ endno ] ]",
+		"delete [ begno [ endno ] ]",
+		"sequence [ begno [ increment ] ]",
+		"execute [ args ]",
+		"quit",
+		"help"
+		]
+	}
+
+#	print it
+	every write(!helpmsg)
+
+end
+
+procedure quitprog()
+   local response
+
+#	make sure a modified file has been written
+	if MFLAG > 0 then {
+		writes("Write before quitting? ")
+		response := read()
+		if any('yY',response) then
+			writeprog()
+	}
+
+	stop("Goodbye.")
+
+end
+

@@ -1,0 +1,54 @@
+############################################################################
+#
+#	File:     soundex.icn
+#
+#	Subject:  Procedures to produce Soundex code for name
+#
+#	Author:   Cheyenne Wills
+#
+#	Date:     July 14, 1989
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure produces a code for a name that tends to bring together
+#  variant spellings.  See Donald E. Knuth, The Art of Computer Programming,
+#  Vol.3; Searching and Sorting, pp. 391-392.
+#
+############################################################################
+
+procedure soundex(name)
+   local first, c, i
+   name := map(name,string(&lcase),string(&ucase)) # Convert to uppercase..
+   first := name[1]
+
+# Retain the first letter of the name, and convert all
+# occurrences of A,E,H,I,O,U,W,Y in other positions to "."
+#
+# Assign the following numbers to the remaining letters
+# after the first:
+#
+# B,F,P,V => 1		   L => 4
+# C,G,J,K,Q,S,X,Z => 2	   M,N => 5
+# D,T => 3		   R => 6
+
+   name := map(name,"ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+		    ".123.12..22455.12623.1.2.2")
+
+# If two or more letters with the same code were adjacent
+# in the original name, omit all but the first
+
+   every c := !"123456" do
+       while i := find(c||c,name) do
+	   name[i+:2] := c
+   name[1] := first
+
+# Now delete our place holder ('.')
+
+   while i := upto('.',name) do name[i] := ""
+
+   return left(name,4,"0")
+end

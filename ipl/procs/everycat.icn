@@ -1,0 +1,55 @@
+############################################################################
+#
+#	File:     everycat.icn
+#
+#	Subject:  Procedure for generating all concatenations
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 25, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#   everycat(x1, x2, ...) generates the concatenation of every string
+#   from !x1, !x2, ... .
+#
+#   For example, if
+#
+#	first := ["Mary", "Joe", "Sandra"]
+#	last := ["Smith", "Roberts"]
+#
+#   then
+#
+#	every write(everycat(first, " ", last))
+#
+#   writes
+#
+#	Mary Smith
+#	Mary Roberts
+#	Joe Smith
+#	Joe Roberts
+#	Sandra Smith
+#	Sandra Roberts
+#
+#  Note that x1, x2, ... can be any values for which !x1, !x2, ... produce
+#  strings or values convertible to strings.  In particular, in the example
+#  above, the second argument is a one-character string " ", so that !" "
+#  generates a single blank.
+#
+############################################################################
+
+procedure everycat(args[])
+   local arg
+
+   arg := get(args) | fail
+
+   if *args = 0 then
+      suspend !arg
+   else
+      suspend !arg || everycat ! args
+
+end

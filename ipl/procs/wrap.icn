@@ -1,0 +1,105 @@
+############################################################################
+#
+#	File:     wrap.icn
+#
+#	Subject:  Procedures to wrap output lines
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     December 5, 1989
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  wrap(s,i) -- Facilitates accumulation of small strings into longer
+#       output strings, outputting when the accumulated string would
+#       exceed a specified length (e.g. outputting items in multiple
+#       columns).
+#
+#       s -- string to accumulate
+#       i -- width of desired output string
+#
+#  Wrap fails if the string s did not necessitate output of the buffered
+#  output string; otherwise the output string is returned (which never
+#  includes s).
+#
+#  s defaults to the empty string (""), causing nothing to be
+#  accumulated; i defaults to 0, forcing output of any buffered string.
+#  Note that calling wrap() with no arguments produces the buffer (if it
+#  is not empty) and clears it.
+#
+#  Wrap does no output to files.
+#
+#
+#  Here's how wrap is normally used:
+#
+#       wrap()                  # Initialize (not really necessary unless
+#                               # a previous use might have left stuff in
+#                               # the buffer).
+#
+#       every i := 1 to 100 do  # Loop to process strings to output --
+#         write(wrap(x[i],80))  # only writes when 80-char line filled.
+#
+#       write(wrap())           # Output what's in buffer -- only outputs
+#                               # if something to write.
+#
+#
+#  wraps(s,i) -- Facilitates managing output of numerous small strings
+#       so that they do not exceed a reasonable line length (e.g.
+#       outputting items in multiple columns).
+#
+#       s -- string to accumulate
+#       i -- maximum width of desired output string
+#
+#  If the string "s" did not necessitate a line-wrap, the string "s" is
+#  returned.  If a line-wrap is needed, "s", preceded by a new-line
+#  character ("\n"), is returned.
+#
+#  "s" defaults to the empty string (""), causing nothing to be
+#  accumulated; i defaults to 0, forcing a new line if anything had been
+#  output on the current line.  Thus calling wraps() with no arguments
+#  reinitializes it.
+#
+#  Wraps does no output to files.
+#
+#
+#  Here's how wraps is normally used:
+#
+#       wraps()                 # Initialize (not really necessary unless
+#                               # a previous use might have left it in an
+#                               # unknown condition).
+#
+#       every i := 1 to 100 do  # Loop to process strings to output --
+#         writes(wraps(x[i],80))# only wraps when 80-char line filled.
+#
+#       writes(wraps())         # Only outputs "\n" if something written
+#                               # on last line.
+#
+############################################################################
+
+procedure wrap(s,i)
+   local t
+   static line
+   initial line := ""
+   /s := "" ; /i := 0
+   if *(t := line || s) > i then
+	 return "" ~== (s :=: line)
+   line := t
+end
+
+procedure wraps(s,i)
+   local t
+   static size
+   initial size := 0
+   /s := "" ; /i := 0
+   t := size + *s
+   if t > i & size > 0 then {
+      size := *s
+      return "\n" || s
+      }
+   size := t
+   return s
+end

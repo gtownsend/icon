@@ -1,0 +1,74 @@
+############################################################################
+#
+#	File:     htget.icn
+#
+#	Subject:  Program to get Web file using HTTP protocol
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     December 4, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Htget retrieves the raw text of a file from the world wide web using
+#  HTTP protocol.  (Other protocols such as FTP are not supported.)
+#
+#  usage:  htget [-h] URL
+#
+#  The URL may be given with or without the "http://" prefix.
+#
+#  If -h is given, a HEAD request is sent, requesting only information
+#  instead of the complete file.
+#
+############################################################################
+#
+#  Links:  cfunc, options
+#
+############################################################################
+#
+#  Requires: UNIX, dynamic loading
+#
+############################################################################
+
+link cfunc
+link options
+
+procedure main(args)
+   local opts, req, url, host, port, path, f
+
+   opts := options(args, "h")
+   if \opts["h"] then
+      req := "HEAD"
+   else
+      req := "GET"
+
+   url := \args[1] | stop("usage: ", &progname, " [-h] url")
+
+   url ? {
+      ="http:" | ="HTTP:"			# skip optional http:
+      tab(many('/'))				# skip optional //
+      host := tab(upto(':/') | 0)
+      if *host = 0 then
+	 host := "localhost"
+      if not (=":" & (port := integer(tab(upto('/'))))) then
+         port := 80
+      if pos(0) then
+         path := "/"
+      else
+         path := tab(0)
+   }
+
+   if not (f := tconnect(host, port)) then
+       stop ("cannot connect to ", host, ":", port)
+
+   write(f, req, " ", path, " HTTP/1.0")
+   write(f)
+   flush(f)
+   seek(f, 1)
+
+   while write(read(f))
+end

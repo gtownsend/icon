@@ -1,0 +1,98 @@
+
+procedure spell(n)
+   local m
+   n := integer(n) | stop(image(n)," is not an integer")
+   if n <= 12 then return {
+      "0zero,1one,2two,3three,4four,5five,6six,7seven,8eight,_
+         9nine,10ten,11eleven,12twelve," ? {
+            tab(find(n))
+            move(*n)
+            tab(upto(","))
+            }
+      }
+   else if n <= 19 then return {
+      spell(n[2] || "0") ?
+         (if ="for" then "four" else tab(find("ty"))) || "teen"
+      }
+   else if n <= 99 then return {
+      "2twen,3thir,4for,5fif,6six,7seven,8eigh,9nine," ? {
+         tab(upto(n[1]))
+         move(1)
+         tab(upto(",")) || "ty" ||
+            if n[2] ~= 0 then "-" || spell(n[2])
+         }
+      }
+   else if n <= 999 then return {
+      spell(n[1]) || " hundred" ||
+         (if (m := n[2:0]) ~= 0 then " and " || spell(m) else "")
+      }
+   else if n <= 999999 then return {
+      spell(n[1:-3]) || " thousand" ||
+         (if (m := n[2:0]) ~= 0 then " and " || spell(m) else "")
+      }
+   else if n <= 999999999 then return {
+      spell(n[1:-6]) || " million" ||
+         (if (m := n[2:0]) ~= 0 then " and " || spell(m) else "")
+      }
+   else fail
+end
+
+procedure spellw(n)
+   write(n, "	", spell(n))
+   return
+end
+
+procedure main()
+   every spellw(1 to 25)
+   every spellw(30 to 110 by 3)
+   spellw(945123342)
+   every spellw(10000000 to 10000500 by 7)
+   sieve()
+   wordcnt()
+end
+
+#
+#          S I E V E   O F   E R A T O S T H E N E S
+#
+
+#  This program illustrates the use of sets in implementing the
+#  classical sieve algorithm for computing prime numbers.
+
+procedure sieve()
+   local limit, s, i
+   limit := 100
+   s := set()
+   every insert(s,1 to limit)
+   every member(s,i := 2 to limit) do
+      every delete(s,i + i to limit by i)
+   delete(s,1)
+   primes := sort(s)
+   write("There are ",*primes," primes in the first ",limit," integers.")
+   write("The primes are:")
+   every write(right(!primes,*limit + 1))
+end
+
+#
+#          W O R D   C O U N T I N G
+#
+
+#  This program tabulates the words in standard input and writes the
+#  results with the words in a column 20 characters wide.  The definition
+#  of a "word" is naive.
+
+procedure wordcnt()
+   wordcount(20)
+end
+
+procedure wordcount(n)
+   local t, line, x, i
+   static letters
+   initial letters := &lcase ++ &ucase
+   t := table(0)
+   while line := read() do
+      line ? while tab(upto(letters)) do
+         t[tab(many(letters))] +:= 1
+   x := sort(t,3)
+   every i := 1 to *x - 1 by 2 do
+      write(left(x[i],n),x[i + 1])
+end

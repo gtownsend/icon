@@ -1,0 +1,63 @@
+############################################################################
+#
+#	File:     colrlist.icn
+#
+#	Subject:  Procedures to produce list of colors
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 24, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  colrlist(f) returns a list of the colors given in a file.
+#
+#  colrplte(p) returns a list of colors for the palette p.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  io
+#
+############################################################################
+
+link io
+
+procedure colrlist(f)			#: list of colors from file
+   local input, colors, line
+
+   if f === "-" then input := &input
+   else (input := dopen(f)) | fail
+   colors := []
+
+   while line := read(input) do
+      put(colors, ColorValue(line ? tab(upto('\t') | 0)))
+
+   close(input)
+
+   if *colors = 0 then fail
+
+   return colors
+
+end
+
+procedure colrplte(p)			#: list of colors from palette
+   local colors
+
+   colors := []
+ 
+   every put(colors, PaletteColor(p, !PaletteChars(p)))
+
+   if *colors = 0 then fail			# invalid palette
+
+   return colors
+
+
+end

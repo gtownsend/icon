@@ -1,0 +1,60 @@
+############################################################################
+#
+#	File:     compare.icn
+#
+#	Subject:  Program to look for duplicates in a collection of files
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 7, 1997
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program compares files to locate ones that have the same content.
+#
+#  The file names are given on the command line.
+#
+#  This program has impossible time complexity if there are many files
+#  of the same size.
+#
+############################################################################
+#
+#  Requires:  UNIX
+#
+############################################################################
+
+procedure main(args)
+   local filesets, filelist, file, xfile, size, line, input
+
+   filesets := table()
+
+   #  The strategy is to divide the files into equivalence classes by size.
+
+   every file := !args do {
+      input := open("wc " || image(file), "p")
+      line := read(input)
+      close(input)
+      line ? {
+         move(20)
+         tab(many(' '))
+         size := integer(tab(many(&digits))) | stop("bogus size")
+         }
+      /filesets[size] := []
+      put(filesets[size], file)
+      }
+
+   filesets := sort(filesets, 3)
+
+   while get(filesets) do {			# don't need size for anything
+      filelist := get(filesets)			# just the files of that size
+      while file := get(filelist) do		# for every file
+         every xfile := !filelist do 		# compare against the rest
+            if system("cmp -s " || image(file) || " " || image(xfile) ||
+               ">/dev/null") = 0 then write(file, "==", xfile)
+      }
+   
+end

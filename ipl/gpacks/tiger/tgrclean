@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+#  tgrclean [file] -- remove details from line chain file
+#
+#  Filters a line chain file to remove pipelines, powerlines, and minor
+#  boundaries, except when any of these coincides with a major boundary line.
+#  The effect of this is to produce a smaller file with less detail.
+
+sed '
+   /^[CEF]..0/d
+' $*

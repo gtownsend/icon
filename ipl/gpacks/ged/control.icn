@@ -1,0 +1,410 @@
+############################################################################
+#
+#	Name:	control.icn
+#
+#	Title:	Controls for ged.icn
+#
+#	Author: Robert J. Alexander
+#
+#	Date:	June 27, 1993
+#
+############################################################################
+#
+#  General code for controls
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+global ControlList,ControlExit
+
+record MouseEvent(type,x,y)
+
+
+procedure DoEvents(w,unusedEventProc,data)
+   local ctrl,evt,interval,mx,my
+   until \ControlExit do {
+      WAttrib(w,"pointer=top left arrow")
+      evt := Event(w)
+      interval := &interval
+      case type(evt) of {
+	 "string": {
+	    (\unusedEventProc)(w,evt,data,interval)
+	    }
+	 "integer": {
+	    mx := &x
+	    my := &y
+	    if evt = &lpress then { # if left mouse button mouse down
+	       if ctrl := GetControl(mx,my) then {
+		  case type(ctrl) of {
+		     "Button": {
+			TrackButton(ctrl,data,mx,my)
+			}
+		     default: &null
+		     } | break
+		  }
+	       else (\unusedEventProc)(w,evt,data,interval,mx,my)
+	       }
+	    else (\unusedEventProc)(w,evt,data,interval,mx,my)
+	    }
+	 default: (\unusedEventProc)(w,evt,data,interval)
+	 }
+      }
+   return
+end
+
+
+procedure InitControl()
+   ControlList := []
+   return
+end
+
+
+procedure AddControl(ctrl)
+   push(ControlList,ctrl)
+   return ctrl
+end
+
+
+procedure RemoveControl(ctrl)
+   local i
+   every i := 1 to *ControlList do {
+      if ControlList[i] === ctrl then {
+	 ControlList := ControlList[1:i] ||| ControlList[i + 1:0]
+	 return ctrl
+	 }
+      }
+end
+
+
+procedure GetControl(x,y)
+   local btn
+   every btn := !ControlList do {
+      if PtInRect(x,y,btn.x,btn.y,btn.width,btn.height) then
+	    return btn
+      }
+end
+
+
+#
+#  Buttons
+#
+
+record Button(w,x,y,width,height,event,data,value,
+      contents,font)
+
+
+procedure TrackButton(btn,data,mx,my)
+   local evt,w
+   w := btn.w
+   btn.event(btn,"pressed",data,mx,my)
+   repeat {
+      evt := Event(w)
+      if type(evt) == "integer" then {
+	 mx := &x
+	 my := &y
+	 case evt of {
+	    &ldrag|&mdrag|&rdrag: { # dragging
+	       btn.event(btn,"dragging",data,mx,my)
+	       }
+	    &lrelease: {    # mouse release left
+	       return btn.event(btn,
+		     if PtInRect(mx,my,btn.x,btn.y,btn.width,btn.height) then
+		     "released" else "cancelled",data,mx,my)
+	       }
+	    }
+	 }
+      }
+end
+
+
+procedure NewButton(w,x,y,width,height,event,data,value,contents,font)
+   local btn
+   btn := Button(w,x,y,width,height,event,data,value,contents,font)
+   return AddControl(btn)
+end
+
+
+procedure RemoveButton(btn)
+   return RemoveControl(btn)
+end
+
+
+procedure DrawButton(btn)
+   local charHeight,charWidth,font,nameWidth,nm,w,x,y
+   w := btn.w
+   DrawRectangle(w,btn.x,btn.y,btn.width,btn.height)
+   case type(nm := btn.contents) of {
+      "string": {
+	 Font(w,\font)
+	 charWidth := WAttrib(w,"fwidth")
+	 charHeight := WAttrib(w,"fheight")
+	 nameWidth := *nm * charWidth
+	 GotoXY(w,x + (btn.width - nameWidth) / 2,
+	       y + (btn.height - charHeight) / 2 + charHeight *  7 / 8)
+	 writes(w,nm)
+	 GotoXY(w,0,0)
+	 }
+      "procedure": {
+	 btn.contents(w,btn)
+	 }
+      }
+   return
+end
+
+
+#
+# Scrollers
+#
+
+global ScrollDelay
+
+record Scroller(w,x,y,width,height,event,data,value,
+      maxValue,smallScroll,largeScroll,upBtn,downBtn,thumbBtn,centerBtn)
+
+
+procedure NewScroller(w,x,y,width,height,event,data,value,
+      maxValue,smallScroll,largeScroll)
+   local scroller
+   initial ScrollDelay := 100
+   /value := 1
+   /width := 18
+   scroller := Scroller(w,x,y,width,height,event,data,value,
+	 maxValue,smallScroll,largeScroll)
+   AddControl(scroller)
+   scroller.upBtn := NewButton(w,x,y,width,width,
+	 Scroll_BtnEvent,scroller,,Scroll_UpArrow)
+   scroller.downBtn := NewButton(w,x,y + height - width,width,width,
+	 Scroll_BtnEvent,scroller,,Scroll_DownArrow)
+   scroller.centerBtn := NewButton(w,x,y + width,width,height - 2 * width,
+	 Scroll_CenterEvent,scroller,,Scroll_CenterContents)
+   scroller.thumbBtn := NewButton(w,x,0,width,width,
+	 Scroll_ThumbEvent,scroller,,Scroll_ThumbContents)
+   Scroll_SetValue(scroller,scroller.value)
+   return scroller
+end
+
+
+procedure RemoveScroller(scroller)
+   every RemoveButton(scroller.upBtn | scroller.downBtn | scroller.thumbBtn |
+	 scroller.centerBtn)
+   return RemoveControl(scroller)
+end
+
+
+procedure DrawScroller(scroller)
+   local height,w,width,x,y
+   w := scroller.w
+   x := scroller.x
+   y := scroller.y
+   width := scroller.width
+   height := scroller.height
+   DrawRectangle(w,x,y,width,height)
+   DrawButton(scroller.upBtn)
+   DrawButton(scroller.downBtn)
+   Scroll_DrawThumb(scroller)
+   return scroller
+end
+
+
+procedure Scroll_BtnEvent(btn,evt,data)
+   local incr,scroller
+   static delayDone
+   scroller := btn.data
+   incr := case btn of {
+      scroller.upBtn: -scroller.smallScroll
+      default: +scroller.smallScroll
+      }
+   if evt == "pressed" then {
+      delayDone := &null
+      Scroll_DoScroll(scroller,incr,data)
+      }
+   else if evt == ("released" | "cancelled") then return
+   until type(Pending(btn.w)[1]) == "integer" do {
+      if /delayDone then {
+	 delay(ScrollDelay)
+	 delayDone := 1
+	 }
+      else Scroll_DoScroll(scroller,incr,data)
+      }
+   return
+end
+
+
+procedure Scroll_CenterEvent(btn,evt,data,x,y)
+   local incr,largeScroll,scroller,thumbBtn
+   static delayDone,direction
+   scroller := btn.data
+   thumbBtn := scroller.thumbBtn
+   largeScroll := scroller.largeScroll
+   incr := if y < thumbBtn.y then -largeScroll else +largeScroll
+   if evt == "pressed" then {
+      delayDone := &null
+      direction := incr
+      Scroll_DoScroll(scroller,incr,data)
+      }
+   else if evt == ("released" | "cancelled") then return
+   until type(Pending(btn.w)[1]) == "integer" do {
+      if incr := if y >= thumbBtn.y + thumbBtn.height then
+	    +largeScroll else if y < thumbBtn.y then -largeScroll then {
+	 if incr = direction then {
+	    if /delayDone then {
+	       delay(ScrollDelay)
+	       delayDone := 1
+	       }
+	    else Scroll_DoScroll(scroller,incr,data)
+	    }
+	 }
+      }
+   return
+end
+
+
+procedure Scroll_DoScroll(scroller,incr,data)
+   local oldValue
+   oldValue := scroller.value
+   if Scroll_SetValue(scroller,scroller.value + incr) ~= oldValue then {
+      Scroll_DrawThumb(scroller)
+      scroller.event(scroller,"scrolled",data,oldValue)
+      }
+   return
+end
+
+
+procedure Scroll_ThumbEvent(btn,evt,data,x,y)
+   local scroller,w
+   static dy
+   scroller := btn.data
+   case evt of {
+      "pressed": {
+	 dy := y - btn.y
+	 }
+      "released" | "cancelled": {
+	 Scroll_DoThumb(scroller,y - dy,data)
+	 return
+	 }
+      }
+   until type(Pending(btn.w)[1]) === "integer" do {
+      Scroll_DoThumb(scroller,y - dy,data)
+      }
+   return
+end
+
+
+procedure Scroll_DoThumb(scroller,y,data)
+   local centerBtn,oldValue
+   centerBtn := scroller.centerBtn
+   oldValue := scroller.value
+   if Scroll_SetValue(scroller,(scroller.maxValue - 1) *
+	 (y - centerBtn.y) /
+	 (centerBtn.height - centerBtn.width) + 1) ~= oldValue then {
+      Scroll_DrawThumb(scroller)
+      scroller.event(scroller,"scrolled",data,oldValue)
+      }
+   return
+end
+
+
+procedure Scroll_CenterContents(w,btn)
+   $ifdef TRUE_GRAY
+      WAttrib(w,"fg=gray")
+   $else
+      Pattern(w,"2,1,2")
+      WAttrib(w,"fillstyle=opaquestippled")
+   $endif
+   FillRectangle(w,btn.x,btn.y,btn.width,btn.height)
+   $ifdef TRUE_GRAY
+      WAttrib(w,"fg=black")
+   $else
+      WAttrib(w,"fillstyle=solid")
+   $endif
+   DrawRectangle(w,btn.x,btn.y,btn.width,btn.height)
+   return
+end
+
+
+procedure Scroll_ThumbContents(w,btn)
+   FillRectangle(w,btn.x,btn.y,btn.width,btn.height)
+   return
+end
+
+
+procedure Scroll_SetValue(scroller,value)
+   (value >:= scroller.maxValue) | (value <:= 1)
+   scroller.value := value
+   scroller.thumbBtn.y := scroller.y + scroller.width +
+	 ((scroller.height - 3 * scroller.width) *
+	 (scroller.value - 1) / (0 ~= scroller.maxValue - 1) | 0)
+   return value
+end
+
+
+procedure Scroll_DrawThumb(scroller)
+   DrawButton(scroller.centerBtn)
+   DrawButton(scroller.thumbBtn)
+   return
+end
+
+
+procedure Scroll_UpArrow(w,btn)
+   local x,xseg,y,yseg
+   x := btn.x
+   y := btn.y
+   xseg := btn.width / 6.0
+   yseg := btn.height / 6.0
+   DrawLine(w,
+	    x + 3 * xseg,y + 1 * yseg,
+	    x + 5 * xseg,y + 3 * yseg,
+	    x + 4 * xseg,y + 3 * yseg,
+	    x + 4 * xseg,y + 5 * yseg,
+	    x + 2 * xseg,y + 5 * yseg,
+	    x + 2 * xseg,y + 3 * yseg,
+	    x + 1 * xseg,y + 3 * yseg,
+	    x + 3 * xseg,y + 1 * yseg)
+   return
+end
+
+
+procedure Scroll_DownArrow(w,btn)
+   local x,xseg,y,yseg
+   x := btn.x
+   y := btn.y
+   xseg := btn.width / 6.0
+   yseg := btn.height / 6.0
+   DrawLine(w,
+	    x + 3 * xseg,y + 5 * yseg,
+	    x + 5 * xseg,y + 3 * yseg,
+	    x + 4 * xseg,y + 3 * yseg,
+	    x + 4 * xseg,y + 1 * yseg,
+	    x + 2 * xseg,y + 1 * yseg,
+	    x + 2 * xseg,y + 3 * yseg,
+	    x + 1 * xseg,y + 3 * yseg,
+	    x + 3 * xseg,y + 5 * yseg)
+   return
+end
+
+
+#
+#  Utility Procedures
+#
+
+procedure PtInRect(px,py,rx,ry,rwidth,rheight)
+   return (rx <= px < rx + rwidth & ry <= py < ry + rheight,&null)
+end
+
+## procedure ShowArgs(x[])
+   ## argnbr := 0
+   ## every y := !x do {
+      ## write("arg ",argnbr +:= 1," = ",image(y))
+   ## }
+   ## return y
+## end
+
+## procedure wr(s[])
+   ## return
+   ## every writes(!s)
+   ## write()
+   ## return
+## end

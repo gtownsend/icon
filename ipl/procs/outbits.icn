@@ -1,0 +1,106 @@
+############################################################################
+#
+#	File:     outbits.icn
+#
+#	Subject:  Procedure to write variable-length characters
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     November 3, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.5
+#
+############################################################################
+#
+#  In any number of instances (e.g. when outputting variable-length
+#  characters or fixed-length encoded strings), the programmer must
+#  fit variable and/or non-byte-sized blocks into standard 8-bit
+#  bytes.  Outbits() performs this task.
+#
+#  Pass to outbits(i, len) an integer i, and a length parameter (len),
+#  and outbits will suspend byte-sized chunks of i converted to
+#  characters (most significant bits first) until there is not enough
+#  left of i to fill up an 8-bit character.  The remaining portion is
+#  stored in a buffer until outbits() is called again, at which point
+#  the buffer is combined with the new i and then output in the same
+#  manner as before.  The buffer is flushed by calling outbits() with
+#  a null i argument.  Note that len gives the number of bits there
+#  are in i (or at least the number of bits you want preserved; those
+#  that are discarded are the most significant ones). 
+#
+#  A trivial example of how outbits() might be used:
+#
+#      outtext := open("some.file.name","w")
+#      l := [1,2,3,4]
+#      every writes(outtext, outbits(!l,3))
+#      writes(outtext, outbits(&null,3))           # flush buffer
+#
+#  List l may be reconstructed with inbits() (see inbits.icn):
+#
+#      intext := open("some.file.name")
+#      l := []
+#      while put(l, inbits(intext, 3))
+#
+#  Note that outbits() is a generator, while inbits() is not.
+#
+############################################################################
+#
+#  See also: inbits.icn
+#
+############################################################################
+
+procedure outbits(i, len)
+
+    local old_part, new_part, window, old_byte_mask
+    static old_i, old_len, byte_length, byte_mask
+    initial {
+	old_i := old_len := 0
+	byte_length := 8
+	byte_mask := (2^byte_length)-1
+    }
+
+    old_byte_mask := (0 < 2^old_len - 1) | 0
+    window := byte_length - old_len
+    old_part := ishift(iand(old_i, old_byte_mask), window)
+
+    # If we have a no-arg invocation, then flush buffer (old_i).
+    if /i then {
+	if old_len > 0 then {
+	    old_i := old_len := 0
+	    return char(old_part)
+	} else {
+	    old_i := old_len := 0
+	    fail
+	}
+    } else {
+	new_part := ishift(i, window-len)
+	len -:= (len >= window) | {
+	    old_len +:= len
+	    old_i := ior(ishift(old_part, len-window), i)
+	    fail
+	}
+#	For debugging purposes.
+#	write("old_byte_mask = ", old_byte_mask)
+#	write("window = ", image(window))
+#	write("old_part = ", image(old_part))
+#	write("new_part = ", image(new_part))
+#	write("outputting ", image(ior(old_part, new_part)))
+	suspend char(ior(old_part, new_part))
+    }
+
+    until len < byte_length do {
+	suspend char(iand(ishift(i, byte_length-len), byte_mask))
+	len -:= byte_length
+    }
+
+    old_len := len
+    old_i := i
+    fail
+
+end

@@ -1,0 +1,96 @@
+############################################################################
+#
+#	File:     trycolor.icn
+#
+#	Subject:  Program to investigate color specifications
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     July 14, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     trycolor repeatedly reads a color specification from standard input
+#  and displays a disc of that color.  A color specification may be in any
+#  of the forms accepted by Icon, for example:
+#
+#     blue
+#     #ffedcb
+#     50010,60422,8571
+#     dark greenish blue
+#
+#  Additionally, the leading '#' may be omitted from hexadecimal forms.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: options, optwindw, graphics
+#
+############################################################################
+
+link options
+link optwindw
+link graphics
+
+procedure main(args)
+   local win, gc, line, cval, mono, color, opts, m, w, h, l
+   local r, g, b, rr, gg, bb, x
+
+   opts := options(args, winoptions())
+   /opts["W"] := 300
+   /opts["H"] := 300
+   /opts["M"] := -1
+   win := optwindow(opts, "cursor=off", "echo=off")
+   gc := Clone(win)
+   m := opts["M"]
+   w := opts["W"]
+   h := opts["H"]
+   l := WAttrib(win, "leading")
+   color := opts["F"]
+   mono := WAttrib(win, "depth") == "1"
+   write("gamma=", WAttrib(win, "gamma"))
+   repeat {
+      if *color > 0 then {
+         if Shade(gc, color | (color := "#" || color)) then {
+            EraseArea(gc)
+            FillArc(gc, m, m, w, h)
+            Fg(win, Contrast(win, color))
+            cval := ColorValue(win, color)
+            cval ? {
+               r := tab(many(&digits));  move(1)
+               g := tab(many(&digits));  move(1)
+               b := tab(many(&digits))
+               }
+            rr := hexv(r / 65536.0)
+            gg := hexv(g / 65536.0)
+            bb := hexv(b / 65536.0)
+            CenterString(win, m + w/2, m + h/2 - l, color)
+            CenterString(win, m + w/2, m + h/2, cval)
+            CenterString(win, m + w/2, m + h/2 + l, "#" || rr || gg || bb)
+            }
+         else
+            write("[failed]")
+         }
+      writes("> ")
+      line := read() | break
+      line ? {
+         tab(many(' \t'))
+         color := trim(tab(0))
+         }
+      }
+end
+
+procedure hexv(v)			# two-hex-digit specification of v
+   static hextab
+   initial {
+      every put((hextab := []), !"0123456789ABCDEF" || !"0123456789ABCDEF")
+      }
+   return hextab [1 + integer(256 * v)]
+end

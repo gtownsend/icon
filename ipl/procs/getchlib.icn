@@ -1,0 +1,337 @@
+############################################################################
+#
+#	File:     getchlib.icn
+#
+#	Subject:  Procedures for getch for UNIX
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.14
+#
+############################################################################
+#
+#  Implementing getch() is a much, much more complex affair under UNIX
+#  than it is under, say, MS-DOS.  This library represents one,
+#  solution to the problem - one which can be run as a library, and
+#  need not be compiled into the run-time system.  Note that it will
+#  not work on all systems.  In particular, certain Suns (with a
+#  screwy stty command) and the NeXT 1.0 OS (lacking the -g option for
+#  stty) do not run getchlib properly.  See the bugs section below for
+#  workarounds.
+#
+#  Four basic utilities are included here:
+#
+#	getch()		- waits until a keystroke is available &
+#	    returns it without displaying it on the screen
+#	getche()	- same as getch() only with echo
+#	getse(s)	- like getche() only for strings.  The optional
+#	    argument s gives getse() something to start with.  Use this
+#           if, say, you want to read single characters in cbreak mode,
+#           but get more input if the character read is the first part
+#           of a longer command.  If the user backspaces over everything
+#           that has been input, getse() fails.  Returns on \r or \n.
+#	reset_tty()	- absolutely vital routine for putting the cur-
+#           rent tty line back into cooked mode; call it before exiting
+#           or you will find yourself with a locked-up terminal; use it
+#           also if you must temporarily restore the terminal to cooked
+#           mode
+#
+#  Note that getse() *must* be used in place of read(&input) if you
+#  are planning on using getch() or getche(), since read(&input)
+#  assumes a tty with "sane" settings.
+#
+#  Warning:  The routines below do not do any sophisticated output
+#  processing.  As noted above, they also put your tty line in raw
+#  mode.  I know, I know:  "Raw is overkill - use cbreak."  But in
+#  a world that includes SysV, one must pick a lowest common denomi-
+#  nator.  And no, icanon != cbreak.
+#
+#  BUGS: These routines will not work on systems that do not imple-
+#  ment the -g option for the stty command.  The NeXT workstation is
+#  an example of such a system.  Tisk, tisk.  If you are on a BSD
+#  system where the network configuration makes stty | more impossible,
+#  then substitute /usr/5bin/stty (or whatever your system calls the
+#  System V stty command) for /bin/stty in this file.  If you have no
+#  SysV stty command online, then you can try replacing every instance
+#  of "stty -g 2>&1" below with "stty -g 2>&1 1> /dev/tty" or
+#  something similar.
+#
+############################################################################
+#
+#  Example program:
+#
+#      The following program is a simple file viewer.  To run, it
+#  needs to be linked with itlib.icn, iscreen.icn, and this file
+#  (getchlib.icn).
+#
+#  procedure main(a)
+#
+#      # Simple pager/file searcher for UNIX systems.  Must be linked
+#      # with itlib.icn and iscreen.icn.
+#  
+#      local intext, c, s
+#  
+#      # Open input file
+#      intext := open(a[1],"r") | {
+#  	write(&errout,"Can't open input file.")
+#  	exit(1)
+#      }
+#  
+#      # Initialize screen
+#      clear()
+#      print_screen(intext) | exit(0)
+#  
+#      # Prompt & read input
+#      repeat {
+#  	iputs(igoto(getval("cm"), 1, getval("li")))
+#  	emphasize()
+#  	writes("More? (y/n or /search):")
+#  	write_ce(" ")
+#  	case c := getche() of {
+#  	    "y" : print_screen(intext) | break
+#  	    " " : print_screen(intext) | break
+#  	    "n" : break
+#  	    "q" : break
+#  	    "/" : {
+#  		iputs(igoto(getval("cm"), 1, getval("li")))
+#  		emphasize()
+#  		writes("Enter search string:")
+#  		write_ce(" ")
+#  		pattern := GetMoreInput()
+#  		/pattern | "" == pattern & next
+#  		# For more complex patterns, use findre() (IPL findre.icn)
+#  		if not find(pattern, s := !intext) then {
+#  		    iputs(igoto(getval("cm"), 1, getval("li")))
+#  		    emphasize()
+#  		    write_ce("String not found.")
+#  		    break
+#  		}
+#  		else print_screen(intext, s) | break
+#  	    }
+#  	}
+#      }
+#  
+#      reset_tty()
+#      write()
+#      exit(0)
+#
+#  end
+#  
+#  procedure GetMoreInput(c)
+#  
+#      local input_string
+#      static BS
+#      initial BS := getval("bc") | "\b"
+#  
+#      /c := ""
+#      if any('\n\r', chr := getch())
+#      then return c
+#      else {
+#  	chr == BS & fail
+#  	writes(chr)
+#  	input_string := getse(c || chr) | fail
+#  	if any('\n\r', input_string)
+#  	then fail else (return input_string)
+#      }
+#  
+#  end
+#  
+#  procedure print_screen(f,s)
+#  
+#      if /s then
+#  	begin := 1
+#      # Print top line, if one is supplied
+#      else {
+#  	iputs(igoto(getval("cm"), 1, 1))
+#  	write_ce(s ? tab(getval("co") | 0))
+#  	begin := 2
+#      }
+#  
+#      # Fill the screen with lines from f; clear and fail on EOF.
+#      every i := begin to getval("li") - 1 do {
+#  	iputs(igoto(getval("cm"), 1, i))
+#  	if not write_ce(read(f) ? tab(getval("co") | 0)) then {
+#  	    # Clear remaining lines on the screen.
+#  	    every j := i to getval("li") do {
+#  		iputs(igoto(getval("cm"), 1, j))
+#  		iputs(getval("ce"))
+#  	    }
+#  	    iputs(igoto(getval("cm"), 1, i))
+#  	    fail
+#  	}
+#      }
+#      return
+#  
+#  end
+#  
+#  procedure write_ce(s)
+#  
+#      normal()
+#      iputs(getval("ce")) |
+#  	writes(repl(" ",getval("co") - *s))
+#      writes(s)
+#      return
+#
+#  end
+#
+############################################################################
+#
+#  Requires: UNIX
+#
+############################################################################
+#
+#  Links: itlib.icn
+#
+############################################################################
+
+
+global c_cc, current_mode		# what mode are we in, raw or cooked?
+record termio_struct(vintr,vquit,verase,vkill)
+
+procedure getse(s)
+
+    # getse() - like getche, only for strings instead of single chars
+    #
+    # This procedure *must* be used instead of read(&input) if getch
+    # and/or getche are to be used, since these put the current tty
+    # line in raw mode.
+    #
+    # Note that the buffer can be initialized by calling getse with a
+    # string argument.  Note also that, as getse now stands, it will
+    # fail if the user backspaces over everything that has been input.
+    # This change does not coincide with its behavior in previous ver-
+    # sions.  It can be changed by commenting out the line "if *s < 1
+    # then fail" below, and uncommenting the line "if *s < 1 then
+    # next."
+
+    local chr
+    static BS
+    initial {
+	BS := getval("bc") | "\b"
+	if not getval("bs") then {
+	    reset_tty()
+	    stop("Your terminal can't backspace!")
+	}
+    }
+
+    /s := ""
+    repeat {
+	case chr := getch() | fail of {
+	    "\r"|"\n"    : return s
+	    c_cc.vkill   : {
+		if *s < 1 then next
+		every 1 to *s do writes(BS)
+		s := ""
+	    }
+	    c_cc.verase   : {
+		# if *s < 1 then next
+		writes(BS) & s := s[1:-1]
+		if *s < 1 then fail
+	    }
+	    default: writes(chr) & s ||:= chr
+	}
+    }
+
+end
+
+
+
+procedure setup_tty()
+    change_tty_mode("setup")
+    return
+end
+
+
+
+procedure reset_tty()
+
+    # Reset (global) mode switch to &null to show we're in cooked mode.
+    current_mode := &null
+    change_tty_mode("reset")
+    return
+
+end
+
+
+
+procedure getch()
+
+    local chr
+
+    # If the global variable current_mode is null, then we have to
+    # reset the terminal to raw mode.
+    if /current_mode := 1 then
+	setup_tty()
+
+    chr := reads(&input)
+    case chr of {
+	c_cc.vintr : reset_tty() & stop()  # shouldn't hard code this in
+	c_cc.vquit  : reset_tty() & stop()
+	default : return chr
+    }
+
+end
+
+
+
+procedure getche()
+
+    local chr
+
+    # If the global variable current_mode is null, then we have to
+    # reset the terminal to raw mode.
+    if /current_mode := 1 then
+	setup_tty()
+
+    chr := reads(&input)
+    case chr of {
+	c_cc.vintr  : reset_tty() & stop()
+	c_cc.vquit  : reset_tty() & stop()
+	default : writes(chr) & return chr
+    }
+
+end
+
+
+
+procedure change_tty_mode(switch)
+
+    # global c_cc   (global record containing values for kill, etc. chars)
+    local get_term_params, i
+    static reset_string
+    initial {
+	getval("li")    # check to be sure itlib is set up
+	find("unix",map(&features)) |
+	    stop("change_tty_mode:  These routines must run under UNIX.")
+	get_term_params := open("/bin/stty -g 2>&1","pr")
+	reset_string := !get_term_params
+	close(get_term_params)
+	reset_string ? {
+	    # tab upto the fifth field of the output of the stty -g cmd
+	    # fields of stty -g seem to be the same as those of the
+	    # termio struct, except that the c_line field is missing
+	    every 1 to 4 do tab(find(":")+1)
+	    c_cc := termio_struct("\x03","\x1C","\x08","\x15")
+	    every i := 1 to 3 do {
+		c_cc[i] := char(integer("16r"||tab(find(":"))))
+		move(1)
+	    }
+	    c_cc[i+1] := char(integer("16r"||tab(0)))
+	}
+    }
+
+    if switch == "setup"
+    then system("/bin/stty -echo raw")
+    else system("/bin/stty "||reset_string)
+
+    return
+
+end

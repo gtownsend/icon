@@ -1,0 +1,163 @@
+############################################################################
+#
+#	File:     fontpick.icn
+#
+#	Subject:  Program to show the characters of a font
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 23, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Usage:  fontpick [fontname]
+#
+#  fontpick is an interactive tool for displaying fonts.  Initially, the
+#  specified font, or the VIB default font, is displayed.  To display a
+#  different font, type its name and press return.  To exit, enter Meta-Q
+#  or click the QUIT button.
+#
+#  Caveats:
+#  -- any character that is too large is clipped to fit its cell
+#  -- the window cannot be resized to handle large fonts
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: vsetup
+#
+############################################################################
+
+link vsetup
+
+global vidgets
+
+
+#  main procedure
+
+procedure main(args)
+   Window ! put(ui_atts(), args)
+   vidgets := ui()
+   setfont(, args[1] | Font())			# display named or default font
+   repeat ProcessEvent(vidgets["root"], other)
+end
+
+
+#  setfont(vidget, value) -- display the font named "value"
+
+procedure setfont(vidget, value)
+   local ttl, sub, rgn, fontname, x, y, w, h, win
+
+   # ignore return if no name has been entered
+   if *value = 0 then
+      return
+
+   # get vidget handles
+   ttl := vidgets["title"]
+   sub := vidgets["subtitle"]
+   rgn := vidgets["region"]
+
+   # display font name in title region
+   EraseArea(ttl.ux, ttl.uy, ttl.uw, ttl.uh)
+   EraseArea(sub.ux, sub.uy, sub.uw, sub.uh)
+   CenterString(ttl.ux + ttl.uw / 2, ttl.uy + ttl.uh / 2, value)
+
+   # open and display the font
+   EraseArea(rgn.ux, rgn.uy, rgn.uw, rgn.uh)
+   if win := Clone("font=" || value) then {
+      dumpfont(win, rgn.ux, rgn.uy, rgn.uw, rgn.uh)
+      fontname := Font(win)
+      if fontname ~== value then
+         CenterString(sub.ux + sub.uw / 2, sub.uy + sub.uh / 2, fontname)
+      }
+   else {
+      CenterString(sub.ux + sub.uw / 2, sub.uy + sub.uh / 2,
+         "(cannot find font)")
+      }
+
+   # clear the text entry field to accept the next name
+   VSetState(vidgets["fontname"], "")
+   return
+end
+
+
+#  dumpfont(win, x, y, w, h) -- display the characters of a font
+
+procedure dumpfont(win, x, y, w, h)
+   local dx, dy, x1, x2, y1, y2, i, j
+
+   # calculate size of cells
+   dx := (w - 1.001) / 16.0
+   dy := (h - 1.001) / 16.0
+
+   # draw light gray lines to delimit character cells
+   Fg("light gray")
+   every x1 := x + integer(dx * (1 to 15)) do
+      DrawLine(x1, y, x1, y + h - 1)
+   every y1 := y + integer(dy * (1 to 15)) do
+      DrawLine(x, y1, x + w - 1, y1)
+   Fg("black")
+
+   # display characters, one per cell
+   every i := 0 to 15 do {
+      y1 := integer(y + i * dy)
+      y2 := integer(y + (i + 1) * dy)
+      every j := 0 to 15 do {
+         x1 := integer(x + j * dx)
+         x2 := integer(x + (j + 1) * dx)
+         Clip(win, x1 + 1, y1 + 1, x2 - x1 - 1, y2 - y1 - 1)
+         CenterString(win, (x1 + x2) / 2, (y1 + y2) / 2, char(16 * i + j))
+         }
+      }
+   return
+end
+
+
+#  revent(v, e, x, y) -- pass region event to font name vidget
+
+procedure revent(v, e, x, y)
+   return VEvent(vidgets["fontname"], e, x, y)
+end
+
+
+#  other(e) -- pass event outside of regions to font name vidget
+#
+#  Also handles meta-Q event rejected by other vidgets.
+
+procedure other(e)
+   if &meta & map(e) == "q" then
+      exit()
+   return VEvent(vidgets["fontname"], e, &x, &y)
+end
+
+
+#  quit() -- process QUIT button
+
+procedure quit()
+   exit()
+end
+
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=512,640", "bg=pale gray"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,512,640:",],
+   ["fontname:Text::51:5,616,444,19:font name: \\=",setfont],
+   ["quit:Button:regular::471,615,35,20:QUIT",quit],
+   ["subtitle:Rect:invisible::7,31,496,25:",revent],
+   ["title:Rect:invisible::7,6,496,25:",revent],
+   ["region:Rect:sunken::8,56,492,553:",revent],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

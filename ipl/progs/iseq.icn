@@ -1,0 +1,50 @@
+############################################################################
+#
+#	File:     iseq.icn
+#
+#	Subject:  Program to write sequence of integers
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 3, 1996
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program generates integers in sequence.
+#
+#  The following options are supported:
+#
+#	-b i	beginning integer; default 1
+#	-e i	ending integer; default no end
+#	-i i	increment; default 1
+#	-l i	limit on number of integers generated; default no limit
+#
+#  Large integer values are not supported.
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local opts, limit, start, stop, incr, i
+
+   opts := options(args, "b+e+i+l+")
+
+   limit := \opts["l"] | (2 ^ 32)		# good enough
+   start := \opts["b"] | 1
+   stop := \opts["e"] | (2 ^ 64)		# sort of good enough
+   incr := \opts["i"] | 1
+
+   every i := seq(start, incr) \ limit do
+      if i > stop then exit()
+      else write(i)
+
+end

@@ -1,0 +1,41 @@
+############################################################################
+#
+#	File:     basename.icn
+#
+#	Subject:  Procedures to produce base name of a file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 22, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Contributor:  Charles Shartsis
+#
+############################################################################
+#
+#  This procedure is based on the UNIX basename(1) utility.  It strips off
+#  any path information and removes the specified suffix, if present.
+#
+#  If no suffix is provided, the portion of the name up to the first
+#  "." is returned.
+#
+#  It should work under UNIX, MS-DOS, and the Macintosh.
+#
+############################################################################
+
+procedure basename(name, suffix)	#: base name of file
+   local i, base
+
+   name ? {
+      every i := upto('/\\:')
+      tab(integer(i) + 1)       	  # get rid of path, if any
+      if base := 1(tab(find(\suffix)),  pos(-*suffix)) then return base
+      else return tab(0)
+      }
+
+end

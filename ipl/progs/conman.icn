@@ -1,0 +1,427 @@
+############################################################################
+#
+#	File:     conman.icn
+#
+#	Subject:  Program to convert units
+#
+#	Author:   William E. Drissel
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Conman is a toy I used to teach myself elementary Icon.  I 
+#  once vaguely heard of a program which could respond to queries 
+#  like "? Volume of the earth in tbsp".  
+#
+#  The keywords of the language (which are not reserved) are:
+#
+#          load
+#          save
+#          print
+#          ? (same as print)
+#          list
+#          is and are which have the same effect
+#
+#  "Load" followed by an optional filename loads definitions of 
+#  units from a file.  If filename is not supplied, it defaults to 
+#  "conman.sav"  
+#
+#  "Save" makes a file for "load".  Filename defaults to 
+#  "conman.sav".  "Save" appends to an existing file so a user 
+#  needs to periodically edit his save file to prune it back.
+#
+#  "Print" and "?" are used in phrases like:
+#
+#          ? 5 minutes in seconds
+#
+#  Conman replies:
+#
+#          5 minutes in seconds  equals  300
+#
+#  List puts up on the screen all the defined units and the 
+#  corresponding values.  Format is same as load/store format.
+#
+#  "Is" and "are" are used like this:
+#
+#          100 cm are 1 meter
+#
+#  The discovery of is or are causes the preceeding token (in 
+#  this case "cm") to be defined.  The load/store format is:
+#
+#         unitname "is" value
+#
+#  Examples:
+#
+#       8 furlongs is 1 mile
+#       furlong is 1 / 8 mile
+#
+#  These last two are equivalent.  Note spaces before and after 
+#  "/".  Continuing examples:
+#
+#       1 fortnight is 14 days
+#       furlong/fortnight is furlong / fortnight
+#       inches/hour is inch / hour
+#
+#  After this a user might type:
+#
+#       ? 1 furlong/fortnight in inches/hour
+#       
+#  Conman will reply:
+#
+#       1 furlong/fortnight in inches/hour equals 23.57
+#
+#  Note: the following feature of Conman:  his operators have no 
+#  precedence so the line above gets the right answer but 
+#
+#        1 furlong/fortnight in inches / hour 
+#
+#  gets the wrong answer.  (One definition of a feature is a flaw we're 
+#  not going to fix).
+#
+############################################################################
+#
+#  Program Notes:
+#
+#  The procedure, process, parses the user's string to see if it 
+#  begins with a keyword.  If so, it acts accordingly.  If not, 
+#  the user string is fed to isare.
+#
+#  Isare attempts to find "is" or "are" in the users string.  
+#  Failing to, isare feeds the string to conman which can 
+#  interpret anything.  If "is" or "are" is found, the tokens 
+#  (delimited by blanks) before the "is" or "are" are stacked in 
+#  foregoing; those after are stacked in subsequent.  Then the 
+#  name to be defined is popped off the foregoing and used as 
+#  the "index" into a table named values.  The corresponding 
+#  number is computed as eval(subsequent) / eval(foregoing).
+#
+#  The procedure, stack, is based on Griswold and Griswold, "The 
+#  Icon Programming Language", p122.
+#
+#  The procedure, eval, unstacks the tokens from a stack one by 
+#  one until all have been considered.  First, the tokens which 
+#  signify division by the next token are considered and used to 
+#  set a switch named action.  Then depending on action, the 
+#  token is used to multiply the accumulator or divide it.  If 
+#  eval can make the token into a number, the number is used, 
+#  failing that the token is looked up in the table named values 
+#  and the corresponding number is used.  Failing both of those, 
+#  conman gripes to the user and does nothing (in effect 
+#  multiplying or dividing by 1).  Finally, eval returns the 
+#  number accumulated by the operations with the tokens.
+#
+#  Load defaults the filename to conman.sav if the user didn't 
+#  supply one.  Each line read is fed to isare.  We will see 
+#  that save prepares the lines so isare can define the units.
+#
+#  Save uses Icon's sort to go thru the table "values".  The 
+#  unit name is the left of a pair and the number stored is the 
+#  right of the pair.  The word " is " is stuck between them so 
+#  isare will work.
+#
+#  Finally, we consider the procedure conman.  During initial 
+#  design, this was perceived to be the largest part of the 
+#  effort of conman.  It is a real tribute to the power of Icon 
+#  that only one non-trivial line of code is required.  The 
+#  user's string is reproduced then the word "equals" followed 
+#  the result produced by eval after the user's string is 
+#  stacked.
+#
+############################################################################
+#
+# Requires:  conman.sav
+#
+############################################################################
+#
+#  Links:  io
+#
+############################################################################
+
+link io
+
+global values, blank, nonblank
+
+procedure main (args)
+    local line
+
+    if map(args[1]) == "-t" then &trace := -1
+
+     init()
+
+     while line := prompt() do {
+         process(line || " ")      # pad with a blank to make life easy
+     }
+     windup()
+end
+############################################################################
+#
+# windup
+#
+procedure windup()
+     write(&errout,"windup")
+end
+############################################################################
+#
+# process
+#
+procedure process(str)
+
+     case parse(str) of {
+     "load"        : load(str)
+     "save"        : save(str)
+     "print"       : conman(butfirst(str))          # strip first token
+     "list"        : zlist()
+     default       : isare(str) # didn't start with a kw, try is or are
+     }
+end
+############################################################################
+#
+# parse
+#
+procedure parse(str)
+    local token
+
+     token := first(str)
+     case token of  {
+         "?"       : return "print"             # only special case at present
+         default   : return token
+     }
+end
+############################################################################
+#
+# conman
+#
+# compute and write result - During initial design, this was perceived to
+#                            require 50 lines of complicated lookup etc.!
+#
+procedure conman(strn) 
+
+     write (strn , " equals ", eval(stack(strn, 1, *strn)))
+end
+############################################################################
+#
+# isare - routine to define values - tries to evaluate if not a definition
+#
+# locate is,are - delete
+# backup one word - save, delete
+# compute foregoing
+# compute subsequent
+# store word, subsequent/foregoing in values
+#
+procedure isare(str)
+    local after, before, foregoing, subsequent
+
+# locate blank-delimited is or are - early (?clumsy) Icon code replaced at
+# the suggestion of one of REG's students
+
+     if (str ? (before := tab(find(" is ")) & move(4) & 
+                 after := \tab(0)))  then {  }                    # is
+
+     else if (str ? (before := tab(find(" are ")) & move(5) & 
+                 after := \tab(0)))  then {  }                    # are
+
+     else {                          # found nothing - try to eval anyhow
+         conman(str)
+         return 
+     } 
+#
+# here if is or are
+#
+     foregoing  := stack(before)    # so we can look back one token
+     subsequent := stack(after)     # might as well stack this too
+
+     name := singular(pop(foregoing))     # define token before is or are
+#
+# next line so we can support "100 cms are 1 meter"
+#
+     values[name] := eval(subsequent) / eval(foregoing) 
+     return
+end
+############################################################################
+#
+# stack - stack tokens - based on IPL section 12.1 p122
+#
+#  stack the "words" in str - needs cset nonblank
+#
+procedure stack(str)
+    local i, j, words
+
+    words := [] ; i := 1
+
+    while j := upto(nonblank, str, i) do {
+         i := many(nonblank, str, j)
+         push(words, str[i:j])
+         }
+    return words
+end
+############################################################################
+#
+# eval - evaluate a stack
+#
+#  while more remain
+#    unstack a token
+#    if "in" or "over" or "/", set to divide next time
+#    else if number multiply/divide it
+#    else if in values, multiply/divide value
+#    else gripe and leave accum alone
+#
+procedure eval(stk)
+    local accum, action, token
+
+    accum := 1.0  ;  action := "multiply"
+
+    while token := singular(pull(stk)) do {          
+
+         if token == ("in" | "over" | "/" )then action := "divide"
+         else if action == "multiply" then {
+
+#             write("multiplying by ", token, " ", (real(token) | 
+ #                                                  real(values[token]) |
+  #                                                 "unknown"))
+
+              if not (accum *:= \(real(token) | real(values[token]))) then
+                   write (&errout,
+                         "Can't evaluate ", token, " - using 1.0 instead")
+         }
+         else if action == "divide" then {
+              action := "multiply"
+              if not (accum /:= \(real(token) | real(values[token]))) then
+                   write (&errout,
+                         "Can't evaluate ", token, " - using 1.0 instead")
+         }
+     }#........................................ # end of while more tokens
+    return accum       
+end
+############################################################################
+#
+# init
+#
+procedure init()
+     write(&errout, "Conman version 1.1, 7/24/87")
+     values := table(&null)
+     nonblank := &ascii -- ' '
+     blank := ' '
+     values["times"] := 1.0
+     values["by"]    := 1.0
+     values["of"]    := 1.0
+     values["at"]    := 1.0
+     values["print"] := 1.0
+     values["?"]     := 1.0
+     values["meter"] := 1.0
+     values["kilogram"] := 1.0
+     values["second"]   := 1.0
+
+end
+############################################################################
+#
+# prompt
+#
+procedure prompt()
+    return read()
+end
+############################################################################
+#
+# load - loads table from a file - assumes save format compatible 
+#        with isare
+#
+procedure load(str)
+    local intext, line, filnam
+
+    filnam := (\second(str) | "conman.sav")
+    write (&errout, "Load from ", filnam, ".  May take a minute or so.")
+    intext := dopen(filnam,"r") | { write(&errout, "can't open ", filnam)
+                                    fail}
+     while line := read(intext)  do {
+         isare(line || " ")  # pad with a blank to make life easy
+     }
+    close(intext)
+    return
+end
+############################################################################
+#
+# save - saves table to file in format compatible with isare
+#
+procedure save(str)
+    local i, outtext, pair, wlist, filnam
+ 
+    filnam := (\second(str) | "conman.sav")
+    write (&errout, "Save into ", filnam)
+    outtext := open(filnam,"a") | { write(&errout, "can't save to ", filnam)
+                                    fail}
+    wlist := sort(values)
+    i := 0
+    every pair := !wlist do {
+         write(outtext, pair[1], " is ", pair[2])
+    }
+    close(outtext)
+end
+############################################################################
+#
+# zlist - lists the table
+#
+procedure zlist()
+    local i, pair, wlist
+
+    i := 0
+    wlist := sort(values)
+    every pair := !wlist do {
+         write(&errout, pair[1], " is ", pair[2])
+    }
+end
+############################################################################
+#
+# first - returns first token in a string - needs cset nonblank
+#
+procedure first(s)
+    local stuff
+
+    s? (tab(upto(nonblank)) , (stuff := tab(many(nonblank))))
+    return \stuff 
+end
+############################################################################
+#
+# second - returns second token in a string - needs cset nonblank
+#
+procedure second(s)
+    local stuff
+
+    s? (tab(upto(nonblank)) , (tab(many(nonblank)) & tab(upto(nonblank)) &
+         (stuff := tab(many(nonblank)))))
+    return \stuff 
+end
+############################################################################
+#
+# butfirst - returns all butfirst token in a string - needs cset nonblank
+#
+procedure butfirst(s)
+    local stuff
+
+    s? (tab(upto(nonblank)) , tab(many(nonblank)) & tab(upto(nonblank)) &
+         (stuff := tab(0)))
+    return \stuff 
+end
+############################################################################
+#
+# singular - returns singular of a unit of measure - add special cases in 
+#            an obvious way.  Note: singulars ending in "e" should be handled
+#            here also "per second" units which end in "s".
+#
+procedure singular(str)
+    local s
+
+    s := str 
+    if s == "fps" then return "fps"
+    if s == "feet" then return "foot"
+    if s == "minutes" then return "minute"
+    if s == "miles" then return "mile"
+#
+## otherwise strip "es" or "s".  Slick code by Icon grad student
+#
+    return s? (1(tab(-2), ="es") | 1(tab(-1), ="s" ) | tab(0))
+end
+############################################################################

@@ -1,0 +1,119 @@
+############################################################################
+#
+#	File:     drawup.icn
+#
+#	Subject:  Program to analyze weaving
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 19, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program produces a PFD from a GIF.  The number of shafts and
+#  treadles needed may exceed the capability of this representation.
+#
+#  Options supported:
+#
+#	-x i	x coordinate of upper-left corner to be analyzed; default 0
+#	-y i	y coordinate of upper-left corner to be analyzed; default 0
+#	-w i	width of area to be analyzed; default entire width
+#	-h i	height of area to be analyzed; default entire height
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  gpxop, imrutils, options, tables, weavutil, wopen
+#
+############################################################################
+
+link gpxop
+link imrutils
+link options
+link tables
+link weavutil
+link wopen
+
+record analysis(rows, sequence, patterns)
+
+procedure main(args)
+   local imr, threading, treadling, rows, tie, patterns, pattern, i
+   local symbols, symbol, opts, x, y, w, h
+
+   opts := options(args, "x+y+w+h+")
+
+   WOpen("image=" || args[1], "canvas=hidden") | stop("*** cannot open image")
+
+   x := \opts["x"] | 0
+   y := \opts["y"] | 0
+   w := \opts["w"] | WAttrib("width") - x
+   h := \opts["h"] | WAttrib("height") - y
+
+   imr := imstoimr(Capture("g2", x, y, w, h))
+
+   treadling := analyze(imr)
+   imr := imrrot90cw(imr)
+   threading := analyze(imr)
+
+   write(args[1], "-drawup")
+   write(threading.sequence)
+   write(treadling.sequence)
+   write(repl("1", *threading.sequence))	# black warp threads
+   write(repl("2", *treadling.sequence))	# white weft threads
+   write("g2")					# palette
+   write("01")					# color keys
+   write(*threading.rows)			# shafts
+   write(*treadling.rows)			# treadles
+         
+   patterns := treadling.patterns
+   rows := treadling.rows
+
+   symbols := table('')
+
+   every pattern := !patterns do {
+      symbol := rows[pattern]
+      symbols[symbol] := repl("1", *threading.rows)
+      pattern ? {
+         every i := upto('1') do
+            symbols[symbol][sympos(threading.sequence[i])] := "0"
+         }
+      }
+
+   symbols := sort(symbols, 3)
+   tie := ""
+   while get(symbols) do
+      tie ||:= get(symbols)
+   write(tie2pat(*threading.rows, *treadling.rows, tie))
+
+end
+
+procedure analyze(imr)
+   local pattern, rows, row, count, patterns
+
+   pattern := ""
+   patterns := []
+
+   rows := table()
+
+   count := 0
+
+   imr.pixels ? {
+      while row := move(imr.width) do {
+         if /rows[row] then {
+            rows[row] := possym(count +:= 1) | stop("*** out of symbols")
+            put(patterns, row)
+            }
+         pattern ||:= rows[row]
+         }
+      }
+
+   return analysis(rows, pattern, patterns)
+
+end

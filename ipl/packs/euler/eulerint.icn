@@ -1,0 +1,401 @@
+#	Euler Interpreter
+global S,k,i,mp,fct
+
+record Reference(lst,pos)
+record Progref(mix,adr)
+record procDescr(bln,mix,adr)
+
+procedure reference(on,bn)
+local j
+j := mp
+while j>0 do {
+	if S[j][1] = bn then return Reference(S[j][4],on)
+	j := S[j][3]	#static link
+}
+RTError("dangling reference")
+fail
+end
+
+procedure progref(pa,bn)
+local j
+j := mp
+while j>0 do {
+	if S[j][1] = bn then return Progref(j,pa)
+	j := S[j][3]	#static link
+}
+RTError("dangling reference")
+fail
+end
+
+procedure deref(x)
+if type(x) ~== "Reference" then return x
+return x.lst[x.pos]
+end
+
+procedure assignThroughRef(x,v)
+local j
+if type(x) ~== "Reference" then {
+	RTError("reference needed on left of '<-'")
+	fail
+}
+return x.lst[x.pos] := v
+end
+
+procedure interpreter()
+local l,r,t
+S := list(500)
+i := 1
+S[1] := [0,0,0,[]]	#outer, empty activation record
+mp := 1
+k := 1
+repeat {
+  if k>*P then return
+  case P[k][1] of {
+"+":	{
+	if not (l:=numeric(S[i-1])) then
+		return RTError("numeric required")
+	if not (r:=numeric(S[i])) then
+		return RTError("numeric required")
+	i -:= 1
+	S[i] := l + r
+	}
+"-":	{
+	if not (l:=numeric(S[i-1])) then
+		return RTError("numeric required")
+	if not (r:=numeric(S[i])) then
+		return RTError("numeric required")
+	i -:= 1
+	S[i] := l - r
+	}
+"*":	{
+	if not (l:=numeric(S[i-1])) then
+		return RTError("numeric required")
+	if not (r:=numeric(S[i])) then
+		return RTError("numeric required")
+	i -:= 1
+	S[i] := l * r
+	}
+"/":	{
+	if not (l:=real(S[i-1])) then
+		return RTError("numeric required")
+	if not (r:=real(S[i])) then
+		return RTError("numeric required")
+	i -:= 1
+	S[i] := l / r
+	}
+"div":	{
+	if not (l:=integer(S[i-1])) then
+		return RTError("numeric required")
+	if not (r:=integer(S[i])) then
+		return RTError("numeric required")
+	i -:= 1
+	S[i] := l / r
+	}
+"mod":	{
+	if not (l:=integer(S[i-1])) then
+		return RTError("numeric required")
+	if not (r:=integer(S[i])) then
+		return RTError("numeric required")
+	i -:= 1
+	S[i] := l % r
+	}
+"**":	{
+	if not (l:=numeric(S[i-1])) then
+		return RTError("numeric required")
+	if not (r:=numeric(S[i])) then
+		return RTError("numeric required")
+	i -:= 1
+	S[i] := l ^ r
+	}
+"neg":	{
+	if not (r:=numeric(S[i])) then
+		return RTError("numeric required")
+	S[i] := - r
+	}
+"abs":	{
+	if not (r:=numeric(S[i])) then
+		return RTError("numeric required")
+	S[i] := abs(r)
+	}
+"integer":	{
+	if not (r:=numeric(S[i])) then
+		return RTError("numeric required")
+	S[i] := integer(r)
+	}
+"logical":	{
+	if not (r:=numeric(S[i])) then
+		return RTError("numeric required")
+	S[i] := if r ~= 0 then True else False
+	}
+"real":	{
+	if type(r:=S[i])~=="Logical" then
+		return RTError("logical required")
+	S[i] := if r === True then 1 else 0
+	}
+"min":	{
+	if not (l:=numeric(S[i-1])) then
+		return RTError("numeric required")
+	if not (r:=numeric(S[i])) then
+		return RTError("numeric required")
+	i -:= 1
+	S[i] := if l < r then l else r
+	}
+"max":	{
+	if not (l:=numeric(S[i-1])) then
+		return RTError("numeric required")
+	if not (r:=numeric(S[i])) then
+		return RTError("numeric required")
+	i -:= 1
+	S[i] := if l > r then l else r
+	}
+"isn":	{
+	r:=deref(S[i])
+	S[i] := if numeric(r) then True else False
+	}
+"isb":	{
+	r:=deref(S[i])
+	S[i] := if type(r)=="Logical" then True else False
+	}
+"isr":	{
+	r:=deref(S[i])
+	S[i] := if type(r)=="Reference" then True else False
+	}
+"isl":	{
+	r:=deref(S[i])
+	S[i] := if type(r)=="Progref" then True else False
+	}
+"isli":	{
+	r:=deref(S[i])
+	S[i] := if type(r)=="list" then True else False
+	}
+"isy":	{
+	r:=deref(S[i])
+	S[i] := if type(r)=="string" then True else False
+	}
+"isp":	{
+	r:=deref(S[i])
+	S[i] := if type(r)=="procDescr" then True else False
+	}
+"isu":	{
+	r:=deref(S[i])
+	S[i] := if /r then True else False
+	}
+"in":	{
+	i+:=1
+	S[i]:=reads()
+	}
+"out":	{
+	r:=deref(S[i])
+	case type(r) of {
+	"Logical": write(r.s)
+	"null": write("undef")
+	"Reference":write("Reference(",image(r.lst),",",r.pos,")")
+	"Progref":write("Program_Reference(",r.mix,",",r.adr,")")
+	"procDescr":write("Procedure_Descriptor(",
+			r.bln,",",r.mix,",",r.adr,")")
+	default: write(r)
+	}
+	}
+"<=":	{
+	if not (l:=numeric(S[i-1])) then
+		return RTError("numeric required")
+	if not (r:=numeric(S[i])) then
+		return RTError("numeric required")
+	i -:= 1
+	S[i] := if l <= r then True else False
+	}
+"<":	{
+	if not (l:=numeric(S[i-1])) then
+		return RTError("numeric required")
+	if not (r:=numeric(S[i])) then
+		return RTError("numeric required")
+	i -:= 1
+	S[i] := if l < r then True else False
+	}
+">=":	{
+	if not (l:=numeric(S[i-1])) then
+		return RTError("numeric required")
+	if not (r:=numeric(S[i])) then
+		return RTError("numeric required")
+	i -:= 1
+	S[i] := if l >= r then True else False
+	}
+">":	{
+	if not (l:=numeric(S[i-1])) then
+		return RTError("numeric required")
+	if not (r:=numeric(S[i])) then
+		return RTError("numeric required")
+	i -:= 1
+	S[i] := if l > r then True else False
+	}
+"=":	{
+	i -:= 1
+	S[i] := if S[i] === S[i+1] then True else False
+	}
+"~=":	{
+	i -:= 1
+	S[i] := if S[i] ~=== S[i+1] then True else False
+	}
+"and":	{
+	if type(r:=S[i])~=="Logical" then
+		return RTError("logical required")
+	if r===True then i-:=1
+	else { k:=P[k][2]; next }
+	}
+"or":	{
+	if type(r:=S[i])~=="Logical" then
+		return RTError("logical required")
+	if r===True then { k:=P[k][2]; next }
+	else i-:=1
+	}
+"~":	{
+	if type(r:=S[i])~=="Logical" then
+		return RTError("logical required")
+	S[i] := if r===True then False else True
+	}
+"then":	{
+	if type(r:=S[i])~=="Logical" then
+		return RTError("logical required")
+	i-:=1
+	if r===False then { k:=P[k][2]; next }
+	}
+"else":	{
+	k:=P[k][2]
+	next
+	}
+"length": {
+	r:=deref(S[i])
+	if type(r)~=="list" then
+		return RTError("list required")
+	S[i] := *r
+	}
+"tail": {
+	if type(r:=S[i])~=="list" then
+		return RTError("list required")
+	if *r<1 then
+		return RTError("non-empty list required")
+	S[i] := r[2:0]
+	}
+"&":	{
+	if not (type(l:=S[i-1])==type(r:=S[i])=="list") then 
+		return RTError("list required")
+	i -:= 1
+	S[i] := l ||| r
+	}
+"list":	{
+	if not (r:=numeric(S[i])) then
+		return RTError("numeric required")
+	S[i] := list(r)
+	}
+"number"|"logval"|"symbol" : {
+	i +:= 1
+	S[i] := P[k][2]
+	}
+"undef": {
+	i +:= 1
+	S[i] := &null
+	}
+"label": {
+	i +:= 1
+	S[i] := progref(P[k][2],P[k][3])
+	}
+"@":	{
+	i +:= 1
+	S[i] := reference(P[k][2],P[k][3])
+	}
+"new":	{
+	put(S[mp][4],&null)
+	}
+"formal": {
+	fct +:= 1
+	if fct > *S[mp][4] then put(S[mp][4],&null)
+	}
+"<-":	{
+	i -:= 1
+	S[i] := assignThroughRef(S[i],S[i+1]) | fail
+	}
+";":	{
+	i -:= 1
+	}
+"]":	{
+	if not (r:=numeric(S[i])) then
+		return RTError("numeric required")
+	if r <= 0 then
+		return RTError("subscript must be positive")
+	i -:= 1
+	l := deref(S[i])
+	if type(l)~=="list" then
+		return RTError("list required")
+	if r > *l then return RTError("subscript too large")
+	S[i] := Reference(l,r)
+	}
+"begin": {
+	i +:= 1
+	S[i] := [S[mp][1]+1,mp,mp,[]]
+	mp := i
+	}
+"end":	{
+	t := S[mp][2]
+	S[mp] := S[i]
+	i := mp
+	mp := t
+	}
+"proc":	{
+	i +:= 1
+	S[i] := procDescr(S[mp][1]+1,mp,k)
+	k := P[k][2]
+	next
+	}
+"value": {
+	S[i] := t := deref(S[i])
+	if type(t)=="procDescr" then {
+		fct := 0
+		S[i] := [t.bln,mp,t.mix,[],k]
+		mp := i
+		k := t.adr
+		}
+	}
+"call": {
+	i -:= 1
+	t := deref(S[i])
+	if type(t)~=="procDescr" then
+		return RTError("procedure required")
+	fct := 0
+	S[i] := [t.bln,mp,t.mix,S[i+1],k]
+	mp := i
+	k := t.adr
+	}
+"endproc": {
+	k := S[mp][5]
+	t := S[mp][2]
+	S[mp] := S[i]
+	i := mp
+	mp := t
+	}
+"halt":	{
+	break
+	}
+"goto":	{
+	if type(S[i])~=="Progref" then
+		return RTError("label required")
+	mp := S[i].mix
+	k := S[i].adr
+	i := mp
+	next
+	}
+")":	{
+	i +:= 1
+	r := S[i-P[k][2]:i]
+	i -:= P[k][2]
+	S[i] := r
+	}
+  }
+	k+:=1
+}
+return
+end
+
+procedure RTError(s)
+stop(k," ",P[k][1]," --- ",s)
+end
+

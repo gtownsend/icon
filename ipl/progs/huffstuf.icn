@@ -1,0 +1,386 @@
+############################################################################
+#
+#	File:     huffstuf.icn
+#
+#	Subject:  Program for huffman coding
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     April 30, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.2
+#
+############################################################################
+#  
+#  An odd assortment of tools that lets me compress text using an
+#  Iconish version of a generic Huffman algorithm.
+#
+############################################################################
+#
+#  Links:  codeobj, outbits, inbits
+#
+############################################################################
+#
+#  See also: hufftab.icn, press.icn
+#
+############################################################################
+
+link codeobj
+link inbits
+link outbits
+
+# Necessary records.
+record nodE(l,r,n)
+record _ND(l,r)
+record leaF(c,n)
+record huffcode(c,i,len)
+
+# For debugging purposes.
+# link ximage
+
+# Count of chars in input file.
+global count_of_all_chars
+
+
+procedure main(a)
+
+    local direction, usage, size, char_tbl, heap, tree, h_tbl, intext
+    usage := "huffcode -i|o filename1"
+
+    direction := pop(a) | stop(usage)
+    direction ?:= { ="-"; tab(any('oi')) } | stop(usage)
+    *a = 1 | stop(usage)
+
+    intext := open(a[1]) | quitprog("huffcode", "can't open "||a[1], 1)
+    size   := 80
+
+    if direction == "o" then {
+
+	char_tbl := table()
+	while count_chars_in_s(reads(intext), char_tbl)
+	heap     := initialize_heap(char_tbl)
+	tree     := heap_2_tree(heap)
+	h_tbl    := hash_codes(tree)
+
+	put_tree(&output, tree)
+	seek(intext, 1)
+	every writes(&output, encode_string(|reads(intext, size), h_tbl))
+
+    }
+    else {
+	tree := get_tree(intext)
+	every writes(&output, decode_rest_of_file(intext, size, tree))
+    }
+
+end
+
+
+procedure count_chars_in_s(s, char_tbl)
+
+    #
+    # Count chars in s, placing stats in char_tbl (keys = chars in
+    # s, values = leaF records, with the counts for each chr in s
+    # contained in char_tbl[chr].n).
+    #
+    local chr
+    initial {
+	/char_tbl &
+	    quitprog("count_chars_in_s", "need 2 args - 1 string, 2 table", 9)
+	*char_tbl ~= 0 &
+	    quitprog("count_chars_in_s","start me with an empty table",8)
+	count_of_all_chars := 0
+    }
+
+    # Reset character count on no-arg invocation.
+    /s & /char_tbl & {
+	count_of_all_chars := 0
+	return
+    }
+
+    # Insert counts for characters into char_tbl.  Note that we don't
+    # just put them into the table as-is.  Rather, we put them into
+    # a record which contains the character associated with the count.
+    # These records are later used by the Huffman encoding algorithm.
+    s ? {
+	while chr := move(1) do {
+	    count_of_all_chars +:= 1
+	    /char_tbl[chr]   := leaF(chr,0)
+	    char_tbl[chr].n +:= 1
+	}
+    }
+    return *char_tbl		# for lack of anything better
+
+end
+
+
+procedure initialize_heap(char_tbl)
+
+    #
+    # Create heap data structure out of the table filled out by
+    # successive calls to count_chars_in_s(s,t).  The heap is just a
+    # list.  Naturally, it's size can be obtained via *heap.
+    #
+    local heap
+
+    heap := list()
+    every push(heap, !char_tbl) do
+	reshuffle_heap(heap, 1)
+    return heap
+
+end
+
+
+procedure reshuffle_heap(h, k)
+
+    #
+    # Based loosely on Sedgewick (2nd. ed., 1988), p. 160.  Take k-th
+    # node on the heap, and walk down the heap, switching this node
+    # along the way with the child whose value is the least AND whose
+    # value is less than this node's.  Stop when you find no children
+    # whose value is less than that of the original node.  Elements on
+    # heap are records of type leaF, with the values contained in the
+    # "n" field.
+    #
+    local j
+
+    # While we haven't spilled off the end of the heap (the size of the
+    # heap is *h; *h / 2 is the biggest k we need to look at)...
+    while k <= (*h / 2) do {
+
+	# ...double k, assign the result to j.
+	j := k+k
+
+	# If we aren't at the end of the heap...
+	if j < *h then {
+	    # ...check to see which of h[k]'s children is the smallest,
+	    # and make j point to it.
+	    if h[j].n > h[j+1].n then
+		# h[j] :=: h[j+1]
+		j +:= 1
+	}
+
+	# If the current parent (h[k]) has a value less than those of its
+	# children, then break; we're done.
+	if h[k].n <= h[j].n then break
+
+	# Otherwise, switch the parent for the child, and loop around
+        # again, with k (the pointer to the parent) now pointing to the
+	# new offset of the element we have been working on.
+	h[k] :=: h[j]
+	k := j
+
+    }
+
+    return k
+	
+end
+
+
+procedure heap_2_tree(h)
+
+    #
+    # Construct the Huffman tree out of heap h.  Find the smallest
+    # element, pop it off the heap, then reshuffle the heap.  After
+    # reshuffling, replace the top record on the stack with a nodE()
+    # record whose n field equal to the sum of the n fields for the
+    # element popped off the stack originally, and the one that is
+    # now about to be replaced.  Link the new nodE record to the 2
+    # elements on the heap it is now replacing.  Reshuffle the heap
+    # again, then repeat.  You're done when the size of the heap is
+    # 1.  That one element remaining (h[1]) is your Huffman tree.
+    #
+    # Based loosely on Sedgewick (2nd ed., 1988), p. 328-9.
+    #
+    local frst, scnd, count
+
+    until *h = 1 do {
+
+	h[1] :=: h[*h]		# Reverse first and last elements.
+	frst := pull(h)		# Pop last elem off & save it.
+	reshuffle_heap(h, 1)	# Resettle the heap.
+	scnd := !h		# Save (but don't clobber) top element.
+
+	count := frst.n + scnd.n
+	frst := { if *frst = 2 then frst.c else _ND(frst.l, frst.r) }
+	scnd := { if *scnd = 2 then scnd.c else _ND(scnd.l, scnd.r) }
+
+	h[1] := nodE(frst, scnd, count) # Create new nodE().
+	reshuffle_heap(h, 1)	# Resettle once again.
+    }
+
+    # H is no longer a stack.  It's single element - the root of a
+    # Huffman tree made up of nodE()s and leaF()s.  Put the l and r
+    # fields of that element into an _ND record, and return the new
+    # record.
+    return _ND(h[1].l, h[1].r)
+
+end
+
+
+procedure hash_codes(tr)
+    local huff_tbl
+
+    #
+    # Hash Huffman codes.  Tr (arg 1) is a Huffman tree created by
+    # heap_2_tree(heap).  Output is a table, with the keys
+    # representing characters, and the values being records of type
+    # huffcode(i,len), where i is the Huffcode (an integer) and len is
+    # the number of bits it occupies.
+    #
+    local code
+
+    huff_tbl := table()
+    every code := collect_bits(tr) do
+	insert(huff_tbl, code.c, code)
+    return huff_tbl
+
+end
+    
+
+procedure collect_bits(tr, i, len)
+
+    #
+    # Decompose Huffman tree tr into huffcode() records which contain
+    # 3 fields:  c (the character encoded), i (its integer code),
+    # and len (the number of bytes the integer code occupies).  Sus-
+    # pend one such record for each character encoded in tree tr.
+    #
+
+    if type(tr) == "string" then
+	return huffcode(tr, i, len)
+    else {
+	(/len := 1) | (len +:= 1)
+	(/i   := 0) | (i   *:= 2)
+	suspend collect_bits(tr.l, i, len)
+	i   +:= 1
+	suspend collect_bits(tr.r, i, len)
+    }
+
+end
+
+
+procedure put_tree(f, tr)
+
+    #
+    # Writes Huffman tree tr to file f.  Uses first two bits to store
+    # the size of the tree.
+    #
+    local stringized_tr
+    # global count_of_all_chars
+
+    /f | /tr & quitprog("put_tree","I need two nonnull arguments",7)
+
+    stringized_tr := encode(tr)
+    every writes(f, outbits(*stringized_tr, 16))     # use two bytes
+    outbits()					     # just in case
+    writes(f, stringized_tr)
+    # How many characters are there in the input file?
+    every writes(f, outbits(count_of_all_chars, 32))
+    outbits()
+
+end
+
+
+procedure get_tree(f)
+
+    #
+    # Reads in Huffman tree from file f, sets pointer to the first
+    # encoded bit (as opposed to the bits which form the tree des-
+    # cription) in file f.
+    #
+    local stringized_tr_size, tr
+    # global count_of_all_chars
+
+    stringized_tr_size := inbits(f, 16)
+    tr := decode(reads(f, stringized_tr_size)) |
+	quitprog("get_tree", "can't decode tree", 6)
+    count_of_all_chars := inbits(f, 32) |
+	quitprog("get_tree", "garbled input file", 10)
+    return tr
+
+end
+
+
+procedure encode_string(s, huffman_table)
+
+    #
+    # Encode string s using the codes in huffman_table (created by
+    # hash_codes, which in turns uses the Huffman tree created by
+    # heap_2_tree).
+    #
+    # Make sure you are using reads() and not read, unless you don't
+    # want to preserve newlines.
+    #
+    local s2, chr, hcode	# hcode stores huffcode records
+    static chars_written
+    initial chars_written := 0
+
+    s2 := ""
+    s ? {
+	while chr := move(1) do {
+	    chars_written +:= 1
+	    hcode := \huffman_table[chr] |
+		quitprog("encode_string", "unexpected char, "||image(chr), 11)
+	    every s2 ||:= outbits(hcode.i, hcode.len)
+	}
+	# If at end of output stream, then flush outbits buffer.
+	if chars_written = count_of_all_chars then {
+	    chars_written := 0
+	    s2 ||:= outbits()
+	} else {
+	    if chars_written > count_of_all_chars then {
+		chars_written := 0
+		quitprog("encode_string", "you're trying to write _
+		    more chars than you originally tabulated", 12)
+	    }
+	}
+    }
+    return s2
+
+end
+
+
+procedure decode_rest_of_file(f, size, huffman_tree)
+
+    local s2, line, E, chr, bit
+    static chars_decoded
+    initial chars_decoded := 0
+
+    E := huffman_tree
+    while line := reads(f, size) do {
+	line ? {
+	    s2 := ""
+	    while chr := move(1) do {
+		every bit := iand(1, ishift(ord(chr), -7 to 0)) do {
+		    E := { if bit = 0 then E.l else E.r }
+		    if s2 ||:= string(E) then {
+			chars_decoded +:= 1
+			if chars_decoded = count_of_all_chars then {
+			    chars_decoded := 0
+			    break { break break }
+			}
+			else E := huffman_tree
+		    }
+		}
+	    }
+	    suspend s2
+	}
+    }
+    suspend s2
+
+end
+
+
+procedure quitprog(p, m, c)
+
+    /m := "program error"
+    write(&errout, p, ":  ", m)
+    exit(\c | 1)
+
+end

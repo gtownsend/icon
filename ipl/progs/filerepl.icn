@@ -1,0 +1,35 @@
+############################################################################
+#
+#	File:     filerepl.icn
+#
+#	Subject:  Program to replicate file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 2, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program writes standard input to standard a specified number of
+#  times.  Number of replications is given on command line.
+#
+#  NOTE:  Since the input stream is stored internally, standard input
+#  must be of finite length.
+#
+############################################################################
+
+procedure main(args)
+   local file
+
+   file := []
+
+   while put(file, read())
+
+   every 1 to args[1] do
+      every write(!file)
+
+end

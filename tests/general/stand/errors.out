@@ -1,0 +1,533 @@
+
+error in line 5:
+   &error = -2
+   &errornumber = 101
+   &errortext = "integer expected or out of range"
+   &errorvalue = "a"
+seq("a") | monitor(&line) ----> 5
+
+error in line 7:
+   &error = -3
+   &errornumber = 106
+   &errortext = "procedure or integer expected"
+   &errorvalue = "|"
+"|"(1,2) | monitor(&line) ----> 7
+
+error in line 9:
+   &error = -4
+   &errornumber = 122
+   &errortext = "set or table expected"
+   &errorvalue = &null
+member(x,x) | monitor(&line) ----> 9
+
+error in line 11:
+   &error = -5
+   &errornumber = 120
+   &errortext = "two csets or two sets expected"
+   &errorvalue = set_1(0)
+(set([]) ++ 'a') | monitor(&line) ----> 11
+
+error in line 13:
+   &error = -6
+   &errornumber = 112
+   &errortext = "invalid type to size operation"
+   &errorvalue = &null
+(every i := 1 to *a - 1 by 2 do write(image(a[i])," ",a[i + 1])) | monitor(&line) ----> 13
+
+error in line 15:
+   &error = -7
+   &errornumber = 112
+   &errortext = "invalid type to size operation"
+   &errorvalue = &null
+(every i := 1 to *a - 1 by 2 do write(image(a[i])," ",a[i + 1])) | monitor(&line) ----> 15
+
+error in line 17:
+   &error = -8
+   &errornumber = 108
+   &errortext = "list expected"
+   &errorvalue = &null
+(c |||:= s) | monitor(&line) ----> 17
+
+error in line 19:
+   &error = -9
+   &errornumber = 113
+   &errortext = "invalid type to random operation"
+   &errorvalue = &null
+?&null | monitor(&line) ----> 19
+
+error in line 21:
+   &error = -10
+   &errornumber = 114
+   &errortext = "invalid type to subscript operation"
+   &errorvalue = &null
+c[1] | monitor(&line) ----> 21
+
+error in line 23:
+   &error = -11
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = function image
+(image + image) | monitor(&line) ----> 23
+
+error in line 25:
+   &error = -12
+   &errornumber = 114
+   &errortext = "invalid type to subscript operation"
+   &errorvalue = &null
+.1(s[1],s := &null) | monitor(&line) ----> 25
+
+error in line 30:
+   &error = -13
+   &errornumber = 105
+   &errortext = "file expected"
+   &errorvalue = list_2(0)
+display(,[]) | monitor(&line) ----> 30
+
+error in line 32:
+   &error = -14
+   &errornumber = 103
+   &errortext = "string expected"
+   &errorvalue = list_3(0)
+([] ~== "x") | monitor(&line) ----> 32
+
+error in line 34:
+   &error = -15
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = &null
+(x + 1) | monitor(&line) ----> 34
+
+error in line 36:
+   &error = -16
+   &errornumber = 106
+   &errortext = "procedure or integer expected"
+   &errorvalue = "a"
+"a"(1,2,3) | monitor(&line) ----> 36
+
+error in line 38:
+   &error = -17
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = "o"
+("o" + 0) | monitor(&line) ----> 38
+
+error in line 40:
+   &error = -18
+   &errornumber = 120
+   &errortext = "two csets or two sets expected"
+   &errorvalue = list_4(0)
+(&cset ++ []) | monitor(&line) ----> 40
+
+error in line 42:
+   &error = -19
+   &errornumber = 101
+   &errortext = "integer expected or out of range"
+   &errorvalue = "a"
+(every 1 to "a") | monitor(&line) ----> 42
+
+error in line 44:
+   &error = -20
+   &errornumber = 116
+   &errortext = "invalid type to element generator"
+   &errorvalue = function image
+!image | monitor(&line) ----> 44
+
+error in line 49:
+   &error = -21
+   &errornumber = 211
+   &errortext = "by value equal to zero"
+   &errorvalue = 0
+(0 to 0 by 0) | monitor(&line) ----> 49
+
+error in line 51:
+   &error = -22
+   &errornumber = 101
+   &errortext = "integer expected or out of range"
+   &errorvalue = "a"
+repl("b","a") | monitor(&line) ----> 51
+
+error in line 53:
+   &error = -23
+   &errornumber = 106
+   &errortext = "procedure or integer expected"
+   &errorvalue = &null
+t(t) | monitor(&line) ----> 53
+
+error in line 55:
+   &error = -24
+   &errornumber = 115
+   &errortext = "structure expected"
+   &errorvalue = &cset
+sort(&cset) | monitor(&line) ----> 55
+
+error in line 57:
+   &error = -25
+   &errornumber = 108
+   &errortext = "list expected"
+   &errorvalue = &null
+pull(&null) | monitor(&line) ----> 57
+
+error in line 59:
+   &error = -26
+   &errornumber = 114
+   &errortext = "invalid type to subscript operation"
+   &errorvalue = &null
+c[-4] | monitor(&line) ----> 59
+
+error in line 61:
+   &error = -27
+   &errornumber = 106
+   &errortext = "procedure or integer expected"
+   &errorvalue = "procedure"
+(type(type)(type)) | monitor(&line) ----> 61
+
+error in line 63:
+   &error = -28
+   &errornumber = 114
+   &errortext = "invalid type to subscript operation"
+   &errorvalue = &null
+r[r] | monitor(&line) ----> 63
+
+error in line 65:
+   &error = -29
+   &errornumber = 120
+   &errortext = "two csets or two sets expected"
+   &errorvalue = list_5(0)
+([] ** "abc") | monitor(&line) ----> 65
+
+error in line 67:
+   &error = -30
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = 'abc'
+('abc' ~= ('abc' ++ '')) | monitor(&line) ----> 67
+
+error in line 72:
+   &error = -31
+   &errornumber = 103
+   &errortext = "string expected"
+   &errorvalue = function numeric
+(&lcase || numeric) | monitor(&line) ----> 72
+
+error in line 74:
+   &error = -32
+   &errornumber = 114
+   &errortext = "invalid type to subscript operation"
+   &errorvalue = &null
+x["a"] | monitor(&line) ----> 74
+
+error in line 76:
+   &error = -33
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = &null
+(100-()) | monitor(&line) ----> 76
+
+error in line 78:
+   &error = -34
+   &errornumber = 111
+   &errortext = "variable expected"
+   &errorvalue = 1
+((1 := y) & &fail) | monitor(&line) ----> 78
+
+error in line 80:
+   &error = -35
+   &errornumber = 110
+   &errortext = "string or list expected"
+   &errorvalue = &null
+(a[1:3] := a) | monitor(&line) ----> 80
+
+error in line 82:
+   &error = -36
+   &errornumber = 114
+   &errortext = "invalid type to subscript operation"
+   &errorvalue = &null
+(a[3] :=: a3[&null]) | monitor(&line) ----> 82
+
+error in line 84:
+   &error = -37
+   &errornumber = 114
+   &errortext = "invalid type to subscript operation"
+   &errorvalue = &null
+a5[a5] | monitor(&line) ----> 84
+
+error in line 86:
+   &error = -38
+   &errornumber = 114
+   &errortext = "invalid type to subscript operation"
+   &errorvalue = function pull
+pull[c] | monitor(&line) ----> 86
+
+error in line 88:
+   &error = -39
+   &errornumber = 103
+   &errortext = "string expected"
+   &errorvalue = list_6(0)
+(&subject := []) | monitor(&line) ----> 88
+
+error in line 90:
+   &error = -40
+   &errornumber = 103
+   &errortext = "string expected"
+   &errorvalue = list_7(0)
+([] ? []) | monitor(&line) ----> 90
+
+error in line 92:
+   &error = -41
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = "a"
++"a" | monitor(&line) ----> 92
+
+error in line 97:
+   &error = -42
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = &null
+(i <= []) | monitor(&line) ----> 97
+
+error in line 99:
+   &error = -43
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = list_9(0)
+([] ^ i) | monitor(&line) ----> 99
+
+error in line 101:
+   &error = -44
+   &errornumber = 103
+   &errortext = "string expected"
+   &errorvalue = &null
+(s ?:= &subject[3]) | monitor(&line) ----> 101
+
+error in line 103:
+   &error = -45
+   &errornumber = 103
+   &errortext = "string expected"
+   &errorvalue = &null
+(s >>:= 0) | monitor(&line) ----> 103
+
+error in line 105:
+   &error = -46
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = &null
+(s = 0) | monitor(&line) ----> 105
+
+error in line 107:
+   &error = -47
+   &errornumber = 108
+   &errortext = "list expected"
+   &errorvalue = &null
+put(s) | monitor(&line) ----> 107
+
+error in line 109:
+   &error = -48
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = 'abc'
+('abc' = ('abc' ++ '')) | monitor(&line) ----> 109
+
+error in line 111:
+   &error = -49
+   &errornumber = 103
+   &errortext = "string expected"
+   &errorvalue = list_10(0)
+=[] | monitor(&line) ----> 111
+
+error in line 113:
+   &error = -50
+   &errornumber = 111
+   &errortext = "variable expected"
+   &errorvalue = 1
+((1 <-> y) & &fail) | monitor(&line) ----> 113
+
+error in line 115:
+   &error = -51
+   &errornumber = 116
+   &errortext = "invalid type to element generator"
+   &errorvalue = &null
+!&null | monitor(&line) ----> 115
+
+error in line 117:
+   &error = -52
+   &errornumber = 101
+   &errortext = "integer expected or out of range"
+   &errorvalue = "a"
+(2 \ "a") | monitor(&line) ----> 117
+
+error in line 122:
+   &error = -53
+   &errornumber = 101
+   &errortext = "integer expected or out of range"
+   &errorvalue = ""
+right("","") | monitor(&line) ----> 122
+
+error in line 124:
+   &error = -54
+   &errornumber = 105
+   &errortext = "file expected"
+   &errorvalue = "F"
+close("F") | monitor(&line) ----> 124
+
+error in line 126:
+   &error = -55
+   &errornumber = 104
+   &errortext = "cset expected"
+   &errorvalue = list_11(0)
+trim(&lcase,[]) | monitor(&line) ----> 126
+
+error in line 128:
+   &error = -56
+   &errornumber = 101
+   &errortext = "integer expected or out of range"
+   &errorvalue = list_12(0)
+list([]) | monitor(&line) ----> 128
+
+error in line 130:
+   &error = -57
+   &errornumber = 205
+   &errortext = "invalid value"
+   &errorvalue = 0
+reads(f,0) | monitor(&line) ----> 130
+
+error in line 132:
+   &error = -58
+   &errornumber = 105
+   &errortext = "file expected"
+   &errorvalue = "f"
+read("f") | monitor(&line) ----> 132
+
+error in line 134:
+   &error = -59
+   &errornumber = 104
+   &errortext = "cset expected"
+   &errorvalue = list_13(0)
+bal([],,,"") | monitor(&line) ----> 134
+
+error in line 136:
+   &error = -60
+   &errornumber = 101
+   &errortext = "integer expected or out of range"
+   &errorvalue = "a"
+pos("a") | monitor(&line) ----> 136
+
+error in line 138:
+   &error = -61
+   &errornumber = 101
+   &errortext = "integer expected or out of range"
+   &errorvalue = "a"
+138
+
+error in line 140:
+   &error = -62
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = "a"
+(2 % "a") | monitor(&line) ----> 140
+
+error in line 145:
+   &error = -63
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = "a"
+(2 * "a") | monitor(&line) ----> 145
+
+error in line 147:
+   &error = -64
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = "a"
+(2 / "a") | monitor(&line) ----> 147
+
+error in line 149:
+   &error = -65
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = "a"
+(2 + "a") | monitor(&line) ----> 149
+(-36 ^ -9) | monitor(&line) ----> 0
+
+error in line 153:
+   &error = -66
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = "a"
+(2 < "a") | monitor(&line) ----> 153
+
+error in line 155:
+   &error = -67
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = &null
+(0 > &null) | monitor(&line) ----> 155
+
+error in line 157:
+   &error = -68
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = "a"
+(2 <= "a") | monitor(&line) ----> 157
+
+error in line 159:
+   &error = -69
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = "a"
+(2 > "a") | monitor(&line) ----> 159
+
+error in line 161:
+   &error = -70
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = "a"
+(2 = "a") | monitor(&line) ----> 161
+
+error in line 163:
+   &error = -71
+   &errornumber = 102
+   &errortext = "numeric expected"
+   &errorvalue = "a"
+(2 ~= "a") | monitor(&line) ----> 163
+
+error in line 165:
+   &error = -72
+   &errornumber = 108
+   &errortext = "list expected"
+   &errorvalue = "abc"
+(list(10)) ||| "abc" | monitor(&line) ----> 165
+
+error in line 170:
+   &error = -73
+   &errornumber = 111
+   &errortext = "variable expected"
+   &errorvalue = "a"
+(x :=: "a") | monitor(&line) ----> 170
+
+error in line 172:
+   &error = -74
+   &errornumber = 111
+   &errortext = "variable expected"
+   &errorvalue = "b"
+(x <-> "b") | monitor(&line) ----> 172
+
+error in line 174:
+   &error = -75
+   &errornumber = 111
+   &errortext = "variable expected"
+   &errorvalue = 4
+((x & 2 & 3 & 4) := 3) | monitor(&line) ----> 174
+
+error in line 176:
+   &error = -76
+   &errornumber = 111
+   &errortext = "variable expected"
+   &errorvalue = 1
+((1 <- y) & &fail) | monitor(&line) ----> 176
+
+error in line 178:
+   &error = -77
+   &errornumber = 206
+   &errortext = "negative first argument to real exponentiation"
+(-36. ^ -9.) | monitor(&line) ----> 178
+ eginopst

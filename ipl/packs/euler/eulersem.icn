@@ -1,0 +1,413 @@
+#	EULER semantics routines
+
+record Logical(s)
+global True, False
+global P,N,n,m,bn,on,V,semantics
+
+procedure initTrans()
+P:=[]
+N:=list(100)
+bn:=0
+on:=0
+n:=0
+m:=0
+True := Logical("true")
+False := Logical("false")
+return
+end
+
+procedure pushCTError(M[])
+every writes(!M)
+write()
+push(semanticsStack,&null)
+return
+end
+
+procedure showCode()
+local i,h
+h:=*string(*P)
+every i:=1 to *P do {
+	writes(right(i,h), " ", left(P[i][1],10))
+	every writes(image(P[i][2 to *P[i]-1]),",")
+	if P[i][1]=="logval" then writes(P[i][2].s)
+	else writes(image(P[i][1<*P[i]]))
+	write()
+}
+return
+end
+
+procedure ENDPROG()
+put(P,["halt"])
+return
+end
+
+procedure NEWDECL()
+V:=popSem(2)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P,["new"])
+on+:=1
+n+:=1
+N[n] := [V[2].body,bn,on,"new"]
+pushSem(&null)
+return
+end
+
+procedure FORMALDECL()
+V:=popSem(2)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P,["formal"])
+on+:=1
+n+:=1
+N[n] := [V[2].body,bn,on,"formal"]
+pushSem(&null)
+return
+end
+
+procedure LABELDECL()
+V:=popSem(2)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+n+:=1
+N[n] := [V[2].body,bn,&null,&null]
+pushSem(&null)
+return
+end
+
+procedure VARID()
+local t
+V:=popSem(1)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+t:=n
+while t>=1 do {
+	if N[t][1]===V[1].body then break
+	t -:= 1
+}
+if t<1 then
+	return pushCTError("identifier ",V[1].body," undeclared")
+if N[t][4]==="new" then {
+	put(P, ["@",N[t][3],N[t][2]] )
+} else if N[t][4]==="label" then {
+	put(P, ["label",N[t][3],N[t][2]] )
+} else if N[t][4]==="formal" then {
+	put(P, ["@",N[t][3],N[t][2]] )
+	put(P, ["value"])
+} else {
+	put(P, ["label",N[t][3],N[t][2]] )
+	N[t][3] := *P
+}
+pushSem(&null)
+return
+end
+
+procedure SUBSCR()
+V:=popSem(4)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, ["]"] )
+pushSem(&null)
+return
+end
+
+procedure DOT()
+V:=popSem(2)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, ["value"] )
+pushSem(&null)
+return
+end
+
+procedure LOGVALTRUE()
+V:=popSem(1)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+pushSem(True)
+return
+end
+
+procedure LOGVALFALSE()
+V:=popSem(1)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+pushSem(False)
+return
+end
+
+procedure REFERENCE()
+V:=popSem(2)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+pushSem(&null)
+return
+end
+
+procedure LISTHD2()
+V:=popSem(3)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+pushSem(V[1]+1)
+return
+end
+
+procedure LISTHD1()
+V:=popSem(1)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+pushSem(0)
+return
+end
+
+procedure LISTN2()
+V:=popSem(3)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, [")",V[1]+1] )
+pushSem(&null)
+return
+end
+
+procedure LISTN1()
+V:=popSem(2)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, [")",V[1]] )
+pushSem(&null)
+return
+end
+
+procedure PROCFORDECL()
+V:=popSem(3)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+pushSem(V[1])
+return
+end
+
+procedure PROCHD()
+V:=popSem(1)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+bn +:= 1; on := 0
+put(P, ["proc",&null] )
+pushSem(*P)
+n +:= 1
+N[n] := ["",m]
+m := n
+return
+end
+
+procedure PROCDEF()
+V:=popSem(3)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, ["endproc"] )
+P[V[1]][2] := *P+1
+bn -:= 1
+n := m-1
+m := N[m][2]
+pushSem(&null)
+return
+end
+
+procedure VALUE()
+V:=popSem(1)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, ["value"] )
+pushSem(&null)
+return
+end
+
+procedure CALL()
+V:=popSem(2)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, ["call"] )
+pushSem(&null)
+return
+end
+
+procedure LOADLOGVAL()
+V:=popSem(1)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, ["logval",V[1]] )
+pushSem(&null)
+return
+end
+
+procedure LOADNUM()
+V:=popSem(1)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, ["number",numeric(V[1].body)] )
+pushSem(&null)
+return
+end
+
+procedure LOADSYMB()
+V:=popSem(1)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, ["symbol",V[1].body] )
+pushSem(&null)
+return
+end
+
+procedure LOADUNDEF()
+put(P, ["undef"] )
+return
+end
+
+procedure PARENS()
+V:=popSem(3)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+pushSem(&null)
+return
+end
+
+procedure INPUT()
+put(P, ["in"] )
+return
+end
+
+procedure UOP()
+V:=popSem(2)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, [V[1].body] )
+pushSem(&null)
+return
+end
+
+procedure BOP()
+V:=popSem(3)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, [V[2].body] )
+pushSem(&null)
+return
+end
+
+procedure UPLUS()
+V:=popSem(2)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+pushSem(&null)
+return
+end
+
+procedure NEG()
+V:=popSem(2)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, ["neg"] )
+pushSem(&null)
+return
+end
+
+procedure CONJHD()
+V:=popSem(2)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, ["and",&null] )
+pushSem(*P)
+return
+end
+
+procedure CONJ()
+V:=popSem(2)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+P[V[1]][2] := *P+1
+pushSem(&null)
+return
+end
+
+procedure DISJHD()
+V:=popSem(2)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, ["or",&null] )
+pushSem(*P)
+return
+end
+
+procedure DISJ()
+V:=popSem(2)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+P[V[1]][2] := *P+1
+pushSem(&null)
+return
+end
+
+procedure TRUEPT()
+V:=popSem(2)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, ["else",&null] )
+pushSem(*P)
+return
+end
+
+procedure IFCLSE()
+V:=popSem(3)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, ["then",&null] )
+pushSem(*P)
+return
+end
+
+procedure IFEXPR()
+V:=popSem(3)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+P[V[1]][2] := V[2]+1
+P[V[2]][2] := *P+1
+pushSem(&null)
+return
+end
+
+procedure LABSTMT()
+V:=popSem(2)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+pushSem(&null)
+return
+end
+
+procedure LABDEF()
+local t,s
+V:=popSem(2)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+t:=n
+repeat {	# write(N[t][1]," : ",V[1].body)
+	if t<=m then
+		return pushCTError("undeclared label "||V[1].body)
+	if N[t][1]===V[1].body then break
+	t -:= 1
+}
+if N[t][4]~===&null then
+	return pushCTError("redefinition of "||V[1].body)
+s := N[t][3]
+N[t][3] := *P+1; N[t][4]:="label"
+while s ~=== &null do {
+	t := P[s][2]
+	P[s][2] := *P+1
+	s := t
+}
+pushSem(&null)
+return
+end
+
+procedure BEGIN()
+V:=popSem(1)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+bn +:= 1
+on := 0
+put(P, ["begin"] )
+n +:= 1
+N[n] := ["",m]
+m := n
+pushSem(&null)
+return
+end
+
+procedure BLKHD()
+V:=popSem(3)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+pushSem(&null)
+return
+end
+
+procedure BLKBODY()
+V:=popSem(3)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, [";"] )
+pushSem(&null)
+return
+end
+
+procedure BLK()
+V:=popSem(3)
+if errorFound:=anyError(V) then return pushSem(errorFound)
+put(P, ["end"] )
+n := m-1
+m := N[m][2]
+bn := bn-1
+pushSem(&null)
+return
+end
+

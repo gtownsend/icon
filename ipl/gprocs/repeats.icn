@@ -1,0 +1,53 @@
+############################################################################
+#
+#	File:     repeats.icn
+#
+#	Subject:  Procedure to repeat image
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 23, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure produces repeats of an image specified number of times.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  tile, wopen
+#
+############################################################################
+
+link tile
+link wopen
+
+procedure repeats(name, i, j)		#: repeat image
+   local opts, prefix, win1, win2, width, height
+   local auto, wdim, hdim, limit
+
+   /i := 1			# horizontal repeats
+   /j := 1			# vertical repeats
+
+   win1 := WOpen("canvas=hidden", "image=" || name) | fail
+   width := WAttrib(win1, "width")
+   height := WAttrib(win1, "height")
+   hdim := height * i
+   wdim := width * j
+
+   win2 := WOpen("canvas=hidden", "width=" || wdim, "height=" || hdim) |
+      stop(&errout, "*** cannot open window for repeat")
+
+   tile(win1, win2)
+
+   WClose(win1)
+
+   return win2
+end

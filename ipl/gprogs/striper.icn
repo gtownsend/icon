@@ -1,0 +1,87 @@
+############################################################################
+#
+#	File:     striper.icn
+#
+#	Subject:  Program to make striped pattern from image edge
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 14, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program takes the left column or top row of pixels of an image
+#  and creates a 1 x n or n x 1 image file from it.  The result, when
+#  tiled, is a striped pattern.
+#
+#  This program is useful for creating regular striped patterns from
+#  scans.
+#
+#  The following options are supported:
+#
+#	-d s	stripe direction:
+#		   "h"	horizontal (the default)
+#		   "v"	vertical
+#		   "b"	both horizontal and vertical
+#	-p s	prefix for GIF file names, default "stripes_"
+#	-w i	width of swatch, default 1
+#	-x i	x offset, default 0
+#	-y i	y offset, default 0
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  options, wopen
+#
+############################################################################
+
+link options
+link wopen
+
+procedure main(args)
+   local file, hidden, count, prefix, opts, w, h, v, x, y
+
+   opts := options(args, "d:w+p:x+y+")
+   prefix := \opts["p"] | "stripes_"
+   w := \opts["w"] | 1
+   x := \opts["x"] | 0
+   y := \opts["y"] | 0
+   case opts["d"] of {
+      "h":   h := 1
+      "v":   v := 1
+      "b":   {
+         h := 1
+         v := 1
+         }
+      &null: h := 1
+      default:  stop("Invalid direcTion specification")
+      }
+
+   count := 0
+
+   every file := !args do {
+      hidden := WOpen("canvas=hidden", "image=" || file) | {
+         write(&errout, "*** cannot open ", file)
+         next
+         }
+      if \h then {
+         WriteImage(hidden, prefix || right(count +:= 1, 3, "0") || ".gif",
+            x, 0, w, WAttrib(hidden, "height")) |
+               write(&errout, "*** cannot write image file")
+         }
+      if \v then {
+         WriteImage(hidden, prefix || right(count +:= 1, 3, "0") || ".gif",
+            0, y, WAttrib(hidden, "width"), w) |
+               write(&errout, "*** cannot write image file")
+         }
+      WClose(hidden)
+      }
+
+end

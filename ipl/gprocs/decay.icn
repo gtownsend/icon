@@ -1,0 +1,84 @@
+############################################################################
+#
+#	File:     decay.icn
+#
+#	Subject:  Procedures for decaying-displays for windows
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	These procedures provide a way to draw objects and then have them
+#	automatically redrawn (say, in a lighter color) n steps later.
+#	A user routine is called to do the actual drawing.  If a second
+#	call to draw an object comes before its time has expired, the
+#	object's counter is reset and the drawing routine is not called.
+#
+#	dpipe() initializes a decay pipeline and returns a pipeline object.
+#
+#	decay() marks an object, unmarks another, and advances the clock.
+#
+############################################################################
+#
+#   dpipe(proc, length, gc1, gc2) -- create a decay pipeline
+#
+#	dpipe() initializes a decay pipeline and returns a pipeline object.
+#
+#	proc	user marking procedure: proc(gc, i) marks entry i using gc
+#	length	length of the delay pipeline (number of steps)
+#	gc1	gc to mark an entry when it becomes active
+#	gc2	gc to mark an entry when it decays (becomes inactive)
+#
+#   decay(dp, i) -- mark entry i with later decay
+#
+#	decay() marks an object, unmarks another, and advances the clock.
+#
+#	Using decay pipe dp, entry i (anything but &null) is drawn in an
+#	active state, and the oldest entry in the pipe is drawn in an
+#	inactive state.
+#
+#	Records are kept, though, so that an already-active entry is not
+#	redrawn, and a decayed entry reaching the end of the pipe is not
+#	drawn as inactive if it was more recently renewed.
+#
+#	The decay pipe can be flushed by a sufficient number of
+#	decay(dp, &null) calls.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+record Decay_Rec(	# decay pipe record
+   pipe,	# queue of active indices
+   tab,		# table of activity for each index
+   proc,	# marking procedure
+   gc1,		# gc to use to turn on
+   gc2)		# gc to use to turn off
+
+
+##  dpipe(proc, length, gc1, gc2) -- create a decay pipeline
+
+procedure dpipe(proc, length, gc1, gc2)		#: create a decay pipeline
+   return Decay_Rec(list(length), table(0), proc, gc1, gc2)
+end
+
+
+##  decay(dp, i) -- mark entry i with later decay
+
+procedure decay(dp, i)				#: mark entry for later decay
+   local j
+   j := get(dp.pipe)
+   if (dp.tab[\i] +:= 1) = 1 then
+      dp.proc(dp.gc1, i)
+   if (dp.tab[\j] -:= 1) = 0 then
+      dp.proc(dp.gc2, j)
+   put(dp.pipe, i)
+end

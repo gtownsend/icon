@@ -1,0 +1,153 @@
+############################################################################
+#
+#	Name:	ged.icn
+#
+#	Title:	Mouse-Oriented Text Editor for Windows
+#
+#	Author:	Robert J. Alexander
+#
+#	Date:	April 17, 1993
+#
+############################################################################
+#
+#  Usage: (see Usage() procedure, below)
+#
+#  See the file "textedit.icn" for a list of the editor's features.
+#
+############################################################################
+#
+#  Links: io, options, textedit
+#
+############################################################################
+
+link io
+link options
+link textedit
+
+procedure Usage(s)
+   write(\s)
+   write(
+	 "Usage: ged <options> file..._
+	 \n_
+	 \nIf file is \"-\" then standard input is edited read-only._
+	 \n_
+	 \nOptions:_
+	 \n_
+	 \n        -g s    Geometry (<columns>x<lines>+x+y)_
+	 \n        -f s    Font_
+	 \n        -t n    Tab stop spacing_
+	 \n        -b      Don't keep backup file if write successful_
+	 \n        -i      Don't ignore case in find and replace_
+	 \n        -c s    Save context in file \"s\"_
+	 \n        -T s    Window title (if omitted, first file name is used)_
+	 \n        -R      Read-only_
+	 \n        -S      Standard input file prompts for save before close_
+	 \n        -L n    Start at line number n_
+	 \n        -N x    Buffer name for standard input file_
+	 \n        -H      Print help window text to standard output_
+	 \n        -E s    Repeated string to use as first line past EOF_
+	 \n        -X      Use this if window manager crashes while scrolling_
+	 \n_
+	 \n  <<< Use control-? to get a \"help\" window. >>>_
+	 \n")
+   exit()
+end
+
+
+global Geometry,Font,WindowName,ReadOnly,LineNbr,Tabs,IgnoreCase,CopyAreaBug,
+      UseCtx,CtxFile,StdInBufName,RmBackup,EOFStr,SaveStdIn
+
+procedure Options(arg)
+   local opt
+   opt := options(arg,"Rg:f:t+T:L+hHiXc:N:bE:S",Usage)
+   if \opt["h"] then Usage()
+   if \opt["H"] then {
+      write(EditHelpText())
+      exit()
+      }
+   Geometry := \opt["g"] | "80x48"
+   Font := \opt["f"] | "fixed"
+   WindowName := opt["T"]
+   StdInBufName := opt["N"]
+   SaveStdIn := opt["S"]
+   Tabs := (1 <= \opt["t"] | 8) + 1
+   ReadOnly := opt["R"]
+   LineNbr := \opt["L"] | 1
+   IgnoreCase := (\opt["i"],&null) | 1
+   CopyAreaBug := opt["X"]
+   UseCtx := CtxFile := opt["c"]
+   RmBackup := opt["b"]
+   EOFStr := opt["E"]
+   return opt
+end
+
+
+
+
+procedure main(arg)
+   local fn,f,text,ctx
+   Options(arg)
+   InitControl()
+   AddCtx(arg)
+   ctx := Edit(arg,Geometry,Font,WindowName,1,,,ReadOnly,LineNbr,IgnoreCase,
+	 UseCtx,LoadFile,SaveFile,RmBackup,EOFStr)
+   WriteCtx(ctx)
+end
+
+
+procedure AddCtx(arg)
+   local f,t,line,r,i
+   if \UseCtx & f := open(CtxFile) then {
+      if *arg = 0 then {
+	 while put(arg,read(f))
+	 }
+      else {
+	 t := table()
+	 while line := read(f) do {
+	    r := EditParseCtx(line)
+	    t[r.fileName] := line
+	    }
+	 every i := 1 to *arg do {
+	    arg[i] := \t[arg[i]]
+	    }
+	 }
+      close(f)
+      return
+      }
+end
+
+
+procedure WriteCtx(ctx)
+   local f,fn
+   if \UseCtx & type(ctx) == "list" & f := open(CtxFile,"w") then {
+      every fn := !ctx do {
+	 if not match("*",fn) then write(f,fn)
+	 }
+      close(f)
+      return
+      }
+end
+
+
+procedure LoadFile(fn)
+   local f,text,changed
+   if fn == "-" then {
+      f := &input
+      fn := \StdInBufName | "*Standard Input*"
+      ReadOnly := 1
+      changed := SaveStdIn
+      }
+   else {
+      f := open(fn) | fail
+      }
+   text := []
+   every put(text,!f)
+   close(&input ~=== f)
+   return EditLoadRec(text,fn,changed)
+end
+
+
+procedure SaveFile(fn, text)
+   stop() # this isn't called, yet (files are inappropriately saved in
+	  # the edit proc)
+end

@@ -1,0 +1,56 @@
+############################################################################
+#
+#	File:     step.icn
+#
+#	Subject:  Procedure to generate in real increments
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 6, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  step(r1, r2, r3) generates real values from r1 to r2 in increments of
+#  r3 (default 1.0).  It is the real equivalent of i to j by k.
+#  If r2 is null, the sequence is infinite and is the real equivalent
+#  of seq().
+#
+#  Beware the usual problems of floating-point precision.
+#
+############################################################################
+
+procedure step(r1, r2, r3)
+
+   r1 := real(r1) | stop("*** invalid argument to step()")
+   \r2 := real(r2) | stop("*** invalid argument to step()")
+   /r3 := 1.0
+   (r3 := real(r3)) ~= 0.0 | stop("*** invalid argument to step()")
+   r2 +:= 1E-6				# stab at avoiding underrun
+
+   if \r2 then {			# bounded sequence
+      if r3 > 0.0 then {
+         while r1 <= r2 do {
+           suspend r1
+           r1 +:= r3
+           }
+         }
+      else {
+         while r1 >= r2 do {
+           suspend r1
+           r1 +:= r3
+           }
+         }
+      }
+
+   else {				# bounded sequence
+      repeat {
+         suspend r1
+         r1 +:= r3
+         }
+      }
+
+end

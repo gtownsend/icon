@@ -1,0 +1,99 @@
+##    gener.icn -- test generation in parallel with inserts/deletes
+#
+#     This is a torture test for the set generation code.  Items are inserted
+#     in or deleted from the set while the set is being generated.  We check
+#     every item not inserted or deleted is generated exactly once, and every
+#     other item is generated no more than once.
+#
+#     If every line of output says '[ok]', the test has passed.  "gener -v"
+#     gives a little more information; in this case, the output is sensitive
+#     to the runtime system's configuration parameters.
+
+
+global verbose
+
+
+procedure main (args)
+   if args[1] == "-v" then
+      verbose := 1
+   every tdel (41 | 619 | 991,  3 | 11 |  23)
+   every tins (40 | 103 | 233,  239 | 419 | 503,  3 | 11 | 23)
+   write ("[done]")
+   end
+
+
+##  tins (init, limit, n) -- test insertions
+#
+#   The initial set consists of the integers 1 through <init>.
+#   Then the set is generated, and <n> more integers are added
+#   for each element generated until the set reaches <limit>
+#   entries.
+
+procedure tins (init, limit, n)
+   writes ("test insert:",
+      right(init,6), ",", right(limit,5), ",", right(n,3))
+   s := set()
+   every insert (s, 1 to init)
+   s1 := copy (s)
+   l := list()
+   every put (l, e := !s) do
+      if *s < limit then
+         every 1 to n do
+            insert (s, *s + 1)
+   check (s1, s, l)
+   end
+
+
+##  tdel (limit, n) -- test deletions
+#
+#   The set initially contains the first <limit> integers.
+#   Then, for each one generated, n elements are deleted.
+
+procedure tdel (limit, n)
+   writes ("test delete:", right(limit,6), ",", right(n,5))
+   s := set()
+   every insert (s, 1 to limit)
+   s2 := copy(s)
+   l := list()
+   k := 0
+   every put (l, !s) do
+      every 1 to n do 
+         delete (s, k +:= 1)
+   check (s, s2, l)
+   end
+
+
+
+##  check (s1, s2, l) -- check results of generation
+#
+#   s1	small set (before insertion / after deletion)
+#   s2  large set (after insertion / before deletion)
+#   l   generated list
+
+procedure check (s1, s2, l)
+   sg := set(l)
+   if \verbose then
+       writes ("  \tsizes ",right(*s1,5)," <=",right(*sg,5)," <=",right(*s2,5))
+   ok := "\t[ok]"
+
+   if *(s := (s1 -- sg)) > 0 then {
+      writes ("\n not generated:")
+      every writes (" ", !sort(s))
+      ok := &null
+      }
+
+   if *(s := (sg -- s2)) > 0 then {
+      writes ("\n unknown values generated:")
+      every writes (" ", !sort(s))
+      ok := &null
+      }
+
+   if *sg < *l then {
+      writes("\n generated twice:")
+      every e := !l do
+         delete(sg,member(sg,e)) | writes (" ", e)
+      ok := &null
+   }
+
+   write (ok)
+   end

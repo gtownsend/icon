@@ -1,0 +1,91 @@
+############################################################################
+#
+#	File:     equiv.icn
+#
+#	Subject:  Procedure to compare structures
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 20, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#       equiv(s,y)	compare arbitrary structures x and y
+#
+############################################################################
+#  
+#     The procedure equiv() tests for the "equivalence" of two values. For types
+#  other than structures, it does the same thing as x1 === x2.  For structures,
+#  the test is for "shape".  For example,
+#
+#	equiv([],[])
+#
+#  succeeds.
+#
+#     It handles loops, but does not recognize them as such.  For example,
+#  given
+#
+#	L1 := []
+#	L2 := []
+#	put(L1,L1)
+#	put(L2,L1)
+#
+#	equiv(L1,L2)
+#
+#  succeeds.
+#
+#     The concept of equivalence for tables and sets is not quite right
+#  if their elements are themselves structures.  The problem is that there
+#  is no concept of order for tables and sets, yet it is impractical to
+#  test for equivalence of their elements without imposing an order.  Since
+#  structures sort by "age", there may be a mismatch between equivalent
+#  structures in two tables or sets.
+#
+#  Note:
+#     The procedures equiv and ldag have a trailing argument that is used on
+#  internal recursive calls; a second argument must not be supplied
+#  by the user.
+#  
+############################################################################
+
+procedure equiv(x1,x2,done)		#: compare values for equivalence
+   local code, i
+
+   if x1 === x2 then return x2		# Covers everything but structures.
+
+   if type(x1) ~== type(x2) then fail	# Must be same type.
+
+   if type(x1) == ("procedure" | "file" | "window")
+      then fail				# Leave only those with sizes (null
+					# taken care of by first two tests).
+
+   if *x1 ~= *x2 then fail		# Skip a lot of possibly useless work.
+
+					# Structures (and others) remain.
+
+   /done := table()			# Basic call.
+
+   (/done[x1] := set()) |		# Make set of equivalences if new.
+      (if member(done[x1],x2) then return x2)
+
+					# Records complicate things.
+   image(x1) ? (code := (="record" | type(x1)))
+
+   case code of {
+      "list" | "record": 
+         every i := 1 to *x1 do
+            if not equiv(x1[i],x2[i],done) then fail
+      "table": if not equiv(sort(x1,3),sort(x2,3),done) then fail
+      "set":   if not equiv(sort(x1),sort(x2),done) then fail
+      default: fail			# Vaues of other types are different. 
+      }
+
+   insert(done[x1],x2)			# Equivalent; add to set.
+   return x2
+
+end
+

@@ -1,0 +1,67 @@
+############################################################################
+#
+#	File:     mandel1.icn
+#
+#	Subject:  Program to display the Mandelbrot set
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 17, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This is a barebones version of a display of the Mandelbrot set.  It
+#  has deliberately been left simple and free of options so that the
+#  basic idea is clear and so that it can be used as the basis of
+#  more capable versions.
+#
+#  This program is based on material given in "Chaos, Fractals,
+#  and Dynamics", Robert L. Devaney, Addison-Wesley, 1990.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  wopen
+#
+############################################################################
+
+link wopen
+
+procedure main()
+   local size, real_size, i, j, c1, c2, x, y, n, x1, y1, limit, extent
+
+   size := 300
+   extent := 4.0 / size
+
+   limit := 30
+
+   WOpen("label=mandel", "height=" || size, "width=" || size) |
+      stop("*** cannot open window")
+
+   every i := 1 to size do {
+      every j := 1 to size / 2 do {
+         c1 := -2 + i * extent
+         c2 := 2 - j * extent
+         x := c1
+         y := c2
+         every 1 to limit do {		# see what the orbit is
+            x1 := x ^ 2 - y ^ 2 + c1
+            y1 := 2 * x * y + c2
+            if (x1 ^ 2 + y1 ^ 2) > 4 then break next
+            x := x1
+            y := y1
+            }
+         DrawPoint(i, j, i, size - j)
+         }
+      }
+
+   Event()
+
+end

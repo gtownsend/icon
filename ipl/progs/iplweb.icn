@@ -1,0 +1,185 @@
+###############################################################################
+#
+#	File:     iplweb.icn
+#
+#	Subject:  Program to generate web pages from IPL header comments
+#
+#	Author:   Justin Kolb
+#
+#	Date:     August 19, 1996
+#
+###############################################################################
+#
+#   This file is in the public domain.
+#
+###############################################################################
+#
+#  iplweb [-ipl source] [dest]
+#
+#  Uses an enviroment variable IPL which is a path to the Icon Program Library
+#  as a default if -ipl is not specified, dest is the current directory if not
+#  specified.
+#
+#  Generates HTML directory in dest and makes an index to gprogs, gprocs,
+#  procs, and progs directories under HTML.  In each of these directories
+#  is a .html file for each of the .icn files in the referenced directory.
+#  A index to all of these files is also generated.  Each of the .html files
+#  contains the IPL standard comment header info inside.
+#
+###############################################################################
+
+link options
+
+procedure main(arglist)
+   local opts, source, dest
+
+   if opts := options(arglist, "-ipl:", errorproc) then {
+      source := opts["ipl"]
+      /source := getenv("IPL")
+      if /source then errorproc()
+      }
+   else errorproc()
+
+   if *arglist > 0 then {
+      dest := arglist[1] || "/HTML"
+      }
+   else {
+      dest := "HTML"
+      }
+
+   Build_HTML_Files(source, dest)
+end
+
+procedure errorproc()
+   stop("Set IPL enviroment variable or use\n",
+	"iplweb [-ipl source] [destination]")
+end
+
+procedure Build_HTML_Files(source_dir, dest)
+   local directory, dir_index_file, dir, dirlist, file_index_file,
+       prev_dir, full_path, file, file_info_file, source_file
+
+   directory := ["/gprogs", "/gprocs", "/progs", "/procs"]
+
+   system("mkdir " || dest)
+
+   dir_index_file := open(dest || "/dirindex.html", "w")
+
+   Init_Dir_Index(dir_index_file)
+
+   every dir := !directory do {
+      dirlist := open("ls " || source_dir || dir || "/*.icn", "p")
+
+      file_index_file := &null
+      prev_dir := ""
+
+      while full_path := read(dirlist) do {
+	 write(full_path)
+
+	 file := strip_file(full_path)
+
+	 if not (dir == prev_dir) then {
+            #Prev Dir
+	    if not /file_index_file then {
+	       Close_File_Index(file_index_file)
+
+	       close(file_index_file)
+	       }
+
+	    # Next Dir
+	    Index_Dir(dir_index_file, dir)
+
+	    system("mkdir " || dest || dir)
+
+	    file_index_file := open(dest || dir || "/fileindex.html", "w")
+
+	    Init_File_Index(file_index_file, dir)
+	    }
+
+	 Index_File(file_index_file, file)
+
+	 file_info_file := open(dest || dir || file || ".html", "w")
+
+	 source_file := open(full_path)
+
+	 ProcessFileInfo(file_info_file, source_file)
+
+	 close(source_file)
+
+	 close(file_info_file)
+
+	 prev_dir := dir
+         }
+
+      close(file_index_file)
+      }
+   Close_Dir_Index(dir_index_file)
+   close(dir_index_file)
+end
+
+procedure Init_Dir_Index(file)
+   write(file, "<TITLE>IPL: The Icon Program Library Comment Documentaion</TITLE>")
+   write(file, "<H1>The Icon Program Library</H1><P>")
+   write(file, "<H2>Source Directorys</H2><P>")
+   write(file, "<UL>")
+end
+
+procedure Index_Dir(file, dir)
+   write(file, "<LI><A HREF=\"" || dir[2:0] || "/fileindex.html\">" || dir[2:0] || "</A></LI>")
+end
+
+procedure Close_Dir_Index(file)
+   write(file, "</UL>")
+end
+
+procedure Init_File_Index(file, dir)
+   write(file, "<TITLE>IPL: The Icon Program Library Comment Documentation</TITLE>")
+   write(file, "<H1>The Icon Program Library</H1><P>")
+   write(file, "<H2>The " || dir[2:0] || " directory listing</H2><P>")
+   write(file, "<UL>")
+end
+
+procedure Index_File(index, file)
+   write(index, "<LI><A HREF=\"" || file[2:0] || ".html\">" || file[2:0] || ".icn</A></LI>")
+end
+
+procedure Close_File_Index(file)
+   write(file, "</UL>")
+end
+
+procedure ProcessFileInfo(file, source)
+   local line, keywd, text
+
+   write(file, "<TITLE>IPL: The Icon Program Library Comment Domumentaion</TITLE>")
+
+   write(file, "<H1>The Icon Program Libary</H1><P>")
+
+   while line := read(source) do line ? {
+      if not pos(0) then {
+	 if tab(many('# \t')) &
+	     (keywd := =("File:" | "Subject:" | "Author:" | "Date:" | "Authors:")\1) &
+	     tab(many(' \t')) &
+	     text := tab(0)
+	 then {
+	    case keywd of {
+	       "File:"    : write(file, "<H2>" || text || "</H2><P>")
+	       "Subject:" : write(file, "<H3>" || text || "</H3><P>")
+	       "Author:"  : write(file, "<H3>" || text || "</H3><P>")
+	       "Authors:" : write(file, "<H3>" || text || "</H3><P>") 
+	       "Date:"    : write(file, "<H3>" || text || "</H3><P>")
+	       }
+	    }
+	 else if tab(many('#'))\1 & tab(many(' \t')) & text := tab(0) then
+	     write(file, "<PRE>" || text || "</PRE>")
+	 }
+      }
+end
+
+procedure strip_file(path)
+   local local_dir
+
+   path ? {
+      every local_dir := tab(upto('/'))
+      return path[*local_dir + 1 : -4]
+      }
+end

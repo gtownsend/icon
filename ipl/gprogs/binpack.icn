@@ -1,0 +1,627 @@
+############################################################################
+#
+#	File:     binpack.icn
+#
+#	Subject:  Program to demonstrate some bin packing algorithms
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     October 9, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Usage:  binpack [window options]
+#
+#  Binpack illustrates several approximation algorithms for solving the
+#  one-dimensional bin packing problem.
+#
+#  For references, see the "info" screen.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: numbers, graphics, random, vsetup
+#
+############################################################################
+
+link numbers
+link graphics
+link random
+link vsetup
+
+$define Version "Binpack, Version 1.0  (September, 1993)"
+
+$define MAXK 250	# max value of `k' allowed
+
+$define FULL 61261200	# value representing a full bin
+			# (least common multiple of {1 to 18, 20, and 25})
+
+$define X0 120		# left edge of bin display
+$define DY 165		# vertical spacing
+$define YSCALE 155	# scaling for one display
+
+$define BX1 10		# x-coord for first button column
+$define BX2 60		# x-coord for second button column
+$define BWIDTH 40	# button width
+$define BHEIGHT 16	# button height
+$define BSPACE 16	# button spacing
+
+
+# parameter values
+global maxsize		# maximum piece size
+global nreload		# number of pieces on a reload
+global kvalue		# constant `k' used in some algorithms
+
+# current source set
+global pieces		# list of piece sizes
+global dx		# distance between bins
+global bwidth		# bin width
+global cdiv		# divisor for converting size to color index
+
+# current output parameters
+global bin		# list of current bin sizes
+global nfilled		# number of bins (partially) filled
+global xll, yll		# lower left corner of display area
+
+
+# miscellaney
+global width		# window width
+global color		# array of GCs of different colors
+global glossary		# list of explanations
+
+
+
+#   Future possibilities:
+#
+#   better layout -- critical controls are too crowded
+#   add artificial delays for better visualization
+#   implement O(n log n) algs as such instead of O(n^2)
+#	n.b. this may not help because can't use Icon's native data structs
+
+
+
+#########################  main program  #########################
+
+procedure main(args)
+   local v, r, c, gc
+
+   randomize()				# set irreproducible mode
+
+   v := ui(args)			# open window, set up vib-built vidgets
+   r := v["root"]
+   glossary := []
+   addbutton(r, "BF", bestfit, "Best Fit", "picks the fullest possible bin")
+   addbutton(r, "WF", worstfit, "Worst Fit", "picks the emptiest bin")
+   addbutton(r, "AWF",nearworst,"Almost Worst Fit", "picks second-emptiest bin")
+   addbutton(r, "FF", firstfit, "First Fit", "picks the oldest possible bin")
+   addbutton(r, "LF", lastfit, "Last Fit", "picks the newest possible bin")
+   addbutton(r, "NF", nextfit, "Next Fit", "tries only the current bin")
+   addbutton(r, "N(k)", nextk, "Next-k Fit", "tries the k newest bins")
+   addbutton(r, "H(k)", harmonic, "Harmonic Algorithm",
+      "classifies into {1/1,1/2,...,1/k}")
+   addbutton(r, "G(k)", gxfit, "Group-X Fit", "groups into k equal classes")
+   VResize(r)
+
+   # workaround freeing of gray highlight color seen with "binpack -Bwhite"
+   BevelReset()				# work around color freeing bug
+
+   color := []
+   if WAttrib("depth") = 1 then
+      put(color, &window)
+   else {
+      # make a set of colors for different bin heights
+      # note that exactly half are reds/yellows and half are blues & darker
+      every c := Blend(
+            "black", 1, "deep purple-magenta", 10, "cyan-blue",
+            1, "reddish-yellow", 11, "orange-red") do {
+         gc := Clone(&window)
+         Shade(gc, c)
+         put(color, gc)
+         }
+      color := copy(color)		# ensure contiguous
+      }
+
+   # keep the following initializations in sync with initial slider positionm
+   setmax(v["max"], 20)			# set maximum bin value
+   setbins(v["bins"], -100)		# set number of bins
+   setk(v["kval"], -10)			# set constant `k' value
+
+   reload()				# initialize random bins
+   status("")				# display bin count
+
+   &error := 1
+   WAttrib("resize=on")
+   &error := 0
+
+   r.V.event := 1			# disable screen erase on resize
+   GetEvents(r, leftover)		# enter event loop
+end
+
+
+#  addbutton -- add a button (and a D variant) on every shelf
+
+procedure addbutton(r, label, proc, name, defn)
+   local v, n, y
+   static yoff
+   initial yoff := 0
+
+   y := yoff +:= BSPACE
+   while (y +:= DY) < WAttrib("height") do {
+      Vbutton(r, BX1, y, r.win, label, pack, proc, V_RECT, BWIDTH, BHEIGHT)
+      Vbutton(r, BX2, y, r.win, label||"D", pack, proc, V_RECT, BWIDTH, BHEIGHT)
+      }
+   put(glossary, left(label, 6) || left(name, 20) || defn)
+   return
+end
+
+
+
+#########################  parameter setting  #########################
+
+#  These routines are called during initialization and in response to
+#  slider movement.
+
+
+#  setk(v, n) -- set value of constant `k', based on 1 - 100 slider scale
+
+procedure setk(v, n)
+   if n >= 0 then				# if slider call
+      n := integer(MAXK ^ ((n / 100.0) ^ 0.70))	# convert nonlinearly
+   else
+      n := -n					# initial call
+   kvalue := roundoff(n)
+   GotoXY(v.ax, v.ay + v.ah + 14)
+   WWrites(left("k=" || kvalue, 8))
+   return
+end
+
+
+#  setmax(v, n) -- set maxsize, based on 1 - 20 slider scale.
+
+procedure setmax(v, n)
+   local fract
+
+   fract := n / 20.0
+   maxsize := integer(fract * FULL)
+   GotoXY(v.ax, v.ay + v.ah + 14)
+   WWrites(" max size ", ((fract || "00") ? move(4)))
+   return
+end
+
+
+#  setbins(v, n) -- set number of bins, based on 1 - 100 slider scale
+
+procedure setbins(v, n)
+   local s, max
+
+   max := WAttrib("width") - 40 - X0		# max that will fit on screen
+   if &shift then				# allow more if shifted
+      max /:= 1.1 * (maxsize / (2.0 * FULL))
+
+   if n >= 0 then				# if slider call
+      n := integer(max ^ ((n / 100.0) ^ 0.40))	# convert nonlinearly
+   else
+      n := -n					# initial call
+   n <:= 5
+   n := roundoff(n, 5)				# convert to round number
+
+   nreload := n
+   s := center(nreload, 5)
+   GotoXY(v.ax + (v.aw - TextWidth(s)) / 2, v.ay + v.ah + 17)
+   WWrites(s)
+   return
+end
+
+
+#  roundoff(n) -- truncate n to a nice number divisible by m (at least)
+
+procedure roundoff(n, m)
+   local d
+
+   if n > 1000 then {
+      if n > 10000 then
+         d := 1000
+      else if n > 5000 then
+         d := 500
+      else
+         d := 100
+      }
+   else if n > 500 then
+      d := 50
+   else if n > 100 then
+      d := 10
+   else if n > 50 then
+      d := 5
+   n -:= n % \d
+   n -:= n % \m
+   return n
+end
+
+
+#########################  bin packing primitives  #########################
+
+
+#  empty(n) -- empty shelf n
+
+procedure empty(n)
+   bin := list(*pieces, 0)
+   nfilled := 0
+   xll := X0
+   yll := n * DY
+   EraseArea(xll, yll - DY + 1, , DY)
+   width := WAttrib("width")
+   return
+end
+
+
+#  place(p, b) -- add a piece of size p to bin b
+
+procedure place(p, b)
+   local o, t, x, y0, y1
+   static invfull
+   initial invfull := 1.0 / FULL
+
+   o := bin[b] | fail
+   if (t := o + p) > FULL then
+      fail
+   bin[b] := t
+   nfilled <:= b
+   if (x := xll + (b - 1) * dx) < width then {
+      y0 := integer(yll - YSCALE * o * invfull)
+      y1 := integer(yll - YSCALE * t * invfull) + 1
+      FillRectangle(color[p / cdiv + 1], x, y1, bwidth, 0 < (y0 - y1))
+      }
+   return
+end
+
+
+#  status(s) -- write string s and shelf population at end of output shelf
+
+procedure status(s)
+   local x
+
+   x := xll + nfilled * dx + 4
+   x >:= width - 40
+   GotoXY(x, yll - 15)
+   WWrites(s)
+   GotoXY(x, yll)
+   WWrites(nfilled)
+   return
+end
+
+
+
+#########################  source set manipulation  #########################
+
+
+#  reload() -- reload first shelf with random-sized pieces.
+
+procedure reload()
+   local i, j, z, p
+
+   pieces := list(nreload)
+   empty(1)
+   dx := (width - 40 - X0) / nreload
+   dx <:= 1
+   dx >:= 20
+   bwidth := 4 * dx / 5
+   bwidth <:= 1
+   cdiv := (maxsize + *color - 1) / *color
+   every place(pieces[i := 1 to *pieces] := ?maxsize, i)
+   status("new")
+   return
+end
+
+
+#  mix() -- randomly reorder the first shelf.
+#
+#  if shifted, place equally-spaced using golden ratio
+
+procedure mix()
+   local i, n, p
+
+   if &shift then {
+      n := integer(*pieces / &phi + 1)
+      while gcd(*pieces, n) > 1 do
+         n -:= 1
+      i := 0
+      every p := !sort(pieces) do {
+         i := (i + n) % *pieces
+         pieces[i + 1] := p
+         }
+      }
+   else
+      every i := *pieces to 2 by -1 do
+         pieces[?i] :=: pieces[i]
+
+   empty(1)
+   every place(pieces[i := 1 to *pieces], i)
+   status("mix")
+   return
+end
+
+
+
+#  order() -- sort the first shelf in descending order
+#
+#  if shifted, sort ascending
+
+procedure order()
+   local i
+
+   pieces := sort(pieces)
+   if not &shift then
+      every i := 1 to *pieces / 2 do	# change from ascending to descending
+         pieces[i] :=: pieces[-i]
+
+   empty(1)
+   every place(pieces[i := 1 to *pieces], i)
+   status("sort")
+   return
+end
+
+
+
+#########################  packing algorithms  #########################
+
+
+
+#  pack(x, v) -- execute packing algorithm connected with button x
+
+procedure pack(x, v)
+   local l, n, s, i
+
+   if x.ax = BX2 then {
+      l := sort(pieces)			# if second-column button, sort first
+      every i := 1 to *l/2 do		# change from ascending to descending
+         l[i] :=: l[-i]
+      }
+   else
+      l := copy(pieces)
+
+   n := x.ay / DY + 1			# compute shelf number
+   empty(n)				# clear the shelf
+
+   s := x.id(l)				# call packing algorithm
+   status(\s | x.s)			# display status
+   return
+end
+
+
+#  nextfit(l) -- pack using next-fit algorithm
+
+procedure nextfit(l)
+   local p
+
+   every p := !l do
+      place(p, nfilled | nfilled + 1)
+   return
+end
+
+
+#  nextk(l) -- pack using next-k-fit algorithm
+
+procedure nextk(l)
+   local p
+
+   every p := !l do
+      if nfilled <= kvalue then
+         place(p, 1 to nfilled + 1)
+      else
+         place(p, nfilled - kvalue + 1 to nfilled + 1)
+   return "N" || kvalue
+end
+
+
+#  firstfit(l) -- pack using first-fit algorithm
+
+procedure firstfit(l)
+   local p
+
+   every p := !l do
+      place(p, 1 to nfilled + 1)
+   return
+end
+
+
+#  lastfit(l) -- pack using last-fit algorithm
+
+procedure lastfit(l)
+   local p
+
+   every p := !l do
+      place(p, (nfilled to 1 by -1) | (nfilled + 1))
+   return
+end
+
+
+#  bestfit(l) -- pack using best-fit algorithm
+
+procedure bestfit(l)
+   local p, b, i, max, found
+
+   every p := !l do {
+      max := FULL - p			# fullest acceptable bin size
+      found := 0			# size of best bin found so far
+      b := nfilled + 1			# index of where found
+      every i := 1 to nfilled do
+         if found <:= (max >= bin[i]) then
+            b := i
+      place(p, b)			# place in best bin found
+      }
+   return
+end
+
+
+#  worstfit(l, n) -- pack using worst-fit algorithm
+
+procedure worstfit(l, n)
+   local p, b, i, found
+
+   every p := !l do {
+      found := FULL - p			# size of best bin found so far
+      b := nfilled + 1			# index of where found
+      every i := 1 to nfilled do
+         if found >:= bin[i] then
+            b := i
+      place(p, b)			# place in best bin found
+      }
+   return
+end
+
+
+#  nearworst(l, n) -- pack using almost-worst-fit algorithm
+
+procedure nearworst(l, n)
+   local p, a, b, i, found
+
+   every p := !l do {
+      found := FULL - p			# size of best bin found so far
+      a := b := &null
+      every i := 1 to nfilled do
+         if found >:= bin[i] then {
+            a := b
+            b := i
+            }
+      place(p, \a | \b | (nfilled + 1))	# place in second-best bin found
+      }
+   return
+end
+
+
+#  harmonic(l, n) -- pack using (unmodified) harmonic algorithm
+
+procedure harmonic(l, n)
+   local curr, maxv, i, p, b
+
+   curr := list(kvalue)			# current bin for each class
+   maxv := list(kvalue)			# maximum for each class
+   every i := 1 to kvalue do
+      maxv[i] := FULL / (kvalue - i + 1)
+
+   every p := !l do {
+      p <= maxv[i := 1 to kvalue]	# find class index i
+      b := curr[i]
+      if /b | (bin[b] + p > FULL) then
+         place(p, curr[i] := nfilled + 1)
+      else
+         place(p, b)
+      }
+   return "H" || kvalue
+end
+
+
+#  gxfit(l, n) -- pack using group-x(k)-fit algorithm
+
+procedure gxfit(l, n)
+   local stk, maxv, i, s, p, b, d
+
+   stk := []				# stacks of bins, one for each group
+   maxv := []				# maximum for each group
+
+   # make k equally sized groups
+   d := FULL / kvalue
+   every i := 1 to kvalue do {
+      put(stk, [])
+      put(maxv, i * d - 1)
+      }
+
+   every p := !l do {
+      # find group index i for piece
+      (p <= maxv[i := (1 to kvalue) | 0]) & (*stk[i] > 0)
+      b := pop(stk[i]) | (nfilled + 1)
+      place(p, b)
+      # now put bin back on a stack, if not too full
+      if (FULL - bin[b]) >= maxv[i := (kvalue - 1 to 1 by -1)] then
+         push(stk[i], b)
+      }
+   return "G" || kvalue
+end
+
+
+
+#########################  event miscellaney  #########################
+
+
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:lucidasanstypewriter-bold-12::0,0,860,675:Bin Packing",],
+   ["bins:Slider:h::10,48,100,15:0,100,40",setbins],
+   ["infob:Button:regular::10,111,40,17:info",info],
+   ["kval:Slider:h::10,135,100,15:0,100,30",setk],
+   ["max:Slider:h::10,10,100,15:1,20,20",setmax],
+   ["mix:Button:regular::10,68,30,17:mix",mix],
+   ["new:Button:regular::80,68,30,17:new",reload],
+   ["quit:Button:regular::70,110,40,17:quit",quit],
+   ["sort:Button:regular::10,87,35,17:sort",order],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib
+
+
+
+#  leftover() -- handle events that fall outside the vidgets
+#
+#  Exits when certain keys are pressed and ignores other events.
+
+procedure leftover(e)
+   case e of {
+      QuitEvents():	exit()
+      &meta & !"nN":	reload()
+      &meta & !"mM":	mix()
+      &meta & !"sS":	order()
+      &meta & !"iI":	info()
+      }
+   return
+end
+
+
+#  quit() -- handle "quit" button press
+
+procedure quit(x, v)
+   exit()
+end
+
+
+#  info() -- handle "info" button press
+
+procedure info(x, v)
+   static text
+   initial {
+      text := ["",
+         Version,
+         "by Gregg Townsend, The University of Arizona",
+         "",
+         "",
+         "Glossary:",
+         ""]
+      every put(text, "   " || !glossary)
+      put(text,
+         "",
+         "A `D' suffix indicates a variation where the input is sorted",
+         "in descending order before applying the algorithm.",
+         "",
+         "",
+         "For more information about bin packing algorithms, see:",
+         "",
+         "   `Approximation Algorithms for Bin-Packing -- An Updated Survey'",
+         "   by E.G. Coffman, Jr., M.R. Garey, and D.S. Johnson, in",
+         "   Algorithm Design for Computer System Design, ed. by",
+         "   Ausiello, Lucertini, and Serafini, Springer-Verlag, 1984",
+         "",
+         "   `Fast Algorithms for Bin Packing' by David S. Johnson,",
+         "   Journal of Computer and System Sciences 8, 272-314 (1974)",
+         "")
+      }
+   Notice ! text
+   return
+end

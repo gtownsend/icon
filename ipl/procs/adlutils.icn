@@ -1,0 +1,177 @@
+############################################################################
+#
+#	File:     adlutils.icn
+#
+#	Subject:  Procedures to process address lists
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 3, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     Procedures used by programs that process address lists:
+#
+#	 nextadd()		get next address
+#	 writeadd(add)		write address
+#	 get_country(add)	get country
+#	 get_state(add)		get state (U.S. addresses only)
+#	 get_city(add)		get city (U.S. addresses only)
+#	 get_zipcode(add)	get ZIP code (U.S. addresses only)
+#	 get_lastname(add)	get last name
+#	 get_namepfx(add)	get name prefix
+#	 get_title(add)		get name title
+#	 format_country(s)	format country name
+#
+############################################################################
+#
+#  Links:  lastname, io, namepfx, title
+#
+############################################################################
+
+link lastname, io, namepfx, title
+
+record label(header, text, comments)
+
+procedure nextadd()
+   local comments, header, line, text
+
+   initial {			# Get to first label.
+      while line := Read() do
+         line ? {
+            if ="#" then {
+               PutBack(line)
+               break
+               }
+            }
+      }
+
+   header := Read() | fail
+
+   comments := text := ""
+
+   while line := Read() do
+      line ? {
+         if pos(0) then next	# Skip empty lines.
+         else if ="*" then comments ||:= "\n" || line
+         else if ="#" then {	# Header for next label.
+            PutBack(line)
+            break		# Done with current label.
+            }
+         else text ||:= "\n" || line
+         }
+   every text | comments ?:= {	# Strip off leading newline, if any.
+      move(1)
+      tab(0)
+      }
+
+   return label(header, text, comments)
+
+end
+
+procedure writeadd(add)
+
+   if *add.text + *add.comments = 0 then return
+   write(add.header)
+   if *add.text > 0 then write(add.text)
+   if *add.comments > 0 then write(add.comments)
+
+   return
+
+end
+
+procedure get_country(add)
+
+   trim(add.text) ? {
+      while tab(upto('\n')) do move(1)
+      if tab(0) ? {
+         tab(-1)
+         any(&digits)
+         } then return "U.S.A."
+      else return tab(0)
+      }
+end
+
+procedure get_state(add)
+
+   trim(add.text) ? {
+      while tab(upto('\n')) do move(1)
+      ="APO"
+      while tab(upto(',')) do move(1)
+      tab(many(' '))
+      return (tab(any(&ucase)) || tab(any(&ucase))) | "XX"
+      }
+
+end
+
+procedure get_city(add)		# only works for U.S. addresses
+   local result
+
+   result := ""
+   trim(add.text) ? {
+      while tab(upto('\n')) do move(1)
+      result := ="APO"
+      result ||:= tab(upto(','))
+      return result
+      }
+
+end
+
+
+
+procedure get_zipcode(add)
+   local zip
+
+   trim(add.text) ? {
+      while tab(upto('\n')) do move(1)		# get to last line
+      while tab(upto(' ')) do tab(many(' '))	# get to last field
+      zip := tab(0)
+      if *zip = 5 & integer(zip) then return zip
+      else if *zip = 10 & zip ? {
+         integer(move(5)) & ="-" & integer(tab(0))
+         }
+      then return zip
+      else return "9999999999"			# "to the end of the universe"
+      }
+
+end
+
+procedure get_lastname(add)
+
+   return lastname(add.text ? tab(upto('\n') | 0))
+
+end
+
+procedure get_namepfx(add)
+
+   return namepfx(add.text ? tab(upto('\n') | 0))
+
+end
+
+procedure get_title(add)
+
+   return title(add.text ? tab(upto('\n') | 0))
+
+end
+
+procedure format_country(s)
+   local t, word
+
+   s := map(s)
+   t := ""
+   s ? while tab(upto(&lcase)) do {
+      word := tab(many(&lcase))
+      if word == "of" then t ||:= word
+      else t ||:= {
+         word ? {
+            map(move(1),&lcase,&ucase) || tab(0)
+            }
+         }
+      t ||:= move(1)
+      }
+   return t
+end

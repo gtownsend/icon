@@ -1,0 +1,78 @@
+############################################################################
+#
+#	File:     monkeys.icn
+#
+#	Subject:  Program to generate random text
+#
+#	Author:   Stephen B. Wampler
+#
+#	Date:     September 7, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Contributors:  Ralph E. Griswold and Alan Beale
+#
+############################################################################
+#
+#  The old monkeys at the typewriters anecdote ...
+#
+#     This program uses ngram analysis to randomly generate text in
+#  the same 'style' as the input text.  The arguments are:
+#
+#     -s     show the input text
+#     -n n   use n as the ngram size (default:3)
+#     -l n   output at about n lines (default:10)
+#     -r n   set random number seed to n
+#
+############################################################################
+#
+#  Links: options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local switches, n, linecount, ngrams, preline
+   local line, ngram, nextchar, firstngram, Show
+
+   switches := options(args,"sn+l+r+")
+   if \switches["s"] then Show := writes else Show := 1
+   n := \switches["n"] | 3
+   linecount := \switches["l"] | 10
+   &random := \switches["r"]
+
+   ngrams := table()
+
+   Show("Orginal Text is: \n\n")
+
+   preline := ""
+   every line := preline || !&input do {
+      Show(line)
+      line ? {
+            while ngram := move(n) & nextchar := move(1) do {
+               /firstngram := ngram
+               /ngrams[ngram] := ""
+               ngrams[ngram] ||:= nextchar
+               move(-n)
+               }
+            preline := tab(0) || "\n"
+            }
+      }
+
+   Show("\n\nGenerating Sentences\n\n")
+
+   ngram := writes(firstngram)
+   while linecount > 0 do {
+      if /ngrams[ngram] then
+         exit()                 # if hit EOF ngram early
+      ngram := ngram[2:0] || writes(nextchar := ?ngrams[ngram])
+      if (nextchar == "\n") then
+         linecount -:= 1
+      }
+
+end

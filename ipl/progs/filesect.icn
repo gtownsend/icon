@@ -1,0 +1,51 @@
+############################################################################
+#
+#	File:     filesect.icn
+#
+#	Subject:  Program to produce section of a file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 30, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program writes the section of the input file starting at a
+#  specified line number and extending a specified number of lines.
+#
+#  The specifications are given as integer command-line arguments; the
+#  first is the starting line, the second is the number of lines.  For
+#  example,
+#
+#	filesect 20 100 <input >output
+#
+#  copies 100 lines from input to output, starting at line 20 of input.
+#
+#  If the specifications are out of range, the file written is truncated
+#  without commment.
+#
+#
+############################################################################
+
+procedure main(argl)
+   local start, count
+
+   start := argl[1] | stop("*** starting value missing")
+   count := argl[2] | stop("*** count missing")
+
+   if not (start := integer(start) & start > 0) then
+      stop("starting value not positive integer")
+   if not (count := integer(count) & count >= 0) then
+      stop("starting value not non-negative integer")
+
+   every 1 to start - 1 do
+      read() | exit()
+
+   every 1 to count do
+      write(read()) | exit()
+
+end

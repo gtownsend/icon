@@ -1,0 +1,127 @@
+############################################################################
+#
+#	File:     attribs.icn
+#
+#	Subject:  Procedure to set attributes via dialog
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 17, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure produces a dialog in which the user can change
+#  the most commonly used graphics attributes.
+#
+#  Problems:  If a text-entry field is not long enough to hold the current
+#  value for an attribute, the attribute has to be edited.  Also, a
+#  slider is not the best way of changing the gamma attribute -- it's
+#  not possible to set a precise value.  A slider was used mostly for
+#  demonstration purposes.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  dsetup
+#
+############################################################################
+
+link dsetup				# dialog setup
+
+procedure attribs(win)		#: set graphics attributes via dialog
+   static atts
+
+   initial atts := table()		# table of vidget IDs
+
+   /win := &window
+
+   # Assign values from current attributes.
+
+   atts["1_fg"] := Fg(win)
+   atts["2_bg"] := Bg(win)
+   atts["3_font"] := Font(win)
+   atts["4_linewidth"] := WAttrib(win, "linewidth")
+   atts["5_pattern"] := WAttrib(win, "pattern")
+   atts["linestyle"] := WAttrib(win, "linestyle")
+   atts["fillstyle"] := WAttrib(win, "fillstyle")
+   atts["gamma"] := WAttrib(win, "gamma")
+
+   # Call up the dialog.
+
+      repeat {
+   
+      attributes(win, atts) == "Okay" | fail
+
+      # Set attributes from table.
+   
+      Fg(win, atts["1_fg"]) | {
+         Notice("Invalid foreground color.")
+         next
+         }
+      Bg(win, atts["2_bg"]) | {
+         Notice("Invalid background color.")
+         next
+         }
+      Font(win, atts["3_font"]) | {
+         Notice("Invalid font.")
+         next
+         }
+      WAttrib(win, "linewidth=" || integer(atts["4_linewidth"])) | {
+         Notice("Invalid linewidth.")
+         next
+         }
+      WAttrib(win, "pattern=" || atts["5_pattern"]) | {
+            Notice("Invalid pattern.")
+            next
+            }
+      WAttrib(win, "linestyle=" || atts["linestyle"])
+      WAttrib(win, "fillstyle=" || atts["fillstyle"])
+      WAttrib(win, "gamma=" || atts["gamma"])
+
+      return
+
+      }
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure attributes(win, deftbl)
+static dstate
+initial dstate := dsetup(win,
+   ["attributes:Sizer::1:0,0,370,400:attributes",],
+   ["0.5:Label:::105,204,21,13:0.5",],
+   ["1.0:Label:::135,203,21,13:1.0",],
+   ["1_fg:Text::35:10,20,339,19:        fg: \\=",],
+   ["2.0:Label:::199,203,21,13:2.0",],
+   ["2_bg:Text::35:10,52,339,19:        bg: \\=",],
+   ["3.0:Label:::261,204,21,13:3.0",],
+   ["3_font:Text::35:11,80,339,19:      font: \\=",],
+   ["4.0:Label:::324,204,21,13:4.0",],
+   ["4_linewidth:Text::3:11,110,115,19:line width: \\=",],
+   ["5_pattern:Text::35:11,140,339,19:   pattern: \\=",],
+   ["button1:Button:regular::206,350,60,30:Cancel",],
+   ["fill label:Label:::202,241,70,13:fill style",],
+   ["fillstyle:Choice::3:195,262,85,63:",,
+      ["solid","textured","masked"]],
+   ["gamma:Slider:h:1:97,174,253,20:0.5,4.0,1.0",],
+   ["glabel:Label:::11,176,84,13:     gamma: ",],
+   ["line label:Label:::100,241,70,13:line style",],
+   ["linestyle:Choice::3:96,262,78,63:",,
+      ["solid","striped","dashed"]],
+   ["okay:Button:regular:-1:106,350,60,30:Okay",],
+   ["tick1:Line:::117,196,117,201:",],
+   ["tick2:Line:::146,195,146,200:",],
+   ["tick3:Line:::209,195,209,200:",],
+   ["tick4:Line:::272,195,272,200:",],
+   ["tick5:Line:::335,195,335,200:",],
+   )
+return dpopup(win, deftbl, dstate)
+end
+#===<<vib:end>>===	end of section maintained by vib

@@ -1,0 +1,70 @@
+############################################################################
+#
+#	File:     seamcut.icn
+#
+#	Subject:  Program to cut image for seamless tiling
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 22, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program takes image file names and does top/bottom separation and
+#  reordering, follows by the same for left and right.  The result is an
+#  image that tiles seamlessly, although the center part may be a mess.
+#
+#  The technique is described in Painter 2.0 Companion.
+#
+#  Files are expected to have the suffix .gif.  The corresonding files
+#  are given the suffix _s.gif.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  basename, wopen
+#
+############################################################################
+
+link basename
+link wopen
+
+procedure main(args)
+   local name, base, width, height, half_width, half_height, win1, win2
+
+   every name := !args do {
+      base := basename(name, ".gif") | {
+         write(&errout, "*** unexpected file extension ", name)
+         next
+         }
+      win1 := WOpen("canvas=hidden", "image=" || name) | {
+         write(&errout, "*** cannot open ", name)
+         next
+         }
+
+      width := WAttrib(win1, "width")
+      height := WAttrib(win1, "height")
+      half_width := width / 2
+      half_height := height / 2
+
+      win2 := WOpen("canvas=hidden", "width=" || width, "height=" || height) |
+         stop("*** cannot open target window")
+
+      CopyArea(win1, win2, 0, 0, half_width, height, half_width, 0)
+      CopyArea(win1, win2, half_width, 0, half_width, height, 0, 0)
+      EraseArea(win1)
+      CopyArea(win2, win1, 0, 0, width, half_height, 0, half_height)
+      CopyArea(win2, win1, 0, half_height, width, half_height, 0, 0)
+      WriteImage(win1, base || "_s.gif")
+      WClose(win1)
+      WClose(win2)
+      }
+
+end

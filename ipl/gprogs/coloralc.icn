@@ -1,0 +1,193 @@
+############################################################################
+#
+#	File:     coloralc.icn
+#
+#	Subject:  Program to test color allocation
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     February 6, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     coloralc tests how many fixed and/or mutable colors can be allocated.
+#  The two sets of pushbuttons allocate 1, 8, or 32 randomly chosen colors
+#  of the selected type.  New colors are arrayed on the display using
+#  squares for fixed colors and discs for mutable colors.  When no more
+#  colors can be created, no more squares or discs will appear.
+#
+#     Clicking on a color with the left mouse button selects it as the
+#  current color; the current color can be drawn on the screen by moving
+#  the mouse with the left button down.
+#
+#     Clicking on a mutable color (a disc) with the right mouse mutton
+#  changes it to a new random color.  There is also a pushbutton that
+#  changes all mutable colors simultaneously.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: options, optwindw, button, evmux, random, graphics
+#
+############################################################################
+
+link options
+link optwindw
+link button
+link evmux
+link random
+link graphics
+
+record square(x, y, w, p, n)		# a color square (or disc)
+
+global win, opts, m, w, h, s, bw, bh	# main window and dimensions
+global sq, nw, nh			# square list and layout counts
+
+global brushwin, brushproc		# current drawing window and procedure
+
+
+
+#  main program
+
+procedure main(args)
+
+   nw := 16	# number of squares wide
+   nh := 16	# number of squares high
+   s := 32	# square size
+   m := 4	# margin (gap)
+   bw := 68	# button width
+   bh := 20	# button height
+
+   opts := options(args, winoptions())
+   /opts["W"] := nw * (m + s) + bw
+   /opts["H"] := nh * (m + s) - m
+   /opts["M"] := m
+   win := optwindow(opts, "cursor=off", "echo=off")
+   m := opts["M"]			# get obtained window dimensions
+   h := opts["H"]
+   w := opts["W"]
+   s := (w - bw - nw * m) / nw		# calc size of each square
+   s <:= (h - (nh - 1) * m) / nh
+
+   quitsensor(win)			# set up sensors
+   sensor(win, &lpress, dobrush)
+   sensor(win, &ldrag, dobrush)
+   sensor(win, 'f', fixc, 1)
+   sensor(win, 'F', fixc, 8)
+   sensor(win, 'm', mutc, 1)
+   sensor(win, 'M', mutc, 8)
+   sensor(win, 'Aa', mutall)
+   buttonrow(win, m, m, bw, bh, 0, m + bh,
+      "1 fixed", fixc, 1,
+      "8 fixed", fixc, 8,
+      "32 fixed", fixc, 32,
+      )
+   buttonrow(win, m, m + 4 * (bh + m), bw, bh, 0, m + bh,
+      "1 mutable", mutc, 1,
+      "8 mutable", mutc, 8,
+      "32 mutable", mutc, 32,
+      )
+   buttonrow(win, m, m + 8 * (bh + m), bw, bh, 0, m + bh,
+      "mutate all", mutall, 0,
+      "quit", argless, exit,
+      )
+
+   sq := []				# init square list and procs
+   brushwin := win
+   brushproc := DrawRectangle
+
+   randomize()
+   evmux(win)				# loop processing events
+end
+
+
+
+#  fixc(w, n) -- allocate n new fixed colors
+
+procedure fixc(w, n)
+   local q
+   every 1 to n do {
+      q := newsquare(w, FillRectangle) | fail
+      Fg(q.w, ?65535 || "," || ?65535 || "," || ?65535) | {pull(sq); fail}
+      FillRectangle(q.w, q.x, q.y, s, s)	# interior (random new color)
+      DrawRectangle(win, q.x, q.y, s, s)	# outline (standard)
+      sensor(win, &lpress, setbrush, q, q.x, q.y, s, s)
+      }
+   return
+end
+
+
+
+#  mutc(w, n) -- allocate n new mutable colors
+
+procedure mutc(w, n)
+   local q
+   every 1 to n do {
+      q := newsquare(w, FillArc) | fail
+      q.n := NewColor(q.w, ?65535 || "," || ?65535 || "," || ?65535) |
+         {pull(sq); fail}
+      Fg(q.w, q.n)
+      FillArc(q.w, q.x, q.y, s, s)
+      DrawArc(win, q.x, q.y, s, s)
+      sensor(win, &lpress, setbrush, q, q.x, q.y, s, s)
+      sensor(win, &rpress, randmut, q, q.x, q.y, s, s)
+      }
+   return
+end
+
+
+#  newsquare(w, p) -- alc next square, init for proc p, return record
+
+procedure newsquare(w, p)
+   local x, y, q
+   *sq < nw * nh | fail
+   x := m + bw + m + (m + s) * (*sq % nw)
+   y := m + (m + s) * (*sq / nw)
+   q := square(x, y, Clone(w), p) | fail
+   put(sq, q)
+   return q
+end
+
+
+#  randmut(w, q) -- randomly mutate square q to a new color
+
+procedure randmut(w, q)
+   Color(q.w, \q.n, ?65535 || "," || ?65535 || "," || ?65535)
+   return
+end
+
+
+#  mutall(w) -- randomly mutate *all* the squares
+
+procedure mutall(w)
+   local args
+   args := [w]
+   every put(args, \(!sq).n) do
+      put(args, ?65535 || "," || ?65535 || "," || ?65535)
+   if *args > 1 then
+      Color ! args
+end
+
+
+#  setbrush(w, q) -- set the paintbrush to the values for square q
+
+procedure setbrush(w, q)
+   brushwin := q.w
+   brushproc := q.p
+   return
+end
+
+
+#  dobrush(w, dummy, x, y) -- call the brush procedure at location (x, y)
+
+procedure dobrush(w, dummy, x, y)
+   brushproc(brushwin, x - s / 4, y - s / 4, s / 2, s / 2)
+   return
+end

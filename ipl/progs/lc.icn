@@ -1,0 +1,39 @@
+############################################################################
+#
+#	File:     lc.icn
+#
+#	Subject:  Program to count lines in file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 19, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program simply counts the number of lines in standard input
+#  and writes the result to standard output.
+#
+#  Assumes UNIX-style line terminators.
+#
+#  Requires lots of memory as written.
+#
+############################################################################
+
+procedure main()
+   local count, line
+
+   count := 0
+
+   while line := reads(, 1000000) do
+      line ? {
+         every upto('\n') do
+            count +:= 1
+         }
+
+   write(count)
+
+end

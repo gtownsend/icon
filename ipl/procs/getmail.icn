@@ -1,0 +1,385 @@
+############################################################################
+#
+#	File:     getmail.icn
+#
+#	Subject:  Procedure to parse mail file
+#
+#	Author:   Charles Shartsis
+#
+#	Date:     August 19, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# The getmail procedure reads a Unix/Internet type mail folder
+# and generates a sequence of records, one per mail message.
+# It fails when end-of-file is reached.  Each record contains the
+# message header and message text components parsed into separate
+# record fields.  The entire uninterpreted message (header and text)
+# are also stored in the record.  See the description
+# of message_record below.
+# 
+# The argument to getmail is either the name of a mail folder or
+# the file handle for a mail folder which has already been opened
+# for reading.  If getmail is resumed after the last message is
+# generated, it closes the mail folder and returns failure.
+# 
+# If getmail generates an incomplete sequence (does not close the
+# folder and return failure) and is then restarted (not resumed)
+# on the same or a different mail folder, the previous folder file
+# handle remains open and inaccessible.  This may be a problem if
+# done repeatedly since there is usually an OS-imposed limit
+# on number of open file handles.  Safest way to use getmail
+# is using one of the below forms:
+# 
+#     message := message_record()
+#     every message := !getmail("folder_name") do {
+#     
+#             process message ...
+#             
+#     }
+# 
+#     message := message_record()
+#     coex := create getmail("folder_name")
+#     while message := @coex do {
+#     
+#             process message ...
+#             
+#     }
+# 
+# Note that if message_record's are stored  in a list, the records
+# may be sorted by individual components (like sender, _date, _subject)
+# using sortf function in Icon Version 9.0.
+#     
+############################################################################
+#
+#  Requires:  Icon Version 9 or greater
+#
+############################################################################
+
+record message_record(
+
+    # components of "From " line
+    sender,         # E-Mail address of sender
+    dayofweek,
+    month,
+    day,
+    time,
+    year,
+    
+    # selected message header fields
+    
+    # The following record fields hold the contents of common
+    # message header fields.  Each record field contains the
+    # corresponding message field's body (as a string) or a null indicating
+    # that no such field was present in the header.
+    # Note that a list of message_record's
+    # can be sorted on any of these fields using the sortff function.
+    # The record field name is related to the message header field name
+    # in the following way:
+    # 
+    # record_field_name := "_" || 
+    #     map(message_header_field_name, &ucase || "-", &lcase || "_")
+    # 
+    # Thus the "Mime-Version" field body is stored in the _mime_version
+    # record field.  Multiline message header fields are "unfolded"
+    # into a single line according to RFC 822.  The message field
+    # name, the following colon, and any immediately following
+    # whitespace are stripped from the beginning of the
+    # record field.  E.g., if a header contains
+    # 
+    # Mime-Version:           1.0
+    # 
+    # then
+    # 
+    # message._mime_version := "1.0"
+    # 
+    # The "Received:" field is handled differently from the other
+    # fields since there are typically multiple occurrences of it
+    # in the same header. The _received record field is either null or
+    # contains a list of "Received:" fields.  The message field names
+    # are NOT stripped off.  Thus
+    # 
+    # Received: from relay4.UU.NET by mail.netcom.com (8.6.12/Netcom)
+    #     id PAA10801; Sun, 28 May 1995 15:24:17 -0700
+    # Received: from alterdial.UU.NET by relay4.UU.NET with SMTP 
+    #     id QQyrsr05731; Sun, 28 May 1995 18:17:45 -0400
+    # 
+    # get stored as:
+    # message._received :=
+    # ["Received: from relay4.UU.NET by mail.netcom.com (8.6.12/Netcom)    id etc...",
+    # "Received: from alterdial.UU.NET by relay4.UU.NET with SMTP     id etc..."]
+     
+    _return_path,
+    _received,
+    _date,
+    _message_id,
+    _x_sender,
+    _x_mailer,
+    _mime_version,
+    _content_type,
+    _to,
+    _from,
+    _subject,
+    _status,
+    _x_status,
+    _path,
+    _xref,
+    _references,
+    _errors_to,
+    _x_lines,
+    _x_vm_attributes,
+    _reply_to,
+    _newsgroups,
+    _content_length,
+    
+    # The "other" field gets all the message header fields for which we have not set up
+    # a specific record field.  The "other" record field either contains null
+    # or a list of header fields not stored in the previous fields.
+    # Message field names are NOT stripped off field bodies before being stored.
+    # If there are multiple occurrences of the previously selected fields
+    # (except _received which is assumed to occur multiple times), then 
+    # the first occurrence is stored in the appropriate record field from
+    # the list above while subsequent occurences in the same header are
+    # stored as separate list elements in the "other" record field.
+    # E.g., the following header fields:
+    # 
+    # ...
+    # Whatever: Hello
+    # Status: RO
+    # Status: XX
+    # Status: YY
+    # ...
+    # 
+    # would be stored as
+    # 
+    # message._status := "RO"
+    # message.other :=
+    #     [..., "Whatever: Hello", "Status: XX", "Status: YY", ...]
+
+    other,
+    
+    # The message text
+    # This field is either null or a list of lines comprising
+    # the message text.
+    message_text,
+    
+    # The entire message - header and text
+    # This field contains a list of uninterpreted lines (no RFC 822 unfolding)
+    # comprising the raw message.
+    
+    all
+    
+)
+
+# getmail SEQ
+procedure getmail(folder_name)
+
+    local folder, line, message, ws, item_tag, first_item_value, tag_field
+    local time, message_text, unfolded_line
+    
+    ws := ' \t'
+    
+    if type(folder_name) == "file" then
+        folder := folder_name
+    else
+        folder := open(folder_name, "r") |
+            stop("Could not open ", folder_name)
+    line := read(folder) | &null
+
+    # body ITR UNTIL EOF
+    until /line do {
+        # message SEQ
+            message := message_record()
+            every !message := &null
+            # header SEQ
+                # from-line SEQ
+                    message.all := []
+                    put(message.all, line)
+                    line ? (
+                        ="From" & tab(many(ws)) &
+                        message.sender <- tab(many(~ws)) & tab(many(ws)) &
+                        message.dayofweek <- tab(many(&letters)) & tab(many(ws)) &
+                        message.month <- tab(many(&letters)) & tab(many(ws)) &
+                        message.day <- tab(many(&digits)) & tab(many(ws)) &
+                        message.time <- match_time() & tab(many(ws)) &
+                        message.year <- match_year()
+                    ) |
+                    stop("Invalid first message header line:\n", line)
+                    line := read(folder) | &null
+                # from-line END
+                # header-fields ITR UNTIL EOF or blank-line or From line
+                until /line | line == "" | is_From_line(line) do {
+                    # header-field SEQ
+                        # first-line SEQ
+                            put(message.all, line)
+                            # process quoted EOL character
+                            if line[-1] == "\\" then
+                                line[-1] := "\n"
+                            unfolded_line := line
+                            line := read(folder) | &null
+                        # first-line END
+                        # after-lines ITR UNTIL EOF or line doesn't start with ws or 
+                        #               blank-line or From line
+                        until /line | not any(ws, line) | line == "" | is_From_line(line) do {
+                            # after-line SEQ
+                                put(message.all, line)
+                                # process quoted EOL character
+                                if line[-1] == "\\" then
+                                    line[-1] := "\n"
+                                if unfolded_line[-1]  == "\n" then
+                                    line[1] := ""
+                                unfolded_line ||:= line
+                                line := read(folder) | &null
+                            # after-line END
+                        # after-lines END
+                        }
+                        process_header_field(message, unfolded_line)
+                    # header-field END
+                # header-fields END
+                }
+            # header END
+            # post-header ALT if blank line
+            if line == "" then {
+                # optional-message-text SEQ
+                    # blank-line SEQ
+                        put(message.all, line)
+                        line := read(folder) | &null
+                    # blank-line END
+                    # message-text ITR UNTIL EOF or From line
+                    until /line | is_From_line(line) do {
+                        # message-text-line SEQ
+                            put(message.all, line)
+                            /message.message_text := []
+                            put(message.message_text, line)
+                            line := read(folder) | &null
+                        # message-text-line END
+                    # message-text END
+                    }
+                # optional-message-text END
+            # post-header ALT default
+            } else {
+            # post-header END
+            }
+           suspend message
+        # message END
+    # body END
+    }
+
+    if folder ~=== &input then
+        close(folder)
+# getmail END
+end
+
+#############################################################################
+#                   procedure is_From_line
+#############################################################################
+
+procedure is_From_line(line)
+
+    return line ? ="From "
+
+end
+
+#############################################################################
+#                   procedure match_time
+#############################################################################
+
+procedure match_time()
+
+    suspend tab(any(&digits)) || tab(any(&digits)) || =":" ||
+            tab(any(&digits)) || tab(any(&digits)) || =":" ||
+            tab(any(&digits)) || tab(any(&digits))
+
+end
+
+#############################################################################
+#                   procedure match_year
+#############################################################################
+
+procedure match_year()
+
+    suspend tab(any(&digits)) || tab(any(&digits)) ||
+            tab(any(&digits)) || tab(any(&digits))
+
+end
+
+#############################################################################
+#                   procedure mfield_to_rfield_name
+#############################################################################
+
+procedure mfield_to_rfield_name(mfield_name)
+
+    static mapfrom, mapto
+    
+    initial {
+        mapfrom := &ucase || "-"
+        mapto := &lcase || "_"
+    }
+
+    return "_" || map(mfield_name, mapfrom, mapto)
+
+end
+
+#############################################################################
+#                   procedure process_header_field
+#############################################################################
+
+procedure process_header_field(message, field)
+
+    local record_field_name, header_field_name, field_body
+    static field_chars, ws
+    
+    # header field name can have ASCII 33 through 126 except for colon
+    initial {
+        field_chars := cset(string(&ascii)[34:-1]) -- ':'
+        ws := ' \t'
+    }
+    
+    field ? (
+        header_field_name <- tab(many(field_chars)) & =":" &
+        (tab(many(ws)) | "") &
+        field_body <- tab(0)
+    ) |
+    stop("Invalid header field:\n", field)
+    record_field_name := mfield_to_rfield_name(header_field_name)
+    
+    # This is one of the selected fields
+    if message[record_field_name] then {
+    
+        # Its a "Received" field
+        if record_field_name == "_received" then {
+            # Append whole field to received field list
+            /message._received := []
+            put(message._received, field)
+        
+        # Not a "Received" field
+        } else {
+        
+            # First occurrence in header of selected field
+            if /message[record_field_name] then {
+                # Assign field body to selected record field
+                message[record_field_name] := field_body
+            
+            # Subsequent occurrence in header of selected field
+            } else {
+                # Append whole field to other field list
+                /message.other := []
+                put(message.other, field)
+            }
+        }
+    
+    # Not a selected field
+    } else {
+                # Append whole field to other field list
+                /message.other := []
+                put(message.other, field)
+    }
+    
+end
+
+#############################################################################
+

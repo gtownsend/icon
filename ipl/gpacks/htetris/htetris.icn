@@ -1,0 +1,1783 @@
+############################################################################
+#
+# File  :   htetris.icn
+# Author:   Henrik Sandin
+# Date  :   May 3, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# Implements htetris, which is a version of the game tetris.
+# The interface is built using the tool VIB.
+# Bricks and the game pane are represented by two dimensional matrices.
+# Conceptually, the brick matrices moves on top of the pane matrix.
+# At every position, a brick matrix contains information on where on the
+# pane matrix it is.
+# An element of a matrix correspons to a 20 by 20 pixel square on the
+# game pane. The game pane is 200 pixels wide and 600 pixels high, but its
+# matrix has 12 colums and 31 rows. The extra row and columns are conceptually
+# outside the game pane and serves as boundaries used to determine if a brick
+# can move or rotate in some situations.
+# An element in the pane matrix has the value 'FILLED' if there is a colored
+# square belonging to a brick permanently stuck there. Otherwise it has the
+# value 'EMPTY'.
+# A brick can not move onto a position on the pane corresponding to an
+# element in the pane matrix that has the value 'FILLED'.
+#
+############################################################################
+#
+#  Requires: keysyms.icn, brickdata.icn, matrix.icn, brickio.icn,
+#            editor.icn, help.icn
+#
+############################################################################
+#
+#  Links: random, numbers, vsetup
+#
+############################################################################
+
+link random
+link numbers
+link vsetup
+
+############################################################################
+#
+# Global varibles used by both htetris.icn and editor.icn.
+#
+############################################################################
+
+global htetris_window
+global htetris_vidgets
+
+############################################################################
+#
+# Global varibles used by htetris.icn only.
+#
+# game_pane  - The game playing area, which is 200 by 600 pixels.
+# next_pane  - The pane showing the next brick about to come up.
+# anim_pane  - The area where the initial animation is performed.
+# score_pane     - The current score area.
+# highscore_pane - The highscore area.
+# level_pane     - The area showing the current level of difficulty.
+#                  The showed level is either the most recently played level
+#                  or the most recently picked starting level.
+# brick_table      - A table containing the bricks currently in play.
+#                    The keys are unique names as strings.
+# next_brick       - The next brick to come up in a game.
+# current_matrices - List containing the four matrices of the currently
+#                    falling brick.
+# current_images - List containing the four images of the currently
+#                  falling brick.
+# pane_matrix - A 12 by 32 matrix representing the game area. There are one
+#               extra row (bottom) and two extra columns used as edge markers.
+# top_row        - The currently highest (smallest row number) non-empty row
+#                  in the pane matrix.
+# rows_completed - The number of full rows achieved in the current game.
+# flip_offset    - A brick-specific integer which is used to calculate the
+#                  new top-left corner position of a brick when it is flipped.
+# start_speed - The level-depending speed which the next game is going to
+#               start at.
+# speed        - The current level-depending speed.
+# speed_factor - Integer used to speed up the game on a slow computer.
+# score        - Current score.
+# highscore    - Highscore so far.
+# next_id      - Used to construct id's for added userdefined bricks.
+# editor_on    - Flag determining whether the editor was started or not.
+# game_on      - Flag determining whether a game is currently going on.
+# pause        - Flag determining whether a game is paused or not.
+# cheated          - TRUE if the player just cheated. Reset to false after cheat.
+# cheating         - TRUE if a cheating brick is currently falling.
+# record_highscore - FALSE if the player has cheated during the current game.
+# special_keys     - A list of the possible special keys availible as controls.
+# current_keys - current keys to control the game.
+# root         - The currently active interface root (htetris or editor).
+#
+############################################################################
+
+global game_pane
+global next_pane
+global anim_pane
+global score_pane
+global highscore_pane
+global level_pane
+global brick_table
+global current_matrices
+global current_images
+global next_brick
+global next_id
+global pane_matrix
+global top_row
+global rows_completed
+global flip_offset
+global start_speed
+global speed
+global speed_factor
+global score
+global highscore
+global editor_on
+global game_on
+global pause
+global cheated
+global cheating
+global record_highscore
+global special_keys
+global current_keys
+global root
+
+$define MAX_SCORE   999999999 # Defines the maximum score.
+$define MIDDLE      6         # Defines the middle column of the game pane.
+$define FALSE       0         
+$define TRUE        1
+$define EMPTY       0         # The status of a square on the game pane.
+$define FILLED      1         # The status of a square on the game pane.
+$define WIDTH       12        # The width of the game pane matrix.
+$define HEIGHT      31        # The height of the game pane matrix.
+$define RIGHT_EDGE  12        # The rightmost column of the game pane matrix.
+$define BOTTOM      31        # The bottom row of the game pane matrix.
+$define RIGHT       1         # Move brick to the right.
+$define LEFT        2         # Move brick to the left.
+$define ROTATE      3         # Rotate brick.
+$define SLAM        4         # Bring brick down instantly.
+$define SPEED_UP    10        # The speedup when a new level is begun.
+$define THRESH_HOLD 20        # Number of rows to complete before level switch.
+$define ANIM_DELAY  20        # Delay in initial animation.
+$define MIN_SPEED   150       # Minimum game speed (level 1).
+$define MAX_SPEED   10        # Maximum game speed (level 15).
+
+$include "keysyms.icn"
+$include "brickdata.icn"
+$include "matrix.icn"
+$include "brickio.icn"
+$include "movement.icn"
+$include "help.icn"
+$include "editor.icn"
+
+############################################################################
+#
+# Record: brick
+# Fields: color    - The color of the brick in string format.
+#         offset   - The rotation offset of this brick.
+#         matrices - The four matrices of this brick.
+#         images   - The four imagestrings of this brick.
+#
+# This record represents a brick and stores data to use it in a game.
+# The rotation offset depends on the shape of the brick and determines
+# where, relative to the current upper-left corner, the new upper-left
+# corner is going to be when the brick is rotated.
+# 'matrices' and 'images' are two lists containing corresponding matrices
+# and image strings.
+#
+############################################################################
+
+record brick( color, offset, matrices, images)
+
+############################################################################
+#
+# Record: position
+# Fields: row_nr      - Row number within the game pane matrix.
+#         col_nr      - Column number within the game pane matrix.
+#         transparent - Flag determining if this square is transparent or not.
+#
+# This record represents the position and status of each square in a brick on
+# the game pane. When a brick is falling, its matrix consists of 'position'-
+# records describing where within the larger game pane matrix each one of its
+# squares are positioned at the moment.
+#
+############################################################################
+
+record position( row_nr, col_nr, transparent)
+
+############################################################################
+#
+# Procedure: main
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure starts the htetris application and the brick editor.
+# If the brick editor could not be started properly it won't be used.
+# The the event loop is entered. The htetris and the brick editor are
+# "mutually exclusive". If the editor is in use, htetris does not
+# accept any user events and when htetris is in use, the editor is
+# not availible.
+#
+############################################################################
+
+procedure main()
+
+    start_htetris()
+    if start_editor() then
+	editor_on := TRUE
+    else
+	editor_on := FALSE
+    
+    repeat {
+	if root === htetris_vidgets["root"] then
+	    game()
+	else
+	    edit()
+    }
+end
+
+############################################################################
+#
+# Procedure: start_htetris
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure starts the htetris application.
+# Its window is opened and the different regions on the interface are
+# initialized.
+# Event root vidget is set to the htetris window.
+# The original bricks are initialized by calling 'init_bricks' and put
+# them in a global table.
+# A Control keys table is created and initialized with the arrow keys.
+# A global list of synonyms for valid special control keys is also
+# initialized.
+# Then the game pane matrix is created and various status variables used
+# when playing the game are initialized.
+# The score and highscore are written on the interface, the highscore
+# possibly read from a file. The highscore is set to zero if the file
+# could not be opened.
+# The level display pane is initialized as well.
+# Last of all, an initial animation is performed on the animation pane.
+#
+############################################################################
+
+procedure start_htetris()
+
+    randomize()
+
+    (htetris_window := WOpen ! htetris_atts()) |
+	stop( "Can't open htetris window.")
+    htetris_vidgets := htetris( htetris_window)    
+
+    game_pane := Clone( htetris_window, "bg=black",
+		        "dx=" || htetris_vidgets["playfield"].ux,
+		        "dy=" || htetris_vidgets["playfield"].uy)
+    next_pane := Clone( htetris_window,
+		        "dx=" || htetris_vidgets["next"].ux,
+		        "dy=" || htetris_vidgets["next"].uy)
+    anim_pane := Clone( htetris_window,
+		        "dx=" || htetris_vidgets["animation"].ux,
+		        "dy=" || htetris_vidgets["animation"].uy)
+    score_pane := Clone( htetris_window,
+		         "dx=" || htetris_vidgets["score"].ux,
+		         "dy=" || htetris_vidgets["score"].uy)
+    highscore_pane := Clone( htetris_window,
+			     "dx=" || htetris_vidgets["highscore"].ux,
+			     "dy=" || htetris_vidgets["highscore"].uy)
+    level_pane := Clone( htetris_window,
+			 "dx=" || htetris_vidgets["level"].ux,
+			 "dy=" || htetris_vidgets["level"].uy)
+
+    Clip( game_pane, 0, 0,
+	  htetris_vidgets["playfield"].uw, htetris_vidgets["playfield"].uh)
+    Clip( next_pane, 0, 0,
+	  htetris_vidgets["next"].uw, htetris_vidgets["next"].uh)
+    Clip( anim_pane, 0, 0,
+	  htetris_vidgets["animation"].uw, htetris_vidgets["animation"].uh)
+    Clip( score_pane, 0, 0,
+	  htetris_vidgets["score"].uw, htetris_vidgets["score"].uh)
+    Clip( highscore_pane, 0, 0,
+	  htetris_vidgets["highscore"].uw, htetris_vidgets["highscore"].uh)
+    Clip( level_pane, 0, 0,
+	  htetris_vidgets["level"].uw, htetris_vidgets["level"].uh)
+
+    EraseArea( game_pane)
+
+    root := htetris_vidgets["root"]
+
+    brick_table := init_bricks()
+    next_id     := "1"
+
+    current_keys         := table()
+    current_keys[RIGHT]  := Key_Right
+    current_keys[LEFT]   := Key_Left
+    current_keys[ROTATE] := Key_Up
+    current_keys[SLAM]   := Key_Down
+    special_keys :=
+	["print screen","scroll lock","pause","insert","home","page up","end",
+	 "page down","arrow left","arrow up","arrow right","arrow down","F1",
+	 "F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","backspace",
+	 "delete","escape","form feed","line feed","newline","return","tab",
+	 "vertical space"]
+
+    pane_matrix          := new_matrix( HEIGHT, WIDTH)
+    game_on              := FALSE
+    pause                := FALSE
+    start_speed          := MIN_SPEED
+    speed_factor         := 1
+
+    Font( level_pane, "lucidasanstypewriter-bold-24")
+    Font( score_pane, "lucidasanstypewriter-bold-24")
+    Font( highscore_pane, "lucidasanstypewriter-bold-24")
+
+    DrawString( score_pane, 2, 20, "000000000")
+    highscore_file := open( "highscore.dat")
+    if /highscore_file then {
+	highscore := 0
+	DrawString( highscore_pane, 2, 20, "000000000")
+    }
+    else if not integer( highscore_string := read( highscore_file)) |
+	    *highscore_string > 9                                   then {
+
+	highscore := 0
+	DrawString( highscore_pane, 2, 20, "000000000")
+	close( highscore_file)
+    }
+    else {
+	highscore := integer( highscore_string)
+	DrawString( highscore_pane, 2, 20, right( highscore_string, 9, "0"))
+	close( highscore_file)
+    }
+
+    DrawString( level_pane, 2, 20,
+	        right( string( (MIN_SPEED - start_speed)/10 + 1), 2, "0"))
+    animate()
+    return
+end
+
+############################################################################
+#
+# Procedure: close_htetris
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure closes down the brick editor if it was started, possibly
+# saving the highscore to a file, closes the htetris application window and
+# exits the program altogether.
+#
+############################################################################
+
+procedure close_htetris()
+
+    if editor_on = TRUE then kill_editor()
+
+    highscore_file := open( "highscore.dat", "ct")
+    if /highscore_file then
+	Notice( htetris_window,
+	        "Could not open highscore-file, highscore unsaved.")
+    else
+	write( highscore_file, string( highscore))
+
+    close( highscore_file)
+    WClose( htetris_window)
+    exit()
+end
+
+############################################################################
+#
+# Procedure: game
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This is the game loop that plays the game.
+# If the flag 'game_on' equals 'TRUE', and there are events pending, events
+# corresponding to the current control keys are checked for and appropriate
+# procedures are called in case of such an event. If a cheating brick is
+# currently falling, move right, left and rotating will not work.
+# If no control event was found, other events are processed and the current
+# brick keeps falling.
+# If the 'game_on' flag equals 'FALSE', events in general are processed
+# and the procedure returns.
+# If a certain amount of rows has been completed, the game speeds up
+# ie. advances one level.
+#
+############################################################################
+
+procedure game()
+
+    while game_on = TRUE do {
+	every 1 to ceil(speed / speed_factor) do {
+	    if (*Pending( htetris_window) > 0) then {
+		event  := pop( Pending())
+		value1 := pop( Pending())
+		value2 := pop( Pending())
+		case event of {
+		    current_keys[RIGHT] : {
+			if cheating = FALSE                     &
+			   can_move_right( current_matrices[1]) then
+			    move_right( game_pane, current_matrices[1])
+		    }
+		    current_keys[LEFT] : {
+			if cheating = FALSE                    &
+			   can_move_left( current_matrices[1]) then
+			    move_left( game_pane, current_matrices[1])
+		    }
+		    current_keys[ROTATE] : {
+			if cheating = FALSE then
+			    flip()
+		    }
+		    current_keys[SLAM]   : {
+			slam()
+			if game_on = FALSE then break next
+		    }
+		    default : {
+			push( Pending(), value2, value1, event)
+			ProcessEvent( root, , shortcuts)
+		    }
+		}
+	    }
+	}
+	while pause = TRUE do ProcessEvent( root, , shortcuts)
+	if game_on = FALSE then next
+	fall()
+	if rows_completed > THRESH_HOLD & speed > MAX_SPEED then {
+	    speed          := speed - SPEED_UP
+	    rows_completed := 0
+	    EraseArea( level_pane)
+	    DrawString( level_pane, 2, 20,
+		        right( string( (MIN_SPEED - speed)/10 + 1), 2, "0"))
+	}
+    }
+    ProcessEvent( root, , shortcuts)
+    return
+end
+
+############################################################################
+#
+# Procedure: set_positions
+# Arguments: matrix    - Matrix to be initialized.
+#            first_row - Row of "background" matrix.
+#            first_col - Column of "background" matrix.
+# Returns  : matrix    - Updated matrix.
+#
+# This procedure initializes a brick matrix with pane matrix "background"
+# positions, by traversing the given matrix. The top left element is set
+# to the given row, column position and all other elements are initialized
+# from there.
+#
+############################################################################
+
+procedure set_positions( matrix, first_row, first_col)
+
+    new_row := first_row
+    every r := 1 to *matrix do {
+	new_col := first_col
+	every c := 1 to *matrix[r] do {
+	    matrix[r][c].row_nr := new_row
+	    matrix[r][c].col_nr := new_col
+	    new_col             := new_col+1
+	}
+	new_row := new_row+1
+    }
+    return matrix
+end
+
+############################################################################
+#
+# Procedure: animate_brick
+# Arguments: brick_rec - Data of brick to be moved.
+#            index     - Index of matrix and image to be used.
+#            start_row - Start row of upper left brick square.
+#            start_col - Start column of upper left brick square.
+#            steps     - The number of steps to move the brick.
+#            move_func - Function to move the brick with.
+# Returns  : Nothing.
+#
+# This procedure moves a given brick in the given direction the given
+# number of steps on the animation pane, starting at the given position.
+# The moving function can be 'move_left', 'move_right', 'move_down' or
+# 'move_up'.
+# Copies are made of the appropriate image and matrix which is then
+# initialized.
+# Although the brick matrix is initialized, there is no "background" matrix
+# representing the animation pane. This is not needed since a brick is only
+# to be moved a fixed number of steps and does not have to have a stop
+# criterion depending on what is already on the pane.
+#
+############################################################################
+
+procedure animate_brick( brick_rec, index,
+			 start_row, start_col, steps, move_func)
+
+    current_images   := [brick_rec.images[index]]
+    current_matrices := [copy_matrix( brick_rec.matrices[index])]
+    matrix           := set_positions( current_matrices[1], start_row, start_col)
+    DrawImage( anim_pane,
+	       (matrix[1][1].col_nr-2)*20,
+	       (matrix[1][1].row_nr-1)*20,
+	       current_images[1])
+    every 1 to steps do {
+	move_func( anim_pane, matrix)
+	WDelay( ANIM_DELAY)
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: animate
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure performs an initial animation when htetris is started.
+#
+############################################################################
+
+procedure animate()
+
+    animate_brick( brick_table["brick_4"], 2, 7, 15, 7, move_left)
+    animate_brick( brick_table["brick_7"], 1, 7, 0, 6, move_right)
+    animate_brick( brick_table["brick_2"], 1, -2, 7, 6, move_down)
+    animate_brick( brick_table["brick_1"], 1, 5, 0, 5, move_right)
+    animate_brick( brick_table["brick_1"], 1, 4, 15, 7, move_left)
+    animate_brick( brick_table["brick_6"], 2, 8, 0, 4, move_right)
+    animate_brick( brick_table["brick_3"], 1, 14, 8, 5, move_up)
+    animate_brick( brick_table["brick_5"], 1, 5, 15, 6, move_left)
+    animate_brick( brick_table["brick_1"], 1, 14, 5, 4, move_up)
+    animate_brick( brick_table["brick_7"], 1, 6, 0, 4, move_right)
+    animate_brick( brick_table["brick_3"], 4, 0, 10, 4, move_down)
+    animate_brick( brick_table["brick_2"], 1, 14, 7, 5, move_up)
+    animate_brick( brick_table["brick_5"], 1, 9, 15, 6, move_left)
+    animate_brick( brick_table["brick_3"], 2, 11, -1, 5, move_right)
+    animate_brick( brick_table["brick_4"], 2, 4, -1, 5, move_right)
+    animate_brick( brick_table["brick_2"], 2, 8, 15, 6, move_left)
+    animate_brick( brick_table["brick_5"], 1, 14, 8, 3, move_up)
+    animate_brick( brick_table["brick_6"], 2, 9, 15, 4, move_left)
+    animate_brick( brick_table["brick_4"], 4, 14, 10, 3, move_up)
+    animate_brick( brick_table["brick_1"], 1, 6, 15, 4, move_left)
+
+    shades := ["gray","dark-gray","black"]
+    every 1 to 3 do {
+	Fg( anim_pane, pop( shades))
+	FillRectangle( anim_pane, 120, 100, 20, 20)
+	WDelay( 4*ANIM_DELAY)
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: full_row
+# Arguments: r - A row number in the game pane matrix.
+# Returns  : Nothing.
+#
+# This procedure determines if a matrix row is the game pane matrix is
+# filled or not. If it's not, the procedure fails.
+#
+############################################################################
+
+procedure full_row( r)
+
+    every c := 2 to 11 do
+	if pane_matrix[r][c] = EMPTY then
+	    fail
+    return
+end
+
+############################################################################
+#
+# Procedure: erase_row
+# Arguments: r - A row number in the game pane matrix.
+# Returns  : Nothing.
+#
+# This procedure erases the given matrix row on the game pane by drawing
+# 20 consecutive black lines.
+#
+############################################################################
+
+procedure erase_row( r)
+
+    first_line := (r-1)*20    # Calculate start pixel line from matrix row.
+    Fg( game_pane, "black")
+
+    every line := first_line to first_line+19 do {
+	DrawLine( game_pane, 0, line, 199, line)
+	WDelay()
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: shift_pane_matrix
+# Arguments: erased_row - A row number in the game pane matrix.
+# Returns  : Nothing.
+#
+# This procedure shifts the game pane matrix by moving all rows above the
+# given row up to the top row one step "down". A blank row is inserted
+# as replacement for the previous top row.
+#
+############################################################################
+
+procedure shift_pane_matrix( erased_row)
+
+    every r := erased_row to top_row+1 by -1 do
+	pane_matrix[r] := pane_matrix[r-1]
+
+    blank                := list( WIDTH, EMPTY)
+    blank[1]             := FILLED
+    blank[RIGHT_EDGE]    := FILLED
+    pane_matrix[top_row] := blank
+    return
+end
+
+############################################################################
+#
+# Procedure: shift_pane
+# Arguments: r - A row number in the game pane matrix.
+# Returns  : Nothing.
+#
+# This procedure shifts the game pane down graphically by copying the area
+# above the given matrix row up to and including the top row, down 20 pixels
+# which is the height of one row. The previous top row is erased.
+#
+############################################################################
+
+procedure shift_pane( r)
+
+    upper_limit := (top_row-1)*20
+
+    CopyArea( game_pane, game_pane,
+	      0, upper_limit, 200, (r-1)*20 - upper_limit,
+	      0, upper_limit+20)
+    EraseArea( game_pane, 0, upper_limit, 200, 20)
+    return
+end
+
+############################################################################
+#
+# Procedure: add_score
+# Arguments: nr_rows - Number of filled rows to get score from.
+# Returns  : Nothing.
+#
+# This procedure calculates and adds the score for the given number of
+# simultanously filled rows to the total score.
+# The score is 20 points per row, plus 5 bonus points for each extra row
+# if there are more than one.
+# The score "wraps around" at maximum score.
+# The score showed on the interface is updated.
+#
+############################################################################
+
+procedure add_score( nr_rows)
+
+    score := score + nr_rows*20 + (nr_rows-1)*5
+
+    if score > MAX_SCORE then
+	score := score - MAX_SCORE
+
+    score_string := right( score, 9, "0")
+
+    EraseArea( score_pane)	    
+    DrawString( score_pane, 2, 20, score_string)
+    return
+end
+
+############################################################################
+#
+# Procedure: eliminate_rows
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure determines how many rows that were filled by the last
+# brick to get stuck by traversing the pane matrix top-down from the top
+# row to the (conceptual) bottom. For each filled row, it is erased, and the
+# pane matrix and the pane are shifted.
+# If there were any filled rows, the total number of completed rows is up-
+# dated and points are added to the current score.
+#
+############################################################################
+
+procedure eliminate_rows()
+
+    nr_full_rows := 0
+
+    every r := top_row to 30 do
+	if full_row( r) then {
+	    nr_full_rows := nr_full_rows+1
+	    erase_row( r)
+	    shift_pane_matrix( r)
+	    shift_pane( r)
+	    top_row := top_row+1
+	}
+    if nr_full_rows > 0 then {
+	rows_completed := rows_completed + nr_full_rows
+	add_score( nr_full_rows)
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: get_stuck
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure makes a brick stick to the pane and eliminates any rows
+# that were filled as a consequence of this.
+# If the position of the upper left square of the brick is higher than the
+# current top row, the top row is updated.
+# Then, for each element in the brick's matrix (which holds the position
+# it is occupying in the pane matrix) the corresponding element in the
+# pane matrix is set to the value 'FILLED'. This 'glues' the brick to the
+# pane graphically and is reflected in the pane matrix.
+#
+############################################################################
+
+procedure get_stuck()
+
+    matrix := current_matrices[1]
+
+    if matrix[1][1].row_nr < top_row then
+	top_row := matrix[1][1].row_nr
+
+    every r := 1 to *matrix do
+	every c := 1 to *matrix[r] do
+	    if matrix[r][c].transparent = FALSE then
+		pane_matrix[matrix[r][c].row_nr][matrix[r][c].col_nr] := FILLED
+
+    eliminate_rows()
+    cheating := FALSE
+    return
+end
+
+############################################################################
+#
+# Procedure: create_cheat_matrix
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure creates and returns a matrix representing a "cheat brick".
+# This brick covers every empty square upto and one row above 'top row'.
+# Only vertically connected empty squares are considered.
+# The matrix is initialized with the appropriate game pane matrix positions.
+#
+############################################################################
+
+procedure create_cheat_matrix()
+
+    cheat_string := ";1111111111"
+    done         := FALSE
+
+    r := top_row
+    while done = FALSE do {
+	temp := ";"
+	every c := 2 to 11 do
+	    if pane_matrix[r][c] = EMPTY            &
+	       cheat_string[(11*(r-top_row))+c] = 1 then
+		temp := temp || "1"
+	    else
+		temp := temp || "0"
+	if temp == ";0000000000" then
+	    done := TRUE
+	else {
+	    cheat_string := cheat_string || temp
+	    r := r+1
+	}
+    }
+    cheat_matrix := stom( string( r-top_row+1) || ",10" || cheat_string)
+
+    return set_positions( init_positions( cheat_matrix), 1, 2)
+end
+
+############################################################################
+#
+# Procedure: cheat
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure sets 'current_matrices' and 'current_images' to the matrix
+# and image of a dynamicly created "cheat brick" by creating a hidden window
+# and draw the "cheat brick" in it by using the matrix and then transform it
+# into a transparent imagestring.
+#
+############################################################################
+
+procedure cheat()
+
+    cheat_matrix := create_cheat_matrix()
+    if /(cheat_window := WOpen( "canvas=hidden", "bg=black",
+			        "width=" || (*cheat_matrix[1])*20,
+			        "height=" || (*cheat_matrix)*20)) then
+	write( "No cheating today, sucker!")
+    else {
+	old_pointer := WAttrib( htetris_window, "pointer")
+	if old_pointer == "left ptr" then
+	    WAttrib( htetris_window, "pointer=watch")
+	else
+	    WAttrib( htetris_window, "pointer=wait")
+	
+	every r := 1 to *cheat_matrix do
+	    every c := 1 to *cheat_matrix[r] do
+		if cheat_matrix[r][c].transparent = EMPTY then
+		    draw_square( r, c, cheat_window, "gray")
+	
+	current_matrices := [cheat_matrix,
+			     cheat_matrix,
+			     cheat_matrix,
+			     cheat_matrix]
+	cheat_image := 
+	    transparentify( Capture( cheat_window, "c1", 0, 0,
+				    WAttrib( cheat_window, "width"),
+				    WAttrib( cheat_window, "height")))
+	current_images := [cheat_image,
+			   cheat_image,
+			   cheat_image,
+			   cheat_image]
+	WClose( cheat_window)
+	WAttrib( htetris_window, "pointer=" || old_pointer)
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: fetch_next
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure fetches the next upcoming brick by setting the current
+# matrices and images to those of the next brick.
+# If the user has cheated, a dynamicly created "cheat brick" is fetched
+# instead of the regular one which is fetched at the next call to
+# 'fetch_next' providing the user did not cheat again.
+# If the user hasn't cheated, the global variable 'next_brick' is updated
+# with a randomly picked brick from the global brick table and that one is
+# displayed on the "next pane".
+# The start positions of every square of the next brick is checked against
+# the pane matrix and if it is to be placed so that any filled square in it
+# will cover a position in the pane matrix which value is 'FILLED' (another
+# already stuck brick resides there) the game is over.
+# Even when cheating the game might be over if a brick is stuck so that its
+# top row is in the first row of the game pane because a cheating brick
+# always has at least one row ten squares wide.
+# If the game is over the highscore is possibly updated depending if the
+# user cheated or not, the game pane is cleared and the procedure returns.
+# If the game is not over, the next brick is drawn in its initial position.
+#
+############################################################################
+
+procedure fetch_next()
+
+    if cheated = TRUE then {
+	cheated := FALSE
+	cheat()
+        cheating := TRUE
+    }
+    else {
+	current_matrices := copy_matrices( next_brick.matrices)
+	current_images   := copy( next_brick.images)
+	flip_offset      := next_brick.offset
+
+	next_brick := ?brick_table
+	width      := *(next_brick.matrices[1][1])
+	height     := *(next_brick.matrices[1])
+	
+	if width % 2 = 0 then
+	    startx := (MIDDLE - width/2 - 1)*20
+	else
+	    startx := (MIDDLE - width/2 - 2)*20
+	if height % 2 = 0 then
+	    starty := (MIDDLE - height/2 - 1)*20
+	else
+	    starty := (MIDDLE - height/2 - 2)*20
+	
+	EraseArea( next_pane)
+	DrawImage( next_pane, startx, starty, next_brick.images[1])
+    }
+    matrix := current_matrices[1]
+
+    every r := 1 to *matrix do
+	every c := 1 to *matrix[r] do
+	    if matrix[r][c].transparent = FALSE &
+	       pane_matrix[matrix[r][c].row_nr][matrix[r][c].col_nr] =
+	       FILLED then {
+		if score > highscore & record_highscore = TRUE then {
+		    highscore := score
+		    EraseArea( highscore_pane)
+		    DrawString( highscore_pane, 2, 20,
+			        right( string( highscore), 9, "0"))
+		}
+		game_on := FALSE
+		black_out()
+		EraseArea( next_pane)
+		return
+	    }
+    startx := (current_matrices[1][1][1].col_nr - 2)*20
+    DrawImage( game_pane, startx, 0, current_images[1])
+    return
+end
+
+############################################################################
+#
+# Procedure: init_pane_matrix
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure initializes the game pane matrix.
+# The leftmost and rightmost as well as the bottom row get all their
+# elements set to 'FILLED'. This row and columns are conceptually "outside"
+# the actual pane. This is convenient to make the falling bricks not to go
+# off the pane graphically.
+# All "interior" elements within the u-shaped border of 'FILLED' elements
+# are set to 'EMPTY'.
+#
+############################################################################
+
+procedure init_pane_matrix()
+
+    every r := 1 to HEIGHT do
+	every c := 1 to WIDTH do
+	    if r = BOTTOM | c = 1 | c = RIGHT_EDGE then
+		pane_matrix[r][c] := FILLED
+	    else 
+		pane_matrix[r][c] := EMPTY
+    return
+end
+
+############################################################################
+#
+# Procedure: black_out
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure blanks out the game pane by drawing smaller and smaller
+# gray and black rectangles until the middle is reached.
+# The The whole pane is erased since the last drawn gray rectangle is on
+# the pane.
+#
+############################################################################
+
+procedure black_out()
+
+    every x := 0 to htetris_vidgets["playfield"].uw/2 do {
+	Fg( game_pane, "dark-gray")
+	DrawRectangle( game_pane, x+1, x+1,
+		       htetris_vidgets["playfield"].uw-2*(x+1),
+		       htetris_vidgets["playfield"].uh-2*(x+1))
+	Fg( game_pane, "black")
+	DrawRectangle( game_pane, x, x,
+		       htetris_vidgets["playfield"].uw-2*x,
+		       htetris_vidgets["playfield"].uh-2*x)
+	WDelay( game_pane)
+    }
+    EraseArea( game_pane)
+    return
+end
+
+############################################################################
+#
+# Procedure: valid_synonym
+# Arguments: key_string - A synonym for a special key.
+# Returns  : Nothing.
+#
+# This procedure determines if a given synonym corresponds to a valid
+# special key.
+#
+############################################################################
+
+procedure valid_synonym( key_string)
+
+    case key_string of {
+	special_keys[1] : return Key_PrSc
+	special_keys[2] : return Key_ScrollLock
+	special_keys[3] : return Key_Pause
+	special_keys[4] : return Key_Insert
+	special_keys[5] : return Key_Home
+	special_keys[6] : return Key_PgUp
+	special_keys[7] : return Key_End
+	special_keys[8] : return Key_PgDn
+	special_keys[9] : return Key_Left
+	special_keys[10] : return Key_Up
+	special_keys[11] : return Key_Right
+	special_keys[12] : return Key_Down
+	special_keys[13] : return Key_F1
+	special_keys[14] : return Key_F2
+	special_keys[15] : return Key_F3
+	special_keys[16] : return Key_F4
+	special_keys[17] : return Key_F5
+	special_keys[18] : return Key_F6
+	special_keys[19] : return Key_F7
+	special_keys[20] : return Key_F8
+	special_keys[21] : return Key_F9
+	special_keys[22] : return Key_F10
+	special_keys[23] : return Key_F11
+	special_keys[24] : return Key_F12
+	special_keys[25] : return "\b"
+	special_keys[26] : return "\d"
+	special_keys[27] : return "\e"
+	special_keys[28] : return "\f"
+	special_keys[29] : return "\l"
+	special_keys[30] : return "\n"
+	special_keys[31] : return "\r"
+	special_keys[32] : return "\t"
+	special_keys[33] : return "\v"
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: ktos
+# Arguments: key_value - The value returned from a keypress event.
+# Returns  : Nothing.
+#
+# This procedure returns a string representation of the given key value.
+#
+############################################################################
+
+procedure ktos( key_value)
+
+    case key_value of {
+	Key_PrSc       : return special_keys[1]
+	Key_ScrollLock : return special_keys[2]
+	Key_Pause      : return special_keys[3]
+	Key_Insert     : return special_keys[4]
+	Key_Home       : return special_keys[5]
+	Key_PgUp       : return special_keys[6]
+	Key_End        : return special_keys[7]
+	Key_PgDn       : return special_keys[8]
+	Key_Left       : return special_keys[9]
+	Key_Up         : return special_keys[10]
+	Key_Right      : return special_keys[11]
+	Key_Down       : return special_keys[12]
+	Key_F1         : return special_keys[13]
+	Key_F2         : return special_keys[14]
+	Key_F3         : return special_keys[15]
+	Key_F4         : return special_keys[16]
+	Key_F5         : return special_keys[17]
+	Key_F6         : return special_keys[18]
+	Key_F7         : return special_keys[19]
+	Key_F8         : return special_keys[20]
+	Key_F9         : return special_keys[21]
+	Key_F10        : return special_keys[22]
+	Key_F11        : return special_keys[23]
+	Key_F12        : return special_keys[24]
+    }
+    key_string := string( key_value)
+    case key_string of {
+	"\b" : return special_keys[25]
+	"\d" : return special_keys[26]
+	"\e" : return special_keys[27]
+	"\f" : return special_keys[28]
+	"\l" : return special_keys[29]
+	"\n" : return special_keys[30]
+	"\r" : return special_keys[31]
+	"\t" : return special_keys[32]
+	"\v" : return special_keys[33]
+    }
+    return key_string
+end
+
+############################################################################
+#
+# Procedure: key_value
+# Arguments: None.
+# Returns  : specials - A window.
+#
+# This procedure opens and returns a window containing a list of synonyms
+# for valid special keys. Null is returned if the window could not be
+# opened.
+#
+############################################################################
+
+procedure specials_window()
+
+    if specials := WOpen( "label=htetris", "size=120,550",
+			  "posx=" || WAttrib( htetris_window, "posx")-60,
+			  "posy=" || WAttrib( htetris_window, "posy")+60,
+			  "bg=gray-white") then {
+
+	Font( specials, Font( htetris_window))
+	DrawString( specials, 10, 20, "Special keys:")
+	y := 60
+	every special := 1 to *special_keys do {
+	    DrawString( specials, 10, y, special_keys[special])
+	    y := y+15
+	}
+    }
+    else write( "List of special keys could not be shown.")
+    return specials
+end
+
+############################################################################
+#
+# Procedure: select_keys
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure shows a text dialog with buttons "Okay" and "Cancel", which
+# prompts for new control keys to be entered. Valid keys are any charachter
+# or a synonym from the 'special_keys' list.
+# If one or more of the enterd values are invalid, an error message is
+# shown and the dialog reappears. If cancel is pressed the dialog dis-
+# appears.
+# The global variables containing the current key settings are updated.
+#
+############################################################################
+
+procedure select_keys()
+
+    button_pressed :=
+	TextDialog( htetris_window,
+		    ["Enter control keys."],
+		    ["Move right:", "Move Left:", "Rotate:", "Slam down:"],
+		    [],
+		    [14, 14, 14, 14])
+    
+    case button_pressed of {
+	"Okay" : {
+	    if *dialog_value[1] = 1 then
+		right_value := dialog_value[1]
+	    else {
+		right_value := valid_synonym( dialog_value[1])
+		if /right_value then {
+		    Notice( htetris_window,
+			    "Invalid key specification \"" ||
+			    dialog_value[1]                ||
+			    "\".")
+		    select_keys()
+		    return
+		}
+	    }
+
+	    if *dialog_value[2] = 1 then
+		left_value := dialog_value[2]
+	    else {
+		left_value := valid_synonym( dialog_value[2])
+		if /left_value then {
+		    Notice( htetris_window,
+			    "Invalid key specification \"" ||
+			    dialog_value[2]                ||
+			    "\".")
+		    select_keys()
+		    return
+		}
+	    }
+
+	    if *dialog_value[3] = 1 then
+		rotate_value := dialog_value[3]
+	    else {
+		rotate_value := valid_synonym( dialog_value[3])
+		if /rotate_value then {
+		    Notice( htetris_window,
+			    "Invalid key specification \"" ||
+			    dialog_value[3]                ||
+			    "\".")
+		    select_keys()
+		    return
+		}
+	    }
+
+	    if *dialog_value[4] = 1 then
+		slam_value := dialog_value[4]
+	    else {
+		slam_value := valid_synonym( dialog_value[4])
+		if /slam_value then {
+		    Notice( htetris_window,
+			    "Invalid key specification \"" ||
+			    dialog_value[4]                ||
+			    "\".")
+		    select_keys()
+		    return
+		}
+	    }
+
+	    current_keys[RIGHT]  := right_value
+	    current_keys[LEFT]   := left_value
+	    current_keys[ROTATE] := rotate_value
+	    current_keys[SLAM]   := slam_value
+	}
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: pick_level
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure shows a text dialog with buttons "Okay" and "Cancel", which
+# prompts for a new starting level.
+# If the entered level was valid, the starting speed and the level pane
+# are updated. Else, the dialog reappears until the user enters a valid
+# level or presses cancel.
+#
+############################################################################
+
+procedure pick_level()
+
+    if game_on = FALSE then {
+	button_pressed :=
+	    TextDialog( htetris_window,
+		        ["Enter starting level (1 - 15)."],
+		        ["Level:"],
+		        [string( (MIN_SPEED - start_speed)/10 + 1)],
+		        [2])
+    
+	case button_pressed of {
+	    "Okay" : {
+		level := integer( dialog_value[1])
+		if /level | level < 1 | level > 15 then {
+		    Notice( htetris_window, "Invalid level specification.")
+		    pick_level()
+		    return
+		}
+		start_speed := (MIN_SPEED - (level-1)*10)
+		EraseArea( level_pane)
+		DrawString( level_pane, 2, 20, right( string( level), 2, "0"))
+	    }
+	}
+    }
+    return    
+end
+
+############################################################################
+#
+# Procedure: change_speed_factor
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure shows a text dialog with buttons "Okay" and "Cancel", which
+# prompts for a new speed factor between -10 and 10. A negative number slows
+# the application down while a positive number speeds it up. If 0 was entered,
+# the speed factor is set to 1.
+# I the entered factor was valid, the global variable 'speed_factor' is
+# updated. Else, the dialog reappears until the user enters a valid speed
+# factor or presses cancel.
+#
+############################################################################
+
+procedure change_speed_factor()
+
+    if game_on = FALSE then {
+	button_pressed :=
+	    TextDialog( htetris_window,
+		        ["Enter new speed factor (-10 - 10)."],
+		        ["Speed factor:"],
+		        [],
+		        [3])
+    
+	case button_pressed of {
+	    "Okay" : {
+		factor := dialog_value[1]
+		if not integer( factor) |
+		   factor < -10         |
+		   factor > 10          then {
+
+		    Notice( htetris_window, "Invalid speed factor.")
+		    change_speed_factor()
+		    return
+		}
+		if factor = 0 then
+		    speed_factor = 1
+		else if factor < 0 then
+		    speed_factor := 1.0/(-factor)
+		else
+		    speed_factor := factor
+	    }
+	}
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: new_game
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure starts a new game at the current starting speed.
+# The game pane is cleared and initialized and the next brick is fetched.
+# Setting the global variable 'game_on' to 'TRUE' makes the program go into the
+# game loop after this procedure has returned.
+#
+############################################################################
+
+procedure new_game()
+
+    EraseArea( game_pane)
+    EraseArea( score_pane)
+    EraseArea( level_pane)
+    DrawString( score_pane, 2, 20, "000000000")
+    DrawString( level_pane, 2, 20,
+	        right( string( (MIN_SPEED - start_speed)/10 + 1), 2, "0"))
+    init_pane_matrix()
+    randomize()
+    speed            := start_speed
+    rows_completed   := 0
+    score            := 0
+    game_on          := TRUE
+    pause            := FALSE
+    cheated          := FALSE
+    cheating         := FALSE
+    record_highscore := TRUE
+    top_row          := BOTTOM
+    next_brick       := ?brick_table
+    fetch_next()
+    return
+end
+
+############################################################################
+#
+# Procedure: stop_game
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure stops a running game and blanks out the game pane.
+# If no game is running, nothing happens.
+#
+############################################################################
+
+procedure stop_game()
+
+    if game_on = FALSE then
+	return
+
+    game_on := FALSE
+    black_out()
+    EraseArea( next_pane)
+    return
+end
+
+############################################################################
+#
+# Procedure: pause_game
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure pauses a running game. If the game is paused, it is resumed.
+# If a game is not in progress, nothing happens.
+#
+############################################################################
+
+procedure pause_game()
+
+    if game_on = TRUE then
+	if pause = TRUE then
+	    pause := FALSE
+	else
+	    pause := TRUE
+    return
+end
+
+############################################################################
+#
+# Procedure: add_brick
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure prompts for a brick to be opened from file and adds it
+# to the currently used bricks. The opened brick gets a unique id which is
+# used if the user wants to remove it or display it.
+# If a game is in progress, nothing happens.
+#
+############################################################################
+
+procedure add_brick()
+
+    if game_on = FALSE then {
+	if /(added := open_brick( htetris_window)) then
+	    return
+	added.matrices[1] := init_positions( added.matrices[1])
+	added.matrices[2] := init_positions( added.matrices[2])
+	added.matrices[3] := init_positions( added.matrices[3])
+	added.matrices[4] := init_positions( added.matrices[4])
+	
+	matrix := added.matrices[1]
+
+	if *matrix = *matrix[1] then
+	    added.offset := 0
+	else if *matrix > *matrix[1] then
+	    added.offset := ceil( abs( *matrix-*matrix[1])/2)
+	else
+	    added.offset := -(ceil( abs( *matrix-*matrix[1])/2))
+
+	brick_table["user_" || next_id] := added
+	Notice( htetris_window,
+	        "Brick successfully added.",
+	        "Brick id is 'user_" || next_id ||"'.")
+	next_id := string( integer( next_id) + 1)
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: standard
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure determines if a brick id entered by a user in a dialog
+# is the name of one of the standard brick.
+# This is a security check so that none of the original bricks get removed
+# and all brick names stay unique.
+#
+############################################################################
+
+procedure standard( brick_id)
+
+    standard_bricks := set( ["brick_1","brick_2","brick_3","brick_4",
+			     "brick_5","brick_6","brick_7"])
+
+    return member( standard_bricks, brick_id)
+end
+
+############################################################################
+#
+# Procedure: remove_brick
+# Arguments: None.
+# Returns  : Nothing.
+#
+# If there are user defined bricks in play (the total number is greater
+# than seven), this procedure shows a text dialog box with buttons "Okay"
+# and "Cancel", prompting the user to enter a user defined brick to be
+# removed from the game.
+# If no brick with the specified id is in use, the dialog reappears until
+# the user enters a valid one or presses cancel.
+# If a brick with the entered id is in use, it is deleted from the global
+# table of bricks.
+# If a game is in progress, nothing happens.
+#
+############################################################################
+
+procedure remove_brick()
+
+    if game_on = FALSE then {
+	if *brick_table = 7 then {
+	    Notice( htetris_window, "No user defined bricks in play.")
+	    return
+	}
+	button_pressed :=
+	    TextDialog( htetris_window,
+		        ["Enter id of brick to remove."],
+		        ["Id:"],
+		        [],
+		        [20])
+    
+	case button_pressed of {
+	    "Okay" : {
+		id := dialog_value[1]
+		if standard( id) | /brick_table[id] then {
+		    Notice( htetris_window,
+			    "Brick '" || id || "' is not in use.")
+		    remove_brick()
+		    return
+		}
+		delete( brick_table, id)
+		Notice( htetris_window, "Brick '" || id || "' removed.")
+	    }
+	}	    
+    }    
+    return
+end
+
+############################################################################
+#
+# Procedure: display_bricks
+# Arguments: None.
+# Returns  : Nothing.
+#
+# If there are any user defined bricks in play, their ids are shown in a
+# text dialog box with buttons "Okay" and "Cancel", prompting the user
+# to enter one of the ids displayed.
+# If this is done correctly, the brick corresponding to the given id is
+# displayed in a popup window.
+# The popup windows are open and the dialog reappears until the user
+# presses cancel. Thus, several user bricks can be viewed simultanously.
+# If a game is in progress, nothing happens.
+#
+############################################################################
+
+procedure display_bricks()
+
+    if game_on = FALSE then {
+	user_bricks := ""
+	every user_brick := key( brick_table) do
+	    if not standard( user_brick) then
+		user_bricks := user_bricks || user_brick || ","
+
+	if user_bricks == "" then {
+	    Notice( htetris_window, "No user defined bricks in play.")
+	    return
+	}
+	button_pressed :=
+	    TextDialog( htetris_window,
+		        ["The following user bricks are in play:",
+			 user_bricks,
+			 "enter id of brick to view."],
+		        ["Id:"],
+		        [],
+		        [20])
+
+	case button_pressed of {
+	    "Okay" : {
+		id := dialog_value[1]		
+		if standard( id) | /brick_table[id] then {
+		    Notice( htetris_window,
+			    "Brick '" || id || "' is not in use.")
+		    display_bricks()
+		    return
+		}
+		else {
+		    brick := brick_table[id]
+		    temp_window :=
+			WOpen( "width=" || (*brick.matrices[1][1])*20,
+			       "height=" || (*brick.matrices[1])*20,
+		               "bg=black") | {
+				   Notice( htetris_window,
+					   "Image window could not be opened.")
+				   return
+			       }
+		    DrawImage( temp_window, 0, 0, brick.images[1])
+		    display_bricks()
+		    WClose( temp_window)
+		    return
+		}
+	    }
+	}
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: edit_bricks
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure displays the brick editor initializes it and transfers
+# event handling to its window.
+# No events from the htetris application window are now accepted.
+# If a game is in progress, nothing happens.
+#
+############################################################################
+
+procedure edit_bricks()
+
+    if game_on = FALSE then
+	if editor_on = TRUE then {
+	    reset_editor( new_matrix( 3, 3), "yellow")
+	    WAttrib( editor_window, "canvas=normal")
+	    root := editor_vidgets["root"]
+	    while get( Pending( editor_window))
+	}
+    return
+end
+
+############################################################################
+#
+# Procedure: shortcuts
+# Arguments: event - An event.
+# Returns  : Nothing.
+#
+# This procedure catches and processes keyboard shortcut events.
+#
+############################################################################
+
+procedure shortcuts( event)
+
+    if &meta then
+	case map( event) of {
+	    "n" : new_game()
+	    "s" : stop_game()
+	    "p" : pause_game()
+	    "q" : close_htetris()
+	    "a" : add_brick()
+	    "e" : edit_bricks()
+	}
+    return
+end
+
+################################ CALLBACKS #################################
+
+############################################################################
+#
+# Procedure: game_cb
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure handles events from the "Game" menu.
+#
+############################################################################
+
+procedure game_cb( vidget, value)
+    
+    case value[1] of {
+	"New game     @N" : new_game()
+	"Stop game    @S" : stop_game()
+	"Pause        @P" : pause_game()
+	"Speed factor"    : change_speed_factor()
+	"Pick level"      : pick_level()
+	"Quit         @Q" : close_htetris()
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: controls_cb
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure handles events from the "Controls" menu.
+# If the "Set keys" item was selected, a window displaying valid special
+# control keys and a dialog are opened.
+# If the "Current keys" item was selected, the current key settings are
+# displayed in a notice dialog.
+# If a game is in progress, nothing happens.
+#
+############################################################################
+
+procedure controls_cb( vidget, value)
+    
+    if game_on = FALSE then
+	case value[1] of {
+	    "Set keys"     : {
+		specials := specials_window()
+		select_keys()
+		if \specials then WClose( specials)
+	    }
+	    "Current keys" : {
+		Notice( htetris_window,
+		        "Current key settings:",
+		        "",
+		        "Move right: " || ktos( current_keys[RIGHT]) || ".",
+		        "Move left:  " || ktos( current_keys[LEFT]) || ".",
+		        "Rotate:     " || ktos( current_keys[ROTATE]) || ".",
+		        "Slam down:  " || ktos( current_keys[SLAM]) || ".")
+	    }
+	}
+    return
+end
+
+############################################################################
+#
+# Procedure: bricks_cb
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure handles events from the "Bricks" menu.
+# If a game is in progress, nothing happens.
+#
+############################################################################
+
+procedure bricks_cb( vidget, value)
+    
+    if game_on = FALSE then
+	case value[1] of {
+	    "Add brick     @A" : add_brick()
+	    "Remove brick  @R" : remove_brick()
+	    "Bricks in use"    : display_bricks()
+	    "Brick editor  @E" : edit_bricks()
+	}
+    return
+end
+
+############################################################################
+#
+# Procedure: htetris_help_cb
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure handles events from the "Help" menu of the htetris
+# application window.
+# If a game is in progress, nothing happens.
+#
+############################################################################
+
+procedure htetris_help_cb( vidget, value)
+    
+    if game_on = FALSE then
+	case value[1] of {
+	    "How to play" : how_to_play()
+	    "Menus"       : game_menu()
+	    "About"       : about_htetris()
+	}
+    return
+end
+
+############################################################################
+#
+# Procedure: buttons_cb
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure handles events from the four convenience buttons on the
+# interface.
+#
+############################################################################
+
+procedure buttons_cb( vidget, value)
+
+    case vidget.id of {
+	"new_game"  : new_game()
+	"stop_game" : stop_game()
+	"pause"     : pause_game()
+	"quit"      : close_htetris()
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: animation_cb
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure handles events from the animation region.
+# Only left mouse button clicks on a certain square are handled.
+# If the user clicks there during a game, a cheat is going to take place
+# instead of the next upcoming brick.
+#
+############################################################################
+
+procedure animation_cb( vidget, event, x, y)
+
+    if game_on = TRUE then {
+	x := x-WAttrib( anim_pane, "dx")-1
+	y := y-WAttrib( anim_pane, "dy")-1
+	r := ctop( y)
+	c := ctop( x)
+	
+	if (r = 6 & c = 7) then
+	    case event of {
+		&lpress : {
+		    cheated          := TRUE
+		    record_highscore := FALSE
+		}
+	    }
+    }    
+    return
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure htetris_atts()
+   return ["size=520,640", "bg=gray-white", "label=htetris"]
+end
+
+procedure htetris(win, cbk)
+return vsetup(win, cbk,
+   ["htetris:Sizer:::0,0,520,640:htetris",],
+   ["bricks:Menu:pull::100,0,50,21:Bricks",bricks_cb,
+      ["Add brick     @A","Remove brick  @R","Bricks in use","Brick editor  @E"]],
+   ["controls:Menu:pull::36,0,64,21:Controls",controls_cb,
+      ["Set keys","Current keys"]],
+   ["game:Menu:pull::0,0,36,21:Game",game_cb,
+      ["New game     @N","Stop game    @S","Pause        @P","Speed factor","Pick level",
+      "Quit         @Q"]],
+   ["highscore_label:Label:::90,312,70,13:Highscore:",],
+   ["htetris_help:Menu:pull::150,0,36,21:Help",htetris_help_cb,
+      ["How to play","Menus","About"]],
+   ["level_label:Label:::27,191,42,13:Level:",],
+   ["menubar:Line:::0,22,520,22:",],
+   ["new_game:Button:regular::6,30,75,30:New game",buttons_cb],
+   ["next_label:Label:::150,30,77,13:Next brick:",],
+   ["pause:Button:regular::6,102,75,30:Pause",buttons_cb],
+   ["quit:Button:regular::6,138,75,30:Quit",buttons_cb],
+   ["score_label:Label:::118,274,42,13:Score:",],
+   ["stop_game:Button:regular::6,66,75,30:Stop game",buttons_cb],
+   ["level:Rect:sunken::29,216,36,26:",],
+   ["highscore:Rect:sunken::164,306,134,26:",],
+   ["score:Rect:sunken::164,268,134,26:",],
+   ["next:Rect:grooved::94,51,204,204:",],
+   ["animation:Rect:invisible::25,356,260,260:",animation_cb],
+   ["playfield:Rect:raised::310,30,204,604:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

@@ -1,0 +1,221 @@
+############################################################################
+# 
+#	File:     ansi.icn
+# 
+#	Subject:  Procedures for ANSI-based terminal control
+# 
+#	Authors:  Ralph E. Griswold and Richard Goerwitz
+#
+#	Date:     August 14, 1996
+# 
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.5
+#
+############################################################################
+# 
+#     This package of procedures implements a subset of the ANSI terminal
+#  control sequences.  The names of the procedures are taken directly from
+#  the ANSI names.  If it is necessary to use these routines with non-ANSI
+#  devices, link in iolib.icn, and (optionally) iscreen.icn as well.  Use
+#  will be made of whatever routines are made available via either of these
+#  libraries.  Be careful of naming conflicts if you link in iscreen.icn.
+#  It contains procedures like "clear" and "boldface."
+#
+#	 CUB(i)		Moves the cursor left i columns
+#	 CUD(i)		Moves the cursor down i rows
+#	 CUF(i)		Moves the cursor right i columns
+#	 CUP(i,j)	Moves the cursor to row i, column j
+#	 CUU(i)		Moves the cursor up i rows
+#	 ED(i)		Erases screen: i = 0, cursor to end; i = 1,
+#			   beginning to cursor; i = 2, all (default 2)
+#	 EL(i)		Erases data in cursor row: i = 0, cursor to
+#			   end; i = 1, beginning to cursor; i = 2, all
+#			   (default 0)
+#	 SGR(i)		Sets video attributes: 0 = off; 1 = bold; 4 =
+#			   underscore; 5 = blink; 7 = reverse (default
+#			   0)	
+#
+#     Note that not all so-called ANSI terminals support every ANSI
+#  screen control sequence - not even the limited subset included in
+#  this file.
+#
+#     If you plan on using these routines with non-ANSI magic-cookie
+#  terminals (e.g. a Wyse-50) then it is strongly recommended that you
+#  link in iolib or itlib *and* iscreen (not just iolib or itlib by
+#  itself).  The routines WILL WORK with most magic cookie terminals;
+#  they just don't always get all the modes displayed (because they
+#  are basically too busy erasing the cookies).
+#
+############################################################################
+#
+#  Links: iolib or itlib, iscreen (all optional)
+#
+############################################################################
+
+# For DOS, or any system using ANSI-conformant output devices, there
+# is no need to link any routines in.
+
+# For UNIX systems, you may choose to link in itlib or iolib, and (if
+# desired) iscreen as well.  Some of these may be in the IPL.  You can
+# get any that aren't from Richard Goerwitz (goer@sophist.uchicago.edu).
+
+invocable all
+
+link iolib
+
+procedure _isANSI()
+    static isANSI
+    initial {
+	if find("MS-DOS",&features) then {
+	    isANSI := 1
+	} else {
+	    if proc(getname) then {
+		if find("ansi",map(getname())) | getname() == "li"
+		then isANSI := 1
+		else isANSI := &null
+	    } else {
+		# We'll take a chance on the user knowing what he/she
+		# is doing.
+		isANSI := 1
+		# If you're not so confident, comment out the following
+		# line:
+		# stop("_isANSI:  you need to link itlib or iolib")
+	    }
+	}
+    }
+    return \isANSI
+end
+
+procedure CUD(i)
+    if _isANSI()
+    then writes("\^[[",i,"B")
+    else {
+	iputs(igoto(getval("DO"),i)) | {
+	    every 1 to i do
+		iputs(getval("do")) | stop("CUD:  no do capability")
+	}
+    }
+    return
+end
+
+procedure CUB(i)
+    if _isANSI()
+    then writes("\^[[",i,"D")
+    else {
+	iputs(igoto(getval("LE"),i)) | {
+	    every 1 to i do
+		iputs(getval("le")) | stop("CUB:  no le capability")
+	}
+    }
+    return
+end
+
+procedure CUF(i)
+    if _isANSI()
+    then writes("\^[[",i,"C")
+    else {
+	iputs(igoto(getval("RI"),i)) | {
+	    every 1 to i do
+		iputs(getval("nd")) | stop("CUF:  no nd capability")
+	}
+    }
+    return
+end
+
+procedure CUP(i,j)
+    if _isANSI()
+    then writes("\^[[",i,";",j,"H")
+    else iputs(igoto(getval("cm"), j, i)) | stop("CUP:  no cm capability")
+    return
+end
+
+procedure CUU(i)
+    if _isANSI()
+    then writes("\^[[",i,"A")
+    else {
+	iputs(igoto(getval("UP"),i)) | {
+	    every 1 to i do
+		iputs(getval("up")) | stop("CUU:  no up capability")
+	}
+    }
+    return
+end
+
+procedure ED(i)
+    local emphasize, clear
+
+    /i := 2
+    if _isANSI() then {
+	writes("\^[[",i,"J")
+    } else {
+	case i of {
+	    0:  iputs(getval("cd")) | stop("ED:  no cd capability")
+	    1:  stop("ED:  termcap doesn't specify capability")
+	    2:  {
+		if proc(emphasize) then clear()
+		else iputs(getval("cl")) | stop("ED:  no cl capability")
+	    }
+	    default:  stop("ED:  unknown clear code, ",i)
+	}
+    }
+   return
+end
+
+procedure EL(i)
+    /i := 0
+    if _isANSI() then {
+	if i = 0
+	then writes("\^[[K")
+	else writes("\^[[",i,"K")
+    } else {
+	case i of {
+	    0:  iputs(getval("ce")) | stop("EL:  no ce capability")
+	    1:  stop("EL:  termcap doesn't specify capability")
+	    2:  stop("EL:  try using CUP to go to col 1, then EL(0)")
+	    default:  stop("EL:  unknown line clear code, ",i)
+	}
+    }
+   return
+end
+
+procedure SGR(i)
+
+    local emphasize, normal, boldface, underline, blink
+
+    static isISCR
+
+    initial {
+	if proc(emphasize)
+	then isISCR := 1
+    }
+
+    /i := 0
+    if _isANSI() then {
+	writes("\^[[",i,"m")
+    } else {
+	case i of {
+	    0: (\isISCR, normal()) | {
+		every iputs(getval("me"|"se"|"ue"))
+	    }
+	    1: (\isISCR, boldface()) | {
+		iputs(getval("md"|"so"|"us"))
+	    }
+	    4: (\isISCR, underline()) | {
+		iputs(getval("us"|"md"|"so"))
+	    }
+	    5: (\isISCR, blink()) | {
+		iputs(getval("mb"|"us"|"md"|"so"))
+	    }
+	    7: (\isISCR, emphasize()) | {
+		iputs(getval("so"|"md"|"us"))
+	    }
+	    default:  stop("SGR:  unknown mode, ",i)
+	}
+    }
+   return
+end

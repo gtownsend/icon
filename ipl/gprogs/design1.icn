@@ -1,0 +1,70 @@
+############################################################################
+#
+#	File:     design1.icn
+#
+#	Subject:  Program to draw spokes design
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 17, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This is just an example of an interesting graphic design.  It can
+#  easily be modified to produce other designs.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  wopen
+#
+############################################################################
+
+link wopen
+
+procedure main(argl)
+   local i, j, k, angle, incr, xpoint, ypoint, size, radius, xc, yc
+
+   i := integer(argl[1]) | 20
+
+   size := 300
+   radius := size / 4
+   xc := yc := size / 2
+
+   WOpen("label=design", "width=" || size, "height=" || size) |
+      stop("*** cannot open window")
+
+   angle := 0.0
+   incr := 2 * &pi / i
+
+   every j := 1 to i do {
+      spokes(xc + radius * cos(angle), yc + radius * sin(angle),
+         radius, i, angle)
+      angle +:= incr
+      }
+
+   Event()
+
+end
+
+procedure spokes(x, y, r, i, angle)
+   local incr, j
+
+   incr := 2 * &pi / i 
+
+   every j := 1 to i do {
+      DrawLine(x, y, x + r * cos(angle), y + r * sin(angle))
+      angle +:= incr
+      }
+
+   return
+
+end
+

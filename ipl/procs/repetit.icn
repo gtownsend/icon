@@ -1,0 +1,60 @@
+############################################################################
+#
+#	File:     repetit.icn
+#
+#	Subject:  Procedure find smallest repetition pattern in list
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 14, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure returns the length of the smallest range of values
+#  that repeat in a list.  For example, if
+#
+#	L := [1, 2, 3, 1, 2, 3, 1, 2, 3]
+#
+#  repetit(L) returns 3.  If there is no repetition, repetit() returns
+#  the length of the list.
+#
+############################################################################
+
+procedure repetit(L)
+   local c, n, l, e, i
+
+   c := L[1]				# starting value
+   l := *L				# end of list
+
+   n := 2				# initial hypothesis
+
+   n := \{				# tricky coding -- nonnull on success
+      until n >= l do
+         if hypothesis(L, n) then break n else {
+            n :=  \{			# more tricky coding
+               every i := n + 1 to l do
+                  if L[i] === c then break i
+                } | return l		# no repetition; whole thing - 1
+            } | return l
+         }
+
+   return n - 1
+
+end
+
+procedure hypothesis(L, n)
+   local s, i, j
+
+   s := *L / n
+
+   every j := 1 to s do
+      every i := 1 to n do
+         if L[i] ~=== L[i + (n - 1) * j] then fail
+
+   return
+
+end

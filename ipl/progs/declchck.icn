@@ -1,0 +1,91 @@
+############################################################################
+#
+#	File:     declchck.icn
+#
+#	Subject:  Program to detect possible declaration errors
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program examines ucode files and reports declared identifiers
+#  that may conflict with function names.
+#
+############################################################################
+#
+#  Requires:  UNIX
+#
+############################################################################
+
+procedure main(args)
+   local fset, u1, u2, line, name, base, flag, proc, files, file
+
+   fset := set()
+   every insert(fset,function())
+
+   files := open("ls *.icn", "p")
+
+   while file := read(files) do {
+      system("cp " || file || " xxxxxx.icn")
+      system("icont -c -s xxxxxx.icn")
+      write(base := (file ? tab(upto('.'))))
+      write("   locals")
+      u1 := open("xxxxxx.u1") | {
+         write("cannot open .u1 file for ", image(file))
+         next
+         }
+      u2 := open("xxxxxx.u2") | {
+         write("cannot open .u1 file for ", image(file))
+         next
+         }
+      while line := read(u1) do {
+         line ? {
+            if ="proc " then {
+               proc := tab(0)
+               write("\t", proc)
+               while line := read(u1) do {
+                  line ? {
+                     if ="\tdeclend" then break next
+                     else if ="\tlocal\t" then {
+                        move(2)
+                        flag := tab(many(&digits))
+                        if flag == ("001000" | "000020") then {
+                           move(1)
+                           name := tab(0)
+                           if member(fset, name) then
+                              write("\t\tpotential local conflict: ", name)
+                           }
+                        }
+                     }
+                  }
+               }
+            }
+         }
+      write("   globals")
+      while line := read(u2) do { 
+         line ? {
+            if ="global" then break
+            }
+         }
+      while line := read(u2) do {
+         line ? {
+            if tab(upto(',') + 1) & ="000001," then {
+               name := tab(upto(','))
+               if member(fset, name) then
+                  write("\t\tpotential global conflict: ", name)
+               }
+            }
+         }
+      system("rm -f xxxxxx.*")
+      close(u1)
+      close(u2)
+      write()
+      }
+
+end

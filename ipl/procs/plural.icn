@@ -1,0 +1,65 @@
+############################################################################
+#
+#	File:     plural.icn
+#
+#	Subject:  Procedures to produce plural of English noun
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 15, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This procedure produces the plural form of a singular English noun.
+#  The procedure here is rudimentary and does not work in all cases.
+#
+############################################################################
+
+procedure plural(word)		#: produce plural of word
+   local lcword
+   static plural_map, plural_id, plural_s
+
+   initial {
+      plural_map := table()
+      plural_map["mouse"] := "mice"
+      plural_map["louse"] := "lice"
+      plural_map["goose"] := "geese"
+      plural_map["datum"] := "data"
+
+      plural_id := set()
+      every insert(plural_id,"chassis" | "fish" | "sheep" | "semantics")
+
+      plural_s := set()
+      every insert(plural_s,"roman" | "norman" | "human" | "shaman" |
+         "german" | "talisman" | "superhuman")
+      }
+   
+   lcword := map(word)
+
+   if member(plural_id,lcword) then return word
+
+   if member(plural_s,lcword) then return word || "s"
+
+   (lcword := \plural_map[lcword]) | {
+      lcword ?:= {
+         (tab(-3) || (match("man") & "men")) |
+         (tab(-3) || (match("sis") & "ses")) |
+         (tab(-2) || =("ch" | "sh" | "ss") || "es") |
+         (tab(-3) || (="tus" & "ti")) |
+         (tab(-2) || tab(any('cbdghmnprstvxz')) || (match("y") & "ies")) |
+         (tab(-1) || tab(any('xz')) || "es") |
+         (tab(0) || "s")
+         }
+      }
+
+   if word ? any(&ucase) then lcword ?:= {
+      map(move(1),&lcase,&ucase) || tab(0)
+      }
+
+   return lcword
+         
+end

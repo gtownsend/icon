@@ -1,0 +1,14 @@
+# Grammar for tlcll1 parser generator
+start = grammar.
+grammar =  { declaration }.
+declaration = ID DeclLHS! ( COLON rhs DOT DeclSymbols! | 
+		   EQ alts DOT DeclProduction!).
+rhs = StartRHS! {elem ExtendRHS!}.
+alts = rhs FirstAlt! {BAR rhs NextAlt!}.
+elem =	ID bangOpt |
+	LPAR alts RPAR Group! | 
+	LBRACE alts RBRACE Repeat! |
+	LBRACK alts RBRACK Option! .
+bangOpt = [BANG DeclAction!].
+fiducials : DOT.
+

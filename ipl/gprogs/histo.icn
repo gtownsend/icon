@@ -1,0 +1,93 @@
+############################################################################
+#
+#	File:     histo.icn
+#
+#	Subject:  Program to display simple histogram
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 26, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program displays a simple histogram based on numbers provided
+#  in standard input.
+#
+#  The following options are supported:
+#
+#	s r	horizontal scale factors, default 1.0
+#	w i	bar width in pixels, default 5
+#	g i	gap between bars, default 1
+#	m	minimal; set width to 1, gap to 0.
+#
+#  Note: If there is too much input, there may not be resources to
+#  open a window, and even if there is, parts may be off-screen.
+#
+#  The window is dismissed by a user q event.
+#
+############################################################################
+#
+#  Requires:  Graphics
+#
+############################################################################
+#
+#  Links:  numbers, options, wopen
+#
+############################################################################
+
+link numbers
+link options
+link wopen
+
+procedure main(args)
+   local height, window_height, y, window_width, numbers, opts, scale
+   local number, gap, bar
+
+   opts := options(args, "s.w+g+m")
+
+   scale := \opts["s"] | 1
+   bar := \opts["w"] | 5
+   gap := \opts["g"] | 1
+   if \opts["m"] then {
+      bar := 1
+      gap := 0
+      }
+   
+   height := bar + gap
+
+   numbers := []
+
+   while number := read() do {
+      number := numeric(number) | stop("*** nonnumeric data")
+      number <:= 0		# clamp negative number to 0
+      put(numbers, number)
+      }
+
+   if *numbers = 0 then stop("*** no data")
+
+   window_height := *numbers * height + gap
+
+   window_width := integer(scale * (max ! numbers) + 10)
+
+   WOpen("canvas=hidden", "label=Histogram",
+      "size=" || window_width || "," || window_height) |
+         stop("*** cannot open window")
+
+   y := 0
+
+   while FillRectangle(0, y + gap, scale * get(numbers), height - gap) do
+      y +:= height
+
+   WAttrib("canvas=normal")
+
+   until WQuit()
+
+   WClose()
+
+   return
+
+end

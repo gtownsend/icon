@@ -1,0 +1,172 @@
+############################################################################
+#
+#	File:     vrml.icn
+#
+#	Subject:  Procedures to support creation of VRML files
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 25, 1997
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This file contains procedures for producing VRML files.
+#
+#	point_field(L)	create VRML point field from point list L
+#
+#	u_crd_idx(i)	create VRML coordinate index for 0 through i - 1
+#
+#	render(x)	render node x
+#
+#	vrml1(x)	produces VRML 1.0 file for node x
+#
+#	vrml2(x)	produces VRML 2.0 file for node x
+#
+#	vrml_color(s)	convert Icon color specification to vrml form
+#
+#  Notes:
+#
+#    Not all node types have been tested.
+#
+#    Where field values are complex, as in vectors, these must be built
+#    separately as strings to go in the appropriate fields.
+#
+#    There is no error checking.  Fields must be given in the
+#    order they appear in the node record declarations and field values
+#    must be of the correct type and form.
+#
+#  The introduction of record types other than for nodes will cause
+#  bogus output.  A structural loop will produce output until the
+#  evaluation stack overflows.
+#
+############################################################################
+#
+#  Links:  records
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics for color conversion
+#
+############################################################################
+#
+#  See also:  vrml1lib.icn and vrml2.icn
+#
+############################################################################
+
+link records
+
+procedure point_field(pts)	#: create VRML point field
+   local field
+
+   field := "[\n"
+
+   every field ||:= pt2coord(!pts) || ",\n"
+
+   return field || "\n]"
+
+end
+
+procedure u_crd_idx(i)		#: create VRML coordinate index
+   local index
+
+   index := "[\n"
+
+   every index ||:= (0 to i - 1) || ",\n"
+
+   return index ||:= "\n]"
+
+end
+
+
+
+
+
+procedure vrml1(x, f) 		#: write VRML 1.0 file
+
+   /f := &output
+
+   write(f, "#VRML V1.0 ascii")
+
+   render(x, f)
+
+end
+
+procedure vrml2(x, f)		#: produce VRML 2.0 file
+
+   write(f, "#VRML V2.0 utf8")
+
+   render(x, f)
+
+end
+
+procedure render(x, f)		# render VRML object
+   local i, bar, fieldname, input
+   static indent
+
+   initial indent := 0
+
+   if /x then return		# skip any stray null values
+
+   indent +:= 3
+   bar := repl(" ", indent)
+
+   if x := string(x) then write(f, " ", x)
+   else case type(x) of {
+      "USE": write(f, bar, "USE ", x.name)
+      "DEF": {
+         writes(f, bar, "DEF ", x.name)
+         render(x.node, f)
+         }
+      "Comment": write(f, "# ", x.text)
+      "Include":  {
+         input := open(x.name) | stop("*** cannot find inline file")
+         while write(f, read(input))
+         close(input)
+         }
+      default: {				# all other nodes
+         write(f, bar, type(x), " {")		# must be record for VRML node
+         every i := 1 to *x do {
+           if type(x[i]) == "list" then		# list of children
+               every render(!x[i], f)
+            else if /x[i] then next		# skip empty fields
+            else {
+               writes(f, bar, "   ")
+               fieldname := field(x, i)
+               if fieldname ~== "null" then writes(f, fieldname)
+               render(x[i], f)
+               }
+            }
+         write(f, bar, "   }")
+         }
+      }
+
+   indent -:= 3
+
+   return
+
+end
+
+procedure vrml_color(s)
+   local result
+   static factor
+
+   initial factor := real(2 ^ 16 - 1)
+
+   s := ColorValue(s) | fail
+
+   result := ""
+
+   s ? {
+      every 1 to 3 do {
+         result ||:= (tab(upto(',') | 0) / factor) || " "
+         move(1)
+         }
+      }
+
+   return result
+
+end

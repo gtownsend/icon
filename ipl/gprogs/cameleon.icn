@@ -1,0 +1,300 @@
+############################################################################
+#
+#	File:     cameleon.icn
+#
+#	Subject:  Program to allow user to change colors in an image
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 19, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This application allows the user to change selected color in an image.
+#  The colors are displayed in a palette on the application window.
+#  Clicking on one brings up a color dialog in which the color can be
+#  adjusted.
+#
+#  The keyboard shortcuts are:
+#
+#	@O	open image			File menu
+#	@Q	quit the application		File menu
+#	@R	revert to original colors	Colors menu  
+#	@S	save image			File menu
+#
+#  Note:  "cameleon" is a variant spelling of "chameleon".
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics and mutable colors.
+#
+############################################################################
+#
+#  Links:  graphics, interact, numbers, tables
+#
+############################################################################
+
+link graphics
+link interact
+link numbers
+link tables
+
+global cellsize		# size of palette cell
+global colors		# mutable color list
+global count		# table of pixel counts
+global image_window	# window for user image
+global mutant		# image with mutable colors
+global orig_colors	# list of original colors
+global palette		# color selection palette
+global panel		# palette window
+global pixels		# number of pixels in image window
+global x_pos		# target location for mutant window
+global y_pos
+
+
+$define ColorRows	 8	# number of palette rows
+$define ColorCols	16	# number of palette columns
+
+procedure main()
+   local atts, vidgets
+
+   atts := ui_atts()
+   put(atts, "posx=0", "posy=0")
+
+   (WOpen ! atts) | stop("*** cannot open application window")
+
+   vidgets := ui()
+
+   x_pos := WAttrib("width") + 3 * WAttrib("posx")
+   y_pos := WAttrib("posy")
+
+   palette := vidgets["palette"]
+
+   cellsize := palette.uw / ColorCols
+
+   panel := Clone("bg=black", "dx=" || palette.ux, "dy=" || palette.uy)
+   Clip(panel, 0, 0,  palette.uw, palette.uh)
+
+   clear_palette()
+
+   GetEvents(vidgets["root"], , shortcuts)
+
+end
+
+#  Set up empty palette grid
+
+procedure clear_palette()
+   local x, y
+
+   Fg(panel, "black")
+   EraseArea(panel)
+   WAttrib(panel, "fillstyle=textured")
+   Pattern(panel, "checkers")
+   Bg(panel, "very dark gray")
+
+   every x := 1 + (0 to ColorCols) * cellsize do
+      every y := 1 + (0 to ColorRows) * cellsize do
+         FillRectangle(panel, x, y, cellsize - 1, cellsize - 1)
+
+   WAttrib(panel, "fillstyle=solid")
+   Bg(panel, "black")
+
+   return
+ 
+end
+
+# Handle File menu
+
+procedure file_cb(vidget, value)
+
+   case value[1] of {
+      "open   @O"  :  image_open()
+      "quit   @Q"  :  quit()
+      "revert @R"  :  image_revert()
+      "save   @S"  :  snapshot(mutant)
+      }
+
+   return
+
+end
+
+# Open new image
+
+procedure image_open()
+   local i, x, y
+
+   WClose(\image_window)
+
+   repeat {
+      if OpenDialog("Open image:") == "Cancel" then fail
+      image_window := WOpen("canvas=hidden", "image=" || dialog_value) | {
+         Notice("Cannot open image.")
+         next
+         }
+      break
+      }
+
+   mutate(image_window) | fail
+
+   Raise()			# bring application window to front
+
+   colors := vallist(copy(orig_colors))
+
+   clear_palette()
+
+   i := 0
+
+   every y := 1 + (0 to ColorRows - 1) * cellsize do
+      every x := 1 + (0 to ColorCols - 1) * cellsize do {
+         Fg(panel, colors[i +:= 1]) | break break
+         FillRectangle(panel, x, y, cellsize - 1, cellsize - 1)
+         }
+
+   return
+
+end 
+
+#  Save current image
+
+procedure image_save()
+
+   snapshot(\mutant)
+
+   return
+
+end
+
+#  Restore original image colors
+
+procedure image_revert()
+   local old, color
+
+   every old := key(orig_colors) do {
+      color := orig_colors[old]
+      Color(panel, color, old)
+      }
+
+   return
+
+end
+
+# Get mutable colors and window from image
+
+procedure mutate()
+   local c, width, height, n, x, y
+
+   WClose(\mutant)
+
+   orig_colors := table()
+   count := table(0)
+
+   width := WAttrib(image_window, "width")
+   height := WAttrib(image_window, "height")
+
+   pixels := width * height
+
+   mutant := WOpen("width=" || width, "height=" || height,
+      "posx=" || x_pos, "posy=" || y_pos) | {
+         Notice("Cannot open image_window for mutant colors.")
+         fail
+         }
+
+   every y := 0 to height - 1 do {
+      x := 0
+      every c := Pixel(image_window, 0, y, width, 1) do {
+         if not(n := \orig_colors[c]) then {
+            orig_colors[c] := n := NewColor(c) | {
+               Notice("Cannot get mutable color.")
+               WClose(mutant)
+               fail
+               }
+            }
+         count[n] +:= 1
+         Fg(mutant, n)
+         DrawPoint(mutant, x, y)
+         x +:= 1
+         }
+      }
+
+   return
+
+end
+
+# Handle callbacks on palette
+
+procedure palette_cb(vidget, e, x, y)
+   local color, new
+
+   if e === (&lpress | &mpress | &rpress) then {
+      color := Pixel(x, y, 1, 1)		# get pixel color
+      if not integer(color) then fail		# not a mutable color
+      new := Color(panel, color)		# get color specification
+      if ColorDialog(
+         "Adjust color (" || count[color] || " pixels, " ||
+            frn((100.0 * count[color]) / pixels, , 2) || "%):",
+          Color(panel, color),
+          track,
+          color
+          ) == "Okay" then new := dialog_value
+      Color(panel, color, new)
+      Color(mutant, color, new)
+      }
+
+   return
+
+end
+
+#  Quit the application
+
+procedure quit()
+
+   snapshot(\mutant)
+
+   exit()
+
+end
+
+#  Handle keyboard shortcuts
+
+procedure shortcuts(e)
+
+   if &meta then case(map(e)) of {
+      "o"  :  image_open()
+      "q"  :  quit()
+      "r"  :  image_revert()
+      "s"  :  image_save()
+      }
+
+   return
+
+end
+
+#  Track the color in the color dialog
+
+procedure track(color, s)
+
+   Color(panel, color, s)
+
+   return
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=355,225", "bg=pale gray", "label=chameleon"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,355,225:chameleon",],
+   ["file:Menu:pull::1,0,36,21:File",file_cb,
+      ["open   @O","save   @S","revert @R","quit   @Q"]],
+   ["menubar:Line:::0,21,357,21:",],
+   ["palette:Rect:invisible::19,41,320,160:",palette_cb],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

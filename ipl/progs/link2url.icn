@@ -1,0 +1,34 @@
+############################################################################
+#
+#	File:     link2url.icn
+#
+#	Subject:  Program to convert links to URLs
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 1, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program takes HTML links from standard input, strips off the
+#  tags and related material, and write the resulting URLs to standard
+#  output.
+#
+############################################################################
+
+procedure main()
+   local line
+
+   while line := read() do {
+      line ? {
+         tab(find("<A" | "<a"))
+         tab(upto('"') + 1)
+         write(tab(upto('"')))
+         }
+      }
+
+end

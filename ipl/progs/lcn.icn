@@ -1,0 +1,35 @@
+############################################################################
+#
+#	File:     lcn.icn
+#
+#	Subject:  Program tp convert file names to all lowercase
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 1, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program converts files named on the command line to all lowercase
+#  names.  Blanks are converted to underscaores.
+#
+############################################################################
+#
+#  Requires:  UNIX
+#
+############################################################################
+
+procedure main(args)
+   local name, lc, uc
+
+   uc := &ucase || " "
+   lc := &lcase || "_"
+
+   every name := !args do
+      rename(name, map(name, uc, lc))
+
+end

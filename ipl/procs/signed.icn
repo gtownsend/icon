@@ -1,0 +1,44 @@
+############################################################################
+#
+#	File:     signed.icn
+#
+#	Subject:  Procedure to put bits into signed integer
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     April 2, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  signed(s,n) -- Puts raw bits of characters of string s into an
+#  integer.  The value is taken as signed.
+#
+#  If large integers are supported, this routine will work for integers
+#  of arbitrary size.
+#
+#  If large integers are not supported, the following are true:
+#
+#    If the size of s is the same as or greater than the size of an
+#    integer in the Icon implementation, the result will be negative or
+#    positive depending on the value of the integer's sign bit.
+#
+#    If the size of s is less than the size of an integer, the bytes are
+#    put into the low order part of the integer, with the remaining high
+#    order bytes filled with sign bits (the high order bit of the first
+#    character of the string).  If the string is too large, the most
+#    significant bytes will be lost.
+#
+#  This procedure is normally used for processing of binary data read
+#  from a file.
+#
+
+procedure signed(s)
+   local i
+   i := if ord(s[1]) >= 128 then -1 else 0
+   every i := ior(ord(!s),ishift(i,8))
+   return i
+end

@@ -1,0 +1,202 @@
+############################################################################
+#
+#	File:     fetti.icn
+#
+#	Subject:  Program to explore families of confetti squares
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     November 12, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#      Fetti is an interactive program for generating decorative
+#  web-page sidebars composed of randomly colored squares.  Many
+#  different parameters can be varied on the control panel.  Note
+#  that the mouse must be over a numeric field to type in a new
+#  value.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: vsetup
+#
+############################################################################
+
+link vsetup
+
+global vidgets, root, region, rwin
+
+procedure main(args)
+
+   Window ! put(ui_atts(), args)
+   vidgets := ui()				# set up vidgets
+   root := vidgets["root"]
+   region := vidgets["region"]
+   rwin := SubWindow(region.ax, region.ay, region.aw, region.ah)
+   Bg(rwin, "white")
+   
+   render()
+   GetEvents(root, , all)
+end
+
+procedure all(a, x, y)
+   if a === !" \n\r" then render()
+   else if &meta then case a of {
+      !"qQ":  exit()
+      !"sS":  save()
+      }
+   return
+end
+
+procedure huebutton(v, x)
+   case v.id of {
+      "r": huerange(0, 15) 
+      "o": huerange(15, 45) 
+      "y": huerange(45, 60) 
+      "g": huerange(90, 150) 
+      "c": huerange(165, 195) 
+      "b": huerange(195, 225) 
+      "p": huerange(255, 285) 
+      "m": huerange(285, 315)
+      "all": huerange(0, 360)
+      "ygb": huerange(45, 195)
+      "bmr": huerange(195,360)
+   }
+end
+
+procedure huerange(min, max)
+   txtval("hmin", min, min)
+   txtval("hmax", max, max)
+   render()
+end
+
+procedure render()
+   local side, gap, across, down
+   local hmin, hmax, smin, smax, vmin, vmax
+   local i, j, h, s, v, color ,clist
+
+   side := txtval("side", 1, 100)
+   gap := txtval("gap", 0, 100)
+   across := txtval("across", 1, 1000)
+   down := txtval("down", 1, 1000)
+   hmin := txtval("hmin", 0, 360)
+   hmax := txtval("hmax", hmin, 360)
+   smin := txtval("smin", 0, 100)
+   smax := txtval("smax", smin, 100)
+   vmin := txtval("vmin", 0, 100)
+   vmax := txtval("vmax", vmin, 100)
+
+   EraseArea()	# for color recycling
+   VDraw(root)	# needed after erase
+
+   EraseArea(rwin)
+   clist := []
+   every i := 0 to down - 1 do {
+      every j := 0 to across - 1 do {
+	 h := hmin + integer(?(hmax - hmin))
+	 s := smin + integer(?(smax - smin))
+	 v := vmin + integer(?(vmax - vmin))
+	 color := HSVValue(h || "/" || s || "/" || v)
+	 if Fg(rwin, color) then
+	    put(clist, color)
+	 else
+	    Fg(rwin, ?clist)
+	 FillRectangle(rwin,
+	    gap + j * (gap + side), gap + i * (gap + side), side, side)
+         }
+      }
+
+   return
+end
+
+procedure txtval(s, min, max)
+   local v, n
+
+   v := vidgets[s]
+   VEvent(v, "\r", v.ax, v.ay)
+   n := integer(VGetState(v)) | min
+   n <:= min
+   n >:= max
+   VSetState(v, n)
+   return n
+end
+
+procedure save()
+   local g
+
+   g := WAttrib("gamma")
+   WAttrib("gamma=1.0")		# don't gamma-correct on write
+   repeat case OpenDialog("Save confetti image:") of {
+      "Cancel": {
+	 WAttrib("gamma=" || g)
+	 fail
+	 }
+      "Okay": {
+         if WriteImage(dialog_value, region.ax, region.ay, region.aw, region.ah)
+	 then
+	    break
+         else
+	    Notice("cannot write file:", dialog_value)
+         }
+      }
+   WAttrib("gamma=" || g)
+   return
+end
+
+procedure quit()
+   exit()
+end
+
+
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=400,500", "bg=pale gray", "label=fetti"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,400,500:fetti",],
+   ["across:Text::3:300,59,87,19:Across: \\=5",],
+   ["all:Button:regular::259,235,28,17:all",huebutton],
+   ["b:Button:regular::315,218,14,17:b",huebutton],
+   ["bmr:Button:regular::315,235,28,17:bmr",huebutton],
+   ["c:Button:regular::301,218,14,17:c",huebutton],
+   ["down:Text::3:300,82,87,19:Down:   \\=50",],
+   ["g:Button:regular::287,218,14,17:g",huebutton],
+   ["gap:Text::3:213,82,73,19:Gap:  \\=1",],
+   ["hlab:Label:::267,126,21,13:Hue",],
+   ["hmax:Text::3:261,167,31,19:\\=360",],
+   ["hmin:Text::3:261,144,31,19:\\=0",],
+   ["m:Button:regular::343,218,14,17:m",huebutton],
+   ["malab:Label:::216,167,21,13:max",],
+   ["mnlab:Label:::216,144,21,13:min",],
+   ["o:Button:regular::259,218,14,17:o",huebutton],
+   ["p:Button:regular::329,218,14,17:p",huebutton],
+   ["quit:Button:regular::260,439,78,29:quit   @Q",quit],
+   ["r:Button:regular::245,218,14,17:r",huebutton],
+   ["render:Button:regular::269,318,62,35:RENDER",render],
+   ["save:Button:regular::260,408,78,29:save   @S",save],
+   ["side:Text::3:213,59,73,19:Side: \\=9",],
+   ["slab:Label:::314,126,21,13:Sat",],
+   ["smax:Text::3:308,167,31,19:\\=70",],
+   ["smin:Text::3:308,144,31,19:\\=20",],
+   ["title:Label:::250,21,98,13:Confetti Maker",],
+   ["vlab:Label:::361,126,21,13:Val",],
+   ["vmax:Text::3:355,167,31,19:\\=100",],
+   ["vmin:Text::3:355,144,31,19:\\=80",],
+   ["y:Button:regular::273,218,14,17:y",huebutton],
+   ["ygb:Button:regular::287,235,28,17:ygb",huebutton],
+   ["outline:Rect:sunken::261,309,78,52:",],
+   ["region:Rect:invisible::0,0,200,500:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

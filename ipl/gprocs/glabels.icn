@@ -1,0 +1,73 @@
+############################################################################
+#
+#	File:     glabels.icn
+#
+#	Subject:  Procedure to produce graph ticks
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 5, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  glabels(min, max, nticks) produces a list of aesthetically pleasing labels
+#  for graph ticks to cover a given range.  It is based on the algorithm
+#  given by Paul S. Heckert in "Graphic Gems", Andrew S Glassner, ed.,
+#  Academic Press, 1990.
+#
+############################################################################
+#
+#  Links: numbers
+#
+############################################################################
+
+link numbers
+
+procedure glabels(min, max, ntick)
+   local d, graphmin, graphmax, nfrac, llist, x, nf
+
+   if min = max then fail		# no can do
+
+   range := nicenum(max - min)
+   d := nicenum(range / (ntick - 1), 1)
+   graphmin := floor(min / d) * d
+   graphmax := ceil(max / d) * d
+   nfrac := max(-floor(log(d, 10)), 0)
+   llist := []
+   every x := graphmin to graphmax + 0.5 * d by d do
+     put(llist, x)
+
+   return llist
+
+end
+
+procedure nicenum(x, round)
+
+   exp := floor(log(x, 10))
+   f := x / (10 ^ exp)
+   if \round then {
+      if f < 1.5 then nf := 1
+      else if f < 3.0 then nf := 2
+      else if f < 7 then nf := 5
+      else nf := 10
+      }
+   else {
+      if f <= 1 then nf := 1
+      else if f <= 2 then nf := 2
+      else if f <= 5 then nf := 5
+      else nf := 10
+      }
+
+   return nf * (10 ^ exp)
+
+end
+
+procedure max(i, j)
+
+   if i > j then return i else return j
+
+end

@@ -1,0 +1,210 @@
+############################################################################
+#
+#	File:     bitdemo.icn
+#
+#	Subject:  Program to demonstrate bitplanes
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     November 14, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     bitdemo illustrates some of the techniques made available by the
+#  bitplane package in the program library.
+#
+#     The upper rectangle is drawn using three bitplanes, reserving
+#  one plane for each of the primary colors.  After clicking one of
+#  the "draw" or "erase" buttons, you can draw or erase any one of
+#  the bitplanes independently of the others.  Notice what happens
+#  when the colors overlap.
+#
+#     Drawing is not constrained to the rectangle so that you can see
+#  some of the possible consequences of using the bitplane routines
+#  improperly.
+#
+#     The lower rectangle is drawn using four other bitplanes, one each
+#  for the four types of objects.  Click once on a button to bring the
+#  objects of that type to the front.  Click a second time to make them
+#  invisible.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: button, evmux, bitplane, graphics
+#
+############################################################################
+
+link button
+link evmux
+link bitplane
+link graphics
+
+$define BevelWidth 2
+$define WindowMargin 10
+
+
+global bitwin, rgbbase, panebase, panecolor
+
+
+procedure main(args)
+   local win, m, b, w, h, i
+   local px, py, pw, ph, x, y, d, a
+   local bw, bh
+   local colors
+
+   # get options and open window
+   win := Window("size=800,600", "font=Helvetica,bold,14", args)
+
+   # ensure that we can get the color map entries we will need
+   bitwin := Clone(win)
+   panebase := AlcPlane(bitwin, 4) | stop("can't get 4 planes")
+   rgbbase := AlcPlane(bitwin, 3) | stop("can't get 3 planes")
+
+   # get window geometry
+   m := WindowMargin			# margins
+   b := BevelWidth
+   w := WAttrib("width") - 2 * m	# usable width
+   h := WAttrib("height") - 2 * m	# usable height
+   bw := 80				# button width
+   bh := 24				# button height
+
+   # establish global sensors; override later with buttons etc. in some areas
+   sensor(win, &lpress, drag)
+   sensor(win, &ldrag, drag)
+   quitsensor(win)
+   button(win, "quit", argless, exit, m, m + h - bh, bw, bh)
+
+   # build drawing window and initialize with overlapping circles
+   BevelRectangle(win, m + 100, m, w - 100, 250, -b)
+   colors := [
+      Bg(win), "red", "yellow", "red-yellow",
+      "blue", "purple-magenta", "dark green", "dark brown"]
+   every i := 0 to 7 do
+      Color(bitwin, rgbbase + i, colors[i + 1])
+   PlaneOp(bitwin, rgbbase, "copy")
+   FillRectangle(bitwin, m + 100 + b, m + b, w - 100 - 2 * b, 250 - 2 * b)
+   PlaneOp(bitwin, rgbbase+4, "set"); FillArc(bitwin, w/2-25, 100, 100, 100)
+   PlaneOp(bitwin, rgbbase+2, "set"); FillArc(bitwin, w/2,     50, 100, 100)
+   PlaneOp(bitwin, rgbbase+1, "set"); FillArc(bitwin, w/2+25, 100, 100, 100)
+   Deplane(bitwin)
+
+   # set up related buttons
+   buttonrow(win, m, m, bw, bh, 0, bh + m,
+      "draw red", draw, 1,
+      "draw yel", draw, 2,
+      "draw blu", draw, 4,
+      &null, &null, &null,
+      "erase red", erase, 1,
+      "erase yel", erase, 2,
+      "erase blu", erase, 4,
+      )
+
+   # set up structure for pane demo
+   panecolor := table()
+   panecolor[0] := Bg(win)
+   px := m + 100
+   py := m + 250 + 2 * m
+   pw := m + w - px
+   ph := m + h - py
+   Fg(bitwin, panebase)
+   FillRectangle(bitwin, px, py, pw, ph)
+   BevelRectangle(win, px, py, pw, ph, -b)
+   Clip(bitwin, px + b, py + b, pw - 2 * b, ph - 2 * b)
+   buttonrow(win, m, py, bw, bh, 0, bh + m,
+      "visible:", &null, &null,
+      "grid", mvplane, 1,
+      "curves", mvplane, 8,
+      "squares", mvplane, 2,
+      "circles", mvplane, 4,
+      )
+
+   # draw grid on plane 1
+   FrontPlane(bitwin, panebase + 1, panecolor[1] := "light gray")
+   PlaneOp(bitwin, panebase + 1, "set")
+   every x := 20 to pw - 1 by 40 do
+      FillRectangle(bitwin, px + x, py + b, 3, ph - 2 * b)
+   every y := 20 to ph - 1 by 40 do
+      FillRectangle(bitwin, px + b, py + y, pw - 2 * b, 3)
+
+   # draw curves on plane 8
+   FrontPlane(bitwin, panebase + 8, panecolor[8] := "dark blue")
+   PlaneOp(bitwin, panebase + 8, "set")
+   every y := 20 to ph-40 by 30 do {
+      a := [bitwin]
+      every put(a, px + (0 to pw+24 by 25)) do
+         put(a, py + y + ?20)
+      every 1 to 3 do {
+         DrawCurve ! a
+         every a[3 to *a by 2] +:= 1
+         }
+      }
+
+   # draw squares on plane 2
+   FrontPlane(bitwin, panebase + 2, panecolor[2] := "dark brown")
+   PlaneOp(bitwin, panebase + 2, "set")
+   d := 20
+   every 1 to 50 do
+      FillRectangle(bitwin, px + ?(pw - d), py + ?(ph - d), d, d)
+
+   # draw circles on plane 4
+   FrontPlane(bitwin, panebase + 4, panecolor[4] := "dark moderate green")
+   PlaneOp(bitwin, panebase + 4, "set")
+   every 1 to 50 do {
+      d := 20 + ?10
+      FillArc(bitwin, px + ?(pw - d), py + ?(ph - d), d, d)
+      }
+
+   # enter event loop
+   Clip(bitwin)
+   evmux(win)
+end
+
+
+## draw(w, v) -- set plane and drawing op in response to "draw" button
+
+procedure draw(w, v)
+   PlaneOp(bitwin, rgbbase + v, "set")
+end
+
+
+## erase(w, v) -- set plane and drawing op in response to "erase" button
+
+procedure erase(w, v)
+   PlaneOp(bitwin, rgbbase + v, "clear")
+end
+
+
+## drag(w, dummy, x, y) -- handle mouse drag by drawing (or erasing) on window
+
+procedure drag(w, dummy, x, y)
+   FillRectangle(bitwin, x - 5, y - 5, 10, 10)
+end
+
+
+## mvplane(w, v, x, y) -- handle click on visibility buttons
+#
+#  first click moves to front
+#  second click makes invisible
+
+procedure mvplane(w, v, x, y)
+   static prev, rep
+   initial prev := rep := 0
+
+   if prev ~=:= v then
+      rep := 0				# this is a new button
+   else
+      rep := (rep + 1) % 2		# repeat count for old button
+
+   case rep of {
+      0:  FrontPlane(bitwin, panebase + v, panecolor[v])
+      1:  BackPlane(bitwin, panebase + v, panecolor[0])
+      }
+end

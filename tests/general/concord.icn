@@ -1,0 +1,31 @@
+procedure main()
+   local letters, line, wordlist, word, words, maxword, lineno, i
+   local j, lines, numbers
+   letters := &lcase ++ &ucase ++ '\''
+   words := table("")
+   maxword := lineno := 0
+   while line := read() do {
+      lineno +:= 1
+      write(right(lineno,6),"  ",line)
+      line := map(line)				# fold to lowercase
+      i := 1
+      while j := upto(letters,line,i) do {
+         i := many(letters,line,j)
+         word := line[j:i]
+         if *word < 3 then next			# skip short words
+         maxword <:= *word			# keep track of longest word
+						# if it's a new word, start set
+         if *words[word] = 0 then words[word] := set([lineno])
+         else insert(words[word],lineno)	# else add the line number
+         }
+      }
+   write()
+   wordlist := sort(words)			# sort by words
+   i := 0
+   while word := wordlist[i +:= 1][1] do {
+      lines := ""				# build up line numbers
+      numbers := sort(wordlist[i][2])
+      while lines ||:= get(numbers) || ", "
+      write(left(word,maxword + 2),": ",lines[1:-2])
+      }
+end

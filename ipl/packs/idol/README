@@ -1,0 +1,50 @@
+This is the Idol public distribution directory.
+Read idol.man and idol.doc for details on running Idol.
+Read systems.doc for system-dependent notes, such as how to
+build Idol for your system.
+
+The Idol source is idol.iol; the Idol booting kit is idolboot.icn.
+In addition to these two files, there is a system-specific Icon file
+which must be linked in to produce an Idol executable: so far there
+are files amiga.icn, mpw.icn, msdos.icn, mvs.icn, os2.icn, unix.icn,
+and vms.icn.
+
+BUILDING IDOL
+
+If you are running MS-DOS, the file install.bat contains the sequence
+of commands necessary to build Idol.  This sequence consists of:
+
+(1) Compile idolboot with a line such as
+	icont -Sr1000 -SF30 -Si1000 idolboot msdos
+
+(2) Install an Idol environment directory with a line such as
+	iconx idolboot -install
+
+For MS-DOS, this generates a batch file named idolt.bat which
+you would then execute to create the environment directory.
+For other systems, idolboot creates the directory itself.
+
+(3) Translate Idol from its idol.iol source file with a line such as
+	iconx idolboot idol msdos.icn
+(Again, on MS-DOS, this generates a batch file named idolt.bat
+which you should then execute.)
+
+This makes a good initial test of the system's operation.
+
+In addition there are several other files with extension .iol; these
+are unfinished fragments of Idol source code for your perusal.
+Contributions are of course welcome!
+
+Note that Idol is still a work in progress, and this must be
+considered a test distribution.  Support for non-UNIX systems is
+minimally tested; feel free to add code to support your system
+and send it in.
+
+The -strict flag not only generates paranoid code for public field
+access, it generates extra warning messages when inherited fields
+are named in a subclass.
+
+The file idol.hqx is a Macintosh BinHex 4.0 file of configuration
+material for Icon to run under MPW.
+
+Mail jeffery@ringer.cs.utas.edu when you have questions or bug fixes for Idol.

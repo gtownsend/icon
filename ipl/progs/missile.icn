@@ -1,0 +1,331 @@
+############################################################################
+#
+#	File:     missile.icn
+#
+#	Subject:  Program to play missile command game
+#
+#	Author:   Chris Tenaglia
+#
+#	Date:     June 14, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Here is a cheap attempt at a Missile Command game.
+#
+#  I've run it under Icon V8.7 under VMS, Unix, and V8.5 under MS-DOS.
+#  
+#  Here are some things you'll need to know. There is a delay() procedure
+#  that keeps the game running at a steady pace. delay() is built into
+#  V8.7 on VMS and unix. Under DOS you'll need to roll your own.
+#  The program also uses ansi escape sequences. Also to play use 7, 8, and 9
+#  to launch a # missile. 7 is leftward, 8 is straight, and 9 is right. A bug
+#  in the Ultrix version (kbhit() and getch()) requires double pressing the
+#  buttons. I think q will quit the game early.
+#  
+#  Have Fun!
+#  
+############################################################################
+#
+#  Links:  random
+#
+############################################################################
+
+link random
+
+global bonus,             # bonus missile threshhold
+       score,             # number of missiles shot down
+       munitions,         # munitions supply (# of defensive missiles)
+       missilef,          # whether enemy missile is launched flag
+       missilex,          # x position of enemy missile
+       missiley,          # y position of enemy missile
+       incm,              # x increment of enemy missile
+       abmf,              # whether defensive missile fired flag
+       abmx,              # x position of defensive missile
+       abmy,              # y position of defensive missile
+       abmix              # x increment of defensive missle
+
+procedure main()
+  infrastructure()        # set up defaults, globals, and munitions
+  banner()                # output initial banner
+  repeat
+    {
+    draw_base()           # initially draw base
+    repeat
+      {
+      enemy_launch()      # possible enemy attack
+      friendly_fire()     # possible defensive attack
+      animate()           # draw action if any
+      sense_status()      # sense status
+      delay(1000)         # pace the game
+      }
+    }
+  stop("\7\e[0m",at(12,24),"Game Over. \e[5mInsert another quarter.\e[0m\e[?25h\e=")
+  end
+
+#
+# set up all the initial defaults
+#
+procedure infrastructure()
+  bonus    := 22
+  missilef := 0
+  missilex := 0
+  missiley := 0
+  incm     := 0
+  abmf     := 0
+  abmx     := 0
+  abmy     := 0
+  score    := 0
+  randomize()
+  munitions:= 10 + ?5
+  end
+
+#
+# draw the initial environment
+#
+procedure draw_base()
+  write("\e[?25l\e>\e[?5l\e[0;1;33;44m\e[2J\e[H                 S.D.I. OUTPOST        [TACTICAL SITUATION DISPLAY]")
+  writes(at(23,1),repl("#",79))
+  writes(at(24,1),repl("=",79))
+  writes(at(24,39),"/ \\",at(23,40),"^")
+  writes(at(24,5)," Missiles Left : ",munitions," ")
+  writes(at(24,60)," Score : ",score," ")
+  end
+
+#
+# check and occasionally launch a missile
+#
+procedure enemy_launch()
+  (?50 = 33) | fail
+  if missilef = 1 then fail
+  missilex := 1
+  missiley := 1 + ?10
+  missilef := 1
+  incm     := ?3                                                  
+  end
+
+#
+# coordinate launch of defensive missiles
+#
+procedure friendly_fire()
+  local ambf, press
+
+  kbhit() | fail
+  press := getch()
+  if abmf = 1 then
+    {
+    case press of
+      {
+      "1" | "4" | "7" | "l" | "L" : abmix := -2
+      "2" | "5" | "8" | "s" | "S" : abmix :=  0
+      "3" | "6" | "9" | "r" | "R" : abmix :=  2
+      "q" | "Q" | "\e"                  : stop("\e[2J\e[H")
+      default : writes("\7")
+      }
+    } else {
+    ambf :=  1
+    abmx := 40
+    abmy := 22
+    case press of
+      {
+      "1" | "4" | "7" | "l" | "L" : abmix := -2
+      "2" | "5" | "8" | "s" | "S" : abmix :=  0
+      "3" | "6" | "9" | "r" | "R" : abmix :=  2
+      "q" | "Q" | "\e": stop("\e[2J\e[H",at(12,24),"Game Over. \e[5mInsert another quarter.\e[0m\e[?25h\e=")
+      default : {
+                writes("\7")
+                fail
+                }
+      }
+    if munitions <= 0 then
+      stop(at(12,24),"Game Over. \e[5mInsert Another Quarter!\e[0m\e=\e[?25h")
+    munitions -:= 1
+    abmf       := 1
+    writes(at(24,5)," Missiles Left : ",munitions," ")
+    }
+  end
+
+#
+# fly the missiles
+#
+procedure animate()
+  local old_missilez
+
+  static  old_abmx,
+          old_abmy,
+          old_missilex,
+          old_missiley
+
+  initial {
+          old_abmx     := 0
+          old_abmy     := 0
+          old_missilez := 0
+          old_missiley := 0
+          }
+
+  #
+  # move the defensive missile if launched
+  #
+  if abmf = 1 then
+    {
+    writes(at(abmy,abmx),"*",at(old_abmy,old_abmx)," ")
+    old_abmx := abmx
+    old_abmy := abmy
+    abmx    +:= abmix
+    abmy    -:= 1
+    if abmy < 2 then
+      {
+      writes(at(old_abmy,old_abmx)," ")
+      abmf := 0
+      abmx := 0
+      abmy := 0
+      }
+    }
+
+  #
+  # move the offensive missile if launched
+  #
+  if missilef = 1 then
+    {
+    writes(at(missiley,missilex),"   =>")
+    missilex +:= incm
+    if missilex > 76 then
+      {
+      writes(at(missiley,76),"\e[K")
+      missilef := 0                                 
+      missilex := 0
+      missiley := 0
+      incm     := 0
+      }
+    }
+  end
+
+#
+# sense for hits and handle explosions
+#
+procedure sense_status()
+  local j
+  static  junk
+  initial junk := ["=%!*@",
+                   "%^&(!",
+                   "(@^$^",
+                   "*)@%$",
+                   "@&%^(#"]
+  if missilef=1 & abmf=1 then
+    {
+    if abmy=missiley & (missilex < abmx < missilex+6) then
+      {
+      every 1 to 3 do
+        {
+        writes(at(abmy,abmx-4),"\e[?5h<<<<>>>>")  ; delay(2000)  # reverse screen
+        writes(at(abmy,abmx-4),"\e[?5l>>>><<<<")  ; delay(2000)  # normal  screen
+        }
+      every j := abmy to 22 do
+        {
+        writes(at(j,abmx-3),?junk)
+        delay(1000)
+        }
+      if abmx > 67 then abmx := 67   # handle edge of screen problem
+      writes(at(23,abmx-3),"********")              ; delay(1000)
+      writes(at(22,abmx-3),"\e[?5h||||||||")        ; delay(1000)
+      writes(at(21,abmx-5),"\e[?5l. . . . . . .")   ; delay(1000)
+      every j := 20 to abmy by -1 do writes(at(j,abmx-6),"\e[K")
+      wait(2)
+      score   +:= incm * (15 - missiley)
+      if score > bonus then
+        {
+        writes(at(12,30),"\7\e[5mBONUS MISSILE EARNED!\e[0m")
+        bonus     +:= 33
+        munitions +:= 1
+        delay(30000)
+        }
+      draw_base()
+      abmf     := 0
+      abmx     := 0
+      abmy     := 0
+      missilef := 0
+      missilex := 0
+      missiley := 0
+      }
+    }
+  end
+                    
+#
+# output initial banner for this game
+#             
+procedure banner()
+  write("\e[0;1;33;44m\e[2J\e[H                                                                 ")
+  write("                                                                 ")
+  write("###############################################################################")
+  write("                                                                 ")
+  write("             ***   *   *  *****  ****    ***    ****  *****      ")
+  write("           *   *  *   *    *    *   *  *   *  *        *         ")
+  write("          *   *  *   *    *    ****   *   *   ***     *          ")
+  write("         *   *  *   *    *    *      *   *      *    *           ")
+  write("         ***    ***     *    *       ***   ****     *            ")
+  write("                                                                 ")
+  write("                ****          ****          ***                  ")
+  write("              *              *   *          *                    ")
+  write("              ****          *   *          *                     ")
+  write("                 *         *   *          *                      ")
+  write("            ****   **     ****   **     ***  **                  ")
+  write("                                                                 ")
+  write("                                                                 ")
+  write("###############################################################################")
+  wait(3)
+  end
+
+#
+# move cursor to specified screen position
+#
+procedure at(row,column)
+  return "\e[" || row || ";" || column || "f"
+  end
+
+#
+# procedure to wait n seconds
+#
+procedure wait(n)
+  delay(n * 10000)
+  return
+##  secs := &clock[-2:0] + n
+##  if secs > 58 then secs -:= 60
+##  repeat
+##    {
+##    now := &clock[-2:0]
+##    if now > secs then break
+##    }
+##  return
+  end
+ 
+############################################################################
+#                                                                #
+# This procedure pulls all the elements (tokens) out of a line   #
+# buffer and returns them in a list. a variable named 'chars'    #
+# can be statically defined here or global. It is a cset that    #
+# contains the valid characters that can compose the elements    #
+# one wishes to extract.                                         #
+#                                                                #
+############################################################################
+procedure parse(line,delims)
+  local tokens
+  static chars
+  chars  := &cset -- delims
+  tokens := []
+  line ? while tab(upto(chars)) do put(tokens,tab(many(chars)))
+  return tokens
+  end
+
+############################################################################
+#                                                                #
+# This procedure is terribly handy in prompting and getting      #
+# an input string                                                #
+#                                                                #
+############################################################################
+procedure input(prompt)
+  writes(prompt)
+  return read()
+  end

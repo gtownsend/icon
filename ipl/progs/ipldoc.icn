@@ -1,0 +1,93 @@
+############################################################################
+#
+#	File:     ipldoc.icn
+#
+#	Subject:  Program to collect library documentation
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 26, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program collects selected information from documentation headers
+#  for Icon procedure files named on the command line.
+#
+#  The following options are supported:
+#
+#	-s	skip file headers
+#	-f	sort procedure list by file; default sort by procedure
+#		  name
+#
+############################################################################
+#
+#  Links:  options, sort
+#
+############################################################################
+
+link options
+link sort
+
+record ref(proc, file)
+
+procedure main(args)
+   local procedures, file, program, line, dir, input, max
+   local reference, opts, writep, way1, way2
+
+   opts := options(args, "sf")
+
+   writep := if \opts["s"] then 1 else write
+   if \opts["f"] then {
+      way1 := 2
+      way2 := 1
+       }
+   else {
+      way1 := 1
+      way2 := 2
+      }
+
+
+   procedures := set()
+
+   every file := !args do {
+
+      program := open(file) | {
+         write(&error, "*** cannot open program ", image(file))
+         next
+         }
+
+      writep()
+      writep()
+
+      while line := read(program) | break do
+         if *line = 0 then break else writep(line)
+
+      while line := read(program) | break do
+         line ? {
+            if ="procedure" then {
+               tab(many(' \t'))
+               if ="main(" then next
+               insert(procedures, ref(tab(upto(')') + 1), file))
+               }
+            }
+      close(program)
+      }
+
+   writep()
+   writep(repl("=", 76))
+   writep()
+   write("Procedure List")
+   write()
+
+   max := 60
+
+   procedures := sortff(procedures, way1, way2)
+
+   every reference := !procedures do
+      write(left(reference.proc, max), reference.file)
+
+end

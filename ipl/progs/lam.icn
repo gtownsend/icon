@@ -1,0 +1,92 @@
+############################################################################
+#
+#	File:     lam.icn
+#
+#	Subject:  Program to laminate files
+#
+#	Author:   Thomas R. Hicks
+#
+#	Date:     June 10, 1988
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This program laminates files named on the command line onto
+#  the standard output, producing a concatenation of corresponding
+#  lines from each file named.  If the files are different lengths,
+#  empty lines are substituted for missing lines in the shorter
+#  files.  A command line argument of the form - s causes the string
+#  s to be inserted between the concatenated file lines.
+#  
+#     Each command line argument is placed in the output line at the
+#  point that it appears in the argument list.  For example, lines
+#  from file1 and file2 can be laminated with a colon between each
+#  line from file1 and the corresponding line from file2 by the com-
+#  mand
+#  
+#          lam file1 -: file2
+#  
+#     File names and strings may appear in any order in the argument
+#  list.  If - is given for a file name, standard input is read at
+#  that point.  If a file is named more than once, each of its lines
+#  will be duplicated on the output line, except that if standard
+#  input is named more than once, its lines will be read alter-
+#  nately.  For example, each pair of lines from standard input can
+#  be joined onto one line with a space between them by the command
+#  
+#          lam - "- " -
+#  
+#  while the command
+#  
+#          lam file1 "- " file1
+#  
+#  replicates each line from file1.
+#  
+############################################################################
+#
+#  Links: usage
+#
+############################################################################
+
+link usage
+
+global fndxs
+
+procedure main(a)
+   local bufs, i
+   bufs := list(*a)
+   fndxs := []
+   if (*a = 0) | a[1] == "?" then Usage("lam file [file | -string]...")
+   every i := 1 to *a do {
+      if a[i] == "-" then {
+         a[i] := &input
+            put(fndxs,i)
+            }
+      else if match("-",a[i]) then {
+         bufs[i] := a[i][2:0]
+         a[i] := &null
+         }
+      else {
+         if not (a[i] := open(a[i])) then
+            stop("Can't open ",a[i])
+         else put(fndxs,i)
+         }
+     }
+   if 0 ~= *fndxs then lamr(a,bufs) else Usage("lam file [file | -string]...")
+end
+
+procedure lamr(args,bufs)
+   local i, j
+   every i := !fndxs do
+      bufs[i] := (read(args[i]) | &null)
+   while \bufs[!fndxs] do {
+      every j := 1 to *bufs do
+         writes(\bufs[j])
+      write()
+      every i := !fndxs do
+         bufs[i] := (read(args[i]) | &null)
+     }
+end

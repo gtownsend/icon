@@ -1,0 +1,63 @@
+############################################################################
+#
+#	File:     rectile.icn
+#
+#	Subject:  Program to extract portion of image
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 26, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program extracts a fixed rectangle from the images given on the
+#  command line.
+#
+#  The supported options are:
+#
+#	-x i	x coordinate of upper-left corner of rectangle; default 0
+#	-y i	y coordinate of upper-left corner of rectangle; default 0
+#	-w i	width of rectangle; default 64
+#	-h i	height of rectangle; default 64
+#	-p s	prefix for name of saved file; default "rect_"; may be
+#		"", in which case the input file is overridden.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  options, wopen
+#
+############################################################################
+
+link options
+link wopen
+
+procedure main(args)
+   local opts, prefix, x, y, w, h, win
+
+   opts := options(args, "x+y+w+h+p:")
+
+   x := \opts["x"] | 0
+   y := \opts["y"] | 0
+   w := \opts["w"] | 64
+   h := \opts["h"] | 64
+   
+   prefix := \opts["p"] | "rect_"
+
+   every name := !args do {
+      win := WOpen("canvas=hidden", "image=" || name) | {
+         write(&errout, "*** cannot open ", name)
+         next
+         }
+      WriteImage(win, prefix || name, x, y, w, h) |
+         write(&errout, "*** cannot write rectangle for ", name)
+      WClose(win)
+      }
+end

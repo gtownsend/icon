@@ -1,0 +1,197 @@
+############################################################################
+#
+#  vibline.icn -- procedures for defining a line object
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+
+$include "vibdefn.icn"
+
+##########################################################################
+# line_obj:
+#    proc    : name of user callback procedure
+#    v       : vidget used for drawing line
+#    id      : unique means of identifying instance
+#    x,y,w,h : bounding box
+#    x1,y1   : one endpoint
+#    y1,y2   : other endpoint
+#    focus   : should focus lines be drawn around this object?
+##########################################################################
+record line_obj(v, proc, id, x, y, w, h, x1, y1, x2, y2, focus)
+
+##########################################################################
+# create_line() creates a line instance and draws the line if
+#               it is a first class object.
+##########################################################################
+procedure create_line(x1, y1, x2, y2)
+   local r, id
+
+   id := next_id("line")
+   r := line_obj(, "", "line" || id, , , , , x1, y1, x2, y2, 0)
+   r.v := Vline(APPWIN, x1, y1, x2, y2)
+   VInsert(ROOT, r.v, x1, y1)
+   VRemove(ROOT, r.v, 1)
+   update_line_bb(r)
+   return r
+end
+
+##########################################################################
+# update_line_bb() updates various attributes of the line that
+#                  change when the button is resized, etc.
+##########################################################################
+procedure update_line_bb(object)
+   if object.x1 < 0 then {
+      object.x2 -:= object.x1
+      object.x1 := 0
+      }
+   if object.x2 < 0 then {
+      object.x1 -:= object.x2
+      object.x2 := 0
+      }
+   if object.y1 < CANVASY then {
+      object.y2 -:= (object.y1 - CANVASY)
+      object.y1 := CANVASY
+      }
+   if object.y2 < CANVASY then {
+      object.y1 -:= (object.y2 - CANVASY)
+      object.y2 := CANVASY
+      }
+   object.x := minimum(object.x1, object.x2) - 2
+   object.y := minimum(object.y1, object.y2) - 2
+   object.w := abs(object.x1 - object.x2) + 4
+   object.h := abs(object.y1 - object.y2) + 4
+end
+
+##########################################################################
+# draw_line() draws the given line object.
+##########################################################################
+procedure draw_line(r)
+   r.v.ax1 := r.x1
+   r.v.ay1 := r.y1
+   r.v.ax2 := r.x2
+   r.v.ay2 := r.y2
+   VDraw(r.v)
+   return r
+end
+
+##########################################################################
+# outline_line() draws an outline for the given line.  Outlines are
+#                used when the object is moved or resized.
+##########################################################################
+procedure outline_line(r)
+   DrawLine(XORWIN, r.x1, r.y1, r.x2, r.y2)
+end
+
+##########################################################################
+# drag_line() is a special procedure for dragging line objects.
+##########################################################################
+procedure drag_line(r)
+   local xoff, yoff, x1, y1, dx, dy
+
+   x1 := r.x1
+   y1 := r.y1
+   dx := r.x2 - x1
+   dy := r.y2 - y1
+   xoff := x1 - &x
+   yoff := y1 - &y
+   DrawLine(XORWIN, x1, y1, x1 + dx, y1 + dy)
+   until Event(XORWIN) === (&lrelease | &mrelease | &rrelease) do {
+      DrawLine(XORWIN, x1, y1, x1 + dx, y1 + dy)
+      x1 := &x + xoff
+      y1 := &y + yoff
+      DrawLine(XORWIN, x1, y1, x1 + dx, y1 + dy)
+      }
+   DrawLine(XORWIN, x1, y1, x1 + dx, y1 + dy)
+   &x := r.x + x1 - r.x1
+   &y := r.y + y1 - r.y1
+end
+
+##########################################################################
+# load_line() restores a line object from session code.
+##########################################################################
+procedure load_line(r, o)
+   r.x1 := o.x
+   r.y1 := o.y + CANVASY
+   r.x2 := o.w
+   r.y2 := o.h + CANVASY
+   r.v := Vline(APPWIN, r.x1, r.y1, r.x2, r.y2)
+   VInsert(ROOT, r.v, r.x1, r.y1)
+   VRemove(ROOT, r.v, 1)
+end
+
+##########################################################################
+# save_line() augments the record for saving a line object.
+##########################################################################
+procedure save_line(r, o)
+   r.typ := "Line"
+   r.x := o.x1
+   r.y := o.y1 - CANVASY
+   r.w := o.x2
+   r.h := o.y2 - CANVASY
+   r.proc := &null
+   return
+end
+
+##########################################################################
+# display_line_atts() displays the attribute sheet with the current
+#                     attributes for the given line instance.
+##########################################################################
+procedure display_line_atts(object)
+   local t, dx, dy
+
+   t := table()
+   t["a_id"]		:= object.id
+   t["c_x1"]		:= object.x1
+   t["d_y1"]		:= object.y1 - CANVASY
+   t["e_x2"]		:= object.x2
+   t["f_y2"]		:= object.y2 - CANVASY
+
+   repeat {
+      if line_dialog(t) == "Cancel" then
+         fail
+
+      if illegal(t["a_id"], "ID", "s") |
+         illegal(t["c_x1"], "X1", "i") |
+         illegal(t["d_y1"], "Y1", "i") |
+         illegal(t["e_x2"], "X2", "i") |
+         illegal(t["f_y2"], "Y2", "i")
+      then
+         next
+   
+      unfocus_object(object)
+      erase_object(object)
+
+      object.id := t["a_id"]
+      object.x1 := t["c_x1"]
+      object.y1 := t["d_y1"] + CANVASY
+      object.x2 := t["e_x2"]
+      object.y2 := t["f_y2"] + CANVASY
+
+      # can't just do a move_object() here: doesn't work for line changes
+      update_line_bb(object)
+      draw_canvas()
+      focus_object(object)
+      DIRTY := 1
+      break
+   }
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure line_dialog(win, deftbl)
+static dstate
+initial dstate := dsetup(win,
+   ["line_dialog:Sizer::1:0,0,350,138:",],
+   ["_cancel:Button:regular::192,87,50,30:Cancel",],
+   ["_okay:Button:regular:-1:127,86,50,30:Okay",],
+   ["a_id:Text::40:13,14,318,19:ID: \\=",],
+   ["c_x1:Text::3:13,42,59,19:x1: \\=",],
+   ["d_y1:Text::3:81,42,59,19:y1: \\=",],
+   ["e_x2:Text::3:204,42,59,19:x2: \\=",],
+   ["f_y2:Text::3:272,42,59,19:y2: \\=",],
+   )
+return dpopup(win, deftbl, dstate)
+end
+#===<<vib:end>>===	end of section maintained by vib

@@ -1,0 +1,45 @@
+############################################################################
+#
+#	File:     fetchpat.icn
+#
+#	Subject:  Procedure to fetch a pattern specification
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     October 21, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure fetches a pattern by number from a file of pattern
+#  specifications.  It fails if the file does not exist or does not
+#  contain that many pattern specifications.
+#
+#  The file is searched for in the current directory first, then using
+#  DPATH.
+#
+############################################################################
+#
+#  Links:  io, patutils
+#
+############################################################################
+
+link io
+link patutils
+
+procedure fetchpat(file, n)
+   local input, pattern
+
+   input := dopen(file) | fail
+
+   every 1 to n do
+      pattern := readpatt(input)
+
+   close(file)
+
+   return \pattern
+
+end

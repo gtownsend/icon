@@ -1,0 +1,571 @@
+############################################################################
+#
+#	File:     patutils.icn
+#
+#	Subject:  Procedures to manipulate patterns
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 13, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This file contains procedures that manipulate graphic pattern
+#  representations.  These procedures are intended for bi-level patterns
+#  representable by 0s and 1s.
+#
+#  A row pattern is a list of strings, with each string representing
+#  a row in the pattern.
+#
+#	DrawTile(win, xoff, yoff, pattern, magnif, mode)
+#	DrawRows(win, xoff, yoff, rows, magnif, mode)
+#	bits2hex(s)
+#	decspec(pattern)
+#	getpatt(line)
+#	getpattnote(line)
+#	hex2bits(s)
+#	hexspec(pattern)
+#	legalpat(tile)
+#	legaltile(tile)
+#	pat2xbm(pattern, name)
+#	tilebits(rows)
+#	pdensity(pattern)
+#	pix2pat(window, x, y, cols, rows)
+#	readpatt(input)
+#	readpattline(input)
+#	rowbits(pattern)
+#	pat2rows(pattern)
+#	rows2pat(rlist)
+#	showbits(pattern)
+#	tiledim(pattern)
+#	xbm2rows(input)
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  convert
+#
+############################################################################
+
+link convert
+
+record tdim(w, h)
+
+#
+#  Draw a tile at a given location.  If mode is nonnull, the
+#  area on which the tile is drawn is erased.
+
+procedure DrawTile(win, xoff, yoff, pattern, magnif, mode)
+   local x, y, row, pixel, dims, arglist
+
+   if type(win) ~== "window" then {
+      win :=: xoff :=: yoff :=: pattern :=: mode
+      win := &window
+      }
+
+   /magnif := 1
+
+   y := yoff
+
+   if \mode then {
+      dims := tiledim(pattern)
+      EraseArea(xoff, yoff, dims.w * magnif, dims.h * magnif)
+      }
+
+   every row := rowbits(pattern) do {		# draw a row
+      x := xoff
+      arglist := []
+
+      if magnif = 1 then {
+         every pixel := !row do {
+            if pixel == "1" then put(arglist, x, y)
+            x +:= 1
+            }
+         y +:= 1
+         }
+      else {
+         every pixel := !row do {
+            if pixel == "1" then put(arglist, x, y, magnif, magnif)
+            x +:= magnif
+            }
+         y +:= magnif
+         }
+      if *arglist = 0 then next
+      if magnif = 1 then DrawPoint ! arglist else FillRectangle ! arglist
+      }
+
+   return
+
+end
+#
+#  Draw rows at a given location.  If mode is nonnull, the
+#  area on which the tile is drawn is erased.
+
+procedure DrawRows(win, xoff, yoff, rows, magnif, mode)
+   local x, y, row, pixel, arglist
+
+   if type(win) ~== "window" then {
+      win :=: xoff :=: yoff :=: rows :=: magnif :=: mode
+      win := &window
+      }
+
+   /magnif := 1
+
+   y := yoff
+
+   if \mode then
+      EraseArea(xoff, yoff, *rows[1] * magnif, *rows * magnif)
+
+   every row := !rows do {		# draw a row
+      x := xoff
+      arglist := []
+
+      if magnif = 1 then {
+         every pixel := !row do {
+            if pixel == "1" then put(arglist, x, y)
+            x +:= 1
+            }
+         y +:= 1
+         }
+      else {
+         every pixel := !row do {
+            if pixel = "1" then put(arglist, x, y, magnif, magnif)
+            x +:= magnif
+            }
+         y +:= magnif
+         }
+      if *arglist = 0 then next
+      if magnif = 1 then DrawPoint ! arglist else FillRectangle ! arglist
+      }
+
+   return
+
+end
+
+#
+#  Convert bit string to hex pattern string
+
+procedure bits2hex(s)
+   static bittab
+   local hex
+
+   initial {
+      bittab := table()
+      bittab["0000"] := "0"
+      bittab["1000"] := "1"
+      bittab["0100"] := "2"
+      bittab["1100"] := "3"
+      bittab["0010"] := "4"
+      bittab["1010"] := "5"
+      bittab["0110"] := "6"
+      bittab["1110"] := "7"
+      bittab["0001"] := "8"
+      bittab["1001"] := "9"
+      bittab["0101"] := "a"
+      bittab["1101"] := "b"
+      bittab["0011"] := "c"
+      bittab["1011"] := "d"
+      bittab["0111"] := "e"
+      bittab["1111"] := "f"
+      }
+
+   hex := ""
+
+   s ? {
+       while hex := bittab[move(4)] || hex
+       if not pos(0) then hex := bittab[left(tab(0), 4, "0")] || hex
+       }
+
+   return hex
+
+end
+
+#
+#  Convert pattern specification to decimal form
+
+procedure decspec(pattern)
+   local cols, chunk, dec
+
+   pattern ? {
+      if not upto("#") then return pattern
+      cols := tab(upto(','))
+      move(2)
+      chunk := (cols + 3) / 4
+      dec := cols || ","
+      while dec ||:= integer("16r" || move(chunk)) || ","
+      }
+
+   return dec[1:-1]
+
+end
+
+#
+#  Get pattern from line.  It trims off leading and trailing whitespace
+#  and removes any annotation (beginning with a # after the first whitespace
+
+procedure getpatt(line)
+
+   line ? {
+      tab(many(' \t'))
+      return tab(upto(' \t') | 0)
+      }
+
+end
+
+#
+#  Get pattern annotation.  It returns an empty string if there is
+#  no annotation.
+
+procedure getpattnote(line)
+
+   line ? {
+      tab(many(' \t'))			# remove leading whitespace
+      tab(upto(' \t')) | return ""	# skip pattern
+      tab(upto('#')) | return ""	# get to annotation
+      tab(many('# \t'))			# get rid of leading junk
+      return tab(0)			# annotation
+      }
+
+end
+
+#  Convert hexadecimal string to bits
+
+procedure hex2bits(s)
+   static hextab
+   local bits
+
+   initial {
+      hextab := table()
+      hextab["0"] := "0000"
+      hextab["1"] := "0001"
+      hextab["2"] := "0010"
+      hextab["3"] := "0011"
+      hextab["4"] := "0100"
+      hextab["5"] := "0101"
+      hextab["6"] := "0110"
+      hextab["7"] := "0111"
+      hextab["8"] := "1000"
+      hextab["9"] := "1001"
+      hextab["a"] := "1010"
+      hextab["b"] := "1011"
+      hextab["c"] := "1100"
+      hextab["d"] := "1101"
+      hextab["e"] := "1110"
+      hextab["f"] := "1111"
+      }
+
+   bits := ""
+
+   map(s) ? {
+      while bits ||:= hextab[move(1)]
+      }
+
+   return bits
+
+end
+
+#
+#  Convert pattern to hexadecimal form
+
+procedure hexspec(pattern)
+   local cols, chunk, hex
+
+   pattern ? {
+      if find("#") then return pattern
+      cols := tab(upto(','))
+      move(1)
+      chunk := (cols + 3) / 4
+      hex := cols || ",#"
+      while hex ||:= right(exbase10(tab(upto(',') | 0), 16), chunk, "0") do
+         move(1) | break
+      }
+
+   return hex
+
+end
+
+#
+#  Succeed if tile is legal and small enough for (X) pattern.  Other
+#  windows systems may be more restrictive.
+
+procedure legalpat(tile)
+
+   if not legaltile(tile) then fail
+
+   tile ? {
+      if 0 < integer(tab(upto(','))) <= 32 then return tile
+      else fail
+      }
+
+end
+
+#
+#  Succeed if tile is legal.  Accepts tiles that are too big for
+#  patterns.
+
+procedure legaltile(tile)
+
+   map(tile) ? {				# first check syntax
+      (tab(many(&digits)) & =",") | fail
+      if ="#" then (tab(many('0123456789abcdef')) & pos(0)) | fail
+      else {
+         while tab(many(&digits)) do {
+            if pos(0) then break	# okay; end of string
+            else ="," | fail
+            }
+         if not pos(0) then fail	# non-digit
+         }
+      }
+
+   return hexspec(decspec(tile)) == tile
+
+end
+
+#
+#  Convert pattern specification to an XBM image file.
+
+procedure pat2xbm(pattern, name)
+   local dims, chunk, row
+
+   /name := "noname"
+
+   dims := tiledim(pattern)
+
+
+   write("#define ", name, "_width ", dims.w)
+   write("#define ", name, "_height ", dims.h)
+   write("static char ", name, "_bits[] = {")
+
+   chunk := (dims.w + 3) / 4
+
+   pattern ? {
+      tab(upto('#') + 1)
+      while row := move(chunk) do {
+         if *row % 2 ~= 0 then row := "0" || row
+         row ? {
+            tab(0)
+            while writes("0x", move(-2), ",")
+            }
+         write()
+         }
+      }
+
+   write("};")
+
+end
+
+#
+#  Count the number of bits set in a tile
+
+procedure tilebits(rows)
+   local bits
+
+   bits := 0
+
+   every bits +:= !!rows
+
+   return bits
+
+end
+
+#
+#  Compute density (percentage of black bits) of pattern
+
+procedure pdensity(pattern)
+
+   local dark, dims
+
+   dims := tiledim(pattern)
+
+   hexspec(pattern) ? {
+      dark := 0
+      every rowbits(pattern) ? {
+         every upto('1') do
+            dark +:= 1
+            }
+      return dark / real(dims.w * dims.h)
+      }
+
+end
+
+#
+#  Procedure to produce pattern specification from a square section of a window.
+
+procedure pix2pat(window, x, y, cols, rows)
+   local c, j, tile, pattern, pixels, y0
+
+   pattern := ""
+
+   every y0 := 0 to rows - 1 do {
+      pixels := ""
+      every j := 0 to cols - 1 do
+         every c := Pixel(window, x + j, y0 + y, 1, 1) do
+            pixels ||:= (if c == "0,0,0" then "1" else "0")
+      pattern ||:= bits2hex(pixels)
+      }
+
+   if *pattern = 0 then fail		# out of bounds specification
+   else return cols || ",#" || pattern
+
+end
+
+#
+#  Read pattern.  It skips lines starting with a #,
+#  empty lines, and trims off any trailing characters after the
+#  first whitespace of a pattern.
+
+procedure readpatt(input)
+   local line
+
+   while line := read(input) do
+      line ? {
+         if pos(0) | ="#" then next
+         return tab(upto(' \t') | 0)
+         }
+
+   fail
+
+end
+
+#  
+#  Read pattern line.  It skips lines starting with a # and empty lines but
+#  does not trim off any trailing characters after the first whitespace of
+#  a pattern.
+
+procedure readpattline(input)
+   local line
+
+   while line := read(input) do
+      line ? {
+         if pos(0) | ="#" then next
+         return tab(0)
+         }
+
+   fail
+
+end
+
+#
+#  Generate rows of bits in a pattern.  Doesn't work correctly for small
+#  patterns.  (Why?)
+
+procedure rowbits(pattern)
+   local row, dims, chunk, hex
+
+   dims := tiledim(pattern)
+
+   hexspec(pattern) ? {
+      tab(upto(',') + 2)
+      hex := tab(0)
+      chunk := *hex / dims.h
+      hex ? {
+         while row := right(hex2bits(move(chunk)), dims.w, "0") do
+            suspend reverse(row)
+         }
+      }
+
+end
+
+#
+#  Produce a list of the rows of a pattern
+
+procedure pat2rows(pattern)
+   local rlist
+
+   rlist := []
+
+   every put(rlist, rowbits(pattern))
+
+   return rlist
+
+end
+
+#
+#  Convert row list to pattern specification
+
+procedure rows2pat(rlist)
+   local pattern
+
+   pattern := *rlist[1] || ",#"
+
+   every pattern ||:= bits2hex(!rlist)
+
+   return pattern
+
+end
+
+#  Show bits of a pattern
+
+procedure showbits(pattern)
+
+   every write(rowbits(pattern))
+
+   write()
+
+   return
+
+end
+
+
+#
+#  Produce dimensions of the tile for a pattern
+
+procedure tiledim(pattern)
+   local cols
+
+   hexspec(pattern) ? {
+      cols := integer(tab(upto(',')))
+      =",#" | fail
+      return tdim(cols, *tab(0) / ((cols + 3) / 4))
+      }
+
+end
+
+#
+#  Generate rows of bits from an XBM file
+
+procedure xbm2rows(input)
+   local image, bits, row, hex, width, height, chunks
+
+   image := ""
+
+   read(input) ? {
+      tab(find("width") + 6)
+      tab(upto(&digits))
+      width := integer(tab(many(&digits)))
+      }
+
+   read(input) ? {
+      tab(find("height") + 6)
+      tab(upto(&digits))
+      height := integer(tab(many(&digits)))
+      }
+
+   chunks := (width / 8) + if (width % 8) > 0 then 1 else 0
+
+   while image ||:= reads(input, 500000)	# Boo! -- can do better
+
+   image ? {
+      every 1 to height do {
+         row := ""
+         every 1 to chunks do {
+            tab(find("0x") + 2)
+            hex := move(2)			# a bit of optimization
+            row ||:= case hex of {
+              "00":    "00000000"
+              "ff":    "11111111"
+               default: reverse(right(hex2bits(hex), 8, "0"))
+               }
+            }
+         suspend left(row, width)
+         }
+      }
+
+end

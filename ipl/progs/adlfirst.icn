@@ -1,0 +1,45 @@
+############################################################################
+#
+#	File:     adlfirst.icn
+#
+#	Subject:  Program to write first line of addresses
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 19, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This program writes the first lines of entries in an address list file.
+#  If an argument is given, it counts only those that have designators
+#  with characters in the argument. Otherwise, it counts all entries.
+#
+############################################################################
+#
+#  See also: address.doc, adlcheck.icn, adlfiltr.icn, adllist.icn,
+#     adlsort,icn, labels.icn
+#
+############################################################################
+
+procedure main(arg)
+   local s, line
+
+   s := cset(arg[1]) | &cset
+
+   while line := read() do
+      line ? {
+         if any('#') & upto(s) then {
+            while line := read() | exit() do
+               if line[1] == ("*" | "#" ) then next
+               else {
+                  write(line)
+                  break
+                  }
+            }
+         }
+
+end

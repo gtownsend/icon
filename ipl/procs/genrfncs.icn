@@ -1,0 +1,375 @@
+############################################################################
+#
+#	File:     genrfncs.icn
+#
+#	Subject:  Procedures to generate sequences
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 9, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#  These procedures generate sequences of results.
+#
+#  arandseq(i, j)	arithmetic sequence starting at i with randomly
+#			chosen increment between 1 and j
+#  
+#  arithseq(i, j)	arithmetic sequence starting at i with increment j
+#
+#  beatty1seq()		Beatty's first sequence i * &phi
+#
+#  beatty2seq()		Beatty's second sequence i * &phi ^ 2
+#
+#  catlnseq(i)		sequence of generalized Catalan numbers
+#
+#  chaosseq()		chaotic sequence
+#
+#  chexmorphseq()	sequence of centered hexamorphic numbers
+#
+#  connellseq(p)	the generalized Connell sequence
+#
+#  factseq()		factorial sequence
+#
+#  fibseq(i, j, k)	generalized Fibonacci sequence (Lucas sequence)
+#			with initial values i and j and additive constant
+#			k.
+#
+#  figurseq(i)		series of ith figurate number
+#
+#  fileseq(s, i)	generate from file s; if i is null, lines are generated.
+#			Otherwise characters, except line terminators.
+#
+#  gseq(k, i)		generalized nested Hofstader recurrence, starting at
+#			k.
+#
+#  geomseq(i, j)	geometric sequence starting at i with multiplier j
+#
+#  hailseq(i)		hailstone sequence starting at i
+#
+#  irepl(i, j)		j instances of i
+#
+#  mthueseq()		Morse-Thue sequence
+#
+#  multiseq(i, j, k)	sequence of (i * j + k) i's
+#
+#  ngonalseq(i)		sequence of the i polygonal number
+#
+#  partitseq(i, j, k)	sequence of integer partitions of i with minimum j
+#			and maximum k
+#
+#  pellseq(i, j, k)	generalized Pell's sequence starting with i, j and
+#			using multiplier k
+#
+#  perrinseq()		Perrin sequence
+#
+#
+#  primeseq()		the sequence of prime numbers
+#
+#  powerseq(i, j)	sequence i ^ j, starting at j = 0
+#
+#  spectseq(r)		spectral sequence integer(i * r), i - 1, 2, 3, ...
+#
+#  versumseq(i)		sequence of added reversed integers with seed i.
+#  
+############################################################################
+#
+#  Requires:  co-expressions
+#
+############################################################################
+#
+#  Links:  io, fastfncs, partit, numbers
+#
+############################################################################
+
+link io
+link partit
+link fastfncs
+link numbers
+
+procedure arandseq(i, j)	#: arithmetic sequence with random intervals
+
+   /i := 1
+   /j := 1
+
+   suspend seq(i) + ?j
+
+end
+
+procedure arithseq(i, j)	#: arithmetic sequence
+
+   /i := 1
+   /j := 0
+
+   suspend seq(i + j)
+
+end
+
+procedure beatty1seq()		#: Beatty sequence 1
+
+   suspend integer(seq() * &phi)
+
+end
+
+procedure beatty2seq()		#: Beatty sequence 2
+
+   suspend integer(seq() * &phi ^ 2)
+
+end
+
+procedure catlnseq(i)		#: generalized Catalan sequence
+   local k
+
+  /i := 1
+
+   suspend (i := 1, k := seq(), i *:= 4 * k + 2, i /:= k + 2)
+
+end
+
+procedure chaosseq()		#: Hofstadter's chaotic sequence
+
+   suspend q(seq())
+
+end
+
+#  The generalization here is to allow a generating procedure, p to
+#  be specified.  The default is seq().  Arguments are given in args.
+
+procedure connellseq(p, args[])	#: generalized Connell sequence
+   local i, j, count, parity, parity2, C
+
+   C := create (\p | seq) ! args
+
+   count := 0
+   parity := 0
+   parity2 := 1
+
+   repeat {
+      count +:= 1
+      parity :=: parity2
+      j := 0
+      repeat {
+         i := @C | fail
+         if i % 2 = parity then {
+            suspend i
+            j +:= 1
+            if j = count then break
+            }
+         }
+      }
+
+end
+   
+procedure chexmorphseq()	#: sequence of centered hexamorphic numbers
+   local i, j
+
+   every (i := seq(), j := 3 * i * (i - 1) + 1, j ? {
+      tab(-*i)
+      if =i then suspend j
+      })
+
+end
+
+procedure factseq()		#: factorial sequence
+   local i
+
+   i := 1
+
+   suspend i *:= seq()
+
+end
+
+procedure fibseq(i, j, k)	#: generalized Fibonacci sequence
+   local m
+
+   /i := 1
+   /j := 2
+   /k := 0
+
+   suspend i | j | |{
+      m := i + j + k
+      i := j
+      j := m
+      }
+
+end
+
+#  Warning; if not all lines are generated from the input file, the
+#  file is not closed until the next call of fileseq().
+
+procedure fileseq(s, i)		#: sequence from file
+   static input
+
+   close(\input)
+
+   input := dopen(s) | fail
+
+   if /i then suspend !input
+   else suspend !!input
+
+   close(input)
+
+end
+
+procedure figurseq(i)		#: sequence of figurate numbers
+   local j, k
+
+   /i := 1
+
+   suspend (j := 1, k := seq(i), j *:= k + 1, j /:= k + 1 - i)
+
+end
+
+procedure gseq(k, i)		#: generalized Hofstadter recurrence sequence
+
+   /k := 1
+   /i := 1
+
+   suspend g(k, seq(i))
+
+end
+
+procedure geomseq(i, j)		#: geometric sequence
+
+   /i := 1
+   /j := 1
+
+   suspend seq(i) * j
+
+end
+
+procedure hailseq(i)		#: hailstone sequence
+
+   /i := 1
+
+   suspend |if i % 2 = 0 then i /:= 2 else i := 3 * i + 1
+
+end
+
+procedure irepl(i, j)		#: repeated sequence
+
+   /i := 1
+   /j := 1
+
+   suspend |i \ j
+
+end
+
+procedure mthueseq()		#: Morse-Thue sequence
+   local i, s
+
+   i := 0
+   s := "0"
+
+   suspend |((s[i +:= 1] | (s ||:= map(s, "01", "10"), s[i])) \ 1)
+
+end
+   
+   
+procedure multiseq(i, j, k)	#: sequence of repeated integers
+
+   /i := 1
+   /j := 1
+   /k := 0
+
+   suspend (i := seq(i), (|i \ (i * j + k)) & i)
+
+end
+
+procedure ngonalseq(i)		#: sequence of polygonal numbers
+   local j, k
+
+   /i := 2
+
+   i +:= 2
+
+   k := i - 2
+
+   suspend ((j := 1) | (j +:= 1 + k * seq()))
+
+end
+
+procedure partitseq(i, j, k)	#: sequence of integer partitions
+
+   /i := 1
+   /j := 1
+   /k := i
+
+   suspend !partit(i, j, k)
+
+end
+
+procedure pellseq(i, j, k)	#: generalized Pell sequence
+   local m
+
+   /i := 1
+   /j := 2
+   /k := 2
+
+   suspend i | j | |{
+      m := i + k * j
+      i := j
+      j := m
+      }
+
+end
+
+procedure perrinseq()		#: perrin sequence
+   local i, j, k, l
+
+   suspend i := 3
+   suspend j := 0
+   suspend k := 2
+
+   repeat {
+      suspend l := i + j
+      i := j
+      j := k
+      k := l
+      }
+
+end
+      
+procedure primeseq()		#: sequence of prime numbers
+   local i, k
+
+   suspend 2 | ((i := seq(3, 2)) & (not(i = (k := (3 to sqrt(i) by 2)) *
+      (i / k))) & i)
+
+end
+
+procedure powerseq(i, j)	#: power sequence
+
+   /i := 2
+   /j := 0
+
+   suspend i ^ seq(j)
+
+end
+
+procedure spectseq(r)		#: spectral sequence
+
+   /r := 1.0
+
+   suspend integer(seq() * r)
+
+end
+
+procedure versumseq(i)		#: reversed-sum sequence
+   local j, k
+
+   /i := 196
+
+   i := integer(i) | stop("*** invalid type to versumseq()")
+
+   repeat {
+      j := reverse(i)
+      i +:= j
+      suspend i
+      }
+
+end

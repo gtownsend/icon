@@ -1,0 +1,35 @@
+############################################################################
+#
+#	File:     unpack.icn
+#
+#	Subject:  Program to unpackage files
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 27, 1989
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This program unpackages files produced by pack.icn.  See that program
+#  for information about limitations.
+#
+############################################################################
+#
+#  See also:  pack.icn
+#
+############################################################################
+
+procedure main()
+   local line, out
+   while line := read() do {
+      if line == "##########" then {
+         close(\out)
+         out := open(name := read(),"w") | stop("cannot open ",name)
+         }
+      else write(out,line)
+      }
+end

@@ -1,0 +1,37 @@
+############################################################################
+#
+#	File:     jumpque.icn
+#
+#	Subject:  Procedure to jump element to head of queue
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 9, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  jumpque(queue, y) moves y to the head of the queue if it is in queue
+#  but just adds y to the head of the queue if it is not already in
+#  the queue.  A copy of queue is returned; the argument is not modified.
+#
+############################################################################
+
+procedure jumpque(queue, y)
+   local x
+
+   queue := copy(queue)
+
+   every 1 to *queue do {		# delete y from queue if it's there
+      x := get(queue)
+      if x ~=== y then put(queue, x)
+      }
+
+   push(queue, y)			# insert y at the head of queue
+
+   return queue
+
+end

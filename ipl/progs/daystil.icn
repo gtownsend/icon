@@ -1,0 +1,230 @@
+############################################################################
+#
+#	File:     daystil.icn
+#
+#	Subject:  Program to calculate the number of days until a given date
+#
+#	Author:   Nevin Liber
+#
+#	Date:     June 29, 1994
+#
+###########################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#   Usage:    daystil sMonth iDay
+#
+#   Returns:
+#       0   number of days written on &output
+#       1   Usage message on &errout (bad parameters)
+#
+#   Revision History:
+#       <1> njl  6/29/94 9:50 PM        First written
+#
+#   This program calculates the number of days between the current date
+#   and the date specified on the command line, and writes this number to
+#   &output.  This is useful if you want to know how many days it is
+#   until a birthday, wedding day, etc.
+#
+#   The date on the command line can be specified in a variety of ways.
+#   For instance, if you wanted to know how many days it is until
+#   August 12 (my birthday), you could specify it as "August 12", "Aug 12",
+#   "12 August", or "12 aUGuS", among others.  The match is case
+#   insensitive, and the arguments will be accepted as long as exactly
+#   one of them is an integer, and if there are exactly two arguments.
+#
+###########################################################################
+#
+#   NumberOfDays(sMonth, iDay, iYear) : iNumberOfDays
+#
+#   NumberOfDays() returns the number of days into iYear that sMonth/iDay
+#   occurs.  For instance, NumberOfDays("February", 28) returns 59, since
+#   it is the 59th day into any year.  Leap years from 1901 until 2099
+#   are taken into account.  It fails if any parameters are bad.
+#
+#   Defaults:
+#       sMonth  current month
+#       iDay    current day of the current month
+#       iYear   current year
+#
+############################################################################
+
+procedure NumberOfDays(sMonth, iDay, iYear)
+
+	static	LMonths
+	static	LDays
+	static	sThisMonth
+	static	iThisDay
+	static	iThisYear
+	local	iDays
+	local	i
+
+	initial {	
+		LMonths := [
+			"january",
+			"february",
+			"march",
+			"april",
+			"may",
+			"june",
+			"july",
+			"august",
+			"september",
+			"october",
+			"november",
+			"december"
+		]
+
+		LDays := [
+			31,
+			28,
+			31,
+			30,
+			31,
+			30,
+			31,
+			31,
+			30,
+			31,
+			30
+		]
+
+		&dateline ? {
+			&pos := find(" ") + 1
+			sThisMonth := tab(find(" "))
+			&pos +:= 1
+			iThisDay := integer(tab(find(",")))
+			&pos +:= 2
+			iThisYear := integer(move(4))
+		}
+	}
+
+	/sMonth := sThisMonth
+	/iDay := iThisDay
+	/iYear := iThisYear
+
+	sMonth := string(sMonth) | fail
+	iDay := integer(iDay) | fail
+	iYear := integer(iYear) | fail
+
+	if 0 ~= iYear % 4 then {
+		LDays[2] := 28
+	} else {
+		LDays[2] := 29
+	}
+
+	iDays := iDay
+	every i := 1 to *LMonths do {
+		if CaselessMatch(sMonth, LMonths[i]) then {
+			return iDays
+		}
+		iDays +:= LDays[i]
+	}
+
+end
+
+
+############################################################################
+#
+#   CaselessMatch(s1, s2, i1, i2) : i3  caseless match of initial string
+#
+#	CaselessMatch(s1, s2, i1, i2) produces i1 + *s1 if
+#   map(s1) == map(s2[i1+:*s1]) but fails otherwise.
+#
+#   This is the same as the built-in function match(), except the
+#   comparisons are done without regard to case.
+#
+#   Defaults:
+#       s2      &subject
+#       i1      &pos if s2 is defaulted, otherwise 1
+#       i2      0
+#
+#   Errors:
+#       101     i1 or i2 not integer
+#       103     s1 or s2 not string
+#
+############################################################################
+
+procedure CaselessMatch(s1, s2, i1, i2)
+
+	s1 := map(string(s1))
+	/i1 := (/s2 & &pos)
+	s2 := map(string(s2) | (/s2 & &subject))
+
+	return match(s1, s2, i1, i2)
+	
+
+end
+
+
+############################################################################
+#
+#   Usage(fErrout, iStatus)     write usage message to fErrout and exit
+#
+#   Usage(fErrout, iStatus) writes the usage message to file fErrout
+#   and exits with exit status code iStatus
+#
+#   Defaults:
+#       fErrout  &errout
+#       iStatus  1
+#
+############################################################################
+
+procedure Usage(fErrout, iStatus)
+
+	/fErrout := &errout
+	iStatus := (integer(iStatus) | 1)
+
+	write(fErrout, "Usage: DaysTil sMonth iDay")
+	exit(iStatus)
+
+end
+
+
+############################################################################
+#
+#   main(LArguments)
+#
+#	main(LArguments) checks to make sure there are two arguments, exactly
+#   one of which is an integer.  If so, it tries to calculate the number
+#   of days between the current date and the date specified, taking into
+#   account if the specified date occurs after today's date only in the
+#   following year.  On a parameter error, it writes the usage message
+#   to &errout and exits with status 1.  Otherwise, it writes the number
+#   of days to &output and exits with status 0.
+#
+############################################################################
+
+procedure main(LArguments)
+
+	local	sArgument
+	local	sMonth
+	local	iDay
+	local	iToday
+	local	iNumberOfDays
+
+
+	if 2 ~= *LArguments then {
+		Usage()
+	}
+
+	every sArgument := !LArguments do {
+		(iDay := integer(sArgument)) | (sMonth := sArgument)
+	}
+
+	if /iDay | /sMonth then {
+		Usage()
+	}
+	
+	iToday := NumberOfDays()
+	iNumberOfDays := NumberOfDays(sMonth, iDay) | Usage()
+	if iNumberOfDays < iToday then {
+		iNumberOfDays := NumberOfDays("december", 31) + NumberOfDays(sMonth, iDay, integer(&date[1+:4]) + 1)
+	}
+	
+	write(iNumberOfDays - iToday)
+
+end
+

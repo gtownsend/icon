@@ -1,0 +1,48 @@
+############################################################################
+#
+#	File:     rgbrec.icn
+#
+#	Subject:  Procedure to produce RGB record from color specification
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 23, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure produces a three-field RGB record from an Icon color
+#  specification.  It fails id its argument is not a valid color specifi-
+#  cation.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+record rgb(r, g, b)
+
+procedure rebrec(s)
+   local result
+
+   s := ColorValue(s) | fail
+
+   result := rgb()
+
+   s ? {
+      result.r := tab(upto(','))
+      move(1)
+      result.g := tab(upto(','))
+      move(1)
+      result.b := tab(0)
+      }
+
+   return result
+
+end
+
+

@@ -1,0 +1,355 @@
+############################################################################
+#
+#	File:     vframe.icn
+#
+#	Subject:  Procedures for pane frame vidgets
+#
+#	Author:   Jon Lipp
+#
+#	Date:     April 1, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Vidgets defined in this file:
+#
+# 	Vframe
+#	Vroot_frame
+#
+#  Utility procedures in this file:
+#
+# 	Vmin_frame_width()
+#	Vmin_frame_height()
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  vidgets
+#
+############################################################################
+
+link vidgets
+
+############################################################################
+#	frame vidget -
+#       Keeps track of panes.  Frames can contain
+#       sub-frames in a hierarchy.  Frames know their own absolute
+#       coordinates and the relative sizes and positions of their
+#       children (panes and sub-frames).  They determine positioning
+#       and size of each child, and route events.
+############################################################################
+
+record Vframe_rec(win, aw, ah, callback, id, lookup, draw, ax, ay,
+   uid, P, F, V)
+
+#
+#  Creation procedure for a Vframe.
+#	Specify its "own" utility procedures (V field).
+#	Specify "special" procedures (format, in F field).
+#	Get a unique id (uid).
+#	check implicit insertion, insert if necessary.
+#
+procedure Vframe(params[])
+   local self, procs, spec_procs, frame, x, y, ins
+
+   procs := Vstd(event_Vframe, draw_Vframe, outline_Vidget,
+      resize_Vframe, inrange_Vpane, init_Vframe,
+      couplerset_Vpane, insert_Vframe, remove_Vframe,
+      lookup_Vframe, set_abs_Vframe)
+   spec_procs := Vstd_dialog( , , format_Vframe)
+
+   if ins := Vinsert_check(params) then {
+      frame := pop(params); x := pop(params); y:= pop(params)
+      }
+   self := Vframe_rec ! params[1:6|0]
+   Vwin_check(self.win, "Vframe()")
+   if (\self.aw, not numeric(self.aw) ) then
+      _Vbomb("invalid aw parameter to Vframe()")
+   if (\self.ah, not numeric(self.ah) ) then
+      _Vbomb("invalid ah parameter to Vframe()")
+
+   self.uid := Vget_uid()
+   self.V := procs
+   self.F := spec_procs
+   self.P := Vstd_pos()
+   self.V.init(self)
+   if \ins then VInsert(frame, self, x, y)
+   return self
+end
+
+#
+#  Initialize procedure for Vframe.  Other frame types call this.
+#
+procedure init_Vframe(s)
+   s.lookup := []
+   s.draw := []
+end
+
+#
+#  draw the contents of the frame.
+#
+procedure draw_Vframe(s, erased)
+local p
+
+#  PMIcon: fixed bug; drawig before resize.
+   if /s.aw | /s.ah then _Vbomb("frame not resized yet")
+   /erased & EraseArea(s.win, s.ax, s.ay, s.aw, s.ah)
+   every p := !s.draw do p.V.draw(p, "erased")
+   s.V.outline(s)
+end
+
+#
+#  Set the absolute coordinates of everything on the draw list;
+#  Don't do it for Vline, it is special.
+#  It used to be that if the vidget is a Vpane,
+#  a resize event was sent, so that it would notify its callback.
+#  That "feature" has been commented out in the code below.
+#
+procedure resize_Vframe(s, x,y,wid,h)
+   local w, slots
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   resize_Vidget(s, x, y, wid, h)
+   every w := !s.draw do {
+      if (type(w) == "Vline_rec") then
+         w.V.resize(s, w)
+      else s.V.set_abs(s, w)
+#     if type(w) == "Vpane_rec" then
+#        w.V.event(w, -10)
+      }
+end
+#
+#  Determine the absolute coordinates of a vdiget based on its parent
+#  frame's absolute coordinates, and the "virtual" coordinates passed
+#  in upon creation.
+#  Allows for the fact that a pane can have relative
+#  position and size contraints intertwined with absolute.
+#
+procedure set_abs_Vframe(s, vid)
+local ax,ay,aw,ah, a, b, w, h, vx, vy, vw, vh
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   w := s.aw; h := s.ah
+   vx := vid.P.x; vy := vid.P.y
+   vw := vid.P.w; vh := vid.P.h
+
+   ax := s.ax + ( (vx <= -1, w + vx - (\vid.aw | 0)) |
+      (type(vx) == "real",
+      (-1 <= vx < 0, w - vx*w) |
+      (0 < vx <= 1, vx*w) ) | vx )
+   ay := s.ay + ( (vy <= -1, h + vy - (\vid.ah | 0)) |
+      (type(vy) == "real",
+      (-1 <= vy < 0, h - vy*h) |
+      (0 < vy <= 1, vy*h) ) | vy )
+
+   aw := (\vw, (type(vw) == "real", 0 < vw <= 1, vw*w) |
+      vw) | \vid.aw | w
+   ah := (\vh, (type(vh) == "real", 0 < vh <= 1, vh*h) |
+      vh) | \vid.ah | h
+   aw := integer(aw)
+   ah := integer(ah)
+
+## don't let kid be bigger than the frame.
+   if (a := aw + ax) > (b := s.aw + s.ax) then aw -:= (a-b)
+   if (a := ah + ay) > (b := s.ah + s.ay) then ah -:= (a-b)
+   vid.V.resize(vid, ax, ay, aw, ah)
+end
+
+#
+# Don't erase the vidget if erase is non-&null.
+#
+procedure remove_Vframe(s, pane, erase)
+local new, k
+
+   new := []
+   every k := !s.lookup do if k ~=== pane then put(new,k)
+   s.lookup := new
+   new := []
+   every k := !s.draw do if k ~=== pane then put(new,k)
+   s.draw := new
+
+   if /erase then VErase(pane)
+end
+
+#
+#  Insert a vidget into a frame.
+#
+procedure insert_Vframe(s, pane, x, y, w, h)
+local wc
+static image
+
+   initial image := proc("image", 0)	# protet attractive name
+
+#defaults
+   /x := 0
+   /y := 0
+   /w := \pane.aw
+   /h := \pane.ah
+   pane.P.x := x
+   pane.P.y := y
+   pane.P.w := w
+   pane.P.h := h
+   put(s.draw, pane)
+   if not (image(pane.V.event) ? find("null_proc") ) then
+      put(s.lookup, pane)
+   if (\s.ax, \s.ay, \s.aw, s.ah) then { # is this frame sized yet
+      if (type(pane) == "Vline_rec") then
+         pane.V.resize(s, pane)
+      else
+         s.V.set_abs(s, pane)
+   }
+end
+
+#
+#  Get events, lookup vidget based on (x, y), call its event loop.
+#
+procedure event_Vframe(s, e, x, y)
+local dest
+
+   if dest := s.V.lookup(s, x, y) then {
+      return dest.V.event(dest, e, x, y)
+   }
+end
+
+#
+#  For every vidget on lookup list, check if (x, y) lie within its
+#  boundaries.  Doesn't address overlapping vidgets.
+#
+procedure lookup_Vframe(s, x, y)
+local w
+
+   every w := !s.lookup do
+      if w.V.inrange(w, x, y) then
+         return w
+end
+
+#
+#  Determine and set the minumum bounding rectangle which encompasses
+#  all vidgets within the frame.  Restriction is that all vidgies must have
+#  been inserted with absolute coordinates and sizes.
+#
+procedure format_Vframe(self)
+   resize_Vidget(self, , , Vmin_frame_width(self), Vmin_frame_height(self))
+end
+
+
+############################################################################
+# Vroot_frame -
+# Root of the X-Idol event window demultiplexing recordes.
+# The root_frame record serves as the root for windows that are
+# subdivided.
+############################################################################
+
+procedure Vroot_frame(params[])
+   local self
+   static procs, spec_procs
+
+   initial {
+      procs := Vstd(event_Vroot_frame, draw_Vframe, null_proc,
+                   resize_Vroot_frame, inrange_Vpane, init_Vroot_frame,
+                   couplerset_Vpane, insert_Vframe, remove_Vframe,
+                   lookup_Vframe, set_abs_Vframe)
+      spec_procs := Vstd_dialog( , , format_Vframe)
+
+      VInit()
+   }
+
+   self := Vframe_rec ! params[1:2|0]
+   Vwin_check(self.win, "Vroot_frame()")
+   self.uid := Vget_uid()
+   self.V := procs
+   self.F := spec_procs
+   self.P := Vstd_pos()
+   self.V.init(self)
+   return self
+end
+
+procedure init_Vroot_frame(s)
+   s.ax := s.ay := 0
+   init_Vframe(s)
+end
+
+#
+#  Process events (same as for a frame).  Difference, is if we get a resize,
+#  resize all vidgets within, and redraw screen (no lookup performed).
+#
+procedure event_Vroot_frame(s,e,x,y)
+local dest
+
+   if e === &resize then {
+      s.V.resize(s)
+      return &null
+   }
+   else {
+      if dest:= s.V.lookup(s,x,y) then
+         return dest.V.event(dest,e,x,y)
+      else fail
+   }
+end
+
+#
+# The window was resized!  Well... reconfigure all the absolute
+# position and sizes for all panes.  This benefits relative values
+# the most.
+#
+procedure resize_Vroot_frame(s)
+
+   s.aw := WAttrib(s.win, "width")
+   s.ah := WAttrib(s.win, "height")
+   resize_Vframe(s, s.ax, s.ay, s.aw, s.ah)
+   s.V.draw(s)
+end
+
+############################################################################
+# Utility procedures for frames.
+############################################################################
+
+#
+# Min--- returns the minimum size of the frame that will encase all
+# children.  NOTE - this can only be determined if all the children
+# were inserted with absolute co-ords and sizes. I.e. positive and
+# integral x, y, w, & h.
+#
+procedure Vmin_frame_width(s)
+   local max, vid
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   max := 2
+   every vid := (!s.draw) do
+      if (type(vid) ~== "Vline_rec") then {
+         if type(vid.P.x) == "real" | type(vid.P.w) == "real" |
+            vid.P.x < 0 | vid.P.w < 0 then
+            _Vbomb("attempt to format a frame with non-absolute sized and positioned children")
+         max <:= (vid.P.x + vid.P.w )
+      }
+   return max
+end
+
+procedure Vmin_frame_height(s)
+   local max, vid
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   max := 2
+   every vid := (!s.draw) do
+      if (type(vid) ~== "Vline_rec") then {
+         if type(vid.P.y) == "real" | type(vid.P.h) == "real" |
+            vid.P.y < 0 | vid.P.h < 0 then
+            _Vbomb("attempt to format a frame with non-absolute sized and positioned children")
+         max <:= (vid.P.y + vid.P.h )
+      }
+   return max
+end

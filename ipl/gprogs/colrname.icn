@@ -1,0 +1,125 @@
+############################################################################
+# 
+#	File:     colrname.icn
+# 
+#	Subject:  Program to browse color names
+# 
+#	Author:   Clinton L. Jeffery
+#
+#	Date:     November 17, 1994
+# 
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.1
+#
+#	Extension to output color specification added by Ralph E. Griswold
+#
+############################################################################
+#
+#     An X color name browser.
+#
+#     Click on a colorname to change the window's background color.
+# Not very interesting on a monochrome server.
+#
+############################################################################
+#
+# Requires:  Version 9 graphics with mutable colors and X.
+#
+############################################################################
+#
+#  Links: isort, wopen
+#
+############################################################################
+
+link isort
+link wopen
+
+global w, L, startcols, rows, theBackGround
+
+procedure drawit()
+   local curcol, i, maxcol
+   curcol := 1
+   i := 0
+   startcols := [1]
+   maxcol := 0
+   every name := !L do {
+      maxcol <:= *name
+      GotoRC(i % rows + 1,curcol)
+      writes(&window,name)
+      i +:= 1
+      if (i>0) & (i % rows = 0) then {
+	 curcol +:= maxcol + 2
+	 maxcol := 0
+	 put(startcols,curcol)
+	 }
+      }
+end
+
+
+procedure doevents()
+   local e, varcol, lastvarcol, lastrow
+   repeat {
+      Active()
+      while Pending()[1] do {
+	 e := Event()
+	 case e of {
+            "o":      write(ColorValue(\name))
+	    "q"|"\e": exit(0)
+	    &lpress|&mpress|&rpress|&ldrag|&mdrag|&rdrag: {
+	       varcol := 0
+	       every &col >= !startcols do varcol +:= 1
+	       if varcol === lastvarcol & &row===lastrow then next
+	       lastvarcol := varcol
+	       lastrow := &row
+	       name := L[(varcol-1)*rows+&row]
+	       Color(theBackGround,name)
+	       WAttrib("label=Color Names: " || name)
+	    }
+	 }
+      }
+   }
+end
+
+procedure main(av)
+   local filename, f, i, t, max, line, t2, r, g, b, rgb
+
+   filename := av[1] | "/usr/lib/X11/rgb.txt"
+   WOpen("label=Color Names","x","cursor=on","lines=50","columns=175") |
+      stop("no window")
+   rows := WAttrib("lines")
+   f := open(filename) | stop("no rgb.txt")
+
+   theBackGround := NewColor("white")
+   Bg(theBackGround)
+   EraseArea()
+
+   i := 1
+   t := set()
+   t2 := table() # skip redundant colors by storing their rgb
+   max := 0
+   every line := !f do {
+      line ? {
+	 tab(upto(&digits))
+	 r := tab(many(&digits))
+	 tab(upto(&digits))
+	 g := tab(many(&digits))
+	 tab(upto(&digits))
+	 b := tab(many(&digits))
+	 rgb := ishift(r,16)+ishift(g,8)+b
+	 name := (tab(upto(&letters)) & tab(0))
+	 if /t2[rgb] := name then {
+	    insert(t,name)
+	    max <:= *name
+	    i +:= 1
+	    }
+	 }
+      }
+   L := isort(t)
+
+   drawit()
+   doevents()
+end

@@ -1,0 +1,37 @@
+############################################################################
+#
+#	File:     showcolr.icn
+#
+#	Subject:  Program to list colors in Icon palettes
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 14, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program produces files of color specifications for all of Icon's
+#  built-in palettes.  The output is written to a file whose base name is
+#  the palette and whose suffix is ".clr".
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+procedure main()
+   local palette, output
+
+   every palette := ("c" || (1 to 6)) | ("g" || (2 to 256)) do {
+      output := open(palette || ".clr", "w") |
+         stop("*** cannot open output file for palette ", palette)
+      every write(output, PaletteColor(palette, !PaletteChars(palette)))
+      close(output)
+      }
+
+end

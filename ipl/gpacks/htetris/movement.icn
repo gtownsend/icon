@@ -1,0 +1,383 @@
+############################################################################
+#
+# File  :   movement.icn
+# Author:   Henrik Sandin
+# Date  :   May 3, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# This file contains procedures for brick movement.
+# A brick can be moved on left, right, up and down on a pane.
+# The procedures for determining if a brick can be moved in its current
+# position in the underlying pane matrix, uses the values of the given
+# brick matrix that represents the current state of the brick to be moved.
+# A brick can also be "slammed down", it gets stuck instantly as far down
+# as possible on the pane in its current horizontal position.
+#
+############################################################################
+
+############################################################################
+#
+# Procedure: can_move_right
+# Arguments: matrix - Matrix of a brick.
+# Returns  : Nothing.
+#
+# This procedure determines if a brick can be moved to the right or not.
+# The position in the pane matrix one column to the right of each far right,
+# non-transparent element of the given brick matrix is examined.
+# If one such element of the pane matrix is "filled", the brick represented
+# by the given matrix can not be moved to the right and failure occurs.
+#
+############################################################################
+
+procedure can_move_right( matrix)
+
+    every r := 1 to *matrix do {
+	c := *matrix[1]
+	while matrix[r][c].transparent = TRUE do
+	    c := c-1
+	if pane_matrix[matrix[r][c].row_nr][matrix[r][c].col_nr+1] = FILLED then
+	    fail
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: can_move_left
+# Arguments: matrix - Matrix of a brick.
+# Returns  : Nothing.
+#
+# This procedure determines if a brick can be moved to the left or not.
+# The position in the pane matrix one column to the left of each far left,
+# non-transparent element of the given brick matrix is examined.
+# If one such element of the pane matrix is "filled", the brick represented
+# by the given matrix can not be moved to the left and failure occurs.
+#
+############################################################################
+
+procedure can_move_left( matrix)
+
+    every r := 1 to *matrix do {
+	c := 1
+	while matrix[r][c].transparent = TRUE do
+	    c := c+1
+	if pane_matrix[matrix[r][c].row_nr][matrix[r][c].col_nr-1] = FILLED then
+	    fail
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: can_move_down
+# Arguments: matrix - Matrix of a brick.
+# Returns  : Nothing.
+#
+# This procedure determines if a brick can be moved down or not.
+# The position in the pane matrix one row below of each bottom-edge,
+# non-transparent element of the given brick matrix is examined.
+# If one such element of the pane matrix is "filled", the brick represented
+# by the given matrix can not be moved down and failure occurs.
+#
+############################################################################
+
+procedure can_move_down( matrix)
+
+    every c := 1 to *matrix[*matrix] do {
+	r := *matrix
+	while matrix[r][c].transparent = TRUE do
+	    r := r-1
+	if pane_matrix[matrix[r][c].row_nr+1][matrix[r][c].col_nr] = FILLED then
+	    fail
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: can_flip
+# Arguments: matrix - A matrix representing a rotated brick.
+# Returns  : Nothing.
+#
+# This procedure determines if a brick can be rotated or not.
+# The argument is a matrix representing a brick after the intended rotation.
+# If the "virtual" brick represented by this matrix can be drawn in its
+# current position, the original brick can be rotated accordingly.
+# Failure occurs if the given matrix covers any "filled" element in the
+# pane matrix, since the not yet rotated brick then can not be rotated
+# without crossing another, already stuck brick.
+#
+############################################################################
+
+procedure can_flip( matrix)
+
+    every r := 1 to *matrix do
+	every c := 1 to *matrix[r] do {
+	    element := matrix[r][c]
+	    if element.col_nr < 1                                   |
+	       pane_matrix[element.row_nr][element.col_nr] = FILLED then
+		fail
+	}
+    return
+end
+
+############################################################################
+#
+# Procedure: move_right
+# Arguments: pane   - Pane to update.
+#            matrix - Matrix of a brick.
+# Returns  : Nothing.
+#
+# This procedure moves a brick on the given pane to the right by updating
+# its matrix and graphicaly the pane.
+#
+############################################################################
+
+procedure move_right( pane, matrix)
+
+    every r := 1 to *matrix do
+	every c := 1 to *matrix[r] do
+	    matrix[r][c].col_nr := (matrix[r][c].col_nr)+1
+    
+    every r := 1 to *matrix do
+	every c := 1 to *matrix[r] do
+	    if matrix[r][c].transparent = FALSE then
+		EraseArea( pane,
+			   (matrix[r][c].col_nr-3)*20,
+			   (matrix[r][c].row_nr-1)*20,
+			   20, 20)
+    DrawImage( pane,
+	       (matrix[1][1].col_nr-2)*20,
+	       (matrix[1][1].row_nr-1)*20,
+	       current_images[1])
+    return
+end
+
+############################################################################
+#
+# Procedure: move_left
+# Arguments: pane   - Pane to update.
+#            matrix - Matrix of a brick.
+# Returns  : Nothing.
+#
+# This procedure moves a brick on the given pane to the left by updating
+# its matrix and graphicaly the pane.
+#
+############################################################################
+
+procedure move_left( pane, matrix)
+
+    every r := 1 to *matrix do
+	every c := 1 to *matrix[r] do
+	    matrix[r][c].col_nr := (matrix[r][c].col_nr)-1
+	
+    every r := 1 to *matrix do
+	every c := 1 to *matrix[r] do
+	    if matrix[r][c].transparent = FALSE then
+		EraseArea( pane,
+			   (matrix[r][c].col_nr-1)*20,
+			   (matrix[r][c].row_nr-1)*20,
+			   20, 20)
+    DrawImage( pane,
+	       (matrix[1][1].col_nr-2)*20,
+	       (matrix[1][1].row_nr-1)*20,
+	       current_images[1])
+    return
+end
+
+############################################################################
+#
+# Procedure: move_down
+# Arguments: pane   - Pane to update.
+#            matrix - Matrix of a brick.
+# Returns  : Nothing.
+#
+# This procedure moves a brick on the given pane down by updating its
+# matrix and graphicaly the pane.
+#
+############################################################################
+
+procedure move_down( pane, matrix)
+
+    every r := 1 to *matrix do
+	every c := 1 to *matrix[r] do
+	    matrix[r][c].row_nr := (matrix[r][c].row_nr)+1
+    
+    every r := 1 to *matrix do
+	every c := 1 to *matrix[r] do
+	    if matrix[r][c].transparent = FALSE then
+		EraseArea( pane,
+			   (matrix[r][c].col_nr-2)*20,
+			   (matrix[r][c].row_nr-2)*20,
+			   20, 20)
+    DrawImage( pane,
+	       (matrix[1][1].col_nr-2)*20,
+	       (matrix[1][1].row_nr-1)*20,
+	       current_images[1])
+    return
+end
+
+############################################################################
+#
+# Procedure: move_up
+# Arguments: pane   - Pane to update.
+#            matrix - Matrix of a brick.
+# Returns  : Nothing.
+#
+# This procedure moves a brick on the given pane up by updating its
+# matrix and graphicaly the pane.
+# This procedure is only used in the initial animation and not in the game.
+#
+############################################################################
+
+procedure move_up( pane, matrix)
+
+    every r := 1 to *matrix do
+	every c := 1 to *matrix[r] do
+	    matrix[r][c].row_nr := (matrix[r][c].row_nr)-1
+    
+    every r := 1 to *matrix do
+	every c := 1 to *matrix[r] do
+	    if matrix[r][c].transparent = FALSE then
+		EraseArea( pane,
+			   (matrix[r][c].col_nr-2)*20,
+			   (matrix[r][c].row_nr)*20,
+			   20, 20)
+    DrawImage( pane,
+	       (matrix[1][1].col_nr-2)*20,
+	       (matrix[1][1].row_nr-1)*20,
+	       current_images[1])
+    return
+end
+
+############################################################################
+#
+# Procedure: flip
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure rotates a brick. Bricks are rotated counter clockwise 90
+# degrees at a time. The matrix representing the current brick when it
+# is rotated is updated with the current pane matrix positions using the
+# flip offset and is then sent to 'can_flip' to check if it is possible
+# to perform a rotation.
+# If it is okay to rotate, the current matrix and image lists are rotated
+# so that the matrix and image of the rotated brick comes first in the lists.
+# When a brick is rotated, the flip offset must be negated, since the number
+# of rows and columns of the current brick matrix switch roles.
+# The previous (unrotated brick) is then erased, and the rotated brick
+# is drawn in its new position (which has already been determined before
+# the call to 'can_flip').
+#
+############################################################################
+
+procedure flip()
+
+    prev_matrix := current_matrices[1]
+    matrix      := current_matrices[2]
+    
+    new_row := prev_matrix[1][1].row_nr + flip_offset
+    every r := 1 to *matrix do {
+	new_col := prev_matrix[1][1].col_nr - flip_offset
+	every c := 1 to *matrix[r] do {
+	    matrix[r][c].row_nr := new_row
+	    matrix[r][c].col_nr := new_col
+	    new_col := new_col+1
+	}
+	new_row := new_row+1
+    }
+    if can_flip( matrix) then {
+	flip_offset := -flip_offset
+	put( current_images, get( current_images))
+	put( current_matrices, get( current_matrices))
+	
+	EraseArea( game_pane,
+		   (prev_matrix[1][1].col_nr-2)*20,
+		   (prev_matrix[1][1].row_nr-1)*20,
+		   (*prev_matrix[1])*20,
+		   (*prev_matrix)*20)
+	DrawImage( game_pane,
+		   (matrix[1][1].col_nr-2)*20,
+		   (matrix[1][1].row_nr-1)*20,
+		   current_images[1])
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: fall
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure determines if a brick can fall one row, and in that case
+# moves it down. If the brick can't be moved down, it gets stuck and
+# the next brick is fetched.
+#
+############################################################################
+
+procedure fall()
+
+    matrix := current_matrices[1]
+    
+    if can_move_down( matrix) then
+	move_down( game_pane, matrix)
+    else {
+	get_stuck()
+	fetch_next()
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: slam
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure makes a falling brick get stuck directly as far down on
+# the pane as possible in the same vertical line.
+# A copy of the matrix is first made since it is modified by a series of
+# "move down" operations. The copy is used to erase the brick at the
+# position it was when slam was called.
+# The original matrix is (conceptually) moved (and updated accordingly) down
+# until 'can_move_down' fails and it has to get stuck (again, conceptually).
+# Erasing of the brick on the actual pane is done 'square-by-square' rather
+# than one rectangle covering the whole brick so that no part of another
+# brick is erased by mistake.
+# Finally, the brick is drawn in its final position.
+#
+############################################################################
+
+procedure slam()
+
+    matrix     := current_matrices[1]
+    old_matrix := copy_matrix( matrix)
+
+    while can_move_down( matrix) do
+	every r := 1 to *matrix do
+	    every c := 1 to *matrix[r] do
+		matrix[r][c].row_nr := matrix[r][c].row_nr+1
+
+    every r := 1 to *old_matrix do
+	every c := 1 to *old_matrix[r] do
+	    if old_matrix[r][c].transparent = FALSE then
+		EraseArea( game_pane,
+			   (old_matrix[r][c].col_nr-2)*20,
+			   (old_matrix[r][c].row_nr-1)*20,
+			   20, 20)
+    DrawImage( game_pane,
+	       (matrix[1][1].col_nr-2)*20,
+	       (matrix[1][1].row_nr-1)*20,
+	       current_images[1])
+
+    get_stuck()
+    fetch_next()
+    return
+end
+

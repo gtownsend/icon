@@ -1,0 +1,71 @@
+############################################################################
+#
+#	File:     typesyms.icn
+#
+#	Subject:  Procedure to map type codes to event codes
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 8, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  typesyms() returns a table that maps type codes to event codes.  The
+#  table can be subscripted either by one-character strings in the style
+#  of typecode() or by the integer values given by T_type globals.
+#
+#  This procedure is intended for use with event monitors running under
+#  MT Icon.
+#
+############################################################################
+#
+#  See also: typecode.icn
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+$include "evdefs.icn"
+
+procedure typesyms()
+   static typetable
+
+   initial {
+      typetable := table()
+
+      typetable["L"] := E_List
+      typetable["S"] := E_Set
+      typetable["T"] := E_Table
+      typetable["R"] := E_Record
+      typetable["s"] := E_String
+      typetable["c"] := E_Cset
+      typetable["i"] := E_Integer
+      typetable["r"] := E_Real
+      typetable["f"] := E_File
+      typetable["n"] := E_Null
+      typetable["p"] := E_Proc
+      typetable["C"] := E_Coexpr
+
+      typetable[T_List] := E_List
+      typetable[T_Set] := E_Set
+      typetable[T_Table] := E_Table
+      typetable[T_Record] := E_Record
+      typetable[T_String] := E_String
+      typetable[T_Cset] := E_Cset
+      typetable[T_Integer] := E_Integer
+      typetable[T_Real] := E_Real
+      typetable[T_File] := E_File
+      typetable[T_Null] := E_Null
+      typetable[T_Proc] := E_Proc
+      typetable[T_Coexpr] := E_Coexpr
+      }
+
+   return typetable
+
+end

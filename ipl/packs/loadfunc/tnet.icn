@@ -1,0 +1,54 @@
+############################################################################
+#
+#	File:     tnet.icn
+#
+#	Subject:  Program to talk to telnet port
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 16, 1994
+#
+############################################################################
+#
+#  Usage:  tnet hostname portnumber
+#
+#  This is a VERY simple telnet client.  It connects to a remote port
+#  and exchanges data between the port and the terminal.  The port is
+#  read and echoed to the terminal until the port is quiet for 200 msec;
+#  then one line from the terminal is sent to the port.  This process
+#  repeats until an EOF is read from either source.
+#
+#  Some interesting port numbers can usually be found in /etc/services.
+#  For example, network news is read from a news server using port 119.
+#
+#  This program does not work under Irix because poll(2) always returns 1.
+#
+############################################################################
+
+$include "libnames.icn"
+
+global fpoll, tconnect
+
+procedure main(args)
+   local h, p, f, s
+
+   fpoll := loadfunc(FUNCLIB, "fpoll")
+   tconnect := loadfunc(FUNCLIB, "tconnect")
+
+   h := args[1] | &host		# default is current host
+   p := integer(args[2]) | 13	# default is port 13 (time of day)
+
+   f := tconnect(h, p) | stop("can't connect to port ", p, " of ", h)
+
+   fpoll(f, 2000)		# wait up to 2 sec for initial response
+   repeat {
+      while fpoll(f, 200) do	# read characters from port until timeout
+         writes(reads(f)) | { write("EOF"); break break }
+      writes("\n> ")		# issue prompt
+      s := read() | break	# read line from terminal
+      seek(f)			# enable switch from input to output
+      flush(f)			# workaround for Dec Alpha bug
+      write(f, s)		# write terminal input to port
+      seek(f)			# enable switch from output to input
+      }
+end

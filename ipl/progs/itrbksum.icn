@@ -1,0 +1,51 @@
+############################################################################
+#
+#	File:     itrbksum.icn
+#
+#	Subject:  Program to give summary of traceback
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 14, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program summarizes traceback information produced on error
+#  termination by filtering out the bulk of the procedure tracebak
+#  information.
+#
+#  Expect various options in future versions.
+#
+############################################################################
+
+$define CountWidth 10
+
+procedure main()
+   local line, count
+
+   while line := read() do {
+      if line ? =("Trace back:" | "Traceback") then break
+      else write(line)
+      }
+
+   write()
+   write(read())
+
+   count := 0
+   while line := read() do
+      count +:= 1
+
+   every 1 to 3 do
+      write("\t.")
+
+   write(line)
+
+   write()
+
+   write("at level ", count)
+
+end

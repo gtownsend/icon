@@ -1,0 +1,38 @@
+############################################################################
+#
+#	File:     xrotate.icn
+#
+#	Subject:  Procedure to rotate values in list or record
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 30, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  xrotate(X, i) rotates the values in X right by one position.  It works
+#  for lists and records.
+#
+#  This procedure is mainly interesting as a recursive version of
+#
+#	x1 :=: x2 :=: x3 :=: ... xn
+#
+#  since a better method for lists is
+#
+#	push(L, pull(L))
+#
+############################################################################
+
+procedure xrotate(X, i)
+
+   /i := 1
+
+   X[i] :=: xrotate(X, i + 1)
+
+   return X[i]
+
+end

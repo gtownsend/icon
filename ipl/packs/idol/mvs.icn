@@ -1,0 +1,99 @@
+#
+# @(#)mvs.icn	1.3 5/5/90
+# OS-specific code for MVS Idol
+# Adapted from os2.icn by Alan Beale (4/29/90)
+# Modified by cjeffery (9/27/90)
+#
+global icontopt,cd,md,env,sysok,sysopen
+
+procedure mysystem(s)
+  if \loud then write(s)
+  return system(s)
+end
+
+procedure filename(s,ext)
+  s $<9:0$> := ""
+  if \ext then return qualify(map(s, "_", "#"),ext)
+  else return map(s, "_", "#")
+end
+procedure writesublink(s)
+  writelink(qualify(map(s, "_", "#"),".u1"))
+end
+procedure envpath(filename)
+  return filename
+end
+#
+# Installation.
+# Uses hierarchical filesystem on some systems (see initialize)
+#
+procedure install(args)
+  fout := envopen("i#object.icn","w")
+  write(fout,"record idol_object(__state,__methods)")
+  close(fout)
+  fout := &null
+  cdicont($<"i#object"$>)
+end
+procedure uninstall(args)
+  # not implemented yet
+end
+
+procedure makeexe(args,i)
+  exe := args$<i$>
+  if icont(exe) = \sysok then {
+      mysystem("delete "||qualify(exe, ".icn"))
+      if \exec then {
+	write("Executing:")
+	exe := "iconx "||exe
+	every i := exec+1 to *args do exe ||:= " "||args$<i$>
+	mysystem(exe)
+      }
+  }
+end
+#
+# system-dependent compilation of idolfile.icn
+#   (in the idol subdirectory, if there is one)
+#
+procedure cdicont(idolfiles)
+
+  if comp = -2 then return  # -t --> don't call icont at all
+  args := " -c"
+  every ifile := !idolfiles do args ||:= " " || ifile
+  mysystem("icont " || args)
+  return
+end
+#
+# force .icn files to receive large line size, hoping to avoid
+# output line splitting
+#
+procedure myopen(file, mode)
+  if not(f := open(file,mode,if mode ~== "r" then
+                             "recfm=v,reclen=4000" else &null)) then
+    halt("Couldn't open file ", file, " for mode ", mode)
+  return f
+end
+#
+# generate a file name from a root and a qualifier.  This procedure
+# is required in MVS due to the file.icn(member) syntax!
+#
+procedure qualify(root, qual)
+   if (i := upto('(', root)) then
+      return root$<1:i$> || qual || root$<i:0$>
+   else return root || qual
+end
+#
+# remove a qualifier from a file name (but leave any member name
+# intact).  Fail if qualifier not found.
+#
+procedure fileroot(name, qual)
+   if not (i := find(qual, name)) then fail
+   if  name$<i+*qual$> ~== "(" then fail
+   name$<i+:*qual$> := ""
+   return name
+end
+
+procedure sysinitialize()
+  icontopt := " -Sr500 -SF30 -Si1000 "
+  sysok := 0
+  sysopen := myopen
+end
+

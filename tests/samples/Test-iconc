@@ -1,0 +1,12 @@
+for i in *.icn
+do
+p=`basename $i .icn`
+   rm -f local/$p.out
+   echo Compiling $p
+   ../../bin/iconc -s $p.icn
+   echo Running $p
+   ./$p <$p.dat >local/$p.out 2>&1
+   echo Checking $p
+   diff local/$p.out stand/$p.out
+   rm -f $p
+done

@@ -1,0 +1,37 @@
+############################################################################
+#
+#	File:     scale.icn
+#
+#	Subject:  Program to scale numeric values in visualization stream
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 20, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.  
+#
+############################################################################
+#
+#  This program scales the numerical channel of a visualization stream.
+#  It leaves color channel alone, if there is one.  Scale factor is
+#  given on command line; default 10.
+#
+#  Note:  This program can be used on a numerical stream.
+#
+############################################################################
+
+procedure main(args)
+   local factor, line, i
+
+   factor := \args[1] | 10
+
+   while line := read() do {
+      line ? {
+         i := tab(upto(' \t') | 0)
+         write(i * factor, tab(0))
+         }
+      }
+
+end

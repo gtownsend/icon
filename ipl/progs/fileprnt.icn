@@ -1,0 +1,105 @@
+############################################################################
+#
+#	File:     fileprnt.icn
+#
+#	Subject:  Program to display characters in file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 21, 1989
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This program reads the file specified as a command-line argument and
+#  writes out a representation of each character in several forms:
+#  hexadecimal, octal, decimal, symbolic, and ASCII code.
+#
+#     Input is from a named file rather than standard input, so that it
+#  can be opened in untranslated mode.  Otherwise, on some systems, input
+#  is terminated for characters like ^Z.
+#
+#     Since this program is comparatively slow, it is not suitable
+#  for processing very large files.
+#
+#     There are several useful extensions that could be added to this program,
+#  including other character representations, an option to skip an initial
+#  portion of the input file, and suppression of long ranges of identical
+#  characters.
+#
+############################################################################
+#
+#  Requires: co-expressions
+#
+############################################################################
+#
+#  Program note:
+#
+#     This program illustrates a situation in which co-expressions can be
+#  used to considerably simplify programming.  Try recasting it without
+#  co-expressions.
+#
+############################################################################
+
+procedure main(arg)
+   local width, chars, nonprint, prntc, asc, hex, sym, dec
+   local oct, ascgen, hexgen, octgen, chrgen, prtgen, c
+   local cnt, line, length, bar, input
+
+   input := open(arg[1],"u") | stop("*** cannot open input file")
+   width := 16
+   chars := string(&cset)
+   nonprint := chars[1:33] || chars[128:0]
+   prntc := map(chars,nonprint,repl(" ",*nonprint))
+
+   asc := table("   |")
+   hex := table()
+   sym := table()
+   dec := table()
+   oct := table()
+   ascgen := create "NUL" | "SOH" | "STX" | "ETX" | "EOT" | "ENQ" | "ACK" |
+      "BEL" | " BS" | " HT" | " LF" |  " VT" | " FF" | " CR" | " SO" | " SI" |
+      "DLE" | "DC1" | "DC2" | "DC3" | "DC4" | "NAK" | "SYN" |  "ETB" | "CAN" |
+      " EM" | "SUB" | "ESC" | " FS" | " GS" | " RS" | " US" | " SP"
+   hexgen := create !"0123456789ABCDEF" || !"0123456789ABCDEF"
+   octgen := create (0 to 3) || (0 to 7) || (0 to 7)
+   chrgen := create !chars
+   prtgen := create !prntc
+   every c := !&cset do {
+      asc[c] := @ascgen || "|"
+      oct[c] := @octgen || "|"
+      hex[c] := " " || @hexgen || "|"
+      sym[c] := " " || @prtgen || " |"
+      }
+   asc[char(127)] := "DEL|"			# special case
+
+   cnt := -1	# to handle zero-indexing of byte count
+
+   while line := reads(input,width) do {	# read one line's worth
+      length := *line	# may not have gotten that many
+      bar := "\n" || repl("-",5 + length * 4)
+      write()
+      writes("BYTE|")
+      every writes(right(cnt + (1 to length),3),"|")
+      write(bar)
+      writes(" HEX|")
+      every writes(hex[!line])
+      write(bar)
+      writes(" OCT|")
+      every writes(oct[!line])
+      write(bar)
+      writes(" DEC|")
+      every writes(right(ord(!line),3),"|")
+      write(bar)
+      writes(" SYM|")
+      every writes(sym[!line])
+      write(bar)
+      writes(" ASC|")
+      every writes(asc[!line])
+      write(bar)
+      cnt +:= length
+      }
+end

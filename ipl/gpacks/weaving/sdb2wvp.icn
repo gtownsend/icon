@@ -1,0 +1,51 @@
+############################################################################
+#
+#	File:     sdb2wvp.icn
+#
+#	Subject:  Program to convert sequence-draft data bases to include files
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 23, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  AD HOC.
+#
+#  Command-line arguments are converted into $defines in the output.
+#
+############################################################################
+#
+#  Links:  basename, weavutil, io, tables, xcode
+#
+############################################################################
+
+link basename
+link weavutil
+link io
+link tables
+link xcode
+
+procedure main(args)
+   local line, output, path, database, spec, name
+
+   weaving2			# mention to prevent deletion
+
+   database := xdecode(&input) | stop("*** cannot decode input")
+
+   put(args, "Background", "Reflect")	# run in background
+
+   every spec := database[!keylist(database)] do {
+      name := spec.name || ".wvp"
+      output := open(name, "w") |
+         stop("*** cannot open ", name, " for writing")
+      every write(output, "$define ", !args)
+      close(output)
+      write_spec(name, spec)
+      }
+
+end

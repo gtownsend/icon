@@ -1,0 +1,117 @@
+############################################################################
+#
+#	File:     xforms.icn
+#
+#	Subject:  Procedures to do matrix transformations
+#
+#	Author:   Stephen W. Wampler and Ralph E. Griswold
+#
+#	Date:     November 9, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures produce matrices for affine transformation in two
+#  dimentionsi and transform point lists.
+#
+#  A point list is a list of Point() records.  See gobject.icn
+#
+############################################################################
+#
+#  Links:  gobject
+#
+############################################################################
+
+link gobject
+
+procedure transform(p, M)		#: transform point list by matrix
+   local pl, i
+
+   # convert p to a matrix for matrix multiply...
+
+   every put((pl := [[]])[1], (!p)|1.0)	# the 1.0 makes it homogeneous
+
+   # do the conversion...
+
+   pl := mult_matrix(pl, M)
+
+   # convert list back to a point list...
+
+   p := copy(p)
+   every i := 1 to *p do
+      p[i] := pl[1][i]
+
+   return p
+
+end
+
+procedure transform_points(pl,M)	#: transform point list
+   local xformed
+
+   every put(xformed := [], !transform(!pl,M))
+
+   return xformed
+
+end
+   
+procedure set_scale(x, y)		#: matrix for scaling
+   local M
+
+   M := identity_matrix(3,3)
+
+   M[1][1] := x
+   M[2][2] := y
+
+   return M
+
+end
+
+procedure set_trans(x, y)		#: matrix for translation
+   local M
+
+   M := identity_matrix(3,3)
+
+   M[*M][1] := x
+   M[*M][2] := y
+
+   return M
+
+end
+
+procedure set_xshear(x)			#: matrix for x shear
+   local M
+
+   M :=  identity_matrix(3,3)
+
+   M[1][2] := x
+
+   return M
+
+end
+
+procedure set_yshear(y)			#: matrix for y shear
+   local M
+
+   M := identity_matrix(3,3)
+
+   M[2][1] := y
+
+   return M
+
+end
+
+procedure set_rotate(x)			#: matrix for rotation
+   local M
+
+   M := identity_matrix(3,3)
+   M[1][1] := cos(x)
+   M[2][2] := M[1][1]
+   M[1][2] := sin(x)
+   M[2][1] := -M[1][2]
+
+   return M
+
+end

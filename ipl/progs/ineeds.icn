@@ -1,0 +1,86 @@
+############################################################################
+#
+#	File:     ineeds.icn
+#
+#	Subject:  Program to print modules required by an Icon program
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     May 18, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#
+# Program to determine Icon modules required by an Icon module.  Expects
+# environment variable LPATH to be set properly as for the Icon Compiler.
+#
+############################################################################
+
+procedure main(arg)
+  local linkSet,doneSet,fn,f,line,linkName,libSet,a
+  libSet := set()
+  linkSet := set()
+  while a := get(arg) do {
+    if match("-I",a) then {
+      insert(libSet,"" ~== a[3:0] | get(arg))
+    }
+    else insert(linkSet,a)
+  }
+  every insert(libSet,PathDirs())
+  doneSet := set()
+  while fn := !linkSet do {
+    delete(linkSet,fn)
+    insert(doneSet,fn)
+    f := open(("" | !libSet) || fn || ".icn") | {
+      write(&errout,"Can't find \"",fn,"\"")
+      next
+    }
+    while line := read(f) do line ? {
+      if ="link" & tab(many(' \t')) then {
+        while linkName := trim(tab(upto(', \t#')) |
+        (not pos(0),tab(0)),' \t') do {
+      if not member(doneSet,linkName) then insert(linkSet,linkName)
+      if not ="," then break
+      tab(many(' \t'))
+    }
+      }
+    }
+    close(f)
+  }
+  every write(!sort(doneSet))
+end
+
+procedure PathDirs(s)
+#
+# Generate the directory names in a "path" string.
+#
+  local pathDir
+  static pathSep,fileSep
+  initial {
+    if match("MS-DOS" | "OS/2",&features) then {
+      pathSep := ";"
+      fileSep := "\\"
+    }
+    else if match("Macintosh",&features) then {
+      pathSep := ","
+      fileSep := ":"
+    }
+    else if match("UNIX",&features) then {
+      pathSep := ":"
+      fileSep := "/"
+    }
+  }
+  /s := getenv("LPATH")
+  \s ? {
+    until pos(0) do {
+      pathDir := tab(find(pathSep) | 0)
+      if not match(fileSep,pathDir,-1) then pathDir ||:= fileSep
+      suspend "" ~== pathDir
+      move(*pathSep)
+    }
+  }
+end

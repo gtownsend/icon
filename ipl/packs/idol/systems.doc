@@ -1,0 +1,66 @@
+This file contains system-dependent notes on Idol.  Compiling idolboot
+for your system requires a command of the form
+	icont -Sr1000 -SF30 -Si1000 idolboot system
+where system is the name of your system (so far amiga, mpw, msdos,
+mvs, os2, unix, or vms).
+
+UNIX
+
+If you are running UNIX, count yourself lucky!  The Idol distribution
+comes with a Makefile which ought to take care of things for you.
+
+MSDOS
+
+Due to memory limitations, Idol for MS-DOS Icon does not use the system()
+function.  Instead, it generates a batch file, idolt.bat, containing the
+sequence of commands required to finish the translation and linking of
+the output into executable icode.  The batch file idol.bat runs idol
+and then calls idolt for you; it should suffice in ordinary situations.
+It is invoked as described in the man page and reference manual, e.g.
+	C> idol idol msdos
+The file install.bat performs the initial bootstrap translation of idol.
+Note that the translation scripts cannot automatically remove .icn files,
+so you may have to remove them manually if your disk space is precious.
+
+VMS
+
+Idol compiles and runs under VMS Icon version 7.0, but its a little
+klunky; idol may fail to execute icont, or icont may fail to execute
+ilink (under version 7.0).  Unfortunately I do not have access
+to a VMS machine running a current version of Icon.  Note that there
+are two DCL scripts in the distribution: vms.com is used by Idol
+internally, while vmsidol.com is a convenience script if icont fails
+on your system when invoked from inside Idol.  You are encouraged to
+rename vmsidol.com to idol.com; it is not named idol.com to avoid
+a nasty situation for MS-DOS users where .com files are assumed to
+be binary executables!  Remember when specifying options to either idol
+or icont one must put quotes around the argument in order for VMS to
+leave it alone!
+
+OS/2
+
+Cheyenne Wills has provided us all with an OS/2 system file!
+Although problems should be reported to me, the credit is all his.
+
+MPW
+
+Charles Lakos has provided a system file for Icon running under the
+Macintosh Programmer's Workshop.  Icon source for class X is generated
+as C_X.icn.  After the Idol translation phase, the commands  for the
+Icon translation have been written to the MPW Worksheet.  They can 
+simply be selected and run.  Thanks Charles!
+
+AMIGA
+
+Idol runs fairly comfortably on Version 8 of Amiga Icon (it won't work
+with Version 7.5 of Amiga Icon).
+
+MVS
+
+Alan Beale has ported Idol to IBM mainframes running MVS.  This was a
+bigger job than most ports!  Thanks Alan.
+
+OTHERS
+
+Porting idol consists of writing a new system.icn file for your system.
+Take a look at unix.icn, vms.icn, os2.icn, mpw.icn, and msdos.icn.

@@ -1,0 +1,16 @@
+for i in `cat $1.lst`
+do
+   rm -f local/$i.out
+   echo Translating $i
+   ../../bin/icont -s $i.icn
+   echo Running $i
+   if test -r $i.dat
+   then
+      ../../bin/iconx $i <$i.dat >local/$i.out 2>&1
+   else
+      ../../bin/iconx $i >local/$i.out 2>&1
+   fi
+   echo Checking $i
+   diff local/$i.out stand/$i.out
+   rm -f $i
+done

@@ -1,0 +1,220 @@
+############################################################################
+#
+#  vibbttn.icn -- procedures for defining a button object
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+
+$include "vibdefn.icn"
+
+##########################################################################
+# button_obj:
+#    v       : vidget used for drawing text input object
+#    proc    : name of user callback procedure
+#    id      : unique means of identifying instance
+#    x,y,w,h : bounding box
+#    label   : button label
+#    style   : button style
+#    toggle  : is this a toggle button?
+#    dflt    : is this button the default in a dialog box?
+#    focus   : should focus lines be drawn around this object?
+##########################################################################
+record button_obj(v, proc, id, x, y, w, h,
+                  label, style, toggle, dflt, focus)
+
+
+##########################################################################
+# create_button() creates a button instance and draws the button if
+#                 it is a first class object.
+##########################################################################
+procedure create_button(x, y, w, h, label, style, toggle, dflt)
+   local r, id
+
+   id := next_id("button")
+   /style := DEFAULT_BUTTON_STYLE
+   r := button_obj(, "button_cb" || id, "button" || id,
+                     x, y, w, h, label, style, toggle, dflt, 0)
+   r.v := Vbutton(ROOT, x, y, APPWIN, label, , id, style, w, h)
+   VRemove(ROOT, r.v, 1)
+   return r
+end
+
+##########################################################################
+# draw_button() draws the given button in that button's style.
+##########################################################################
+procedure draw_button(r)
+   VResize(r.v, r.x, r.y, r.w, r.h)
+   VDraw(r.v)
+   if \r.dflt then
+      BevelRectangle(APPWIN, r.x - 4, r.y - 4, r.w + 8, r.h + 8, -2)
+   return r
+end
+
+##########################################################################
+# update_button_bb() updates various attributes of the button that
+#                    change when the button is resized, etc.
+##########################################################################
+procedure update_button_bb(r)
+   local tempy, temph, vpad, hpad, sp, sz
+
+   vpad := 4			# vertical padding
+   hpad := 7			# horizontal padding
+   sp := 11			# space between circle/box and text
+   r.w <:= MIN_W
+   r.h <:= MIN_H
+   case r.style of {
+      "check" | "circle" | "checkno" | "circleno": {
+         sz := integer(WAttrib(APPWIN, "fheight") * 0.75)
+         r.w <:= sz + sp + TextWidth(APPWIN, r.label) + hpad
+         r.h <:= WAttrib(APPWIN, "fheight") + vpad
+      }
+      "regular" | "regularno": {
+         r.w <:= TextWidth(APPWIN, r.label) + hpad
+         r.h <:= WAttrib(APPWIN, "fheight") + vpad
+      }
+      "xbox" | "xboxno": {
+         r.w <:= r.h
+         r.h <:= r.w
+         r.label := &null
+      }
+   }
+end
+
+##########################################################################
+# load_button() restores a button object from session code.
+##########################################################################
+procedure load_button(r, o)
+   r.label := o.lbl
+   r.style := o.sty
+   case o.num of {
+      "1":	r.toggle := 1
+      "-1":	r.dflt := 1
+      }
+   r.v := Vbutton(ROOT, r.x, r.y, APPWIN, r.label, , r.id, r.style, r.w, r.h)
+   VRemove(ROOT, r.v, 1)
+end
+
+##########################################################################
+# load_xbox() makes an xbox button object from an old checkbox entry.
+##########################################################################
+procedure load_xbox(r, o)
+   r.label := ""
+   r.style := "xbox"
+   r.toggle := 1
+end
+
+##########################################################################
+# save_button() augments the record for saving a button object.
+##########################################################################
+procedure save_button(r, o)
+   r.typ := "Button"
+   r.lbl := o.label
+   r.sty := o.style
+   if \o.dflt then
+      r.num := -1
+   else
+      r.num := o.toggle
+   return
+end
+
+##########################################################################
+# display_button_atts() displays the attribute sheet with the current
+#                       attributes for the given button instance.
+##########################################################################
+procedure display_button_atts(object)
+   local s, o, t, d
+
+   d := object.dflt
+
+   s := object.style
+   o := 1
+   if s[-2:0] == "no" then {
+      s := s[1:-2]
+      o := &null
+      }
+
+   t := table()
+   t["_style"]		:= s
+   t["_outline"]	:= o
+   t["_toggle"]		:= object.toggle
+   t["_dflt"]		:= object.dflt
+   t["a_label"]		:= object.label
+   t["b_id"]		:= object.id
+   t["c_callback"]	:= object.proc
+   t["d_x"]		:= object.x
+   t["e_y"]		:= object.y - CANVASY
+   t["f_width"]		:= object.w
+   t["g_height"]	:= object.h
+
+   repeat {
+      if button_dialog(t) == "Cancel" then
+         fail
+
+      if illegal(t["a_label"], "Label", "l") |
+         illegal(t["b_id"], "ID", "s") |
+         illegal(t["c_callback"], "Callback", "p") |
+         illegal(t["d_x"], "X", "i") |
+         illegal(t["e_y"], "Y", "i") |
+         illegal(t["f_width"], "Width", MIN_W) |
+         illegal(t["g_height"], "Height", MIN_H)
+      then
+         next
+
+      if t["_style"] ? ="xbox" & *t["a_label"] > 0 then {
+         Notice("No text is allowed with xbox style")
+         next
+      }
+      if \t["_toggle"] & \t["_dflt"] then {
+        Notice("A toggle button cannot be a dialog default")
+        next
+      }
+
+      object.style := t["_style"]
+      if /t["_outline"] then
+         object.style ||:= "no"
+
+      object.dflt	:= t["_dflt"]
+      object.toggle	:= t["_toggle"]
+      object.label	:= t["a_label"]
+      object.id		:= t["b_id"]
+      object.proc	:= t["c_callback"]
+
+      object.v.style	:= object.style
+      object.v.s	:= object.label
+
+      unfocus_object(object)
+      if /object.dflt & \d then			# remove default frame
+          EraseArea(object.x - 4, object.y - 4, object.w + 8, object.h + 8)
+      move_object(object,
+         t["d_x"], t["e_y"] + CANVASY, t["f_width"], t["g_height"])
+      focus_object(object)
+      break
+   }
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure button_dialog(win, deftbl)
+static dstate
+initial dstate := dsetup(win,
+   ["button_dialog:Sizer::1:0,0,392,240:",],
+   ["_cancel:Button:regular::211,189,50,30:Cancel",],
+   ["_dflt:Button:check:1:245,148,125,20:dialog default",],
+   ["_okay:Button:regular:-1:141,189,50,30:Okay",],
+   ["_outline:Button:check:1:245,85,76,20:outline",],
+   ["_style:Choice::4:142,85,78,84:",,
+      ["regular","check","circle","xbox"]],
+   ["_toggle:Button:check:1:245,116,76,20:toggle",],
+   ["a_label:Text::40:13,14,360,19:label:    \\=",],
+   ["b_id:Text::40:13,35,360,19:ID:       \\=",],
+   ["c_callback:Text::40:13,56,360,19:callback: \\=",],
+   ["d_x:Text::3:13,85,101,19:       x: \\=",],
+   ["e_y:Text::3:13,106,101,19:       y: \\=",],
+   ["f_width:Text::3:13,131,101,19:   width: \\=",],
+   ["g_height:Text::3:13,152,101,19:  height: \\=",],
+   )
+return dpopup(win, deftbl, dstate)
+end
+#===<<vib:end>>===	end of section maintained by vib

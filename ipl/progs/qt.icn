@@ -1,0 +1,47 @@
+############################################################################
+#
+#	File:     qt.icn
+#
+#	Subject:  Program to announce time in English
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     November 26, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Usage: qt [-a]
+#
+#  If -a is present, only the time is printed (for use in scripts), e.g.:
+#
+#	just after a quarter to three
+#
+#  otherwise, the time is printed as a sentence:
+#
+#	It's just after a quarter to three.
+#
+############################################################################
+#
+#  Links:  datetime
+#
+############################################################################
+
+link datetime
+
+procedure main(arg)
+   local pre,suf
+   if arg[1] == "-a" then {
+      pop(arg)
+      pre := suf := ""
+      }
+   else {
+      pre := "It's "
+      suf := "."
+      }
+   arg[1] | put(arg)
+   every write(pre,saytime(!arg),suf)
+end

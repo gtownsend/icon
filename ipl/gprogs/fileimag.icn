@@ -1,0 +1,62 @@
+############################################################################
+#
+#	File:     fileimag.icn
+#
+#	Subject:  Program to create GIF image of file text
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 8, 1997
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program creates an image file for a text file.  The results are
+#  unpredictable for binary files or files with control characters.
+#
+#  The image may be too large for a window.
+#
+#  Badly needed are options for the font.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  wopen
+#
+############################################################################
+
+link wopen
+
+procedure main(args)
+   local input, width, height, line
+
+   input := open(args[1]) | stop("*** cannot open file")
+
+   width := height := 0
+
+   while line := read(input) do {
+      height +:= 1
+      width <:= *line
+      }
+
+   height +:= 1
+
+   close(input)
+
+   input := open(args[1]) | stop("*** cannot re-open file")
+
+   WOpen("canvas=hidden", "columns=" || width, "lines=" || height) |
+      stop("*** cannot open window")
+
+   while WWrite(WRead(input))
+
+   WriteImage("untitled.gif")
+
+
+end

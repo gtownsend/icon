@@ -1,0 +1,105 @@
+############################################################################
+#
+#	File:     itab.icn
+#
+#	Subject:  Program to entab an Icon program
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     August 30, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  itab -- Entab an Icon program, leaving quoted strings alone.
+#
+#	itab [options] [source-program...]
+#
+#	options:
+#		-i	Input tab spacing (default 8)
+#		-o	Outut tab spacing (default 8)
+#
+#  Observes Icon Programming Language conventions for escapes and
+#  continuations in string constants.  If no source-program names are
+#  given, standard input is "itabbed" to standard output.
+#
+############################################################################
+#
+#  Links: options, io
+#
+############################################################################
+
+link options
+link io
+
+global mapchars,intabs,outtabs
+
+procedure main(arg)
+
+   local opt, fn, f, outfn, outf, f1, f2, buf
+
+   opt := options(arg,"i+o+")
+   intabs := (\opt["i"] | 8) + 1
+   outtabs := (\opt["o"] | 8) + 1
+   if *arg = 0 then itab(&input,&output)
+   else every fn := !arg do {
+      if not (fn[-4:0] == ".icn") then fn ||:= ".icn"
+      write(&errout,"Entabbing ",fn)
+      f := open(fn) | stop("Can't open input file ",fn)
+      outfn := fn || ".temp"
+      outf := open(outfn,"w") | stop("Can't open output file ",outfn)
+      itab(f,outf)
+      close(outf)
+      close(f)
+      fcopy(outfn,fn)
+      remove(outfn)
+      }
+end
+
+
+procedure itab(f,outf)
+   local line,c,nonwhite,comment,delim
+   line := ""
+   while c := readx(f) do {
+      if not any(' \t',c) then nonwhite := 1
+      case c of {
+	 "\n": {
+	    write(outf,map(entab(line,outtabs),\mapchars," \t") | line)
+	    line := ""
+	    nonwhite := comment := &null
+	    }
+	 "'" | "\"": {
+	    if /comment then
+		  (/delim := c) | (if c == delim then delim := &null)
+	    line ||:= c
+	    }
+	 "\\": line ||:= c || if /comment then readx(f) else ""
+	 "#": {
+	    if /delim then comment := c
+	    line ||:= c
+	    }
+	 default: {
+	    line ||:= if /comment & \delim & \nonwhite & \mapchars then
+		  map(c," \t",mapchars) else c
+	    }
+	 }
+      }
+   return
+end
+
+
+procedure readx(f)
+   static buf,printchars
+   initial {
+      buf := ""
+      printchars := &cset[33:128]
+      }
+   if *buf = 0 then {
+      buf := detab(read(f),intabs) || "\n" | fail
+      mapchars := (printchars -- buf)[1+:2] | &null
+      }
+   return 1(.buf[1],buf[1] := "")
+end

@@ -1,0 +1,89 @@
+.TH X-TILES 6 "16 February 97"
+.SH NAME
+X-Tiles - X windows game, remove connected tiles
+.SH SYNOPSIS
+.B X-Tiles
+[\fB-v\fR] [\fB-help|-h\fR]
+[\fB-bw\fR] [\fB-reduced\fR] [\fB-pastel\fR]
+[\fB-darker\fR] [\fB-lighter\fR]
+[\fIcolors\fR] [\fIcolumns\fR] [\fIlines\fR] [\fIseed\fR]
+[\fIbackground\fR]
+.SH DESCRIPTION
+.SS GAME PRINCIPLE
+\fIX-Tiles\fR is a time-waster disguised as a puzzle. When you start 
+\fIX-Tiles\fR, it displays a rectangular playfield filled with sets of colored
+rectangles (tiles). The aim of \fIX-Tiles\fR is to zap all tiles.
+You can only zap a 4-connected set of tiles of the same color. 
+When you click on such a set, it vanishes, and all tiles above fall down
+to fill the gap. When this creates empty columns, other columns slide
+leftward to fill the hole. \fIX-Tiles\fR ends when there is no set left that 
+you can zap, or in other words, when no two remaining adjacent tiles are of 
+the same color.
+.SS SCORING AND WINNING
+Each set you zap may reward you with some points.  Take the number of
+tiles of the set, substract two, and square the result. Notice that a set of
+2 tiles doesn't get you anything ! A sets of 3 tiles scores 1 point,
+a set of 4 tiles scores 4 points, a set of 5 tiles scores 9 points, and so on.
+
+When the game ends, the score is adjusted as follows: substract one point
+for each remaining lonesome tile. If you managed to zap all tiles, add
+1,000 points.
+.SS GAME CONTROLS
+During the game, moving the mouse pointer will highlight the corresponding
+set of tiles.  Any mouse click will zap that set.
+The bottom line of the window displays your score, along with the point
+value of the highlighted set. 
+
+You can undo the last move by clicking on the smiley face or by
+hitting \fIu\fR.
+
+At any point, hitting \fIq\fR will prompt you for quitting the game.
+Hitting \fIc\fR will offer you another choice of colors.
+
+When the game ends, you may hit \fIq\fR to quit,
+\fIn\fR to play a new game, or \fIr\fR to replay the current puzzle.
+.SH OPTIONS
+.IP "\fB-v\fR"
+Displays the version number.
+.IP "\fB-help|-h\fR"
+Short help message
+.IP "\fB-bw\fR"
+Start the game in black and white mode, even on colors display.
+.IP "\fB-reduced\fR"
+Start the game using less colors. May help with background pictures with
+lots of colors.
+.IP "\fB-pastel\fR"
+Uses less aggressive colors.
+.IP "\fB-darker\fR"
+Uses lighter colors.
+.IP "\fB-lighter\fR"
+Uses darker colors.
+.IP "\fIcolors\fR"
+Number of distinct colors. Should not be more than 12.  Interesting games
+usually involve 3 to 6 colors. Defaults to 4 when no parameters are given.
+.IP "\fIcolumns\fR"
+Number of columns. Defaults to 10, limited to range 4..40.
+.IP "\fIlines\fR"
+Number of lines. Defaults to the \fIcolumns\fR value, limited to range 
+4..40.
+.IP "\fIseed\fR"
+Random seed. Will be chosen randomly if you don't specify it.
+This is the value displayed by the game on startup. Write it down if you
+want to replay a given game later.
+.IP "\fIbackground\fR"
+File name of background image. Available formats depend on the actual Icon
+implementation used. gif should work alright. This image should leave enough
+entries in the colormap for \fIX-Tiles\fR's own use. 
+.SH BUGS AND FEATURES
+The game is mostly unplayable on slow machines or at large sizes. Not
+all combinations of board size/number of colors provide for an interesting
+game. There is no provision for a high-score table.
+
+Some color backgrounds may leave you with white on white game play or
+such non-sense.
+
+.SH AUTHOR
+Marc Espie (Marc.Espie@ens.fr)
+
+Based on the Amiga puzzle game \fITile Fall\fR, originally written by
+Adam Dawes (Adam@darkside.demon.co.uk)

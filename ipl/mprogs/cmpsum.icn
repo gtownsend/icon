@@ -1,0 +1,106 @@
+############################################################################
+#
+#	File:     cmpsum.icn
+#
+#	Subject:  Program to tabulate comparisons
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 27, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This tool tabulates comparisons.  It is called as
+#
+#	cmpsum prog
+#
+#  where prog is a program compiled under MT Icon whose events are to
+#  be tabulated.
+#	
+#  The options supported are:
+#
+#	-o s	write output to file s; default &output.
+#
+#	-t	record time spent in monitoring.
+#
+############################################################################
+#
+#  Requires:  MT Icon and event monitoring.
+#
+############################################################################
+#
+#  Links:  evinit, options, procname
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+link evinit
+link options
+link procname
+
+$include "evdefs.icn"
+
+procedure main(args)
+   local opts, itime, output, succtbl, failtbl, cmask, rmask, cmplist, op
+   local greater, greatereq, noteql, eql, less, lesseq, valeql, valnoteql
+   local strgreater, strgreatereq, strnoteql, streql, strless, strlesseq
+
+   opts := options(args, "o:t")
+
+   output := open(\opts["o"], "w") | &output
+
+   if \opts["t"] then itime := &time
+
+   EvInit(args) | stop("*** cannot load program")	# initialize interface
+
+   succtbl := table(0)
+   failtbl := table(0)
+
+   cmask := E_Ocall
+   rmask := E_Oret ++ E_Ofail
+
+   eql := proc("=", 2)
+   less := proc("<", 2)
+   lesseq := proc("<=", 2)
+   greater := proc(">", 2)
+   greatereq := proc(">=", 2)
+   noteql := proc("~=", 2)
+   streql := proc("==", 2)
+   strless := proc("<<", 2)
+   strlesseq := proc("<<=", 2)
+   strgreater := proc(">>", 2)
+   strgreatereq := proc(">>=", 2)
+   strnoteql := proc("~==", 2)
+   valeql := proc("===", 2)
+   valnoteql := proc("~===", 2)
+
+   while EvGet(cmask) do {
+      if (op := &eventvalue) === (
+         eql | less | lesseq | greater | greatereq | noteql |
+         streql | strless | strlesseq | strgreater | strgreatereq | strnoteql |
+         valeql | valnoteql
+         )  then {
+            EvGet(rmask)
+            if &eventcode === E_Oret then succtbl[op] +:= 1
+            else failtbl[op] +:= 1
+            }
+      }
+
+   write(output, "\nSuccessful comparisons:\n")
+   cmplist := sort(succtbl, 3)
+   while write(output, left(procname(get(cmplist)), 6), right(get(cmplist), 7))
+
+   write(output, "\nFailed comparisons:\n")
+   cmplist := sort(failtbl, 3)
+   while write(output, left(procname(get(cmplist)), 6), right(get(cmplist), 7))
+
+   write(output, "\nelapsed time: ", &time - \itime, "ms")
+
+end

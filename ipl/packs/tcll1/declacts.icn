@@ -1,0 +1,48 @@
+link readLL1
+record  LL1(sel,deflt,
+	terminals,actions,
+	fiducials,firstFiducials,
+	minLengRHS,
+	start,eoi)
+
+
+procedure main(L)
+local filename,baseFilename,flags,outfile
+local ll1
+flags := ""
+if L[1][1]=="-" then {
+	flags := L[1]
+	filename := L[2]
+} else {
+	filename:=L[1]
+}
+if /filename then
+	stop("usage: [iconx] tcll1 [flags] filename.ll1")
+
+baseFilename:=fileSuffix(filename)[1]
+if filename==(baseFilename||".inv") then
+	stop("will not write output over input")
+
+ll1:=readLL1(baseFilename||".ll1")
+
+if *ll1.actions > 0 then {
+	outfile:=open(baseFilename||".inv","r")
+	every write("invocable \"",!ll1.actions,"\"")
+}
+
+end
+
+#	From:     filename.icn in Icon Program Library
+#	Author:   Robert J. Alexander, 5 Dec. 89
+#	Modified: Thomas Christopher, 12 Oct. 94
+
+procedure fileSuffix(s,separator)
+   local i
+   /separator := "."
+   i := *s + 1
+   every i := find(separator,s)
+   return [s[1:i],s[(*s >= i) + 1:0] | &null]
+end
+
+
+

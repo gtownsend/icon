@@ -1,0 +1,575 @@
+############################################################################
+#
+#	File:     yahtz.icn
+#
+#	Subject:  Program to play yahtzee
+#
+#	Author:   Chris Tenaglia
+#
+#	Date:     March 3, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.3
+#
+############################################################################
+#
+#  Modified by Richard Goerwitz with corrections by Phillip Lee Thomas
+#
+############################################################################
+#
+#  This hacked version will run under UNIX, and under DOS as well.  It
+#  should run out of the box on DOS as long as you stay in the current
+#  directory.  See the README file.
+#
+#  This is a test version!!  In accordance with the author's wishes,
+#  I'd like to make it clear that I've altered all the screen I/O
+#  routines, and have removed characters peculiar to VT terminals.
+#  I've tried to keep intact the author's indentation and brace style.
+#  Changes, where present, have been indicated by my initials.  The
+#  IPL-style header was added by me.
+#
+#  -Richard Goerwitz.
+#
+############################################################################
+#
+#  Links:  iolib, random
+#
+############################################################################
+
+link iolib
+link random
+
+global players,slot,team,d,od,dice,round
+procedure main(param)
+  paint()
+  assign_players()
+  every round := 1 to 13 do
+    every play(!team)
+  summarize()
+  end
+
+#
+# DISPLAYS THE HEADER AND SEPARATOR LINE AT BEGINNING OF GAME
+#
+procedure paint()
+  # Clear first, separately.  Screws up on some terminals of you don't.
+  writes(cls())
+  # Check to be sure the terminal is big enough, and won't leave magic
+  # cookies on the screen.  -RLG
+  if getval("ug"|"sg") > 0
+  then stop("abort:  Can't do magic cookie terminals!") 
+  if getval("li") < 24 | getval("co") < 80 then
+    stop("abort:  Your terminal is too small!")
+  write(high(uhalf("             Y A H T Z E E              ")))
+  write(high(lhalf("             Y A H T Z E E              ")))
+  write(at(1,10),graf(repl("=",75)))
+  end
+
+#
+# DISPLAYS THE FINAL SCORE OF ALL THE PLAYERS
+#
+procedure summarize()
+  local player, card, top, bottom, i
+
+  # blink, high, inverse was just too much for my terminal to handle -RLG
+  write(at(1,11), high(chop("Final Score Summary")))
+  every player := key(players) do
+    {
+    card := players[player]
+    top  := 0 ; every i := 1 to 6 do top +:= card[i]
+    if top > 62 then top +:= 35
+    bottom := 0 ; every i := 7 to 13 do bottom +:= card[i]
+    write("Player ",high(left(player,14))," Top = ",right(top,5),
+                                       " Bottom = ",right(bottom,5),
+                                       "  Total = ",right(top+bottom,5))
+    }
+  input("<press return>")
+  end
+
+#
+# SETUP AND INITIALIZATION OF YAHTZEE ENVIRONMENT
+#
+procedure assign_players()
+  local n, player
+
+  n := 1 ; team := [] ; slot := [] ; d := list(6,"") ; od := list(5,0)
+  randomize()
+  players := table("n/a")
+  repeat
+    {
+    (player := input(("Name of player #" || n || ": "))) |
+      stop("Game called off.")
+    if player == "" then break
+    n +:= 1
+    put(team,player)
+    players[player] := list(13,"*")
+    }
+  if n = 1 then stop("Nobody wants to play!")
+
+  put(slot,"Ones")   ; put(slot,"Twos")  ; put(slot,"Threes")
+  put(slot,"Fours")  ; put(slot,"Fives") ; put(slot,"Sixes")
+  put(slot,"3oK")    ; put(slot,"4oK")   ; put(slot,"FullH")
+  put(slot,"SmStr")  ; put(slot,"LgStr") ; put(slot,"Yahtzee")
+  put(slot,"Chance")
+
+  # VT-specific characters removed.  -RLG
+  d[1] := "+-----+|     ||  o  ||     |+-----+"
+  d[2] := "+-----+|     || o o ||     |+-----+"
+  d[3] := "+-----+|o    ||  o  ||    o|+-----+"
+  d[4] := "+-----+|o   o||     ||o   o|+-----+"
+  d[5] := "+-----+|o   o||  o  ||o   o|+-----+"
+  d[6] := "+-----+|o o o||     ||o o o|+-----+"
+  end
+
+#
+# THIS ROUTINE LETS A PLAYER TAKE THEIR TURN
+#
+procedure play(name)
+  local shake, select
+
+  writes(at(1,11),"It's ",high(name),"'s turn",chop())
+  writes(at(1,getval("li")-1),high(name))
+  input(", please press <RETURN> to begin.")
+  score(name)
+  dice := [] ; every 1 to 5 do put(dice,?6)
+  depict()
+  shake := obtain("Shake which ones : ")
+  (shake === []) | (every dice[!shake] := ?6)
+  depict()
+  shake := obtain("Shake which ones (last chance) : ")
+  (shake === []) | (every dice[!shake] := ?6)
+  depict()
+  repeat
+    {
+    select := input(at(1,22) || clip("Tally to which category (1-13) : "))
+    numeric(select)                | next
+    (1 <= select <= 13)            | next
+    (players[name][select] == "*") | next
+    break
+    }
+  tally(name,select)
+  score(name)
+  input(at(1,22) || clip("Press <RETURN>"))
+  end
+
+#
+# THIS ROUTINE DRAWS THE DICE
+#
+procedure depict()
+  local i, j, x
+
+  every i := 1 to 5 do
+    {
+    x := 1
+    writes(at(i*10+3,3),inverse(i))
+    writes(at(i*10+4,9),inverse(dice[i]))  
+    every j := 4 to 8 do
+      {				   # debug
+      writes(at(i*10,j),graf(d[dice[i]][x:x+7]))
+      x +:= 7
+      }
+    od[i] := dice[i]
+    }
+  end
+
+#
+# THIS ROUTINE LETS THE PLAYER DECIDE WHAT TO APPLY THE SHAKES TO
+#
+procedure tally(name,area)
+  local sum, unit, flag, tmp, piece, hold
+
+  case integer(area) of
+    {
+    1 : {                        # ones
+        sum := 0 ; every unit := !dice do if unit = 1 then sum +:= 1
+        players[name][1] := sum
+        }
+    2 : {                        # twos
+        sum := 0 ; every unit := !dice do if unit = 2 then sum +:= 2
+        players[name][2] := sum
+        }
+    3 : {                        # threes
+        sum := 0 ; every unit := !dice do if unit = 3 then sum +:= 3
+        players[name][3] := sum
+        }
+    4 : {                        # fours
+        sum := 0 ; every unit := !dice do if unit = 4 then sum +:= 4
+        players[name][4] := sum
+        }
+    5 : {                        # fives
+        sum := 0 ; every unit := !dice do if unit = 5 then sum +:= 5
+        players[name][5] := sum
+        }
+    6 : {                        # sixes
+        sum := 0 ; every unit := !dice do if unit = 6 then sum +:= 6
+        players[name][6] := sum
+        }
+    7 : {                        # 3 of a kind
+        sum := 0 ; flag := 0
+        tmp := table(0) ; every unit := !dice do tmp[unit] +:= 1
+        every piece := key(tmp) do
+          if tmp[piece] >= 3 then flag := 1
+        if flag = 1 then every sum +:= !dice
+        players[name][7] := sum
+        }
+    8 : {                        # four of a kind
+        sum := 0 ; flag := 0
+        tmp := table(0) ; every unit := !dice do tmp[unit] +:= 1
+        every piece := key(tmp) do
+          if tmp[piece] >= 4 then flag := 1
+        if flag = 1 then every sum +:= !dice
+        players[name][8] := sum
+        }
+    9 : {                        # full house
+        sum := 0 ; flag := 0
+        tmp := table(0) ; every unit := !dice do tmp[unit] +:= 1
+        every piece := key(tmp) do
+          {
+          if tmp[piece] = 3 then flag +:= 1
+          if tmp[piece] = 2 then flag +:= 1
+          }
+        if flag = 2 then sum := 25
+        players[name][9] := sum
+        }
+   10 : {                        # small straight
+        sum  := 0 ; flag := 0
+        hold := set() ; every insert(hold,!dice)
+        tmp  := sort(hold)
+        if tmp[1]+1 = tmp[2] &
+           tmp[2]+1 = tmp[3] &
+           tmp[3]+1 = tmp[4] then flag := 1
+        if tmp[2]+1 = tmp[3] &
+           tmp[3]+1 = tmp[4] &
+           tmp[4]+1 = tmp[5] then flag := 1
+        if flag = 1 then sum := 30
+        players[name][10] := sum
+        }
+   11 : {                        # large straight
+        sum := 0 ; flag := 0  
+        tmp := sort(dice)
+        if tmp[1]+1 = tmp[2] &
+           tmp[2]+1 = tmp[3] &
+           tmp[3]+1 = tmp[4] &
+           tmp[4]+1 = tmp[5] then flag := 1
+        if flag = 1 then sum := 40
+        players[name][11] := sum
+        }
+   12 : {                        # yahtzee
+        sum := 0 ; flag := 0
+        tmp := table(0) ; every unit := !dice do tmp[unit] +:= 1
+        every piece := key(tmp) do
+          if tmp[piece] = 5 then flag := 1
+        if flag = 1 then sum := 50
+        players[name][12] := sum
+        }
+   13 : {                        # chance
+        sum := 0 ; every sum +:= !dice
+        players[name][13] := sum
+        }
+    }
+  end
+
+#
+# THIS ROUTINE OBTAINS A VALID SHAKER REQUEST
+#
+procedure obtain(prompt)
+  local line, unit, units
+
+  repeat
+    {
+    writes(at(1,22),prompt)
+    (line := read()) | next
+    if match("q",map(line)) then stop("Game Quit")
+    if trim(line) == "" then return []
+    units := parse(line,', \t')
+    every unit := !units do
+      (1 <= unit <= 5) | next
+    break
+    }
+  return units
+  end
+
+#
+# THIS ROUTINE PAINTS THE SCORECARD FOR A GIVEN PLAYER
+#
+procedure score(name)
+  local st1, st2, i, bonus
+
+  # Slight realignment.  -RLG
+  writes(at(1,11),chop(),at(18,11),under(),"Player = ",name,"     Round = ",under(round))
+  writes(at(10,12)," 1 : Ones    = ",players[name][1])
+  writes(at(10,13)," 2 : Twos    = ",players[name][2])
+  writes(at(10,14)," 3 : Threes  = ",players[name][3])
+  writes(at(10,15)," 4 : Fours   = ",players[name][4])
+  writes(at(10,16)," 5 : Fives   = ",players[name][5])
+  writes(at(10,17)," 6 : Sixes   = ",players[name][6])
+  writes(at(40,12)," 7 : 3oK     = ",players[name][7])
+  writes(at(40,13)," 8 : 4oK     = ",players[name][8])
+  writes(at(40,14)," 9 : FullH   = ",players[name][9])
+  writes(at(40,15),"10 : SmStr   = ",players[name][10])
+  writes(at(40,16),"11 : LgStr   = ",players[name][11])
+  writes(at(40,17),"12 : Yahtzee = ",players[name][12])
+  writes(at(40,18),"13 : Chance  = ",players[name][13])
+  st1 := 0 ; every i := 1 to 6 do st1 +:= numeric(players[name][i])
+  if st1 > 62 then bonus := 35 else bonus := 0
+  st2 := 0 ; every i := 7 to 13 do st2 +:= numeric(players[name][i])
+  writes(at(10,19),"Bonus = ",clip(bonus))
+  writes(at(10,20),"Subtotal = ",st1+bonus)
+  writes(at(40,20),"Subtotal = ",st2)
+  writes(at(37,21),"Grand Total = ",st1+st2+bonus)
+  end
+
+#
+# From here down, all CT's VT-specific I/O codes have been replaced
+# with calls to iolib/itlib routines.  The replacements were quite
+# easy to do because of the great modularity of the original program.
+# -RLG
+#
+
+#
+# VIDEO ROUTINE CLEARS SCREEN
+#
+procedure cls(str)
+  static clear_string
+  initial {
+    clear_string := getval("cl") |
+	(igoto(getval("cm"),1,1) || getval("cd")) |
+	stop("abort:  Your terminal can't clear screen!")
+    }
+  /str := ""
+  return clear_string || str
+  end
+
+#
+# VIDEO ROUTINE ERASES REST OF SCREEN
+#
+procedure chop(str)
+  static clear_rest
+  initial {
+    clear_rest := getval("cd") |
+	stop("abort:  Sorry, your terminal must have cd capability.")
+  }
+  /str := ""
+  return clear_rest || str
+  end
+
+#
+# VIDEO ROUTINE OUTPUTS UPPER HALF OF DOUBLE SIZE MESSAGES
+#
+procedure uhalf(str)
+  # Disabled for non-VT{2,3,4}XX terminals.  I'd have left them in for
+  # vt100s, but there are so many vt100 terminal emulation programs out
+  # there that don't do the big characters that I thought better of it.
+  # -RLG
+  static isVT
+  initial
+    {
+    if map(getname()) ? (tab(find("vt")+2), tab(any('234')), integer(tab(0)))
+    then isVT := 1
+    }
+  if \isVT then
+    {
+    /str := ""
+    if str == "" then return "\e#3"
+    return "\e#3" || str
+    }
+  end
+  
+#
+# VIDEO ROUTINE OUTPUTS BOTTOM HALF OF DOUBLE SIZE MESSAGES
+#
+procedure lhalf(str)
+  static isVT
+  initial
+    {
+    if map(getname()) ? (tab(find("vt")+2), tab(any('234')), integer(tab(0)))
+    then isVT := 1
+    }
+  if \isVT then
+    {
+    /str := ""
+    if str == "" then return "\e#4"
+    return "\e#4" || str
+    }
+  end
+
+#
+# VIDEO ROUTINE OUTPUTS STRING AND CLEARS TO EOL
+#
+procedure clip(str)
+  static clear_line
+  initial
+    {
+    clear_line := getval("ce") | "                "
+    }
+  /str := ""
+  if str == "" then return clear_line
+  return str ||:= clear_line
+  end
+  
+#
+# VIDEO ROUTINE OUTPUTS HIGHLIGHTED STRINGS
+#
+procedure high(str)
+  static bold_code, off_other_modes
+  initial
+    {
+    off_other_modes := ""
+    every off_other_modes ||:= getval("me"|"ue"|"se")
+    bold_code := off_other_modes || getval("md"|"us"|"so")
+    }
+  /str := ""
+  return bold_code || str || off_other_modes
+  end
+
+#
+# VIDEO ROUTINE OUTPUTS INVERSE VIDEO STRINGS
+#
+procedure inverse(str)
+  static reverse_code, off_other_modes
+  initial
+    {
+    off_other_modes := ""
+    every off_other_modes ||:= getval("se"|"ue"|"me")
+    reverse_code := off_other_modes || getval("so"|"us"|"md")
+    }
+  /str := ""
+  return reverse_code || str || off_other_modes
+  end
+
+#
+# VIDEO ROUTINE OUTPUTS UNDERLINED STRINGS
+#
+procedure under(str)
+  static underline_code, off_other_modes
+  initial
+    {
+    off_other_modes := ""
+    every off_other_modes ||:= getval("ue"|"me"|"se")
+    underline_code := off_other_modes || getval("us"|"md"|"so")
+    }
+  /str := ""
+  return underline_code || str || off_other_modes
+  end
+
+#
+# VIDEO ROUTINE OUTPUTS BLINKING STRINGS
+#
+procedure blink(str)
+  static blink_code, off_other_modes
+  initial
+    {
+    off_other_modes := ""
+    every off_other_modes ||:= getval("me"|"se"|"ue")
+    blink_code := off_other_modes || getval("mb"|"md"|"so"|"us")
+    }
+  /str := ""
+  return blink_code || str || off_other_modes
+  end
+
+#
+# VIDEO ROUTINE SETS NORMAL VIDEO MODE
+#
+procedure norm(str)
+  static off_modes
+  initial
+    {
+    off_modes := ""
+    every off_modes ||:= getval("me"|"se"|"ue")
+    }
+  /str := ""
+  return off_modes || str
+  end
+
+#
+# VIDEO ROUTINE TURNS ON VT GRAPHICS CHARACTERS
+#
+procedure graf(str)
+  # Again, disabled for non-VT{234}XX terminals.  -RLG
+  static isVT
+  initial
+    {
+    if map(getname()) ? (tab(find("vt")+2), tab(any('234')), integer(tab(0)))
+    then isVT := 1
+    }
+  /str := ""
+  if \isVT then
+    {
+    if str == "" then return "\e(0"
+    str := "\e(0" || str
+    if (str[-3:0] == "\e(B")
+      then return str
+      else return str || "\e(B"
+    }
+  else return str
+  end
+
+#
+# VIDEO ROUTINE TURNS OFF VT GRAPHICS CHARACTERS
+#
+procedure nograf(str)
+  static isVT
+  initial
+    {
+    if map(getname()) ? (tab(find("vt")+2), tab(any('234')), integer(tab(0)))
+    then isVT := 1
+    }
+  /str := ""
+  if \isVT then
+    {
+    if str == "" then return "\e(B"
+    str := "\e(B" || str
+    }
+  return str
+  end
+
+#
+# VIDEO ROUTINE SETS CURSOR TO GIVEN X,Y COORDINATES
+#
+procedure at(x,y) 
+  return igoto(getval("cm"), x, y)  
+  end
+
+#########  Here end the I/O routines I needed to alter.  -RLG
+
+#
+# PARSES A STRING INTO A LIST WITH RESPECT TO A GIVEN DELIMITER
+#
+procedure parse(line,delims)
+  local i, tokens
+  static chars
+  chars  := &cset -- delims
+  tokens := []
+  line ? while tab(upto(chars)) do put(tokens,tab(many(chars)))
+  #
+  # My first time playing, I didn't put spaces between the numbers
+  # for the dice.  When you think about it, though, why bother?
+  # They can't be any longer than one digit each, so there's no
+  # ambiguity.  This bit of code makes the game a bit more idiot-
+  # proof.  -RLG (one of the idiots)
+  #
+  if *!tokens > 1 then line ?
+    {
+    tokens := []
+    if tab(upto(&digits)) then
+      {
+      while put(tokens, move(1)) do
+        tab(upto(&digits)) | break
+      put(tokens, integer(tab(0)))
+      }
+    }
+  return tokens
+  end
+
+#
+# TAKE AN INPUT STRING VIA GIVEN PROMPT
+#
+procedure input(prompt)       
+  writes(prompt)
+  return read()
+  end

@@ -1,0 +1,49 @@
+############################################################################
+#
+#	File:     evplay.icn
+#
+#	Subject:  Procedure to "play back" recorded window events
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 15, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  evplay(win) reads a window event history file (such as produced by
+#  evrecord()), and puts an event on the event queue for the given window.
+#  If the global identifier EventFile is nonnull, it is used as the
+#  event history; otherwise standard input is used.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  ivalue
+#
+############################################################################
+
+link ivalue
+
+global EventFile
+
+procedure evplay(win)
+   local event1, event2, event3
+
+   /EventFile := &input
+
+   event1 := ivalue(read(EventFile)) | fail
+   event2 := ivalue(read(EventFile)) | stop("*** short event history")
+   event3 := ivalue(read(EventFile)) | stop("*** short event history")
+
+   put(Pending(win), event1, event2, event3)
+
+   return
+
+end

@@ -1,0 +1,40 @@
+############################################################################
+#
+#	File:     pretrim.icn
+#
+#	Subject:  Program to filter out first terms in an input stream
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 22, 1996
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program discards the first i values in input, given by -n i; default
+#  0.
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local opts, i
+
+   opts := options(args, "n+")
+
+   i := \opts["n"] | 0
+
+   every 1 to i do
+      read()
+
+   while write(read())
+
+end

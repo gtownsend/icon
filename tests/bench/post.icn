@@ -1,0 +1,123 @@
+#################################################################
+#
+#  Support procedures for Icon benchmarking.
+#
+#################################################################
+#
+#     The code to be times is bracketed by calls to Init__(name)
+#  and Term__(), where name is used for tagging the results.
+#  The typical usage is:
+#
+#	procedure main()
+#	   [declarations]
+#	   Init__(name)
+#		.
+#		.
+#		.
+#	   Term__()
+#	end
+#
+#     If the environment variable OUTPUT is set, program output is
+#  not suppressed.
+#
+#################################################################
+
+global Save__, Saves__, Name__
+
+# List information before running.
+#
+procedure Init__(prog)
+   Name__ := prog			# program name
+   Signature__()			# initial information
+   Regions__()
+   Time__()
+   if getenv("OUTPUT") then {	# if OUTPUT is set, allow output
+      write("*** Benchmarking with output ***")
+      return
+      }
+   Save__ := write			# turn off output
+   Saves__ := writes
+   write := writes := 1
+   return
+end
+
+# List information at termination.
+
+procedure Term__()
+   if not getenv("OUTPUT") then {	# if OUTPUT is not set, restore output
+      write := Save__
+      writes := Saves__
+      }
+					# final information
+   write(Name__," elapsed time = ",Time__())
+   Regions__()
+   Storage__()
+   Collections__()
+   return
+end
+
+# List garbage collections performed.
+#
+procedure Collections__()
+   static labels
+   local collections
+   
+   initial labels := ["total","static","string","block"]
+
+   collections := []
+   every put(collections,&collections)
+   write("collections")
+   every i := 1 to *labels do
+      write(labels[i],right(collections[i],8))
+   return
+end
+
+# List region sizes.
+#
+procedure Regions__()
+   static labels
+   local regions
+   
+   initial labels := ["static","string","block"]
+
+   regions := []
+   every put(regions,&regions)
+   write("regions")
+   every i := 1 to *labels do
+      write(labels[i],right(regions[i],8))
+   return
+end
+
+# List relveant implementation information
+#
+procedure Signature__()
+   write(&version)
+   write(&host)
+   every write(&features)
+   return
+end
+
+# List storage used.
+#
+procedure Storage__()
+   static labels
+   local storage
+   
+   initial labels := ["static","string","block"]
+
+   storage := []
+   every put(storage,&storage)
+   write("storage")
+   every i := 1 to *labels do
+      write(labels[i],right(storage[i],8))
+   return
+end
+
+# List elapsed time.
+#
+procedure Time__()
+   static lasttime
+
+   initial lasttime := &time
+   return &time - lasttime
+end

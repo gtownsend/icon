@@ -1,0 +1,94 @@
+############################################################################
+#
+#	File:     fstars.icn
+#
+#	Subject:  Procedure to produce traces of fractal stars
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 23, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure produces traces of fractal "stars".  For a discussion of
+#  fractal stars, see
+#
+#	Fractals; Endlessly Repeated Geometrical Figures, Hans Lauwerier,
+#	Princeton University Press, 1991, pp. 72-77.
+#
+#  and
+#
+#	Geometric and Artistic Graphics; Design Generation with
+#	Microcomputers, Jean-Paul Delahaye, Macmillan, 1987, pp. 55-63.
+#
+#  The arguments are:
+#
+#	x, y, n, p, r, incr, extent
+#
+#	x	x coordinate of the initial point, default 0
+#	y	y coordinate of the initial point, default 0.5
+#	n	number of vertices, default 5
+#	p	number of phases, default 5
+#	r	reduction factor, default 0.35
+#	incr	angular increment factor, default 0.8
+#	extent	extent of drawing, 1.0
+#
+#  Chosing values for these arguments that produce interesting results and
+#  centering the star in the window is somewhat of an art.  See fstartbl.icn
+#  for some good values.
+#	
+############################################################################
+#
+#  Links:  gobject
+#
+############################################################################
+
+link gobject
+
+global size
+
+procedure fstar(x, y, n, p, r, incr, extent, xinit, yinit)	#: fractal stars
+   local angle, i, h, m, dist, xloc, yloc
+
+   /size := 500
+   /x := 0
+   /y := 0.5 * size
+   /n := 5			# defaults
+   /p := 5
+   /r := 0.35
+   /incr := 0.8
+   /extent := 1.0
+   /xinit := 0
+   /yinit := 0.5
+
+   incr *:= &pi			# scaling
+   extent *:= size
+   xloc := xinit * size
+   yloc := yinit * size
+
+   n -:= 1			# computational convenience
+   p -:= 1
+
+#  suspend Point(x + xloc, y + yloc)		# initial point
+
+   angle := 0
+
+   every i := 0 to ((n + 1) * n ^ p) do {
+      m := i
+      h := 0
+      until (m % n ~= 0) | (h >= p) do {
+         m /:= n
+         h +:= 1
+         }
+      dist := extent * r ^ (p - h)
+      xloc +:= dist * cos(angle)
+      yloc +:= dist * sin(angle)
+      suspend Point(x + xloc, y + yloc)
+      angle +:= incr
+      }
+
+end

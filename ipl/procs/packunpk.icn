@@ -1,0 +1,134 @@
+############################################################################
+#
+#	File:     packunpk.icn
+#
+#	Subject:  Procedures to pack and unpack decimal strings
+#
+#	Author:   C. Tenaglia (modified by Richard L. Goerwitz)
+#
+#	Date:     January 4, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.2
+#
+############################################################################
+#
+#      Integers written directly as strings occupy much more space
+#  than they need to.  One easy way to shrink them a bit is to "pack"
+#  them, i.e.  convert each decimal digit into a four-byte binary
+#  code, and pack these four-bit chunks into eight-bit characters,
+#  which can be written to a file.
+#
+#      Interestingly, packing decimal strings in this manner lends
+#  itself to unpacking by treating each character as a base-10
+#  integer, and then converting it to base-16.  Say we have an input
+#  string "99."  Pack() would convert it to an internal representation
+#  of char(16*9 + 9), i.e. char(153).  Unpack would treat this
+#  char(153) representation as a base-10 integer, and convert it to
+#  base 16 (i.e. 10r153 -> 16r99).  The 99 is, of course, what we
+#  started with.
+#
+#      Note that two unpack routines are provided here:  The first, by
+#  Tanaglia, utilizes convert.icn from the IPL.  The second, by
+#  Goerwitz, does not.  They utilize very different methods, but both
+#  amount to basically the same thing.  Goerwitz's routine returns an
+#  integer, though, and has no "width" argument.
+#
+############################################################################
+#
+#  Links:  convert.icn
+#
+############################################################################
+
+link convert
+
+procedure pack(num,width)     
+
+    local int, sign, prep, packed, word
+
+    int := integer(num) | fail
+    # There's really no need to store the sign if it's positive, UNLESS
+    # you are using this program to store packed decimal integers for
+    # access by other programs on certain mainframes that always store
+    # the sign.
+    # if int < 0 then sign := "=" else sign := "<"
+    if int < 0 then sign := "=" else sign := ""
+    prep   := string(abs(int)) || sign
+    packed := ""
+    if (*prep % 2) ~= 0 then prep := "0" || prep
+
+    prep ? {
+	while word := move(2) do {
+	    if pos(0)
+	    then packed ||:= char(integer(word[1])*16 + ord(word[2])-48)
+	    else packed ||:= char(integer(word[1])*16 + integer(word[2]))
+	}
+    }
+
+    /width := *packed
+    return right(packed, width, "\0")
+
+end
+
+
+
+procedure unpack(val,width)   
+
+    # THIS PROCEDURE UNPACKS A VALUE INTO A STRING-INTEGER. USING THIS
+    # CODE SEGMENT REQUIRES LINKING WITH RADCON FROM THE IPL.
+
+    local tmp, number, tens, ones, sign
+
+    tmp  := ""
+    sign := 1
+
+    every number := ord(!val) do
+	tmp ||:= right(map(radcon(number,10,16),&lcase,&ucase),2,"0")
+
+    if tmp[-1] == ("B" | "D") then {
+	sign := -1
+	# In this configuration, the sign field is only present if the
+	# integer is negative.  If you have set up pack to register posi-
+	# tive values in the sign field, place the following line after
+	# the "if-then" expression.
+	tmp[-1] :=  ""
+    }
+    tmp    *:= sign
+    /width  := *string(tmp)
+
+    return right(string(tmp), width)
+
+end
+
+
+
+procedure unpack2(val)
+
+    # THIS PROCEDURE UNPACKS A VALUE INTO AN STRING-INTEGER.
+    # Note:  Unpack2 assumes that pack is not recording positive
+    # sign values.
+
+    local unpacked, int
+
+    unpacked := ""
+    val ? {
+	while int := ord(move(1)) do {
+	    unpacked ||:= string(iand(2r11110000,int) / 16)
+	    if pos(0) then {
+		if iand(2r00001111,int) = 13 then {
+		    unpacked := "-" || unpacked
+		    break
+		}
+	    }
+	    unpacked ||:= string(iand(2r00001111,int))
+	}
+    }
+
+    return integer(unpacked)
+
+end

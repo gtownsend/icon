@@ -1,0 +1,31 @@
+############################################################################
+#
+#	File:     itrcline.icn
+#
+#	Subject:  Procedure to filter out non-trace lines
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 14, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	itrcline(f)	generates lines from the file f that are Icon
+#			trace messages.  It can, of course, be fooled.
+#
+############################################################################
+
+procedure itrcline(f)		#: generate trace messages in file
+   local line
+
+   while line := read(f) do
+      line ? {
+         if (="             :" & move(6) & ="main") | (move(12) & ":      |")
+         then suspend line
+         }
+
+end

@@ -1,0 +1,33 @@
+#  Program to sanitize Yacc output and  minor changes to it to suit the Icon
+#  translator.
+
+procedure main()
+   local line, prefix
+
+   while line := read() do {
+      if line == "#" then next		# omit lone #s -- illegal now
+      else line ? {
+         if write(="#endif") then next	# omit illegal stuff
+         else if (prefix := tab(find("yyerror("))) & ="yyerror(" &
+            tab(upto('"')+1) then {
+            #
+            # We are beyond the 'yyerror( "'. Write the part of the
+            # line before the call, then decide what to do about
+            # the error message that follows.
+            #
+            writes(prefix)
+            if ="syntax error\"" then
+               writes("yyerror(yychar, yylval, yy_state")
+            else if ="yacc stack overflow\"" then
+               writes("tsyserr(\"parse stack overflow\"")
+            else
+               writes("tsyserr(\"parser: ")
+             write(tab(0))
+             }
+          else if ="extern char *malloc(), *realloc();" then {
+             # let proto.h handle this declaration.
+             }
+          else write(tab(0))
+          }
+      }
+end

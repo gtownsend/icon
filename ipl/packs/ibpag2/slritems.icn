@@ -1,0 +1,244 @@
+############################################################################
+#
+#	Name:	 slritems.icn
+#
+#	Title:	 compute item sets for a grammar
+#
+#	Author:	 Richard L. Goerwitz
+#
+#	Version: 1.10
+#
+############################################################################
+#
+#  Contains make_slr_item_sets(start_symbol, st), slr_goto(l, symbol,
+#  st), slr_closure(l, st).  The user need only worry about
+#  make_slr_item_sets() initially.  The slr_goto() routine may be
+#  useful later when constructing action and goto tables.
+#
+#  Slr_closure(l, st) accepts a list of items as its first argument, a
+#  list or set of the productions in the grammar as its second, and
+#  returns the closure of item list l, in the form of another item
+#  list.
+#
+#  Note also that the production record structure (LHS, RHS, POS,
+#  LOOK...) has a POS field, and therefore can serve also as an item.
+#  In fact, any structure can be used, as long as its first three
+#  fields are LHS, RHS, and POS.
+#
+#  See the "Dragon Book" (cited in first.icn) p. 222 ff.
+#
+#  Slr_goto(l, symbol, st) accepts a list as its first argument, a
+#  string or integer as its second (string = nonterminal, integer =
+#  terminal), and a list or set for its third, returning another list.
+#  Arg 1 must be an item list, as generated either by another call to
+#  slr_goto() or by closure of the start production of the augmented
+#  grammar.  Arg 2, symbol, is some terminal or nonterminal symbol.
+#  Arg 3 is the list or set of all productions in the current grammar.
+#  The return value is the closure of the set of all items [A -> aX.b]
+#  such that [A -> a.Xb] is in l (arg 1).
+#
+#  make_slr_item_sets(start_sym, st) takes a string, start_sym, as its
+#  first argument, and a list or set of productions as its second.
+#  Returns a list of canonical LR(0) item sets or states.  It returns,
+#  in other words, a list of lists of items.  Items can be any record
+#  type that has LHS, RHS, and POS as its first three fields.
+#
+#  See the "Dragon Book," example 4.35 (p. 224).
+#
+############################################################################
+#
+#  Links: ibutil
+#
+############################################################################
+
+# link ibutil
+
+#
+# slr_closure:  list x list/set -> list
+#               (l2,    st)      -> l2
+#
+#     Where l is a list of items, where st is a list/set of all
+#     productions in the grammar from which l was derived, and where
+#     l(2) is the SLR closure of l, as constructed using the standard
+#     SLR closure operation.
+#
+#     Ignore the third to fifth arguments, len to added.  They are
+#     used internally by recursive calls to slr_closure().
+#
+procedure slr_closure(l, st, len, LHS_tbl, added)
+
+    local   p, i, new_p, symbol
+    static  LHS_tbl_tbl
+    initial LHS_tbl_tbl := table()
+
+    if /LHS_tbl then {
+	if /LHS_tbl_tbl[st] := table() then {
+	    # makes looking up all rules with a given LHS easier
+	    every p := !st do {
+		/LHS_tbl_tbl[st][p.LHS] := list()
+		put(LHS_tbl_tbl[st][p.LHS], p)
+	    }
+	}
+	LHS_tbl := LHS_tbl_tbl[st]
+    }
+
+    /len := 0
+    /added := set()
+
+    # Len tells us where the elements in l start that we haven't yet
+    # tried to generate more items from.  These elements are basically
+    # the items added on the last recursive call (or the "core," if
+    # there has not yet been a recursive call).
+    #
+    every i := len+1 to *l do {
+	/l[i].POS := 1
+	# Fails if dot (i.e. l[i].POS) is at the end of the RHS;
+	# also fails if the current symbol (i.e. l[i].RHS[l[i].POS])
+	# is a nonterminal.
+	symbol := l[i].RHS[l[i].POS]
+	# No need to add productions having symbol as their LHS if
+	# we've already done so for this particular l.
+	member(added, symbol) & next
+	every p := !\LHS_tbl[symbol] do {
+	    # Make a copy of p, but with dot set to position 1.
+	    new_p := copy(p)
+	    # Set POS to 1 for non-epsilon productions; otherwise to 2.
+	    if *new_p.RHS = 1 & new_p.RHS[1] === -2 then
+		new_p.POS := 2
+	    else new_p.POS := 1
+	    # if new_p isn't in l, add it to the end of l
+	    if not equivalent_items(new_p, !l) then
+		put(l, new_p)
+	}
+	insert(added, symbol)
+    }
+    return {
+	# If nothing new has been added, sort the result and return...
+	if *l = i then sortff(l, 1, 2, 3)
+	# ...otherwise, try to add more items to l.
+	else slr_closure(l, st, i, LHS_tbl, added)
+    }
+    
+end
+
+    
+#
+# slr_goto: list x string|integer x list|set -> list
+#           (l,    symbol,          st)      -> l2
+#
+#     Where l is an item set previously returned by slr_goto or (for
+#     the start symbol of the augmented grammar) by slr_closure(),
+#     where symbol is a string (nonterminal) or integer (terminal),
+#     where st is a list or set of all productions in the current
+#     grammar, and where l2 is the SLR closure of the set of all items
+#     [A -> aX.b] such that [A -> a.Xb] is in l.
+#
+#     The idea is just to move the dots for all productions where the
+#     dots precede "symbol," creating a new item list for the "moved"
+#     items, and then performing a slr_closure() on that new item list.
+#     Note that items can be represented by any structure where fields
+#     1, 2, and 3 are LHS, RHS, and POS.
+#
+#     Note that slr_goto(l, symbol, st) may yield a result that's
+#     structurally equivalent to one already in the sets of items thus
+#     far generated.  This won't normally happen, because slr_goto()
+#     saves old results, never re-calcing for the same l x symbol
+#     combination.  Still, a duplicate result could theoretically
+#     happen.
+#
+procedure slr_goto(l, symbol, st)
+
+    local    item, item2, l2, iteml_symbol_table
+    static   iteml_symbol_table_table
+    initial  iteml_symbol_table_table := table()
+
+    # Keep old results for this grammar (st) in a table of tables of
+    # tables!
+    #
+    /iteml_symbol_table_table[st] := table()
+    iteml_symbol_table := iteml_symbol_table_table[st]
+
+    # See if we've already performed this same calculation.
+    #
+    if l2 := \(\iteml_symbol_table[l])[symbol]
+    then return l2
+
+    l2 := list()
+    every item := !l do {
+	# Subscripting operation fails if the dot's at end.
+        if item.RHS[item.POS] === symbol
+	then {
+	    item2 := copy(item)	# copy is nonrecursive
+	    item2.POS +:= 1
+	    put(l2, item2)
+	}
+    }
+    if *l2 = 0 then fail
+    else l2 := slr_closure(l2, st)
+    #
+    # Keep track of item lists and symbols we've already seen.
+    #
+    /iteml_symbol_table[l] := table()
+    /iteml_symbol_table[l][symbol] := l2
+
+    if *l2 > 0 then
+    return l2
+    else fail
+
+end
+
+
+#
+# make_slr_item_sets: string x list|set -> list
+#                     (start_sym, st)   -> l
+#
+#     Where start_sym is the start symbol for the grammar defined by
+#     the productions contained in st, and where l is the list of item
+#     lists generated by the standard LR(0) set-of-items construction
+#     algorithm.
+#
+#     Ignore the third and fourth arguments.  They are used internally
+#     by recursive calls.
+#
+procedure make_slr_item_sets(start_sym, st, C, len)
+
+    local i, next_items, item_list, new_list, item, symbol
+
+    #
+    # First extend the old start symbol and use the result as the new
+    # start symbol for the augmented grammar to which the set-of-items
+    # construction will be applied.
+    #
+    # &trace := -1
+    /C := [slr_closure(
+	    [production("`_" || start_sym || "_'", [start_sym], 1)],st)]
+    /len := 0
+
+    # Iterate through C (the list of item-lists), doing gotos, and adding
+    # new states, until no more states can be added to C.
+    #
+    every item_list := C[i := len+1 to *C] do {
+	if \DEBUG then
+	    print_item_list(C, i)
+	# collect all symbols after the dot for the the items in C[i]...
+	next_items := set()
+	every item := !item_list do
+	    insert(next_items, item.RHS[item.POS])
+	# ...now, try to do a slr_goto() for every collected symbol.
+	every symbol := !next_items do {
+	    new_list := slr_goto(item_list, symbol, st) | next
+	    if not equivalent_item_lists(new_list, !C)
+	    then put(C, new_list)
+	}
+    }
+    # If nothing has been inserted, return C and quit; otherwise, call
+    # recursively and try again.
+    #
+    return {
+	if i = *C then C
+	else make_slr_item_sets(&null, st, C, i)
+    }
+
+end
+
+

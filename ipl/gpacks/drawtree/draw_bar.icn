@@ -1,0 +1,105 @@
+$define Win_Size   600
+$define BG         "white"
+$define FG         "black"
+
+# set the default for DrawTree_Square_R
+procedure drawtree_bar_default(fg, bg)
+
+   local draw_record
+
+   draw_record := DrawTree_Square_R()
+
+   draw_record.win_width := Win_Size + 200
+   draw_record.win_height := Win_Size 
+   if /fg then draw_record.fg := FG else draw_record.fg := fg
+   if /bg then draw_record.bg  := BG else draw_record.bg := bg
+   draw_record.color_list := [1, 2, 3, 4]
+   draw_record.color_list_u := ["red", "blue", "green", "orange", "yellow", "brown", "purple"]
+   draw_record.num_color := 4
+   draw_record.win := WOpen("canvas=hidden", "size=" || Win_Size || "," || Win_Size + 100,
+                            "bg=" || draw_record.bg, "fg=" || draw_record.fg)
+   draw_record.linewidth := 10
+   draw_record.length := 580
+   draw_record.space  := 2
+   draw_record.move := 15
+   draw_record.x := draw_record.move
+   draw_record.y := 10
+
+   draw_record.menu := ["background", format_square_cb, "color list", format_square_cb, "linewidth", format_square_cb, 
+                        "space", format_square_cb, "length", format_square_cb, "snapshot", format_square_cb, "grid", format_square_cb]
+
+   return draw_record
+
+end
+
+
+procedure drawtree_bar(draw_record)
+
+   draw_grid_bar(draw_record)
+   drawtree_bar_rec(draw_record, children, 0, draw_record.x,
+                   draw_record.y, draw_record.linewidth,
+                   draw_record.length)
+
+end
+
+
+# draw a grid by using color
+procedure draw_grid_bar(draw_record, size)
+
+   local win, row, id, length
+ 
+   /size & size := 2
+
+   EraseArea(draw_record.win)
+
+   win := Clone(draw_record.win, "linewidth=" || size)
+   id := 1
+   length := 2 * draw_record.move + draw_record.length 
+
+   every row := draw_record.move to draw_record.length/2  by draw_record.move do  {
+
+     Fg(win, draw_record.color_list_u[draw_record.color_list[id]])    
+     DrawLine(win, 15, row, draw_record.win_width, row) 
+     DrawLine(win, 15, length - row, draw_record.win_width, length - row) 
+
+     if id >= draw_record.num_color then id := 1 else id +:= 1
+
+   }
+
+end
+
+
+
+# draw the tree in a circle seperated with line between each node
+procedure drawtree_bar_rec(draw_record, children, id, x, y, width, length)
+
+    local gen, new_id, win
+
+    win := Clone(draw_record.win)
+    Fg(win, draw_record.color_list_u[draw_record.color_list[(children.all[id].generation) % 
+              draw_record.num_color + 1]])    
+
+    FillRectangle(win, x, y,  width - draw_record.space, length)
+
+    gen := 1
+    every new_id := !children.all[id].children_id do
+    {
+       drawtree_bar_rec(draw_record, children, new_id,
+                       (x + (gen * draw_record.linewidth)),
+                       (y + draw_record.move), 
+                       (draw_record.linewidth),
+                       (length - (2 * draw_record.move)))
+       gen := children.all[new_id].children_num + gen + 1 
+    }
+
+end
+    
+
+
+
+
+
+
+
+
+

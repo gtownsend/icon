@@ -1,0 +1,48 @@
+# fix grammar after it has been put through the C preprosesor
+#
+#    allow at most 3 blank lines in a row
+#    change /*#...*/ to #...
+#    remove lines begining with #
+#    remove some of the extra tabs introduced by macro definitions and insert
+#	some newlines
+
+procedure main()
+    local s,n
+
+    write("/*")
+    write(" * W A R N I N G:")
+    write(" *")
+    write(" *    this file has been preprocessed")
+    write(" *    any changes must be made to the original file")
+    write(" */")
+    write()
+
+    n := 0
+    while s := read() do {
+	while s == "" do {
+	    if (n +:= 1) <= 3 then write()
+	    s := read() | break
+	    }
+	s ? (="/*#" & write("#",tab(find("*/"))) & (n := 0)) |
+	    ="#" |
+	    (fix_tabs() & (n := 0))
+	}
+end
+
+procedure fix_tabs()
+    if ="\t\t\t" then {
+        tab(many('\t'))
+	writes("\t\t")
+	}
+    while writes(tab(upto('{\t'))) do
+	if writes(="{") then
+	    tab(many(' \t'))
+	else if ="\t\t\t" then {
+	    writes("\n\t\t")
+	    tab(many('\t'))
+	    }
+	else
+	    writes(tab(many('\t')))
+    write(tab(0))
+    return
+end

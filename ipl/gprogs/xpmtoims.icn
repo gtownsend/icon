@@ -1,0 +1,102 @@
+############################################################################
+#
+#	File:     xpmtoims.icn
+#
+#	Subject:  Program to make Icon images from XPM files
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     May 23, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Usage:  xpmtoims [-d] [-gn | -cn] [file...]
+#
+#  Xpmtoims reads XPM files and writes Icon image strings.
+#  -cn or -gn selects the color palette used; -c1 is the default.
+#  If -d is given, each image is displayed in a window after conversion.
+#
+#  Output is a file of Icon source code suitable for use via $include.
+#  Each image is a string constant with a comment.
+#  Multiple images are separated by commas.
+#
+#  (A window is always required, whether or not anything is displayed,
+#   so that the XPM colors can be converted by the window system.)
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: graphics, imscolor, options
+#
+############################################################################
+
+link graphics, imscolor, options
+
+global opts, pal, nwritten
+
+procedure main(args)
+   local fname, f
+
+   # Open the window and process options.
+   Window("size=100,20", args)
+   opts := options(args, "dg+c+")
+   pal := ("c" || \opts["c"]) | ("g" || \opts["g"]) | "c1"
+   PaletteChars(pal) | stop("invalid palette ", pal)
+   ColorValue("navy") |
+      write(&errout, "warning: no X color names, conversion is risky")
+
+   # Convert the file.
+   nwritten := 0
+   if *args = 0 then
+      dofile(&input, "[stdin]")
+   else
+      while fname := get(args) do
+         if f := open(fname) then {
+            dofile(f, fname)
+            close(f)
+            }
+         else {
+            write(&errout, fname, ": can't open")
+            }
+end
+
+
+#  dofile(f, fname) -- process one file.
+
+procedure dofile(f, fname)
+   local s, e
+
+   # Convert the file
+   s := XPMImage(f, pal) | {
+      write(&errout, fname, ": cannot decode")
+      return
+      }
+
+   # Add spacing if this isn't the first image.
+   if (nwritten +:= 1) > 1 then
+      write(",\n")
+
+   # Write the image.
+   write("# xpmtoims -", pal, " ", fname)
+   imswrite(, s)
+   flush(&output)
+
+   # If requested, display the image.
+   if \opts["d"] then {
+      WAttrib("width=" || imswidth(s), "height=" || imsheight(s))
+      EraseArea(0, 0)
+      DrawImage(0, 0, s)
+      while e := Event() do case e of {
+         QuitEvents():	exit()		# quit on "q" etc
+         !" \t\r\n":	break		# continue on "\r" etc
+         }
+      }
+   return
+end

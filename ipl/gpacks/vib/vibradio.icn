@@ -1,0 +1,209 @@
+############################################################################
+#
+#  vibradio.icn -- procedures for defining a radio button object
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+
+$include "vibdefn.icn"
+
+global RB_starty, RADIO_TALK, RADIO_VIDGET
+
+##########################################################################
+# radio_button_obj:
+#    v       : vidget used for drawing radio button
+#    proc    : name of user callback procedure
+#    id      : unique means of identifying instance
+#    x,y,w,h : bounding box
+#    focus   : should focus lines be drawn around this object?
+#    alts    : a list of button labels making up the radio button object
+##########################################################################
+record radio_button_obj(v, proc, id, x, y, w, h, focus, alts)
+
+##########################################################################
+# create_radio_button() creates a radio button instance and draws the
+#                       button if it is a first class object.
+##########################################################################
+procedure create_radio_button(x, y, alts)
+   local r, id
+
+   id := next_id("radio_button")
+   r := radio_button_obj(, "radio_button_cb" || id, "radio_button" || id,
+                          x, y, 0, 0, 0, alts)
+   r.v := Vradio_buttons(ROOT, x, y, APPWIN, alts, , id, V_DIAMOND_NO)
+   r.w := r.v.aw
+   r.h := r.v.ah
+   VRemove(ROOT, r.v, 1)
+   return r
+end
+
+##########################################################################
+# update_radio_bb() disallows resizing of a radio button object.
+##########################################################################
+procedure update_radio_bb(object)
+   object.w := object.v.aw
+   object.h := object.v.ah
+end
+
+##########################################################################
+# draw_radio_button() draws the given radio button object.
+##########################################################################
+procedure draw_radio_button(r)
+   VDraw(r.v)
+   return r
+end
+
+##########################################################################
+# load_radio_button() restores a radio button object from session code.
+##########################################################################
+procedure load_radio_button(r, o)
+   r.alts := o.etc
+   r.v := Vradio_buttons(ROOT, r.x, r.y, APPWIN, r.alts, , r.id, V_DIAMOND_NO)
+   r.w := r.v.aw
+   r.h := r.v.ah
+   VRemove(ROOT, r.v, 1)
+end
+
+##########################################################################
+# save_radio_button() augments the record for saving a radio_button object.
+##########################################################################
+procedure save_radio_button(r, o)
+   r.typ := "Choice"
+   r.num := *o.alts
+   r.etc := copy(o.alts)
+   return
+end
+
+##########################################################################
+# radio_button_atts() defines the attribute sheet template for a radio
+#                     button object.
+##########################################################################
+procedure radio_button_atts()
+   local tempy
+
+   RADIO_TALK := Vdialog(&window, PAD, PAD)
+   tempy := 0
+   VRegister(RADIO_TALK,
+      Vtext(&window, "ID:       ",, 1, TEXTCHARS, IDMASK), 0, tempy)
+   tempy +:= PAD
+   VRegister(RADIO_TALK,
+      Vtext(&window, "callback: ",, 3, TEXTCHARS, CBMASK), 0, tempy)
+   tempy +:= (3 * PAD)/2
+   VRegister(RADIO_TALK, Vtext(&window, "       x: ",, 4, 3, &digits), 0, tempy)
+   tempy +:= PAD
+   VRegister(RADIO_TALK, Vtext(&window, "       y: ",, 5, 3, &digits), 0, tempy)
+   VFormat(RADIO_TALK)
+   RB_starty := tempy
+end
+
+##########################################################################
+# display_radio_button_atts() displays the attribute sheet with the current
+#                             attributes for the given radio button instance.
+##########################################################################
+procedure display_radio_button_atts(object)
+   local tempy, i, send_data, data, new, v, ok, nok, reg_list, ins_list, l
+   initial radio_button_atts()
+
+   new := copy(object)
+   new.y -:= CANVASY
+   new.alts := copy(object.alts)
+
+   repeat {
+      reg_list := []
+      ins_list := []
+      tempy := RB_starty
+
+      # construct text fields and "add" and "del" buttons
+      every i := 0 to *new.alts do {
+         tempy +:= PAD
+         v := Vbutton(&window, "add", radio_cb, V_OK, , 28, 17)
+         VInsert(RADIO_TALK, v, 0, tempy + PAD / 2)
+         put(ins_list, v)
+         if i = 0 then
+            next
+         v := Vbutton(&window, "del", radio_cb, V_OK, , 28, 17)
+         VInsert(RADIO_TALK, v, 35 + TEXTWIDTH, tempy + 1)
+         put(ins_list, v)
+         v := Vtext(&window, "", , 5 + i, TEXTCHARS, LBMASK)
+         VRegister(RADIO_TALK, v, 35, tempy)
+         put(reg_list, v)
+         }
+
+      # add "Okay" and "Cancel"
+      tempy +:= 2 * PAD
+      ok  := Vbutton(&window, "Okay", , V_OK, , 50, 30)
+      nok := Vbutton(&window, "Cancel", , V_CANCEL, , 50, 30)
+      VInsert(RADIO_TALK, ok, TEXTWIDTH / 2 - 30, tempy)
+      VInsert(RADIO_TALK, nok, TEXTWIDTH / 2 + 40, tempy)
+      put(ins_list, ok, nok)
+
+      # post the dialog
+      RADIO_VIDGET := &null
+      VFormat(RADIO_TALK)
+      send_data := [new.id, new.proc, new.x, new.y] ||| new.alts
+      data := VOpenDialog(RADIO_TALK, , "radio_dialog", send_data, "Okay")
+      every VUnregister(RADIO_TALK, !reg_list)
+      every VRemove(RADIO_TALK, !ins_list, 1)
+
+      if data === send_data then
+         fail				# cancelled
+
+      # save new values
+      new.id    := strip(get(data))
+      new.proc  := strip(get(data))
+      new.x     := get(data)
+      new.y     := get(data)
+      every !new.alts := get(data)
+
+      # if "add" or "del" was pressed, process it and loop to re-post dialog
+      if \RADIO_VIDGET then {
+         l := []
+         every v := reg_list[1 to *new.alts] do {
+            if v.ay - PAD < RADIO_VIDGET.ay-1 < v.ay then
+               put(l, "")
+            if v.ay ~= RADIO_VIDGET.ay-1 then
+               put(l, v.data)
+         }
+         if RADIO_VIDGET.ay-1 > reg_list[*new.alts].ay | *l = 0 then
+            put(l, "")
+         new.alts := l
+         next
+      }
+
+      # check for legal field values
+      if illegal(new.id, "ID", "s") |
+         illegal(new.proc, "Callback", "p") |
+         illegal(new.x, "X", "i") |
+         illegal(new.y, "Y", "i")
+      then
+         next
+
+      # everything is valid
+      object.proc := new.proc
+      object.id := new.id
+      object.alts := new.alts
+
+      unfocus_object(object)
+      EraseArea(object.x, object.y, object.w, object.h)
+
+      object.v := Vradio_buttons(ROOT,
+         object.x, object.y, APPWIN, new.alts, , object.v.id, V_DIAMOND_NO)
+      object.w := object.v.aw
+      object.h := object.v.ah
+      VRemove(ROOT, object.v, 1)
+
+      move_object(object, new.x, new.y + CANVASY, object.w, object.h)
+      focus_object(object)
+      break
+   }
+end
+
+##########################################################################
+# radio_cb is called when an "add" or "del" button is pressed.
+##########################################################################
+procedure radio_cb(v)
+   RADIO_VIDGET := v
+end

@@ -1,0 +1,93 @@
+############################################################################
+#
+#	File:     cstrings.icn
+#
+#	Subject:  Program to print strings in C files
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     September 17, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Program to print all strings (enclosed in double quotes) in C source
+#  files.
+#
+
+procedure main(arg)
+   local c,f,fn,line,lineNbr,s
+   if *arg = 0 then stop("Usage: cstrings file...")
+   every fn := !arg do {
+      f := open(fn) | stop("Can't open \"",fn,"\"")
+      lineNbr := 0
+      while line := read(f) do line ? {
+	 lineNbr +:= 1
+	 while tab(upto('/"\'')) do {
+	    case move(1) of {
+	       #
+	       #  Comment -- handled because it could contain something that
+	       #  looks like a string.
+	       #
+	       "/": {
+		  if ="*" then {
+		     while not tab(find("*/") + 2) do {
+			&subject := read(f) | stop("Unexpected EOF in comment")
+			lineNbr +:= 1
+			}
+		     }
+		  }
+	       #
+	       #  String
+	       #
+	       "\"": {
+		  s := "\""
+		  while s ||:= tab(upto('"\\')) do {
+		     s ||:= c := move(1)
+		     case c of {
+			"\\": {
+			   if not (s ||:= move(1)) then {
+			      s[-1] := ""
+			      &subject := read(f) |
+				    stop("Unexpected EOF in string")
+			      lineNbr +:= 1
+			      }
+			   }
+			"\"": {
+			   break
+			   }
+			}
+		     }
+		  write("+",lineNbr," ",fn," ",s)
+		  }
+	       #
+	       #  Character constant -- handled because it might contain
+	       #  a double quote, which could be mistaken for the start
+	       #  of a string.
+	       #
+	       "'": {
+		  while tab(upto('\'\\')) do {
+		     c := move(1)
+		     case c of {
+			"\\": {
+			   if not move(1) then {
+			      &subject := read(f) |
+				    stop("Unexpected EOF in character constant")
+			      lineNbr +:= 1
+			      }
+			   }
+			"'": {
+			   break
+			   }
+			}
+		     }
+		  }
+	       }
+	    }
+	 }
+      close(f)
+      }
+end

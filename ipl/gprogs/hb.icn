@@ -1,0 +1,334 @@
+############################################################################
+#
+#	File:	  hb.icn
+#
+#	Subject:  Program for Hearts & Bones game
+#
+#	Author:	  Robert J. Alexander
+#
+#	Date:	  March 10, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Hearts & Bones
+#
+#  Usage: hb [-h <board height>] [-w <board width>] [-b <# bones>] [-B]
+#
+#  -B says to print the actual number of bones placed.
+#
+#  For best results, use odd board heights and widths, and even
+#  square heights and widths.
+#
+#  Defaults: board height = 9, board width = 13, # bones = 25.
+#
+#  --- Game Play ---
+#
+#  Hit "q" to quit, "r" to start a new game.
+#
+#  The object is to visit all the safe squares without stepping on a
+#  bone.
+#
+#  You *visit* a square by clicking the left mouse button in it.  If the
+#  square is safe, a number is posted in it that reveals the number of
+#  squares in the eight neighboring squares the contain bones.  Squares
+#  containing hearts (represented by $) are always safe.
+#
+#  You can only visit squares that are adjacent to squares already
+#  visited.  At the start of a game, the upper left square (a heart
+#  square) is pre-visited for you.  If a visited square has no
+#  neighbors, its adjacent squares are automatically visited for you, as
+#  a convenience.
+#
+#  At any time you can *mark* a square that you believe has a bone by
+#  clicking the right (or center) mouse button on it.  This is a memory
+#  aid only -- if you visit it later (and you were right), you're dead.
+#  There is no confirmation whether a square you have marked really
+#  contains a bone, although you will probably find out later when it
+#  causes you to make a mistake.  A right-button click on a marked
+#  square unmarks it.
+#
+#  The game ends when you have visited all safe squares or stepped on a
+#  bone.  (Presently, there is no automatic detection of a winning board
+#  -- you just have to notice that for yourself).
+#
+#  NOTE:  If you use the command line options to alter the setup
+#  parameters (e.g.  increasing the number of squares, or *decreasing*
+#  the number of bones), you might get a stack overflow due, I think, to
+#  deep recursion.  I have found that setting the environment variable
+#  MSTKSIZE=30000 works well.
+#
+############################################################################
+#
+#  Links: options, random, wopen
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+link options
+link random
+link wopen
+
+global height, width, nbr_bones, x1, y1, sq, print_bone_count
+
+
+procedure main(arg)
+   initialize(arg)
+   play()
+   return
+end
+
+
+procedure draw_board(win)
+   local x, y, x2, y2
+   x2 := x1 + width * sq
+   y2 := y1 + height * sq
+   x := x1
+   every 1 to width + 1 do {
+      DrawLine(win, x, y1, x, y2)
+      x +:= sq
+      }
+   y := y1
+   every 1 to height + 1 do {
+      DrawLine(win, x1, y, x2, y)
+      y +:= sq
+      }
+   return
+end
+
+
+procedure set_up_board(win, visited)
+   local board, pt
+   EraseArea(win)
+   board := make_board()
+   set_bones(board, nbr_bones)
+   calc_neighbors(board)
+   draw_board(win)
+   draw_hearts(win)
+   every pt := spread_zeros(board, 1, 1) do {
+      write_to_square(win, pt[1], pt[2], pt[3])
+      visited[pt[1], pt[2]] := 1
+      }
+   return board
+end
+
+
+procedure draw_hearts(win)
+   local pt
+   every pt := generate_heart_squares() do
+	 write_to_square(win, pt[1], pt[2], "$")
+   return
+end
+
+
+procedure legal_move(x, y, visited)
+   local xx, yy
+   every xx := x - 1 to x + 1 & yy := y - 1 to y + 1 do
+	 if \visited[xx, yy] then {
+	    visited[x, y] := 1
+	    return
+	    }
+end
+
+
+procedure play()
+   local win, x, y, evt, mark, marks, board, visited, pt, value
+   sq := (if match("OS/2", &host) then 30 else 20)
+   x1 := 10
+   y1 := 10
+   win := WOpen("label=HB", "size=" || width * sq + 2 * x1 || "," ||
+	 height * sq + 2 * y1)
+   repeat {
+      visited := make_board()
+      board := set_up_board(win, visited)
+      marks := make_board(" ")
+      repeat {
+	 evt := Event(win)
+	 case type(evt) of {
+	    "string": case map(evt) of {
+	       "q": exit()
+	       "r": break next
+	       }
+	    "integer": {
+	       if evt = &lrelease then {
+		  x := (&x - x1) / sq + 1
+		  y := (&y - y1) / sq + 1
+		  if legal_move(x, y, visited) then {
+		     value := board[x, y]
+		     if value ~=== "X" then {
+			#
+			#  Visited a safe square.
+			#
+			if value = 0 then 
+			      every pt := spread_zeros(board, x, y) do {
+				 write_to_square(win, pt[1], pt[2], pt[3])
+				 visited[pt[1], pt[2]] := 1
+				 }
+			else write_to_square(win, x, y, value)
+			}
+		     else {
+			#
+			#  Stepped on a bone -- game over.
+			#
+			every x := 1 to width & y := 1 to height do {
+			   value := board[x, y]
+			   write_to_square(win, x, y, "X" === value)
+			   }
+			draw_hearts(win)
+			repeat {
+			   evt := Event(win)
+			   case type(evt) of {
+			      "integer": if evt = &lrelease then break
+			      "string": case map(evt) of {
+				 "q": exit()
+				 "r": break
+				 }
+			      }
+			   }
+			break
+			}
+		     }
+		  }
+	       else if evt = (&mrelease | &rrelease) then {
+		  x := (&x - x1) / sq + 1
+		  y := (&y - y1) / sq + 1
+		  mark := marks[x, y] := if marks[x, y] == " " then "#" else " "
+		  write_to_square(win, x, y, mark)
+		  }
+	       }
+	    }
+	 }
+      }
+end
+
+
+procedure spread_zeros(board, x, y, doneset)
+   local xx, yy, v, donekey
+   /doneset := set()
+   donekey := x || "," || y
+   if member(doneset, donekey) then fail
+   insert(doneset, donekey)
+   (v := board[x, y]) | fail
+   suspend [x, y, v]
+   if v === 0 then {
+      every xx := x - 1 to x + 1 & yy := y - 1 to y + 1 do 
+	    if not(x = xx & y = yy) & board[xx, yy] then
+	    suspend spread_zeros(board, xx, yy, doneset)
+      }
+end
+
+
+procedure write_to_square(win, x, y, s)
+   WAttrib(win,
+	 "x=" || x1 + (x - 1) * sq + sq / 2 - 2,
+	 "y=" || y1 + (y - 1) * sq + sq / 2 + 4)
+   return writes(win, s)
+end
+
+
+procedure get_options(arg)
+   local opt
+   opt := options(arg, "h+w+b+B")
+   height := \opt["h"] | 9
+   width := \opt["w"] | 15
+   nbr_bones := \opt["b"] | (height * width - 9) / 5
+   print_bone_count := opt["B"]
+   width <:= 5
+   height <:= 5
+   nbr_bones >:= height * width * 2 / 3
+   return opt
+end
+
+
+procedure initialize(arg)
+   randomize()
+   get_options(arg)
+   return
+end
+
+
+procedure make_board(init_value)
+   local board
+   board := list(width)
+   every !board := list(height, init_value)
+   return board
+end
+
+
+procedure generate_heart_squares()
+   suspend [1 | (width + 1) / 2 | width, 1 | (height + 1) / 2 | height]
+end
+
+
+procedure set_bones(board, nbr_bones)
+   local i, j, pt, bone_count
+   every pt := generate_heart_squares() do board[pt[1], pt[2]] := "$"
+   board[1, 2] := board[2, 1] := board[2, 2] := "$"
+   bone_count := 0
+   every 1 to nbr_bones do {
+      #
+      #  Loop to find a spot with a path back to the start.  If we don't
+      #  find one after several tries, quit placing bones.
+      #
+      (every 1 to 20 do {
+	 i := ?width
+	 j := ?height
+	 if /board[i, j] then {
+	    board[i, j] := "X"
+	    if hearts_reachable(board) then {
+	       bone_count +:= 1
+	       break
+	       }
+	    else board[i, j] := &null
+	    }
+	 }) | break
+      }
+   if \print_bone_count then write(&errout, bone_count, " bones")
+   return
+end
+
+
+procedure calc_neighbors(board)
+   local i, j, ii, jj, neighbors
+   every i := 1 to width & j := 1 to height do {
+      if board[i, j] ~=== "X" then {
+	 neighbors := 0
+	 every ii := i - 1 to i + 1 & jj := j - 1 to j + 1 do {
+	    if board[ii, jj] === "X" then neighbors +:= 1
+	    }
+	 board[i, j] := neighbors
+	 }
+      }
+   return
+end
+
+
+procedure hearts_reachable(board)
+   local pt
+   every pt := generate_heart_squares() do {
+      if not path_to_start(pt[1], pt[2], board) then fail
+      }
+   return
+end
+
+
+procedure path_to_start(x, y, board, doneset)
+   local xx, yy, donekey
+   /doneset := set()
+   if not(board[x, y] ~=== "X") then fail
+   if x = 1 & y = 1 then return
+   donekey := x || "," || y
+   if member(doneset, donekey) then fail
+   insert(doneset, donekey)
+   every xx := x - 1 to x + 1 & yy := y - 1 to y + 1 do {
+      if x = xx & y == yy then next
+      if path_to_start(xx, yy, board, doneset) then return
+      }
+end
+

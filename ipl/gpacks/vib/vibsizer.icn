@@ -1,0 +1,197 @@
+############################################################################
+#
+#  vibsizer.icn -- procedures for defining a sizer object
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+
+$include "vibdefn.icn"
+
+##########################################################################
+# sizer_obj:
+#    x,y,w,h : bounding box
+#    label   : window label
+#    id      : procedure id (only significant when used as dialog)
+#    dlog    : is this a dialog box instead of a main window?
+#    proc    : name of user callback procedure  (unused)
+#    focus   : should focus lines be drawn around this object? (not used)
+#    compose : is the object part of another?                  (not used)
+##########################################################################
+record sizer_obj(x, y, w, h, label, id, dlog, proc, focus, compose)
+
+##########################################################################
+# create_sizer() creates a sizer instance.
+##########################################################################
+procedure create_sizer()
+   local x, y, r
+
+   x := 600 - SZDIM
+   y := 400 - SZDIM + 65
+   x >:= WAttrib("width") - SZDIM - 10
+   y >:= WAttrib("height") - SZDIM - 10
+   r := sizer_obj(x, y, SZDIM, SZDIM, "")
+   return r
+end
+
+##########################################################################
+# move_sizer() erases the sizer, updates its location, and redraws.
+##########################################################################
+procedure move_sizer(r, newx, newy)
+   erase_sizer(r)
+   newx <:= 0
+   newx >:= WAttrib("width") - 11
+   newy <:= CANVASY
+   newy >:= WAttrib("height") - 11
+   r.x := newx
+   r.y := newy
+   draw_sizer(r)
+   DIRTY := 1
+end
+
+############################################################################
+# drag_sizer() resizes the application window by dragging the sizer.
+############################################################################
+procedure drag_sizer()
+   local x, y
+
+   unfocus_object(\FOCUS)
+   x := &x
+   y := &y
+   DrawRectangle(XORWIN, 0, CANVASY, x, y - CANVASY)
+   repeat case Event() of {
+      &ldrag: {
+         DrawRectangle(XORWIN, 0, CANVASY, x, y - CANVASY)
+         x := &x
+         y := &y
+	 x <:= SZDIM
+	 y <:= SZDIM
+         DrawRectangle(XORWIN, 0, CANVASY, x, y - CANVASY)
+	 }
+      &lrelease: {
+         DrawRectangle(XORWIN, 0, CANVASY, x, y - CANVASY)
+         move_sizer(SIZER, x - SZDIM, y - SZDIM)
+         draw_canvas()
+         return
+      }
+   }
+end
+
+##########################################################################
+# draw_sizer() draws the given sizer object.
+##########################################################################
+procedure draw_sizer(r)
+   DrawLine(APPWIN, 0, r.y+SZDIM, r.x+SZDIM, r.y+SZDIM, r.x+SZDIM, CANVASY)
+   BevelRectangle(APPWIN, r.x, r.y, SZDIM, SZDIM, -2)
+   return r
+end
+
+##########################################################################
+# erase_sizer() erases the given sizer object.
+##########################################################################
+procedure erase_sizer(r)
+   EraseArea(APPWIN, r.x, r.y, SZDIM + 1, SZDIM + 1,
+      0, r.y + SZDIM, r.x, 1, r.x + SZDIM, CANVASY, 1, r.y)
+   return r
+end
+
+##########################################################################
+# load_sizer() restores the sizer object from session code.
+##########################################################################
+procedure load_sizer(r, o)
+   local winw, winh
+
+   winw := WAttrib("width")
+   winh := WAttrib("height")
+   pop(O_LIST)			# remove sizer from object list
+   r.label := o.lbl
+   r.x := r.x + r.w - SZDIM
+   r.y := r.y + r.h - SZDIM
+   r.w := r.h := SZDIM
+   r.dlog := ("" ~== o.num)
+   erase_sizer(SIZER)
+   if (r.x + r.w + 11 > winw) | (r.y + r.h + 11 > winh) then {
+      winw <:= r.x + r.w + 11
+      winh <:= r.y + r.h + 11
+      WAttrib("width=" || (ROOT.aw := winw), "height=" || (ROOT.ah := winh))
+      draw_decor()
+      }
+   SIZER := r
+end
+
+##########################################################################
+# save_sizer() augments the record for saving the sizer object.
+##########################################################################
+procedure save_sizer(r, o)
+   r.typ := "Sizer"
+   r.lbl := o.label
+   r.w := r.x + r.w
+   r.h := r.y + r.h
+   r.x := r.y := 0
+   r.num := o.dlog
+   return
+end
+
+##########################################################################
+# display_sizer_atts() displays the attribute sheet with the current
+#                      attributes for the given sizer instance.
+#                      This amounts to the window dimensions ...
+##########################################################################
+procedure display_sizer_atts(object)
+   local t
+
+   t := table()
+   t["a_name"]		:= object.id
+   t["b_label"]		:= object.label
+   t["c_width"]		:= object.x + object.w
+   t["d_height"]	:= object.y + object.h - CANVASY
+   t["_dialog"]		:= object.dlog
+
+   repeat {
+      if sizer_dialog(t) == "Cancel" then
+         fail
+
+      if illegal(t["a_name"], "Procedure name", "p") |
+         illegal(t["b_label"], "Label", "l") |
+         illegal(t["c_width"], "Width", SZDIM) |
+         illegal(t["d_height"], "Height", SZDIM)
+      then
+         next
+
+      if t["c_width"] >= WAttrib("width") |
+         t["d_height"] >= WAttrib("height") then {
+            Notice("The VIB window is not large enough",
+               "to model a canvas of that size.")
+            next
+            }
+
+      erase_sizer(object)
+      object.id		:= t["a_name"]
+      object.label	:= t["b_label"]
+      object.x		:= t["c_width"] - object.w
+      object.y		:= t["d_height"] - object.h + CANVASY
+      object.dlog	:= t["_dialog"]
+      draw_sizer(object)
+      DIRTY := 1
+      break
+   }
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure sizer_dialog(win, deftbl)
+static dstate
+initial dstate := dsetup(win,
+   ["sizer_dialog:Sizer::1:0,0,500,180:",],
+   ["_cancel:Button:regular::265,125,50,30:Cancel",],
+   ["_dialog:Button:check:1:278,77,118,20:dialog window",],
+   ["_okay:Button:regular:-1:185,125,50,30:Okay",],
+   ["a_name:Text::40:13,14,402,19:procedure name: \\=",],
+   ["b_label:Text::50:13,35,472,19:window label:   \\=",],
+   ["c_width:Text::3:13,60,143,19:         width: \\=",],
+   ["d_height:Text::3:13,81,143,19:        height: \\=",],
+   )
+return dpopup(win, deftbl, dstate)
+end
+#===<<vib:end>>===	end of section maintained by vib

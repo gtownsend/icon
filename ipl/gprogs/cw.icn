@@ -1,0 +1,48 @@
+############################################################################
+#
+#	File:     cw.icn
+#
+#	Subject:  Program to manipulate color ways
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 19, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  See colorway.icn for documentation
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  colorway
+#
+############################################################################
+
+link colorway
+
+procedure main()
+
+   cw_init()
+
+   cw := colorway(table())	# initial color way
+   cw.table["white"] := "white"
+   cw.table["black"] := "black"
+   cw_file := ""
+   win_cw()
+   expose(cw_interface)
+
+   repeat {
+     if \cw_active then edit_cw()
+     else ProcessEvent(cw_root, , shortcuts)
+     }
+
+
+end

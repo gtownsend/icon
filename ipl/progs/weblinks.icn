@@ -1,0 +1,382 @@
+############################################################################
+#
+#	File:     weblinks.icn
+#
+#	Subject:  Program to check links in HTML files
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     February 8, 1999
+#
+############################################################################
+#
+#	This file is in the public domain.
+#
+############################################################################
+#
+#	Weblinks is a program for checking links in a collection of HTML
+#	files.  It is designed for use directly on the file structure
+#	containing the HTML files.
+#
+#	Given one or more starting points, weblinks parses each file and
+#	validates the HTTP: and FILE: links it finds.  Errors are reported
+#	on standard output.  FILE: links, including relative links, can be
+#	followed recursively.
+#
+############################################################################
+#
+#	By design, only local files are scanned.  Only an existence check is
+#	performed for HTTP: links.  Validation of HTTP: links is aided by
+#	caching and subject to speed limits; see "vhttp.icn" for details.
+#
+#	Remote links are checked by sending an HTTP "HEAD" request. 
+#	Unfortunately, some sites respond with "Server Error" or even with
+#	snide remarks like "Because I felt like it".  These are reported
+#	as errors and must be inspected manually.
+#
+#	NOTE:  if the environment variable USER is set, as it usually is,
+#	then "From: $USER@hostname" is sent as part of each remote inquiry
+#	in order to identify the source.  This is standard etiquitte for
+#	automated checkers.
+#
+#	Limitations:
+#	   url(...) links within embedded stylesheets are not recognized.
+#	   FTP:, MAILTO:, and other link types are not validated.
+#	   Files are checked recursively only if named *.htm*.
+#	   Proper file permission (for web export) is not checked.
+#
+#	The common error of failing to put a trailing slash on a directory
+#	specification results in a "453 Is A Directory" error message for a
+#	local file or, typically, a "301 Moved Permanently" message for a
+#	remote file.
+#
+############################################################################
+#
+#	usage:   weblinks [options] file...
+#
+#	-R	follow file links recursively
+#		(http links are never followed recursively)
+#
+#	-t	trace files as visited
+#
+#	-s	report successes as well as problems
+#
+#	-v	report tracing and successes, if selected, more verbosely
+#
+#	-r root
+#		specify starting point for file names beginning with "/"
+#		(e.g. -r /cs/www).  This is needed if such references are
+#		to be followed or checked.  If a root is specified it
+#		affects all file specifications including those on the
+#		command line.
+#
+#	-h home
+#		specify starting point for file names beginning with "/~".
+#
+#	-p prefix[,prefix...]
+#		prune (don't check) files beginning with given prefix
+#
+#	-b prefix
+#		specify bounds for files scanned:  do not scan files
+#		that do not begin with prefix.  Default bounds are
+#		directory of last file name.  For example,
+#			weblinks /foo/bar /foo/baz  
+#		implies "-b /foo/".
+#
+############################################################################
+#
+#	Examples (all assuming a web area rooted at /cs/www)
+#
+#		To check one new page:
+#		weblinks -r /cs/www  /icon/books.htm
+#
+#		To check a personal hirearchy, with tracing:
+#		weblinks -R -t -r /cs/www -h /cs/www/people /~gmt/
+#
+#		To check with pruning:
+#		weblinks -R -t -r /cs/www -p /icon/library /icon/index.htm
+#
+############################################################################
+#
+#  Links:  options, strings, html, vhttp
+#
+############################################################################
+#
+#  Requires:  Unix, dynamic loading
+#
+############################################################################
+
+
+#  to do:
+#	add -u option (report unchecked URLs); -s should imply -u
+#	accept directive file (root, home, start, flags, prune, bound)
+#	provide way to ask for warnings about (e.g.) /http/html paths
+#	provide way to specify translation from http:lww... into file: /...
+#	provide way to specify translation from ftp:... into file: /...
+#	provide depth limit control
+#	allow longer history persistence
+#	history is clumsy -- hard to recheck a connection that failed
+#	  add option to retry failed entries (but believe cached successes)
+#	add option to sort report by referencing page
+
+
+$define URLCOLS 56	# number of columns allotted for tracing URLs
+$define STATCOLS 22	# number of columns allotted for status messages
+
+link options
+link strings
+link html
+link vhttp
+
+
+global root
+global home
+global prune
+global bounds
+
+global recurse
+global trace
+global verbose
+global successes
+
+global todo, done, nscanned
+global refto, reffrom
+
+
+procedure main(args)
+   local opts, url
+
+   # initialize data structures
+
+   prune := list()
+   todo := list()
+   done := table()
+   refto := table()
+   reffrom := table()
+   nscanned := 0
+
+   # process command line
+
+   opts := options(args, "b:p:r:h:Rstv")
+   recurse := opts["R"]
+   successes := opts["s"]
+   trace := opts["t"]
+   verbose := opts["v"]
+
+   if *args = 0 then
+      stop("usage: ", &progname, " [options] file ...")
+
+   setroot(\opts["r"] | "/")
+   sethome(\opts["h"] | "/usr/")
+   setbounds(\opts["b"] | urlmerge(args[-1], ""))
+   every setprune(words(\opts["p"], ' ,'))
+   setfrom()
+
+   register("initial:")
+   register("implicit:")
+   every addref("initial:", urlmerge("file:", !args))
+
+   wheader()
+
+   while url := get(todo) do
+      try(url)
+
+   if \trace then
+      write()
+
+   report()
+end
+
+procedure setroot(s)
+   if s[-1] ~== "/" then
+      s ||:= "/"
+   root := s
+   return
+end
+
+procedure sethome(s)
+   if s[-1] ~== "/" then
+      s ||:= "/"
+   home := s
+   return
+end
+
+procedure setprune(s)
+   put(prune, s)
+   return
+end
+
+procedure setbounds(s)
+   bounds := s
+   return
+end
+
+procedure setfrom()
+   local user, host, f
+
+   user := getenv("USER")	| fail
+   *user > 0			| fail
+   f := open("uname -n", "rp")	| fail
+   host := read(f)
+   close(f)
+   *\host > 0			| fail
+   vhttp_from := user || "@" || host
+   return
+end
+
+
+procedure wheader()
+   write("From:\t", \vhttp_from | "[none]")
+   write("root:\t", root)
+   write("home:\t", home)
+   write("bounds:\t", bounds)
+   every write("start:\t", (!todo)[6:0])
+   every write("prune:\t", !prune)
+   write()
+   return
+end
+
+procedure try(url)
+   local result
+
+   (/done[url] := "[processing]") | return	# return if already checked
+
+   if \trace then {
+      writes(pad(url, URLCOLS))
+      flush(&output)
+      }
+
+   result := check(url)
+   done[url] := result
+
+   if \trace then
+      write("  ", result)
+   return
+end
+
+
+procedure check(url)
+   local protocol, fspec, fname, f, s, ref, base
+
+   url ? {
+      protocol := map(tab(upto(':'))) | ""
+      =":"
+      fspec := tab(0)
+   }
+
+   if protocol == "http" then
+      return vhttp(url) | "451 Illegal URL"
+
+   if protocol ~== "file" then
+      return "152 Not Checked"
+
+   fspec ? {
+      if ="/~" then
+         fname := home || tab(0)
+      else if ="/" then
+         fname := root || tab(0)
+      else
+         fname := fspec
+      }
+
+   if fname[-1] == "/" then {
+      if (close(open(fname || "index.html"))) then {
+         addref("implicit:", url || "index.html")
+         return "154 Found index.html"
+         }
+      if (close(open(fname || "index.htm"))) then {
+         addref("implicit:", url || "index.htm")
+         return "155 Found index.htm"
+         }
+      if (close(open(fname || "."))) then
+         return "153 Found Directory"
+      }
+
+   if not (f := open(fname)) then
+      return "452 Cannot Open"
+
+   if (/recurse & not member(reffrom["initial:"], url)) |
+   (fspec ? (not match(bounds)) | match(!prune)) | 
+   (not find(".htm", map(url))) then {
+      close(f)
+      if close(open(fname || "/.")) then
+         return "453 Is A Directory"
+      else
+         return "251 File Exists"
+      }
+
+   base := url
+   every s := htrefs(f) do s ? {
+      if ="BASE HREF " then {
+         base := tab(0)
+         }
+      else {
+         tab(upto(' ') + 1)
+         tab(upto(' ') + 1)
+         ref := urlmerge(base, tab(0))
+         addref(url, ref)
+         }
+      if \verbose then
+         writes("\n   references: ", ref)
+      }
+   if \verbose then
+      writes("\n", repl(" ", URLCOLS))
+
+   close(f)
+   nscanned +:= 1
+   return "252 File Scanned"
+end
+
+procedure report()
+   local l, url, stat
+
+   l := sort(done, 4)
+   while (url := get(l)) & (stat := get(l)) do {
+      if \successes | (any('3456789', stat) & stat ~== "302 Found") then {
+         write(pad(stat || ":", STATCOLS), "  ", url)
+         if \verbose | any('3456789', stat) then
+            every write("   referenced by:\t", !sort(refto[url]))
+         }
+      }
+
+   write()
+
+   if nscanned = 1 then
+      write("1 file scanned")
+   else
+      write(nscanned, " files scanned")
+
+   if *done = 1 then
+      write("1 reference checked")
+   else
+      write(*done, " references checked")
+
+   return
+end
+
+procedure addref(src, dst)
+   dst := (dst ? tab(upto('#') | 0))
+   register(dst)
+   insert(refto[dst], src)
+   insert(reffrom[src], dst)
+   if /done[dst] then
+      put(todo, dst)
+   return
+end
+
+procedure register(url)
+   /refto[url] := set()
+   /reffrom[url] := set()
+   return
+end
+
+
+
+#  pad(s, n) -- pad string to length n, never truncating
+
+procedure pad(s, n)
+   if *s < n then
+      return left(s, n)
+   else
+      return s
+end

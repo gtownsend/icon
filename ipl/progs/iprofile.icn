@@ -1,0 +1,379 @@
+############################################################################
+#
+#	File:     iprofile.icn
+#
+#	Subject:  Program to profile Icon procedure usage
+#
+#	Author:   Richard L. GOerwitz
+#
+#	Date:     September 28, 1996
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.5
+#
+############################################################################
+#
+#  This very simple profiler takes a single argument - an Icon program
+#  compiled with the -t option.  Displays stats on which procedures
+#  were called the most often, and from what lines in what files they
+#  were called.  Use this program to figure out what procedures are
+#  getting worked the hardest and why.  Counts only invocations and
+#  resumptions; not suspensions, returns, failures.
+#
+#  If you are running a program that reads from a file, be sure to
+#  protect the redirection symbol from the shell (i.e. "profile
+#  'myprog < input'" instead of "profile myprog < input").  If a given
+#  program normally reads &input, please redirect stdin to read from
+#  another tty than the one you are running profile from.  If you
+#  forget to do this, the results might be very interesting....  Also,
+#  don't redirect stderr, as this contains the trace that profile will
+#  be reading and using to obtain run-time statistics.  Profile
+#  automatically redirects stdout to /dev/null.
+#
+#  Currently runs only under UNIX, but with some tweaking could be
+#  made to run elsewhere as well.
+#
+#  The display should be pretty much self-explanatory.  Filenames and
+#  procedures get truncated at nineteen characters (if the display
+#  gets too wide, it can become hard to read).  A star is prepended to
+#  procedures whose statistics have changed since the last screen
+#  update.
+#
+############################################################################
+#
+#  Requires:  co-expressions, keyboard functions, pipes, UNIX
+#
+#  Links:  iolib or itlib, iscreen
+#
+############################################################################
+
+link iolib
+link iscreen
+global CM, LI, CO, CE
+
+procedure main(a)
+
+    local whitespace, firstidchars, idchars, usage, in_data,
+	cmd, line, filename, linenum, procname, t, threshhold
+
+    whitespace   := '\t '
+    firstidchars := &letters ++ '_'
+    idchars      := &digits ++ &letters ++ '_'
+    usage        := "usage:  profile filename _
+		     (filename = Icon program compiled with -t option)"
+
+    #
+    # If called with a program name as the first argument, open it,
+    # and pipe the trace output back to this program.  Assume the
+    # user knew enough to compile it with the "-t" option.
+    #
+    if *a > 0 then {
+	if find("UNIX", &features) then {
+	    cmd := ""; every cmd ||:= !a || " "
+	    if find("2>", cmd) then
+		stop("profile:  Please don't redirect stderr!")
+	    in_data := open(cmd || " 2>&1 1> /dev/null", "pr") |
+		stop("profile:  Can't find or execute ", cmd, ".")
+	} else stop("profile:  Your OS is not (yet) supported.")
+    }
+    else stop(usage)
+
+    # clear screen, set up global variables; initialize table
+    setup_screen()
+    t := table()
+
+    threshhold := 0
+    while line := read(in_data) do {
+	threshhold +:= 1
+	#
+	# Break each line down into a file name, line number, and
+	# procedure name.
+	#
+	line ? {
+	    tab(many(whitespace))
+	    match(":") & next
+	    { 
+		filename := trim(tab(find(":"))) &
+		  tab(many(whitespace ++ ':')) &
+		  linenum  := tab(many(&digits)) &
+		  tab(many(whitespace ++ '|')) &
+		  procname := tab(any(firstidchars)) || tab(many(idchars))
+	    } | next
+	    tab(many(whitespace))
+	    # Count only invocations and resumptions.
+	    match("suspended"|"failed"|"returned") & next
+	}
+
+	#
+	# Enter statistics into table.
+	#
+	/t[procname] := table()
+	/t[procname][filename] := table(0)
+	 t[procname][filename][linenum] +:= 1
+
+	#
+	# Display stats interactively.
+	#
+	if threshhold > 90 then {
+	    threshhold := 0
+	    display_stats(t)
+	}
+    }
+
+    display_stats(t)
+    # Write a nice exit message.
+    goodbye()
+
+end
+
+
+#
+# display_stats:  display the information in t interactively
+#
+procedure display_stats(t)
+
+    local l, input, c
+    static top, len, firstline
+	# sets global variables CM, LI, CO, and CE
+    initial {
+	top := 1
+	# The first line we can write data to on the screen.
+	firstline := 3
+	len := LI - 4 - firstline
+    }
+
+    #
+    # Structure the information in t into a list.  Note that to obtain
+    # the number of procedures, one must divide l in half.
+    #
+    l := sort_table(t)
+
+    #
+    # Check for user input.
+    #
+    while kbhit() do {
+	iputs(igoto(CM, 1, LI-1))
+	writes("Press j/k/^/$/p/q:  ")
+	iputs(CE)
+	writes(input := map(getch()))
+	case input of {
+	    # Increase or decrease top by 4; don't go beyond 0 or
+	    # *l; no even numbers for top (the 4 also must be even).
+	    "j"    : top := (*l > (top+2) | *l-1)
+	    "\r"   : top := (*l > (top+2) | *l-1)
+	    "\n"   : top := (*l > (top+2) | *l-1)
+	    "k"    : top := (0  < (top-2) | 1)
+	    "\x02" : top := (0  < (top-4) | 1)
+	    "\x15": top := (0  < (top-4) | 1)
+	    " "    : top := (*l > (top+4) | *l-1)
+	    "\x06" : top := (*l > (top+4) | *l-1)
+	    "\x04" : top := (*l > (top+4) | *l-1)
+	    "^"    : top := 1
+	    "$"    : top := *l-1
+	    "p"    : {
+		iputs(igoto(CM, 1, LI-1))
+		writes("Press any key to continue: "); iputs(CE)
+		until kbhit() & getch() do delay(500)
+	    }
+            "q"    : goodbye()
+            "\x0C" : setup_screen()
+	    "\x012": setup_screen()
+	    default: {
+		if any(&digits, input) then {
+		    while c := getche() do {
+			if c == ("\n"|"\r") then {
+			    if not (input <:= 1) then
+				input +:= input % 2 - 1
+			    top := (0  < input | 1)
+			    top := (*l > input | *l-1)
+			    break
+			} else {
+			    if any(&digits, c)
+			    then input ||:= c & next
+			    else break
+			}
+		    }
+		}
+	    }
+	}
+	iputs(igoto(CM, 1, LI-1))
+	writes("Press j/k/^/$/p/q:  ")
+	iputs(CE)
+    }
+
+    #
+    # Display the information contained in table t via list l2.
+    #
+    write_list(l, top, len, firstline)
+    return
+
+end
+
+
+#
+# sort_table:  structure the info in t into a list
+#
+#     What a mess.  T is a table, keys = procedure names, values =
+#     another table.  These other tables are tables where keys = file
+#     names and values = yet another table.  These yet other tables
+#     are structured as follows: keys = line numbers, values = number
+#     of invocations.  The idea is to collapse all of these tables
+#     into sorted lists, and at the same time count up the total
+#     number of invocations for a given procedure name (going through
+#     all its invocations at every line in every file).  A new table
+#     is then created where keys = procedure names and values = total
+#     number of invocations.  Yet another sort is done on the basis of
+#     total number of invocations.
+#
+procedure sort_table(t)
+
+    local t2, total_t, k, total, i, l, l2
+    static old_totals
+    initial old_totals := table()
+
+    t2 := copy(t)
+    total_t := table()
+    every k := key(t2) do {
+	t2[k] := sort(t2[k], 3)
+	total := 0
+	every i := 2 to *t2[k] by 2 do {
+	    every total +:= !t2[k][i]
+	    t2[k][i] := sort(t2[k][i], 3)
+	}
+	insert(total_t, k, total)
+    }
+    l2 := list(); l := sort(total_t, 4)
+    every i := 1 to *l-1 by 2 do {
+	push(l2, t2[l[i]])
+	if not (total_t[l[i]] <= \old_totals[l[i]]) then
+	    l[i] := "*" || l[i]
+	push(l2, l[i])
+    }
+
+    old_totals := total_t
+    return l2
+
+end
+
+
+#
+# write_list:  write statistics in the upper part of the screen
+#
+procedure write_list(l, top, len, firstline)
+
+    local   i, j, k, z, w
+    static  last_i
+    #global CM, CE
+    initial last_i := 2
+
+    # Arg1, l, is a sorted table of sorted tables of sorted tables!
+    # Firstline is the first line on the screen we can write data to.
+    #
+    i := firstline
+    iputs(igoto(CM, 1, i)); iputs(CE)
+    every j := top to *l by 2 do {
+	writes(left(l[j], 19, " "))
+	every k := 1 to *l[j+1]-1 by 2 do {
+	    iputs(igoto(CM, 20, i))
+	    writes(left(l[j+1][k], 19, " "))
+	    every z := 1 to *l[j+1][k+1]-1 by 2 do {
+		iputs(igoto(CM, 40, i))
+		writes(left(l[j+1][k+1][z], 7, " "))
+		iputs(igoto(CM, 48, i))
+		writes(l[j+1][k+1][z+1])
+		if (i +:= 1) > (firstline + len) then
+		    break break break
+		else iputs(igoto(CM, 1, i)) & iputs(CE)
+	    }
+	}
+    }
+
+    # Clear the remaining lines down to the status line.
+    #
+    every w := i to last_i do {
+	iputs(igoto(CM, 1, w))
+	iputs(CE)
+    }
+    last_i := i
+
+    return
+
+end
+
+
+#
+# setup_screen: clear screen, set up status line.
+#
+procedure setup_screen()
+
+    # global CM, LI, CO, CE
+    initial {
+	CM := getval("cm") |
+	    stop("setup_screen:  No cm capability!")
+	LI := getval("li")
+	CO := getval("co")
+	CE := getval("ce")
+	# UNIX-specific command to disable character echo.
+	system("stty -echo")
+    }
+
+    clear()
+    iputs(igoto(CM, 1, 1))
+    emphasize()
+    writes(left(left("procedure name", 19, " ") ||
+		left("source file", 20, " ") ||
+		left("line", 8, " ") ||
+		"number of invocations/resumptions",
+		CO, " "))
+    normal()
+    status_line("- \"Profile,\" by Richard Goerwitz -")
+    iputs(igoto(CM, 1, LI-1))
+    writes("J or CR=down; k=up; ^=begin; $=end; p=pause; q=quit: ")
+    iputs(CE)
+
+    return
+
+end
+
+#
+# goodbye: exit, say something nice
+#
+procedure goodbye()
+
+    # UNIX-specific command.
+    system("stty echo")
+
+    status_line("- \"Profile,\" by Richard Goerwitz -")
+    every boldface() | emphasize() | normal() |
+	  boldface() | emphasize() | normal()
+    do {
+	delay(50)
+	iputs(igoto(CM, 1, LI-1))
+	writes("Hope you enjoyed using profile! ")
+	normal(); iputs(CE)
+    }
+    exit()
+
+end
+
+
+#
+# stop_profile:  graceful exit after error
+# 
+procedure stop_profile(s)
+
+    # UNIX-specific command.
+    system("stty echo")
+
+    status_line("- \"Profile,\" by Richard Goerwitz -")
+    iputs(igoto(CM, 1, LI-1))
+    writes(s); iputs(CE)
+    iputs(igoto(CM, 1, LI))
+    stop()
+
+end

@@ -1,0 +1,329 @@
+############################################################################
+#
+#	File:     viewpack.icn
+#
+#	Subject:  Procedures to visualize color streams
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     October 10, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures provide various ways of visualizing a stream of colors.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+$define Hold	300
+
+#  blinking light
+
+procedure beacon(win, color, value)	#: 1C visualization as blinking light
+
+   Fg(win, color)
+   FillCircle(win, width / 2, height / 2, width / 2)
+   WDelay(win, Hold)
+
+end
+
+#  random curves
+
+procedure curves(win, color, value)	#: 1C visualization as random curves
+   local x0, y0
+
+   Fg(win, color)
+   DrawCurve ! [
+      win,
+      x0 :=  ?width, y0 := ?height,
+      ?width, ?height,
+      ?width, ?height,
+      ?width, ?height,
+      ?width, ?height,
+      ?width, ?height,
+      ?width, ?height,
+      .x0, .y0
+      ]
+
+   WDelay(win, Hold)
+
+   return
+
+end
+
+# "haystack"
+
+procedure haystack(win, color, value)	#: 2CS visualization as "haystack"
+   static angle, xcenter, ycenter, xorg, yorg, fullcircle
+
+   initial {
+      fullcircle := 2 * &pi
+      ycenter := height / 2
+      xcenter := width / 2
+      }
+
+   Fg(win, color)
+   angle := ?0 * fullcircle	# angle for locating starting point
+   xorg := xcenter + ?xcenter * cos(angle)
+   yorg := ycenter + ?ycenter * sin(angle)
+   angle := ?0 * fullcircle	# angle for locating end point
+   DrawLine(win, xorg, yorg, value * cos(angle) +
+      xorg, value * sin(angle) + yorg)
+
+   return
+
+end
+
+#  "nova"
+
+$define Scale	3
+$define Rays	360
+
+procedure nova(win, color, value)	#: 1C visualaization as exploding star
+   local clear, xorg, yorg, radius, arc, oldlength, length
+   static fullcircle, radians, advance, erase
+
+   initial {
+      fullcircle := 2 * &pi
+      radians := 0
+      advance := fullcircle / Rays		# amount to advance
+      erase := list(Rays)
+      }
+
+   Fg(win, color)
+   xorg := width / 2
+   yorg := height / 2
+   radius := ((height < width) | height) / 2.0
+
+   length := value * Scale
+   put(erase, length)
+   oldlength := get(erase)
+
+#  The following are to erase old ray at that angle
+
+#  DrawLine(Background, xorg, yorg, \oldlength * cos(radians) + xorg,
+#     oldlength * sin(radians) + yorg)
+
+   DrawLine(win, xorg, yorg, length * cos(radians) +
+      xorg, length * sin(radians) + yorg)
+   
+   radians +:= advance
+   radians %:= fullcircle
+
+   return
+
+end
+
+#  "pinwheel"
+
+$define Sectors	240
+
+procedure pinwheel(win, color, value)	#: 1C visualization as radar sweep
+   static clear, xorg, yorg, radius, offset
+   static arc, advance, blank, max, xratio, yratio
+   static fullcircle, background
+
+   initial {
+      fullcircle := 2 * &pi
+      max := real((width < height) | width)
+      xratio := width / max
+      yratio := height / max
+      offset := 0
+      advance := fullcircle / Sectors
+      blank := 2 * advance
+      xorg := width / 2
+      yorg := height / 2
+      radius := max / 2
+
+      # This belongs elsewhere
+
+      background := Clone(win, "bg=" || default_color)
+
+      }
+
+   Fg(win, color)
+   FillArc(background, 0, 0, width, height, offset + advance, blank)
+   FillArc(win, 0, 0, width, height, offset, advance)
+   DrawLine(background, xorg, yorg, xratio * radius * cos(offset) +
+      xorg, yratio * radius * sin(offset) + yorg)
+
+   offset +:= advance
+   offset %:= fullcircle
+
+   return
+
+end
+
+#  random polygons
+
+procedure polygons(win, color, value)	#: 1C visualization as random polygons
+   local x0, y0
+
+   Fg(win, color)
+   FillPolygon ! [
+      win,
+      x0 :=  ?width, y0 := ?height,
+      ?width, ?height,
+      ?width, ?height,
+      ?width, ?height,
+      ?width, ?height,
+      ?width, ?height,
+      ?width, ?height,
+      .x0, .y0
+      ]
+
+   WDelay(win, Hold)
+
+   return
+
+end
+
+#  random dots
+
+procedure splatter(win, color, value)	#: 2CS visualization as random dots
+   local radius, xplace, yplace
+
+   Fg(win, color)
+   radius := sqrt(value)
+   xplace := ?width - 1 - (radius / 2)
+   yplace := ?height - 1 - (radius / 2)
+   FillCircle(win, xplace, yplace, radius)
+
+   return
+
+end
+
+# scrolling strip
+
+procedure strip(win, color, value)	#: 2CS visualization as scrolling lines
+   local count
+
+   Fg(win, color) | "black"
+   if /value | (value = 0) then return
+   count := log(value, 10) + 1
+   every 1 to count do {
+      CopyArea(win, 1, 0, width - 1, height, 0, 0)
+      EraseArea(win, width - 1, 0, width - 1, height)
+      FillRectangle(win, width - 1, 0, 1, height)
+      }
+
+   return
+
+end
+
+procedure symdraw(W, mid, x, y, r)
+
+   FillCircle(W, mid + x, mid + y, r)
+   FillCircle(W, mid + x, mid - y, r)
+   FillCircle(W, mid - x, mid + y, r)
+   FillCircle(W, mid - x, mid - y, r)
+
+   FillCircle(W, mid + y, mid + x, r)
+   FillCircle(W, mid + y, mid - x, r)
+   FillCircle(W, mid - y, mid + x, r)
+   FillCircle(W, mid - y, mid - x, r)
+
+   return
+
+end
+
+#  symmetric random dots
+
+procedure symsplat(win, color, value)	#: 2CS visualization as symmetric random dots
+   local radius
+   static xplace, yplace, oscale
+
+   Fg(win, color)
+   radius := sqrt(value)
+   xplace := ?width - 1
+   yplace := ?height - 1
+   symdraw(win, width / 2, xplace, yplace, radius)
+
+   return
+   
+end
+
+#  evolving vortex
+
+procedure vortex(win, color, value)	#: 1C visualization as an aspirating vortex
+   local count
+   static x1, x2, y1, y2
+
+   initial {
+      x1 := y1 := 0
+      x2 := width
+      y2 := height
+      }
+
+   Fg(win, color)
+   if value = 0 then return
+   count := log(value, 10) + 1
+   every 1 to count do {
+      if (x2 | y2) < 0 then {
+         x1 := y1 := 0
+         x2 := width
+         y2 := height
+         }
+      DrawRectangle(win, x1, y1, x2 - x1, y2 - y1)
+      x1 +:= 1
+      x2 -:= 1
+      y1 +:= 1
+      y2 -:= 1
+      }
+   
+   return
+
+end
+
+#  random walk
+#
+#  This procedure is suspect -- it seems to wander off the display area.
+
+$define Delta	30
+
+procedure web(win, color, value)	#: 2CS visualization as a random walk
+   static xorg, yorg, x, y, angle, degrees, radians, resid
+
+   initial {
+      resid := 0
+      xorg := ?(width - 1)	# starting point
+      yorg := ?(height - 1)
+      }
+
+   Fg(win, color)
+   if resid <= 1 then {
+      angle := ?0 * 2 * &pi	# initial direction for new walk
+      resid := value
+      }
+
+   x := xorg + resid * cos(angle)
+   y := yorg + resid * sin(angle)
+
+   if x > width then {
+      x := width
+      }
+   if y > height then {
+      y := height
+      }
+   if x < 0 then {
+      x := 0
+      }
+   if y < 0 then {
+      y := 0
+      }
+   DrawLine(win, xorg, yorg, x, y)
+   resid -:= sqrt((x - xorg) ^ 2 + (y - yorg) ^ 2)
+   xorg := x			# move to new point
+   yorg := y
+   angle := -angle		# reflect
+
+   return
+
+end

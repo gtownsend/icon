@@ -1,0 +1,122 @@
+############################################################################
+#
+#	File:     locus.icn
+#
+#	Subject:  Program to trace execution locus
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 4, 1997
+#
+############################################################################
+#
+#  This program traces the locus of program execution.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  em_setup, evinit, xcompat, wopen
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+$include "evdefs.icn"
+
+link em_setup
+link evinit
+link wopen
+link xcompat
+
+global Visualization, Limit
+
+procedure main(args)
+   local program_name, Width, Height, x, y, blowup, i, Context, value
+   local program, line, progarray, Color, ymul, maxheight
+   local colmask, linemask, mask
+
+   colmask := 2 ^ 16
+   linemask := colmask - 1
+
+   maxheight := 500
+
+   EvInit(args) | stop("*** cannot load program to monitor")
+
+   program_name := prog_name()
+
+   program := open(program_name) | stop("*** cannot open ", program_name)
+
+   Height := 0
+   Width := 0
+
+   while line := read(program) do {
+      Height +:= 1
+      Width <:= *line
+      }
+
+   if Height < maxheight / 2 then blowup := 4
+   else if Height < maxheight / 4 then blowup := 2
+   else blowup := 1
+
+   progarray := list(Height)
+   every !progarray := list(Width, 0)
+
+   if Height > maxheight then {
+      ymul := real(maxheight) / Height
+      Height := maxheight
+      }
+   else ymul := 1
+
+   Width *:= blowup
+   Height *:= blowup
+
+   close(program)
+
+   Visualization := WOpen("label=locus", "bg=white", "width=" || Width,
+      "height=" || Height) | stop("*** cannot open window for visualization")
+
+   Color := list(6)
+   Color[6] := XBind(Visualization, , "fg=red")
+   Color[5] := XBind(Visualization, , "fg=orange")
+   Color[4] := XBind(Visualization, , "fg=yellow")
+   Color[3] := XBind(Visualization, , "fg=green")
+   Color[2] := XBind(Visualization, , "fg=blue")
+   Color[1] := XBind(Visualization, , "fg=gray")
+
+   mask := cset(E_Loc)
+
+   x := y := -10
+
+   Limit := 10
+   i := 0
+
+   repeat {
+
+      i := (i + 1) % Limit
+      if i = 0 then {
+         while *Pending(Visualization) > 0 do
+            if Event(Visualization) === (&lpress | &mpress | &rpress) then {
+               event(E_ALoc, (&x / blowup + 1) * colmask +
+                  (&y / blowup) / ymul + 1)
+               }
+         }
+
+      EvGet(mask) | break
+      y := iand(&eventvalue, linemask)
+      x := &eventvalue / colmask
+      value := progarray[y, x] +:= 1
+      value := integer(log(value, 6)) + 1
+      Context := Color[value | *Color]
+      y := (y * ymul - 1) * blowup
+      x := (x - 1) * blowup
+      FillRectangle(Visualization, x, y, blowup, blowup)
+      FillRectangle(Context, x, y, blowup, blowup)
+
+      }
+
+end

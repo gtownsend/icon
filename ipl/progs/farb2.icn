@@ -1,0 +1,64 @@
+############################################################################
+#
+#	File:     farb2.icn
+#
+#	Subject:  Program to generate Farberisms
+#
+#	Author:   Alan Beale
+#
+#	Date:     June 14, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     Dave Farber, co-author of the original SNOBOL programming
+#  language, is noted for his creative use of the English language.
+#  Hence the terms ``farberisms'' and ``to farberate''.  This pro-
+#  gram produces a randomly selected farberism.
+#
+#  Notes: Not all of the farberisms contained in this program were
+#  uttered by the master himself; others have learned to emulate
+#  him.  A few of the farberisms may be objectionable to some per-
+#  sons.  ``I wouldn't marry her with a twenty-foot pole.''
+#
+############################################################################
+#
+#     This program obtains its farberisms from the farber.sen file to
+#  allow additional farberisms to be added without recompilation or
+#  straining the limits of the Icon translator.  It builds an index file
+#  farber.idx to allow for efficient access to the sentences file.  The
+#  use of untranslated I/O for the index file is necessary for correct
+#  behavior on some systems (e.g., MVS).
+#
+############################################################################
+#
+#  Links:  random
+#
+############################################################################
+
+link random
+
+procedure main(argv)
+   local f, ix, n
+
+   f := open("farber.sen", "r") | stop("*** cannot open \"farber.sen\"")
+   if not (ix := open("farber.idx", "ru")) then {
+      ix := open("farber.idx", "bcu")
+      n := 0;
+      repeat {
+         writes(ix, left(where(f), 10))
+         if not read(f) then break
+         n +:= 1
+      }
+      seek(ix, -10)
+      writes(ix, left(n, 10))
+   }
+   seek(ix, -10)
+   randomize()
+   seek(ix,10*(?numeric(reads(ix,10))-1))
+   seek(f,numeric(reads(ix,10)))
+   write(read(f))
+end

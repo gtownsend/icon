@@ -1,0 +1,11 @@
+#  Demonstrate dynamic loading of bitcount() function
+
+global bitcount
+
+procedure main()
+   local i
+
+   bitcount := loadfunc("./lib.so", "bitcount")
+   every i := 500 to 520 do
+      write(i, "  ", bitcount(i))
+end

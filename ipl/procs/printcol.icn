@@ -1,0 +1,149 @@
+############################################################################
+#
+#	File:     printcol.icn
+#
+#	Subject:  Procedure to format columnar data
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This procedure deals with with the problem of printing tabular
+#  data where the total width of items to be printed is wider than
+#  the page.  Simply allowing the data to wrap to additional lines
+#  often produces marginally readable output.  This procedure facil-
+#  itates printing such groups of data as vertical columns down the
+#  page length, instead of as horizontal rows across the page.  That
+#  way many, many fields can be printed neatly.  The programming of
+#  such a transformation can be a nuisance.  This procedure does
+#  much of the work for you, like deciding how many items can fit
+#  across the page width and ensuring that entire items will be
+#  printed on the same page without page breaks (if that service is
+#  requested).
+#
+############################################################################
+#  
+#     For example, suppose we have a list of records we would like
+#  to print.  The record is defined as:
+#  
+#          record rec(item1,item2,item3,...)
+#  
+#  Also suppose that lines such as
+#  
+#          Field 1   Field 2   Field 3     ...
+#          -------   -------   -------     ---
+#          Record 1    item1     item2     item3      ...
+#          Record 2    item1     item2     item3      ...
+#  
+#  are too long to print across the page.  This procedure will print
+#  them as:
+#  
+#          TITLE
+#          =====
+#          Record 1   Record 2     ...
+#          --------   --------     ---
+#          Field 1   item1      item1       ...
+#          Field 2   item2      item2       ...
+#          Field 3   item3      item3       ...
+#  
+#  The arguments are:
+#  
+#       items:       a co-expression that produces a sequence of
+#                    items (usually structured data objects, but not
+#                    necessarily) for which data is to be printed.
+#  
+#       fields:      a list of procedures to produce the field's
+#                    data.  Each procedure takes two arguments.  The
+#                    procedure's action depends upon what is passed
+#                    in the first argument:
+#  
+#            header      Produces the row heading string to be used
+#                        for that field (the field name).
+#  
+#            width       Produces the maximum field width that can
+#                        be produced (including the column header).
+#  
+#            Other      Produces the field value string for the
+#                        item passed as the argument.
+#  
+#          The second argument is arbitrary data from the procedures
+#       with each invocation.  The data returned by the first func-
+#       tion on the list is used as a column heading string (the
+#       item name).
+#  
+#       title:       optional.
+#  
+#  
+#       pagelength:  if null (omitted) page breaks are ignored.
+#  
+#       linelength:  default 80.
+#  
+#       auxdata:     auxiliary arbitrary data to be passed to the field
+#                    procedures -- see `fields', above.
+#  
+############################################################################
+
+procedure printcol(items,fields,title,pagelength,linelength,auxdata)
+  local maxwidth,maxhead,groups,columns,itemlist,cont,f,p,underline,
+	hfield
+  /linelength := 80
+  /pagelength := 30000
+  /title := ""
+#
+#  Compute the maximum field width (so we know the column spacing) and
+#  the maximum header width (so we know how much space to leave on the
+#  left for headings.
+#
+  maxwidth := maxhead := -1 
+  cont := ""
+  every maxwidth <:= (!fields)("width",auxdata)
+  hfield := get(fields)
+  every maxhead <:= *(!fields)("header",auxdata)
+  columns := (linelength - maxhead) / (maxwidth + 1)
+  groups := pagelength / (6 + *fields)
+#
+#  Loop to print groups of data.
+#
+  repeat {
+    if pagelength < 30000 then writes("\f")
+#
+#  Loop to print data of a group (a page's worth).
+#
+    every 1 to groups do {
+#
+#  Collect the items to be output in this group.  A group is the number
+#  of columns that can fit across the page.
+#
+      itemlist := []
+      every 1 to columns do put(itemlist,@items) | break
+      if *itemlist = 0 then break break
+#
+#  Print a title and the column headings.
+#
+      write(repl("=",*write("\n",title || cont)))
+      cont := " (continued)"
+      writes(underline := left("",maxhead))
+      every f := hfield(!itemlist,auxdata) do {
+	p := if *f < maxwidth then center else left
+	writes(" ",p(f,maxwidth))
+	underline ||:= " " || p(repl("-",*f),maxwidth)
+      }
+      write("\n",underline)
+#
+#  Print the fields.
+#
+      every f := !fields do {
+	writes(right(f("header",auxdata),maxhead))
+	every writes(" ",center(f(!itemlist,auxdata),maxwidth))
+	write()
+      }
+    }	# End of loop to print groups.
+  }	# End of loop to print all items.
+  return
+end

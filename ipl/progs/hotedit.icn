@@ -1,0 +1,101 @@
+############################################################################
+#
+#	File:     hotedit.icn
+#
+#	Subject:  Program to edit a Mosaic hotlist
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     July 11, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  ===> IMPORTANT NOTE:  This program was written for "NCSA Mosaic 2.4"
+#  ===> and is incompatible with the current version of Mosaic.
+#
+#  Hotedit makes it easy to edit the "hotlist" used with NCSA Mosaic,
+#  a program for grazing the Wide World Web (WWW).  The Mosic hotlist
+#  is a text file, and it can be edited directly, but this is difficult
+#  and error-prone.  Pairs of lines must be kept together, and the long
+#  "Uniform Record Locator" (URL) lines make it hard to pick out the
+#  title lines, which are of more interest.
+#
+#  Hotedit works by extracting the titles, bringing up an editor of the
+#  user's choice, then processing the results when the editor exits.
+#  The user can reorder, retitle, or delete lines; adding new entries
+#  is best done within NCSA Mosaic.  It is vital that any editing 
+#  preserve the three-digit number at the front of each line; hotedit
+#  uses this to reconnect the titles with the corresponding URLs.
+#
+#  The editor is determined by the environment variable VISUAL (or, if
+#  that is missing, EDITOR).  The hotlist file is assumed to be in the
+#  usual place, $HOME/.mosaic-hotlist-default.  Because not all editors
+#  return a reasonable exit status, the hotlist is *always* rewritten;
+#  the previous edition is saved in $HOME/.mosaic-hotlist-backup.
+#
+#  Hotedit shouldn't be run while NCSA Mosaic is running; when Mosaic
+#  exits, it is likely to overwrite the edited hotlist.
+#
+############################################################################
+#
+#  Requires:  Unix, NCSA Mosaic
+#
+############################################################################
+
+$define TMPFILE "hotlist.tmp"
+$define HOTFILE ".mosaic-hotlist-default"
+$define HOTOLD ".mosaic-hotlist-backup"
+$define HOTNEW ".mosaic-hotlist-revised"
+$define HOTFORMAT "ncsa-xmosaic-hotlist-format-1"
+
+procedure main()
+   local home, f, t, line, n, editor, command, urllist
+
+   home := getenv("HOME")	| stop("no $HOME value")
+   chdir(home)			| stop("can't chdir to ", home)
+
+   f := open(HOTFILE)		| stop("can't open ", HOTFILE)
+   line := read(f)		| stop("empty hotlist file")
+   line == HOTFORMAT		| stop("unrecognized hotlist format")
+   line := read(f)		| stop("truncated hotlist file")
+   line == "Default"		| stop("unrecognized hotlist format")
+
+   t := open(TMPFILE, "w")	| stop("can't write ", TMPFILE)
+
+   urllist := []
+   while put(urllist, read(f)) do {
+      line := read(f)		| stop("ill-formated hotlist file")
+      if *urllist < 1000 then
+         n := right(*urllist, 3, "0")
+      else
+         n := *urllist
+      write(t, n, " ", line)
+      }
+   close(f)
+   close(t)
+
+   f := open(HOTNEW, "w")	| stop("can't write ", HOTNEW)
+
+   editor := getenv("VISUAL") | getenv("EDITOR") | "/bin/vi"
+   command := editor || " " || TMPFILE
+
+   system(command)
+
+   t := open(TMPFILE)		| stop("can't reopen ", TMPFILE)
+   write(f, HOTFORMAT)
+   write(f, "Default")
+   while line := read(t) do line ? {
+      if write(f, urllist[tab(many(&digits))]) then
+         write(f, move(1) & tab(0))
+      else 
+         write(&errout, "invalid index: ", line)
+      }
+
+   remove(HOTOLD)
+   (rename(HOTFILE, HOTOLD) & rename(HOTNEW, HOTFILE)) |
+      stop("couldn't rename files; new file left in ", HOTNEW)
+end

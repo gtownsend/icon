@@ -1,0 +1,111 @@
+############################################################################
+#
+#	File:     statemap.icn
+#
+#	Subject:  Procedure for table of states and abbreviations
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 30, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#    This procedure Produces a "two-way" table to map state names (in
+#  the postal sense) to their postal appreviations and vice-versa.
+#
+#    The list is done in two parts with auxiliary procedures so that this
+# procedure can be used with the default constant-table size for the
+# translator and linker.
+#
+############################################################################
+
+procedure statemap()
+   local state_list, state_map, i
+
+   state_map := table()
+
+   every state_list := __list1() | __list2() do
+      every i := 1 to *state_list - 1 by 2 do {
+         insert(state_map, state_list[i], state_list[i + 1])
+         insert(state_map, state_list[i + 1], state_list[i])
+         }
+
+   return state_map
+
+end
+
+procedure __list1()
+
+   return [
+      "AK", "Alaska",
+      "AL", "Alabama",
+      "AR", "Arkansas",
+      "AS", "American Samoa",
+      "AZ", "Arizona",
+      "CA", "California",
+      "CO", "Colorado",
+      "CT", "Connecticut",
+      "DC", "District of Columbia",
+      "DE", "Delaware",
+      "FL", "Florida",
+      "FM", "Federated States of Micronesia",
+      "GA", "Georgia",
+      "GU", "Guam",
+      "HI", "Hawaii",
+      "IA", "Iowa",
+      "ID", "Idaho",
+      "IL", "Illinois",
+      "IN", "Indiana",
+      "KS", "Kansas",
+      "KY", "Kentucky",
+      "LA", "Louisiana",
+      "MA", "Massachusetts",
+      "MD", "Maryland",
+      "ME", "Maine",
+      "MH", "Marshall Islands",
+      "MI", "Michigan",
+      "MN", "Minnesota"
+       ]
+
+end
+
+procedure __list2()
+
+   return [
+      "MO", "Missouri",
+      "MP", "Northern Mariana Islands",
+      "MS", "Mississippi",
+      "MT", "Montana",
+      "NC", "North Carolina",
+      "ND", "North Dakota",
+      "NE", "Nebraska",
+      "NH", "New Hampshire",
+      "NJ", "New Jersey",
+      "NM", "New Mexico",
+      "NV", "Nevada",
+      "NY", "New York",
+      "OH", "Ohio",
+      "OK", "Oklahoma",
+      "OR", "Oregon",
+      "PA", "Pennsylvania",
+      "PR", "Puerto Rico",
+      "PW", "Palau",
+      "RI", "Rhode Island",
+      "SC", "South Carolina",
+      "SD", "South Dakota",
+      "TN", "Tennessee",
+      "TX", "Texas",
+      "UT", "Utah",
+      "VA", "Virginia",
+      "VT", "Vermont",
+      "WA", "Washington",
+      "WI", "Wisconsin",
+      "WV", "West Virginia",
+      "WY", "Wyoming"
+      ]
+
+end

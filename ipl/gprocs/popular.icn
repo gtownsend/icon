@@ -1,0 +1,54 @@
+############################################################################
+#
+#	File:     popular.icn
+#
+#	Subject:  Procedure to show "popularity" of colors in image string
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 17, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure shows the "popularity" of colors in an image string.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics  
+#
+############################################################################
+#
+#  Links:  imrutils, wopen
+#
+############################################################################
+
+link imrutils
+link wopen
+
+procedure popularity(ims)	#: color popularity in image string
+   local imr, color_tbl, color_list, color
+
+   imr := imstoimr(ims)
+
+   color_tbl := table(0)
+
+   every color_tbl[PaletteColor(imr.palette, !imr.pixels)] +:= 1
+
+   color_list := sort(color_tbl, 4)
+
+   write("dimensions: ", imr.width, "x", imr.height)
+   write("pixels: ", *imr.pixels)
+   write("palette: ", imr.palette)
+   write("number of different colors: ", *color_tbl)
+   write()
+   write("color popularity:")
+   write()
+
+   while color := pull(color_list) do
+      write(left(pull(color_list), 20), right(color, 6))
+
+end

@@ -1,0 +1,634 @@
+############################################################################
+#
+#	File:     chkhtml.icn
+#
+#	Subject:  Program to check HTML files
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     November 15, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# Program to check an HTML file.
+#
+# Errors detected:
+#
+#   - Reference to undefined anchor name.
+#   - Duplicated anchor name.
+#   - Warning for unreferenced anchor name.
+#   - Unknown tag.
+#   - Badly formed tag.
+#   - Improper tag nesting.
+#   - Unescaped <, >, ", or &.
+#   - Bad escape string.
+#   - Improper embedding of attributes.
+#   - Bad (non-ascii) characters
+#
+# Advises on:
+#   - Use of <HTML>, <HEAD, <BODY> tags.
+#
+
+procedure Usage(s)
+  write(&errout,\s)
+  stop(
+       "Usage: ChkHTML -options file..._
+      \n  -u     supress warnings for unreferenced anchor names_
+      \n  -q     supress errors for \"\\\"\" (quote) character in open text_
+      \n  -g     supress errors for \">\" character in open text_
+      \n  -l n   level of HTML (default 2)")
+end
+
+global SupressUnrefNames,SupressOpenQuot,SupressOpenGT,HTMLLevel
+
+procedure Init(arg)
+  local opt,f
+  ListTypes := ["UL","OL","MENU","DIR"]
+
+  opt := options(arg,"uqgl+",Usage)
+  if *arg = 0 then Usage()
+  SupressUnrefNames := opt["u"]
+  SupressOpenQuot := opt["q"]
+  SupressOpenGT := opt["g"]
+  HTMLLevel := \opt["l"] | 2
+  return opt
+end
+
+link options
+
+global FileName,LineNbr,TagStack,HRefList,NameSet,NameRefSet,ErrorCount,
+    SeenSet,PlainText,Tagless,Msg,ListTypes
+
+procedure main(arg)
+  SetMsg()
+  Init(arg)
+  every CheckHTML(!arg)
+end
+
+procedure CheckHTML(fn)
+  local f,line,c
+  static badChars,scanChars
+  initial {
+    badChars := ~(&cset[33:128] ++ '\t')
+    scanChars := '<>"&' ++ badChars
+  }
+  #
+  # Open the input file.
+  #
+  f := open(fn) | {
+    write(&errout,"Can't open \"",fn,"\"")
+    fail
+  }
+  FileName := fn
+  write(&errout)
+  Msg("Checking HTML format...")
+  ErrorCount := 0
+  LineNbr := 0
+  TagStack := []
+  NameSet := set()
+  NameRefSet := set()
+  HRefList := []
+  SeenSet := set()
+  PlainText := &null
+  while line := read(f) do line ? {
+    LineNbr +:= 1
+    while tab(upto(scanChars)) do {
+      case c := move(1) of {
+	"<": ProcessTag(f) | break
+	">": if /Tagless & /SupressOpenGT then Error("\">\" in open text")
+	"\"": if /Tagless & /SupressOpenQuot then Error("\"\\\"\" (quote) in open text")
+	"&": if /Tagless then ProcessEscape() | Error("\"&\" in open text")
+	default: Error("Bad character: ",image(c))
+      }
+    }
+  }
+  close(f)
+  CheckStack()
+  CheckHRefs()
+  FileName := fn
+  LineNbr := &null
+  GiveAdvice()
+  Msg((if ErrorCount > 0 then string(ErrorCount) else "No")
+      ," error",(if ErrorCount = 1 then "" else "s"),
+      " detected")
+  return
+end
+
+procedure CheckHRefs()
+  local x
+  every x := !HRefList do {
+    if not member(NameSet,x.value) then {
+      FileName := x.fileName
+      LineNbr := x.lineNbr
+      Error("Anchor name referenced but not defined: ",image(x.value))
+    }
+  }
+  if /SupressUnrefNames then {
+    LineNbr := &null
+    every x := !(NameSet -- NameRefSet) do {
+      Msg("Warning: Anchor name not referenced: ",image(x))
+    }
+  }
+  return
+end
+
+procedure CheckStack()
+local tag
+  every tag := pop(TagStack) do
+      Error(pop(TagStack),"Unterminated tag: <",tag,">")
+  return
+end
+
+procedure ProcessTag(f)
+  local tag,subLine,upTag,endFlag,popCount,tagLines,listType
+  #
+  # Scan to the end of the tag (which might be multiple lines).
+  #
+  tag := ""
+  tagLines := 0
+  if ="!--" then {
+    #
+    # Comment tag.
+    #
+    until tab(find("-->") + 3) do {
+      &subject := read(f) | {
+	Error("Unclosed HTML comment (\"<!--\")")
+	LineNbr +:= tagLines
+	fail
+      }
+      tagLines +:= 1
+    }
+    LineNbr +:= tagLines
+    return
+  }
+  until tag ||:= tab(find(">")) do {
+    (*tag < 1000 & subLine := read(f)) | {
+      Error("Unclosed \"<\"")
+      LineNbr +:= tagLines
+      fail
+    }
+    tagLines +:= 1
+    tag ||:= tab(0) || " "
+    &subject := subLine
+  }
+  move(1)
+  #
+  # Scan the tag contents.
+  #
+  tag ? {
+    Space()
+    endFlag := ="/"
+    tag := tab(upto(' \t>') | 0)
+    upTag := Up(tag)
+    Space()
+    if \endFlag then {
+      #
+      # Process closer tag </...>.
+      #
+      if tag == "PLAINTEXT" then {
+	Error("<PLAINTEXT> should not have a </PLAINTEXT> tag")
+	PlainText := Tagless := &null
+      }
+      else {
+	#
+	# Check that the tag closes a matching opening tag.
+	#
+	CheckTag(upTag,,"no/")
+	if tag == ("LISTING" | "PRE") then Tagless := &null
+	popCount := 2
+	if not (TagStack[1] == upTag) then {
+	  Error("Mismatched closing tag </",upTag,"> pairs with <",
+	      TagStack[1],"> in line ",TagStack[2])
+	  #
+	  # Try to minimize cascading errors.
+	  #
+	  popCount :=
+	      if TagStack[3] == upTag then 4
+	      else if TagStack[5] == upTag then 6
+	      else 0
+	}
+	every 1 to popCount do pop(TagStack)
+      }
+    }
+    else {
+      #
+      # Process non-closing tag.
+      #
+      insert(SeenSet,upTag)
+      if HTMLLevel = 1 then case upTag of {
+	#
+	# Tags for HTML 1.
+	#
+	# Tags handled specially.
+	#
+	"A": ProcessATag()
+	"IMG": CheckTag(upTag,"SRC*ALIGN+(TOP,BOTTOM,MIDDLE)ALT+ISMAP-","no/")
+	"NEXTID": CheckTag(upTag,"N+","no/")
+	"DL": CheckTag(upTag,"COMPACT-")
+	"LINK": CheckTag(upTag,"REL+REV+HREF+","no/")
+	"FORM": CheckTag(upTag,"FORM#ACTION*METHOD+(POST,GET)")
+	"INPUT": CheckTag(upTag,
+	    "FORM@TYPE+(TEXT,CHECKBOX,RADIO,SUBMIT,RESET)NAME+VALUE+CHECKED-_
+	     SIZE+MAXLENGTH+","no/")
+	"SELECT": CheckTag(upTag,"FORM@NAME+SIZE+MULTIPLE-")
+	"OPTION": CheckTag(upTag,"FORM@SELECTED-","no/")
+	"TEXTAREA": CheckTag(upTag,"FORM@NAME+ROWS+COLS+")
+	"DT" | "DD": CheckTag(upTag,"DL@","no/")
+	"LI": CheckTag(upTag,"list@","no/")
+	#
+	# Things that can't be inside character style tags or <A>.
+	#
+	"HTML" | "HEAD" | "TITLE" | "BODY" |
+	    "H1" | "H2" | "H3" | "H4" | "H5" | "H6" |
+	    "DL" | "UL" | "OL" | "MENU" | "DIR" |
+	    "ADDRESS" | "BLOCKQUOTE" | "PRE" | "PRE" |
+	    "FORM" | "SELECT" | "TEXTAREA": CheckTag(upTag,"char#A#")
+	"LISTING" | "XMP": {CheckTag(upTag,"char#A#"); Tagless := "true"}
+	#
+	# Character style tags.
+	#
+	"EM" | "STRONG" | "B" | "I" | "U" |
+	    "VAR" | "CODE" | "DFN" | "CITE" | "KBD" | "SAMP" | "TT":
+	    CheckTag(upTag,"char#")
+	#
+	# Valueless tags that can appear anywhere.
+	#
+	"P" | "BR" | "HR" | "OPTION" | "ISINDEX": CheckTag(upTag,,"no/")
+	"PLAINTEXT": {
+	  CheckTag(upTag,,"no/")
+	  PlainText := Tagless := "true"
+	}
+	default: Error("Unknown tag: <",upTag,if pos(0) then "" else " ",
+	    tab(0),">")
+      }
+      else case upTag of {
+	#
+	# Tags for HTML 2.
+	#
+	# Tags handled specially.
+	#
+	"A": ProcessATag()
+	"IMG": CheckTag(upTag,
+	    "SRC*_
+	     ALIGN+(LEFT,RIGHT,TOP,TEXTTOP,MIDDLE,ABSMIDDLE,BASELINE,_
+	     BOTTOM,ABSBOTTOM)_
+	     WIDTH+HEIGHT+BORDER+VSPACE+HSPACE+ALT+ISMAP-","no/")
+	    
+	"NEXTID": CheckTag(upTag,"N+","no/")
+	"DL": CheckTag(upTag,"COMPACT-")
+	"LINK": CheckTag(upTag,"REL+REV+HREF+","no/")
+	"ISINDEX": CheckTag(upTag,"PROMPT-","no/")
+	"FORM": CheckTag(upTag,"FORM#ACTION*METHOD+(POST,GET)")
+	"INPUT": CheckTag(upTag,
+	    "FORM@TYPE+(TEXT,CHECKBOX,RADIO,SUBMIT,RESET)NAME+VALUE+CHECKED-_
+	     SIZE+MAXLENGTH+","no/")
+	"SELECT": CheckTag(upTag,"FORM@NAME+SIZE+MULTIPLE-")
+	"OPTION": CheckTag(upTag,"FORM@SELECTED-","no/")
+	"TEXTAREA": CheckTag(upTag,"FORM@NAME+ROWS+COLS+")
+	"DT" | "DD": CheckTag(upTag,"DL@","no/")
+	"LI": {
+	  listType := !TagStack == !ListTypes
+	  CheckTag(upTag,case listType of {
+	    "UL": "list@TYPE+(DISC,CIRCLE,SQUARE)"
+	    "OL": "list@TYPE+(A,I,1)VALUE+"
+	    default: "list@"
+	  },"no/")
+	}
+	"HR": CheckTag(upTag,"SIZE+WIDTH+ALIGN+(LEFT,RIGHT,CENTER)NOSHADE-","no/")
+	"UL": CheckTag(upTag,"TYPE+(DISC,CIRCLE,SQUARE)")
+	"OL": CheckTag(upTag,"TYPE+(A,I,1)START+")
+	"BR": CheckTag(upTag,"CLEAR+(LEFT,RIGHT,ALL)","no/")
+	"NOBR" | "CENTER": CheckTag(upTag)
+	"WBR": CheckTag(upTag,"NOBR@","no/")
+	"FONT": CheckTag(upTag,"SIZE+")
+	"BASEFONT": CheckTag(upTag,"SIZE+","no/")
+	#
+	# Things that can't be inside character style tags or <A>.
+	#
+	"HTML" | "HEAD" | "TITLE" | "BODY" |
+	    "H1" | "H2" | "H3" | "H4" | "H5" | "H6" |
+	    "DL" | "MENU" | "DIR" |
+	    "ADDRESS" | "BLOCKQUOTE" | "PRE" | "PRE" |
+	    "FORM" | "SELECT" | "TEXTAREA": CheckTag(upTag,"char#A#")
+	"LISTING" | "XMP": {CheckTag(upTag,"char#A#"); Tagless := "true"}
+	#
+	# Character style tags.
+	#
+	"EM" | "STRONG" | "B" | "I" | "U" |
+	    "VAR" | "CODE" | "DFN" | "CITE" | "KBD" | "SAMP" | "TT":
+	    CheckTag(upTag)
+	#
+	# Valueless tags that can appear anywhere.
+	#
+	"P" | "OPTION": CheckTag(upTag,,"no/")
+	"PLAINTEXT": {
+	  CheckTag(upTag,,"no/")
+	  PlainText := Tagless := "true"
+	}
+	default: Error("Unknown tag: <",upTag,if pos(0) then "" else " ",
+	    tab(0),">")
+      }
+    }
+  }
+  LineNbr +:= tagLines
+  return
+end
+
+record HRefRec(fileName,lineNbr,value)
+
+procedure ProcessATag()
+  local attrTable,value,ok
+  if attrTable := CheckTag("A","HREF+NAME+REL+REV+URN+TITLE+METHODS") then {
+    if value := \attrTable["HREF"] then {
+      if match("#",value) then {
+	value := Up(value[2:0])
+	insert(NameRefSet,value)
+	if not member(NameSet,value) then {
+	  put(HRefList,HRefRec(FileName,LineNbr,value))
+	}
+      }
+      ok := "yes"
+    }
+    if value := \attrTable["NAME"] then {
+      value := Up(value)
+      if member(NameSet,value) then {
+	Error("Duplicate anchor name: ",image(value))
+      }
+      else {
+	insert(NameSet,value)
+      }
+      ok := "yes"
+    }
+    if /ok then Error("Either \"HREF\" or \"NAME\" attribute required for <A> tag")
+  }
+  return
+end
+
+procedure CheckTag(tag,template,noCloser)
+  #
+  # separators:
+  #   + optional, with value
+  #   - optional, no value
+  #   * required, with value
+  #   @ must be in specified context
+  #   # must not be inspecified context
+  #
+  local attrTable,attr,origAttrs,c,error,value,valueList,valueString
+  attrTable := ScanAttrs()
+  origAttrs := copy(attrTable)
+  \template ? {
+    while attr := tab(upto('+-*@#')) do {
+      case c := move(1) of {
+	!"+*": {
+	  #
+	  # Process an attribute with a value.
+	  # Scan allowed value set, if any.
+	  #
+	  if ="(" then {
+	    valueList := []
+	    repeat {
+	      put(valueList,tab(upto(',)')))
+	      c := move(1)
+	      if c == ")" then break
+	    }
+	  }
+	  else valueList := &null
+	  #
+	  # See if an attribute of the specified name (with a value)
+	  # exists.
+	  #
+	  if value := \attrTable[attr] then {
+	    delete(attrTable,attr)
+	    if \valueList then {
+	      if not (Up(value) == !valueList) then {
+		valueString := ""
+		every valueString ||:= " " || image(!valueList)
+		Error("Invalid value for attribute ",image(attr)," of tag <",
+		    tag,">: ",image(value),
+		    "\n    # must be one of: ",valueString)
+	      }
+	    }
+	  }
+	  else if c == "*" then {
+	    #
+	    # Attr not there -- see if it is required.
+	    #
+	    Error("Attribute ",image(attr),", required for tag <",tag,">, is missing")
+	    error := "yes"
+	  }
+	}
+	"-": {
+	  #
+	  # Process an atribute with no value.
+	  #
+	  if member(attrTable,attr) then {
+	    delete(attrTable,attr)
+	    if \attrTable[attr] then {
+	      Error("A value not expected for attribute: ",image(attr),
+		  "of tag <",tag,">")
+	      error := "yes"
+	    }
+	  }
+	}
+	"@": CheckContext(attr,tag)
+	"#": CheckContext(attr,tag,"notInContext")
+      }
+    }
+  }
+  every attr := key(attrTable) do {
+    Error("Unknown attribute ",image(attr)," of tag <",tag,">")
+    error := "yes"
+  }
+  if /noCloser then push(TagStack,LineNbr,tag)
+  return if /error then origAttrs
+end
+
+procedure ScanAttrs()
+  local attr,value,attrTable
+  attrTable := table()
+  until pos(0) do {
+    attr := Up(tab(upto(' \t=') | 0))
+    Space()
+    if ="=" then {
+      Space()
+      (="\"" & value := tab(find("\"")) & move(1)) |
+	  (value := tab(upto(' \t') | 0))
+      Space()
+    }
+    else value := &null
+    attrTable[attr] := value
+  }
+  return attrTable
+end
+
+procedure CheckContext(context,tag,notInContext)
+  local tags,inContext,sep
+  static canned
+  initial {
+    canned := table()
+    canned["list"] := ListTypes
+    canned["char"] := ["EM","STRONG","B","I","U",
+	      "VAR","CODE","DFN","CITE","KBD","SAMP","TT"]
+
+  }
+  inContext :=
+      (if context := \canned[context] then !context else context) == !TagStack
+  if \notInContext then inContext := if \inContext then &null else "true"
+  if \inContext then return
+  else {
+    if type(context) ~== "string" then {
+      tags := sep := ""
+      every tags ||:= sep || !canned do sep := " or "
+      context := tags
+    }
+    if \notInContext then
+	Error("<",tag,"> should not be inside <",context,">")
+    else
+	Error("<",tag,"> out of context; should be inside <",context,">")
+  }
+end
+
+procedure ProcessEscape()
+  local escape
+  static escSet,escChars
+  initial {
+    escChars := &letters ++ &digits
+    escSet := set([
+	"quot",
+	"lt",
+	"gt",
+	"amp",
+	"nbsp",
+	"reg",
+	"copy",
+
+	"AElig",
+	"Aacute",
+	"Acirc",
+	"Agrave",
+	"Aring",
+	"Atilde",
+	"Auml",
+	"Ccedil",
+	"ETH",
+	"Eacute",
+	"Ecirc",
+	"Egrave",
+	"Euml",
+	"Iacute",
+	"Icirc",
+	"Igrave",
+	"Iuml",
+	"Ntilde",
+	"Oacute",
+	"Ocirc",
+	"Ograve",
+	"Oslash",
+	"Otilde",
+	"Ouml",
+	"THORN",
+	"Uacute",
+	"Ucirc",
+	"Ugrave",
+	"Uuml",
+	"Yacute",
+	"aacute",
+	"acirc",
+	"aelig",
+	"agrave",
+	"aring",
+	"atilde",
+	"auml",
+	"ccedil",
+	"eacute",
+	"ecirc",
+	"egrave",
+	"eth",
+	"euml",
+	"iacute",
+	"icirc",
+	"igrave",
+	"iuml",
+	"ntilde",
+	"oacute",
+	"ocirc",
+	"ograve",
+	"oslash",
+	"otilde",
+	"ouml",
+	"szlig",
+	"thorn",
+	"uacute",
+	"ucirc",
+	"ugrave",
+	"uuml",
+	"yacute",
+	"yuml"])
+      if HTMLLevel = 1 then every delete(escSet,"reg" | "copy")
+  }
+  (escape := tab(many(escChars)) & =";") | fail
+  (escape ? (="#",tab(many(&digits)),pos(0))) | member(escSet,escape) | {
+    Error("Unknown escape string: &",escape,";")
+  }
+  return
+end
+
+procedure GiveAdvice()
+  if not member(SeenSet,"HTML") then
+      Msg("Advice: File should be bracketed with <HTML>...</HTML> tags")
+  if not (member(SeenSet,"HEAD"),member(SeenSet,"BODY")) then {
+    if member(SeenSet,"HEAD") then
+	Error("<HEAD>, but no <BODY>")
+    else if member(SeenSet,"BODY") then
+	Error("<BODY>, but no <HEAD>")
+    else
+      Msg("Advice: Consider using <HEAD>...</HEAD> <BODY>...</BODY>")
+  }
+  return
+end
+
+link shquote
+
+procedure SetMsg()
+  return Msg := (if &host == "Macintosh MPW" then MPWMsg else UnixMsg)
+end
+
+procedure UnixMsg(s[])
+  local lineNbr
+  lineNbr := if type(s[1]) == "integer" then get(s) else LineNbr
+  writes(&errout,"\"",FileName,"\"",":" || \lineNbr | "",": ")
+  every writes(&errout,!s)
+  write(&errout)
+  return
+end
+
+procedure MPWMsg(s[])
+  local lineNbr
+  lineNbr := if type(s[1]) == "integer" then get(s) else LineNbr
+  writes(&errout,"File ",mpwquote(FileName),"; Line ",\lineNbr | "¤"," # ")
+  every writes(&errout,!s)
+  write(&errout)
+  return
+end
+
+procedure Error(s[])
+  ErrorCount +:= 1
+  return Msg!s
+end
+
+procedure Space()
+  suspend tab(many(' \t'))
+end
+
+procedure Up(s)
+  static lcase,ucase
+  initial {
+    lcase := string(&lcase)
+    ucase := string(&ucase)
+  }
+  return map(s,lcase,ucase)
+end

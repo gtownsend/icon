@@ -1,0 +1,360 @@
+############################################################################
+#
+#	Name:	skstring.icn
+#
+#	Title:	Scheme in Icon
+#
+#	Author: Bob Alexander
+#
+#	Date:	March 23, 1995
+#
+#	Description: see skeem.icn
+#
+############################################################################
+
+#
+# skeem -- Scheme in Icon
+#
+# String and character procedures
+#
+
+#
+# Initialize
+#
+# List entries are described in skfun.icn.
+#
+procedure InitString()
+   DefFunction([
+      CHAR_2_INTEGER,
+      CHAR_ALPHABETIC_P,
+      CHAR_CI_EQ,"twoOrMore","CHAR-CI=?",
+      CHAR_CI_GE,"twoOrMore","CHAR-CI>=?",
+      CHAR_CI_GT,"twoOrMore","CHAR-CI>?",
+      CHAR_CI_LE,"twoOrMore","CHAR-CI<=?",
+      CHAR_CI_LT,"twoOrMore","CHAR-CI<?",
+      CHAR_CI_NE,"twoOrMore","CHAR-CI<>?",
+      CHAR_DOWNCASE,
+      CHAR_EQ,"twoOrMore","CHAR=?",
+      CHAR_GE,"twoOrMore","CHAR>=?",
+      CHAR_GT,"twoOrMore","CHAR>?",
+      CHAR_LE,"twoOrMore","CHAR<=?",
+      CHAR_LOWER_CASE_P,
+      CHAR_LT,"twoOrMore","CHAR<?",
+      CHAR_NE,"twoOrMore","CHAR<>?",
+      CHAR_NUMERIC_P,
+      CHAR_P,
+      CHAR_UPCASE,
+      CHAR_UPPER_CASE_P,
+      CHAR_WHITESPACE_P,
+      INTEGER_2_CHAR,
+      LIST_2_STRING,
+      MAKE_STRING,1,2,
+      STRING,&null,
+      STRING_2_EXPRESSION,
+      STRING_2_LIST,
+      STRING_APPEND,&null,
+      STRING_CI_EQ,"twoOrMore","STRING-CI=?",
+      STRING_CI_GE,"twoOrMore","STRING-CI>=?",
+      STRING_CI_GT,"twoOrMore","STRING-CI>?",
+      STRING_CI_LE,"twoOrMore","STRING-CI<=?",
+      STRING_CI_LT,"twoOrMore","STRING-CI<?",
+      STRING_CI_NE,"twoOrMore","STRING-CI<>?",
+      STRING_COPY,
+      STRING_EQ,"twoOrMore","STRING=?",
+      STRING_FILL_BANG,2,
+      STRING_GE,"twoOrMore","STRING>=?",
+      STRING_GT,"twoOrMore","STRING>?",
+      STRING_LE,"twoOrMore","STRING<=?",
+      STRING_LENGTH,
+      STRING_LT,"twoOrMore","STRING<?",
+      STRING_NE,"twoOrMore","STRING<>?",
+      STRING_P,
+      STRING_REF,2,
+      STRING_SET_BANG,3,
+      SUBSTRING,2,3,
+      SUBSTRING_COPY_BANG,3])
+   return
+end
+
+
+#
+# Characters
+#
+
+procedure CHAR_P(x)
+   return (CharP(x),T) | F
+end
+
+procedure CHAR_LT(c1,c2)
+   return STRING_LT(c1,c2)
+end
+
+procedure CHAR_LE(c1,c2)
+   return STRING_LE(c1,c2)
+end
+
+procedure CHAR_EQ(c1,c2)
+   return STRING_EQ(c1,c2)
+end
+
+procedure CHAR_GE(c1,c2)
+   return STRING_GE(c1,c2)
+end
+
+procedure CHAR_GT(c1,c2)
+   return STRING_GT(c1,c2)
+end
+
+procedure CHAR_NE(c1,c2)
+   return STRING_NE(c1,c2)
+end
+
+procedure CHAR_CI_LT(c1,c2)
+   return STRING_CI_LT(c1,c2)
+end
+
+procedure CHAR_CI_LE(c1,c2)
+   return STRING_CI_LE(c1,c2)
+end
+
+procedure CHAR_CI_EQ(c1,c2)
+   return STRING_CI_EQ(c1,c2)
+end
+
+procedure CHAR_CI_GE(c1,c2)
+   return STRING_CI_GE(c1,c2)
+end
+
+procedure CHAR_CI_GT(c1,c2)
+   return STRING_CI_GT(c1,c2)
+end
+
+procedure CHAR_CI_NE(c1,c2)
+   return STRING_CI_NE(c1,c2)
+end
+
+procedure CHAR_ALPHABETIC_P(c)
+   return (any(&letters,c.value),T) | F
+end
+
+procedure CHAR_NUMERIC_P(c)
+   return (any(&digits,c.value),T) | F
+end
+
+procedure CHAR_WHITESPACE_P(c)
+   return (any(' \n\f\r\l',c.value),T) | F
+end
+
+procedure CHAR_UPPER_CASE_P(c)
+   return (any(&ucase,c.value),T) | F
+end
+
+procedure CHAR_LOWER_CASE_P(c)
+   return (any(&lcase,c.value),T) | F
+end
+
+procedure CHAR_2_INTEGER(c)
+   return ord(c.value)
+end
+
+procedure INTEGER_2_CHAR(c)
+   return Char(char(c))
+end
+
+procedure CHAR_UPCASE(c)
+   return Char(map(c.value,&lcase,&ucase))
+end
+
+procedure CHAR_DOWNCASE(c)
+   return Char(map(c.value,&ucase,&lcase))
+end
+
+
+#
+# Strings
+#
+
+procedure STRING_P(x)
+   return (StringP(x),T) | F
+end
+
+procedure MAKE_STRING(len,c)
+   return String(repl((\c).value | "\0",len))
+end
+
+procedure STRING(c[])
+   local result
+   result := ""
+   every result ||:= (!c).value
+   return String(result)
+end
+
+procedure STRING_LENGTH(s)
+   return *s.value
+end
+
+procedure STRING_REF(s,i)
+   return Char(s.value[i + 1])
+end
+
+procedure STRING_SET_BANG(s,i,c)
+   s.value[i + 1] := c.value
+   return s
+end
+
+invocable "<<":2
+
+procedure STRING_LT(s[])
+   static op
+   initial op := proc("<<",2)
+   return StringPredicate(s,op)
+end
+
+invocable "<<=":2
+
+procedure STRING_LE(s[])
+   static op
+   initial op := proc("<<=",2)
+   return StringPredicate(s,op)
+end
+
+invocable "==":2
+
+procedure STRING_EQ(s[])
+   static op
+   initial op := proc("==",2)
+   return StringPredicate(s,op)
+end
+
+invocable ">>=":2
+
+procedure STRING_GE(s[])
+   static op
+   initial op := proc(">>=",2)
+   return StringPredicate(s,op)
+end
+
+invocable ">>":2
+
+procedure STRING_GT(s[])
+   static op
+   initial op := proc(">>",2)
+   return StringPredicate(s,op)
+end
+
+invocable "~==":2
+
+procedure STRING_NE(s[])
+   static op
+   initial op := proc("~==",2)
+   return StringPredicate(s,op)
+end
+
+invocable "<<":2
+
+procedure STRING_CI_LT(s[])
+   static op
+   initial op := proc("<<",2)
+   return StringPredicateCI(s,op)
+end
+
+invocable "<<=":2
+
+procedure STRING_CI_LE(s[])
+   static op
+   initial op := proc("<<=",2)
+   return StringPredicateCI(s,op)
+end
+
+invocable "==":2
+
+procedure STRING_CI_EQ(s[])
+   static op
+   initial op := proc("==",2)
+   return StringPredicateCI(s,op)
+end
+
+invocable ">>=":2
+
+procedure STRING_CI_GE(s[])
+   static op
+   initial op := proc(">>=",2)
+   return StringPredicateCI(s,op)
+end
+
+invocable ">>":2
+
+procedure STRING_CI_GT(s[])
+   static op
+   initial op := proc(">>",2)
+   return StringPredicateCI(s,op)
+end
+
+invocable "~==":2
+
+procedure STRING_CI_NE(s[])
+   static op
+   initial op := proc("~==",2)
+   return StringPredicateCI(s,op)
+end
+
+procedure SUBSTRING(s,i,j)
+   return String(s.value[i + 1:\j + 1 | 0]) |
+      Error(SUBSTRING,"indices out of range")
+end
+
+procedure STRING_APPEND(s[])
+   local result
+   result := get(s).value | ""
+   every result ||:= (!s).value
+   return String(result)
+end
+
+procedure STRING_2_LIST(s)
+   local result
+   result := LLNull
+   every result := LLPair(Char(!s.value),result)
+   return LLInvert(result)
+end
+
+procedure LIST_2_STRING(lst)
+   return STRING!LLToList(lst)
+end
+
+procedure STRING_COPY(s)
+   return copy(s)
+end
+
+procedure STRING_FILL_BANG(s,c)
+   s.value := repl(c.value,*s.value)
+   return s
+end
+
+procedure STRING_2_EXPRESSION(s)
+   return StringToExpr(s.value) | F
+end
+
+procedure SUBSTRING_COPY_BANG(s1,k,s2)
+   local s2v,copyLen
+   s2v := s2.value
+   copyLen := *s1.value - k
+   copyLen >:= *s2v
+   s1.value[k + 1+:copyLen] := s2v
+   return s1
+end
+
+procedure StringPredicate(sList,op)
+   local result,x
+   result := get(sList).value
+   every x := (!sList).value do
+      result := op(result,x) | (if &errornumber then fail else return F)
+   return T
+end
+
+procedure StringPredicateCI(sList,op)
+   local result,x
+   result := map(get(sList).value)
+   every x := map((!sList).value) do
+      result := op(result,x) | (if &errornumber then fail else return F)
+   return T
+end

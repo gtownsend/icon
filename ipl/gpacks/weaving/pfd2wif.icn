@@ -1,0 +1,147 @@
+############################################################################
+#
+#	File:     pfd2wif.icn
+#
+#	Subject:  Program to produce WIF from PFD
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 13, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program produces a WIF from a pattern-form draft.
+#
+############################################################################
+#
+#  Links:  weavutil
+#
+############################################################################
+
+link weavutil
+
+procedure main()
+   local pfd, i, lift_table, line
+
+   pfd := readpfd(&input) | stop("*** cannot read pfd")
+
+   if \pfd.liftplan then {
+      lift_table := table()
+      i := 0
+      pfd.liftplan ? {
+         while line := tromp(move(pfd.shafts)) do {
+            i +:= 1
+            lift_table[sympos(i)] := line
+            }
+         }
+      }
+
+   write("[WIF]")
+   write("Version=1.1")
+   write("Date=" || &dateline)
+   write("Developers=ralph@cs.arizona.edu")
+   write("Source Program=pfd2wif.icn")
+
+   write("[CONTENTS]")
+   write("Color Palette=yes")
+   write("Text=yes")
+   write("Weaving=yes")
+   write("Tieup=yes")
+   write("Color Table=yes")
+   write("Threading=yes")
+   if /pfd.liftplan then write("Treadling=yes")
+   write("Warp colors=yes")
+   write("Weft colors=yes")
+   write("Warp=yes")
+   write("Weft=yes")
+   if \pfd.liftplan then write("Liftplan=yes")
+
+   write("[COLOR PALETTE]")
+   write("Entries=", *pfd.colors)
+   write("Form=RGB")
+   write("Range=0," || 2 ^ 16 - 1)
+
+   write("[TEXT]")
+   write("Title=", pfd.name)
+   write("Author=Ralph E. Griswold")
+   write("Address=5302 E. 4th St., Tucson, AZ 85711-2304")
+   write("EMail=ralph@cs.arizona.edu")
+   write("Telephone=520-881-1470")
+   write("FAX=520-325-3948")
+
+   write("[WEAVING]")
+   write("Shafts=", pfd.shafts)
+   write("Treadles=", pfd.treadles)
+   write("Rising shed=yes")
+
+   write("[WARP]")
+   write("Threads=", *pfd.threading)
+   write("Units=Decipoints")
+   write("Thickness=10")
+
+   write("[WEFT]")
+   write("Threads=", *pfd.treadling)
+   write("Units=Decipoints")
+   write("Thickness=10")
+
+   #  These are provided to produce better initial configurations when
+   #  WIFs are imported to some weaving programs.
+
+   write("[WARP THICKNESS]")
+   write("[WEFT THICKNESS]")
+
+   write("[COLOR TABLE]")
+
+   every i := 1 to *pfd.colors do
+      write(i, "=", PaletteColor(pfd.palette, pfd.colors[i]))
+
+   write("[THREADING]")
+   every i := 1 to *pfd.threading do
+      write(i, "=", sympos(pfd.threading[i]))
+
+   if /pfd.liftplan then {
+      write("[TREADLING]")
+      every i := 1 to *pfd.treadling do
+         write(i, "=", sympos(pfd.treadling[i]))
+      }
+
+   write("[WARP COLORS]")
+   every i := 1 to *pfd.warp_colors do
+      write(i, "=", sympos(pfd.warp_colors[i]))
+
+   write("[WEFT COLORS]")
+   every i := 1 to *pfd.weft_colors do
+      write(i, "=", sympos(pfd.weft_colors[i]))
+
+   write("[TIEUP]")
+   pat2tie(pfd.tieup) ? {
+      every i := 1 to pfd.treadles do
+         write(i, "=", tromp(move(pfd.shafts)))
+      }
+
+   if *\pfd.liftplan > 0 then {
+      write("[LIFTPLAN]")
+      pat2tie(pfd.liftplan) ? {
+         every i := 1 to *pfd.treadling do
+            write(i, "=", lift_table[pfd.treadling[i]])
+         }
+      }
+
+end
+
+procedure tromp(treadle)
+   local result
+
+   result := ""
+   
+   treadle ? {
+      every result ||:= upto("1") || ","
+      }
+
+   return result[1:-1]
+
+end

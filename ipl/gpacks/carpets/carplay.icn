@@ -1,0 +1,283 @@
+############################################################################
+#
+#	File:     carplay.icn
+#
+#	Subject:  Program to create "carpets"
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 11, 1998
+#
+############################################################################
+#
+#  This is an experimental program under development to produce carpets
+#  as specificed in the include file, carpincl.icn, which is produced by
+#  carport.icn.
+#
+############################################################################
+#
+# Requires:  Version 9 graphics and large integers
+#
+############################################################################
+#
+#  Links:  carputil, lists, matrix, mirror, options, wopen 
+#
+#  Note:   The include file may contain link declarations.
+#
+############################################################################
+
+link carputil
+link lists
+link matrix
+link mirror
+link options
+link wopen
+
+$include "carpincl.icn"
+
+$ifdef Randomize
+link random
+$endif
+
+$ifdef Scramble
+link random
+$endif
+
+$ifdef Background
+$undef Hidden
+$undef Save_carpet
+$undef Dialogs
+$undef Save_mirror
+$define Hidden
+$define Save_carpet
+$endif
+
+$ifdef Dialogs
+link interact
+$undef Save_carpet
+$undef Save_mirror
+$endif
+
+global array
+global cmod
+global colors
+global height
+global modulus
+global width
+
+procedure main()
+   local mcarpet
+
+$ifdef Randomize
+   randomize()
+$endif
+
+#  The carpet-generation process is now done by two procedures, the first to
+#  initialize the edges and the second to actually create the carpet.  This
+#  has been done to allow possible extensions.
+
+   init()
+
+   weave()
+
+$ifdef Mirror
+   mcarpet := mirror(&window)		# produced mirrored image
+$endif
+
+$ifndef Hidden
+$ifdef Mirror
+   WAttrib(mcarpet, "canvas=normal")	# make the mirrored image visible
+   Raise()
+$endif
+$endif
+
+$ifdef Dialogs
+   Bg("light gray")			# reset colors for dialogs
+   Fg("black")
+   repeat {				# provide user dialog
+      case TextDialog("Save images?", , , ,
+         ["Quit", "Save Image", "Save Mirrored"]) of {
+            "Quit"          : exit()
+            "Save Image"    : snapshot()
+            "Save Mirrored" : snapshot()
+         }
+      }
+$else
+
+$ifdef Save_carpet
+   WriteImage(Name || ".gif")
+$ifdef Save_mirror
+   WriteImage(Name || "_m.gif")
+$endif
+$endif
+
+$ifndef Hidden
+   repeat case Event() of {		# process low-level user events
+      "q" :  exit()
+      "s" :  WriteImage(Name || ".gif")
+      "m" :  WriteImage(Name || "_m.gif")
+      }
+$endif
+$endif
+
+
+end
+
+# Initialize the carpet
+
+procedure init()
+   local m, n, v, canvas
+
+   colors := carpcolr(Colors) | {
+
+$ifdef Dialogs
+      Notice("Unrecognized color specification.", "Palette c2 substituted.")
+#else
+      write(&errout, "Unrecognized color specification.", "\n",
+         "Palette c2 substituted.")
+$endif
+
+      colors := colrplte("c2")
+      }
+
+   cmod := *colors
+
+   # The definitions in the following expressions may not be constants.
+   # Assignments are made to avoid expressions being evaluated multiple
+   # times.  This not only prevents unnecessary evaluation later, but it
+   # also prevents values from changing while the carpet is being
+   # generated.
+
+   modulus := Modulus
+   width := Width
+   height := Height
+
+   array := create_matrix(height, width, 0)
+
+$ifdef Hidden
+   canvas := "canvas=hidden"
+$else
+   canvas := "canvas=normal"
+$endif
+
+   WOpen(canvas, "size=" || width || "," || height) | {
+
+$ifdef Dialogs
+      ExitNotice("Cannot open window for carpet.")
+$else
+      stop("Cannot open window for carpet.")
+$endif
+
+      }
+
+   # Initialize the edges.
+
+   m := 0
+   every v := (Left \ height) do {
+      array[m +:= 1, 1] := v % modulus
+      }
+
+   n := 0
+   every v := (Top \ width) do {
+      array[1, n +:= 1] := v % modulus
+      }
+
+   return
+
+end
+
+$ifndef Twopass		# do modulus reduction on the fly.
+
+# Create the carpet.
+
+procedure weave()
+   local m, n
+
+   every m := 1 to height do {
+      if *Pending() > 0 then {
+         if Event() === "q" then exit()
+         }
+      every n := 1 to width do {
+
+$ifdef Wrap
+         array[m, n] := neighbor(
+            array[(m - 1) | -1, (n - 1) | -1],
+            array[(m - 1) | -1, n],
+            array[m, (n - 1) | -1]
+            ) % modulus
+$else
+         array[m, n] := neighbor(
+            array[m, n - 1],
+            array[m - 1, n - 1],
+            array[m - 1, n],
+            ) % modulus
+$endif
+
+         Fg(colors[(abs(integer(array[m, n])) % cmod) + 1])
+         DrawPoint(n - 1, m - 1)
+         }
+      }
+
+   return
+
+end
+
+$else				# do modulus reduction on a second pass
+
+#  In this version, the computations are made in plain arithmethic and
+#  then modulo-reduced in a second pass.  The results are the same as
+#  long as all operations have satisfy the relationship (i op j) % n =
+#  (i % n) op (j % n).  This is true for addition, subtraction, and
+#  multiplication.
+
+procedure weave()
+   local m, n
+
+   every m := 1 to height do {
+      if *Pending() > 0 then {
+         if Event() === "q" then exit()
+            }
+         }
+      every n := 1 to width do {
+
+$ifdef Wrap
+         array[m, n] := neighbor(
+            array[(m - 1) | -1, (n - 1) | -1],
+            array[(m - 1) | -1, n],
+            array[m, (n - 1) | -1]
+            )
+         }
+      }
+$else
+         array[m, n] := neighbor(
+            array[m, n - 1],
+            array[m - 1, n - 1],
+            array[m - 1, n],
+            )
+         }
+      }
+
+$endif
+
+   every m := 1 to height do {
+      if *Pending() > 0 then {
+         if Event() === "q" then exit()
+            }
+         }
+     every n := 1 to width do {
+         Fg(colors[(abs(integer(array[m, n] % modulus)) % cmod) + 1])
+         DrawPoint(n - 1, m - 1)
+         }
+      }
+
+   return
+
+end
+
+$endif
+
+procedure neighbor(n, nw, w)
+
+   return Neighbors
+
+end

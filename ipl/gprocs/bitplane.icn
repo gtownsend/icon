@@ -1,0 +1,341 @@
+############################################################################
+#
+#	File:     bitplane.icn
+#
+#	Subject:  Procedures for bitplane manipulation
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	These procedures allow a window to be treated as a series of
+#	overlapping, independent layers, subject to some fairly severe
+#	restrictions.
+#
+#	AlcPlane(W n)		allocates planes.
+#
+#	FrontPlane(W bp, color)	moves a layer to the front.
+#
+#	BackPlane(W bp, color)	moves a layer to the back.
+#
+#	PlaneOp(W bp, op)	initializes layer operations.
+#
+#	Deplane(W color)	restores a window to normal.
+#
+############################################################################
+#
+#     These procedures allow drawing and erasing in individual bitplanes of
+#  a window.  One way to use bitplanes is to think of them as transparent
+#  panes in front of a solid background.  Each pane can be drawn with a
+#  single color, obscuring the panes beyond (and the background).  A pane
+#  can also be erased, wholly or selectively, exposing what is beyond; and
+#  a pane need not be visible to be drawn or erased.  Panes can be restacked
+#  in a different order, and the color of a pane (or the background) can be
+#  changed.
+#
+#     For example, the pane in back could be drawn with a city map.  The
+#  pane in front of that could be used to lay out bus routes, and the paths
+#  could be erased and rerouted without having to redraw the map.  Using a
+#  third plane in front of those, buses could be moved along the routes
+#  without having to redraw either the routes or the map behind them.
+#
+#     Bitplanes that are allocated together and interact with each other
+#  form a bitplane group.  A bitplane group need not fill the window;
+#  indeed, it can be used in discontiguous portions of a window or even
+#  in multiple windows on the same display.  On the other hand, multiple
+#  bitplane groups can be used different parts of the same window.
+#
+#     Bitplanes are implemented using Icon's mutable colors, and they
+#  are gluttonous of color map entries.  A set of n bitplanes requires
+#  at least 2^n color map entries, so the practical limit of n is 5 or 6.
+#  On the other hand, sets of 2 or 3 bitplanes are relatively cheap and
+#  using several of them is not unreasonable.
+#
+#     Each bitplane group is identified by a base index b, which is the
+#  index of the mutable color representing the background.  The individual
+#  bitplanes are referenced as b+1, b+2, b+4 etc. using powers of two.
+#  Other indices between b and b+2^n (exclusive) control the colors used
+#  used when multiple bitplanes are drawn.  The FrontPlane and BackPlane
+#  procedures provides simple control of these, and more sophisticated
+#  effects (such as making a bitplane partially transparent) are possible
+#  by setting them individually.
+#
+#
+#
+#  AlcPlane([win,] n) -- alc colors for n bitplanes
+#
+#     AlcPlane allocates a set of 2^n mutable colors chosen to be suitable
+#  for the bitplane manipulations described below.  The colors are
+#  consecutively indexed, and the base value b (the most negative index
+#  value) is returned.  The base color is initialized to the current
+#  background color, and the others are initialized to the foreground color.
+#
+#     A sequence of AlcPlane calls with different values of n is more
+#  likely to succeed if the larger sets are allocated first.
+#
+#
+#
+#  FrontPlane([win,] bp, color) -- move indexed plane to "front"
+#
+#     FrontPlane sets the pixels in a bitplane to the given color and
+#  moves the bitplane in front of the others in the set.  The color is
+#  optional.
+#
+#     bp is the index (base+1, base+2, base+4, or whatever) denoting a
+#  particular bitplane.  The move-to-the-front effect is accomplished by
+#  calling Color() for all colors in the bitplane group whose index
+#  after subtracting the base includes the particular bit.
+#
+#
+#
+#  BackPlane([win,] bp, color) -- move indexed plane to "back"
+#
+#     BackPlane sets the pixels in a bitplane to the given color and
+#  moves the bitplane in back of the others in the set.  The color is
+#  optional.
+#
+#     bp is the index (base+1, base+2, base+4, or whatever) denoting a
+#  particular bitplane.  The move-to-the-back effect is accomplished by
+#  calling Color() for all colors in the bitplane group whose index
+#  after subtracting the base includes the particular bit.
+#
+#     A plane can be effectively rendered invisible by calling
+#  BackPlane(win, bp, base);  this moves it to the back and sets
+#  its color to the color of the background plane.
+#
+#
+#
+#  PlaneOp([win,] bp, op) -- set graphics context for plane operation
+#
+#     PlaneOp initializes the graphics context for drawing or erasing in
+#  a particular bitplane.  bp is a bitplane index, as for FrontPlane;
+#  multiple bits can be set to draw or erase several bitplanes
+#  simulatneously.  op is usually one of two strings:
+#
+#	"set"	to draw the bits in a bitplane
+#	"clear"	to erase the bits in a bitplane
+#
+#  Subsequent drawing operations will affect only the bits in the selected
+#  bitplane.  Foreground operations are used for both drawing and erasure:
+#  use FillRectangle, not EraseArea.
+#
+#     After calling PlaneOp with "set" or "clear", be SURE to draw only
+#  in portions of the screen previously initialized with pixel values
+#  from the same bitplane group.  Drawing anywhere else is liable to
+#  produce strange, unwanted results.  Deplane (below) resets the window
+#  for normal operation.
+#
+#     The op parameter can also be "copy", in which case the previous
+#  contents of the window are immaterial and the drawn pixels are
+#  initialized with the bitplanes specified.
+#
+#
+#  Deplane([win,] color) -- restore normal drawop and set foreground
+#
+#     Deplane is called to restore normal drawing operations after setting
+#  or clearing bits in a particular bitplane.  The foreground color can be
+#  changed optionally.
+#
+#
+#
+#  Example:
+#
+#	b := AlcPlane(win, 3)			# get 3 planes
+#	Color(win, b, "white")			# background will be white
+#	FrontPlane(win, 1, "gray")		# city map will be gray
+#	FrontPlane(win, 2, "navy")		# routes will be dark blue
+#	FrontPlane(win, 4, "red")		# buses will be red
+#	Fg(win, b)
+#	DrawRectangle(win, x, y, w, h)		# initialize background
+#	PlaneOp(win, b+1, "set")
+#	drawmap()				# draw map
+#	repeat {
+#	   PlaneOp(win, b+2, "clear")
+#	   DrawRectangle(x, y, w, h)		# clear old routes
+#	   PlaneOp(win, b+2, "set")
+#	   drawroutes()				# draw new routes
+#	   while routes_ok() do
+#	      runbuses()			# run buses using plane b+4
+#	   }
+#
+#
+#
+#  Caveats
+#
+#     AlcPlane must repeatedly ask for new mutable colors until it gets a
+#  set that is suitable.  Unwanted colors cannot be returned or freed, so
+#  some color table entries are usually wasted.
+#
+#     No more than 7 bitplanes can be requested, and even that is chancy.
+#
+#     These routines will be confused by multiple displays.  Multiple
+#  windows on a single display, or multiple bitplane sets in a window,
+#  are no problem.
+#
+#     These routines depend on the internals of Icon, specifically the
+#  mapping of window-system pixel values to mutable color indices.
+#
+#     The use of unusual "and" and "or" drawops makes the code hard to
+#  understand.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+
+global Plane_Mask
+
+
+#  AlcPlane(win, n) -- allocate 2^n colors for bitplanes and return base b
+
+procedure AlcPlane(win, n)		#: allocate colors for bitplane
+   local ncolors, mask, b, seqlen, prev, fg, clist
+
+   if type(win) ~== "window" then {
+      n := win
+      win := &window
+      }
+
+   if n < 1 | n > 7 then
+      runerr(205, n)
+   fg := Fg(win)
+
+   ncolors := 2 ^ n
+   mask := ncolors - 1
+
+   # need to get ncolors colors in sequence, with the last one having the
+   # low order n bits (of the actual pixel value) set
+
+   # alternatives on Color are in case current fg/bg would cause failure
+
+   b := NewColor(win, fg | "black") | fail
+   clist := [b]
+   seqlen := 1
+   while seqlen < ncolors | iand(-1 - b, mask) ~= mask do {
+      prev := b
+      b := NewColor(win, fg | "black") | fail
+      push(clist, b)
+      if prev - b ~= 1 then
+         seqlen := 1
+      else
+         seqlen +:= 1
+      }
+
+   # discard unwanted colors
+   every 1 to ncolors do
+      pop(clist)
+   if *clist > 0 then {
+      push(clist, win)
+      FreeColor ! clist
+      }
+
+   # set base color to background and return result
+   Color(win, b, Bg(win) | "white")
+   /Plane_Mask := table()
+   every Plane_Mask [b to b + mask] := mask
+   return b
+end
+
+
+
+#  FrontPlane(win, bp, color) -- move indexed plane to "front", set color
+
+procedure FrontPlane(win, bp, color)	#: move bitplane to front
+   local mask, base, bits, i
+
+   if type(win) ~== "window" then {
+      win :=: bp :=: color
+      win := &window
+      }
+
+   mask := \Plane_Mask[bp] | runerr(205, bp)
+   base := iand(icom(mask), bp)
+   bits := bp - base
+   /color := bp
+   every i := base to base + mask do
+      if iand(i, bits) = bits then
+         Color(win, i, color)
+   return win
+end
+
+
+
+#  BackPlane(win, bp, color) -- move indexed plane to "back", set color
+
+procedure BackPlane(win, bp, color)	#: move bitplane to back
+   local mask, base, bits, i
+
+   if type(win) ~== "window" then {
+      win :=: bp :=: color
+      win := &window
+      }
+
+   mask := \Plane_Mask[bp] | runerr(205, bp)
+   base := iand(icom(mask), bp)
+   bits := bp - base
+   Color(win, bp, \color)			# set color if specified
+   every i := base to base + mask do
+      if iand(i, bits) = bits & i ~= bp then
+         Color(win, i, ixor(i, bits))		# set color as if plane unset
+   return win
+end
+
+
+
+#  PlaneOp(win, bp, op) -- set graphics context for plane operation
+
+procedure PlaneOp(win, bp, op)		#: set context for bitplane operation
+   local mask, base, bits, i
+
+   if type(win) ~== "window" then {
+      win :=: bp :=: op
+      win := &window
+      }
+
+   mask := \Plane_Mask[bp] | runerr(205, bp)
+   base := iand(icom(mask), bp)
+   bits := bp - base
+
+   case op of {
+      "copy": {
+         WAttrib(win, "drawop=copy")
+         Fg(win, bp)
+         }
+      "set": {
+         i := base + bits
+         WAttrib(win, "drawop=and")
+         Fg(win, i)
+         }
+      "clear": {
+         i := base + (mask - bits)
+         WAttrib(win, "drawop=or")
+         Fg(win, i)
+         }
+      default:
+         runerr(205, op)
+      }
+   return win
+end
+
+
+
+#  Deplane(win, color) -- restore normal drawop and set fg to color
+
+procedure Deplane(win, color)
+
+   if type(win) ~== "window" then {
+      color := win
+      win := &window
+      }
+   WAttrib(win, "drawop=copy")
+   Fg(win, \color)
+   return win
+end

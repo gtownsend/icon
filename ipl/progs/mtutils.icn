@@ -1,0 +1,40 @@
+############################################################################
+#
+#	File:     mtutils.icn
+#
+#	Subject:  Program fpr MT Icon
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 3, 1997
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  Utility procedures for use with MT Icon programs (threads)
+#
+############################################################################
+#
+#  Requires:  MT Icon
+#
+############################################################################
+
+procedure root()
+
+   C := &main
+
+   while C := parent(C)
+
+   return C
+
+end
+
+procedure main()
+
+   if root(&main) === &main then write("safe to talk")
+   else write("someone may be listening")
+
+end

@@ -1,0 +1,445 @@
+############################################################################
+#
+#	File:     verse.icn
+#
+#	Subject:  Program to generate bizarre verses
+#
+#	Author:   Chris Tenaglia
+#
+#	Date:     May 26, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This verse maker was initially published in an early 1980s Byte magazine in
+#  TRS80 Basic. In 1985 I translated it to BASICA, and in 1987 I translated it
+#  to Icon. Recently, I've polished it to fetch the vocabulary all from one
+#  file.
+#  
+#  A vocabulary file can be specified on the command line; otherwise
+#  file it looks for verse.dat by default. See that file for examples
+#  of form.
+#  
+############################################################################
+#
+#  Links:  random
+#
+############################################################################
+
+link random
+
+global nouns,nounp,adjt,advb,more,most,ivpre,ivpas,tvpre,tvpas,prep
+global being,art,ques,cond,nompro,punc,noun1,noun2,tv,iv,adjv,prpo
+global be,pun,pron,con,ar,tnnum,tadjno,ttvnum,tprnum,cls,name,watch
+
+procedure main(param)
+  local in, part, line, tmp, reply, Out, In, t
+
+  randomize()
+  nouns := []                         #singular nouns
+  nounp := []                         #plural nouns
+  adjt  := []                         #adjectives
+  advb  := []                         #adverbized
+  more  := []                         #more adjective
+  most  := []                         #most adjective
+  tvpas := []                         #transitive verb past
+  tvpre := []                         #transitive verb present
+  ivpas := []                         #intransitive verb past
+  ivpre := []                         #intransitive verb present
+  prep  := []                         #prepositions
+  punc  := []                         #punctuations
+  art   := []                         #articles of speech
+  ques  := []                         #question words
+  being := []                         #being verbs
+  cls   := "\e[H\e[2J"                #clear screen string (or system("clear"))
+
+############################################################################
+#                                                            #
+#                 load the vocabulary arrays                 #
+#                                                            #
+############################################################################
+
+  name := param[1]    | "verse.dat"
+  (in  := open(name)) | stop("Can't open vocabulary file (",name,")")
+  part := "?" ; watch := "?"
+  write(cls,"VERSE : AI Mysterious Poetry Generator\n\nInitializing\n\n")
+  while line := read(in) do
+    {
+    if match("%",line) then
+      {
+      part := map(trim(line[2:0]))
+      write("Loading words of type ",part)
+      next
+      }
+    tmp := parse(line,'|@#')
+    case part of   
+      {
+      "noun" : {
+               put(nouns,tmp[1])
+               put(nounp,tmp[2])
+               }
+      "adjt" : {
+               put(adjt,tmp[1])
+               put(advb,tmp[2])
+               put(more,tmp[3])
+               put(most,tmp[4])
+               }
+      "ivrb" : {
+               put(ivpre,tmp[1])
+               put(ivpas,tmp[2])
+               }
+      "tvrb" : {
+               put(tvpre,tmp[1])
+               put(tvpas,tmp[2])
+               }
+      "prep" : put(prep,line)
+      "been" : put(being,line)
+      default: write("Such Language!")
+      }
+    loadrest()
+    }
+  close(in)
+reply := ""
+while map(reply) ~== "q" do
+  {
+#
+#                         output the title
+#
+  (Out := open("a.out","w")) | stop ("can't open a.out for some reason!")
+
+  t := ?7
+  tnnum := ?*(nouns)                   #title noun selector
+  tadjno:= ?*(adjt)                    #title adjective selector
+  ttvnum:= ?*(tvpre)                   #title transitive verb selector
+  tprnum:= ?*(prep)                    #title preposition selector
+  
+  clrvdu()
+  write(title(t))
+  write(Out,title(t))
+  write()
+  write(Out)
+
+#
+#                        output the lines
+#
+    every 1 to (12+?6) do
+      {
+      noun1 := ?*(nouns)
+      noun2 := ?*(nouns)
+      tv    := ?*(tvpre)
+      iv    := ?*(ivpre)
+      adjv  := ?*(adjt)
+      prpo  := ?*(prep)
+      be    := ?*(being)
+      pun   := ?*(punc)
+      pron  := ?*(nompro)
+      con   := ?*(cond)
+      ar    := ?*(art)
+       
+      case ?19 of
+        {
+        1 : {write(form1()) ; write(Out,form1())}
+        2 : {write(form2()) ; write(Out,form2())}
+        3 : {write(form3()) ; write(Out,form3())}
+        4 : {write(form4()) ; write(Out,form4())}
+        5 : {write(form5()) ; write(Out,form5())}
+        6 : {write(form6()) ; write(Out,form6())}
+        7 : {write(form7()) ; write(Out,form7())}
+        8 : {write(form8()) ; write(Out,form8())}
+        9 : {write(form9()) ; write(Out,form9())}
+       10 : {write(form10()) ; write(Out,form10())}
+       11 : {write(form11()) ; write(Out,form11())}
+       12 : {write(form12()) ; write(Out,form12())}
+       13 : {write(form13()) ; write(Out,form13())}
+       14 : {write(form14()) ; write(Out,form14())}
+       15 : {write(form15()) ; write(Out,form15())}
+       16 : {write(form16()) ; write(Out,form16())}
+       17 : {write(form17()) ; write(Out,form17())}
+       18 : {write(form18()) ; write(Out,form18())}
+       19 : {write(form19()) ; write(Out,form19())}
+        }   
+    }
+# last line
+  case ?2 of
+    {
+    1 : {
+        write(nounp[tnnum]," ",prep[prpo]," THE ",nouns[noun1],
+        " ",being[be]," ",adjt[tadjno],".")
+        write(Out,nounp[tnnum]," ",prep[prpo]," THE ",nouns[noun1],
+        " ",being[be]," ",adjt[tadjno],".")
+        }
+    2 : {
+        write("THE ",nounp[tnnum]," OR ",nouns[noun1]," ",
+        adjt[adjv]," ",being[be],".")
+        write(Out,"THE ",nounp[tnnum]," OR ",nouns[noun1]," ",
+        adjt[adjv]," ",being[be],".")
+        }
+    }      
+    close(Out)
+
+    write()
+    writes("Press <RET> for another, Q to quit, or a name to save it>")
+    reply := read()
+    if (reply ~== "Q") & (trim(reply) ~== "") then
+      {
+      (In := open("a.out")) | stop ("can't open a.out for some reason!")
+      (Out := open(reply,"w")) | stop ("can't open ",reply)
+      while write(Out,read(In))
+      close(In) ; close(Out)
+      }
+  }
+  end
+
+############################################################################
+
+procedure aoran(word)
+  local vowels
+
+  vowels := 'AEIOU'
+  if any(vowels,word) then return ("AN " || word)
+                      else return ("A "  || word)
+end
+
+############################################################################
+
+procedure clrvdu()
+  writes(cls)
+end
+
+############################################################################
+
+procedure gerund(word)
+  static vowel
+  initial vowel := 'AEIOU'
+  if word[-1] == "E" then word[-1] := ""
+  return(word || "ING")
+end
+
+############################################################################
+
+procedure title(a)
+
+    local text
+
+    case a of
+      {               
+      1 : text := aoran(adjt[tadjno]) || " " || nouns[tnnum]
+      2 : text := "TO " || tvpre[ttvnum] || " SOME " || nouns[tnnum]
+      3 : text := prep[tprnum] || " " || nounp[tnnum]
+      4 : text := "THE " || nouns[tnnum]
+      5 : text := prep[tprnum] || " " || aoran(nouns[tnnum]) || " " || advb[tadjno]
+      6 : text := "THE " || more[tadjno] || " " || nouns[tnnum]
+      7 : text := "THE " || most[tadjno] || " " || nouns[tnnum]
+      }
+    return(text)
+end
+
+############################################################################
+
+procedure form1()
+  local text, n, prefix
+  n := 1
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || nounp[noun1] || " " || tvpre[tv] || " THE "
+  text ||:= more[adjv] || " " || nouns[noun2] || punc[pun]
+  return(text)
+end
+
+procedure form2()
+  local text, n, prefix
+  n := 2
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || nounp[noun1] || " " || tvpre[tv] || " THE "
+  text ||:= most[adjv] || " " || nouns[noun2] || punc[pun]
+  return(text)
+end
+
+procedure form3()
+  local text, n, prefix
+  n := 3
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || adjt[adjv] || " " || nounp[noun1] || " " || being[be]
+  text ||:= " " || gerund(ivpre[iv]) || " " || punc[pun]
+  return(text)
+end  
+
+procedure form4()
+  local text, n, prefix
+  n := 4
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || adjt[adjv] || " " || nounp[noun1] || " " || ivpre[iv]
+  text ||:= " " || punc[pun]
+  return(text)
+end
+
+procedure form5()
+  local text, n, prefix
+  n := 5
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || ques[?*ques] || " " || adjt[adjv] || " "
+  text ||:= nounp[noun1] || " " || ivpre[iv] || "?"
+  return(text)
+end
+
+procedure form6()
+  local text, n, prefix
+  n := 6
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || art[ar] || " " || adjt[adjv] || " " || nouns[noun1]
+  text ||:= " " || tvpas[tv] || " THE " || nouns[noun2] || punc[pun]
+  return(text)
+end
+
+procedure form7()
+  local text, n, prefix
+  n := 7
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || "THE " || nounp[tnnum] || " " || ivpas[iv]
+  text ||:= " " || prep[prpo] || " THE " || more[tadjno] || " "
+  text ||:= nounp[noun1] || " " || punc[pun]
+  return(text)
+end
+
+procedure form8()
+  local text, n, prefix
+  n := 8
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || "THE " || nounp[tnnum] || " " || ivpas[iv] || " " 
+  text ||:= prep[prpo] || " THE " || most[tadjno] || " " || nounp[noun1]
+  text ||:= " " || punc[pun]
+  return(text)
+end
+
+procedure form9()
+  local text, n, prefix
+  n := 9
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || ques[?*ques] || " " || nounp[tnnum] || " " || ivpre[iv]
+  text ||:= " " || prep[prpo] || " " || aoran(adjt[adjv]) || " "
+  text ||:= nouns[noun2] || "?"
+  return(text)
+end
+
+procedure form10()
+  local text, n, prefix
+  n := 10
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || nounp[noun1] || " " || ivpre[iv] || " " || advb[adjv]
+  text ||:= " " || prep[prpo] || " " || nompro[pron] || punc[pun]
+  return(text)
+end
+
+procedure form11()
+  local text, n, prefix
+  n := 11
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || adjt[adjv] || " " || nounp[noun1] || " " || being[be]
+  text ||:= " " || adjt[tadjno] || " " || cond[con]
+  return(text)
+end
+
+procedure form12()
+  local text, n, prefix
+  n := 12
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || art[ar] || " " || nouns[noun1] || " " || ivpas[iv]
+  text ||:= " " || advb[adjv] || punc[pun]
+  return(text)
+end
+
+procedure form13()
+  local text, n, prefix
+  n := 13
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || cond[con] || " " || nounp[noun1] || " " || being[be]
+  text ||:= " " || gerund(tvpre[ttvnum]) || " " || prep[prpo] || " "
+  text ||:= gerund(ivpre[iv]) || " " || nounp[noun2] || punc[pun]
+  return(text)
+end
+
+procedure form14()
+  local text, n, prefix
+  n := 14
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || art[ar] || " " || adjt[adjv] || " " || gerund(tvpre[tv])
+  text ||:= " OF THE " || nouns[tnnum] || " AND " || nouns[noun1] || punc[pun]
+  return(text)
+end
+
+procedure form15()
+  local text, n, prefix
+  n := 15
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || gerund(tvpre[ttvnum]) || " " || nouns[noun1]
+  text ||:= " AND " || nouns[noun2]
+  return(text)
+end
+
+procedure form16()
+  local text, n, prefix
+  n := 16
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || "THE " || nounp[tnnum] || " " || ivpre[iv] || punc[pun]
+  return(text)
+end
+
+procedure form17()
+  local text, n, prefix
+  n := 17
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || nompro[pron] || " " || tvpas[ttvnum] || " THE "
+  text ||:= adjt[adjv] || " " || nouns[noun1] || punc[pun]
+  return(text)
+end
+
+procedure form18()
+  local text, n, prefix
+  n := 18
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || adjt[adjv] || " " || nounp[noun2] || " " || being[be]
+  text ||:= " " || nounp[noun1] || punc[pun]
+  return(text)
+end
+
+procedure form19()
+  local text, n, prefix
+  n := 19
+  if watch=="true" then prefix := "(" || n || ") " else prefix := ""
+  text := prefix || "THE " || nounp[tnnum] || "'S " || nounp[noun1] || " "
+  text ||:= adjt[adjv] || " " || being[be] || punc[pun]
+  return(text)
+end
+
+############################################################################
+       
+procedure parse(line,delims)  
+  static chars
+  local tokens
+
+  chars  := &cset -- delims
+  tokens := []
+  line ? while tab(upto(chars)) do put(tokens,tab(many(chars)))
+  return tokens
+  end
+
+procedure loadrest()
+  art   := ["ITS" , "THIS" , "SOME", "ANY" , "ONE" , "THAT" ,
+            "ITS" , "MY" , "YOUR" , "OUR"]
+
+  ques  := ["WHY DO" , "WHEN DO" , "WHERE DO" , "HOW DO" , "CANNOT" ,
+            "HOW COME" , "WHY DON'T"]
+
+  nompro := ["SOMETHING" , "ANYTHING" , "IT" , "THAT" , "ONE" , "YOU" , "THIS"]
+          
+  cond  := ["SINCE" , "BECAUSE" , "UNTIL" , "IF" , "THEN" , "OR" ,
+            "UNLESS" , "THEREFORE" , "AND THEN" , "OR ELSE" , "ELSE IF"]
+
+  punc  := ["." , "," , "?" , "!" , "," , "-" , ";"]
+end
+
+
+
+

@@ -1,0 +1,20 @@
+# The output of this test will vary depending on memory
+#  configuration.
+
+procedure main()
+   collect(0)
+   write(image(x := []) | "failed")
+   every push(x,1 to 1000)
+   write(image(x))
+   every push(x,1 to 10000)
+   write(image(x))
+   every collect(0 to 3)
+   write("\ncollections:")
+   every write(&collections)
+   write("\nregions:")
+   every write(&regions)
+   write("\nstorage:")
+   every write(&storage)
+   write("\nallocated:")
+   every write(&allocated)
+end

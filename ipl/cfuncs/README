@@ -1,0 +1,18 @@
+C Interface Functions for Icon
+
+This directory contains C functions that can be called from Icon on
+systems supporting dynamic loading via dlopen(3).  These systems include
+SunOS, Solaris, OSF/1, Irix, and Linux.
+
+To see what's available, look at the comments in the .c files.  To use
+a C function, just use "link cfunc" and call the function by name.
+
+The C functions are loaded at runtime from a library file "libcfunc.so".
+This library is normally found in /usr/local/lib/icon.  The environment
+variable FPATH (function path) can be set to specify other directories
+to be searched first; at Arizona, /home/icon/ibin usually contains the
+very latest developmental version.  The current directory is always
+searched before anything else.
+
+To build the library, run "make".  This process also builds "cfunc.icn",
+the file of interface procedures that actually load the C functions.

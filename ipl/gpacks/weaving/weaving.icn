@@ -1,0 +1,362 @@
+############################################################################
+#
+#	File:     weaving.icn
+#
+#	Subject:  Procedures to implement weaving expressions
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 4, 1999
+#
+############################################################################
+#
+#  This file is in the public symbols.
+#
+############################################################################
+#
+#  These procedures implement the weaving expressions supported by Painter
+#  and described in the Painter document "Advanced Weaving Language" that
+#  accompanies that application.
+#
+############################################################################
+#
+#  Links:  expander, strings
+#
+############################################################################
+#
+#  Includes:  weavdefs.icn
+#
+############################################################################
+
+link expander
+link strings
+
+$include "weavdefs.icn"
+
+procedure UpBetween(p1, p2, symbols)
+   local run
+
+   /symbols := 8
+   run := repl(Mask[1+:symbols], 2)
+
+   run ? {
+      tab(upto(p1[-1]) + 1)
+      return tab(upto(p2[1]))
+      }
+
+end
+
+procedure DownBetween(p1, p2, symbols)
+   local run
+
+   /symbols := 8
+   run := repl(reverse(Mask[1+:symbols]), 2)
+
+   run ? {
+      tab(upto(p1[-1]) + 1)
+      return tab(upto(p2[1]))
+      }
+
+end
+
+procedure Block(p1, p2)			#: weaving block
+   local i, k, s, p3, counts
+
+   counts := []
+
+   p2 ? {
+      while s := tab(upto('{')) do {
+         every put(counts, !s)
+         move(1)
+         put(counts, tab(upto('}')))
+         move(1)
+         }
+      every put(counts, !tab(0))
+      }
+
+   if *p1 < *counts then p1 := Extend(p1, *counts)
+   else if *counts < *p1 then {			# have to extend list
+      k := *p1
+      repeat {
+         every i := 1 to k do {
+            put(counts, counts[i])
+            if *counts >= k then break break
+            }
+         }
+      }
+
+   p3 := ""
+
+   every i := 1 to *p1 do
+      p3 ||:= repl(p1[i], counts[i]) 
+
+   return p3
+
+end
+
+procedure DownUp(p1, p2, symbols)	#: weaving downup
+   local p3, i, ticks
+
+   /symbols := 8
+
+   ticks := ""			# in case there are none
+
+   p2 ?:= {
+      ticks := tab(many('\''))
+      tab(0)
+      }
+
+   if *p1 < *p2 then p1 := Extend(p1, *p2)
+   else if *p2 <  *p1 then p2 := Extend(p2, *p1)
+
+   p3 := p1[1]
+
+   every i := 1 to *p1 do {
+      p3 ||:= Downto(p1[i], ticks || p2[i], symbols)[2:0]
+      p3 ||:= Upto(p2[i], ticks || p1[i + 1], symbols)[2:0]	# fails when i = *p1
+      }
+
+   return p3
+
+end
+
+procedure Downto(p1, p2, symbols)		#: weaving downto
+   local cycles
+
+   /symbols := 8
+
+   cycles := 0
+
+   p2 ?:= {
+      cycles +:= *tab(many('\''))
+      tab(0)
+      }
+
+   return p1 || DownRun(p1, cycles, symbols) || DownBetween(p1, p2, symbols) || p2
+
+end
+
+procedure Extend(p, i)			#: weaving extension
+
+   i := integer(i)
+
+   return case i of {
+      *p > i   :  left(p, i)
+      *p < i   :  left(repl(p, (i / *p) + 1), i)
+      default  :  p
+      }
+
+end
+
+procedure Interleave(p1, p2)		#: weaving interleave
+   local i, p3
+
+   if *p1 < *p2 then p1 := Extend(p1, *p2)
+   else if *p2 <  *p1 then p2 := Extend(p2, *p1)
+
+   p3 := ""
+
+   every i := 1 to *p1 do
+      p3 ||:= p1[i] || p2[i]
+
+   return p3
+
+end
+
+procedure PatternPalindrome(p1)		#: pattern palindrome
+
+   return (p1 || reverse(p1[2:-1])) | ""
+
+end
+
+procedure Pbox(p1, p2)			#: weaving pbox
+   local p3, i
+
+   if *p2 ~= *p1 then p2 := Extend(p2, *p1)
+
+   p3 := ""
+   
+   every i := !p1 do
+      p3 ||:= p1[p2[i]]
+
+   return p3
+
+end
+
+procedure Permutation(p1, p2)		#: weaving permutation
+   local p3, chunk, i, j
+
+   j := *p1 % *p2
+   if j ~= 0 then p1 := Extend(p1, *p1 + *p2 - j)
+
+   p3 := ""
+
+   p1 ? {
+      while chunk := move(*p2) do
+         every i := !p2 do
+            p3 ||:= chunk[i]
+      }
+
+   return p3
+
+end
+
+procedure Repeat(p, i)
+
+   return repl(p, i)
+
+end
+
+procedure Reverse(p)
+
+   return reverse(p)
+
+end
+
+procedure Rotate(p, i)
+
+   return rotate(p, i)
+
+end
+
+procedure UpRun(p, cycles, symbols)
+   local run
+
+   /symbols := 8
+   run := repl(Mask[1+:symbols], 2)
+
+   run ? {
+      tab(upto(p[-1]) + 1)
+      return repl(move(symbols), cycles)
+      }
+
+end
+
+procedure DownRun(p, cycles, symbols)
+   local run
+
+   /symbols := 8
+   run := repl(reverse(Mask[1+:symbols]), 2)
+
+   run ? {
+      tab(upto(p[-1]) + 1)
+      return repl(move(*symbols), cycles)
+      }
+
+end
+
+procedure Template(p1, p2)		#: weaving Template
+   local p3, dlist, i, j, k
+
+   dlist := []
+
+   every i := 1 to *p1 do
+      put(dlist, p1[i] - p1[1])
+
+   p3 := ""
+
+   every j := 1 to *dlist do
+      every i := 1 to *p2 do {
+         k := p2[i] + dlist[j]
+         if k > 8 then k -:= 8
+         else if k < 1 then k +:= 8
+         p3 ||:= k
+         }
+
+   return p3
+
+end
+
+procedure UpDown(p1, p2, symbols)		#: weaving updown
+   local p3, i, ticks
+
+   /symbols := 8
+
+   ticks := ""			# in case there are none
+
+   p2 ?:= {
+      ticks := tab(many('\''))
+      tab(0)
+      }
+
+   if *p1 < *p2 then p1 := Extend(p1, *p2)
+   else if *p2 <  *p1 then p2 := Extend(p2, *p1)
+
+   p3 := p1[1]
+
+   every i := 1 to *p1 do {
+      p3 ||:= Upto(p1[i], ticks || p2[i], symbols)[2:0]
+      p3 ||:= Downto(p2[i], ticks || p1[i + 1], symbols)[2:0]	# fails when i = *p1
+      }
+
+   return p3
+
+end
+
+procedure UpDownto(p1, p2, symbols)		#: weaving upto/downto
+   local c
+
+   /symbols := 8
+
+   p2 ? {
+      tab(many('\''))
+      c := move(1)			# first non-tick character
+      }
+
+   if p1[-1] << c then return Upto(p1, p2, symbols)
+   else return Downto(p1, p2, symbols)
+
+end
+
+procedure Upto(p1, p2, symbols)			#: weaving upto
+   local cycles
+
+   /symbols := 8
+
+   cycles := 0
+
+   p2 ?:= {
+      cycles +:= *tab(many('\''))
+      tab(0)
+      }
+
+   return p1 || UpRun(p1, cycles, symbols) || UpBetween(p1, p2, symbols) || p2
+
+end
+
+procedure Palindroid(s1, s2)		#:  generalized palindrome
+
+   /s2 := ""
+
+   return s1 || s2 || reverse(s1)
+
+end
+
+procedure Palindrome(s1, s2)		#:  synonym for Palindroid
+
+   Palindrome := Palindroid
+
+   return Palindroid(s1, s2)
+
+end
+
+procedure Concatenate(s1, s2)
+
+   return s1 || s2
+
+end
+   
+
+procedure Collate(s1, s2)
+   local slist
+
+   slist := [s1]			# first argument is expanded
+
+   s2 ? {
+      while put(slist, pfl2str(tab(bal('~', '[', ']') | 0))) do
+         move(1) | break
+      }
+
+   return multicoll(slist)
+
+end

@@ -1,0 +1,36 @@
+############################################################################
+#
+#	File:     kmap.icn
+#
+#	Subject:  Procedure to map keyboard letter forms into letters
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 15, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure maps uppercase letters and the control modifier key
+#  in combination with letters into the corresponding lowercase letters.
+#
+#  It is intended for use with graphic applications in which the modifier
+#  keys for shift and control are encoded in keyboard events.
+#
+############################################################################
+
+procedure kmap(s)		#: map letter with modifier key to lowercase
+   static in, out
+
+   initial {
+      in := "\^A\^B\^C\^D\^E\^F\^G\^H\^I\^J\^K\^L\^M\^N\^O\^P_
+         \^Q\^R\^S\^T\^U\^V\^W\^X\^Y\^Z" || &ucase
+      out := &lcase || &lcase
+      }
+
+   return map(s, in, out)
+
+end

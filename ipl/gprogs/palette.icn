@@ -1,0 +1,85 @@
+############################################################################
+#
+#	File:     palette.icn
+#
+#	Subject:  Program to display an Icon image palette
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     May 23, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Usage:  palette [name]
+#
+#  Palette displays each color available in an image palette along with its
+#  index character.  The default palette is "c1".
+#
+#  Typing a digit (1 to 6) in the window switches the display to the
+#  corresponding color palette.  Typing a "g" selects the "g16" palette.
+#
+#  Typing "l", "o", or "u" toggles the respective drawpalette() flag.
+#
+#  The window can be resized.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: graphics, imscolor
+#
+############################################################################
+
+link graphics, imscolor
+
+global flags
+
+procedure main(args)
+   local p, nw, nh, w, h, e
+
+   flags := "l"
+   if args[-1] ? any(&letters) then
+      p := args[-1]
+   else
+      p := "c1"
+
+   PaletteChars(p) | stop(&progname, ": palette ", p, " not found")
+
+   Window("width=125", "height=250", "font=lucidasans-bold-12",
+      "label=" || p, args)
+
+   &error := 1
+   WAttrib("resize=on")
+   &error := 0
+
+   draw(p)
+   while e := Event() do case e of {
+      QuitEvents():	break
+      !"123456":	draw(p := "c" || e)
+      "g":		draw(p := "g16")
+      &lpress | &ldrag:	writes(pickpalette(p, &x, &y) | "~") & flush(&output)
+      &resize:		draw(p)
+      !"lou": {
+         if flags ? find(e) then
+            flags := string(flags -- e)
+         else
+            flags ||:= e
+         draw(p)
+         }
+      }
+end
+
+
+procedure draw(p)		# draw palette, etc.
+   WAttrib("label=" || p)
+   EraseArea()
+   drawpalette(p, , , , , flags) |
+      write(&errout, "  could not get all colors of ", p, " palette")
+   return
+end

@@ -1,0 +1,96 @@
+############################################################################
+#
+#	File:     tablw.icn
+#
+#	Subject:  Program to tabulate words in a file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 27, 1989
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This program tabulates words and lists number of times each
+#  word occurs. A word is defined to be a string of consecutive
+#  upper- and lowercase letters with at most one interior occurrence
+#  of a dash or apostrophe.
+#  
+#  Options: The following options are available:
+#  
+#       -a   Write the summary in alphabetical order of the words.
+#            This is the default.
+#  
+#       -i   Ignore case distinctions among letters; uppercase
+#            letters are mapped into to corresponding lowercase
+#            letters on input. The default is to maintain case dis-
+#            tinctions.
+#  
+#       -n   Write the summary in numerical order of the counts.
+#  
+#       -l n Tabulate only words longer than n characters. The
+#            default is to tabulate all words.
+#  
+#       -u   Write only the words that occur just once.
+#  
+############################################################################
+#
+#  Links: options, usage
+#
+############################################################################
+
+link options, usage
+
+global limit, icase
+
+procedure main(args)
+   local wcount, unique, order, s, pair, lwidth, rwidth, max, opts, l, i
+
+   limit := 0				# lower limit on usage to list
+   unique := 0				# switch to list unique usage only
+   order := 3				# alphabetical ordering switch
+
+   opts := options(args,"ail+nu")
+   if \opts["a"] then order := 3
+   if \opts["n"] then order := 4
+   if \opts["u"] then unique := 1
+   if \opts["i"] then icase := 1
+   l := \opts["l"] | 1
+   if l <= 0 then Usage("-l needs positive parameter")
+
+   wcount := table(0)			# table of words
+   every wcount[words()] +:= 1
+   wcount := sort(wcount,order)
+   if unique = 1 then {
+      while s := get(wcount) do
+         if get(wcount) = 1 then write(s)
+      }
+   else {
+      max := 0
+      rwidth := 0
+      i := 1
+      while i < *wcount do {
+         max <:= *wcount[i]
+         rwidth <:= *wcount[i +:= 1]
+	 }
+      lwidth := max + 3
+      while write(left(get(wcount),lwidth),right(get(wcount),rwidth))
+      }
+end
+
+#  generate words
+#
+procedure words()
+   local line, word
+   while line := read() do {
+      if \icase then line := map(line)
+      line ? while tab(upto(&letters)) do {
+         word := tab(many(&letters)) || ((tab(any('-\'')) ||
+            tab(many(&letters))) | "")
+         if *word > limit then suspend word
+         }
+      }
+end

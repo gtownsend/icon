@@ -1,0 +1,74 @@
+############################################################################
+#
+#	File:     mapstr.icn
+#
+#	Subject:  Procedure for map() for strings
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:	  March 3, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.1
+#
+############################################################################
+#
+#  Mapstrs(s, l1, l2) works like map(), except that instead of taking
+#  ordered character sequences (strings) as arguments 2 and 3, it
+#  takes ordered string sequences (lists).
+#
+#  Suppose, for example, you wanted to bowdlerize a string by
+#  replacing the words "hell" and "shit" with "heck" and "shoot."  You
+#  would call mapstrs as follows:
+#
+#      mapstrs(s, ["hell", "shit"], ["heck", "shoot"])
+#
+#  In order to achieve reasonable speed, mapstrs creates a lot of
+#  static structures, and uses some extra storage.  If you want to
+#  replace one string with another, it is overkill.  Just use the IPL
+#  replace() routine (in strings.icn).
+#
+#  If l2 is longer than l1, extra members in l2 are ignored.  If l1 is
+#  longer, however, strings in l1 that have no correspondent in l2 are
+#  simply deleted.  Mapstr uses a longest-possible-match approach, so
+#  that replacing ["hellish", "hell"] with ["heckish", "heck"] will
+#  work as one would expect.
+#
+############################################################################
+#
+#  Links: longstr
+#
+############################################################################
+
+link longstr
+
+procedure mapstrs(s, l1, l2)
+
+    local i, s2
+    static cs, tbl, last_l1, last_l2
+
+    if /l1 | *l1 = 0 then return s
+
+    if not (last_l1 === l1, last_l2 === l2) then {
+	cs := ''
+	every cs ++:= (!l1)[1]
+	tbl := table()
+	every i := 1 to *l1 do
+	    insert(tbl, l1[i], (\l2)[i] | "")
+    }
+
+    s2 := ""
+    s ? {
+	while s2 ||:= tab(upto(cs)) do
+	    s2 ||:= tbl[tab(longstr(l1))] | move(1)
+	s2 ||:= tab(0)
+    }
+
+    return s2
+
+end

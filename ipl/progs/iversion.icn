@@ -1,0 +1,57 @@
+############################################################################
+#
+#	File:     iversion.icn
+#
+#	Subject:  Program to show icode version
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 28, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#    This program reports the version of Icon icode files whose names
+#  are supplied, one name per line, from standard input.
+#
+#    The method is necessarily somewhat heuristic and may not work on
+#  all systems and for very old icode versions.
+#
+#     This program does not work on icode files with shell headers
+#  (notably Version 9 Icon under UNIX).
+#
+############################################################################
+
+procedure main()
+   local name, file, icode, okay
+
+   while name := read() do {
+      writes(name, ": ")
+      file := open(name,"u") | {
+         write("cannot open")
+         next
+         }
+      okay := &null
+      while icode := reads(file,30000) do	# enough for most UNIX headers
+         icode ? {
+            while tab(upto('I') + 1) do {
+               if any('5678') then {
+                  write(tab(upto('\0')))
+                  okay := 1
+                  exit()			# one is enough ...
+                  }
+               }
+            }
+      if /okay then {
+         write("no version")
+         write("may have shell header or not be icode file")
+         }
+      close(file)
+      }
+
+end
+
+

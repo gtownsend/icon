@@ -1,0 +1,72 @@
+############################################################################
+#
+#	File:     zoomtile.icn
+#
+#	Subject:  Program to show a tile magnified
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 28, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program provides an optionally magnified view of a tile.
+#
+#  Options are:
+#
+#	-z i	zoom factor, default 8
+#	-g	provide grid; only supported if zoom factor > 2
+#
+#  Typical usage is
+#
+#	zoomfile <tile
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  options, patutils, win
+#
+############################################################################
+
+link options
+link patutils
+link win
+
+procedure main(args)
+   local i, x, y, opts, magnif, pattern, dims, row, pixel, width, height, glist
+
+   opts := options(args, "z+g")
+   magnif := \opts["z"] | 8
+
+   pattern := readpatt() | stop("*** no tile specification")
+
+   dims := tiledim(pattern)
+
+   width := magnif * dims.w
+   height := magnif * dims.h
+
+   win(width, height)
+
+#  Build a grid
+
+   glist := []
+
+   if \opts["g"] & (magnif > 2) then {
+      every y := 0 to height by magnif do
+         DrawLine(0, y, width, y)
+      every x := 0 to width by magnif do
+         DrawLine(x, 0, x, height)
+      }
+
+   XDrawTile(0, 0, pattern, , magnif)
+
+   Event()
+
+end

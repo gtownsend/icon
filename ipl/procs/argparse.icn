@@ -1,0 +1,39 @@
+############################################################################
+#
+#	File:     argparse.icn
+#
+#	Subject:  Procedure to parse pseudo-command-line
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 14, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  argparse(s) parses s as if it were a command line and puts the components in
+#  in a list, which is returned.
+#
+#  At present, it does not accept any escape conventions.
+#
+############################################################################
+
+procedure argparse(s)
+   local arglist
+   static nonblank
+
+   initial nonblank := &cset -- ' \t\n'
+
+   arglist := []
+
+   s ? {
+     while tab(upto(nonblank)) do
+        put(arglist, tab(many(nonblank)))
+     }
+
+   return arglist
+
+end

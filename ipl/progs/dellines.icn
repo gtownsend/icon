@@ -1,0 +1,56 @@
+############################################################################
+#
+#	File:     dellines.icn
+#
+#	Subject:  Program to delete lines from a file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 28, 1996
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program is designed to delete a few specified lines from a file.
+#  The line numbers are given on the command line, the file is read from
+#  standard input and the lines that are not deleted are written to standard
+#  output as in
+#
+#	dellines 46 23 119 <infile >outfile
+#
+#  which writes all lines but 23, 46, and 119 of infile (if it contains that
+#  many lines) to outfile.
+#
+#  Line numbers do not have to be given in order.  Numbers less than 1 are
+#  ignored, but a nonnumerical argument is treated as an error.
+#
+############################################################################
+
+procedure main(lines)
+   local i, line
+
+   if *lines = 0 then stop("*** no lines specified")
+
+   every i := 1 to *lines do
+      lines[i] := integer(lines[i]) |
+         stop("*** nonnumeric argument: ", image(lines[i]))
+
+   lines := set(lines)			# inefficient method but easy
+
+   i := 0
+
+   while line := read() do {
+      i +:= 1
+      if not member(lines, i) then {
+         write(line)
+         delete(lines, i)		# so trailing lines aren't tested
+         if *lines = 0 then break
+         }
+      }
+
+   while write(read())
+
+end

@@ -1,0 +1,92 @@
+# TCLL1 -- an LL(1) parser generator
+# Main program.
+#	(written by Dr. Thomas W. Christopher)
+#
+
+link readll1,parsell1,scangram,semgram,semstk,gramanal,ll1
+
+procedure main(L)
+local filename,baseFilename,flags,filenameParts,gf
+
+flags := ""
+if L[1][1]=="-" then {
+	flags := L[1]
+	filename := L[2]
+} else {
+	filename:=L[1]
+}
+if /filename then
+	stop("usage: [iconx] tcll1 [flags] filename.grm")
+
+filenameParts:=fileSuffix(filename)
+baseFilename:=filenameParts[1]
+if filename==(baseFilename||".ll1") then
+	stop("would write output over input")
+initScanner( filename |
+	(/filenameParts[2] & baseFilename||".grm")) |
+    stop("unable to open input: ",filename)
+
+initGrammar()
+initSemanticsStack()
+
+gf:=findFileOnPATH("tcll1.ll1") |
+	stop("unable to find parser's grammar file: tcll1.ll1")
+parseLL1(readLL1(gf)) |
+	stop("unable to read parser's grammar file: tcll1.ll1")
+
+finishDeclarations()
+ll1(baseFilename||".ll1")
+if find("p",flags) then printGrammar()
+write(errorCount," error",(errorCount~=1&"s")|"",
+ " and ",warningCount," warning",(warningCount~=1&"s")|"")
+
+end
+
+#	From:     filename.icn in Icon Program Library
+#	Author:   Robert J. Alexander, 5 Dec. 89
+#	Modified: Thomas Christopher, 12 Oct. 94
+
+procedure fileSuffix(s,separator)
+   local i
+   /separator := "."
+   i := *s + 1
+   every i := find(separator,s)
+   return [s[1:i],s[(*s >= i) + 1:0] | &null]
+end
+
+procedure findFileOnPATH(s) #adapted from DOPEN.ICN
+   local file, paths, path, filename
+
+   if file := open(s) then {			# look in current directory
+   	close(file)
+   	return s
+   }
+
+   paths := getenv("PATH") | fail
+
+   paths := map(paths,"\\;","/ ")		#convert DOS to UNIX-style
+   s := "/" || s				# platform-specific
+
+   paths ? {
+      while path := tab(upto(' ') | 0) do {
+         if file := open(filename:=path || s) then {
+            close(file)
+            return filename
+         }
+         tab(many(' ')) | break
+      }
+   }
+
+   fail
+end
+
+#
+# Error reporting required by parseLL1():
+#
+procedure reportParseError(t)
+error("unexpected input ",t.body,
+	" at line ",t.line," column ",t.column)
+return
+end
+
+

@@ -1,0 +1,39 @@
+############################################################################
+#
+#	File:     fixhqx.icn
+#
+#	Subject:  Program to strip headers from BinHex files
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 20, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Sometimes Macintosh .hqx files come with commentary before the
+#  BinHex data.  This program strips off the heading material so that
+#  BinHex can be used.
+#
+#  Input comes from standard input and output goes to standard output.
+#
+############################################################################
+
+procedure main()
+   local line
+
+   while line := read() do
+      line ? {
+         if ="(This file must be converted with BinHex 4.0)" then {
+            write(line)
+            break
+            }
+      else write(&errout, line)
+      }
+
+   while write(read())
+
+end

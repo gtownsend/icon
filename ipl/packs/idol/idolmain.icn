@@ -1,0 +1,215 @@
+#
+# Idol: Icon-derived object language, version 8.0
+#
+# SYNOPSIS:
+#
+#   idol -install
+#   idol prog[.iol] ... [-x args ]
+#   prog
+#
+# FILES:
+#
+#   ./prog.iol	                   : source file
+#   ./prog.icn                     : Icon code for non-classes in prog.iol
+#   ./idolcode.env/i_object.*      : Icon code for the universal object type
+#   ./idolcode.env/classname.icn   : Icon files are generated for each class
+#   ./idolcode.env/classname.u[12] : translated class files
+#   ./idolcode.env/classname       : class specification/interface
+#
+# SEE ALSO:
+#
+#   "Programming in Idol: An Object Primer"
+#   (U of Arizona Dept of CS Technical Report #90-10)
+#   serves as user's guide and reference manual for Idol
+#
+### Global variables
+#
+# FILES  : fin = input (.iol) file, fout = output (.icn) file
+# CSETS  : alpha = identifier characters, nonalpha = everything else
+#          alphadot = identifiers + '.'
+#          white = whitespace, nonwhite = everything else
+# TAQUES : classes in this module
+# FLAGS  : comp if we should try to make an executable from args[1]
+#          strict if we should generate paranoic encapsulation protection
+#          loud if Idol should generate extra console messages
+#          exec if we should run the result after translation
+# LISTS  : links = names of external icon code to link to
+#          imports = names of external classes to import
+#          compiles = names of classes which need to be compiled
+#
+global fin,fout,fName,fLine,alpha,alphadot,white,nonwhite,nonalpha
+global classes,comp,exec,strict,links,imports,loud,compiles,compatible,ct
+global icontopt,tempenv
+
+#
+# initialize global variables
+#
+procedure initialize()
+  loud     := 1
+  comp     := 0
+  alpha    := &ucase ++ &lcase ++ '_' ++ &digits
+  nonalpha := &cset -- alpha
+  alphadot := alpha ++ '.'
+  white    := ' \t\f'
+  nonwhite := &cset -- white
+  classes  := taque()
+  links    := []
+  imports  := []
+  compiles := []
+  sysinitialize()
+end
+
+procedure main(args)
+    initialize()
+    if *args = 0 then write("usage: idol files...")
+    else {
+      if (!args ~== "-version") &
+	  not tryenvopen(filename("i_object",".u1")) then { 
+	      tempenv := 0
+	      install(args)
+	  }
+      every i := 1 to *args do {
+	if \exec then next            # after -x, args are for execution
+	if args[i][1] == "-" then {
+	  case map(args[i]) of {
+	    "-c"   : {
+		sysok := &null
+		if comp = 0 then comp := -1        # don't make exe
+	    }
+	    "-ic"     : compatible := 1
+	    "-quiet"  : loud := &null
+	    "-strict" : strict := 1
+	    "-s"      : sysok := &null
+	    "-t"      : comp := -2                      # don't translate
+	    "-version": return write("Idol version 8.0 of 10/6/90") & 0
+	    "-x"      : exec := i
+	    default   : icontopt ||:= args[i] || " "
+	  }
+        }
+        else {
+	  \tempenv +:= 1
+	  if args[i] := fileroot(args[i],".cl") then {
+	      push(imports,args[i])
+	  }
+	  else if args[i] := fileroot(args[i],".icn") then {
+	      push(links,args[i])
+	      icont(" -c "||args[i])
+	  }
+	  else if args[i] := fileroot(args[i],".u1") then {
+	      push(links,args[i])
+	  }
+	  else if (args[i] := fileroot(args[i],".iol")) |
+	      tryopen(filename(args[i],".iol"),"r") then {
+		  /exe := i
+		  args[i] := fileroot(args[i],".iol")
+		  /fout := sysopen(filename(args[i],".icn"),"w")
+		  readinput(filename(args[i],".iol"),1)
+	      } else {
+                  #
+	          # look for an appropriate .icn, .u1 or class file
+	          #
+		  if tryopen(filename(args[i],".icn"),"r") then {
+		      push(links,args[i])
+		      icont(" -c "||args[i])
+		  }
+		  else if tryopen(filename(args[i],".u1")) then {
+		      push(links,args[i])
+		  }
+		  else if tryenvopen(args[i]) then {
+		      push(imports,args[i])
+		  }
+	      }
+	  }
+      }
+      if gencode() then {
+	  close(\fout)
+	  if comp = 1 & (not makeexe(args,exe)) then
+	      stop("Idol exits after errors creating executable")
+      } else {
+	  close(\fout)
+	  stop("Idol exits after errors translating")
+      }
+    }
+    #
+    # if we built an executable without separate compilation AND
+    # there's no IDOLENV class environment AND
+    # we had to install an environment then remove the environment
+    #
+    if (comp = 1) & (\tempenv < 2) & not mygetenv("IDOLENV") then uninstall()
+end
+
+#
+# tell whether the character following s is within a quote or not
+#
+procedure notquote(s)
+  outs := ""
+  #
+  # eliminate escaped quotes.
+  # this is a bug for people who write code like \"hello"...
+  s ? {
+    while outs ||:= tab(find("\\")+1) do move(1)
+    outs ||:= tab(0)
+  }
+  # see if every quote has a matching endquote
+  outs ? {
+    while s := tab(find("\""|"'")+1) do {
+	if not tab(find(s[-1])+1) then fail
+    }
+  }
+  return
+end
+
+#
+# A contemplated addition: shorthand $.foo for self.foo ?
+#
+#procedure selfdot(line)
+#  i := 1
+#  while ((i := find("$.",line,i)) & notquote(line[1:i])) do line[i]:="self"
+#end
+
+#
+# error/warning/message handling
+#
+procedure halt(args[])
+  errsrc()
+  every writes(&errout,!args)
+  stop()
+end
+
+procedure warn(args[])
+  errsrc()
+  every writes(&errout,!args)
+  write(&errout)
+end
+
+procedure errsrc()
+  writes(&errout,"\"",\fName,"\", line ",\fLine,": Idol/")
+end
+#
+# System-independent, but system related routines
+#
+procedure tryopen(file,mode)
+  if f := open(file,mode) then return close(f)
+end
+procedure tryenvopen(file,mode)
+  return tryopen(envpath(file),mode)
+end
+procedure sysopen(file,mode)
+  if not (f := open(file,mode)) then
+      halt("Couldn't open file ",file," for mode ",mode)
+  return f
+end
+procedure envopen(file,mode)
+  return sysopen(envpath(file),mode)
+end
+procedure writelink(s)
+  write(fout,"link \"",s,"\"")
+end
+procedure icont(argstr,prefix)
+static s
+initial { s := (mygetenv("ICONT")|"icont") }
+  return mysystem((\prefix|"") ||s||icontopt||argstr)
+end
+procedure mygetenv(s)
+  return if &features == "environment variables" then getenv(s)
+end

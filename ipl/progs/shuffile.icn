@@ -1,0 +1,68 @@
+############################################################################
+#
+#	File:     shuffile.icn
+#
+#	Subject:  Program to shuffle lines in a file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 12, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This program writes a version of the input file with the lines
+#  shuffled.  For example, the result of shuffling
+#  
+#                   On the Future!-how it tells
+#                   Of the rapture that impells
+#                  To the swinging and the ringing
+#                   Of the bells, bells, bells-
+#                Of the bells, bells, bells, bells,
+#                          Bells, bells, bells-
+#            To the rhyming and the chiming of the bells!
+#  
+#  is
+#  
+#            To the rhyming and the chiming of the bells!
+#                  To the swinging and the ringing
+#                          Bells, bells, bells-
+#                   Of the bells, bells, bells-
+#                   On the Future!-how it tells
+#                Of the bells, bells, bells, bells,
+#                   Of the rapture that impells
+#  
+#  The following options are supported:
+#
+#	-s i	Set random seed to i; default 0
+#	-r	Set random seed using randomize(); overrides -s
+#
+#  Limitation:
+#
+#     This program stores the input file in memory and shuffles pointers to
+#     the lines; there must be enough memory available to store the entire
+#     file.
+#  
+############################################################################
+#
+#  Links: options, random
+#
+############################################################################
+
+link options
+link random
+
+procedure main(args)
+   local opts, L
+
+   opts := options(args, "rs+")
+   &random := \opts["s"]
+   if \opts["r"] then randomize()
+
+   L := []
+   every put(L, !&input)
+   every write(!shuffle(L))
+end

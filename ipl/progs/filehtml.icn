@@ -1,0 +1,34 @@
+############################################################################
+#
+#	File:     filehtml.icn
+#
+#	Subject:  Program to create Web page with links to files
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 17, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  The files to be includes are listed on the command line.  There is no
+#  check that the files actually exist.
+#
+############################################################################
+
+procedure main(args)
+   local file
+
+   write("<HTML><HEAD>")
+   write("<TITLE>File Links</TITLE></HEAD>")
+   write("<BODY>")
+
+   every file := !args do
+      write("<A HREF=\"", file, "\">", file, "</A><BR>")
+
+   write("</BODY></HTML>")
+
+end

@@ -1,0 +1,181 @@
+############################################################################
+#
+#	File:     evtmap.icn
+#
+#	Subject:  Procedure to map event code names to values
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 15, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  evtmap(s) returns the event-code value for the event string name s.  It
+#  fails is s is not the name of an event value.
+#
+############################################################################
+#
+#  Includes: evdefs.icn, etdefs.icn
+#
+############################################################################
+
+$include "evdefs.icn"
+$include "etdefs.icn"
+
+procedure evtmap(s)		#: map event code name to event value
+   static maptbl
+
+   initial {
+      maptbl:= table()
+
+      maptbl["E_Aconv"]		:=	"I"
+      maptbl["E_Alien"]		:=	"z"
+      maptbl["E_Assign"]	:=	"\347"
+      maptbl["E_Base"]		:=	"<"
+      maptbl["E_BlkDeAlc"]	:=	"-"
+      maptbl["E_Bsusp"]		:=	"b"
+      maptbl["E_Coact"]		:=	"A"
+      maptbl["E_Coexpr"]	:=	"x"
+      maptbl["E_Cofail"]	:=	"D"
+      maptbl["E_Collect"]	:=	"G"
+      maptbl["E_Comment"]	:=	"#"
+      maptbl["E_Coret"]		:=	"B"
+      maptbl["E_Cset"]		:=	"e"
+      maptbl["E_Ecall"]		:=	"c"
+      maptbl["E_Efail"]		:=	"f"
+      maptbl["E_EndCollect"]	:=	"\360"
+      maptbl["E_Erem"]		:=	"v"
+      maptbl["E_Eresum"]	:=	"u"
+      maptbl["E_Eret"]		:=	"r"
+      maptbl["E_Error"]		:=	"E"
+      maptbl["E_Esusp"]		:=	"a"
+      maptbl["E_Exit"]		:=	"X"
+      maptbl["E_External"]	:=	"j"
+      maptbl["E_Fcall"]		:=	":"
+      maptbl["E_Fconv"]		:=	"J"
+      maptbl["E_Ffail"]		:=	"M"
+      maptbl["E_File"]		:=	"g"
+      maptbl["E_Free"]		:=	"Z"
+      maptbl["E_Frem"]		:=	"["
+      maptbl["E_Fresum"]	:=	"Y"
+      maptbl["E_Fret"]		:=	"P"
+      maptbl["E_Fsusp"]		:=	"W"
+      maptbl["E_Highlight"]	:=	"H"
+      maptbl["E_Intcall"]	:=	"\351"
+      maptbl["E_Integer"]	:=	"@"
+      maptbl["E_Intret"]	:=	"\352"
+      maptbl["E_Kywdint"]	:=	"^"
+      maptbl["E_Kywdpos"]	:=	"&"
+      maptbl["E_Kywdsubj"]	:=	"*"
+      maptbl["E_Lbang"]		:=	"\301"
+      maptbl["E_Lcreate"]	:=	"\302"
+      maptbl["E_Lelem"]		:=	"m"
+      maptbl["E_List"]		:=	"k"
+      maptbl["E_Loc"]		:=	"|"
+      maptbl["E_Lpop"]		:=	"\303"
+      maptbl["E_Lpull"]		:=	"\304"
+      maptbl["E_Lpush"]		:=	"\305"
+      maptbl["E_Lput"]		:=	"\306"
+      maptbl["E_Lrand"]		:=	"\307"
+      maptbl["E_Lref"]		:=	"\310"
+      maptbl["E_Lrgint"]	:=	"L"
+      maptbl["E_Lsub"]		:=	"\311"
+      maptbl["E_Lsusp"]		:=	"l"
+      maptbl["E_MXevent"]	:=	"\370"
+      maptbl["E_Nconv"]		:=	"N"
+      maptbl["E_Null"]		:=	"$"
+      maptbl["E_Ocall"]		:=	"\\"
+      maptbl["E_Ofail"]		:=	"]"
+      maptbl["E_Offset"]	:=	"+"
+      maptbl["E_Opcode"]	:=	"O"
+      maptbl["E_Orem"]		:=	"\177"
+      maptbl["E_Oresum"]	:=	"}"
+      maptbl["E_Oret"]		:=	"`"
+      maptbl["E_Osusp"]		:=	"{"
+      maptbl["E_Pause"]		:=	";"
+      maptbl["E_Pcall"]		:=	"C"
+      maptbl["E_Pfail"]		:=	"F"
+      maptbl["E_Pid"]		:=	"."
+      maptbl["E_Prem"]		:=	"V"
+      maptbl["E_Presum"]	:=	"U"
+      maptbl["E_Pret"]		:=	"R"
+      maptbl["E_Proc"]		:=	"%"
+      maptbl["E_Psusp"]		:=	"S"
+      maptbl["E_Rbang"]		:=	"\312"
+      maptbl["E_Rcreate"]	:=	"\313"
+      maptbl["E_Real"]		:=	"d"
+      maptbl["E_Record"]	:=	"h"
+      maptbl["E_Refresh"]	:=	"y"
+      maptbl["E_Region"]	:=	"?"
+      maptbl["E_Rrand"]		:=	"\314"
+      maptbl["E_Rref"]		:=	"\315"
+      maptbl["E_Rsub"]		:=	"\316"
+      maptbl["E_Ssasgn"]	:=	"\354"
+      maptbl["E_Sbang"]		:=	"\317"
+      maptbl["E_Sconv"]		:=	"Q"
+      maptbl["E_Screate"]	:=	"\320"
+      maptbl["E_Sdelete"]	:=	"\321"
+      maptbl["E_Selem"]		:=	"t"
+      maptbl["E_Set"]		:=	"q"
+      maptbl["E_Sfail"]		:=	"\341"
+      maptbl["E_Sinsert"]	:=	"\322"
+      maptbl["E_Size"]		:=	">"
+      maptbl["E_Slots"]		:=	"w"
+      maptbl["E_Smember"]	:=	"\323"
+      maptbl["E_Snew"]		:=	"\340"
+      maptbl["E_Spos"]		:=	"\346"
+      maptbl["E_Srand"]		:=	"\336"
+      maptbl["E_Srem"]		:=	"\344"
+      maptbl["E_Sresum"]	:=	"\343"
+      maptbl["E_Ssusp"]		:=	"\342"
+      maptbl["E_Stack"]		:=	"\353"
+      maptbl["E_StrDeAlc"]	:=	"~"
+      maptbl["E_String"]	:=	"s"
+      maptbl["E_Sval"]		:=	"\324"
+      maptbl["E_Sym"]		:=	"T"
+      maptbl["E_Table"]		:=	"n"
+      maptbl["E_Tbang"]		:=	"\325"
+      maptbl["E_Tconv"]		:=	"K"
+      maptbl["E_Tcreate"]	:=	"\326"
+      maptbl["E_Tdelete"]	:=	"\327"
+      maptbl["E_Telem"]		:=	"o"
+      maptbl["E_TenureBlock"]	:=	"\362"
+      maptbl["E_TenureString"]	:= 	"\361"
+      maptbl["E_Tick"]		:=	"."
+      maptbl["E_Tinsert"]	:=	"\330"
+      maptbl["E_Tkey"]		:=	"\331"
+      maptbl["E_Tmember"]	:=	"\332"
+      maptbl["E_Trand"]		:=	"\337"
+      maptbl["E_Tref"]		:=	"\333"
+      maptbl["E_Tsub"]		:=	"\334"
+      maptbl["E_Tval"]		:=	"\335"
+      maptbl["E_Tvsubs"]	:=	"i"
+      maptbl["E_Tvtbl"]		:=	"p"
+      maptbl["E_Used"]		:=	"="
+      maptbl["E_Value"]		:=	"\350"
+
+      maptbl["T_01"]		:=	"A"
+      maptbl["T_02"]		:=	"B"
+      maptbl["T_03"]		:=	"C"
+      maptbl["T_04"]		:=	"D"
+      maptbl["T_05"]		:=	"E"
+      maptbl["T_06"]		:=	"F"
+      maptbl["T_07"]		:=	"G"
+      maptbl["T_08"]		:=	"H"
+      maptbl["T_09"]		:=	"I"
+      maptbl["T_10"]		:=	"J"
+      maptbl["T_11"]		:=	"K"
+      maptbl["T_12"]		:=	"L"
+      maptbl["T_13"]		:=	"M"
+      maptbl["T_14"]		:=	"N"
+
+$define T_Mask1	cset("ABCDEFGHIJKLM")
+      }
+
+   return \maptbl[s]
+
+end

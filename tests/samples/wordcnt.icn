@@ -1,0 +1,24 @@
+#
+#          W O R D   C O U N T I N G
+#
+
+#  This program tabulates the words in standard input and writes the
+#  results with the words in a column 20 characters wide.  The definition
+#  of a "word" is naive.
+
+procedure main()
+   wordcount(20)
+end
+
+procedure wordcount(n)
+   local t, line, x, i
+   static letters
+   initial letters := &lcase ++ &ucase
+   t := table(0)
+   while line := read() do
+      line ? while tab(upto(letters)) do
+         t$<tab(many(letters))$> +:= 1
+   x := sort(t,3)
+   every i := 1 to *x - 1 by 2 do
+      write(left(x$<i$>,n),x$<i + 1$>)
+end

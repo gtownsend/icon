@@ -1,0 +1,98 @@
+############################################################################
+#
+#	File:     mover.icn
+#
+#	Subject:  Program to move files from one name to another
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 29, 1997
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  Program to allow interactive moving (renaming) of files.
+#
+############################################################################
+#
+#  Requires:  UNIX
+#
+############################################################################
+#
+#  Links:  io, vsetup
+#
+############################################################################
+
+link io
+link vsetup
+
+global names
+global root
+global vidgets
+
+procedure main()
+
+   init()
+
+   GetEvents(root, , shortcuts)
+
+end
+
+procedure init()
+
+   vidgets := ui()
+
+   root := vidgets["root"]
+
+   names := vidgets["names"]
+   VSetItems(names, filelist())
+
+end
+
+
+procedure file_cb(vidget, value)
+
+   case value[1] of {
+      "quit  @Q":  exit()
+      }
+
+end
+
+procedure names_cb(vidget, value, x) 
+
+   if /value then return		# ignore unselect
+
+   if OpenDialog("Rename:", value) == "Cancel" then fail
+   if system("mv " || value || " " || dialog_value ||
+      " >/dev/null 2>/dev/null") ~= 0 then {
+         Notice("Renaming failed.")
+         fail
+         }
+   VSetItems(names, filelist())
+
+   return
+
+end
+
+procedure shortcuts()
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=600,400", "bg=gray-white"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,600,400:",],
+   ["file:Menu:pull::0,1,36,21:File",file_cb,
+      ["move  @M","quit  @Q"]],
+   ["line1:Line:::1,26,598,26:",],
+   ["names:List:w::26,48,557,335:",names_cb],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

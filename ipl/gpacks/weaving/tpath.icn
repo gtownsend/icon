@@ -1,0 +1,88 @@
+############################################################################
+#
+#	File:     tpath.icn
+#
+#	Subject:  Procedures to create paths using Turtle Graphics
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 27, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  AD HOC.  Does *not* require graphics.
+#
+############################################################################
+#
+#  Links:  gobject, turtle
+#
+############################################################################
+
+link gobject
+link turtle
+
+invocable all
+
+global T_path
+global TDraw_t
+global TDrawto_t
+
+procedure TPath(x, y, d)		#: start turtle path
+
+   TInit := TReset := 1		# disable turtle initializations
+   DrawLine := PathPoint
+
+   T_stack := []
+   T_scale := 1.0
+   T_x := \x | 0
+   T_y := \y | 0
+   T_deg := d | -90.0
+   T_path := [Point(T_x, T_y)]
+
+   return
+
+end
+
+procedure PathPoint(W, x1, y1, x2, y2)	#: put point on path
+
+   return put(T_path, Point(x2, y2))
+
+end
+
+procedure pathtoargs(path)		#: convert path to argument list
+   local args, pt
+
+   args := []
+
+   every pt := !path do
+      put(args, pt.x, pt.y)
+
+   return args
+
+end
+
+procedure argstopath(args)		# convert argument list to path
+   local path
+
+   path := []
+
+   while put(path, Point(get(args), get(args)))
+
+   return path
+
+end
+
+procedure DrawPath(path)		#: draw path
+   static drawline
+
+   initial drawline := proc("DrawLine", 0)
+
+   drawline ! pathtoargs(path)
+
+   return
+
+end

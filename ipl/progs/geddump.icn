@@ -1,0 +1,123 @@
+############################################################################
+#
+#	File:     geddump.icn
+#
+#	Subject:  Program to dump contents of GEDCOM file
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     July 3, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	usage:  geddump [file]
+#
+#	This program prints the genealogical information contained
+#	in a GEDCOM file.  Individuals are printed alphabetically,
+#	with sequence numbers to assist cross-referencing.
+#
+#	Marriages are noted for both partners.  Children are listed
+#	under the father, or under the mother if no father is known.
+#
+############################################################################
+#
+#  Links:  gedcom
+#
+############################################################################
+
+link gedcom
+
+record person(n, k, r)	# number, sort key, gedrec node
+
+
+global ptab		# person number table, indexed by gedrec node
+
+
+procedure main(args)
+   local f, g, i, n, p, r, plist, fam, husb, sp, b, d, byr, dyr
+
+   if *args > 0 then
+      f := open(args[1]) | stop("can't open ", args[1])
+   else
+      f := &input
+
+   g := gedload(f)
+   close(f)
+
+   plist := []
+   ptab := table()
+   every r := !g.ind do
+      put(plist, ptab[r] := person(0, sortkey(r), r))
+
+   plist := sortf(plist, 2)
+
+   n := 0
+   every (!plist).n := (n +:= 1)
+
+   every p := !plist do {
+      b := gedsub(p.r, "BIRT") | &null
+      d := gedsub(p.r, "DEAT") | &null
+
+      write()
+      writes("[", p.n, "] ", gedlnf(p.r))
+      byr := gedyear(\b) | &null
+      dyr := gedyear(\d) | &null
+      if \byr | \dyr then 
+         writes("  (", byr, " - ", dyr, ")")
+      write()
+
+      if fam := gedref(p.r, "FAMC") then {
+         refto("father", gedref(fam, "HUSB"))
+         refto("mother", gedref(fam, "WIFE"))
+         }
+
+      event("b.", \b)
+
+      r := &null
+      every fam := gedref(p.r, "FAMS") do {		# for every family
+         r := event("m.", gedsub(fam, "MARR"))
+         r := refto("  husb", p.r ~=== gedref(fam, "HUSB"))
+         r := refto("  wife", p.r ~=== gedref(fam, "WIFE"))
+         # if had earlier kids and did not indicate remarriage, do so now
+         if \r then
+            write("   m.")
+         # print children under husband, or under wife if no husband
+         if (p.r === gedref(fam, "HUSB")) | (not gedref(fam, "HUSB")) then {
+            every r := gedref(fam, "CHIL") do {
+               case (gedval(r, "SEX") | "") of {
+                  "M":		refto("   son", r)
+                  "F":		refto("   dau", r)
+                  default:	refto(" child", r)
+                  }
+               }
+            }
+         }
+
+      event("d.", \d)
+      }
+end
+
+procedure event(label, r)
+   local date, place
+
+   date := ("" ~== geddate(r))
+   place := ("" ~== gedval(r, "PLAC"))
+   if /place then
+      write("   ", label, " ", \date)
+   else
+      write("   ", label, " ", \date | "            ", "  ", place)
+   return
+end
+
+procedure refto(label, r)
+   write("   ", label, " [", ptab[r].n, "] ", gedfnf(r))
+   return
+end
+
+procedure sortkey(r)
+   return map(gedlnf(r))
+end

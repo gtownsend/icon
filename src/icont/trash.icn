@@ -1,0 +1,35 @@
+#
+#  This is an ad-hoc program for removing duplicate code in the main switch
+#  statement for binary operators (the optimizer should fold these, if
+#  the compiler can get that far).
+#
+#  This program relies on the form of parse.c as presently produced; it is
+#  fragile and may need modification for other versions of parse.c.  Look
+#  at your parse.c first to see if the template is correct.
+#
+#  The same thing could be done for N_Unop, but if this works, that will not
+#  be necesssary.
+
+procedure main()
+   template := "{yyval = tree5(N_Binop"
+   while line := read () do {
+      if not(match(template,line)) then
+         write(line)		# copy until "offending member" is found
+      else {
+         lastline := line	# save it for last case in group
+         buffer := []		# push-back buffer
+         repeat {
+            put(buffer,read())	# "case ..."
+            put(buffer,read())	# "# line ...
+            line := read()
+            if not match(template,line) then {
+               write(lastline)	# if not a duplicate, insert the one instance
+               while write(get(buffer))	# write out lines pushed back
+               write(line)	# write the new line
+               break		# break back to the main loop (may be more)
+               }
+             else while write(get(buffer))  # else write out lines pushed back
+             }
+          }
+       }
+end

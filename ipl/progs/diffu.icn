@@ -1,0 +1,88 @@
+############################################################################
+#
+#	File:     diffu.icn
+#
+#	Subject:  Program to show differences in files
+#
+#	Author:   Rich Morin
+#
+#	Date:     January 3, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program exercises the dif() procedure, making it act like the
+#  UNIX diff(1) file difference command.
+#
+#  Usage: diffu f1 f2
+#
+#	3d2
+#	< c
+#	7,8c6,7
+#	< g
+#	< h
+#	---
+#	> i
+#	> j
+#
+############################################################################
+#
+#  Links:  dif
+#
+############################################################################
+
+link dif
+
+invocable all
+
+procedure main(arg)
+  local f1, f2, ldr, n1, p1, n2, p2, h
+
+  if *arg ~= 2 then
+    zot("usage: diffu f1 f2")
+
+  f1 := open(arg[1]) | zot("cannot open " || arg[1])
+  f2 := open(arg[2]) | zot("cannot open " || arg[2])
+
+  every ldr := dif([f1,f2]) do {
+    n1 := *ldr[1].diffs; p1 := ldr[1].pos
+    n2 := *ldr[2].diffs; p2 := ldr[2].pos
+
+    if n1 = 0 then {			# add lines
+      h := p1-1 || "a" || p2
+      if n2 > 1 then
+        h ||:= "," || (p2 + n2 - 1)
+      write(h)
+      every write("> " || !ldr[2].diffs)
+    }
+    else if n2 = 0 then {		# delete lines
+      h := p1
+      if n1 > 1 then
+        h ||:= "," || (p1 + n1 - 1)
+      h ||:= "d" || p2-1
+      write(h)
+      every write("< " || !ldr[1].diffs)
+    }
+    else {				# change lines
+      h := p1
+      if n1 > 1 then
+        h ||:= "," || (p1 + n1 - 1)
+      h ||:= "c" || p2
+      if n2 > 1 then
+        h ||:= "," || (p2 + n2 - 1)
+      write(h)
+      every write("< " || !ldr[1].diffs)
+      write("---")
+      every write("> " || !ldr[2].diffs)
+    }
+  }
+end
+
+
+procedure zot(msg)				# exit w/message
+  write(&errout, "diff: " || msg)
+  exit(1)
+end

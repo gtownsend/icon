@@ -1,0 +1,193 @@
+global gen_table
+
+
+# set the default for Children_R
+procedure children_default()
+
+   return Children_R(50, 3, table(), table())
+
+end
+
+# generates children
+procedure children_generation(children)
+
+   local parent_id
+   local delete_id
+   local max
+   local id
+   local child
+   local parents
+   local num
+
+   # set up the first child
+   max := ?children.max_children
+   children.all[0] := Child_Node_R(0, set(), &null, 0, 2 * &pi)
+
+   # give child(ren) to the first node
+   every insert(children.all[0].children_id, 1 to max)   
+
+   # add the new children to the children list and set the children 
+   # to be ready as parents
+   parents := set()
+   every insert(parents, id := !children.all[0].children_id) do
+      children.all[id] := Child_Node_R(0, set())
+     
+   # generate children for each child created, some children may not have children
+
+   every id := max+1 to children.num_children do
+   {
+      num := 0;
+
+      # get a parent and give it a child
+      parent_id := ?parents
+      children.all[id] := Child_Node_R(parent_id, set())
+      insert(children.all[parent_id].children_id, id)
+      insert(parents, id)
+
+      # delete the parent from the parents set of has max number of children
+      if *children.all[parent_id].children_id >= children.max_children then 
+         delete(parents, parent_id)
+
+      # randomly delete a parent
+      delete_id := ?[1, &null]
+      if \delete_id & *parents ~== 0 then 
+      {
+         until *children.all[id := ?parents].children_id ~== 0 do
+              if (num +:= 1) > (2 * *parents) then break; 
+         delete(parents, id)
+      }
+    }
+
+    count_children( children, 0 )
+    # get the base and the bound for each child
+    assign_base_and_bound( children )
+    # find the generation for each child
+    count_gen( children, 0, 0 )
+    # print out children
+    # print_out(children)
+    # count number of children per generation
+    num_children_per_generation(children)
+
+end
+
+
+# count the number of children 
+procedure count_children( children, id )
+
+   children.all[id].children_num := *children.all[id].children_id
+   every children.all[id].children_num +:= count_children(children, !children.all[id].children_id)
+
+   return children.all[id].children_num
+
+end
+
+
+# find the generation for each child
+procedure count_gen( children, id, generation )
+
+   children.all[id].generation := generation
+   every count_gen(children, !children.all[id].children_id, generation + 1)
+
+   return
+
+end
+
+
+# get the base and the bound for each child
+procedure assign_base_and_bound(children)
+
+   local id, range, base,  bound, num, child, base_s, bound_s
+
+   # get the base and the bound
+   every id := 0 to children.num_children do
+   {
+      # get the base and the bound of its parent
+      bound_s := bound := children.all[id].bound
+      base_s := base  := children.all[id].base 
+
+      # find the range and calulate its own base and bound
+      range := bound - base 
+      every child := !children.all[id].children_id do
+      {
+         num := (children.all[child].children_num + 1)* range / children.all[id].children_num 
+         bound_s := num + base_s
+         children.all[child].base  := base_s
+         children.all[child].bound := bound_s
+         base_s := bound_s
+      }
+    }
+
+end
+         
+
+# find the number of children per generation
+procedure num_children_per_generation(children)
+
+   local id, num_of_children
+
+   children.num_gen := table()
+
+   every id := 0 to children.num_children do
+      children.num_gen[id] := 0
+
+   every id := 0 to children.num_children do {
+      num_of_children := *children.all[id].children_id
+      children.num_gen[children.all[id].generation + 1] +:= num_of_children
+   }
+  children.num_gen[0] := 1
+
+end
+
+
+# get the id number for each child for its generation starting at 1
+procedure get_gen_id(children, child)
+
+   gen_table := table()
+ 
+   every gen_table[0 to children.num_children] := 1
+
+   N_get_gen_id(children, child)
+
+end
+ 
+
+procedure N_get_gen_id(children, child)
+
+   local gen, new_child
+
+   gen := children.all[child].generation
+   children.all[child].gen_id := gen_table[gen]
+   gen_table[gen] +:= 1
+
+   every new_child := !children.all[child].children_id do
+       N_get_gen_id(children, new_child)
+   
+end
+
+
+
+procedure print_out(children)
+   
+  local id, child
+
+  write(left("Child", 4), left("Parent",4), left("Children", 21),
+        left("Num", 4),
+        left("base", 7), left("bound", 7), left("gen", 7)) 
+
+  every id := 0 to children.num_children do
+   {
+     child := ""
+     every child ||:= " " || !children.all[id].children_id
+     write(left(id, 4), left(children.all[id].parent_id,4),
+           left(child, 20),
+           left(children.all[id].children_num, 4), 
+           left(children.all[id].base, 6), left("           ", 1), 
+           left(children.all[id].bound, 6), left("           ", 1), 
+           left(children.all[id].generation, 3)) 
+   }
+
+end
+
+
+
+

@@ -1,0 +1,105 @@
+# test various preprocessor features
+
+# test $define and various whitespace uses
+$define abc 123
+ $  define  def   456
+$define	ghi 789
+$ define  ghi   789	# duplicate definition should be ok if same
+$undef ghi
+$define ghi 987		# different definition should be ok after $undef
+
+# test (when used later) that substituted text is rescanned
+$define yy (xx+xx)
+$define xx 1
+
+# test undefinition of something that isn't defined
+$undef notdefined
+
+# test ifdef of undefined symbol, and successful skip past bogus directive
+$ifdef notdef
+$BOGUS
+$endif
+
+# test ifdef of defined symbol, and null test body
+$ifdef abc
+$endif
+
+# test ifndef of defined symbol
+$ifndef abc
+$error -- abc not defined
+$endif#comment on if terminator
+
+
+# main test program
+
+procedure main()
+   # write values from definitions; test no substitution in string constant
+   write("abc,def,ghi,xx,yy: ", abc, " ", def, " ", ghi, " ", xx, " ", yy)
+
+   # test $include by including a code fragment from prepro.dat
+   $include "prepro.dat"
+
+   # write values defined in prepro.dat
+   write("xyzzy: ", xyzzy)
+   write("abc,def,ghi,xx,yy: ", abc, " ", def, " ", ghi, " ", xx, " ", yy)
+
+   # test that predefined symbols agree with &features
+   # (if defined, first argument is 1, else it's null)
+   precheck(_AMIGA,		"Amiga")
+   precheck(_ACORN,		"Acorn Archimedes")
+   precheck(_ATARI,		"Atari ST")
+   precheck(_CMS,		"CMS")
+   precheck(_MACINTOSH,		"Macintosh")
+   precheck(_MSDOS_386,		"MS-DOS/386")
+   precheck(_MSDOS,		"MS-DOS")
+   precheck(_MVS,		"MVS")
+   precheck(_OS2,		"OS/2")
+   precheck(_PORT,		"PORT")
+   precheck(_UNIX,		"UNIX")
+   precheck(_VMS,		"VMS")
+   precheck(_COMPILED,		"compiled")
+   precheck(_INTERPRETED,	"interpreted")
+   precheck(_ASCII,		"ASCII", 1)
+   precheck(_EBCDIC,		"EBCDIC", 1)
+   precheck(_CALLING,		"calling to Icon")
+   precheck(_CO_EXPRESSIONS,	"co-expressions")
+   precheck(_DIRECT_EXECUTION,	"direct execution")
+   precheck(_EVENT_MONITOR,	"event monitoring")
+   precheck(_EXECUTABLE_IMAGES,	"executable images")
+   precheck(_EXTERNAL_FUNCTIONS,"external functions")
+   precheck(_KEYBOARD_FUNCTIONS,"keyboard functions")
+   precheck(_LARGE_INTEGERS,	"large integers")
+   precheck(_MEMORY_MONITOR,	"memory monitoring")
+   precheck(_MULTITASKING,	"multiple programs")
+   precheck(_MULTIREGION,	"multiple regions")
+   precheck(_PIPES,		"pipes")
+   precheck(_RECORD_IO,		"record I/O")
+   precheck(_STRING_INVOKE,	"string invocation")
+   precheck(_SYSTEM_FUNCTION,	"system function")
+   precheck(_VISUALIZATION,	"visualization support")
+   precheck(_WINDOW_FUNCTIONS,	"window functions")
+   precheck(_X_WINDOW_SYSTEM,	"X Windows")
+   precheck(_PRESENTATION_MGR,	"Presentation Manager")
+   precheck(_ARM_FUNCTIONS,	"Archimedes extensions")
+   precheck(_DOS_FUNCTIONS,	"MS-DOS extensions")
+   write("done")
+end
+
+
+#  precheck (v, s, p) -- check that s is in &features iff v is non-null;
+#			 always print presence/absence if p is non-null
+
+procedure precheck (v, s, p)
+   if s == &features then {
+      if /v then
+	 write ("error: no predefined symbol for ", s) 
+      else if \p then 
+	 write ("found feature: ", s)
+      }
+   else {
+      if \v then
+	 write ("error: unexpected predefined symbol for ", s) 
+      else if \p then 
+	 write ("no feature:    ", s)
+      }
+end

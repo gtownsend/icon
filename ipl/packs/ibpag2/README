@@ -1,0 +1,1093 @@
+
+
+
+
+
+
+		       A User's Manual for Ibpag2
+	       (Icon-Based Parser Generation System 2)
+			     Version 1.2
+
+				- or -
+
+	       How to Use an LR-based Parser Generator
+
+
+		       Richard L. Goerwitz, III
+			University of Chicago
+
+
+
+
+
+
+1.__What_is_Ibpag2?
+
+	Ibpag2 is a so-called "parser generator," i.e. a tool for
+automating the process of generating a recognizer and/or parser from
+abstract structural descriptions of an input language.  Put in more
+practical terms, Ibpag2 is a piece of software that a) reads a source
+file containing a grammar that defines an input language, and then b)
+outputs an automaton that recognizes that language.  The user may, at
+his or her option, specify actions this automaton should take when it
+sees various substructures within its input language.  By default,
+however, the parser simply recognizes a given sequence as belonging,
+or not, to that language.
+
+	Ibpag2 utilizes so-called "LR" table generation and parsing
+algorithms.  These algorithms facilitate construction of reasonably
+fast deterministic pushdown automata that are powerful enough to
+handle most commonly used programming language constructs.  LR-based
+systems come in three main flavors: SLR(1), LALR(1), and LR(1).  The
+LR(1) flavor is fairly easy to implement, but uses too many resources
+to be practical.  LALR(1) algorithms are harder to implement, but much
+faster, and the parse tables they construct use considerably less
+memory than do those of their LR(1) counterparts.  SLR(1) algorithms
+are the easiest to implement, compile the fastest, and use about as
+much memory as LALR(1)s.  SLR(1) is the least powerful of the three,
+though, so there is a tradeoff.  Ibpag2 is an "enhanced" SLR(1) parser
+generator.  It is enhanced in the sense that it can operate both in
+its native SLR(1) mode, and in a more powerful "quasi-GLR" mode (on
+which, see section 5 below).
+
+	As its full title ("Icon-Based Parser Generator 2") implies,
+Ibpag2 is written in Icon [2,3], as are the automata it creates.
+Ibpag2 has been tested with Icon version 8.10.  So far I have only run
+it on an i386 box running Xenix 2.3.3, and on a Sun 4 running some
+version of SunOS.  I have many reports, though, of it running under
+other UNIX variants.  It will probably also run under other operating
+systems, though modifications will in some instances be required.
+Using Ibpag2 under MS-DOS may not be possible, on account of the way
+it manages memory.
+
+	The Ibpag2 distribution adheres to de facto UNIX installation
+standards: Just set the appropriate variables in the makefile, and
+then "make install."  For those who are using a non-UNIX system, or
+who have not installed such a package before, there is a section at
+the end entitled "Installing Ibpag2" that details the installation
+procedure (section 6).
+
+	Aside from the above-mentioned installation section (6), the
+remainder of this document aims to provide the reader a) with a
+simple, practical explanation of what LR-family parser generators are
+and how they work (section 2), and b) with a set of directions
+specifically on how to use Ibpag2 (section 3).  There is also an
+advanced section on debugging (4), and one on using Ibpag2 with non-LR
+and/or ambiguous languages (5).  The discussion is geared for those
+that have little or no experience in parsing or automaton theory.  For
+very advanced reading, consult the bibliography.  For a brief summary
+of Ibpag's command-line options, see the main Ibpag2 source file,
+ibpag2.icn, or invoke ibpag2 with the -h (help) option.
+
+	In general, be warned that Ibpag2 works best with small or
+medium-sized grammars.  Its parse tables have to be reconstructed at
+run-time, and the code for doing this can become a bit cumbersome for
+grammars with more than 100 rules and fifty or so terminal symbols.  I
+myself have processed grammars with as many as 300 terminals and 400
+rules.  Although the resulting automata run well enough, the output
+files are over 300k, and Ibpag2 takes a long time to create them.  If
+you must use Ibpag2 with a very large grammar symbols, try the -c
+command-line option (which produces compressed parse tables).  This
+option is discussed below, in section 4.  Compiling (rather than
+interpreting) Ibpag2 may result in much faster processing, as will
+resetting your BLOCKSIZE and STRSIZE environment variables.  See the
+installation section (6) below on using the Icon compiler to create
+the Ibpag2 executable.  Good starting values for BLOCKSIZE and STRSIZE
+are triple their default values (i.e. 3 x 65000).  These variables are
+discussed in the Icon manual page.
+
+	My ultimate aim in writing this document has been to make
+accessible to the non-CS portion of the Icon community what for them
+might seem an inaccessible branch of applied parsing and automaton
+theory.  I am a philologist myself, and feel that there is a great
+deal that can and ought to be done to make advanced tools accessible
+to people with other interests than twiddling bits or pondering the
+true meaning of epsilon closures :-).
+
+	Any comments on the Ibpag2 system itself or its documentation
+will be gratefully received.  Write to me at the address appended to
+the final section (6).
+
+
+2.__What_is_an_LR_Parser_Generator?
+
+	Back in the late 50s and 60s, linguists, mathematicians, and
+software engineers all became intensely interested in the formal
+properties of languages: Can they be described as a series of logical
+structures and relations?  Can computers recognize and manipulate
+these structures efficiently?  Linguists, in particular, quickly
+realized that the amount of structural complexity, ambiguity, and pure
+noise in natural language would render it computationally intractable,
+especially given the limited memory/throughput of then available CPUs.
+Mathematicians and engineers, however, found that many of the
+formalized notations they dealt with could, in fact, be (re)designed
+in such a way that efficient computer processing could - at least in
+principle - be achieved.
+
+	Principle, in this case, did not squarely meet reality until
+viable parser generation tools came into being.  Parser generation
+tools map an abstract structural description of a formal notation or
+"language" to working computer code.  Ideally, the designer simply
+makes assertions like:
+
+	an expression is composed of either
+	    1) a term (e.g. 10), or
+	    2) an expression, a "+" or "-", and another expression
+
+Parser generator systems translate these assertions (the "grammar")
+into a machine, i.e. automaton, that can recognize and/or manipulate
+input streams that conform to the "language" so described.
+
+	Let me dwell, for a moment, on the toy expression grammar
+offered above.  Note that it describes a set of simple mathematical
+constructs like:
+
+	9
+	9 + 3
+	9 + 3 - 8
+
+According to the specifications given above, the nine, three, and
+eight alone constitute terms - which are also expressions (via rule
+1).  Because these terms are also expressions, "9 + 3" can be reduced
+to a larger expression by rule 2.  The same is true for "9 + 3 - 8,"
+except that there rule 2 must apply twice - once for "9 + 3," and then
+again for that and the remainder of the line - in effect grouping the
+expressions as ( ( (9) + (3) ) - (8) ).  It is also possible to group
+the expression ( (9) + ( (3) - (8) ) ), although for the discussion
+that immediately follows this second grouping will be ignored (see
+below on the terms "precedence" and "associativity").
+
+	If we add actions to the above grammar specification, we can
+create a calculator-like automaton.  Traditionally, LR-family automata
+(like the ones Ibpag2 creates) contain a parser, one or more stacks,
+and a set of action tables.  The parser reads from an input stream
+segmented into "tokens" (e.g. TERM, '+', '-'), and then manipulates
+its stacks according to directives contained in so-called "action" and
+"goto" tables.  As it reads the input stream, the parser matches rules
+with action code specified by the programmer, e.g. rule 2 above might
+be matched with code that added/subtracted the expressions on either
+side of the '+'/'-' operator, and produced (in calculator style) the
+result.  Alternatively, it might be matched with code that generated
+an equivalent construct in another language.
+
+	In the case of our toy expression grammar above, the
+corresponding LR automaton operates as follows.  Omitting and/or
+simplifying some of the inner details, it first looks at the input
+stream to see what the next token is.  If the next token is an
+operator or end-of-input, it checks the top of its stack.  If the top
+of the stack has a term on it, that term is popped off, and pushed
+back on, this time renamed as an expression (rule 1 above).  The input
+token is then shifted from the input stream onto the stack, unless it
+is the end-of-input token, in which case the parser returns with a
+result.  If the top of the stack has an expression on it (rather than
+a term), the parser pops the top three elements off of the stack, and
+then either subtracts the third element from the first or adds the two
+together, depending on whether the second element down was the
+addition or subtraction operator, and the result is pushed onto the
+stack as yet another expression.
+
+	Even in this much-simplified form, the automaton's structure
+is complex.  Let us look briefly, therefore, at a practical example of
+its actual workings.  If we were to feed it "9 + 3 + 8," our
+calculator would take the following actions:
+
+	1) read the 9, and push it onto the stack as a term
+	2) see a plus sign on the input stream
+	3) pop the term (9) off of the stack and push it back on again
+	   (this time calling it an expression)
+	4) push the plus sign onto the stack
+	5) read the 3, and push it onto the stack as a term
+	6) see a minus sign on the input stream
+	7) pop the 3 off of the stack and push it back on again (this
+	   time calling it an expression)
+	8) see a minus sign still waiting on the input stream
+	9) pop 9, +, and 3 off of the stack, apply the plus operator
+	   to 9 and 3, then push the result onto the stack again a
+	   single expression (the stack now has 12 on top)
+	10) read the minus sign, and push it onto the stack
+	11) read the 8, and push it onto the stack as a term
+	12) see the end of input coming up on the input stream
+	13) pop the 8 off of the stack and push it back on again as an
+	   expression
+	14) see the end-of-input token still sitting on the input
+	   stream 
+	15) pop 12, -, and 8 off of the stack, apply the minus operator
+	   to 12 and 8, then push the result onto the stack again (the
+	   stack now has 4 on top)
+	16) return the "answer" (i.e. 4)
+
+	This series of actions is hard to describe, and even more so
+to model as part of a hand-written computer program.  And, even if
+such a program were written by hand, this program would have to be
+modified, at times radically, every time the grammar it assumes was
+augmented or changed.  What I am leading up to is that, with a parser
+generator, the hand compilation stage can be eliminated by allowing
+the programmer simply to declare his/her tokens and language specs,
+then have the appropriate automaton constructed with little, or no,
+human intervention.  This is why parser generation tools were critical
+to the development of not just theoretically feasible, but truly
+*practical*, LR-based computer language design systems.
+
+
+3.__Using_Ibpag2
+
+	To recode the above toy expression grammar in
+Ibpag2-compatible format is relatively simple, especially if we omit
+the actions initially, and concentrate on simple recognition.  We need
+only a set of token declarations and three rules.  Certain
+modifications will have to be made to the token declarations later on.
+For general illustration's sake, however, the following will suffice:
+
+	%token TERM, '+', '-'
+	%%
+	expression : TERM
+	expression : expression, '+', expression
+	expression : expression, '-', expression
+
+TERM, and the addition and subtraction operators, are the tokens (i.e.
+the terminals symbols out of which the grammar is constructed - the
+things that the input stream is segmented into).  Note the %token
+keyword used to declare them.  The colon means "is composed of."  The
+double percent sign separates token declarations from the grammar
+proper.
+
+	Adding in our actions - which above were keyed to a complex
+set of decisions based on input tokens and stack conditions - requires
+just a few extra lines of Ibpag2 action code, set off in curly braces:
+
+	%token TERM, '+', '-'
+	%%
+	expression : TERM { return arg1 }
+	expression : expression, '+', expression { return arg1 + arg3 }
+	expression : expression, '-', expression { return arg1 - arg3 }
+
+Using a "|" shorthand for repeated left-hand sides of rules, we may
+reformat this as:
+
+	%token TERM, '+', '-'
+	%%
+	expression : TERM { return arg1 }
+		   | expression, '+', expression { return arg1 + arg3 }
+		   | expression, '-', expression { return arg1 - arg3 }
+
+	ArgX above refers to the Xth element of the right-hand side of
+the preceding rule.  So, for example, arg1 in "{ return arg1 }" above
+refers to TERM - the only right-hand side element of the first rule.
+The action "{ return arg1 }" means, "once you find a TERM and have
+renamed it as an expression, use the value of TERM as the value for
+that expression."  By way of contrast, the action "{ return arg1 +
+arg3 }" means, in conjunction with the rule it follows: "When you find
+an expression consisting of a sub-expression, a plus operator, and
+another sub-expression, use the value of sub-expression 1 + the value
+of sub-expression 2 as the value for the expression as a whole."
+Technically, the action "{ return arg1 }" for expression : TERM is not
+necessary, since the Ibpag2 parser, by default, pushes the value of
+the last RHS arg onto the stack.  For epsilon productions (to be
+discussed below), it pushes &null.
+
+	One serious problem with this set of specifications is that
+the operators '-' and '+' are left associative.  We humans take this
+for granted, because correct algebraic grouping is something our
+high-school math teachers burned into us.  The computer, though, has
+to be told, pedantically, how to group addition and subtraction
+expressions.  It has to be explicitly instructed, in other words, to
+group expressions like "9 + 32 - 4" as (9 + 32) - 4.  Without
+instructions of this kind, the parser does not know, after it has read
+"9 + 32" and is looking at a minus sign, whether to shift the minus
+sign onto the stack, and eventually try to group as 9 + (32 - 4), or
+to reduce "9 + 32" to an expression and group as (9 + 32) - 4.
+Although in this case the grouping may not seem to matter, it
+sometimes does.  Some operators group right to left.  The unary minus
+sign, for example, is one such operator (--4 groups as (- (- 4))).  To
+include the unary minus sign in our grammar, we might append yet
+another rule:
+
+	%token TERM
+	%left '+', '-'
+	%right '-'
+	%%
+	expression : TERM { return arg1 }
+		   | expression, '+', expression { return arg1 + arg3 }
+		   | expression, '-', expression { return arg1 - arg3 }
+		   | '-', expression { return - arg2 }
+
+The trouble with this arrangement is that the minus sign was already
+declared as left associative.  To get around the conflict we use a
+"dummy" token declaration, and a %prec declaration in the applicable
+rule:
+
+	%token TERM
+	%left '+', '-'
+	%right UMINUS
+	%%
+	expression : TERM { return arg1 }
+		   | expression, '+', expression { return arg1 + arg3 }
+		   | expression, '-', expression { return arg1 - arg3 }
+		   | '-', expression %prec UMINUS { return - arg2 }
+
+The %prec declaration simply tells the parser that, even though the
+rule contains a '-' operator, the rule should be handled as if the
+operator were UMINUS.  UMINUS is not actually used as a symbol in the
+right-hand side of any rule (hence the designation "dummy").  It is
+there simply to make the last rule behave as if the minus sign in the
+last rule were different than in the second-to-last rule.
+
+	Let us now add in multiplication and division operators to our
+calculator specifications, and see what happens.  Let me reiterate
+here that the action "{ return arg1 }" for rule 1 (expression : TERM)
+is not strictly necessary, since the default is to push the last RHS
+arg onto the value stack:
+
+	%token TERM
+	%left '+', '-'
+	%left '*', '/'
+	%right UMINUS
+	%%
+	expression : TERM { return arg1 }
+		   | expression, '+', expression { return arg1 + arg3 }
+		   | expression, '-', expression { return arg1 - arg3 }
+		   | expression, '*', expression { return arg1 * arg3 }
+		   | expression, '/', expression { return arg1 / arg3 }
+		   | '-', expression %prec UMINUS { return - arg2 }
+
+Note that the multiplication and division operators were defined
+*after* the addition and subtraction operators.  The reason for this
+is that, technically speaking, the grammar itself is ambiguous.  If we
+treat all operators identically, the parser will not be able to tell
+whether "9 + 1 * 3" should be parsed as (9 + 1) * 3 or as 9 + (1 * 3).
+As we all know from our high-school algebra, multiplication has a
+higher precedence than addition.  You do the multiplications before
+the additions, in other words, no matter where they occur.  To tell
+the parser to behave in this same manner, we declare '*' after '+'.
+Note that, despite their higher priority, the '*' and '/' operators
+are still left associative.  Hence, given "3 / 4 * 7," the parser will
+group its input as (3 / 4) * 7.  As a brain teaser, try to figure out
+how the parser might group the input "9 + 3 / 4 * 7."  Remember that
+higher-precedence rules get done first, but that same-precedence rules
+get done according to associativity.
+
+	The only fundamental problem remaining with the above grammar
+is that it assumes that the end of the input coincides with the end of
+the line.  Is it possible to redefine the language described as
+consisting of arbitrary many lines?  The answer to this question is
+"yes."  One can simply add another set of productions to the grammar
+that state, essentially, that the input language consists of lines
+made up of an expression and a carriage return or of nothing.  Nothing
+is indicated by the keyword epsilon.  Note that only the first rule
+has an action field:
+
+	lines	: lines, expression, '\n'	{ write(arg2) }
+		| lines, '\n'
+		| epsilon
+
+This rule-series may seem rather abstruse, but it becomes a bit
+clearer when you think about what happens on actual input.  If there
+is no input (epsilon), nothing gets printed, because lines : epsilon
+has no action field.  If the parser sees an expression and a newline,
+the parser takes this as an instance of epsilon, plus an expression,
+plus a newline.  This, then, becomes the first component of rule 1 if
+another expression + newline follows, or of rule two if just a newline
+occurs.  Every time an instance of rule 1 occurs, the action "{
+write(arg2) }" is executed, i.e. the value of the expression gets
+printed.  If this still seems hard to fathom, try walking through
+step-by-step.  Even experienced hands may find these sorts of rules
+difficult to construct and debug.
+
+	Note that "lines" is now the so-called "start symbol" of our
+grammar.  It is, in other words, the goal of every parse.  By default
+the left-hand side symbol of the first rule is the start symbol.  This
+may be overridden with a %start declaration in the tokens section (on
+which, see the sample Ibpag2 input file below).
+
+	With our new, multi-line start symbol in place, the only piece
+that needs to be added, in order to make our calculator specification
+a full working input to Ibpag2, is a tokenizer.  A tokenizer is a
+routine that reads input from a file or from some other stream (e.g.
+the user's console), and then segments this input into tokens that its
+parser can understand.  In some cases, the tokens must be accompanied
+by a literal value.  For example, if we encounter a TERM, we return
+TERM, just as it is listed in the %token declaration.  But what is the
+literal value of a TERM token?  It could be, for example, 9, or 5, or
+700.  The tokenizer returns the symbol TERM, in this case, but then
+records that TERM's actual value by setting some global variable.  In
+Ibpag2's parser, this variable is assumed to be "iilval."  In the
+tokenizer, therefore, one might write
+
+	iilval := (literal value)
+	suspend TERM
+
+For literal operators like '+' and '*', there is no need to set
+iilval, since their literal value is irrelevant.  One simply returns
+these as integers (usually via "suspend ord(c)").
+
+	The tokenizer routine is normally appended to the grammar
+after another double percent sign.  Everything after this second
+double percent sign is copied literally to the output file.
+Alternatively, the tokenizer can be $included via Icon's preprocessor.
+Ibpag2 demands that the tokenizer be called iilex, and that it take a
+single file argument, that it be a generator, and that it fail when it
+reaches end-of-input.  Combined with our "lines" productions, the
+addition of an iilex routine to our calculator grammar yields the
+following Ibpag2 input file:
+
+	%token TERM
+	%left '+', '-'
+	%left '*', '/'
+	%right UMINUS
+
+	%start lines
+
+	%%
+
+	expression : TERM { return arg1 }
+		   | expression, '+', expression { return arg1 + arg3 }
+		   | expression, '-', expression { return arg1 - arg3 }
+		   | expression, '*', expression { return arg1 * arg3 }
+		   | expression, '/', expression { return arg1 / arg3 }
+		   | '-', expression %prec UMINUS { return - arg2 }
+
+	lines	   : lines, expression, '\n'	{ write(arg2) }
+		   | lines, '\n'
+		   | epsilon
+
+	%%
+
+	procedure iilex(infile)
+
+	    local nextchar, c, num
+
+	    nextchar := create !(!infile || "\n" || "\n")
+	    c := @nextchar | fail
+
+	    repeat {
+		if any(&digits, c) then {
+		    if not (\num ||:= c) then
+			num := c
+		} else {
+		    if iilval := \num then {
+			suspend TERM
+			num := &null
+		    }
+		    if any('+-*/()\n', c) then {
+			iilval := c
+			suspend ord(c)
+		    } else {
+			if not any(' \t', c) then {
+			    # deliberate error - will be handled later
+			    suspend &null
+			}
+		    }
+		}
+		c := @nextchar | break
+	    }
+	    if iilval := \num then {
+		return TERM
+		num := &null
+	    }
+
+	end
+
+	procedure main()
+	    return iiparse(&input, 1)
+	end
+
+As noted above, the tokenizer (iilex) must be a generator.  It must
+suspend integers either directly (e.g. ord(c)), or else via symbolic
+defines like TERM, created by Ibpag2 on the basis of %token, %right,
+%left, and %nonassoc declarations.  The tokenizer must fail on end of
+input.
+
+	If you like, cut the above code out, place it in a temporary
+file, tmp.ibp, and then feed this file to Ibpag2 by typing "ibpag2 -f
+tmp.ibp -o tmp.icn."  If your system supports input and output
+redirection, type: "ibpag2 < tmp.ibp > tmp.icn."  Ibpag2 will turn
+your grammar specifications and actions into a routine called iiparse.
+If you look above, you will see that I appended a main procedure that,
+in fact, calls iiparse().  Iiparse() takes two arguments: 1) an input
+stream, and 2) a switch that, if nonnull, tells the parser to fail
+rather than abort on unrecoverable errors.  When Ibpag2 is finished
+creating its output file (tmp.icn above), compile that file the way
+you would compile any other Icon program (e.g. "icont tmp").  Finally,
+run the executable.  You should be able to type in various simple
+arithmetic expressions and have the program spit back answers each
+time you hit a return.  The only problem you might encounter is that
+the parser aborts on erroneous input.
+
+	The issue of erroneous input brings up yet another point of
+general Ibpag2 usage.  Normally, if one is processing input, one does
+not want to abort on errors, but rather just emit an error message,
+and to continue processing - if this is at all possible.  To do this,
+Ibpag2 provides a simple but fairly effective mechanism: A reserved
+"error" token.
+
+	When Ibpag2 encounters an error, it will remove symbols from
+its stack until it has backtracked to a point where the error token is
+legal.  It then shifts the error token onto the stack, and tries to
+re-start the token stream at the point where it left off, discarding
+tokens if necessary in order to get itself resynchronized.  The parser
+considers itself resynchronized when it has successfully read and
+shifted three tokens after shifting the error token.  Until then it
+remains in an error state, and will not output additional error
+messages as it discards tokens.
+
+	This explanation may sound a bit abstruse, but in practice it
+is turns out to be quite simple.  To implement error handling for our
+calculator, we really have to add only one production to the end of
+the "lines" section:
+
+	lines	   : lines, expression, '\n'	{ write(arg2) }
+		   | lines, '\n'
+		   | epsilon
+		   | error, '\n'	{
+					  write("syntax error; try again:")
+					  iierrok
+					}
+
+Given the above grammar, the parser will handle errors as follows: If
+an error occurs (say it has an expression then an operator on its
+stack and sees a newline on the input stream) the parser will throw
+out the operator, then check if the error token would be OK in this
+state (which it would not).  Then it would throw out the expression.
+At this point, the stack is in the ready-to-read-a-lines state - the
+state it was in before it read the last expression.  Since "lines" may
+consist of error and '\n,' the error token is legal here, and so the
+parser pushes error onto the stack, then looks back at the input
+stream (where a newline is still waiting).  Since the newline now
+completes the rule lines : error, '\n', the parser pushes the newline
+onto its stack, then executes the action associated with this
+production, i.e. it writes "syntax error; try again:" to the console,
+prompting the user for additional input.
+
+	The keyword "iierrok" in the above error production's action
+field is there for a subtle, but important, reason: It tells the
+parser to consider itself resynchronized, even if three tokens have
+not yet been shifted.  If iierrok were not in the action code for this
+rule, and the user were to supply more bad input after the prompt,
+then the parser would simply discard those tokens, without emitting
+another error message.  Why?  Because, as you will recall, the parser
+discards tokens after an error, in efforts to resynchronize itself.
+Until it reads and shifts three tokens successfully, it considers
+itself in an error state, and will not emit additional error messages.
+The three-token resync rule is there to prevent a cascade of
+irrelevant error messages touched off by a single error.  In our
+calculator's case above, though, we are smarter than the parser.  We
+know that it is resynchronized as soon as it reduces error, '\n' to
+lines.  So if a syntax error occurs on the next token, it should be
+reported.  Adding "iierrok" to the action insures that the parser will
+do just this.
+
+	In addition to iierrok, there are several other directives
+Ibpag2 accepts as part of the action code segments.  These are as
+follows:
+
+	iiclearin		clear the current input token
+	IIERROR			perform error recovery
+	IIACCEPT		simulate an accept action
+
+There are several other directives (all implemented as macros) that
+Ibpag2 accepts in GLR mode.  For a discussion of GLR mode, see below,
+section 5.  IIERROR in particular, and error recovery in general, work
+a bit differently in that mode than they do in Ibpag2's normal (i.e.
+LR) mode.
+
+	There are admittedly many other topics that might be covered
+here.  This treatment, however, is intended as a general nontechnical
+introduction, and not as a complete textbook on parser generation use.
+If you want to learn more about this topic, consult the bibliography.
+Also, check the UNIX manual pages on the YACC utility (Yet Another
+Compiler Compiler).  Ibpag's input format is fairly close (too close,
+perhaps) to YACC's.  In fact, most of what is said about YACC in UNIX
+documentation can be carried directly over to Ibpag2.  Several salient
+differences, though, should be kept in mind:
+
+        1) YACC's "$$ = x" constructs are replaced by "return x" (e.g.
+           "$$ = $1 + $3" -> "return $1 + $3" [$1 is a synonym for
+	   "arg1", $3 for "arg3", etc.])
+
+        2) all variables within a given action are, by default, local
+           to that action; i.e. they cannot be accessed by other
+           actions unless you declare them global elsewhere (e.g. in
+           the pass-through part of the declarations section %{ ...
+           %})
+
+        3) the %union and %type declarations/tags are not needed by
+	   Ibpag2 (both for better and for worse)
+
+        4) tokens and symbols are separated from each other by a comma
+           in Ibpag2 files (e.g. %token '+', '-' and S : NP, VP)
+
+        5) epsilon is indicated by the keyword "epsilon" (e.g. REL :
+           epsilon), and not by an empty RHS
+
+        6) both epsilon and error *may* be declared as %tokens for
+           reasons of precedence, although they retain hard-coded
+           internal values (-2 and -1, respectively)
+
+        7) all actions must follow the last RHS symbol of the rule
+           they apply to (preceded by an optional %prec directive); to
+           achieve S : NP { action1 }, VP { action2 }, insert a dummy
+           rule: S : NP, dummy, VP { action2 }; dummy : epsilon {
+           action1 } ;
+
+        8) YYERROR, YYACCEPT, yyclearin, and yyerrok are the same,
+           except they are written IIERROR, IIACCEPT, iiclearin, and
+           iierrok (i.e. "ii" replaces "yy")
+
+        9) Ibpag2's input files are tokenized as modified Icon files,
+           and, as a consequence, Icon's reserved words must not be
+           used as symbols (e.g. "if : if, then" is no go)
+
+I myself find YACC to be ugly.  As a result, Ibpag2 is not an exact
+YACC clone.  I would like to underscore the fact that I have no
+intention to move in this direction, either.  It's as YACC-like as
+it's going to get!
+
+	Both YACC and non-YACC users should note number 9 in the above
+list.  Don't use things like "while," "every," "do," etc. as symbols
+in your grammar!  Just use the same rules for Ibpag2 nonterminals as
+for Icon variables, and you'll be OK.
+
+	For those that just can't bear using anything but a strictly
+YACC-conformant system, I've included a preprocessor with the Ibpag2
+distribution called (at one user's recommendation) "iacc."  Iacc reads
+&input - assumed to be a YACCish grammar - and sends to &output an
+Ibpag2-conformant file.  I have not tested this file extensively, and
+there are likely to be bugs in the way I've handled the necessary 2
+token lookaheads and value stack references.  Give it a whirl, though,
+if you are feeling adventurous.  The only reason I personally use Iacc
+is that some YACCs (e.g. BSD YACC) have particularly nice debugging
+messages and help.  If my grammar is particularly complex, I just run
+it through YACC without action code first, then use Iacc to convert it
+to Ibpag2 format.  Iacc's output, as I noted, is not meant to be
+pretty, so I invariably end up doing a little editing - usually just
+respacing a few rules, and re-inserting any comments that I might have
+put in the original YACC file.
+
+	In general, Ibpag2 (like YACC) handles epsilon moves and
+indirect cycles.  LR-mode shift-reduce conflicts are also handled in
+the normal way (i.e. pick the rule with the highest priority, and, in
+cases where the priority is the same, check the associativities).  In
+contrast to YACC, Ibpag2 flags reduce/reduce conflicts as errors
+(since these often conceal deeper precedence problems and just plain
+kludges).  Reduce/reduce conflict errors are easily enough remedied,
+if need be, via (dummy) precedences.  One can convert these errors to
+warnings by specifying -y on the command line.  With the -y option,
+reduce/reduce conflicts are resolved in favor of the rule that occurs
+first in the grammar.  The -y switch also prevents Ibpag2 from
+aborting on shift/reduce conflicts, telling it instead to resolve in
+favor of shift.  Basically, -y is a partial YACC compatibility switch.
+Normally (i.e. in SLR mode) Ibpag2 is much more finicky than YACC
+about conflicts in its grammars.
+
+	Also in contrast to YACC, Ibpag2 supports multiple
+simultaneous parsers.  Ibpag2 normally names its main parser routine
+iiparse().  By using the -m command-line option, however, you can
+override this default behavior, and force Ibpag2 to augment this name
+in some uniquely identifiable fashion.  For example, "ibpag2 -m _1 <
+tmp.ibp > tmp.icn" will force Ibpag2 to write a parser called
+"iiparse_1" to tmp.icn.  Note that, instead of calling iilex, this
+iiparse_1() routine will now call iilex_1, and all necessary global
+variables will have _1 appended to them (e.g. errors will become
+errors_1).  I don't expect that many people will have occasion to use
+this feature.  It is there, though, for those that want it.
+
+
+4.__Debugging
+
+	Constructing and debugging LR(1) family parsers can sometimes
+be hair raising, even with a parser generator.  Several precautions
+can be taken, however, to minimize the agony.  The first is to declare
+all tokens initially as part of a single %token declaration, i.e. with
+no precedences, and with the same associativities.  Also, leave out
+action code until the grammar seems to be working.  In this stage, you
+can even run the grammar through (BSD)YACC or GNU Bison.  All you
+would need to do is remove the commas between tokens and symbols, and
+place a semicolon at the end of every rule.  During this and all
+debugging stages, supply Ibpag2 with a -v command-line switch.  This
+will cause Ibpag2 to write a summary of rules, tokens, and its two
+state tables to "ibpag2.output" (a bit like GNU Bison, but with a
+hard-coded name).  If you get messages about conflicts in your parse
+tables (e.g.  "unresolvable reduce/reduce conflict, state 5, token
+257, rules 4,5").  This file will tell you what rules these are, and
+what token number 257 is.  Use precedences and associativities to
+clear these problems up as they arise.  If you are comfortable having
+reduce/reduce errors resolved by the order in which the conflicting
+rules occur, then use the -y command-line switch.  With -y on the
+command line, Ibpag2 will always resolve in favor of the earlier rule.
+This option will also cause it to resolve all shift/reduce conflicts
+in favor of shift.
+
+	There are certain languages that are not ambiguous that SLR(1)
+parsers like Ibpag2 will fail to produce an unambiguous parse table
+for.  The classic example is
+
+	expr : lval, '=', rval | rval
+	lval : '*', rval       | ID
+	rval : lval
+
+C programmers will recognize this as a toy expression grammar with
+code for identifiers, assignments, and pointers.  The problem is that
+if we feed this grammar to Ibpag2, it will claim that there is a
+conflict on lookahead '='.  In truth, there is no ambiguity.  The SLR
+parser simply doesn't remember the pathway the parser used to get to
+the state it is in when it sees '=' on the input stream.  Whether the
+parser gets into this state by seeing '*' plus and ID, or by seeing
+just an ID, it knows to turn the ID into an lval.  Then it knows to
+turn lval into rval.  At this point, though, it doesn't know whether
+to shift the = sign via rule 1, or to turn rval and the preceding '*'
+into an lval.  The parser has "forgotten" that the '*' is there
+waiting on level down on the stack!
+
+	The solution to this problem is actually quite simple (at
+least in concept).  Just provide a unique pathway in the grammar for
+the conflicting rules.  In this case, they are rules 1 and 5 (the
+first and last):
+
+	expr : lval, '=', rval | rval
+	lval : '*', pval | ID
+	pval : lval
+	rval : lval
+
+Now when the parser sees '*,' it can only have a pval after it.  Never
+mind that pval is composed of precisely the same things as rval.  The
+point is that the parser generator follows a different route after
+seeing '*' than if it starts with ID and no preceding '*'.  Hence it
+"remembers" that that the '*' is back on the stack, waiting for the
+"lval : '*', pval" rule to apply.  There is no more conflict.
+
+	Go ahead and run these grammars through Ibpag2 if you aren't
+sure what is going on.  Remember to declare ID as a token, and to
+place "%%" in the appropriate spot!
+
+	If you get your parser up and running, but find that it is not
+functioning quite the way you expect, add the following line somewhere
+near the start of Ibpag2's output file:
+
+	$define IIDEBUG
+
+If you like, you can add it to the beginning of your Ibpag2 input
+file.  Place it in the declarations section (before the first double
+percent sign), and surround it by %{ and %}, e.g.:
+
+	%{
+	$define IIDEBUG
+	%}
+
+This tells Ibpag2 to send $define IIDEBUG straight through to the
+output file.
+
+	What defining IIDEBUG does is tell iiparse, once compiled, to
+emit profuse debugging messages about the parser's actions, and about
+the state of its stacks.  This display will not make a whole lot of
+sense to anyone who doesn't understand LR-family parsers, so those who
+want to access this feature should perhaps go through a standard
+reference like Aho, Sethi, and Ullman [1].
+
+	If, after you are finished debugging your grammar, you find
+that Ibpag2's output files are rather large, you may try saving space
+by compressing the action and goto tables.  This is accomplished by
+invoking Ibpag2 with the -c (compress) option.  Using this option
+makes debugging difficult, and makes the parser run a bit more slowly.
+It also only works for rather large grammars with long nonterminal
+symbol names.  Don't even consider it until the grammar is thoroughly
+debugged and you have determined that the output file's size is just
+too great for practical use.  Even then, compression may or may not
+help, depending on how long your nonterminal names are.  In general,
+Ibpag2 is best as a teaching tool, or as a production system for
+medium or small grammars.
+
+
+5.__Using_Ibpag2_with_Non-LR_Grammars
+
+	There may be times when you *want* to parse languages that no
+LR-based algorithm can handle.  There may be times, that is, when the
+grammar you want to use contains conflicts or ambiguities that are
+there by design, and not by oversight.  For example, you may want to
+parse a natural language.  Full-blown natural languages involve many
+highly ambiguous constructs, and are not LR-parsable.  By invoking it
+with the -a option, Ibpag2 can parse or recognize certain natural
+languages, or, more practically speaking, certain NL subsets.  The
+letter "a" in -a is supposed to stand for "ambiguous," although what
+this option really does is put Ibpag2 into a quasi-GLR mode - i.e.
+into a kind of "generalized" LR mode in which it can accept non-LR
+grammars [4,5].
+
+	User-visible changes to Ibpag2's operation in quasi-GLR mode
+(i.e. with the -a option) are as follows:
+
+	1) iiparse() is now a generator
+	2) action code can use suspend as well as return
+	3) IIERROR places the current thread in an error state (i.e.
+	   it doesn't *necessarily* trigger error recovery; see below)
+	4) there are two new action-code directives (iiprune and
+           iiisolate) and a general define (AUTO_PRUNE)
+	5) conflicts due to ambiguities in the grammar no longer
+	   result in aborted processing (so, e.g., if you do not
+	   specify the -y option on a grammar with reduce/reduce
+	   conflicts, Ibpag2 will simply generate a parser capable of
+	   producing multiple parses for the same input)
+
+	In quasi-GLR mode, iiparse() should be invoked in a way that
+will render multiple results usable, if they are available (e.g.
+"every result := iiparse(&input) do...".  Action code is also allowed
+to produce more than one value (i.e. to use suspend).  When it does
+so, iiparse() creates separate parse threads for each value.  So, for
+instance, if your action code for some production suspends both of the
+following lists,
+
+	["noun", "will", "gloss: desire"]
+	["noun", "will", "gloss: legal document mandating how _
+	                  one's possessions are to be disposed _
+			  of after one's death"],
+
+iiparse() would create two separate parse threads - one for each
+result.  Note that in this case, the syntactic structure of each
+thread is the same.  It is their semantics (i.e. the stuff on the
+value stack) that differs.
+
+	If you use the iierrok and iiclearin macros in your action
+code before suspending any result, their affect persists through all
+subseqent suspensions and resulting parse threads.  If you use these
+macros after suspending one or more times, however, they are valid
+only for the parse thread generated by the next suspension.  By way of
+contrast, the IIERROR macro *always* flags only the next parse thread
+as erroneous.  Likewise, IIACCEPT always simulates an accept action on
+the next suspension only.  IIERROR and IIACCEPT, in other words, never
+have any effect on subsequent suspensions and parse threads other than
+the one that immediately follows them.  This is true of iierrok and
+iiclearin only when used after the first suspension.
+
+	In quasi-GLR mode, IIERROR (number three in the difference
+list above) becomes a mechanism for placing the current parse thread
+in error mode.  This is similar to, but not quite identical to, how
+IIERROR functions in straight LR mode.  In quasi-GLR mode, if other
+threads can carry on the parse without error the erroneous parse
+thread is quietly clobbered.  Full-blown error recovery only occurs if
+all of the other parsers halt as well.  This makes sense if you think
+about it.  Why keep erroneous threads around when there are threads
+still continuing a valid parse?  For some large interactive systems,
+it might be necessary to keep bogus threads around longer, and weed
+them out only after a lengthy grading process.  If you are
+constructing a system such as this, you'll have to modify Ibpag2's
+iiglrpar.lib file.  In particular, you'll need to change the segment
+in iiparse() that takes out the trash, so to speak, in such a way that
+it does so only if the error count in a given parser either rises
+above a specific threshhold or else exceeds the number of errors in
+the "most correct" parser by a certain amount.  This is not that hard
+to do.  I just don't expect that most parsers people generate with
+Ibpag2 will use IIERROR or error recovery in general in so involved a
+fashion.
+
+	Iiprune and iiisolate (number 4 above) are used to control the
+growth of the parallel parser array.  In order to give straightforward
+(read "implementationally trivial") support for action code, Ibpag2
+cannot create a parse "forest" in the sense that a standard GLR parser
+does.  Instead, it simply duplicates the current parser environment
+whenever it encounters a conflict in its action table.  Even if the
+conflict turns out to reflect only a local ambiguity, the parsers, by
+default, remain separate.  Put differently, Ibpag2's quasi-GLR parser,
+by default, makes no direct effort to reduce the size of its parser
+arrays or to alter the essentially linear structure of their value and
+state stacks.  Size reduction, where necessary and/or desirable, is up
+to the programmer.  What the iiprune macro is there to do is to give
+the programmer a way of pruning a given thread out of the active
+parser list.  Iiisolate allows him or her to prune out every thread
+*but* the current one.  AUTO_PRUNE makes the parser behave more like a
+standard GLR parser, instructing it to prune parse threads that are
+essentially duplicating another parse thread's efforts.  The parser,
+though, does not build a parse tree per se, the way most GLR parsers
+typically do, but rather manipulates its value stack like a
+traditional LR-family parser.
+
+	Iiprune is useful when, for example, the semantics (i.e. your
+"action" code segments) determine that a given parse thread is no
+longer viable, and you want to signal the syntactic analyzer not to
+continue pursuing it.  The difference between iiprune and IIERROR is
+that iiprune clobbers the current parser immediately.  IIERROR only
+puts it into an error state.  If all active parsers end up in an error
+state, and none can shift additional input symbols, then the IIERROR
+macro induces error recovery.  Iiprune does not.  NB: iiprune, if used
+in action code that suspends multiple results, cancels the current and
+remaining results (i.e. it does not clobber parsers already spun off
+by previous suspensions by invocation of that same code; it merely
+cuts the result sequence).  Iiprune essentially stands in for "fail"
+in this situation.  Fail itself can be used in the code, but be warned
+that iiparse() will still push *at least one* value onto its value
+stack, even if a given action code segment fails.  This keeps the
+value stack in sync with the syntax.  To avoid confusion, I recommend
+not using "fail" in any action code.
+
+	Iiisolate is useful if, during error recovery, you prompt the
+user interactively, or do something else that cannot be elegantly done
+in parallel for two or more distinct parse threads.  Iiisolate allows
+you to preserve only the the current parse thread, and to clobber the
+rest.  Iiisolate can also be useful as a way of making sure that only
+one thread carries on the parse in non-error situations.  Suppose that
+we have a series of productions:
+
+	sentences  :  sentences sentence '\n'
+			{ print_parse(arg2) }
+		   |  sentences '\n'
+		   |  error '\n'
+		   |  epsilon
+
+If we get a sentence with more than one parse, all of the underlying
+threads that produced these parses will be active for the next
+sentence as well.  In many situations this will not be what we want.
+If our desire it to have only one active parse thread at the start of
+each sentence, we simply tell our lexical analyzer to suspend two
+newlines every time it sees a newline on the input stream.  This
+insures that the second rule will always apply right after the first.
+We then insert iiisolate directives for both it and the one error
+production:
+
+	sentences  :  sentences sentence '\n'
+			{ print_parse(arg2) }
+		   |  sentences '\n'
+			{ iiisolate }
+		   |  error '\n'
+			{ iiisolate; iierrok }
+		   |  epsilon
+
+The effect here is to allow multiple parsers to be generated only
+while parsing "sentence".  The iiisolate directive, in other words,
+sees to it that no sentence parse will ever begin with multiple active
+parsers.  As with LR mode, iierrok clears the error flag for the
+(current) parser.
+
+	Note that if you use iiisolate in action code that suspends
+multiple results, iiisolate will clobber all parsers but the one
+generated by the next suspension.
+
+	If there is no need for close control over the details of the
+parser array, and you wish only to clobber parsers that end up doing
+the same thing as some other parser (and hence returning identical
+values), then just make sure you add "$define AUTO_PRUNE" to the
+pass-through code section at the top of the file.  Put differently,
+defining AUTO_PRUNE instructs the quasi-GLR parser to weed out parsers
+that are in the same state, and which have identical value stacks.
+AUTO_PRUNE can often be used in place of iiisolate in situations like
+the one discussed just above.  Its only drawback is that it slows
+the parser a bit.
+
+	Other than these deviations (action code and iiparse becoming
+generators, IIERROR's altered behavior, and the addition of iiprune,
+iiisolate, and AUTO_PRUNE), Ibpag2's quasi-GLR mode - at least on the
+surface - works pretty much like its straight LR mode.  In fact, if
+you take one of your SLR(1) grammars, and run it through Ibpag2 using
+the -a option, you probably won't notice any difference in the
+resulting automaton unless you do some debugging or perform some
+timing tests (the GLR parser is slower, though for straight SLR(1)
+grammars not by much).  Even with non-SLR(1) grammars, the quasi-GLR
+parser will clip along merrily, using all the same sorts of rules,
+action code, and macros that you would typically use in LR mode!
+
+
+6.__Installing_Ibpag
+
+	If you are a UNIX user, or have a generic "make" utility, you
+are in luck.  Just edit Makefile.dist according to the directions
+given in that file, rename it as "makefile," then execute "make."
+Ibpag2 should be created automatically.  If everything goes smoothly,
+then "make install" (su-ing root, if both possible and necessary for
+correct installation of the iiparse.icn file).  Check with your system
+administrator if you are on a public system, and aren't sure what to
+do.
+
+	Please be sure to read the directions in the makefile
+carefully, and set DESTDIR and LIBDIR to the directory where you want
+the executable and parser file to reside.  Also, make sure the paths
+you specify are correct for your Icon executables.  Although Ibpag2
+will apparently compile using iconc, I would recommend using the
+interpreter, icont, first, unless you are planning on working with a
+large grammar.
+
+	If you are using some other system - one that lacks "make" -
+then shame on your manufacturer :-).  You'll be a bit inconvenienced.
+Try typing:
+
+	icont -o ibpag2 follow.icn ibpag2.icn ibreader.icn \
+		 ibtokens.icn ibutil.icn ibwriter.icn iohno.icn \
+		 outbits.icn slritems.icn slrtbls.icn shrnktbl.icn \
+		 version.icn slshupto.icn
+
+The backslashes merely indicate that the next line is a continuation.
+The whole thing should, in other words, be on a single line.  As noted
+above, you may compile rather than interpret - if your OS supports the
+Icon compiler.  Just replace "icont" above with "iconc."  The
+resulting executable will run considerably faster than with "icont,"
+although the time required to compile it may be large, and the (still
+somewhat experimental) compiler may not work smoothly in all
+environments.
+
+	If your operating system support environment variables, and
+you have set up your LPATH according to the specifications in the Icon
+distribution (see below), then you may copy iiparse.lib and
+iiglrpar.lib to some file in your LPATH.  If you do not do this, or if
+your OS does not support environment variables, then you must be in
+the directory where you keep your Ibpag2 files when you use it, or
+else invoke Ibpag2 with the -p dirname option (where dirname is the
+directory that holds the iiparse.lib and iiglrpar.lib files that come
+with the Ibpag2 distribution).  The .lib files contain template
+parsers that are critical to Ibpag2's operation.  Ibpag2 will abort if
+it cannot find them.
+
+	If your operating system permits the creation of macros or
+batch files, it might be useful to create one that changes
+automatically to the Ibpag2 source directory, and runs the executable.
+This has the side-benefit of making it easier for Ibapg2 to find the
+parser library files, iiparse.lib and iiglrpar.lib.  Under DOS, for
+instance, one might create a batch file that says:
+
+	c:
+	cd c:\ibpag2
+	iconx ibpag2 %1 %2 %3 %4 %5 %6 %7 %8 %9
+
+DOS, it turns out, has to execute Icon files indirectly through iconx,
+so this technique has yet another advantage in that it hides the
+second level of indirection - although it prevents you from using
+input and output redirection.  Naturally, the above example assumes
+that Ibpag2 is in c:\ibpag2.
+
+	Ibpag2 assumes the existence on your system, not only of an
+Icon interpreter or compiler, but also of an up-to-date Icon Program
+Library.  There are several routines included in the IPL that Bibleref
+uses.  Make sure you (or the local system administrators) have put the
+IPL online, and have translated the appropriate object modules.  Set
+your IPATH environment variable to point to the place where the object
+modules reside.  Set LPATH to point to the modules' source files.
+Both IPATH and LPATH are documented in doc directory of the Icon
+source tree (ipd224.doc).  If your system does not support environment
+variables, copy ximage.icn, options.icn, ebcdic.icn, and escape.icn
+from the IPL into the Ibpag2 source directory, and compile them in
+with the rest of the Ibpag2 source files, either by adding them to the
+SRC variable in the makefile, or by adding them manually to the "icont
+-o ..." command line given above.
+
+	If you have any problems installing or using Ibpag2, please
+feel free to drop me, Richard Goerwitz, an e-mail message at
+goer@midway.uchicago.edu, or (via the post) at:
+
+	5410 S. Ridgewood Ct., 2E
+	Chicago, IL   60615
+
+
+6.__Bibliography
+
+1.  Aho, Alfred V., Sethi, Ravi, and Ullman, Jeffrey D.  Compilers.
+    Addison-Wesley: Reading, Massachusetts, second printing, 1988.
+
+2.  Griswold, Ralph E. and Griswold, Madge T.  The Icon Programming
+    Language. Prentice-Hall, Inc.: Englewood Cliffs, New Jersey, USA,
+    second edition, 1990.
+
+3.  Griswold, Ralph E., Jeffery, Clinton L., and Townsend, Gregg M.
+    Version 8.10 of the Icon Programming Language.  Univ. of Arizona
+    Icon Project Document 212, 1993.  (obtain via anonymous FTP from
+    cs.arizona.edu ~ftp/icon/docs/ipd212.doc)
+
+4.  Tomita, Masaru.  Efficient Parsing for Natural Language.  Boston:
+    Kluwer Academic Publishers, c. 1985.
+
+5.  Tomita, Masaru editor.  Generalized LR Parsing.  Boston:  Kluwer
+    Academic Publishers, 1991.

@@ -1,0 +1,36 @@
+############################################################################
+#
+#	File:     xbm2pat.icn
+#
+#	Subject:  Program to convert XBM file to pattern specification
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program converts an XBM file to a pattern specification.
+#
+############################################################################
+#
+#  Links: patutils
+#
+############################################################################
+
+link patutils
+
+procedure main(args)
+   local input, rlist
+
+   input := open(args[1]) | stop("*** cannot open image file")
+
+   rlist := []
+   every put(rlist, xbm2rows(input))
+   write(rows2pat(rlist),"	# ", args[1])
+
+end

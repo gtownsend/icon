@@ -1,0 +1,58 @@
+############################################################################
+#
+#	File:     inbits.icn
+#
+#	Subject:  Procedure to read variable-length characters
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     November 3, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.2
+#
+############################################################################
+#  
+#  This procedure, inbits(), re-imports data converted into writable
+#  form by outbits().  See the file outbits.icn for all the whys and
+#  hows.
+#
+############################################################################
+#
+#  See also: outbits.icn
+#
+############################################################################
+
+procedure inbits(f, len)
+
+    local i, byte, old_byte_mask
+    static old_byte, old_len, byte_length
+    initial {
+	old_byte := old_len := 0
+	byte_length := 8
+    }
+
+    old_byte_mask := (0 < 2^old_len - 1) | 0
+    old_byte := iand(old_byte, old_byte_mask)
+    i := ishift(old_byte, len-old_len)
+
+    len -:= (len > old_len) | {
+	old_len -:= len
+	return i
+    }
+    
+    while byte := ord(reads(f)) do {
+	i := ior(i, ishift(byte, len-byte_length))
+	len -:= (len > byte_length) | {
+	    old_len := byte_length-len
+	    old_byte := byte
+	    return i
+	}
+    }
+
+end

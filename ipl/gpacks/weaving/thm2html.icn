@@ -1,0 +1,75 @@
+############################################################################
+#
+#	File:     thm2html.icn
+#
+#	Subject:  Program to create web pages for weaving thumbnails
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 19, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  AD HOC.  Skeleton was derived from a CyberStudio page.
+#
+#  The name of a directory <d> is given on the command line.  It is expected
+#  that GIF/<d> contains full-sized GIF files and that GIF/<d>/thumbs
+#  contains thumbnails.  The output is a page named <d>.html that contains
+#  an array of thumbnails with links to Web pages in HTML/<d> that contain
+#  individual pages with images and the corresponding .wvp files.
+#
+#  The thumbnails are assumed to be 64x64.
+#
+############################################################################
+#
+#  Links:  basename, options  
+#
+############################################################################
+
+link basename
+
+procedure main(args)
+   local head, body, tail, title, i, name, directory, input
+
+   name := args[1] | stop("*** no directory given")
+
+   directory := name
+
+   title :=  "Sequence-Based Weaves"
+
+$include "thmhead"
+$include "thmbody"
+$include "thmtail"
+
+   head[5] := title
+   head[35] := name
+
+   every write(!head)
+
+   input := open("ls GIF/" || directory || "/*.gif", "p")
+
+   repeat {
+      i := 5				# offset to first placeholder
+      every 1 to 8 do {
+         name := read(input) | {
+            every write(body[1 to i - 2])
+            write(body[-1])
+            break break
+            }
+         name := basename(name, ".gif")
+         body[i] := image("HTML/" || directory || "/" ||
+            name || ".html")
+         body[i + 2] := image("GIF/" || directory || "/thumbs/" || name ||
+            ".gif")
+         i +:= 5			# offset to next placeholder
+         }
+      every write(!body)
+      }
+
+   every write(!tail)
+
+end

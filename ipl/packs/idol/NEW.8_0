@@ -1,0 +1,64 @@
+This document notes differences between Idol version 6 (the previous
+distributed version) and the current release, version 8.  See the
+idol reference manual (idol.doc, TR 90-10) and the Idol man page
+for a complete description of Idol.
+
+Summary of New Features    (example/reference)
+
+* Constants                (const bar := 3.1415, version := "Idol 8.0")
+* Include files            (#include foo.iol)
+* Index meta-operator      (x$["baz"])
+* Automatic installation   (no "idol -install" step)
+* Shared class environment (IDOLENV environment variable)
+* Temporary environments   (clean single-file translation)
+* Contributed ports        (Amiga, MPW, MS-DOS, MVS, OS/2, UNIX, VMS)
+
+Idol Version 8 incorporates significant improvements in usability without
+any major changes in the object model used in the previous release.  Code
+from Idol release 6 may have to be recompiled but will function unchanged
+under release 8.
+
+CONSTANTS
+
+Idol supports a "const" declaration for Icon values of type string, cset,
+integer, and real.  See the Idol reference manual for details.
+
+INCLUDE FILES
+
+Idol supports textual inclusion.  This is intended primarily to facilitate
+sharing of constant values amongst separately translated files.
+
+INDEX META OPERATOR
+
+x $[ y, z, ...] is shorthand notation for the expression x$index(y,z,...).
+Many classes implement an index or lookup operation, and this notation
+supports that operation as closely to Icon's syntax as possible.
+
+AUTOMATIC INSTALLATION
+
+The "idol -install" step required in the previous release is performed
+automatically if required.
+
+SHARED CLASS ENVIRONMENT
+
+On systems supporting the getenv() function, the environment variable
+IDOLENV may optionally denote a class code repository for use by all
+Idol operations.  This allows sharing of classes amongst programs
+translated in different directories.
+
+TEMPORARY ENVIRONMENTS
+
+"Automatically installed environments" as described above are considered
+temporary and automatically removed after successful compilation if
+compilation consists of a single source file, and no IDOLENV variable
+is present.
+
+CONTRIBUTED PORTS
+
+Icon enthusiasts transported Idol to several machines; these ports
+were for version 6, but many or most of them will work for version 8.
+They have been adapted to include new features to the best of my
+abilities, but if you are not using MS-DOS you may want to examine
+things and make adjustments.  This should be much easier than writing
+your own port, at any rate.  I am available by e-mail or telephone
+should questions arise.

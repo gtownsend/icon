@@ -1,0 +1,148 @@
+############################################################################
+#
+#	File:     bitstr.icn
+#
+#	Subject:  Procedures for bits in Icon strings
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Procedures for working with strings made up of numeric values
+#  represented by strings of an arbitrary number of bits, stored without
+#  regard to character boundaries.
+#
+#  In conjunction with the "large integers" feature of Icon, this
+#  facility can deal with bitstring segments of arbitrary size.  If
+#  "large integers" are not supported, bitstring segments (i.e.  the
+#  nbits parameter of BitStringGet and BitStringPut) wider that the
+#  integer size of the platform are likely to produce incorrect results.
+#
+############################################################################
+#
+#  Usage of BitStringPut, by example:
+#
+#       record bit_value(value, nbits)
+#       ...
+#       bitString := BitString("")
+#       while value := get_new_value() do       # loop to append to string
+#               BitStringPut(bitString, value.nbits, value.value)
+#       resultString := BitStringPut(bitString) # output any buffered bits
+#
+#  Note the interesting effect that BitStringPut(bitString), as well as
+#  producing the complete string, pads the buffered string to an even
+#  character boundary.  This can be dune during construction of a bit
+#  string if the effect is desired.
+#
+#  The "value" argument defaults to zero.
+#
+############################################################################
+#
+#  Usage of BitStringGet, by example:
+#
+#       record bit_value(value, nbits)
+#       ...
+#       bitString := BitString(string_of_bits)
+#       while value := BitStringGet(bitString, nbits) do
+#               # do something with value
+#
+#  BitStringGet fails when too few bits remain to satisfy a request.
+#  However, if bits remain in the string, subsequent calls with fewer
+#  bits requested may succeed.  A negative "nbits" value gets the value
+#  of the entire remainder of the string, to the byte boundary at its
+#  end.
+#
+############################################################################
+#
+#  See also: bitstrm.icn
+#
+############################################################################
+
+record BitString(s, buffer, bufferBits)
+
+procedure BitStringPut(bitString, nbits, value)
+    local outvalue
+    #
+    #  Initialize.
+    #
+    /bitString.buffer := bitString.bufferBits := 0
+    #
+    #  If this is "close" call ("nbits" is null), flush buffer,
+    #  reinitialize, and return the bit string with the final character
+    #  value zero padded on the right.
+    #
+    if /nbits then {
+	 if bitString.bufferBits > 0 then
+		  bitString.s ||:=
+			   char(ishift(bitString.buffer, 8 - bitString.bufferBits))
+	 bitString.buffer := bitString.bufferBits := 0
+	 return bitString.s
+	    }
+    #
+    #  Merge new value into buffer.
+    #
+    /value := 0
+    bitString.buffer := ior(ishift(bitString.buffer, nbits), value)
+    bitString.bufferBits +:= nbits
+    #
+    #  Output bits.
+    #
+    while bitString.bufferBits >= 8 do {
+	 bitString.s ||:= char(outvalue :=
+	       ishift(bitString.buffer, 8 - bitString.bufferBits))
+	 bitString.buffer :=
+		  ixor(bitString.buffer, ishift(outvalue, bitString.bufferBits - 8))
+	 bitString.bufferBits -:= 8
+	    }
+    return
+end
+
+
+procedure BitStringGet(bitString, nbits)
+    local value, save, i
+    #
+    #  Initialize.
+    #
+    /bitString.buffer := bitString.bufferBits := 0
+    #
+    #  Get more data if necessary.
+    #
+    save := copy(bitString)
+    while nbits < 0 | bitString.bufferBits < nbits do {
+	 (bitString.buffer :=
+		  ior(ishift(bitString.buffer, 8), ord(bitString.s[1]))) | {
+	     #
+	     #  There aren't enough bits left in the file.  Restore the
+	     #  BitString to its state before the call (in case he wants to
+	     #  try again), and fail.
+	     #
+	     if nbits >= 0 then {
+		  every i := 1 to *bitString do
+			   bitString[i] := save[i]
+		  fail
+		     }
+	     else {
+		  bitString.s := ""
+		  bitString.bufferBits := value := 0
+		  value :=: bitString.buffer
+		  return value
+		     }
+	        }
+	 bitString.s[1] := ""
+	 bitString.bufferBits +:= 8
+	    }
+    #
+    #  Extract value from buffer and return.
+    #
+    value := ishift(bitString.buffer, nbits - bitString.bufferBits)
+    bitString.buffer :=
+	     ixor(bitString.buffer, ishift(value, bitString.bufferBits - nbits))
+    bitString.bufferBits -:= nbits
+    return value
+end

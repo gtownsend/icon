@@ -1,0 +1,43 @@
+############################################################################
+#
+#	File:     longest.icn
+#
+#	Subject:  Program to write longest line in a file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 25, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program writes the (last) longest line in the input file.  If the
+#  command-line option -# is given, the number of the longest line is
+#  written first.
+#
+############################################################################
+
+procedure main(argl)
+   local longest, max, count, countl, number, line
+
+   if argl[1] == "-#" then number := 1
+
+   count := 0
+   max := -1
+
+   every line := !&input do {
+      count +:= 1
+      if *line >= max then {
+         max := *line
+         longest := line
+         countl := count
+         }
+      }
+
+   if \number then write(countl)
+   write(longest)
+
+end

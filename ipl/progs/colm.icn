@@ -1,0 +1,131 @@
+############################################################################
+#
+#	File:     colm.icn
+#
+#	Subject:  Program to arrange data into columns
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     December 5, 1989
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# Program to arrange a number of data items, one per line, into
+# multiple columns. Items are arranged in column-wise order, that is,
+# the sequence runs down the first column, then down the second, etc.
+#
+# If a null line appears in the input stream, it signifies a break in
+# the list, and the following line is taken as a title for the
+# following data items. No title precedes the initial sequence of
+# items.
+#
+# Usage:
+#
+#       colm [-w line_width] [-s space_between] [-m min_width]
+#               [-t tab_width] [-x] [-d] [file ...]
+#
+#  The parameters are:
+#
+#       line_width:     the maximum width allowed for output lines
+#                       (default: 80).
+#       space_between:  minimum number of spaces between items
+#                       (default: 2).
+#       min_width:      minimum width to be printed for each entry
+#                       (default: no minimum).
+#       tab_width:      tab width used to entab output lines.
+#                       (default: no tabs).
+#       -x              print items in row-wise order rather than
+#                       column-wise.
+#       -d (distribute) distribute columns throughout available width.
+#
+#  The command "colm -h" generates "help" text.
+#
+#  This is a  general utility,  but  it  was  written and tailored for a
+#  specific purpose:
+#
+#  This  utility  was written  to rearrange the file name  list from the
+#  Macintosh  Programmer's   Workshop  "Files"  command  into   a   more
+#  convenient  format.  "Files" lists  file  names in a  single  column.
+#  This program  takes  the  list  produced by  "Files"  and  outputs  a
+#  multi-column  list.  The  names  are  listed  vertically within  each
+#  column, and  the column width is computed dynamically  depending upon
+#  the sizes  of the  names listed.  A  recommendation  is  to create  a
+#  command file "lc" (List in Columns) as follows:
+#
+#       Files {"Parameters"} | colm
+#
+#  The output from  the  Files command  is "piped" to the "colm" program
+#  (this program), which prints its list in the current window.
+#
+#  By  putting both  the "lc"  command  file and the "colm" program into
+#  your {MPW}Tools folder, "lc" can be conveniently issued  as a command
+#  at any time, using the same parameters as the "Files" command.
+
+link options, colmize
+
+procedure main(arg)
+   local usage, help, opt, rowwise, distribute, maxcols, space, minwidth
+   local tabwidth, f, entries, entry
+   #
+   #  Define usage and help strings.
+   #
+   usage := "_
+   Usage:\tcolm [-w line_width] [-s space_between] [-m min_width]\n_
+	    \t\t[-t tab_width] [-x] [file ...]\n_
+	    \tcolm -h  for help"
+   help := "_
+	    \tline_width:\tthe maximum width allowed for output lines\n_
+				    \t\t\t(default: 80).\n_
+	    \tspace_between:\tminimum number of spaces between items\n_
+				    \t\t\t(default: 2).\n_
+	    \tmin_width:\tminimum width to be printed for each entry\n_
+				    \t\t\t(default: no minimum).\n_
+	    \ttab_width:\ttab width used to print output lines.\n_
+				    \t\t\t(default: no tabs).\n_
+	    \t-x\t\tprint items in row-wise order rather than\n_
+				    \t\t\tcolumn-wise.\n_
+	    \t-d (distribute)\tdistribute columns throughout available width."
+   #
+   #  Process command line options.
+   #
+   opt := options(arg,"hxdw+s+m+t+")
+   if \opt["h"] then write(usage,"\n\n",help) & exit()
+   rowwise := opt["x"]
+   distribute := opt["d"]
+   maxcols := \opt["w"] | 80
+   space := \opt["s"] | 2
+   minwidth := \opt["m"] | 0
+   tabwidth := (\opt["t"] | 0) + 1
+   if tabwidth = 1 then entab := 1
+   if *arg = 0 then arg := [&input]
+   #
+   #  Loop to process input files.
+   #
+   while f := get(arg) do {
+      f := (&input === f) | open(f) | stop("Can't open ",f)
+      #
+      #  Loop to process input groups (separated by empty lines).
+      #
+      repeat {
+	 entries := []
+	 #
+	 #  Loop to build a list of non-empty lines of an input file.
+	 #
+	 while entry := "" ~== read(f) do {
+	    put(entries,entry)
+	    }
+	 #
+	 #  Now write the data in columns.
+	 #
+	 every write(entab(colmize(entries,maxcols,space,minwidth,
+	       rowwise,distribute),tabwidth))
+	 write("\n",read(f)) | break       # print the title line, if any
+	 }
+      close(f)
+      write()
+      }
+end

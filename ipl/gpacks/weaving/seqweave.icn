@@ -1,0 +1,220 @@
+############################################################################
+#
+#	File:     seqweave.icn
+#
+#	Subject:  Program to create woven images from sequence drafts
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 13, 1999
+#
+############################################################################
+#
+#  This program produces woven images as specificed in the include
+#  file, include.wvp, which is produced by seqdraft.icn.
+#
+############################################################################
+#
+# Requires:  Version 9 graphics and large integers
+#
+############################################################################
+#
+#  Links:  convert, expander, weaving, weavutil, lists, mirror, options,
+#          tieutils, wopen, numbers, palettes, weaveseq, xcode, io, palettes,
+#	   patutils
+#
+############################################################################
+#
+#  Note:   The include file may introduce link declarations.
+#
+############################################################################
+
+link convert
+link expander
+link io
+link lists
+link mirror
+link numbers
+link options
+link palettes
+link patutils
+link tieutils
+link weaving
+link weavutil
+link wopen
+link weaveseq
+link xcode
+link ximage
+
+$include "include.wvp"
+
+$ifdef Link
+#########################Whasis
+Link
+$endif
+
+global cmod
+global colors
+global debug
+global height
+global shafts
+global width
+global threading
+global tieup
+global tieups
+global treadling
+global treadles
+global warp_colors
+global weft_colors
+
+record pdb(table)
+
+procedure main(args)
+   local opts
+
+   opts := options(args, "d")
+
+   debug := opts["d"]
+
+   init()
+
+   weave()
+
+$ifdef Save
+   WriteImage(Name || ".gif")
+   exit()
+$endif
+
+   repeat case Event() of {		# process low-level user events
+      !"zZ" :  ZDone()
+      !"qQ" :  exit()
+      "s"   :  WriteImage(Name || ".gif")
+      }
+
+end
+
+# Initialize the weaving.
+
+procedure init()
+   local m, n, v, input, palettes
+
+   pdb()				# prevent linker discard
+   Palette_()
+   Color_()
+   palette_names
+
+   if input := open("/tmp/pdb") then {
+      palette_names := xdecode(input) | stop("*** cannot decode palette database")
+      close(input)
+      }
+   else palette_names := table()
+
+   shafts := Shafts
+   treadles := Treadles
+
+   colors := Colors | stop("*** invalid color specification")
+
+   height := Length
+   width := Breadth
+
+   threading := []
+   every put(threading, |sconvert(Threading, shafts)) \ width
+
+   treadling := []
+   every put(treadling, |sconvert(Treadling, treadles)) \ height
+
+   warp_colors :=  []
+   every put(warp_colors, |sconvert(WarpColors, *colors)) \ width 
+
+   weft_colors := [] 
+   every put(weft_colors, |sconvert(WeftColors, *colors)) \ height
+
+$ifdef Hidden
+   WOpen("canvas=hidden", "size=" || width || "," || height) |
+      stop("Cannot open window for weaving.")
+$else
+   WOpen("size=" || width || "," || height) |
+      stop("Cannot open window for weaving.")
+$endif
+
+$ifdef DeBug
+   write(threading)
+   write(treadling)
+   write(warp_colors)
+   write(weft_colors)
+$endif
+
+   tieup := pat2tier(Tieup).matrix
+
+   return
+
+end
+
+# Create the weaving.
+
+procedure weave()
+   local x, y, color, treadle, i, j, win
+
+   #  Initialize warp.
+
+   if *cset(warp_colors) = 1 then {		# solid warp ground
+      Fg(PaletteColor(Palette, colors[warp_colors[1]]))
+      FillRectangle()
+      }
+   else {
+      x := 0
+      every color := !warp_colors do {
+         Fg(PaletteColor(Palette, colors[color])) | {
+            write(&errout, "Bad warp color key: ", image(color))
+            write(&errout, "Colors: ", ximage(warp_colors))
+            stop("Warp colors: ", ximage(warp_colors))
+            }
+         DrawLine(x, 0, x, *treadling - 1)
+         x +:= 1
+         }
+      }
+
+   every y := 0 to *treadling - 1 do {
+      if *Pending() > 0 then
+         if Event() === "q" then exit()
+      treadle := tieup[treadling[y + 1]]
+      every i := 1 to *treadle do {
+         if treadle[i] == "0" then {
+            every j := 1 to *threading do {
+               if threading[j] == i then {
+                  Fg(PaletteColor(Palette, colors[weft_colors[y + 1]])) |
+                     stop("Bad weft color label.", "y=" || y)
+                  DrawPoint(j - 1, y)	# OPTIMIZE WITH DrawLine()
+                  }
+               }
+            }
+         }
+      }
+
+   case Reflect of {
+      "both"  :  {
+         win := mirror()
+         WClose()
+         WAttrib(win, "canvas=normal")
+         &window := win
+         }
+      }
+
+end
+
+procedure shortcuts(e)
+
+   if &meta then case map(e) of {
+      "q"  :  exit()
+      "w"  :  weave()
+      }
+
+   return
+
+end
+
+procedure sconvert(s, n)
+
+   return abs(integer(s)) % n + 1
+
+end

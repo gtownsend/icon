@@ -1,0 +1,44 @@
+############################################################################
+#
+#	File:     joinpair.icn
+#
+#	Subject:  Procedure to connect pairs of points
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 12, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  joinpair(points1, points2) draws lines between all pairs of points
+#  in the lists of points.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#   Links: gobject, turtle
+#
+############################################################################
+
+link gobject
+link turtle
+
+procedure joinpair(points1, points2)
+   local j, k, p1, p2
+
+   every p1 := !points1 do
+      every p2 := !points2 do {
+         TGoto(p1.x, p1.y)
+         TDrawto(p2.x, p2.y)
+         }
+
+   return
+
+end

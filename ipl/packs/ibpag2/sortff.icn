@@ -1,0 +1,82 @@
+############################################################################
+#
+#	Name:	 sortff.icn
+#
+#	Title:	 sortf with multiple field arguments
+#
+#	Author:	 Bob Alexander and Richard L. Goerwitz
+#
+#	Date:    July 14, 1993
+#
+############################################################################
+#
+#  Sortff is like sortf(), except takes an unlimited number of field
+#  arguments.  E.g. if you want to sort a list of structures on field
+#  5, and (for those objects that have the same field 5) do a sub-sort
+#  on field 2, you would use "sortff(list_of_objects, 5, 2)."
+#
+############################################################################
+
+#
+# sortff:  structure [x integer [x integer...]] -> structure
+#          (L, [fields ...]) -> new_L
+#
+#     Where L is any subscriptable structure, and fields are any
+#     number of integer subscripts in any desired order.  Returns
+#     a copy of structure L with its elements sorted on field 1,
+#     and, for those elements having an identical field 1, sub-
+#     sorted on field 2, etc.
+#
+procedure sortff(L, fields[])
+    *L <= 1 & { return copy(L) }
+    return sortff_1(L, fields, 1, [])
+end
+
+procedure sortff_1(L, fields, k, uniqueObject)
+
+    local sortField, cachedKeyValue, i, startOfRun, thisKey
+
+    sortField := fields[k]
+    L := sortf(L, sortField)	# initial sort using fields[k]
+    #
+    #  If more than one sort field is given, use each field successively
+    #  as the current key, and, where members in L have the same value for
+    #  this key, do a subsort using fields[k+1].
+    #
+    if fields[k +:= 1] then {
+        #
+        #  Set the equal-key-run pointer to the start of the list and
+        #  save the value of the first key in the run.
+        #
+	startOfRun := 1
+	cachedKeyValue := L[startOfRun][sortField] | uniqueObject
+	every i := 2 to *L do {
+	    thisKey := L[i][sortField] | uniqueObject
+	    if not (thisKey === cachedKeyValue) then {
+	        #
+	        # We have an element with a sort key different from the
+	        # previous.  If there's a run of more than one equal keys,
+	        # sort the sublist.
+	        #
+		if i - startOfRun > 1 then {
+		    L := L[1:startOfRun] |||
+			 sortff_1(L[startOfRun:i], fields, k, uniqueObject) |||
+			 L[i:0]
+		}
+	        # Reset the equal-key-run pointer to this key and cache.
+		startOfRun := i
+		cachedKeyValue := L[startOfRun][sortField] | uniqueObject
+            }
+	}
+	#
+	#  Sort a final run if it exists.
+	#
+	if i - startOfRun > 1 then {
+	    L := L[1:startOfRun] |||
+		 sortff_1(L[startOfRun:0], fields, k, uniqueObject)
+	}
+    }
+
+    return L
+
+end

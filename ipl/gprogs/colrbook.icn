@@ -1,0 +1,179 @@
+############################################################################
+#
+#	File:     colrbook.icn
+#
+#	Subject:  Program to show the named colors
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     December 1, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     colrbook is a mouse-driven program for choosing named colors.
+#  Along the left are 24 equally spaced hues plus black, gray, white,
+#  brown, violet, and pink.  Click on any of these to see the twenty
+#  colors that are possible by adding lightness and saturation
+#  modifiers to the particular hue.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: button, evmux, graphics
+#
+############################################################################
+
+link button
+link evmux
+link graphics
+
+$define BevelWidth 2
+$define WindowMargin 10
+
+$define HEADER 20	# height of header area (not incl. margin)
+$define FOOTER 20	# height of footer area (not incl. margin)
+
+$define TSIZ 12		# hue triangle size
+$define HUEW 20		# hue width
+$define HGAP 1		# hue gap
+
+$define LEFT (m+TSIZ+HUEW+labw)	# total space to left of grid and its margin
+
+
+global cwin, huelist, sats, lgts, colrs, fillargs
+global labw, leftx, w, h, m
+
+procedure main(args)
+   local x, y, dx, dy, cw, ch
+   local i, j, ij, hue, r
+
+   lgts := ["pale", "light", "medium", "dark", "deep"]
+   sats := ["weak", "moderate", "strong", "vivid"]
+   colrs := table()
+   fillargs := table()
+
+   Window("size=500,350", "font=Helvetica,bold,12", args)
+   cwin := Clone()
+   m := WindowMargin
+   w := WAttrib("width") - 2 * m
+   h := WAttrib("height") - 2 * m
+   labw := TextWidth("medium") + 3 * m	# label area width
+   leftx := m + TSIZ + HUEW + labw	# space to left of grid and its margin
+
+   dx := (w - leftx + m) / *sats
+   dy := (h - HEADER - FOOTER + m) / *lgts
+   cw := dx - m
+   ch := dy - m
+
+   inithues()
+
+   every i := 1 to *sats do
+      every j := 1 to *lgts do {
+         ij := i || j
+         x := leftx + dx * i - cw
+         y := HEADER + dy * j - ch
+         BevelRectangle(x, y, cw, ch, -BevelWidth)
+         fillargs[ij] := [cwin, x + BevelWidth, y + BevelWidth,
+            cw - 2 * BevelWidth, ch - 2 * BevelWidth]
+         if Fg(cwin, colrs[ij] := NewColor("gray")) then	# may fail
+            FillRectangle ! fillargs[ij]
+         }
+   every i := 1 to *sats do {
+      GrooveRectangle(leftx + m + dx * (i - 1), m / 2, dx - m, HEADER)
+      CenterString(leftx + dx * i - cw / 2, m / 2 + HEADER / 2, sats[i])
+      }
+   every j := 1 to *lgts do {
+      GrooveRectangle(leftx, HEADER + dy*j - ch/2 - HEADER/2, -labw + m, HEADER)
+      RightString(leftx - m, HEADER + dy*j - ch/2, lgts[j])
+      }
+
+   # define sensors
+   button(&window, "QUIT", argless, exit, m+TSIZ+HUEW+m, m, labw-2*m, HEADER)
+   sensor(&window, &lpress, hueclick, r, m, m, TSIZ + HUEW, h)
+   quitsensor(&window)
+
+   # initialize to "gray" hues using an artificial event
+   Enqueue(&lrelease)
+   hueclick(&window, 0, m, m + integer((*huelist - 4.5) / *huelist * h))
+
+   # enter event loop
+   evmux(&window)
+end
+
+procedure hueclick(win, arg, x, y)
+   local hue, e, n, i, j
+
+   e := &ldrag
+   while e ~=== &lrelease do {
+      if e === &ldrag then {
+         n := (*huelist * (y - m + HGAP / 2)) / h + 1
+         if 0 < n <= *huelist then {
+            hue := huelist[n]
+            EraseArea(m, m - TSIZ / 2, TSIZ + 1, h + TSIZ)
+            y := m - HGAP + integer((n - 0.5) * (h + HGAP) / *huelist)
+            BevelTriangle(m + TSIZ / 2, y, TSIZ / 2, "e")
+            setcolor(hue)
+            EraseArea(LEFT, m + h - FOOTER, w, FOOTER + m)
+            CenterString(LEFT + (w - LEFT + m)/2, m + h + m/2 - FOOTER/2, hue)
+            }
+         }
+      e := Event(win)
+      y := &y
+      }
+   return
+end
+
+procedure setcolor(hue)
+   local i, j, ij, prefix
+   static prev
+
+   every i := 1 to *sats do
+      every j := 1 to *lgts do {
+         ij := i || j
+         prefix := lgts[j] || " " || sats[i] || " "
+         if not Color(cwin, \colrs[ij], prefix || hue) then {
+            # no mutable color was allocated;
+            # free old static color, preserving grays (used for decoration)
+            # also preserving labeling colors ("medium vivid")
+            if \prev ~== "black" & \prev ~== "gray" & \prev ~== "white" then
+               FreeColor(cwin, ("medium vivid " ~== prefix) || \prev)
+            Fg(cwin, prefix || hue)
+            FillRectangle ! fillargs[ij]
+            }
+         }
+
+   prev := hue
+   return
+end
+
+procedure inithues()
+   local i, y1, y2, dy, win
+
+   huelist := [
+      "red", "orange", "red-yellow", "reddish yellow",
+      "yellow", "greenish yellow", "yellow-green", "yellowish green",
+      "green", "cyanish green", "cyan-green", "greenish cyan",
+      "cyan", "bluish cyan", "blue-cyan", "cyanish blue",
+      "blue", "blue-purple", "purple", "purple-magenta",
+      "magenta", "reddish magenta", "magenta-red", "magentaish red",
+      "black", "gray", "white",
+      "brown", "violet", "pink"
+      ]
+   dy := real(h + HGAP) / *huelist
+   win := Clone(&window)
+   every i := 1 to *huelist do {
+      y1 := integer(dy * (i - 1))
+      y2 := integer(dy * i)
+      Fg(win, huelist[i])
+      FillRectangle(win, m + TSIZ + 1, m + y1, HUEW - 1, y2 - y1 - HGAP)
+      }
+   Uncouple(win)
+   return
+end

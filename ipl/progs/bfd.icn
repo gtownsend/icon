@@ -1,0 +1,120 @@
+############################################################################
+#
+#	File:     bfd.icn
+#
+#	Subject:  Program to compute best-fit-descending bin packing
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     December 4, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Usage:  bpack binsize [options] [file]
+#
+#  Input:  one entry per line, size in decimal followed by anything else
+#	   (anything else presumably being a file name or something)
+#
+#  Output: all the input lines, unchanged but reordered,
+#	   with an empty line before each bin and a total afterward
+#
+#  Options:
+#	-t	don't output anything except unannotated totals
+#	-n	don't output anything except the *number* of bins
+#	-b i	don't output anything except the details from bin i
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+#  possible options to add later: optional quantization and padding values
+#	(e.g. to use with tar(1) you'd need it to round up to the next
+#	128 bytes and add 128 bytes for each file header -- or whatever)
+
+
+link options
+
+record obj(size,detail)
+
+global opts, binsize
+
+procedure main(args)
+   local ifile, line, n, d
+   local objlist, bins, o, b
+
+   opts := options(args, "tnb+")
+
+   binsize := integer(args[1]) | stop("usage: ", &progname, " binsize")
+
+   if *args > 1 then
+      ifile := open(args[2]) | stop("can't open ", args[2])
+   else
+      ifile := &input
+
+   objlist := []
+   while line := read(ifile) do line ? {
+      tab(many(' \t'))
+      n := integer(tab(many(&digits))) | next
+      tab(many(' \t'))
+      d := trim(tab(0), ' \t')
+      put(objlist, obj(n, d))
+      }
+
+   objlist := sortf(objlist, 1)
+
+   bins := []
+   while o := pull(objlist) do {
+      n := bestfit(bins, o.size)
+      put(bins[n].detail, o)
+      bins[n].size +:= o.size
+   }
+
+   if \opts["n"] then {
+      write(*bins)
+      return
+   }
+
+   if \opts["t"] then {
+      every write((!bins).size)
+      return
+   }
+
+   if n := \opts["b"] then {
+       b := bins[n] | stop("no bin ", n, "; only " *bins, " bins")
+       every write((!b.detail).detail)
+       return
+   }
+
+   while b := get(bins) do {
+      write()
+      while o := get(b.detail) do
+         write(right(o.size, 12), "\t", o.detail)
+      write(right(b.size, 12), "\t--total--")
+      }
+end
+
+procedure bestfit(bins, sz)
+   local b, i, n, d, best
+
+   every i := 1 to *bins do {
+      b := bins[i]
+      d := binsize - b.size - sz
+      if d < 0 | d > \best then
+	 next
+      best := d
+      n := i
+      }
+
+   if \n then
+      return n
+   else {
+      put(bins, obj(0, []))
+      return *bins
+      }
+end

@@ -1,0 +1,419 @@
+############################################################################
+#
+#	File:     lisp.icn
+#
+#	Subject:  Program to interpret LISP programs
+#
+#	Author:   Stephen B. Wampler, modified by Phillip Lee Thomas
+#
+#	Date:     February 4, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This program is a simple interpreter for pure Lisp. It takes the
+#  name of the Lisp program as a command-line argument.
+#
+#     The syntax and semantics are based on EV-LISP, as described in
+#  Laurent Siklossy's "Let's Talk LISP" (Prentice-Hall, 1976, ISBN
+#  0-13-532762-8).  Functions that have been predefined match those
+#  described in Chapters 1-4 of the book.
+#
+#     No attempt at improving efficiency has been made, this is
+#  rather an example of how a simple LISP interpreter might be
+#  implemented in Icon.
+#
+#     The language implemented is case-insensitive.
+#
+#     It only reads enough input lines at one time to produce at least
+#   one LISP-expression, but continues to read input until a valid
+#   LISP-expression is found.
+#
+#     Errors:
+#
+#        Fails on EOF; fails with error message if current
+#     input cannot be made into a valid LISP-expression (i.e. more
+#     right than left parens).
+#
+############################################################################
+#
+#  Syntax:
+#    (quote (a b c))           ==> (A B C)
+#    (setq a (quote (A B C)))  ==> (A B C)
+#    (car a)                   ==> (A)
+#    (cdr a)                   ==> (B C)
+#    (cons (quote d) a)        ==> (D A B C)
+#    (eq (car a) (car a))      ==> T
+#    (atom (quote ()))         ==> T
+#    (atom a)                  ==> NIL
+#    (null (car (car a)))      ==> T
+#    (eval (quote a))          ==> (A B C)
+#    (print a)                 ==> (A B C)
+#                                  (A B C)
+#    (define (quote (
+#            (cadr (quote (lambda (l) (car (cdr l)))))
+#            (cddr (quote (lambda (l) (cdr (cdr l)))))
+#            )))               ==> (CADR CDDR)
+#    (trace (quote (cadr)))    ==> NIL
+#    (untrace (quote (cadr)))  ==> NIL
+#    (itraceon)                ==> T [turns on icon tracing]
+#    (itraceoff)               ==> NIL [turns off icon tracing]
+#    (exit)                    ==> [exit gracefully from icon]
+#
+############################################################################
+
+global words,     # table of variable atoms
+       T, NIL,    # universal constants
+       infile     # command line library files
+
+global trace_set  # set of currently traced functions
+
+record prop(v,f)  # abbreviated propery list
+
+### main interpretive loop
+#
+procedure main(f) 
+local sexpr, source
+   initialize()
+   while infile := open(source := (pop(f) | "CON")) do {
+      write("Reading: ", source)
+      every sexpr := bstol(getbs()) do  {
+            PRINT([EVAL([sexpr])])
+            writes("> ")
+            }
+      }
+
+end
+
+## (EVAL e) - the actual LISP interpreter
+#
+procedure EVAL(l)
+local fn, arglist, arg
+   l := l[1]
+   if T === ATOM([l]) then {                 # it's an atom
+      if T === l then return .T
+      if EQ([NIL,l]) === T then return .NIL
+      return .((\words[l]).v | NIL)
+      }
+   if glist(l) then {                        # it's a list
+      if T === ATOM([l[1]]) then
+         case l[1] of {
+         "QUOTE" : return .(l[2] | NIL)
+         "COND"  : return COND(l[2:0])
+         "SETQ"  : return SET([l[2]]|||evlis(l[3:0]))
+         "ITRACEON"  : return (&trace := -1,T)
+         "ITRACEOFF" : return (&trace := 0,NIL)
+         "EXIT"      : exit(0)
+         default : return apply([l[1]]|||evlis(l[2:0])) | NIL
+         }
+      return apply([EVAL([l[1]])]|||evlis(l[2:0])) | NIL
+      }
+   return .NIL
+end
+
+## apply(fn,args) - evaluate the function
+
+procedure apply(l)
+local fn, arglist, arg, value, fcn
+   fn := l[1]
+   if member(trace_set, string(fn)) then {
+      write("Arguments of ",fn)
+      PRINT(l[2:0])
+      }
+   if value := case string(fn) of {
+      "CAR"     : CAR([l[2]]) | NIL
+      "CDR"     : CDR([l[2]]) | NIL
+      "CONS"    : CONS(l[2:0]) | NIL
+      "ATOM"    : ATOM([l[2]]) | NIL
+      "NULL"    : NULL([l[2]]) | NIL
+      "EQ"      : EQ([l[2],l[3]]) | NIL
+      "PRINT"   : PRINT([l[2]]) | NIL
+      "EVAL"    : EVAL([l[2]]) | NIL
+      "DEFINE"  : DEFINE(l[2]) | NIL
+      "TRACE"   : TRACE(l[2]) | NIL
+      "UNTRACE" : UNTRACE(l[2]) | NIL
+      } then {
+         if member(trace_set, string(fn)) then {
+            write("value of ",fn)
+            PRINT(value)
+            }
+         return value
+         }
+   fcn := (\words[fn]).f | return NIL
+   if type(fcn) == "list" then
+      if fcn[1] == "LAMBDA" then {
+         value :=  lambda(l[2:0],fcn[2],fcn[3])
+         if member(trace_set, string(fn)) then {
+            write("value of ",fn)
+            PRINT(value)
+            }
+         return value
+         }
+      else
+         return EVAL([fn])
+   return NIL
+end
+
+## evlis(l) - evaluate everything in a list
+#
+procedure evlis(l)
+local arglist, arg
+   arglist := []
+   every arg := !l do
+      put(arglist,EVAL([arg])) | fail
+   return arglist
+end
+
+
+### Initializations
+
+## initialize() - set up global values
+#
+procedure initialize()
+   words := table()
+   trace_set := set()
+   T     := "T"
+   NIL   := []
+end
+
+### Primitive Functions
+
+## (CAR l)
+#
+procedure CAR(l)
+   return glist(l[1])[1] | NIL
+end
+
+## (CDR l)
+#
+procedure CDR(l)
+   return glist(l[1])[2:0] | NIL
+end
+
+## (CONS l)
+#
+procedure CONS(l)
+   return ([l[1]]|||glist(l[2])) | NIL
+end
+
+## (SET a l)
+#
+procedure SET(l)
+   (T === ATOM([l[1]])& l[2]) | return NIL
+   /words[l[1]] := prop()
+   if type(l[2]) == "prop" then
+      return .(words[l[1]].v := l[2].v)
+   else
+      return .(words[l[1]].v := l[2])
+end
+
+## (ATOM a)
+#
+procedure ATOM(l)
+   if type(l[1]) == "list" then
+      return (*l[1] = 0 & T) | NIL
+   return T
+end
+
+## (NULL l)
+#
+procedure NULL(l)
+   return EQ([NIL,l[1]])
+end
+
+## (EQ a1 a2)
+#
+procedure EQ(l)
+   if type(l[1]) == type(l[2]) == "list" then
+      return (0 = *l[1] = *l[2] & T) | NIL
+   return (l[1] === l[2] & T) | NIL
+end
+
+## (PRINT l)
+#
+procedure PRINT(l)
+   if type(l[1]) == "prop" then
+      return PRINT([l[1].v])
+   return write(strip(ltos(l)))
+end
+
+## COND(l) - support routine to eval
+#                 (for COND)
+procedure COND(l)
+local pair
+   every pair := !l do {
+      if type(pair) ~== "list" |
+              *pair ~= 2 then {
+         write(&errout,"COND: ill-formed pair list")
+         return NIL
+         }
+      if T === EVAL([pair[1]]) then
+         return EVAL([pair[2]])
+      }
+   return NIL
+end
+
+## (TRACE l)
+#
+procedure TRACE(l)
+   local fn
+
+   every fn := !l do {
+      insert(trace_set, fn)
+      }
+   return NIL
+end
+
+## (UNTRACE l)
+#
+procedure UNTRACE(l)
+   local fn
+
+   every fn := !l do {
+      delete(trace_set, fn)
+      }
+   return NIL
+end
+
+## glist(l) - verify that l is a list
+#
+procedure glist(l)
+   if type(l) == "list" then return l
+end
+
+## (DEFINE fname definition)
+#
+# This has been considerable rewritten (and made more difficult to use!)
+#  in order to match EV-LISP syntax.
+procedure DEFINE(l)
+   local fn_def, fn_list
+
+   fn_list := []
+   every fn_def := !l do {
+      put(fn_list, define_fn(fn_def))
+      }
+
+   return fn_list
+end
+
+## Define a single function (called by 'DEFINE')
+#
+procedure define_fn(fn_def)
+   /words[fn_def[1]] := prop(NIL)
+   words[fn_def[1]].f := fn_def[2]
+   return fn_def[1]
+end
+
+## lambda(actuals,formals,def)
+#
+procedure lambda(actuals, formals, def)
+local save, act, form, pair, result, arg, i
+   save := table()
+   every arg := !formals do
+      save[arg] := \words[arg] | prop(NIL)
+   i := 0
+   every words[!formals] := (prop(actuals[i+:=1]|NIL)\1)
+   result := EVAL([def])
+   every pair := !sort(save) do
+      words[pair[1]] := pair[2]
+   return result
+end
+
+#  Date: June 10, 1988
+#
+procedure getbs()
+static tmp
+   initial tmp := ("" ~== |Map(read(infile))) || " "
+
+   repeat {
+      while not checkbal(tmp) do {
+         if more(')','(',tmp) then break
+         tmp ||:= (("" ~== |Map(read(infile))) || " ") | break
+         }
+      suspend balstr(tmp)
+      tmp := (("" ~== |Map(read(infile))) || " ") | fail
+      }
+end
+
+## checkbal(s) - quick check to see if s is
+#       balanced w.r.t. parentheses
+#
+procedure checkbal(s)
+   return (s ? 1(tab(bal()),pos(-1)))
+end
+
+## more(c1,c2,s) - succeeds if any prefix of
+#       s has more characters in c1 than
+#       characters in c2, fails otherwise
+#
+procedure more(c1,c2,s)
+local cnt
+   cnt := 0
+   s ? while (cnt <= 0) & not pos(0) do {
+         (any(c1) & cnt +:= 1) |
+         (any(c2) & cnt -:= 1)
+         move(1)
+         }
+   return cnt >= 0
+end
+
+## balstr(s) - generate the balanced disjoint substrings
+#               in s, with blanks or tabs separating words
+#
+#       errors:
+#          fails when next substring cannot be balanced
+#
+#
+procedure balstr(s)
+static blanks
+   initial blanks := ' \t'
+   (s||" ") ? repeat {
+          tab(many(blanks))
+          if pos(0) then break
+          suspend (tab(bal(blanks))\1 |
+                  {write(&errout,"ill-formed expression")
+                    fail}
+                  ) \ 1
+          }
+end
+
+## bstol(s) - convert a balanced string into equivalent
+#       list representation.
+#
+procedure bstol(s)
+static blanks
+local l
+   initial blanks := ' \t'
+   (s||" ") ? {tab(many(blanks))
+               l := if not ="(" then s else []
+              }
+   if not string(l) then
+      every put(l,bstol(balstr(strip(s))))
+   return l
+end
+
+## ltos(l) - convert a list back into a string
+#
+#
+procedure ltos(l)
+   local tmp
+
+   if type(l) ~== "list" then return l
+   if *l = 0 then return "NIL"
+   tmp := "("
+   every tmp ||:= ltos(!l) || " "
+   tmp[-1] := ")"
+   return tmp
+end
+
+procedure strip(s)
+   s ?:= 2(="(", tab(bal()), =")", pos(0))
+   return s
+end
+
+procedure Map(s)
+   return map(s, &lcase, &ucase)
+end

@@ -1,0 +1,59 @@
+############################################################################
+#
+#	File:     playev.icn
+#
+#	Subject:  Program to play back events
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 16, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program plays back events saved by recordev.  Since recordev
+#  uses image() for recording, some information may be lost.
+#
+#  This program is called as
+#
+#	playev em <history
+#
+#  where history is a file produced by recordev.
+#
+############################################################################
+#
+#  Requires:   Version 9.0 MT Icon with event monitoring
+#
+############################################################################
+#
+#  Links: evinit, ivalue
+#
+############################################################################
+
+link evinit
+link ivalue
+
+procedure main(args)
+   local mask, prog
+
+   prog := load(pop(args), args) | stop("*** cannot EM")
+
+   variable("&eventsource", prog) := &current | stop("no eventsource?")
+
+   mask := @prog				# activate EM to get its mask
+
+   while &eventcode := read() do {
+      &eventcode := ivalue(&eventcode)		# can fail
+      &eventvalue := read() | break
+      if find(&eventcode, mask) then {
+         &eventvalue := ivalue(&eventvalue)	# can fail
+         mask := event(, , prog)		# pass event; get mask back
+         }
+      }
+
+   cofail(prog)
+
+end

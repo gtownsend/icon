@@ -1,0 +1,67 @@
+############################################################################
+#
+#	File:     plat.icn
+#
+#	Subject:  Program to create image file with specified colors
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 6, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program produces image files from color lists, in which the
+#  image file contains one pixel for each color.  The image files are
+#  16x16 pixels.  If a color list has less than 256 colors, the rest
+#  of the image is black.  If the color list has more than 256 colors
+#  only the first 256 are processed.
+#
+#  The image file names have the basename of the color list files followed
+#  by _p and the suffix .gif.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  basename, wopen
+#
+############################################################################
+
+link basename
+link wopen
+
+procedure main(args)
+   local line, file, name, input, i, j, color
+
+   WOpen("canvas=hidden", "size=16,16", "bg=black") |
+      stop("*** cannot open window")
+
+   every file := !args do {
+      input := open(file) | {
+         write(&errout, "*** cannot open ", file)
+         next
+         }
+      name := basename(file, ".clr")
+      EraseArea()
+      every i := 0 to 15 do
+         every j := 0 to 15 do {
+         color := read(input) | break
+         color ? {
+            Fg(tab(upto('\t') | 0)) |
+               write(&errout, "*** cannot set foreground")
+            }
+         DrawPoint(i, j)
+         }
+      WriteImage(name || "_p.gif")
+      close(input)
+      }
+
+end
+      
+  

@@ -1,0 +1,144 @@
+############################################################################
+#
+#	File:     lu.icn
+#
+#	Subject:  Procedures for LU manipulation
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  lu_decomp(M, I) performs LU decomposition on the square matrix M
+#  using the vector I.  Both M and I are modified in the process.  The
+#  value returned is +1 or -1 depending on whether the number of row
+#  interchanges is even or odd.  lu_decomp() is used in combination with
+#  lu_back_sub() to solve linear equations or invert matrices.
+#
+#  lu_decomp() fails if the matrix is singular.
+#
+#  lu_back_sub(M, I, B) solves the set of linear equations M x X = B.  M
+#  is the matrix as modified by lu_decomp().  I is the index vector
+#  produced by lu_decomp().  B is the right-hand side vector and return
+#  with the solution vector. M and I are not modified by lu_back_sub()
+#  and can be used in successive calls of lu_back_sub() with different
+#  Bs.
+#
+############################################################################
+#
+#  Acknowledgement:  These procedures are based on algorithms given in
+#  "Numerical Recipes; The Art of Scientific Computing"; William H. Press,
+#  Brian P. Flannery, Saul A. Teukolsky. and William T. Vetterling;
+#  Cambridge University Press, 1986.
+#
+############################################################################
+
+procedure lu_decomp(M, I)
+   local small, d, n, vv, i, largest, j, sum, k, pivot_val, imax
+
+   initial small := 1.0e-20
+
+   d := 1.0
+
+   n := *M
+   if n ~= *M[1] then stop("*** non-square matrix")
+   if n ~= *I then stop("*** index vector incorrect length")
+
+   vv := list(n, 0.0)			# scaling vector
+
+   every i := 1 to n do {
+      largest := 0.0
+      every j := 1 to n do
+         largest <:= abs(M[i][j])
+      if largest = 0.0 then fail		# matrix is singular
+      vv[i] := 1.0 / largest
+      }
+
+   every j := 1 to n do {			# Crout's method
+      if j > 1 then {
+         every i := 1 to j - 1 do {
+            sum := M[i][j]
+            if i > 1 then {
+               every k := 1 to i - 1 do
+                   sum -:= M[i][k] * M[k][j]
+               M[i][j] := sum
+               }
+            }
+         }
+
+      largest := 0.0				# search for largest pivot
+      every i := j to n do {
+         sum := M[i][j]
+         if j > 1 then {
+            every k := 1 to j - 1 do
+               sum -:= M[i][k] * M[k][j]
+            M[i][j] := sum
+            }
+         pivot_val := vv[i] * abs(sum)
+         if pivot_val > largest then {
+            largest := pivot_val
+            imax := i
+            }
+         }
+
+      if j ~= imax then {			# interchange rows?
+         every k := 1 to n do {
+            pivot_val := M[imax][k]
+            M[imax][k] := M[j][k]
+            M[j][k] := pivot_val
+            }
+         d := -d				# change parity
+         vv[imax] := vv[j]			# and scale factor
+         }
+      I[j] := imax
+      if j ~= n then {				# divide by the pivot element
+         if M[j][j] = 0.0 then M[j][j] := small	# small value is better than
+         pivot_val := 1.0 / M[j][j]		# zero for some applications
+         every i := j + 1 to n do
+            M[i][j] *:= pivot_val
+         }
+      }
+
+      if M[n][n] = 0.0 then M[n][n] := small
+
+      return d
+
+end
+
+procedure lu_back_sub(M, I, B)
+   local n, ii, i, ip, sum, j
+
+   n := *M
+   if n ~= *M[1] then stop("*** matrix not square")
+   if n ~= *I then stop("*** index vector wrong length")
+   if n ~= *B then stop("*** output vector wrong length")
+
+   ii := 0
+
+   every i := 1 to n do {
+      ip := I[i] | stop("failed in line ", &line)
+      sum := B[ip] | stop("failed in line ", &line)
+      B[ip] := B[i] | stop("failed in line ", &line)
+      if ii ~= 0 then
+         every j := ii to i - 1 do
+            sum -:= M[i][j] * B[j] | stop("failed in line ", &line)
+      else if sum ~= 0.0 then ii := i
+      B[i] := sum | stop("failed in line ", &line)
+      }
+   every i := n to 1 by -1 do {
+      sum := B[i] | stop("failed in line ", &line)
+      if i < n then {
+         every j := i + 1 to n do
+            sum -:= M[i][j] * B[j] | stop("failed in line ", &line)
+         }
+      B[i] := sum / M[i][i] | stop("failed in line ", &line)
+      }
+
+   return
+
+end

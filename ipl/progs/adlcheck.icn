@@ -1,0 +1,105 @@
+############################################################################
+#
+#	File:     adlcheck.icn
+#
+#	Subject:  Program to check for bad address list data
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 19, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#    This program checks address lists for correctness.
+#
+#    There are five options:
+#
+#	-s	Check state (U.S. labels only)
+#	-z	Check ZIP code (U.S. labels only)
+#	-c	Check country name (a very heuristic check)
+#	-a	Check all of the above
+#	-d	Report addresses that exceed "standard dimensions" for labels:
+#		   40 character line length, 8 lines per entry
+#
+############################################################################
+#
+#  See also: address.doc, adlcount.icn, adlfiltr.icn, adllist.icn,
+#     adlsort,icn, labels.icn
+#
+#  Links: adlutils, options
+#
+############################################################################
+
+link adlutils, options
+
+procedure main(args)
+   local opts, choice, item, badchar, print, states, i, line, dim, add
+
+   states := set(["AK", "AL", "AR", "AS", "AZ", "CA", "CO", "CT", "DC",
+      "DE", "FL", "FM", "GA", "GU", "HI", "IA", "ID", "IL", "IN", "KS",
+      "KY", "LA", "MA", "MD", "ME", "MH", "MI", "MN", "MO", "MP", "MS",
+      "MT", "NC", "ND", "NE", "NH", "NJ", "NM", "NV", "NY", "OH", "OK",
+      "ON", "OR", "PA", "PR", "PW", "RI", "SC", "SD", "TN", "TX", "UT",
+      "VA", "VT", "WA", "WI", "WV", "WY"])
+
+   print := ""
+
+   badchar := ~&ucase -- ' .'		# very heuristic country name check
+
+   opts := options(args,"acszd")
+   if \opts["a"] then {			# if -a, do all
+      opts["a"] := &null
+      every opts[!"csz"] := 1
+      }
+   if \opts["d"] then dim := write(1)		# dimension check
+
+   while add := nextadd() do {
+      add.text ? {
+         i := 0
+         while line := tab(upto('\n') | 0) do {
+            i +:= 1
+            if *line > 40 then print ||:= "o"
+            move(1) | break
+            }
+         if i > 8 then print ||:= "o"
+         }
+
+      every \opts[choice := !"csz"] do
+         case choice of {
+         "c":  {			# check country name
+            get_country(add) ? {
+               if upto(badchar) then {
+                  print ||:= choice
+                  }
+               }
+            }
+         "s":  {			# check state
+            if not member(states,get_state(add)) then {
+               print ||:= choice
+               }
+            }
+         "z":  {
+            if get_zipcode(add) == "9999999999" then {
+               print ||:= choice
+               }
+            }
+         }
+      if *print > 0 then {
+         every choice := !print do
+            write("*** ",case choice of {
+               "c":  "bad country name"
+               "s":  "bad state abbreviation"
+               "z":  "bad ZIP code"
+               "o":  \dim & "size exceeds label dimensions"
+               })
+         write()
+         writeadd(add)
+         print := ""
+         }
+   }
+
+end

@@ -1,0 +1,199 @@
+############################################################################
+#
+#	File:     testpatt.icn
+#
+#	Subject:  Program to show test patterns
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     July 18, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     testpatt cycles through a set of test patterns as the return
+#  key is pressed.  Backspacing cycles in the other direction.
+#  The window can be resized at any time.  Press "q" to exit.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: graphics, imscolor
+#
+############################################################################
+
+link graphics
+link imscolor
+
+global wwidth, wheight			# window width and height
+
+$define SQUARE 60			# size of squares, in pixels
+
+
+#  main procedure
+
+procedure main(args)
+   local patlist
+
+   Window("size=1000,700", "gamma=1.0", args)
+   &error := 1
+   WAttrib("resize=on")
+   &error := 0
+
+   patlist := [checkers, grid, ghost, pinstripe, white, bars, palette]
+						# revolving list of procedures
+   
+   reset()					# reset display
+   patlist[1]()					# display initial pattern
+
+   repeat case Event() of {
+      !"\r\n":  {				# \r or \n advances pattern
+         put(patlist, get(patlist))
+         reset()
+         patlist[1]()
+         }
+      !"\b\d":  {				# \b or \d cycles backwards
+         push(patlist, pull(patlist))
+         reset()
+         patlist[1]()
+         }
+      !"qQ":					# q exits the program
+         exit()
+      &resize: {				# resize requires redrawing
+         reset()
+         patlist[1]()
+         }
+      }
+end
+
+
+#  reset() -- prepare for next test
+#
+#  The screen is cleared and the fg/bg colors are reset.
+#  Each test procedure is responsible for restoring anything else it changes.
+
+procedure reset()
+   WAttrib("fg=black", "bg=white")
+   EraseArea()
+   wwidth := WAttrib("width")
+   wheight := WAttrib("height")
+   return
+end
+
+
+#  checkers() -- a checkerboard with additional lines
+#
+#  There should be no red or green tinge to the edges of the squares.
+
+procedure checkers()
+   local x, y
+
+   WAttrib("drawop=reverse")
+   every x := 0 to wwidth by 2 * SQUARE do {
+      FillRectangle(x, 0, SQUARE, wheight)
+      DrawLine(x + SQUARE / 2, 0, x + SQUARE / 2, wheight)
+      }
+   every y := 0 to wheight by 2 * SQUARE do {
+      FillRectangle(0, y, wwidth, SQUARE)
+      DrawLine(0, y + SQUARE / 2, wwidth, y + SQUARE / 2)
+      }
+   WAttrib("drawop=copy")
+   return
+end
+
+
+#  grid() -- a grid of white lines
+
+procedure grid()
+   local x, y
+
+   FillRectangle()
+   Fg("white")
+   every x := SQUARE / 2 to wwidth by SQUARE do
+      DrawLine(x, 0, x, wheight)
+   every y := SQUARE / 2 to wheight by SQUARE do
+      DrawLine(0, y, wwidth, y)
+   return
+end
+
+
+#  ghost() -- generate ghosting pattern
+#
+#  Look for white echoes of the black vertical lines
+#  displaced about 1mm to their right.
+
+procedure ghost()
+   $define NSTEPS 12
+   local dx, x1, x2, y1, y2, i, g
+
+   dx := wwidth / NSTEPS
+   x1 := .10 * dx
+   x2 := .90 * dx
+   y1 := .95 * wheight
+   y2 := .05 * wheight
+   every i := 1 to NSTEPS do {
+      g := i * 65535 / NSTEPS
+      Bg(g || "," || g || "," || g)
+      WAttrib("dx=" || integer((i - 1) * dx))
+      EraseArea(0, 0, dx + 1, wheight)
+      DrawLine(x1, y1, x1, y2, x2, y1)#, x2, y2)
+      }
+   WAttrib("bg=white", "dx=0")
+   return
+end
+
+
+#  pinstripe() -- generate vertical pinstripe pattern
+#
+#  The moire patterns that result on a Trinitron-type CRT
+#  reveal the consistency of pixel sizing across the display.
+
+procedure pinstripe()
+   WAttrib("pattern=2,#2", "fillstyle=textured")
+   FillRectangle()
+   WAttrib("fillstyle=solid")
+   return
+end
+
+
+#  white() -- generate a white screen
+
+procedure white()
+   return
+end
+
+
+#  bars() -- generate color bars
+
+procedure bars()
+   local dx, i
+
+   dx := (wwidth + 7) / 8
+   "black blue red magenta green cyan yellow white " ?
+      every i := 0 to 7 do {
+         Fg(tab(upto(' ')))
+         move(1)
+         FillRectangle(i * dx, 0, dx, wheight)
+         }
+   return
+end
+
+
+#  palette() -- draw color palettes
+
+procedure palette()
+   local dx
+
+   dx := (wwidth + 3) / 4
+   drawpalette("c1",      0, 0, dx, wheight, "")
+   drawpalette("c1",     dx, 0, dx, wheight, "l")
+   drawpalette("c1", 2 * dx, 0, dx, wheight, "o")
+   drawpalette("c1", 3 * dx, 0, dx, wheight, "")
+   return
+end

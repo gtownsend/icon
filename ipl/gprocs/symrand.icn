@@ -1,0 +1,48 @@
+############################################################################
+#
+#	File:     symrand.icn
+#
+#	Subject:  Procedures to generate random points
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  rand(x, y, extentx, extenty, n) generates random points in a rectangle.
+#
+#  symrand(x, y, extentx, extenty, size, n) generates points symmetrically.
+#
+############################################################################
+#
+#  Links:  gobject
+#
+############################################################################
+
+link gobject
+
+#  Generate n random points within a rectangular area.
+
+procedure rand(x, y, extentx, extenty, n)
+
+   every 1 to n do 
+      suspend Point(x + ?extentx + 1, y + ?extenty + 1)
+
+end
+
+procedure symrand(x, y, extentx, extenty, size, n)
+   local xp, yp
+
+   every 1 to n do {
+      xp := x + ?extentx + 1
+      yp := y + ?extenty + 1
+      suspend Point(xp | size - xp, yp | size - yp) |
+         Point(yp | size - yp, xp | size - xp)
+      }
+
+end

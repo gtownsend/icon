@@ -1,0 +1,81 @@
+############################################################################
+#
+#	File:     xgtrace.icn
+#
+#	Subject:  Procedures to draw traces of points
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 19, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  As used here, the term "trace" refers to a sequence of points that
+#  generally consists of locations on a curve or other geometrical object.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  gtace, turtle
+#
+############################################################################
+
+link gtrace
+link turtle
+
+#
+#  line_trace(call) draws lines along the figure described by the trace from
+#  invoke(call).
+
+procedure line_trace(call)
+   local TPlot, point
+
+   TPlot := TGoto			# go to first point
+   every point := invoke(call) do {
+      TPlot(point.x, point.y)
+      TPlot := TDrawto			# draw subsequently
+      }
+
+   return
+
+end
+
+#
+#  segment_trace(call) draws line segments between successive pairs of
+#  points along the figure described by the trace from invoke(call).
+
+procedure segment_trace(call)
+   local TPlot, TPlotNext, point
+
+   TPlot := TGoto			# go to first point
+   TPlotNext := TDrawto
+   every point := invoke(call) do {
+      TPlot(point.x, point.y)
+      TPlot :=: TPlotNext		# draw subsequently
+      }
+
+   return
+
+end
+
+#
+#  curve_trace(call) draws a curve along the figure described by the trace
+#  from invoke(call).
+#
+procedure curve_trace(call, limit)
+   local points, n
+
+   /limit := 500			# maximum number of points allowed
+
+   DrawCurve ! coord_list(call, limit)
+
+   return
+
+end

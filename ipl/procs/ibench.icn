@@ -1,0 +1,171 @@
+############################################################################
+#
+#	File:     ibench.icn
+#
+#	Subject:  Procedures to support Icon benchmarking
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 16, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     Procedures to support benchmarking of Icon programs:
+#
+#	 Init__(prog)		initialize for benchmarking
+#	 Term__()		terminate benchmarking
+#	 Allocated__()		get amounts allocated
+#	 Collections__()	get collections
+#	 Regions__()		get regions
+#	 Signature__()		show program/environment information
+#	 Storage__()		get storage
+#	 Time__()		show elapsed time
+#	 Display__(data,name)	show information
+#
+############################################################################
+#
+#     The code to be timed is bracketed by calls to Init__(name)
+#  and Term__(), where name is used for tagging the results.
+#  The typical usage is:
+#
+#	procedure main()
+#	   [declarations]
+#	   Init__(name)
+#		.
+#		.
+#		.
+#	   Term__()
+#	end
+#
+#     If the environment variable OUTPUT is set, program output is
+#  not suppressed.
+#
+#     If the environment varibale NOBENCH is set, benchmarking is not
+#  performed (and OUTPUT has no effect).  This allows a program that
+#  links ibench to run in the ordinary way.
+#
+############################################################################
+
+global Save__, Saves__, Name__, Labels__
+
+# List information before running.
+#
+procedure Init__(prog)
+   if getenv("NOBENCH") then {	# don't do benchmarking
+      Term__ := 1
+      return
+      }
+   Name__ := prog			# program name
+   Labels__ := ["total ","static","string","block "]
+   write(Name__,": benchmarking\n")
+   Signature__()			# initial information
+   Regions__()
+   Time__()
+   if not getenv("OUTPUT") then {	# if OUTPUT is set, allow output
+      Save__ := write			# turn off output
+      Saves__ := writes
+      write := writes := -1
+      }
+   else write(Name__,": output\n")
+   return
+end
+
+# List information at termination.
+
+procedure Term__()
+   if not getenv("OUTPUT") then {	# if OUTPUT is not set, restore output
+      write := Save__
+      writes := Saves__
+      }
+					# final information
+   Regions__()
+   Storage__()
+   Collections__()
+   Allocated__()
+   write("\n",Name__,": elapsed time = ",Time__()," ms.")
+   return
+end
+
+#
+# List total amounts of allocation.  Needs Icon Version 8.5 or above.
+#
+procedure Allocated__()
+   local allocated
+
+   allocated := []
+   every put(allocated,&allocated)
+   Display__(allocated,"allocated")
+   return
+
+end
+
+# List garbage collections performed.
+#
+procedure Collections__()
+   local collections
+
+   collections := []
+   every put(collections,&collections)
+   Display__(collections,"collections")
+   return
+end
+
+# List region sizes.
+#
+procedure Regions__()
+   local regions, count
+   
+   regions := []
+   every put(regions,&regions)
+   count := 0
+   every count +:= !regions
+   push(regions,count)
+   Display__(regions,"regions")
+   return
+end
+
+# List relveant implementation information
+#
+procedure Signature__()
+
+   every write(&version | &host | &features)
+   return
+
+end
+
+# List storage used.
+#
+procedure Storage__()
+   local storage, count
+   
+   storage := []
+   every put(storage,&storage)
+   count := 0
+   every count +:= !storage
+   push(storage,count)
+   Display__(storage,"storage")
+   return
+end
+
+# List elapsed time.
+#
+procedure Time__()
+   static lasttime
+
+   initial lasttime := &time
+   return &time - lasttime
+end
+
+# Display storage information
+#
+procedure Display__(data,name)
+   local i
+
+   write("\n",name,":\n")
+   every i := 1 to *Labels__ do
+      write(Labels__[i],right(data[i],8))
+end

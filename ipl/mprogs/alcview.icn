@@ -1,0 +1,258 @@
+###########################################################################
+#
+#	File:     alcview.icn
+#
+#	Subject:  Program to display allocation events in various ways
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 16, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program maps allocation events into colors and provides various
+#  abstract visualizations of them.
+#
+#  Several visualizations are available:
+#
+#       beacon		blinking light
+#	curves		random closed curves
+#	haystack*	randomly oriented lines
+#	nova*		radiating lines
+#	pinwheel	revolving sequence of sectors in a circle
+#	polygons	random polygons
+#	splatter*	randomly placed dots
+#	strip		scrolling strip of vertical lines
+#	symplat		as splatter, but in symmetric pattern
+#	vortex*		expanding/contracting square vortex
+#	web*		random walk
+#
+#  The visualizations marked with asterisks use the size information. The
+#  others do not.
+#
+#  In terms of the monitoring framework terminology, this program
+#  provides abstract visualizations for in an event space consisting
+#  of category/size pairs -- 2CS -- in which the categories are colors.
+#
+#  The interface controls provide for:
+#
+#	control of the display speed
+#	pausing the display
+#	resetting the display
+#	setting the period between automatic resetting
+#	changing the view
+#	
+############################################################################
+#
+#  Requires:  MT Icon, event monitoring, Version 9 graphics
+#
+############################################################################
+#
+#  Links: colormap, evinit,  interact, viewpack, vsetup
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+link colormap
+link evinit
+link interact
+link viewpack
+link vsetup
+
+$include "evdefs.icn"
+
+global color
+global vidgets
+global viewer
+global root
+global pane
+global state
+global reset			# vidget for resetting callback
+global snap
+global name
+global point
+global count			# drawing count
+global done
+global default_color		# default in case of bad color specification
+global draw			# drawing procedure for visualization
+global width
+global height
+global period			# automatic resetting count
+global refresh			# resetting switch
+
+#  Prevent linker from deleting procedures that are not explicitly referenced.
+invocable "beacon"
+invocable "curves"
+invocable "haystack"
+invocable "nova"
+invocable "pinwheel"
+invocable "polygons"
+invocable "splatter"
+invocable "strip"
+invocable "symsplat"
+invocable "vortex"
+invocable "web"
+
+#  Main procedure
+
+procedure main(args)
+
+   init(args)
+
+   display()
+
+end
+
+#  Initialization
+
+procedure init(args)
+
+   EvInit(args) | stop("*** cannot load SP.")
+
+   vidgets := ui()
+
+   root := vidgets["root"]
+   reset := vidgets["reset"]
+
+   state := &null
+
+   width :=  vidgets["pane"].uw
+   height :=  vidgets["pane"].uh
+
+   default_color := "black"
+
+   refresh := period := -1
+   count := 0
+   done := &null
+
+   viewer := "symsplat"
+
+   color := colormap()
+
+   draw := proc(viewer) | stop("*** internal inconsistency")
+
+   pane := Clone("dx=" || vidgets["pane"].ux, "dy=" || vidgets["pane"].uy,
+      "bg=" || default_color)
+   Clip(pane, 0, 0, width, height)
+
+   reset_cb()
+
+end
+
+#  Display driver
+
+procedure display()
+
+   repeat {
+      if period = 0 then reset_cb()
+      while (*Pending() > 0) | \state do
+         ProcessEvent(root, , shortcuts)
+      EvGet(AllocMask) | exit()
+      draw(pane, color[&eventcode], &eventvalue)
+      period -:= 1
+      }
+
+end
+
+#  Callbacks
+
+procedure quit_cb()
+
+   exit()
+
+end
+
+procedure snapshot_cb()
+
+   snapshot(pane, 0, 0, width, height)
+   
+   return
+
+end
+
+procedure period_cb()
+
+   repeat {
+      if TextDialog("Reset period (negative value disables _
+          automatic resetting:",  , refresh, 6) == "Cancel" then fail
+      if refresh := period := integer(dialog_value[1]) then return
+      else {
+         Notice("Invalid period specification.")
+         next
+         }
+      }
+
+end
+   
+procedure reset_cb()
+
+   EraseArea(pane, 0, 0, width, height)
+
+   period := refresh
+
+   return
+
+end
+
+procedure view_cb()
+   static views
+
+   initial {
+      views := [
+         "beacon",
+         "curves",
+         "haystack",
+         "nova",
+         "pinwheel",
+         "polygons",
+         "splatter",
+         "strip",
+         "symsplat",
+         "vortex",
+         "web"
+         ]
+      }
+
+   if SelectDialog("Select viewer:", views, viewer) == "Cancel" then fail
+   viewer := dialog_value
+   draw := proc(viewer) | 
+      return FailNotice("Internal inconsistency; viewer not found.")
+   reset_cb()
+
+   return
+
+end
+
+procedure shortcuts(e)
+
+   if &meta then
+      case map(e) of {
+         "q":  exit()
+         "r":  reset_cb()
+         }
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=311,210", "bg=pale gray"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,311,210:",],
+   ["period:Button:regular::11,96,91,20:reset period",period_cb],
+   ["quit:Button:regular::34,19,42,20:quit",quit_cb],
+   ["reset:Button:regular::34,55,42,20:reset",reset_cb],
+   ["view:Button:regular::15,133,84,20:select view",view_cb],
+   ["pane:Rect:grooved::113,9,190,190:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

@@ -1,0 +1,87 @@
+############################################################################
+#
+#       File:     weighted.icn
+#
+#       Subject:  Procedure to shuffle list with randomness
+#
+#       Author:   Erik Eid
+#
+#       Date:     May 23, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     WeightedShuffle returns the list "sample" with only a portion of the
+# elements switched.  Examples:
+#
+#     L := WeightedShuffle (X, 100)   - returns a fully shuffled list
+#     L := WeightedShuffle (X, 50)    - every other element is eligible to
+#                                       be switched
+#     L := WeightedShuffle (X, 25)    - every fourth element is shuffled
+#     L := WeightedShuffle (X, 0)     - nothing is changed
+#
+#     The procedure will fail if the given percentage is not between 0 and
+# 100, inclusive, or if it is not a numeric value.
+#
+############################################################################
+
+procedure WeightedShuffle (sample, percentage)
+local lcv, pairs, weight, size, newlist, legal, illegal
+  numeric(percentage) | fail
+  (0 <= percentage <= 100) | fail
+  newlist := copy(sample)                  # Start with a copy of the
+                                           # original list.
+  size := *newlist
+  legal := list()                          # This list will hold which
+                                           # indices are valid choices for
+                                           # the shuffle, amounting to the
+                                           # selected percentage of all
+                                           # elements.
+  
+# There are two very similar methods used here.  I found that using only the
+# first one created some odd values for 50 < percentage < 100, so I mirrored
+# the technique to create a list of "bad" indices instead of a list of 
+# "good" indices that the random switch can choose from.
+
+  if ((percentage <= 50) | (percentage = 100)) then {
+    pairs := integer (size * percentage / 100)
+                                           # Number of pairs to be switched.
+    if pairs > 0 then {                    # Makes sure to avoid division by
+                                           # zero- occurs when there is no
+                                           # need to shuffle.
+      weight := integer ((real(size) / pairs) + 0.5)        
+                                           # Holds increment used in
+                                           # selective shuffling, rounded up.
+      lcv := 1
+      until lcv > size do {
+        put (legal, lcv)                   # These indices may be used in
+                                           # the shuffle.
+        lcv +:= weight
+      }
+    }
+  }  
+  else { # percentage > 50
+    pairs := integer (size * (100 - percentage) / 100)
+                                           # Avoid switching this many pairs.
+    if pairs > 0 then {
+      weight := integer (size / pairs)     # Increment, rounded down.
+      illegal := set ([])                  # Which indices can't be used?
+      lcv := 1
+      until lcv > size do {
+        illegal ++:= set([lcv])            # Compile the list of invaild
+                                           # indices.
+        lcv +:= weight
+      }
+      every lcv := 1 to size do            # Whatever isn't bad is good.
+        if not member (illegal, lcv) then put (legal, lcv)
+    }
+  }
+  every newlist[!legal] :=: newlist[?legal]
+                                           # Shuffle elements only from
+                                           # legal indices.
+  return newlist
+end
+

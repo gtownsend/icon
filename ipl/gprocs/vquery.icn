@@ -1,0 +1,191 @@
+############################################################################
+#
+#	File:     vquery.icn
+#
+#	Subject:  Procedures for window queries
+#
+#	Author:   Jon Lipp
+#
+#	Date:     October 11, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Utility procedures in this file: Vchoice(), Vinput()
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  vidgets, vbuttons, vtext
+#
+############################################################################
+
+link vidgets
+link vbuttons
+link vtext
+
+procedure Vchoice(str, buttons[])
+local win, root, t, u, w, b, i, x, y, rv
+static wpad, hwpad
+static temp, PAD, WINX, WINY
+initial {
+    temp := open("vchoice", "g", "canvas=hidden")
+    PAD := integer(WAttrib(temp, "fheight") + 10)
+    WINX := integer(WAttrib(temp, "displaywidth") / 2)
+    WINY := integer(WAttrib(temp, "displayheight") / 2)
+
+    wpad := 30
+    hwpad := wpad/2
+}
+
+    if *buttons = 0 then buttons := [" Yes ", " No  "]
+    t := TextWidth(temp, str)
+    u := 0
+    every b := !buttons do
+  	u +:= TextWidth(temp, \b) + 13
+    w := ((u > t, u) | t) + wpad
+
+    win := vquery_open_window("choose", WINX-w/2, WINY-PAD, w, 2*PAD+wpad)
+    root := Vroot_frame(win)
+    VResize(root)
+
+    Vmessage(root, hwpad + (w-wpad-t)/2, hwpad, win, str)
+    x := hwpad + (w-wpad-u)/2; y := -hwpad
+    button_pos := table()
+    every i := 1 to *buttons do {
+	t := Vbutton(root, x, y, win, buttons[i], , i)
+	x +:= t.aw+5
+	button_pos[i] := xywh_rec(t.ax-2, t.ay-2, t.aw+4, t.ah+4)
+    }
+    VDraw(root)
+
+    def_button := 1
+    old := button_pos[def_button]
+    DrawRectangle(win, old.x, old.y, old.w, old.h)
+
+    repeat {
+	rv := &null
+	case event := Event(win) of {
+	-10: next
+	"\r": {
+	    rv := def_button
+	    break
+	}
+	"\t" : {
+            WAttrib(win, "drawop=reverse")
+            DrawRectangle(win, old.x, old.y, old.w, old.h)
+            def_button +:= 1
+	    def_button := (def_button > *buttons, 1)
+            old := button_pos[def_button]
+            WAttrib(win, "drawop=copy")
+            DrawRectangle(win, old.x, old.y, old.w, old.h)
+        }
+	default : {
+	    rv := VEvent(root, event, &x, &y)
+	    (\rv, break)
+	}
+	} # end case
+    }
+    close(win)
+    return rv
+
+end
+record xywh_rec(x, y, w, h)
+
+procedure Vinput(str, def_value)
+local win, root, t, u, w, b, i, x, y, rv
+static temp, PAD, WINX, WINY, FW, VTEXT_W
+static wpad, hwpad, ID_OK, ID_CANCEL
+initial {
+    temp := WOpen("canvas=hidden")
+    PAD := integer(WAttrib(temp, "fheight") + 10)
+    WINX := integer(WAttrib(temp, "displaywidth") / 2)
+    WINY := integer(WAttrib(temp, "displayheight") / 2)
+    FW := integer(WAttrib(temp, "fwidth"))
+
+    wpad := 30
+    hwpad := wpad/2
+    ID_OK := -11
+    ID_CANCEL := -12
+    VTEXT_W := 20
+}
+
+    /str := ""
+    /def_value := ""
+    buttons := ["  Ok  ", "Cancel"]
+    v := FW * VTEXT_W + 8
+    t := TextWidth(temp, str)
+    u := 0
+    every b := !buttons do
+  	u +:= TextWidth(temp, b) + 13
+    w := vquery_maximum(t, u, v) + wpad
+
+    win := vquery_open_window("choose", WINX-w/2, WINY-PAD, w, 3*PAD+wpad)
+    root := Vroot_frame(win)
+    VResize(root)
+
+    t := Vmessage(root, hwpad + (w-wpad-t)/2, hwpad, win, str)
+    input_vidget := Vtext(root, hwpad+(w-wpad-v)/2, hwpad+t.ah+5, win, "\\="||def_value , , , VTEXT_W)
+    x := hwpad + (w-wpad-u)/2; y := -hwpad
+    ok := Vbutton(root, x, y, win, buttons[1], , ID_OK)
+    x +:= ok.aw+5
+    cancel := Vbutton(root, x, y, win, buttons[2], , ID_CANCEL)
+
+    button_pos := table()
+    button_pos[ID_OK] := xywh_rec(ok.ax-2, ok.ay-2, ok.aw+4, ok.ah+4)
+    button_pos[ID_CANCEL] := xywh_rec(cancel.ax-2, cancel.ay-2, cancel.aw+4, cancel.ah+4)
+
+    VDraw(root)
+    def_button := ID_OK
+    old := button_pos[def_button]
+    DrawRectangle(win, old.x, old.y, old.w, old.h)
+
+    repeat {
+	lrv := rv := &null
+	case event := Event(win) of {
+	-10 : next
+	"\r" : {
+	    rv := def_button
+	    break
+	}
+	"\t": {
+	    WAttrib(win, "drawop=reverse")
+	    DrawRectangle(win, old.x, old.y, old.w, old.h)
+	    def_button := (def_button = ID_OK, ID_CANCEL) | ID_OK
+	    old := button_pos[def_button]
+	    WAttrib(win, "drawop=copy")
+	    DrawRectangle(win, old.x, old.y, old.w, old.h)
+	}
+
+	default: {
+	    lrv := root.V.lookup(root, &x, &y)
+	    /lrv  := input_vidget
+	    rv := (lrv).V.event(lrv, event, &x, &y)
+	    if rv === (ID_OK | ID_CANCEL) then break
+	}
+	} # end case
+    }
+    close(win)
+    return (rv = ID_OK, input_vidget.data) | &null
+
+end
+
+procedure vquery_maximum(l[])
+    return sort(l)[-1]
+end
+procedure vquery_open_window(title, x, y, w, h)
+local win
+
+    /x := 50; /y := 50; /w := 400; /h := 400
+    win := open(title, "g", "pos="||x||","||y, "width="||w, "height="||h) |
+	 _Vbomb("couldn't open window")
+
+    return win
+end
+

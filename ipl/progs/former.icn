@@ -1,0 +1,33 @@
+############################################################################
+#
+#	File:     former.icn
+#
+#	Subject:  Program to format long string in fixed-length lines
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 10, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program takes a single line of input and outputs in in lines
+#  no greater than the number given on the command line (default 80).
+#
+############################################################################
+
+procedure main(args)
+   local limit, line
+
+   limit := integer(args[1]) | 80
+
+   line := read() | stop("*** no input line")
+
+   line ? {
+      while write(move(limit))
+      if not pos(0) then write(tab(0))
+      }
+end

@@ -1,0 +1,239 @@
+############################################################################
+#
+#	Name:	ipxref.icn
+#
+#	Title:	Produce cross reference for Icon program
+#
+#	Author:	Allan J. Anderson
+#
+#	Date:	June 10, 1988
+#
+############################################################################
+#  
+#     This program cross-references Icon programs. It lists the
+#  occurrences of each variable by line number. Variables are listed
+#  by procedure or separately as globals.  The options specify the
+#  formatting of the output and whether or not to cross-reference
+#  quoted strings and non-alphanumerics. Variables that are followed
+#  by a left parenthesis are listed with an asterisk following the
+#  name.  If a file is not specified, then standard input is cross-
+#  referenced.
+#  
+#  Options: The following options change the format defaults:
+#  
+#       -c n The column width per line number. The default is 4
+#            columns wide.
+#  
+#       -l n The starting column (i.e. left margin) of the line
+#            numbers.  The default is column 40.
+#  
+#       -w n The column width of the whole output line. The default
+#            is 80 columns wide.
+#  
+#     Normally only alphanumerics are cross-referenced. These
+#  options expand what is considered:
+#  
+#       -q   Include quoted strings.
+#  
+#       -x   Include all non-alphanumerics.
+#  
+#  Note: This program assumes the subject file is a valid Icon pro-
+#  gram. For example, quotes are expected to be matched.
+#  
+############################################################################
+#
+#  Bugs:
+#
+#     In some situations, the output is not properly formatted.
+#
+############################################################################
+#
+#  Links: options, post
+#
+############################################################################
+
+link options, post
+
+global resword, linenum, letters, alphas, var, buffer, qflag, infile, xflag
+global inmaxcol, inlmarg, inchunk, localvar, lin
+
+record procrec(pname,begline,lastline)
+
+procedure main(args)
+
+   local word, w2, p, prec, i, L, ln, switches, nfile
+
+   Init__("ipxref")
+
+   resword := ["break","by","case","default","do","dynamic","else","end",
+      "every","fail","global","if","initial","link", "local","next","not",
+      "of","procedure", "record","repeat","return","static","suspend","then",
+      "to","until","while"]
+   linenum := 0
+   var := table()		# var[variable[proc]] is list of line numbers
+   prec := []			# list of procedure records
+   localvar := []		# list of local variables of current routine
+   buffer := []			# a put-back buffer for getword
+   proc := "global"
+   letters := &letters ++ '_'
+   alphas := letters ++ &digits
+
+   switches := options(args,"qxw+l+c+")
+
+   if \switches["q"] then qflag := 1
+   if \switches["x"] then xflag := 1
+   inmaxcol := \switches["w"]
+   inlmarg := \switches["l"]
+   inchunk := \switches["c"]
+   infile := open(args[1],"r") 	# could use some checking
+
+   while word := getword() do
+      if word == "link" then {
+         buffer := []
+         lin := ""
+         next
+         }
+      else if word == "procedure" then {
+         put(prec,procrec("",linenum,0))
+         proc := getword() | break
+         p := pull(prec)
+         p.pname := proc
+         put(prec,p)
+         }
+      else if word == ("global" | "link" | "record") then {
+         word := getword() | break
+         addword(word,"global",linenum)
+         while (w2 := getword()) == "," do {
+            if word == !resword then break
+            word := getword() | break
+            addword(word,"global",linenum)
+            }
+         put(buffer,w2)
+         }
+      else if word == ("local" | "dynamic" | "static") then {
+         word := getword() | break
+         put(localvar,word)
+         addword(word,proc,linenum)
+         while (w2 := getword()) == "," do {
+            if word == !resword then break
+            word := getword() | break
+            put(localvar,word)
+            addword(word,proc,linenum)
+            }
+         put(buffer,w2)
+         }
+      else if word == "end" then {
+         proc := "global"
+         localvar := []
+         p := pull(prec)
+         p.lastline := linenum
+         put(prec,p)
+         }
+      else if word == !resword then 
+         next
+      else {
+         ln := linenum
+         if (w2 := getword()) == "(" then
+            word ||:= " *"			# special mark for procedures
+         else
+            put(buffer,w2)			# put back w2
+         addword(word,proc,ln)
+         }
+   every write(!format(var))
+   write("\n\nprocedures:\tlines:\n")
+   L := []
+   every p := !prec do
+      put(L,left(p.pname,16," ") || p.begline || "-" || p.lastline)
+   every write(!sort(L))
+
+   Term__()
+
+end
+
+procedure addword(word,proc,lineno)
+   if any(letters,word) | \xflag then {
+      /var[word] := table()
+      if /var[word]["global"] | (word == !\localvar) then {
+         /(var[word])[proc] := [word,proc]
+         put((var[word])[proc],lineno)
+         }
+      else {
+         /var[word]["global"] := [word,"global"]
+         put((var[word])["global"],lineno)
+         }
+      }
+end
+
+procedure getword()
+   local j, c
+   static i, nonwhite
+   initial nonwhite := ~' \t\n'
+
+   repeat {
+      if *buffer > 0 then return get(buffer)
+      if /lin | i = *lin + 1 then
+         if lin := read(infile) then {
+            i := 1
+            linenum +:= 1
+            }
+         else fail
+      if i := upto(nonwhite,lin,i) then {   # skip white space
+         j := i
+         if lin[i] == ("'" | "\"") then {   # don't xref quoted words
+            if /qflag then {
+               c := lin[i]
+               i +:= 1
+               repeat
+                  if i := upto(c ++ '\\',lin,i) + 1 then
+                     if lin[i - 1] == c then break
+                     else i +:= 1
+                  else {
+                     i := 1
+                     linenum +:= 1
+                     lin := read(infile) | fail
+                     }
+               }
+            else i +:= 1
+            }
+         else if lin[i] == "#" then {	# don't xref comments; get next line
+            i := *lin + 1
+            }
+         else if i := many(alphas,lin,i) then
+            return lin[j:i]
+         else {
+            i +:= 1
+            return lin[i - 1]
+            }
+         }
+      else
+         i := *lin + 1
+   }	   # repeat
+end
+
+procedure format(T)
+   local V, block, n, L, lin, maxcol, lmargin, chunk, col
+   initial {
+      maxcol := \inmaxcol | 80
+      lmargin := \inlmarg | 40
+      chunk := \inchunk | 4
+      }
+   L := []
+   col := lmargin
+   every V := !T do
+      every block := !V do {
+         lin := left(block[1],16," ") || left(block[2],lmargin - 16," ")
+         every lin ||:= center(block[3 to *block],chunk," ") do {
+            col +:= chunk
+            if col >= maxcol - chunk then {
+               lin ||:= "\n\t\t\t\t\t"
+               col := lmargin
+               }
+            }
+         if col = lmargin then lin := lin[1:-6] # came out exactly even
+         put(L,lin)
+         col := lmargin
+         }
+   L := sort(L)
+   push(L,"variable\tprocedure\t\tline numbers\n")
+   return L
+end

@@ -1,0 +1,236 @@
+############################################################################
+#
+#	File:     evmux.icn
+#
+#	Subject:  Procedures for window event multiplexor
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	These procedures implement a simple event handling package.  This
+#	package has more recently been superseded by the vidget library.
+#
+#	The event multiplexor is configured by registering *sensors*, which
+#	respond to events that occur when the mouse cursor is within a
+#	particular region.  When a sensor fires, it calls a user procedure
+#	that was registered when the sensor was created.
+#
+#	These routines interpret window events and invoke callbacks:
+#
+#		sensor()	registers the events of interest.
+#
+#		evhandle()	reads and responds to the next event.
+#
+#		evmux()		loops forever, handling events.
+#
+#	Two other small procedures help build event-driven programs:
+#
+#		quitsensor()	registers a standardized response to Q or q.
+#
+#		argless()	is a "glue" procedure usable as a callback.
+#
+############################################################################
+#
+#   sensor(win, ev, proc, arg, x, y, w, h) -- register an event responder.
+#
+#	registers *proc* as the procedure to be called when the event[s]
+#	*ev* occur within the given bounds inside window *win* and returns
+#	a handle.  The default bounds encompass the entire window.
+#
+#	The event set *ev* can be either:
+#	    -- a cset or string specifying particular keypresses of interest
+#	    -- one of the event keywords (&lpress, &rdrag, &resize, etc.)
+#
+#	When a matching event occurs, proc(win, arg, x, y, e) is called.  proc,
+#	win, and arg are as recorded from the sensor call.  x and y give the
+#	current mouse position and e the event; for a keypress, this is the
+#	character.
+#
+#	No event generates more than one procedure call.
+#	In the case of conflicting entries, the later registrant wins.
+#
+#	delsensor(win, x) deletes sensor x from the specified window.
+#	If x is null, all sensors are deleted.
+#
+#
+#   evmux(win) -- loop forever, calling event handlers as appropriate.
+#   evhandle(win) -- wait for the next event, and handle it.
+#
+#	evmux(win) is an infinite loop that calls user routines in response
+#	to window events.  It is for programs that don't need to do other
+#	work while waiting for window input.
+#
+#	evhandle(win) processes one event and then returns to its caller,
+#	allowing external loop control.  evhandle returns the outcome of
+#	the handler proc, or fails if there is no handler for the event.
+#
+#   quitsensor(win, wait) -- standardized "quit" sensor
+#
+#	quitsensor() registers a sensor that calls exit() when either
+#	"q" or "Q" is typed in the window.
+#
+#	If wait is non-null, quitsensor does not return but just waits for
+#	the signal (useful in non-interactive display programs).
+#
+#
+#   argless(win, proc) -- call proc with no arguments.
+#
+#	Useful for registering argless procedures as in quitsensor() above.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  See also:  button.icn, slider.icn
+#
+############################################################################
+
+record EvMux_Rec(ev, proc, arg, x, y, w, h)
+global EvMux_Windows
+
+
+## sensor(win, ev, proc, arg, x, y, w, h) -- register an event responder.
+
+procedure sensor(win, ev, proc, arg, x, y, w, h)
+   local evlist, r, e
+
+   /EvMux_Windows := table()
+   /EvMux_Windows[win] := list()
+   evlist := EvMux_Windows[win]
+
+   /x := -WAttrib(win, "dx")
+   /y := -WAttrib(win, "dy")
+   /w := WAttrib(win, "width") - (x + WAttrib(win, "dx"))
+   /h := WAttrib(win, "height") - (y + WAttrib(win, "dy"))
+
+   if w < 0 then
+      x -:= (w := -w)
+   if h < 0 then
+      y -:= (h := -h)
+
+   if type(ev) == ("cset" | "string") then
+      ev := cset(ev)
+   else
+      ev := cset(evchar(ev)) | stop("invalid event specification: ", image(ev))
+   push(evlist, r := EvMux_Rec(ev, proc, arg, x, y, w, h))
+   return r
+end
+
+
+## delsensor(win, x) -- delete sensor x, or all sensors, from window.
+
+procedure delsensor(win, x)
+   local t
+
+   t := \EvMux_Windows[win] | fail
+
+   if /x then {
+      delete(EvMux_Windows, win)	# delete whole set of sensors
+      return
+      }
+
+   if not (x === !t) then
+      fail				# not registered in this window
+
+   # Sensor is registered for this window.  Disable it.
+   x.ev := ''
+
+   # Remove disabled sensors from list, if possible.
+   while *t[1].ev = 0 do
+      pop(t)
+   while *t[-1].ev = 0 do
+      pull(t)
+
+   # If nothing is left on list, delete from table.
+   if *t = 0 then
+      delete(EvMux_Windows, win)
+   return
+end
+
+
+##   evchar(e) -- map mouse event to character code.
+#
+#  Internally, *all* events are single-character strings, and mouse & resizing
+#  events are mapped into characters that are never returned as keypress events.
+
+procedure evchar(s)
+   return case s of {
+      &lpress:    "\237"	# mouse button 1 down
+      &mpress:    "\236"	# mouse button 2 down
+      &rpress:    "\235"	# mouse button 3 down
+      &lrelease:  "\234"	# mouse button 1 up
+      &mrelease:  "\233"	# mouse button 2 up
+      &rrelease:  "\232"	# mouse button 3 up
+      &ldrag:     "\231"	# mouse button 1 is dragging
+      &mdrag:     "\230"	# mouse button 2 is dragging
+      &rdrag:     "\227"	# mouse button 3 is dragging
+      &resize:    "\226"	# window has resized
+   }
+   fail
+end
+
+
+## evmux(win) -- loop forever, calling event handlers as appropriate.
+## evhandle(win) -- wait for the next event, and handle it.
+#		    produce result of the handler proc; fail if nobody handles.
+
+procedure evmux(win)
+   repeat
+      evhandle(win)
+end
+
+procedure evhandle(win)
+   local x, y, ev, e, r, t
+
+   t := (\EvMux_Windows)[win] | stop("no events registered for window")
+   ev := Event(win)
+   x := &x
+   y := &y
+
+   # convert event code to single character
+   if type(ev) == "integer" then
+      e := evchar(ev) | ""
+   else
+      e := ev
+
+   # find and call the first (most recent) matching handler
+   # (just a simple serial search)
+   every r := !t do
+      if any(r.ev, e) & ontarget(r, x, y) then
+         return r.proc(win, r.arg, x, y, ev)
+   fail
+end
+
+
+## ontarget(r, x, y) -- check if an event is within bounds
+#
+#  checks that (x, y) are within the bounds of (r.x, r.y, r.w, r.h).
+
+procedure ontarget(r, x, y)
+   return (x -:= r.x) >= 0 & x < r.w & (y -:= r.y) >= 0 & y < r.h
+end
+
+
+## quitsensor(win, wait) -- standardized "quit" sensor
+
+procedure quitsensor(win, wait)
+   sensor(win, 'qQ', argless, exit)
+   if \wait then evmux(win)
+   return
+end
+
+
+## argless(win, proc) -- call proc with no arguments.
+
+procedure argless(win, proc)
+   return proc()
+end

@@ -1,0 +1,313 @@
+############################################################################
+#
+#	File:     vib.icn
+#
+#	Subject:  Program to build Icon interfaces
+#
+#	Authors:  Mary Cameron and Gregg M. Townsend
+#
+#	Date:     July 30, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+
+#  Version 1 (XIB):  Original version
+#  Version 2 (VIB):  Compact specifications in same file as source
+#  Version 3 (VIB, Dec 94): 3-D appearance, uses VIB for own dialogs
+#     Oct 96:  add list vidget
+
+$include "keysyms.icn"
+$include "vdefns.icn"
+$include "vibdefn.icn"
+
+link drag
+link dsetup
+link graphics
+link vsetup
+link interact
+
+link vibbttn
+link vibedit
+link vibfile
+link vibglbl
+link viblabel
+link vibline
+link viblist
+link vibmenu
+link vibradio
+link vibrect
+link vibsizer
+link vibslidr
+link vibtalk
+link vibtext
+
+global CHOSEN		# object picked from Select menu
+
+############################################################################
+# main() opens a window, creates the palette and menus, initializes
+#        global variables, and starts up the WIT event loop.
+############################################################################
+procedure main(args)
+   local edit_menu, file_menu, x, y
+
+   Window("size=640,480", "label= ", args)
+
+   &error := 1
+   WAttrib("resize=on")
+   &error := 0
+
+   VSetFont()
+   APPWIN := Clone() | stop("can't clone window")
+   XORWIN := Clone("drawop=reverse") | stop("can't clone window")
+
+   SESSION := def_extn("" ~== args[1]) | newname()
+   label_session()
+
+   PAD := WAttrib("fheight") + 6
+   LBMASK := &ascii[32+:95] -- '\"\\'
+   IDMASK := &ascii[32+:95] -- '\"\\:'
+   CBMASK := &letters ++ &digits ++ '_'
+
+   O_LIST := []
+   P_LIST := []
+   SIZER := create_sizer()
+
+   ROOT := Vroot_frame(&window)
+   edit_menu := Vsub_menu(&window,
+      "copy        @C", menu_cb,
+      "delete      @X", menu_cb,
+      "undelete    @U", menu_cb,
+      "align vert  @V", menu_cb,
+      "align horz  @H", menu_cb)
+   file_menu := Vsub_menu(&window,
+      "new        @N", menu_cb,
+      "open       @O", menu_cb,
+      "save       @S", menu_cb,
+      "save as      ", menu_cb,
+      "refresh    @R", menu_cb,
+      "prototype  @P", menu_cb,
+      "quit       @Q", menu_cb)
+   MENUBAR := Vmenu_bar(&window, "File  ", file_menu, "Edit  ", edit_menu)
+   VInsert(ROOT, MENUBAR, 0, 0)
+   SELECT := Vpane(&window, select_cb, , , TextWidth("Select") + 8, MENUBAR.ah)
+   VInsert(ROOT, SELECT, MENUBAR.aw, 0)
+
+   dialogue()
+
+   VResize(ROOT)
+   CANVASY := MENUBAR.ah + 3 + PAL_H + 4
+   Clip(APPWIN, 0, CANVASY, 9999, 9999)
+
+   DRAGWIN := Clone(APPWIN, "bg=blackish gray") | stop("can't clone APPWIN")
+
+   create_palette()
+
+   if not (args[1] & load_session(SESSION)) then {
+      draw_header()
+      draw_canvas()
+      }
+
+   GetEvents(ROOT, vib_event_loop)
+end
+
+############################################################################
+# menu_cb() is the callback routine for the file and edit menus.
+############################################################################
+procedure menu_cb(wit, value)
+   local cmd
+
+   cmd := trim(value[1] ? tab(upto('@') | 0))
+   case cmd of {
+
+      # file menu
+      "n" | "new"		: new_session()
+      "o" | "open"		: if flush_session() then open_session()
+      "s" | "save"		: save_session(SESSION)
+      "save as"			: vib_save_as("file to save: ", "")
+      "r" | "refresh"		: redraw_screen()
+      "p" | "prototype"		: prototype()
+      "q" | "quit"		: if flush_session() then exit()
+
+      # edit menu 
+      "c" | "d" | "copy"	: copy_focus()
+      "x" | "\d" | "delete"	: delete_focus()
+      "u" | "undelete"		: undelete()
+      "v" | "align vert"	: if \FOCUS then set_align("alignv")
+      "h" | "align horz"	: if \FOCUS then set_align("alignh")
+   }
+end
+
+############################################################################
+# select_cb() is the callback routine for the Select pseudo-menu.
+############################################################################
+procedure select_cb(wit, ev)
+   local i, idlist, mlist, smenu, obj
+
+   if not (ev === (&lpress | &ldrag | &mpress | &mdrag | &rpress | &rdrag)) then
+      return
+
+   idlist := set()
+   every insert(idlist, (!O_LIST).id)
+   idlist := sort(idlist)
+
+   mlist := [&window]
+   every put(mlist, !idlist, choice_cb)
+   smenu := Vmenu_bar_item(&window, "Select", , , , , Vsub_menu ! mlist)
+   VInsert(ROOT, smenu, wit.ax, wit.ay)
+   VResize(smenu)
+
+   CHOSEN := &null
+   VEvent(smenu, &lpress)
+   VRemove(ROOT, smenu, 1)
+
+   if \CHOSEN then
+      every obj := !O_LIST do
+         if obj.id == CHOSEN then {
+            focus_object(obj)
+            break
+            }
+   return
+end
+
+############################################################################
+# choice_cb() is the callback routine for a chosen Select entry.
+############################################################################
+procedure choice_cb(wit, value)
+   CHOSEN := value[1]
+end
+
+############################################################################
+# vib_event_loop() is called by the WIT library whenever an event
+#                  occurs that does not correspond to WIT objects.
+############################################################################
+procedure vib_event_loop(e, x, y)
+   local f, obj, flag, diffx, diffy
+
+   case e of {
+      &meta & "I":		snapshot()
+      &meta & !"nosrpqcdxuvh":	menu_cb(, e)
+      "\d":			menu_cb(, e)
+      Key_Left | Key_KP_Left:	shift_focus(-1, 0)
+      Key_Right | Key_KP_Right:	shift_focus(+1, 0)
+      Key_Up | Key_KP_Up:	shift_focus(0, -1)
+      Key_Down | Key_KP_Down:	shift_focus(0, +1)
+      &resize: {
+         if SIZER.x+10 > &x then
+            SIZER.x := &x - 11
+         if SIZER.y+10 > &y then
+            SIZER.y := maximum(&y - 11, CANVASY)
+         redraw_screen()
+         DIRTY := 1
+      }
+      &mpress: {
+         obj := object_of_event(x, y)
+         if type(obj) == "menu_obj" then {
+            focus_object(obj)
+            simulate_menu(obj)
+         }
+      }
+      &rpress: {
+         if on_target(SIZER, x, y) then
+            display_sizer_atts(SIZER)
+         else {
+            obj := object_of_event(x, y)
+            focus_object(\obj)
+            display_talk(\FOCUS)
+         }
+      }
+      &lpress: {
+         if \ALIGN then {
+            obj := object_of_event(x, y)
+            if \obj & \FOCUS then {
+               unfocus_object(f := FOCUS)
+               if ALIGN == "alignv" then
+                  move_object(obj, obj.x, f.y)
+               else
+                  move_object(obj, f.x, obj.y)
+               focus_object(f)
+            }
+            else
+               unset_align()
+         }
+         else {			# not in ALIGN mode 
+            if \(obj := palette_object_of_event(x, y)) then {
+               obj := create_object_instance(obj)
+               focus_object(obj)
+               &y := CANVASY + 4
+               drag_obj(APPWIN, obj)
+            }
+            else if on_target(SIZER, x, y) then
+               drag_sizer()
+            else if flag := on_focus(\FOCUS, x, y) then
+               resize_drag(FOCUS, flag)
+            else if \(obj := object_of_event(x, y)) then
+               drag_obj(DRAGWIN, obj)
+            else
+               unfocus_object(\FOCUS)
+         }
+      }
+   }
+end
+
+############################################################################
+# drag_obj() moves an object to follow the mouse pointer.
+############################################################################
+procedure drag_obj(win, obj)
+   unfocus_object(\FOCUS)
+   case type(obj) of {
+      "rect_obj": {
+         # use APPWIN, not DRAGWIN, to get XOR color correct
+         DragOutline(APPWIN, obj.x, obj.y, obj.w, obj.h)
+         }
+      "line_obj":
+         drag_line(obj)
+      default: {
+         EraseArea(APPWIN, obj.x, obj.y, obj.w, obj.h)
+         draw_object(obj)
+         Drag(win, obj.x, obj.y, obj.w, obj.h)
+         }
+   }
+
+   if obj.x ~= &x | obj.y ~= &y then
+      move_object(obj, &x, &y)
+   focus_object(obj)
+end
+
+############################################################################
+# resize_drag() resizes an object using the mouse pointer.
+############################################################################
+procedure resize_drag(obj, flag)
+   local e, orig, winw, winh
+
+   orig := copy(obj)
+   unfocus_object(obj)
+   draw_outline(obj)
+   winw := WAttrib("width")
+   winh := WAttrib("height")
+   repeat {
+      e := Event()
+      &x <:= 0
+      &x >:= winw - 1
+      &y <:= CANVASY
+      &y >:= winh - 1
+      case e of {
+         &ldrag: {
+            resize_object(obj, &x, &y, flag)
+            DIRTY := 1
+         }
+         &lrelease: {
+            draw_outline(obj)
+            erase_object(orig)
+	    draw_overlap(orig)
+            if type(obj) ~== "line_obj" then
+               VResize(obj.v, obj.x, obj.y, obj.w, obj.h)
+            draw_object(obj)
+            focus_object(obj)
+            return
+         }
+      }
+   }
+end

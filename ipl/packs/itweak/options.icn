@@ -1,0 +1,167 @@
+############################################################################
+#
+#	File:     options.icn
+#
+#	Subject:  Procedure to get command-line options
+#
+#	Authors:  Robert J. Alexander and Gregg M. Townsend
+#
+#	Date:     February 27, 1992
+#
+############################################################################
+#  
+#     options(arg,optstring,errproc) -- Get command line options.
+#
+#     This procedure separates and interprets command options included in 
+#  the main program argument list.  Option names and values are removed
+#  from the argument list and returned in a table.
+#
+#     On the command line, options are introduced by a "-" character.  An
+#  option name is either a single printable character, as in "-n" or "-?",
+#  or a string of letters, as in "-geometry".  Valueless single-character
+#  options may appear in combination, for example as "-qtv".
+#
+#     Some options require values.  Generally, the option name is one
+#  argument and the value appears as the next argument, for example
+#  "-F file.txt".   However, with a single-character argument name
+#  (as in that example), the value may be concatenated: "-Ffile.txt"
+#  is accepted as equivalent.
+#  
+#     Options may be freely interspersed with non-option arguments.
+#  An argument of "-" is treated as a non-option.  The special argument
+#  "--" terminates option processing.  Non-option arguments are returned
+#  in the original argument list for interpretation by the caller.
+#
+#     An argument of the form @filename (a "@" immediately followed
+#  by a file name) causes options() to replace that argument with
+#  arguments retrieved from the file "filename".  Each line of the file
+#  is taken as a separate argument, exactly as it appears in the file.
+#  Arguments beginning with - are processed as options, and those
+#  starting with @ are processed as nested argument files.  An argument
+#  of "--" causes all remaining arguments IN THAT FILE ONLY to be
+#  treated as non-options (including @filename arguments).
+#
+#     The parameters of options(arg,optstring,errproc) are:
+#  
+#       arg         the argument list as passed to the main procedure.
+#
+#       optstring   a string specifying the allowable options.  This is
+#		    a concatenation, with optional spaces between, of
+#		    one or more option specs of the form
+#			-name%
+#		    where
+#			-	introduces the option
+#			name	is either a string of letters
+#				or any single printable character
+#			%	is one of the following flag characters:
+#				!	No value is required or allowed
+#			 	:	A string value is required
+#				+	An integer value is required
+#				.	A real value is required
+#
+#		    The leading "-" may be omitted for a single-character
+#		    option.  The "!" flag may be omitted except when
+#		    needed to terminate a multi-character name.
+#		    Thus, the following optstrings are equivalent:
+#			"-n+ -t -v -q -F: -geometry: -silent"
+#			"n+tvqF:-geometry:-silent"
+#			"-silent!n+tvqF:-geometry:"
+#
+#		    If "optstring" is omitted any single letter is
+#		    assumed to be valid and require no data.
+#
+#	errproc	    a procedure which will be called if an error is
+#		    is detected in the command line options.  The
+#		    procedure is called with one argument:  a string
+#		    describing the error that occurred.  After errproc()
+#		    is called, options() immediately returns the outcome
+#		    of errproc(), without processing further arguments.
+#		    Already processed arguments will have been removed
+#		    from "arg".  If "errproc" is omitted, stop() is
+#		    called if an error is detected.
+#  
+#     A table is returned containing the options that were specified.
+#  The keys are the specified option names.  The assigned values are the
+#  data values following the options converted to the specified type.
+#  A value of 1 is stored for options that accept no values.
+#  The table's default value is &null.
+#
+#     Upon return, the option arguments are removed from arg, leaving
+#  only the non-option arguments.
+#  
+############################################################################
+
+procedure options(arg,optstring,errproc)
+   local f,fList,fileArg,fn,ignore,optname,opttable,opttype,p,x,option
+   #
+   #  Initialize.
+   #
+   /optstring := string(&letters)
+   /errproc := stop
+   option := table()
+   fList := []
+   opttable := table()
+   #
+   #  Scan the option specification string.
+   #
+   optstring ? {
+      while optname := move(1) do {
+	 if optname == " " then next
+	 if optname == "-" then
+	    optname := tab(many(&letters)) | move(1) | break
+	 opttype := tab(any('!:+.')) | "!"
+	 opttable[optname] := opttype
+	 }
+      }
+   #
+   #  Iterate over program invocation argument words.
+   #
+   while x := get(arg) do {
+      if /x then ignore := &null     # if end of args from file, stop ignoring
+      else x ? {
+	 if ="-" & not pos(0) & /ignore then {
+	    if ="-" & pos(0) then ignore := 1	# ignore following args if --
+	    else {
+	       tab(0) ? until pos(0) do {
+		  if opttype := \opttable[
+			optname := ((pos(1),tab(0)) | move(1))] then {
+		     option[optname] :=
+			if any(':+.',opttype) then {
+			   p := "" ~== tab(0) | get(arg) |
+			      return errproc(
+				    "No parameter following -" || optname)
+			   case opttype of {
+			      ":": p
+			      "+": integer(p) |
+				 return errproc("-" || optname ||
+				       " needs numeric parameter")
+			      ".": real(p) |
+				 return errproc("-" || optname ||
+				       " needs numeric parameter")
+			      }
+			   }
+			else 1
+		     }
+		  else return errproc("Unrecognized option: -" || optname)
+		  }
+	       }
+	    }
+	 #
+	 #  If the argument begins with the character "@", fetch option
+	 #  words from lines of a text file.
+	 #
+	 else if ="@" & not pos(0) & /ignore then {
+	    f := open(fn := tab(0)) |
+	       return errproc("Can't open " || fn)
+	    fileArg := []
+	    while put(fileArg,read(f))
+	    close(f)
+	    push(arg)	# push null to signal end of args from file
+	    while push(arg,pull(fileArg))
+	    }
+	 else put(fList,x)
+	 }
+      }
+   while push(arg,pull(fList))
+   return option
+end

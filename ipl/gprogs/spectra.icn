@@ -1,0 +1,59 @@
+############################################################################
+#
+#	File:     spectra.icn
+#
+#	Subject:  Program to report color spectra in images
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 22, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program analyzes images whose names are given on the command line
+#  and produces a file with the lists of colors and number of pixels of
+#  each color.  The entries are given in the order of most to least frequent
+#  color.  The color files have the base name of the image file and the
+#  extension ".spc".
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  basename, imgcolor, wopen
+#
+############################################################################
+
+link imgcolor
+link basename
+link wopen
+
+procedure main(args)
+   local file, colors, output, name, count
+
+   every file := !args do {
+      WOpen("canvas=hidden", "image=" || file) | {
+         write(&errout, "*** cannot open image file ", file)
+         next
+         }
+     colors := imgcolor()
+     WClose()
+     name := basename(file, ".gif")
+     output := open(name || ".spc", "w") | {
+        write("*** cannot open ", name, ".spc")
+        next
+        }
+      colors := sort(colors, 4)
+      while count := pull(colors) do
+         write(output, left(pull(colors), 20), right(count, 8))
+      close(output)
+      &window := &null
+      }
+
+end

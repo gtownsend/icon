@@ -1,0 +1,30 @@
+global s
+procedure main()
+   &trace := -1
+   s := "abcdef"
+   &subject := "123456"
+   &pos := 4
+   every tracer(1)
+   every foo(&pos | &subject | &pos[1] | &subject[2:5])
+   display()
+   write(&line)
+   write(&file)
+   write(&level)
+end
+
+procedure tracer(a)
+   local i
+   static j
+   i := 2
+   j := 3
+   suspend .(a | i | j | s | &subject |
+      &pos | &random | &trace | &subject[3:4] | &pos[1] |
+      s[3] | s[3:5] | &random[1] | &trace[1] | &subject[2:5][1])
+   suspend (a | i | j | s | &subject |
+      &pos | &random | &trace | &subject[3:4] | &pos[1] |
+      s[3] | s[3:5] | &random[1] | &trace[1] | &subject[2:5][1])
+end
+
+procedure foo(s)
+   return s
+end

@@ -1,0 +1,366 @@
+############################################################################
+#
+#	File:     post.icn
+#
+#	Subject:  Program to post news
+#
+#	Author:   Ronald Florence
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.5
+#
+############################################################################
+#
+#  This program posts a news article to Usenet.  Given an optional
+#  argument of the name of a file containing a news article, or an
+#  argument of "-" and a news article via stdin, post creates a
+#  follow-up article, with an attribution and quoted text.  The
+#  newsgroups, subject, distribution, follow-up, and quote-prefix can
+#  optionally be specified on the command line.
+#
+#      usage: post [options] [article | -]
+#		-n newsgroups
+#		-s subject
+#		-d distribution
+#		-f followup-to
+#		-p quote-prefix (default ` > ')
+#
+#  See the site & system configuration options below.  On systems
+#  posting via inews, post validates newsgroups and distributions in
+#  the `active' and `distributions' files in the news library directory.
+#
+############################################################################
+#
+#  Bugs: Newsgroup validation assumes the `active' file is sorted.
+#        Non-UNIX sites need hardcoded system information.
+#
+############################################################################
+#
+#  Links: options
+#
+############################################################################
+
+link options
+
+global mode, sysname, domain, tz, tmpfile, opts, console, newslib, org
+
+procedure main(arg)
+  local usage, smarthost, editor, default_distribution, generic_from
+  local tmpdir, logname, fullname, sigfile, article, inf, edstr, outf, tmp2
+
+  usage := ["usage: post [options] [article]",
+            "\t-n newsgroups",
+            "\t-s subject",
+            "\t-d distribution",
+            "\t-f followup-to",
+            "\t-p quote-prefix (default ` > ')",
+            "\t-  read article from stdin"]
+
+	# Site configuration.   Mode can be
+	#   "local" (post via inews),
+	#   "uux" (post via rnews to an upstream host),
+	#   "mail" (post via mail to an upstream host).
+	# For either uux or mail mode,
+	#   smarthost := the uucp nodename of the upstream news feed.
+  	# Use generic_from to force a generic address instead
+        #   of the hostname provided by system commands.
+
+  mode := "local"		
+  smarthost := ""
+  editor := "vi"
+  domain := ".UUCP"
+  default_distribution := "world" 
+  generic_from := &null
+
+	# For UNIX, the rest of the configuration is automatic.
+
+  if find("UNIX", &features) then {
+    console := "/dev/tty"
+    newslib := "/usr/lib/news/"
+    tz := "unix"
+    tmpdir := "/tmp/"
+    logname := pipe("logname")
+    sysname := trim(pipe("hostname", "uname -n", "uuname -l"))
+	# BSD  passwd: `:fullname[,...]:'
+	# SysV passwd: `-fullname(' 
+    \logname & every lookup("/etc/passwd") ? {
+      =(logname) & {
+	every tab(upto(':')+1) \4 
+	fullname := (tab(upto('-')+1), tab(upto('(:'))) | tab(upto(',:'))
+	break
+      }	
+    }
+    sigfile := getenv("HOME") || "/.signature"
+  }
+
+	# For non-UNIX systems, we need hard coded configuration:
+	# console := the system's name for the user's terminal.
+	# libdir := the directory for news configuration files, like 
+	#           an `organization' file.
+	# tmpdir := optional directory for temporary files; terminated 
+	#	    with the appropriate path separator: `/' or `\\'.
+	# logname := user's login name.
+	# tz := local time zone (e.g., EST).
+        # fullname := user's full name.
+        # sigfile := full path of file with user's email signature.
+
+  else {
+    console := "CON"
+    newslib := ""
+    tmpdir := ""
+    logname := &null
+    tz := &null
+    fullname := &null 
+    sigfile := &null
+    sysname := getenv("HOST") | &host
+  }
+
+	# End of user configuration.
+
+  (\logname & \sysname & \tz & (mode == "local" | *smarthost > 0)) |
+    stop("post: missing system information")
+  opts := options(arg, "n:s:d:f:p:h?") 
+  \opts["h"] | \opts["?"] | arg[1] == "?" & { 
+    every write(!usage)
+    exit(-1) 
+  }
+  org := getenv("ORGANIZATION") | lookup(newslib || "organization")
+  article := open(tmpfile := tempname(tmpdir), "w") | 
+    stop("post: cannot write temp file")
+  write(article, "Path: ",  sysname, "!", logname)
+  writes(article, "From: ", logname, "@", \generic_from | sysname, domain)
+  \fullname & writes(article, " (", fullname, ")")
+  write(article)
+
+	# For a follow-up article, reply_headers() does the work. 
+
+  if \arg[1] then {
+    inf := (arg[1] == "-" & &input) | 
+      open(arg[1]) | (remove(tmpfile) & stop("post: cannot read " || arg[1]))
+    reply_headers(inf, article)
+    every write(article, \opts["p"] | " > ", !inf)
+    close(inf)
+  }
+
+	# Query if newsgroups, subject, and distribution have
+        # not been specified on the command line.
+
+  else {
+    write(article, "Newsgroups: ", 
+      validate(\opts["n"] | query("Newsgroups: "), "active"))
+    write(article, "Subject: ", \opts["s"] | query("Subject: "))
+    write(article, "Distribution: ", 
+      validate(\opts["d"] | query("Distribution: ", default_distribution), 
+		   "distributions"))
+    every write(article, req_headers())
+    write(article, "\n")
+  }
+  close(article)
+  edstr := (getenv("EDITOR") | editor) || " " || tmpfile || " < " || console
+  system(edstr)
+  upto('nN', query("Are you sure you want to post this to Usenet y/n? ")) & {
+    if upto('yY', query("Save your draft article y/n? ")) then 
+      stop("Your article is saved in ", tmpfile)
+    else {
+      remove(tmpfile)
+      stop("Posting aborted.") 
+    }
+  }
+	# For inews, we supply the headers, inews supplies the .signature.
+
+  if mode == "local" then mode := newslib || "inews -h"
+  else {
+    \sigfile & {
+      article := open(tmpfile, "a")
+      write(article, "--")  
+      every write(article, lookup(sigfile))
+    }
+	# To post via sendnews (mail), we prefix lines with 'N'.
+	# For rnews, don't force an immediate poll.
+
+    case mode of {
+      "mail": {
+             mode ||:= " " || smarthost || "!rnews" 
+	     outf := open(tmp2 := tempname(tmpdir), "w")
+	     every write(outf, "N", lookup(tmpfile))
+	     remove(tmpfile)
+	     rename(tmp2, tmpfile)
+	   }
+      "uux": mode ||:= " - -r " || smarthost || "!rnews"
+    }
+  }
+  mode ||:= " < " || tmpfile
+  (system(mode) = 0) & write("Article posted!")
+  remove(tmpfile)
+end
+
+	# To parse the original article, we use case-insensitive
+	# matches on the headers.  The Reply-to and Followup-To
+	# headers usually appear later than From and Newsgroups, so
+	# they take precedence.  By usenet convention, we query
+	# the user if Followup-To on the original is `poster'.
+
+procedure reply_headers(infile, art)
+  local fullname, address, quoter, date, id, subject, distribution
+  local group, refs
+
+  every !infile ? {
+    tab(match("from: " | "reply-to: ", map(&subject))) & {
+      if find("<") then {
+	fullname := (trim(tab(upto('<'))) ~== "")
+	address := (move(1), tab(find(">")))
+      }
+      else {
+	address := trim(tab(upto('(') | 0))
+	fullname := (move(1), tab(find(")")))
+      }
+      quoter := (\fullname | address)
+    }
+    tab(match("date: ", map(&subject))) & date := tab(0)
+    tab(match("message-id: ", map(&subject))) & id := tab(0)
+    tab(match("subject: ", map(&subject))) & subject := tab(0)
+    tab(match("distribution: ", map(&subject))) & distribution := tab(0)
+    tab(match("newsgroups: " | "followup-to: ", map(&subject))) & 
+      group := tab(0)
+    tab(match("references: ", map(&subject))) & refs := tab(0)
+    (\quoter & *&subject = 0) & {
+      find("poster", group) & {
+	write(quoter, " has requested followups by email.")
+	upto('yY', query("Do you want to abort this posting y/n? ")) & {
+	  remove(tmpfile)
+	  stop("Posting aborted.")
+	}
+	group := &null
+      }
+      write(art, "Newsgroups: ", \group | 
+	validate(\opts["n"] | query("Newsgroups: "), "active"))
+      write(art, "Subject: ", \opts["s"] | \subject | query("Subject: "))
+      \distribution | distribution := validate(\opts["d"], "distributions") &
+        write(art, "Distribution: ", distribution)
+      write(art, "References: ", (\refs ||:= " ") | "", id)
+      every write(art, req_headers())
+      write(art, "In-reply-to: ", quoter, "'s message of ", date)
+      write(art, "\nIn ", id, ", ", quoter, " writes:\n")
+      return 
+    }
+  }
+end
+
+	# We need a unique message-id, and a date in RFC822 format.
+	# Easy with UNIX systems that support `date -u'; with the
+	# others, we leave the local timezone.  The first inews site
+	# will correct it.
+
+procedure req_headers()
+  local uniq, date, month, day, time, zone, year
+
+  uniq := "<"
+  &date || &clock ? while tab(upto(&digits)) do uniq ||:= tab(many(&digits))
+  uniq ||:= "@" || sysname || domain || ">"
+  if tz == "unix" then {
+    date := pipe("date -u", "date")
+    date ? {
+     month := (tab(find(" ") + 1), tab(many(&letters)))
+     day := (tab(upto(&digits)), tab(many(&digits)))
+     time := (tab(upto(&digits++':')), tab(many(&digits++':')))
+     zone := (tab(upto(&ucase)), tab(many(&ucase)))
+     year := (tab(upto(&digits)+ 2), tab(0))
+    }
+    date := day || " " || month || " " || year ||  " " || time || " " || zone
+  }
+  else {
+    &dateline ? {
+      month := left((tab(find(" ")+1), tab(many(&letters))), 3) || " "
+      date := (tab(upto(&digits)), tab(many(&digits))) || " " || month
+      date ||:= (tab(upto(&digits)), right(tab(many(&digits)), 2))
+    }
+    date ||:= " " || &clock || " " || tz
+  }
+  mode ~== "local" & suspend "Message-ID: " || uniq
+  suspend "Date: " || date 
+  \org & suspend "Organization: " || org
+  \opts["f"] & return "Followup-To: " || ((opts["f"] == "poster") | 
+    validate(opts["f"], "active"))
+end
+
+	# Richard Goerwitz's generator.
+
+procedure tempname(dir)
+  local temp_name
+
+  every temp_name := dir || "article." || right(1 to 999,3,"0") do {
+    close(open(temp_name)) & next
+    suspend \temp_name
+  }
+end
+
+	# On systems with pipes, pipe() will read from the first
+	# successful command of the list given as arguments.
+
+procedure pipe(cmd[])
+  local inf, got
+
+  initial find("pipes" | "compiled", &features) | stop("No pipes.")
+  while inf := open("(" || pop(cmd) || ") 2>&1", "pr") do {
+    got := []
+    every put(got, !inf)
+    close(inf) = 0 & {
+      suspend !got 
+      break
+    }
+  }
+end
+
+	# The dirty work of reading from a file.
+
+procedure lookup(what)
+  local inf
+
+  inf := open(what, "r") | fail
+  suspend !inf 
+  close(inf)
+end
+
+	# Query opens stdin because the system call to the editor
+	# redirects input.  The optional parameter is a default
+	# response if the user answers with <return>.
+
+procedure query(prompt, def)
+  local ans
+  static stdin
+
+  initial stdin := open(console)
+  writes(prompt)
+  ans := read(stdin)
+  return (*ans = 0 & \def) | ans
+end
+
+	# A quick and dirty kludge.  Validate() builds a sorted list.
+	# When an element is found, it is popped and the search moves
+	# to the next item.  The procedure assumes the file is also
+	# sorted.
+
+procedure validate(what, where)
+  local valid, stuff, sf, a
+
+  mode ~== "local" & return what
+  valid := &letters ++ '.-' ++ &digits
+  stuff := []
+  what ? while tab(upto(valid)) do put(stuff,tab(many(valid))) 
+  sf := open(newslib || where) | {
+    remove(tmpfile)
+    stop("post: cannot open ", newslib || where)
+  }
+  stuff := sort(stuff)
+  a := pop(stuff)
+  every !sf ? match(a) & (a := pop(stuff)) | return what
+  remove(tmpfile)
+  stop("`", a, "' is not in ", newslib || where)
+end

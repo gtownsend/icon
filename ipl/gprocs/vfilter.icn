@@ -1,0 +1,40 @@
+############################################################################
+#
+#	File:     vfilter.icn
+#
+#	Subject:  Procedure to change filter mode in sliders and scrollbars
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 3, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  VSetFilter(vidget, value) sets the appropriate field in the structure for
+#  vidget to change the filtering mode (null for no filtering, "1" for
+#  filtering).
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+procedure VSetFilter(vidget, value)	#: filter mode of slider/scrollbar
+   local t
+
+   t := type(vidget)
+
+   case t of {
+      "Vscrollbar_frame_rec" :  vidget.callback.callers[2].discont := value
+      "Vslider_rec"          :  vidget.discont := value
+      default                :  stop("*** invalid type to VSetFilter: ", t)
+      }
+
+   return
+
+end

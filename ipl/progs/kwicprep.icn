@@ -1,0 +1,55 @@
+############################################################################
+#
+#	File:     kwicprep.icn
+#
+#	Subject:  Program to prepare information for IPL KWIC listings
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 25, 1996
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+###########################################################################
+#
+#  This program prepares information used for creating keyword-in-context
+#  listings of the Icon program library.
+#
+###########################################################################
+
+procedure main()
+   local files, file, input, line
+
+   files := open("ls [a-z]*.icn", "p")
+
+   while file := read(files) do {
+      if *file > 13 then write(&errout,"*** file name too long: ", file)
+      input := open(file)
+      every 1 to 4 do read(input)		# skip to subject line
+      line := read(input) | {
+         write(&errout, "*** no subject in ", file)
+         next
+         }
+      line ? {
+         if tab(find("Subject:  Program ") + 18) |
+            tab(find("Subject:  Procedures") + 21) |
+            tab(find("Subject:  Procedure ") + 20) |
+            tab(find("Subject:  Procedure ") + 20) |
+            tab(find("Subject:  Definitions ") + 22) |
+            tab(find("Subject:  Declarations ") + 23) |
+            tab(find("Subject:  Declaration ") + 22) |
+            tab(find("Subject:  Link declarations ") + 28) |
+            tab(find("Subject:  Link declaration ") + 27) |
+            tab(find("Subject:  Record declarations ") + 30) |
+            tab(find("Subject:  Record declaration ") + 29) then {
+               =("for " | "to ")			# optional in some cases
+               write(file, ": ", tab(0))
+               }
+         else write(&errout, "*** bad subject line in ", file)
+         }
+      close(input)
+      }
+
+end

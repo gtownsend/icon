@@ -1,0 +1,62 @@
+############################################################################
+#
+#	File:     vmsum.icn
+#
+#	Subject:  Program to tabulate virtual-machine operations
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 22, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This tool tabulates event codes.
+#	
+############################################################################
+#
+#  Requires:  Version 9 graphics and MT Icon
+#
+############################################################################
+#
+#  Links:  evinit, numbers, opnames
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+$include "evdefs.icn"
+
+link evinit
+link numbers
+link opnames
+
+procedure main(args)
+   local name, summary, total, i
+
+   EvInit(get(args) | &null)			# initialize interface
+
+   name := opnames()
+
+   summary := table(0)
+   total := 0
+
+   while EvGet(E_Opcode) do {
+      summary[&eventvalue] +:= 1
+      total +:= 1
+      }
+
+   summary := sort(summary,4)
+   total /:= 100.0
+
+   write(left("code",10), right("count",8), right("percent",10))
+   write()
+   while write(left(name[get(summary)],10), right(i := get(summary),8),
+      "   ", fix(i, total, 5, 2))
+
+end

@@ -1,0 +1,238 @@
+############################################################################
+#
+#	File:     dif.icn
+#
+#	Subject:  Procedure to check for differences
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	dif(stream, compare, eof, group)
+#		generates a sequence of differences between an	arbitrary
+#		number of input streams.  Each result is returned as a list
+#		of diff_recs, one for each input stream, with each diff_rec
+#		containing a list of items that differ and their position
+#		in the input stream.
+#
+#  The diff_rec type is declared as:
+#
+#		record diff_rec(pos,diffs)
+#
+#  dif() fails if there are no differences, i.e. it produces an empty
+#  result sequence.
+#
+############################################################################
+#
+#  For example, if two input streams are:
+#
+#	a b c d e f g h
+#	a b d e f i j
+#
+#  the output sequence would be:
+#
+#	[diff_rec(3,[c]),diff_rec(3,[])]
+#	[diff_rec(7,[g,h]),diff_rec(6,[i,j])
+#
+#  The arguments to dif(stream,compare,eof,group) are:
+#
+#	stream		A list of data objects that represent input streams
+#			from which dif will extract its input "records".
+#			The elements can be of several different types which
+#			result in different actions, as follows:
+#
+#			   Type			   Action
+#			===========	=============================
+#			file		file is "read" to get records
+#
+#			co-expression	co-expression is activated to
+#					get records
+#
+#			list		records are "gotten" (get()) from
+#					the list
+#
+#			diff_proc	a record type defined in "dif" to
+#					allow a procedure (or procedures)
+#					suppled by dif's caller to be called
+#					to get records.  Diff_proc has two
+#					fields, the procedure to call and the
+#					argument to call it with.  Its
+#					definition looks like this:
+#
+#					   record diff_proc(proc,arg)
+#			
+#
+#  Optional arguments:
+#
+#	compare		Item comparison procedure -- succeeds if
+#			"equal", otherwise fails (default is the
+#			identity "===" comparison).  The comparison
+#			must allow for the fact that the eof object
+#			(see next) might be an argument, and a pair of
+#			eofs must compare equal.
+#
+#	eof		An object that is distinguishable from other
+#			objects in the stream.  Default is &null.
+#
+#	group		A procedure that is called with the current number
+#			of unmatched items as its argument.  It must
+#			return the number of matching items required
+#			for file synchronization to occur.  Default is
+#			the formula Trunc((2.0 * Log(M)) + 2.0) where
+#			M is the number of unmatched items.
+#
+############################################################################
+
+invocable all
+
+record diff_rec(pos,diffs)
+record diff_proc(proc,arg)
+record diff_file(stream,queue)
+
+
+procedure dif(stream,compare,eof,group)
+  local f,linenbr,line,difflist,gf,i,j,k,l,m,n,x,test,
+	result,synclist,nsyncs,syncpoint
+  #
+  #  Provide default arguments and initialize data.
+  #
+  /compare := proc("===",2)
+  /group := groupfactor
+  f := []
+  every put(f,diff_file(!stream,[]))
+  linenbr := list(*stream,0)
+  line := list(*stream)
+  test := list(*stream)
+  difflist := list(*stream)
+  every !difflist := []
+  #
+  #  Loop to process all records of all input streams.
+  #
+  repeat {
+    #
+    #  This is the "idle loop" where we spin until we find a discrepancy
+    #  among the data streams.  A line is read from each stream, with a
+    #  check for eof on all streams.  Then the line from the first
+    #  stream is compared to the lines from all the others.
+    #
+    repeat {
+      every i := 1 to *stream do
+        line[i] := diffread(f[i]) | eof
+      if not (every x := !line do
+        (x === eof) | break) then break break
+      every !linenbr +:= 1
+      if (every x := !line[2:0] do
+        compare(x,line[1]) | break) then break
+    }
+    #
+    #  Aha!  We have found a difference.  Create a difference list,
+    #  one entry per stream, primed with the differing line we just found.
+    #
+    every i := 1 to *stream do
+      difflist[i] := [line[i]]
+    repeat {
+      #
+      #  Add a new input line from each stream to the difference list.
+      #  Then build lists of the subset of different lines we need to
+      #  actually compare.
+      #
+      every i := 1 to *stream do
+        put(difflist[i],diffread(f[i]) | eof)
+      gf := group(*difflist[1])
+      every i := 1 to *stream do
+        test[i] := difflist[i][-gf:0]
+      #
+      #  Create a "synchronization matrix", with a row and column for
+      #  each input stream.  The entries will be initially &null, then
+      #  will be set to the synchronization position if sync is
+      #  achieved between the two streams.  Another list is created to
+      #  keep track of how many syncs have been achieved for each stream.
+      #
+      j := *difflist[1] - gf + 1
+      synclist := list(*stream)
+      every !synclist := list(*stream)
+      every k := 1 to *stream do
+        synclist[k][k] := j
+      nsyncs := list(*stream,1)
+      #
+      #  Loop through positions to start comparing lines.  This set of
+      #  nested loops will be exited when a stream achieves sync with
+      #  all other streams.
+      #
+      every i := 1 to j do {
+        #
+        #  Loop through all streams.
+        #
+        every k := 1 to *stream do {
+          #
+          #  Loop through all streams.
+          #
+	  every l := 1 to *stream do {
+	    if /synclist[k][l] then {	# avoid unnecessary comparisons
+	      #
+              #  Compare items of the test list to the differences list
+              #  at all possible positions.  If they compare, store the
+              #  current position in the sync matrix and bump the count
+              #  of streams sync'd to this stream.  If all streams are in
+	      #  sync, exit all loops but the outer one.
+	      #
+	      m := i - 1
+	      if not every n := 1 to gf do {
+	        if not compare(test[k][n],difflist[l][m +:= 1]) then break
+	      } then {
+	        synclist[k][l] := i	# store current position
+	        if (nsyncs[k] +:= 1) = *stream then break break break break
+	      }
+	    }
+	  }
+	}
+      }
+    }
+    #
+    #  Prepare an output set.  Since we have read the input streams past
+    #  the point of synchronization, we must queue those lines before their
+    #  input streams. 
+    #
+    synclist := synclist[k]
+    result := list(*stream)
+    every i := 1 to *stream do {
+      j := synclist[i]
+      while difflist[i][j -:= 1] === eof	# trim past eof
+      result[i] := diff_rec(linenbr[i],difflist[i][1:j + 1])
+      f[i].queue := difflist[i][synclist[i] + gf:0] ||| f[i].queue
+      linenbr[i] +:= synclist[i] + gf - 2
+      difflist[i] := []
+    }
+    suspend result
+  }
+end
+
+#
+#  diffread() -- Read a line from an input stream.
+#
+procedure diffread(f)
+  local x
+  return get(f.queue) | case type(x := f.stream) of {
+    "file" | "window": read(x)
+    "co-expression": @x
+    "diff_proc": x.proc(x.arg)
+    "list": get(x)
+  }
+end
+
+#
+#  groupfactor() -- Determine how many like lines we need to close
+#  off a group of differences.  This is the default routine -- the
+#  caller may provide his own.
+#
+procedure groupfactor(m)  # Compute: Trunc((2.0 * Log(m)) + 2.0)
+  m := string(m)
+  return 2 * *m + if m <<= "316227766"[1+:*m] then 0 else 1
+end
+

@@ -1,0 +1,70 @@
+############################################################################
+#
+#	File:     setmerge.icn
+#
+#	Subject:  Program to combine sets of text items
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     May 31, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Setmerge combines sets of items according to the specified operators.
+#  Sets are read from files, one entry per line.  Operation is from left
+#  to right without any precedence rules.  After all operations are
+#  complete the resulting set is sorted and written to standard output.
+# 
+#  Usage:  setmerge file [[op] file]...
+#
+#  Operations:
+#	+  add contents to set
+#	-  subtract contents from set
+#	*  intersect contents with set
+#
+#  Note that operators must be separate command options, and that some
+#  shells my require some of them to be quoted.
+#
+#  Example 1: combine files, sorting and eliminating duplicates:
+#
+#	setmerge file1 + file2 + file3 + file4
+#
+#  Example 2: print lines common to three files
+#
+#	setmerge file1 '*' file2 '*' file3
+#
+#  Example 3: print lines in file1 or file2 but not in file3
+#
+#	setmerge file1 + file2 - file3
+#
+############################################################################
+
+
+procedure main(args)
+   local items, a, op, f, s
+
+   items := set()
+   op := "+"
+   every a := !args do {
+      if *a = 1 & any('+-*', a) then {
+         op := a
+         }
+      else {
+         f := open(a) | stop("can't open ", a)
+         case op of {
+            "+": every insert(items, !f)
+            "-": every delete(items, !f)
+            "*": {
+               s := set()
+               every insert(s, member(items, !f))
+               items := s
+               }
+         }
+      }
+   }
+   every write(!sort(items))
+end

@@ -1,0 +1,249 @@
+############################################################################
+#
+#	File:     tgrprep.icn
+#
+#	Subject:  Program to prepare TIGER line chains
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     October 12, 1995
+#
+############################################################################
+#
+#  Tgrprep writes files of "line chain" data extracted from Census Bureau
+#  1994 TIGER/Line data files.  The main purpose of this is to prepare
+#  input for the "tgrmap" program.
+#
+#  This is an evolving work.  File formats may change in future versions.
+#
+#  Usage:  tgrprep rec1file rec2file
+#
+#	rec1file:  tgr*.f61 file containing Type 1 (chain) data
+#	rec2gile:  tgr*.f62 file containing Type 2 (shape point) data
+#
+#  Output consists of two records giving the data range followed by
+#  one line per chain formatted as follows:
+#	 1- 3	(3)	CFCC feature code
+#	 4	(1)	boundary code (see below)
+#	 5- 8	(4)	max dimension (latitude or longitude units), max 9999
+#	 9-15	(7)	starting longitude, fraction E of Greenwich meridian
+#	16-22	(7)	starting latitude, fraction S of North Pole
+#	23-26	(4)	delta longitude to first point, same units, plus 5000
+#	27-30	(4)	delta latitude to first point, same units, plus 5000
+#  followed by any number (zero or more) of additional deltas.
+#  Output lines may be arbitrarily long.
+#
+#  In the first two records, only starting longitude and latitude are
+#  nonblank.  The first record gives the smallest longitude/latitude
+#  seen in the data, and the second gives the largest.
+#
+#  Boundary codes are:
+#	9	national boundary  (not used)
+#	8	state boundary  (not used)
+#	7	county boundary
+#	5	city limits
+#	0	other, unknown, not a boundary
+#
+#  For input formats and the definition of CFCC codes, see
+#	TIGER/Line Files, 1994 Technical Documentation
+#	Bureau of the Census, Washington, DC, 1994.
+#
+############################################################################
+
+global minlon, maxlon	# min/max longitude seen (in input terms)
+global minlat, maxlat	# min/max latitude seen (in input terms)
+
+global curlon, curlat	# current longitude/latitude for output
+global deltas		# string of deltas for output
+
+
+procedure main(args)
+   local details, file1, file2, n
+
+   *args = 2 | stop("usage: ", &progname, " rec1file rec2file")
+   file1 := open(args[1]) | stop("can't open ", args[1])
+   file2 := open(args[2]) | stop("can't open ", args[2])
+
+   write(&errout, "prescanning ", args[1])
+   n := llrange(file1)
+   write(&errout, right(n, 10), " chain records")
+   write("        ", rz(cvlon(minlon)), rz(cvlat(maxlat)))
+   write("        ", rz(cvlon(maxlon)), rz(cvlat(minlat)))
+
+   write(&errout, "prescanning ", args[2])
+   details := dtindex(file2)
+   write(&errout, right(*details, 10), " supplemental sets")
+
+   write(&errout, "scanning ", args[1])
+   n := scan(file1, file2, details)
+   write(&errout, right(n, 10), " supplements used")
+   write(&errout, "done")
+end
+
+
+#  scan(file1, file2, details) -- scan records and write output.
+#
+#  returns the number of supplements referenced.
+
+procedure scan(file1, file2, details)
+   local line, tlid, cfcc, lon, lat, n, l, r
+   local startlon, startlat, endlon, endlat, dim, bound
+
+   n := 0
+   seek(file1, 1)
+   while line := read(file1) do line ? {
+      ="10021" | next
+      tlid := move(10)
+      tab(56)
+      cfcc := move(3)
+      bound := "0"
+
+      tab(135)
+      l := move(3)
+      r := move(3)
+      if l ~== r then
+	 bound := "7"
+      else {
+         tab(161)
+         l := move(5)
+         r := move(5)
+         if l ~== r then
+	    bound := "5"
+	 }
+
+      tab(191)
+      startlon := curlon := minlon := maxlon := cvlon(move(10))
+      startlat := curlat := minlat := maxlat := cvlat(move(9))
+      endlon := cvlon(move(10))
+      endlat := cvlat(move(9))
+
+      deltas := ""
+      if seek(file2, \details[tlid]) then {
+	 n +:= 1
+         while line := read(file2) do line ? {
+	    tab(6)
+	    =tlid | break
+	    tab(19)
+	    every 1 to 10 do
+	       drawto(cvlon(0 ~= move(10)), cvlat(0 ~= move(9)))
+	    }
+	 }
+      drawto(endlon, endlat)
+
+      dim := startlon - minlon
+      dim <:= maxlon - startlon
+      dim <:= startlat - minlat
+      dim <:= maxlat - startlat
+      dim >:= 9999
+
+      write(cfcc, bound, right(dim, 4), rz(startlon), rz(startlat), deltas)
+      }
+   return n
+end
+
+
+#  drawto(lon, lat) -- append deltas, updating curlon/curlat
+
+procedure drawto(lon, lat)
+   local dlon, dlat
+
+   dlon := lon - curlon
+   dlat := lat - curlat
+
+   if abs(dlon | dlat) >= 5000 then {
+      drawto(curlon + dlon / 2, curlat + dlat / 2)
+      drawto(lon, lat)
+      }
+   else {
+      deltas ||:= rz(dlon + 5000, 4)
+      deltas ||:= rz(dlat + 5000, 4)
+      curlon := lon
+      curlat := lat
+      minlon >:= lon
+      maxlon <:= lon
+      minlat >:= lat
+      maxlat <:= lat
+      }
+   return
+end
+
+
+
+#  rz(v, n) -- right-justify value in n digits with zero fill
+
+procedure rz(v, n)
+   /n := 7
+   return right(v, n, "0")
+end
+
+
+
+#  cvlon(n) -- convert longitude to output form
+#
+#  (Fraction of circle east of Greenwich, as 0000000 to 9999999).
+
+procedure cvlon(n)
+   static m
+   initial m := 9999999 / 360.0 / 1000000
+
+   n := integer(n)
+   if n < 0 then
+      n +:= 360000000
+   return integer(m * n)
+end
+
+
+#  cvlat(n) -- convert latitude to output form
+#
+#  (Fraction of semicircle south of North Pole, as 0000000 to 9999999).
+
+procedure cvlat(n)
+   static m
+   initial m := 9999999 / 180.0 / 1000000
+   return integer(m * (90000000 - n))
+end
+
+
+
+#  dtindex(f) -- return table of record indices by TLID from file f
+
+procedure dtindex(f)
+   local details, line, w
+
+   details := table()
+   seek(f, 1)
+   while (w := where(f)) & (line := read(f)) do line ?
+      if ="20021" then
+	  /details[move(10)] := w
+   return details
+end
+
+
+
+#  llrange(f) -- scan f to set min/max lon/lat, returning record count
+
+procedure llrange(f)
+   local line, n, lon, lat 
+
+   minlon := +180000000
+   maxlon := -180000000
+   minlat := +90000000
+   maxlat := -90000000
+   n := 0
+
+   seek(f, 1)
+   while line := read(f) do line ? {
+      ="10021" | next
+      n +:= 1
+      tab(191)
+      every 1 | 2 do {
+         lon := integer(move(10))
+         lat := integer(move(9))
+         minlon >:= lon 
+         maxlon <:= lon 
+         minlat >:= lat 
+         maxlat <:= lat 
+         }
+      }
+   return n
+end

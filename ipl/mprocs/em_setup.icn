@@ -1,0 +1,101 @@
+############################################################################
+#
+#	File:     em_setup.icn
+#
+#	Subject:  Procedures to set up execution monitors 
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 3, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures provide support for the routine parts of building
+#  Icon execution monitors, including what's necessary for them to
+#  run stand-alone as well as under the control of monitor coordinators
+#  like eve and vc.
+#
+#  	vis_setup(args[])	opens a window with attributes given
+#				by args[]
+#
+#	em_setup(sp)		loads sp as the program to be monitored
+#
+#	context_setup(mask)	returns table of graphics context for
+#				mask	
+#
+#	prog_name()		returns the name of the source program
+#				for the SP set up by em_setup()
+#
+#	em_end()		hold visualization window open if (a)
+#				there is one and (b) monitoring is
+#				stand alone
+#
+############################################################################
+#
+#  Requires:  Version 9 MT Icon, instrumentation, and graphics
+#
+############################################################################
+#
+#  Links:  evinit, interact, typebind, graphics
+#
+############################################################################
+#
+#  Includes: evdefs.icn
+#
+############################################################################
+
+link evinit
+link interact
+link typebind
+link graphics
+
+$include "evdefs.icn"
+
+global Coordination		# if nonnull, vc is in charge
+global Visualization		# visualization window
+global EventSource		# vc's event source
+
+procedure vis_setup(args[])	#: set up visualization window
+
+   Visualization := (WOpen ! args) |
+      stop("*** cannot open window for visualization")
+
+   return Visualization
+
+end
+
+procedure em_setup(sp)		#: set up program to be monitored
+   local trash
+
+   trash := open("/dev/null", "w") |
+      stop("*** cannot open /dev/null")
+
+   EvInit(sp, , trash, trash) | stop("*** cannot load SP")
+
+   return
+
+end
+
+procedure context_setup(mask)	#: table of graphics contexts for mask
+
+   return typebind(Visualization, mask)
+
+end
+
+procedure prog_name()		#: name of monitored source program
+
+   return variable("&progname", EventSource) || ".icn"
+
+end
+
+procedure em_end()		#: hold event monitoring for event at end
+   local back
+
+   back := WOpen("canvas=hidden", "bg=light gray")
+   if /Coordination then ExitNotice(back, "Normal termination of SP")
+
+end

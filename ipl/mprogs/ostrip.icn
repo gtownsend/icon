@@ -1,0 +1,71 @@
+############################################################################
+#
+#	File:     ostrip.icn
+#
+#	Subject:  Program to show virtual-machine op-code strip
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 18, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program produces a listing of virtual machine codes and the events
+#  that occur between them.
+#
+#  The following optin is supported:
+#
+#	-o s	direct output to file s; default &output
+#
+############################################################################
+#
+#   Requires:  MT Icon and event monitoring
+#
+############################################################################
+#
+#   Links:  evinit, evsyms, opnames, options
+#
+############################################################################
+
+link evinit
+link evsyms
+link opnames
+link options
+
+$include "evdefs.icn"
+
+procedure main(args)
+   local codes, esmap, opmap, opcode, opts, output
+	
+   opts := options(args, "o:")
+   output := open(\opts["o"], "w") | &output
+
+   EvInit(args) | stop("*** cannot load SP")
+
+   opmap := opnames()
+   esmap := evsyms()
+
+   opcode := cset(E_Opcode)
+
+   while EvGet(opcode) do {			# get to first "real" op-code
+      if opmap[integer(&eventvalue)] == "Invoke" then {
+         writes(output, "Invoke    |")
+         break()
+         }
+      }
+
+   while EvGet() do {
+      if &eventcode === E_Opcode then {
+         write(output)
+         writes(output, left(opmap[integer(&eventvalue)], 10), "|")
+         }
+      else writes(output, " ", esmap[&eventcode])
+      }
+
+   write(output)
+
+end

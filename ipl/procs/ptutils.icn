@@ -1,0 +1,74 @@
+############################################################################
+#
+#	File:     ptutils.icn
+#
+#	Subject:  Procedures relating to objects in 3-space
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 26, 1997
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures provide various operations on 3-dimension objects.
+#  in 3-space.
+#
+############################################################################
+#
+#  Links:  gobject
+#
+############################################################################
+
+link gobject
+
+procedure pt2coord(p)		#: convert point to coordinate
+
+   return p.x || " " || p.y || " " || p.z
+
+end
+
+procedure coord2pt(c)		#: convert coodinate to path
+   local p
+
+   p := Point()
+
+   c ? {
+      p.x := tab(upto(' '))
+      move(1)
+      p.y := tab(upto(' '))
+      move(1)
+      p.z := tab(0)
+      }
+
+   return p
+
+end
+
+procedure negpt(p)			#: negative of point
+
+    return Point(-p.x, -p.y, -p.z)
+
+end
+
+procedure pteq(p1, p2)			#: test point equality
+
+   if p1.x = p2.x & p1.y = p2.y & p1.z = p2.z then return p2 else fail
+
+end
+
+procedure getpts(s)			#: make point list from coordinate file
+   local input, pts
+
+   input := open(s) | stop("*** cannot open ", image(s))
+
+   pts := []
+
+   while put(pts, coord2pt(read(input)))
+
+   return pts
+
+end

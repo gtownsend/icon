@@ -1,0 +1,95 @@
+############################################################################
+#
+#	File:     calib.icn
+#
+#	Subject:  Program to calibrate color monitor
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     May 31, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     The nonlinearity of a color display is often characterized by a
+#  "gamma correction" value; calib provides a crude method for determining
+#  this value for a particular monitor.  It displays two rectangles: one
+#  formed of alternating black and white scanlines and one formed of a
+#  single, solid color.  Move the slider until they match; the number
+#  displayed above the slider is the gamma-correction factor.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: button, evmux, graphics, options, optwindw, slider
+#
+############################################################################
+
+link button
+link evmux
+link graphics
+link options
+link optwindw
+link slider
+
+record boxdata(win, color, button)
+
+procedure main(args)
+   local opts, w, h, m, boxwidth, sliderwidth, textheight
+   local win, box, boxwin, boxcolor, y
+   local mingamma, defaultgamma, maxgamma
+
+   opts := options(args, winoptions())
+   /opts["W"] := 500
+   /opts["H"] := 400
+   /opts["M"] := -1
+   win := optwindow(opts, "cursor=off", "echo=off")
+   w := opts["W"]
+   h := opts["H"]
+   m := opts["M"]
+   textheight := 20
+   sliderwidth := 20
+   boxwidth := (w - 3 * m) / 2
+   if (h + 1) % 2 = 1 then
+      h -:= 1
+
+   mingamma := 1.0
+   defaultgamma := WAttrib(win, "gamma")
+   maxgamma := 5.0
+
+   boxwin := Clone(win)
+   Fg(boxwin, "black")
+   Bg(boxwin, "white")
+   EraseArea(boxwin, m, m, boxwidth, h)
+   every y := m to h + m by 2 do
+      DrawLine(boxwin, m, y, m + boxwidth, y)
+   boxcolor := NewColor(boxwin) | stop("can't allocate a mutable color")
+
+   # we use a do-nothing button for displaying the gamma value (!)
+   box := boxdata(boxwin, boxcolor,
+      button(win, "", &null, 0, m+w-sliderwidth, m, sliderwidth, textheight))
+   setgamma(win, box, defaultgamma)
+
+   Fg(boxwin, boxcolor)
+   FillRectangle(boxwin, m + boxwidth, m, boxwidth, h)
+   quitsensor(win)
+   slider(win, setgamma, box,
+      m + w - sliderwidth, 2 * m + textheight, sliderwidth, h - textheight - m,
+      mingamma, defaultgamma, maxgamma)
+   evmux(win)
+end
+
+procedure setgamma(win, box, gamma)
+   local v
+
+   buttonlabel(box.button, left(gamma + .05, 3))
+   WAttrib(box.win, "gamma=" || gamma)
+   Color(box.win, box.color, "gray")
+   return
+end

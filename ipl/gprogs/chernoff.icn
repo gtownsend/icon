@@ -1,0 +1,169 @@
+############################################################################
+#
+#	File:     chernoff.icn
+#
+#	Subject:  Program to imitate a Chernoff face
+#
+#	Author:   Jon Lipp
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program displays a Chernoff face.
+#
+############################################################################
+#
+#  Links:  options, vidgets, vscroll, vbuttons, wopen, xcompat
+#
+############################################################################
+
+link options
+link vidgets, vscroll, vbuttons
+link wopen
+link xcompat
+
+global FH
+
+procedure main(args)
+local opts, font, wid, h
+local root, win, s1, s2, s3, s4, s5
+
+   opts := options(args, "f:wh")
+   font := \opts["f"]
+   wid := \opts["w"]
+   h := \opts["h"]
+
+   win := WOpen("label=popup dialogs demo",
+      "size="  ||  (\wid | 425)  ||  "," || (\h | 325)) |
+      stop("*** can't open window")
+
+   root := Vroot_frame(win)
+
+   FH := WAttrib(win, "fheight")
+
+   s1 := Vhoriz_scrollbar(root, 0, 50, win, eyes, 1, 90, , 10, 99, 1)
+   s2 := Vhoriz_scrollbar(root, 0, 100, win, pupils, 2, 90, , 10, 99, 1)
+   s3 := Vhoriz_scrollbar(root, 0, 150, win, nose, 2, 90, , 0, 25, 1)
+   s4 := Vhoriz_scrollbar(root, 0, 200, win, smile, 2, 90, , 47, 32, 1)
+   s5 := Vhoriz_scrollbar(root, 0, 250, win, face, 2, 90, , 250, 300, 1)
+
+#   Vpane(root, 100, 10, win, , , 200, 200)
+
+   VResize(root)
+   put_label(root, s1, "eyes")
+   put_label(root, s2, "pupils")
+   put_label(root, s3, "nose")
+   put_label(root, s4, "smile")
+   put_label(root, s5, "face")
+   eyes(s1.thumb, s1.callback.value)
+   pupils(s2.thumb, s2.callback.value)
+   nose(s3.thumb, s3.callback.value)
+   smile(s4.thumb, s4.callback.value)
+   face(s5.thumb, s5.callback.value)
+
+   GetEvents(root, quit)
+end
+
+
+procedure quit(e)
+   if e === "q" then stop()
+end
+
+procedure write_val(vid, val)
+   GotoXY(vid.win, vid.ax-10, vid.ay-5)
+   writes(vid.win, val||"  ")
+end
+
+procedure put_label(root, sc, str)
+   local x, l
+
+   l := TextWidth(root.win, str)
+   x := sc.ax+sc.aw-l
+   VDraw(Vmessage(root, x, sc.ay-5-FH, root.win, str))
+end
+
+procedure face(vid, val)
+   local x1, y, x
+   static faceval, ox1, oy
+
+   write_val(vid, val)
+   x1 := 250 - val/2
+   y := 150 - val/2
+   rev_on(vid.win)
+   XDrawArc(vid.win, \ox1, \oy, \faceval, \faceval)
+   rev_off(vid.win)
+   XDrawArc(vid.win, x1, y, val, val)
+   faceval := val
+   ox1 := x1; oy := y
+end
+
+procedure eyes(vid, val)
+   local x1, x2, y
+   static eyeval, ox1, ox2, oy
+
+   write_val(vid, val)
+   x1 := 200 - val/2
+   x2 := 300 - val/2
+   y := 100 - val/2
+   rev_on(vid.win)
+   XDrawArc(vid.win, \ox1, \oy, \eyeval, \eyeval)
+   XDrawArc(vid.win, \ox2, \oy, \eyeval, \eyeval)
+   rev_off(vid.win)
+   XDrawArc(vid.win, x1, y, val, val)
+   XDrawArc(vid.win, x2, y, val, val)
+   eyeval := val
+   ox1 := x1; ox2 := x2; oy := y
+end
+
+procedure pupils(vid, val)
+   local x1, x2, y
+   static pupilval, ox1, ox2, oy
+
+   write_val(vid, val)
+   x1 := 200 - val/2
+   x2 := 300 - val/2
+   y := 100 - val/2
+   rev_on(vid.win)
+   XFillArc(vid.win, \ox1, \oy, \pupilval, \pupilval)
+   XFillArc(vid.win, \ox2, \oy, \pupilval, \pupilval)
+   rev_off(vid.win)
+   XFillArc(vid.win, x1, y, val, val)
+   XFillArc(vid.win, x2, y, val, val)
+   pupilval := val
+   ox1 := x1; ox2 := x2; oy := y
+end
+
+procedure smile(vid, val)
+   static oldsmile
+
+   write_val(vid, val)
+   rev_on(vid.win)
+   XDrawArc(vid.win, 185, 190, 130, 40, \oldsmile*360, (48-\oldsmile)*2*360)
+   rev_off(vid.win)
+   XDrawArc(vid.win, 185, 190, 130, 40, val*360, (48-val)*2*360)
+   oldsmile := val
+end
+
+procedure nose(vid, val)
+   static oldnose
+
+   write_val(vid, val)
+   rev_on(vid.win)
+   DrawLine(vid.win, 250, 140, 275, 180+\oldnose, 250, 190)
+   rev_off(vid.win)
+   DrawLine(vid.win, 250, 140, 275, 180+val, 250, 190)
+   oldnose := val
+
+end
+
+procedure rev_on(win)
+   WAttrib(win, "reverse=on", "linewidth=3")
+end
+procedure rev_off(win)
+   WAttrib(win, "reverse=off", "linewidth=1")
+end

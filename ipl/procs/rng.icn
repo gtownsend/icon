@@ -1,0 +1,42 @@
+############################################################################
+#
+#	File:     rng.icn
+#
+#	Subject:  Procedure to generate random numbers
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 11, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure generates a sequence of numbers using the linear
+#  congruence method.  With appropriate parameters, the result is
+#  a pseudo-random sequence.  The default values produce the sequence
+#  used in Icon.
+#
+############################################################################
+#
+#  Requires:  large integers
+#
+############################################################################
+#
+#  See also:  lcseval.icn
+#
+############################################################################
+
+procedure rng(a, c, m, x)
+
+   /a := 1103515245			# multiplicative constant
+   /c := 453816694			# additive constant
+   /m := 2 ^ 31 - 1			# modulus
+   /x := 0				# initial value
+
+   suspend x
+   suspend x := iand(a * |x + c, m)
+
+end

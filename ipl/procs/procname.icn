@@ -1,0 +1,52 @@
+############################################################################
+#
+#	File:     procname.icn
+#
+#	Subject:  Procedure to produce name of procedure
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 12, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  procname(p, x) produces the name of a procedure from a procedure value.
+#  Here, the term "procedure" includes functions, operators, and
+#  record constructors.
+#
+#  If x is null, the result is derived from image() is a relatively
+#  striaghtforward way.  In the case of operators, the number of
+#  arguments is appended to the operator symbol.
+#
+#  If x is nonnull, the result is put in a form that resembles an Icon
+#  expression.
+#
+#  procname() fails if p is not of type procedure.
+#
+############################################################################
+
+procedure procname(p, x)
+   local result
+
+   image(p) ? {
+      =("function " | "procedure " | "record constructor ")
+      if /x then return if any(&letters) then tab(0) else tab(0) || args(p)
+      else result := tab(0)
+      if any(&letters, result) then return result || "()"
+      else return case args(p) of {
+         0:  result
+         1:  result || "e"
+         2:  if result == "[]" then "e1[e2]" else "e1 " || result || " e2"
+         3:  case result of {
+             "...":   "e1 to e2 by e3"
+             "[:]":   "e1[e2:e3]"
+             default: "<<< ... " || result || "... >>>"
+             }
+         }
+      }
+
+end

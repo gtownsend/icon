@@ -1,0 +1,34 @@
+start : fpProg.
+fpProg = { def | aplExp}.
+def = DEF ident "=" fnExp DEFN!.
+def = VAL ident "=" fnExp ":" obj VALU!.
+aplExp = fnExp ":" obj APPL!.
+fnExp	= fnComp [ "->" fnComp ";" fnExp COND!]
+	| while func fnExp WHILE!
+	.
+fnComp = func { "." func COMP!}.
+func	= ident FNID!
+	| ( "+" | "-" | "*"
+		| "=" | "~="
+		| "<" | ">" | ">=" "<=" ) FNID!
+	| selector SEL!
+	| bu func obj BU!
+	| "/" func INSERT!
+	| "@" func ALL!
+	| "(" fnExp ")" PARENS!
+	| "[" ( fnExpList | EMPTYCONS! ) "]" CONS!
+	| literal
+	.
+selector = signedInt.
+fnExpList = fnExp CONS1! { "," fnExp CONSNEXT! }.
+literal = "'" obj CONST!
+	| string STRCONST!
+	.
+obj	= atom
+	| "<" objList ">" OBJL!
+	.
+objList = obj OBJ1! { "," obj OBJLNEXT! } | EMPTYOBJL! .
+atom	= signedInt INTOBJ! | signedFloat FLOATOBJ!
+	| string STRINGOBJ! | ident OBJID!
+	.
+fiducials: ":" "->" ";" "]" ")" ">".

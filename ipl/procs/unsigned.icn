@@ -1,0 +1,43 @@
+############################################################################
+#
+#	File:     unsigned.icn
+#
+#	Subject:  Procedure to put bits unsigned integer
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     April 2, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  unsigned() -- Puts raw bits of characters of string s into an
+#  integer.  The value is taken as unsigned.
+#
+#  If large integers are supported, this routine will work for integers
+#  of arbitrary size.
+#
+#  If large integers are not supported, the following are true:
+#
+#    If the size of s is the same as or greater than the size of an
+#    integer in the Icon implementation, the result will be negative or
+#    positive depending on the value of the integer's sign bit.
+#
+#    If the size of s is less than the size of an integer, the bytes are
+#    put into the low order part of the integer, with the remaining high
+#    order bytes filled with zero.  If the string is too large, the most
+#    significant bytes will be lost.
+#
+#  This procedure is normally used for processing of binary data read
+#  from a file.
+#
+
+procedure unsigned(s)
+   local i
+   i := 0
+   every i := ior(ord(!s),ishift(i,8))
+   return i
+end

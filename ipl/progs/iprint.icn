@@ -1,0 +1,258 @@
+############################################################################
+#
+#	File:     iprint.icn
+#
+#	Subject:  Program to print Icon program
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     The defaults are set up for printing of Icon programs, but
+#  through command line options it can be set up to print programs
+#  in other languages, too (such as C). This program has several
+#  features:
+#  
+#     If a program is written in a consistent style, this program
+#  will attempt to keep whole procedures on the same page. The
+#  default is to identify the end of a print group (i.e. a pro-
+#  cedure) by looking for the string "end" at the beginning of a
+#  line. Through the -g option, alternative strings can be used to
+#  signal end of a group. Using "end" as the group delimiter
+#  (inclusive), comments and declarations prior to the procedure are
+#  grouped with the procedure. Specifying a null group delimiter
+#  string (-g '') suppresses grouping.
+#  
+#     Page creases are skipped over, and form-feeds (^L) imbedded in
+#  the file are handled properly. (Form-feeds are treated as spaces
+#  by many C compilers, and signal page ejects in a listing). Page
+#  headings (file name, date, time, page number) are normally
+#  printed unless suppressed by the -h option.
+#  
+#     Options:
+#  
+#       -n   number lines.
+#  
+#       -pN  page length: number of lines per page (default: 60
+#            lines).
+#  
+#       -tN   tab stop spacing (default: 8).
+#  
+#       -h   suppress page headings.
+#  
+#       -l   add three lines at top of each page for laser printer.
+#  
+#       -gS  end of group string (default: "end").
+#  
+#       -cS  start of comment string (default: "#").
+#  
+#       -xS  end of comment string (default: none).
+#  
+#       -i   ignore FF at start of line.
+#  
+#     Any number of file names specified will be printed, each
+#  starting on a new page.
+#  
+#     For example, to print C source files such as the Icon source
+#  code, use the following options:
+#  
+#     iprint -g ' }' -c '/*' -x '*/' file ...
+#  
+#     Control lines:
+#  
+#     Control lines are special character strings that occur at the
+#  beginnings of lines that signal special action. Control lines
+#  begin with the start of comment string (see options). The control
+#  lines currently recognized are:
+#  
+#     <comment string>eject -- page eject (line containing "eject"
+#  does not print).
+#  
+#     <comment string>title -- define a title line to print at top
+#  of each page. Title text is separated from the <comment
+#  string>title control string by one space and is terminated by
+#  <end of comment string> or end of line, whichever comes first.
+#  
+#     <comment string>subtitle -- define a sub-title line to print
+#  at top of each page. Format is parallel to the "title" control
+#  line, above.
+#  
+#     If a page eject is forced by maximum lines per page being
+#  exceeded (rather than intentional eject via control line, ff, or
+#  grouping), printing of blank lines at the top of the new page is
+#  suppressed. Line numbers will still be printed correctly.
+#  
+############################################################################
+
+global pagelines,tabsize,lines,page,datetime,title,subtitle,pagestatus,blanks,
+	group,numbers,noheaders,hstuff,gpat,comment,comment_end,laser,
+	ignore_ff
+
+procedure main(arg)
+  local files,x
+  &dateline ? {tab(find(",")) ; move(2) ; datetime := tab(0)}
+  files := []
+  pagelines := 60
+  tabsize := 8
+  gpat := "end"
+  comment := "#"
+
+  while x := get(arg) do {
+    if match("-",x) then {	# Arg is an option
+      case x[2] of {
+	"n": numbers := "yes"
+	"p": {
+	  pagelines := ("" ~== x[3:0]) | get(arg)
+	  if not (pagelines := integer(pagelines)) then
+		stop("Invalid -p parameter: ",pagelines)
+	}
+	"t": {
+	  tabsize := ("" ~== x[3:0]) | get(arg)
+	  if not (tabsize := integer(tabsize)) then
+		stop("Invalid -t parameter: ",tabsize)
+	}
+	"h": noheaders := "yes"
+	"l": laser := "yes"
+	"g": {
+	  gpat := ("" ~== x[3:0]) | get(arg)
+	}
+	"c": {
+	  comment := ("" ~== x[3:0]) | get(arg)
+	}
+	"x": {
+	  comment_end := ("" ~== x[3:0]) | get(arg)
+	}
+	"i": ignore_ff := "yes"
+	default: stop("Invalid option ",x)
+      }
+    }
+    else put(files,x)
+  }
+  if *files = 0 then stop("usage: iprint -options file ...\n_
+	options:\n_
+	\t-n\tnumber the lines\n_
+	\t-p N\tspecify lines per page (default 60)\n_
+	\t-t N\tspecify tab width (default 8)\n_
+	\t-h\tsuppress page headers\n_
+	\t-l\tadd 3 blank lines at top of each page\n_
+	\t-g S\tpattern for last line in group\n_
+	\t-c S\t'start of comment' string\n_
+	\t-x S\t'end of comment' string\n_
+	\t-i\tignore FF")
+  every x := !files do expand(x)
+end
+
+procedure expand(fn)
+  local f,line,cmd,linenbr,fname
+  f := open(fn) | stop("Can't open ",fn)
+  fn ? {
+    while tab(find("/")) & move(1)
+    fname := tab(0)
+  }
+  hstuff := fname || "  " || datetime || "  page "
+  title := subtitle := &null
+  lines := pagelines
+  page := 0 ; linenbr := 0
+  group := []
+  while line := trim(read(f)) do {
+    if \ignore_ff then while match("\f",line) do line[1] := ""
+    linenbr +:= 1
+    if match("\f",line) then {
+      dumpgroup()
+      lines := pagelines
+      repeat {
+	line[1] := ""
+	if not match("\f",line) then break
+      }
+    }
+    line ? {
+      if =comment & cmd := =("eject" | "title" | "subtitle") then {
+	dumpgroup()
+	case cmd of {		# Command line
+	  "title": (move(1) & title := trim(tab(find(comment_end)))) |
+		(title := &null)
+	  "subtitle": (move(1) & subtitle := trim(tab(find(comment_end)))) |
+		(subtitle := &null)
+	}
+	lines := pagelines
+      }
+      else {	# Ordinary (non-command) line
+	if not (*group = 0 & *line = 0) then {
+	  put(group,line)
+	  if \numbers then put(group,linenbr)
+	}
+	if endgroup(line) then dumpgroup()
+      }
+    }
+  }
+  dumpgroup()
+  close(f)
+  lines := pagelines
+end
+
+procedure dumpgroup()
+  local line,linenbr
+  if *group > 0 then {
+    if lines + *group / ((\numbers & 2) | 1) + 2 >= pagelines then
+	lines := pagelines
+    else {write("\n") ; lines +:= 2}
+    while line := get(group) do {
+      if \numbers then linenbr := get(group)
+      if lines >= pagelines then {
+	printhead()
+      }
+      if *line = 0 then {
+	if pagestatus ~== "empty" then {blanks +:= 1 ; lines +:= 1}
+	next
+      }
+      every 1 to blanks do write()
+      blanks := 0
+      pagestatus := "not empty"
+      if \numbers then writes(right(linenbr,5)," ")
+      write(detab(line))
+      lines +:= 1
+    }
+  }
+  return
+end
+
+procedure endgroup(s)
+  return match("" ~== gpat,s)
+end
+
+procedure printhead()
+  static ff,pg
+  writes(ff) ; ff := "\f"
+  lines := 0
+  pg := string(page +:= 1)
+  if /noheaders then {
+    if \laser then write("\n\n")
+    write(left(\title | "",79 - *hstuff - *pg),hstuff,pg)
+    lines +:= 2
+    write(\subtitle) & lines +:= 1
+    write()
+  }
+  pagestatus := "empty"
+  blanks := 0
+  return
+end
+
+procedure detab(s)
+  local t
+  t := ""
+  s ? {
+    while t ||:= tab(find("\t")) do {
+      t ||:= repl(" ",tabsize - *t % tabsize)
+      move(1)
+    }
+    t ||:= tab(0)
+  }
+  return t
+end
+

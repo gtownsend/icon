@@ -1,0 +1,896 @@
+############################################################################
+#
+#	File:     press.icn
+#
+#	Subject:  Program to archive files
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     November 14, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Besides being a useful file archiving utility, this program can be
+#  used to experiment with the LZW compression process, as it contains
+#  extensive tracing facilities that illustrate the process in detail.
+#
+#  Compression can be turned off if faster archiving is desired.
+#
+#  The LZW compression procedures in this program are general purpose
+#  and suitable for reuse in other programs.
+#
+############################################################################
+#
+#  Instructions for use are summarized in "help" procedures that follow.
+#
+############################################################################
+#
+#  Links: options, colmize, wildcard
+#
+############################################################################
+
+link options, colmize, wildcard
+
+procedure Usage(s)
+   /s := ""
+   stop("\nUsage:_
+\n      Compress: press -c <archive file> [<options>] [<file to compress>...]_
+\n      Archive:  press -a <archive file> [<options>] [<file to archive>...]_
+\n      Extract:  press -x <archive file> [<options>] [<file to extract>...]_
+\n      Print:    press -p <archive file> [<options>] [<file to print>...]_
+\n      List:     press -l <archive file> [<options>] [<file to list>...]_
+\n      Delete:   press -d <archive file> [<options>] <file to delete>..._
+\n_
+\n      Help:     press         (prints this message)_
+\n      More help:press -h      (prints more details)_
+\n_
+\n      -c  perform compression into <archive file>_
+\n      -a  add file(s) to <archive file> in uncompressed format_
+\n      -x  extract (& decompress) file(s) from <archive file>_
+\n      -p  extract (& decompress) from <archive file> to standard output_
+\n      -l  list file names in <archive file>_
+\n      -d  delete file(s) from <archive file>_
+\n          (produces new file -- old file saved with \".bak\" suffix)_
+\n_
+\n      Options:_
+\n      -q  work quietly_
+\n      -t  text file(s) (retrieves with correct line end format)_
+\n	-n  process all files in archive *except* specified files_
+\n_
+\n      LZW Experimentor Options:_
+\n      -T  produce detailed compression trace info (to standard error file)_
+\n      -S  maximum compression string table size_
+\n          (for -c only -- default = 1024)_
+\n"
+      ,s)
+end
+
+procedure MoreHelp()
+   return "\n _
+  The archive (-a) option means to add the file without compression._
+\n_
+\n If no files are specified to extract, print, or list, then all files_
+\n in the archive are used._
+\n_
+\n UNIX-style filename wildcard conventions can be used to express_
+\n the archived file names for extract, print, list, and delete_
+\n operations.  Be sure to quote names containing wildcard characters_
+\n so that they aren't expanded by the shell (if applicable)._
+\n_
+\n If a <file to compress> or <file to archive> is \"-\", or if no files_
+\n are specified, standard input is archived._
+\n_
+\n If <archive file> for extract, print, or list is \"-\", standard input_
+\n is the archive file._
+\n_
+\n If <archive file> for compress or archive is \"-\", archive is written_
+\n to standard output._
+\n_
+\n New files archived to an existing archive file are always appended,_
+\n deleting any previously archived version of the same file name._
+\n_
+\n Archive files can be simply concatenated to create their union._
+\n However, if the same file exists in both archives, only the first_
+\n in the resulting file will be able to be accessed._
+\n_
+\n If a \"compressed\" file turns out to be longer than the uncompressed_
+\n file (rare but possible, usually for very short files), the file will_
+\n automatically be archived in uncompressed format._
+\n_
+\n A default file name suffix of \".prx\" is assumed for <archive file>_
+\n names that are specified without a suffix._
+\n_
+\n_
+\n LZW \"internals\" option:_
+\n_
+\n If the specified maximum table size is positive, the string table is_
+\n discarded when the maximum size is reached and rebuilt (usually the_
+\n better choice).  If negative, the original table is not discarded,_
+\n which might produce better results in some circumstances.  This_
+\n option was provided primarily for experimentors._
+\n"
+end
+
+#
+#  Global variables.
+#
+#  Note:  additional globals that contain option values are defined near
+#  Options(), below.
+#
+global inchars,outchars,tinchars,toutchars,lzw_recycles,
+      lzw_stringTable,rf,wf,magic,rline,wline
+
+#
+#  Main procedure.
+#
+procedure main(arg)
+   local arcfile
+   #
+   #  Initialize.
+   #
+   Options(arg)
+   inchars := outchars := tinchars := toutchars := lzw_recycles := 0
+   magic := "\^p\^r\^e\^s\^s\^i\^c\^n"
+   #
+   #  Do requested operation.
+   #
+   arcfile :=
+         DefaultSuffix(\(compr | archive | extract | print | lister | deleter),
+         "prx") | Usage()
+   if \(compr | archive) then Archive(arcfile,arg)
+   else if \(extract | print) then Extract(arcfile,arg)
+   else if \lister then List(arcfile,arg)
+   else if \deleter then Delete(arcfile,arg)
+   return
+end
+
+
+#
+#  Option global variables.
+#
+global lzw_trace,maxTableSpecified,maxTableSize,print,quiet,tmode,WildMatch
+global extract,compr,archive,lister,deleter
+
+#
+#  Options() -- Handle command line options.
+#
+procedure Options(arg)
+   local opt,n,x
+   opt := options(arg,"hc:a:x:p:l:d:qtTS+n")
+   if \opt["h"] then Usage(MoreHelp())
+   extract := opt["x"]
+   print := opt["p"]
+   compr := opt["c"]
+   archive := opt["a"]
+   lister := opt["l"]
+   deleter := opt["d"]
+   quiet := opt["q"]
+   tmode := if \opt["t"] then "t" else "u"
+   WildMatch := if \opt["n"] then not_wild_match else whole_wild_match
+   lzw_trace := opt["T"]
+   maxTableSpecified := opt["S"]
+   maxTableSize := \maxTableSpecified | 1024    # 10 bits default
+   n := 0
+   every x := compr | archive | extract | print | lister | deleter do
+         if \x then n +:= 1
+   if n ~= 1 then Usage()
+   return
+end
+
+
+#
+#  Archive() -- Do archiving.
+#
+procedure Archive(arcfile,arg)
+   local fn,addr,realLen,maxT,length,addr2,deleteFiles,new_data_start
+   #
+   #  Confirm options and open the archive file.
+   #
+   if *arg = 0 | WildMatch === not_wild_match then Usage()
+   if ("" | "-") ~== arcfile then {
+      if wf := open(arcfile,"ru") then {
+         if not (reads(wf,*magic) == magic) then {
+            stop("Invalid archive file ",arcfile)
+            }
+         close(wf)
+         }
+      wf := open(arcfile,"bu" | "wu") | stop("Can't open archive file ",arcfile)
+      if tmode == "t" then rline := "\n"
+      seek(wf,0)
+      if where(wf) = 1 then writes(wf,magic)
+      }
+   else {
+      wf := &output
+      arcfile := "stdout"
+      }
+   new_data_start := where(wf)
+   ## if /quiet then 
+   ##    write(&errout,"New data starting at byte ",new_data_start," of ",arcfile)
+   #
+   #  Loop to process files on command line.
+   #
+   if *arg = 0 then arg := ["-"]
+   deleteFiles := []
+   every fn := !arg do {
+      if fn === arcfile then next
+      if /quiet then
+         writes(&errout,"File \"",fn,"\" -- ")
+      rf := if fn ~== "-" then open(fn,tmode) | &null else &input
+      if /rf then {
+         if /quiet then
+            write(&errout,"Can't open input file \"",fn,"\" -- skipped")
+         next
+         }
+      put(deleteFiles,fn)
+      WriteString(wf,Tail(fn))
+      addr := where(rf)
+      seek(rf,0)
+      realLen := where(rf) - 1
+      WriteInteger(wf,realLen)
+      seek(rf,addr)
+      if /quiet then
+         writes(&errout,"Length: ",realLen)
+      addr := where(wf)
+      WriteInteger(wf,0)
+      writes(wf,"\1")    # write a compression version string
+      if \compr then {
+         WriteInteger(wf,maxTableSize)
+         maxT := Compress(R,W,maxTableSize)
+         length := outchars + 4
+         if /quiet then
+            writes(&errout,"  Compressed: ",length,"  ",
+                  Percent(realLen - outchars,realLen))
+         }
+      #
+      #  If compressed file is larger than original, just copy the original.
+      #
+      if \archive | length > realLen then {
+         if /quiet then
+            writes(&errout," -- Archived uncompressed")
+         seek(wf,addr + 4)
+         writes(wf,"\0") # write a zero version string for uncompressed
+         seek(rf,1)
+         CopyFile(rf,wf)
+         inchars := outchars := length := realLen
+         maxT := 0
+         lzw_stringTable := ""
+         }
+      if /quiet then
+         write(&errout)
+      close(rf)
+      addr2 := where(wf)
+      seek(wf,addr)
+      WriteInteger(wf,length)
+      seek(wf,addr2)
+      if /quiet then
+         Stats(maxT)
+      }
+   close(wf)
+   if /quiet then
+      if *arg > 1 then FinalStats()
+   Delete(arcfile,deleteFiles,new_data_start)
+   return
+end
+
+
+#
+#  Extract() -- Extract a file from the archive.
+#
+procedure Extract(arcfile,arg)
+   local fileSet,wfn,realLen,cmprLen,maxT,version,theArg
+   if \maxTableSpecified then Usage()
+   rf := OpenReadArchive(arcfile)
+   arcfile := rf[2]
+   rf := rf[1]
+   if *arg > 0 then fileSet := set(arg)
+   #
+   #  Process input file.
+   #
+   while wfn := ReadString(rf) do {
+      (realLen := ReadInteger(rf) &
+            cmprLen := ReadInteger(rf) &
+            version := ord(reads(rf))) |
+            stop("Bad format in compressed file")
+      if /quiet then
+         writes(&errout,"File \"",wfn,"\" -- length: ",realLen,
+               "  compressed: ",cmprLen," bytes -- ")
+      if /fileSet | WildMatch(theArg := !arg,wfn) then {
+         delete(\fileSet,theArg)
+         if not version = (0 | 1) then {
+         if /quiet then
+               write(&errout,"can't handle this compression type (",version,
+                     ") -- skipped")
+            seek(rf,where(rf) + cmprLen)
+            }
+         else {
+            if /quiet then
+               write(&errout,"extracted")
+            if /print then {
+               wf := open(wfn,"w" || tmode) | &null
+               if /wf then {
+                  if /quiet then
+                     write(&errout,"Can't open output file \"",wfn,
+                           "\" -- quitting")
+                  exit(1)
+                  }
+               }
+            else wf := &output
+            if version = 1 then {
+               maxT := ReadInteger(rf) |
+                     stop("Error in archive file format: ","table size missing")
+               Decompress(R,W,maxT)
+               }
+            else {
+               maxT := 0
+               CopyFile(rf,wf,cmprLen)
+               outchars := inchars := realLen
+               }
+            close(&output ~=== wf)
+            if /quiet then
+               Stats(maxT)
+            }
+         }
+      else {
+         if /quiet then
+            write(&errout,"skipped")
+         seek(rf,where(rf) + cmprLen)
+         }
+      }
+   close(rf)
+   FilesNotFound(fileSet)
+   return
+end
+
+
+#
+#  List() -- Skip through the archive, extracting info about files,
+#  then list in columns.
+#
+procedure List(arcfile,arg)
+   local fileSet,flist,wfn,realLen,cmprLen,version,theArg
+   if \maxTableSpecified then Usage()
+   rf := OpenReadArchive(arcfile)
+   arcfile := rf[2]
+   rf := rf[1]
+   write(&errout,"Archive file ",arcfile,":")
+   if *arg > 0 then fileSet := set(arg)
+   #
+   #  Process input file.
+   #
+   flist := []
+   while wfn := ReadString(rf) do {
+      (realLen := ReadInteger(rf) &
+            cmprLen := ReadInteger(rf) &
+            version := ord(reads(rf))) |
+            stop("Bad format in compressed file")
+      if /fileSet | WildMatch(theArg := !arg,wfn) then {
+         delete(\fileSet,theArg)
+         put(flist,"\"" || wfn || "\" " || realLen || "->" || cmprLen)
+         tinchars +:= realLen
+         toutchars +:= cmprLen
+         }
+      seek(rf,where(rf) + cmprLen)
+      }
+   close(rf)
+   every write(&errout,colmize(sort(flist)))
+   FilesNotFound(fileSet)
+   FinalStats()
+   return
+end
+
+
+#
+#  Delete() -- Delete a file from the archive.
+#
+procedure Delete(arcfile,arg,new_data_start)
+   local workfn,workf,fileSet,wfn,realLen,cmprLen,bakfn,deletedFiles,
+         head,version,hdrLen,theArg
+   if *arg = 0 | (\deleter & \maxTableSpecified) then Usage()
+   rf := OpenReadArchive(arcfile)
+   arcfile := rf[2]
+   rf := rf[1]
+   workfn := Root(arcfile) || ".wrk"
+   workf := open(workfn,"wu") | stop("Can't open work file ",workfn)
+   writes(workf,magic)
+   fileSet := set(arg)
+   #
+   #  Process input file.
+   #
+   deletedFiles := 0
+   head := if \deleter then "File" else "Replaced file"
+   while not (\new_data_start <= where(rf)) & wfn := ReadString(rf) do {
+      (realLen := ReadInteger(rf) &
+            cmprLen := ReadInteger(rf) &
+            version := ord(reads(rf))) |
+            stop("Bad format in compressed file")
+      if /quiet then
+         writes(&errout,head," \"",wfn,"\" -- length: ",realLen,
+               "  compressed: ",cmprLen," bytes -- ")
+      if WildMatch(theArg := !arg,wfn) then {
+         deletedFiles +:= 1
+         delete(fileSet,theArg)
+         if /quiet then
+            write(&errout,"deleted")
+         seek(rf,where(rf) + cmprLen)
+         }
+      else {
+         if /quiet then
+            write(&errout,"kept")
+         hdrLen := *wfn + 10
+         seek(rf,where(rf) - hdrLen)
+         CopyFile(rf,workf,cmprLen + hdrLen)
+         }
+      }
+   if deletedFiles > 0 then {
+      CopyFile(rf,workf)
+      every close(workf | rf)
+      if (rf ~=== &input) then {
+         bakfn := Root(arcfile) || ".bak"
+         remove(bakfn)
+         rename(arcfile,bakfn) | stop("Couldn't rename ",arcfile," to ",bakfn)
+         }
+      rename(workfn,arcfile) | stop("Couldn't rename ",workfn," to ",arcfile)
+      }
+   else {
+      every close(workf | rf)
+      remove(workfn)
+      }
+   if \deleter then FilesNotFound(fileSet)
+   return
+end
+
+
+#
+#  OpenReadArchive() -- Open an archive for reading.
+#
+procedure OpenReadArchive(arcfile)
+   local rf
+   rf := if ("" | "-") ~== arcfile then
+         open(arcfile,"ru") | stop("Can't open archive file ",arcfile)
+   else {
+      arcfile := "stdin"
+      &input
+      }
+   if reads(rf,*magic) ~== magic then stop("Invalid archive file ",arcfile)
+   if tmode == "t" then wline := "\x0a"
+   return [rf,arcfile]
+end
+
+
+#
+#  FilesNotFound() -- List the files remaining in "fileSet".
+#
+procedure FilesNotFound(fileSet)
+   return if *\fileSet > 0 then {
+      write(&errout,"\nFiles not found:")
+      every write(&errout," ",colmize(sort(fileSet),78))
+      &null
+      }
+end
+
+
+#
+#  Stats() -- Print stats after a file.
+#
+procedure Stats(maxTableSize)
+   #
+   #  Write statistics
+   #
+   if \lzw_trace then write(&errout,
+         "  table size = ",*lzw_stringTable,"/",maxTableSize,
+         " (recycles: ",lzw_recycles,")")
+   tinchars +:= inchars
+   toutchars +:= outchars
+   inchars := outchars := lzw_recycles := 0
+   return
+end
+
+
+#
+#  FinalStats() -- Print final stats.
+#
+procedure FinalStats()
+   #
+   #  Write final statistics
+   #
+   write(&errout,"\nTotals: ",
+         "\n  input: ",tinchars,
+         "\n  output: ",toutchars,
+         "\n  compression: ",Percent(tinchars - toutchars,tinchars) | "",
+         "\n")
+   return
+end
+
+
+#
+#  WriteInteger() -- Write a 4-byte binary integer to "f".
+#
+procedure WriteInteger(f,i)
+   local s
+   s := ""
+   every 1 to 4 do {
+      s := char(i % 256) || s
+      i /:= 256
+      }
+   return writes(f,s)
+end
+
+
+#
+#  ReadInteger() -- Read a 4-byte binary integer from "f".
+#
+procedure ReadInteger(f)
+   local s,v
+   s := reads(f,4) | fail
+   if *s < 4 then
+         stop("Error in archive file format: ","bad integer")
+   v := 0
+   s ? while v := v * 256 + ord(move(1))
+   return v
+end
+
+
+#
+#  WriteString() -- Write a string preceded by a length byte to "f".
+#
+procedure WriteString(f,s)
+   return writes(f,char(*s),s)
+end
+
+
+#
+#  ReadString() -- Read a string preceded by a length byte from "f".
+#
+procedure ReadString(f)
+   local len,s
+   len := ord(reads(f)) | fail
+   s := reads(f,len)
+   if *s < len then
+         stop("Error in archive file format: ","bad string")
+   return s
+end
+
+
+#
+#  CopyFile() -- Copy a file.
+#
+procedure CopyFile(rf,wf,len)
+   local s
+   if /len then {
+      while writes(wf,s := reads(rf,1000))
+      }
+   else {
+      while len > 1000 & writes(wf,s := reads(rf,1000)) do len -:= *s
+      writes(wf,s := reads(rf,len)) & len -:= *s
+      }
+   return len
+end
+
+
+#
+#  Percent() -- Format a rational number "n"/"d" as a percentage.
+#
+procedure Percent(n,d)
+   local sign,whole,fraction
+   n / (0.0 ~= d) ? {
+      sign := ="-" | ""
+      whole := tab(find("."))
+      move(1)
+      fraction := tab(0)
+      }
+   return (\sign || ("0" ~== whole | "") ||
+         (if whole == "0" then integer else 1)(left(fraction,2,"0")) | "--") ||
+         "%"
+end
+
+
+#
+#  R() -- Read-a-character procedure.
+#
+procedure R()
+   local c
+
+   c := reads(rf) | fail
+   inchars +:= 1
+   if c === rline then c := "\x0a"
+   return c
+end
+
+
+#
+#  W() -- Write-characters procedure.
+#
+procedure W(s)
+   local i
+
+   every i := find(\wline,s) do s[i] := "\n"
+   outchars +:= *s
+   return writes(wf,s)
+end
+
+
+#
+#  Tail() -- Return the file name portion (minus the path) of a
+#  qualified file name.
+#
+procedure Tail(fn)
+   local i
+   i := 0
+   every i := upto('/\\:',fn)
+   return .fn[i + 1:0]
+end
+
+
+#
+#  Root() -- Return the root portion (minus the suffix) of a file name.
+#
+procedure Root(fn)
+   local i
+   i := 0
+   every i := find(".",fn)
+   return .fn[1:i]
+end
+
+
+procedure DefaultSuffix(fn,suf)
+   local i
+   return fn || "." || suf
+end
+
+
+############################################################################
+#
+#  Compress() -- LZW compression
+#
+#  Arguments:
+#
+#       inproc  a procedure that returns a single character from
+#               the input stream.
+#
+#       outproc a procedure that writes a single character (its
+#               argument) to the output stream.
+#
+#       maxTableSize    the maximum size to which the string table
+#               is allowed to grow before something is done about it.
+#               If the size is positive, the table is discarded and
+#               a new one started.  If negative, it is retained, but
+#               no new entries are added.
+#
+
+procedure Compress(inproc,outproc,maxTableSize)
+   local EOF,c,charTable,junk1,junk2,outcode,s,t,tossTable,x
+   #
+   #  Initialize.
+   #
+   /maxTableSize := 1024        # default 10 "bits"
+   tossTable := maxTableSize
+   /lzw_recycles := 0
+   if maxTableSize < 0 then maxTableSize := -maxTableSize
+   charTable := table()
+   every c := !&cset do charTable[c] := ord(c)
+   EOF := charTable[*charTable] := *charTable    # reserve code=256 for EOF
+   lzw_stringTable := copy(charTable)
+   #
+   #  Compress the input stream.
+   #
+   s := inproc() | return maxTableSize
+   if \lzw_trace then {
+      write(&errout,"\nInput string\tOutput code\tNew table entry")
+      writes(&errout,"\"",image(s)[2:-1])
+      }
+   while c := inproc() do {
+      if \lzw_trace then
+            writes(&errout,image(c)[2:-1])
+      if \lzw_stringTable[t := s || c] then s := t
+      else {
+         Compress_output(outproc,junk2 := lzw_stringTable[s],
+               junk1 := *lzw_stringTable)
+         if *lzw_stringTable < maxTableSize then
+               lzw_stringTable[t] := *lzw_stringTable
+         else if tossTable >= 0 then {
+               lzw_stringTable := copy(charTable)
+               lzw_recycles +:= 1
+            }
+         if \lzw_trace then
+               writes(&errout,"\"\t\t",
+                     image(char(*&cset > junk2) | junk2),
+                     "(",junk1,")\t\t",lzw_stringTable[t]," = ",image(t),"\n\"")
+         s := c
+         }
+      }
+      Compress_output(outproc,junk2 := lzw_stringTable[s],
+	    junk1 := *lzw_stringTable)
+      if *lzw_stringTable < maxTableSize then
+	    {}
+      else if tossTable >= 0 then {
+	    lzw_stringTable := copy(charTable)
+	    lzw_recycles +:= 1
+	 }
+      if \lzw_trace then
+	    writes(&errout,"\"\t\t",
+		  image(char(*&cset > junk2) | junk2),"(",junk1,")\n")
+   Compress_output(outproc,EOF,*lzw_stringTable)
+   if \lzw_trace then write(&errout,"\"\t\t",EOF)
+   Compress_output(outproc)
+   return maxTableSize
+end
+
+
+procedure Compress_output(outproc,code,stringTableSize)
+   local outcode
+   static max,bits,buffer,bufferbits,lastSize
+   #
+   #  Initialize.
+   #
+   initial {
+      lastSize := 1000000
+      buffer := bufferbits := 0
+      }
+   #
+   #  If this is "close" call, flush buffer and reinitialize.
+   #
+   if /code then {
+      outcode := &null
+      if bufferbits > 0 then
+            outproc(char(outcode := ishift(buffer,8 - bufferbits)))
+      lastSize := 1000000
+      buffer := bufferbits := 0
+      return outcode
+      }
+   #
+   #  Expand output code size if necessary.
+   #
+   if stringTableSize < lastSize then {
+      max := 1
+      bits := 0
+      }
+   while stringTableSize > max do {
+      max *:= 2
+      bits +:= 1
+      }
+   lastSize := stringTableSize
+   #
+   #  Merge new code into buffer.
+   #
+   buffer := ior(ishift(buffer,bits),code)
+   bufferbits +:= bits
+   #
+   #  Output bits.
+   #
+   while bufferbits >= 8 do {
+      outproc(char(outcode := ishift(buffer,8 - bufferbits)))
+      buffer := ixor(buffer,ishift(outcode,bufferbits - 8))
+      bufferbits -:= 8
+      }
+   return outcode
+end
+
+
+############################################################################
+#
+#  Decompress() -- LZW decompression of compressed stream created
+#                  by Compress()
+#
+#  Arguments:
+#
+#       inproc  a procedure that returns a single character from
+#               the input stream.
+#
+#       outproc a procedure that writes a single character (its
+#               argument) to the output stream.
+#
+
+procedure Decompress(inproc,outproc,maxTableSize)
+   local EOF,c,charSize,code,i,new_code,old_strg,
+         strg,tossTable
+   #
+   #  Initialize.
+   #
+   /maxTableSize := 1024        # default 10 "bits"
+   tossTable := maxTableSize
+   /lzw_recycles := 0
+   if maxTableSize < 0 then maxTableSize := -maxTableSize
+   maxTableSize -:= 1
+   lzw_stringTable := list(*&cset)
+   every i := 1 to *lzw_stringTable do lzw_stringTable[i] := char(i - 1)
+   put(lzw_stringTable,EOF := *lzw_stringTable)  # reserve code=256 for EOF
+   charSize := *lzw_stringTable
+   if \lzw_trace then
+         write(&errout,"\nInput code\tOutput string\tNew table entry")
+   #
+   #  Decompress the input stream.
+   #
+   while old_strg :=
+         lzw_stringTable[Decompress_read_code(inproc,
+         *lzw_stringTable,EOF) + 1] do {
+      if \lzw_trace then
+            write(&errout,image(old_strg),"(",*lzw_stringTable,")",
+                  "\t",image(old_strg))
+      outproc(old_strg)
+      c := old_strg[1]
+      (while new_code := Decompress_read_code(inproc,
+            *lzw_stringTable + 1,EOF) do {
+         strg := lzw_stringTable[new_code + 1] | old_strg || c
+         outproc(strg)
+         c := strg[1]
+         if \lzw_trace then
+               write(&errout,image(char(*&cset > new_code) \ 1 | new_code),
+                     "(",*lzw_stringTable + 1,")","\t",
+                     image(strg),"\t\t",
+                     *lzw_stringTable," = ",image(old_strg || c))
+         if *lzw_stringTable < maxTableSize then
+               put(lzw_stringTable,old_strg || c)
+         else if tossTable >= 0 then {
+            lzw_stringTable := lzw_stringTable[1:charSize + 1]
+            lzw_recycles +:= 1
+            break
+            }
+         old_strg := strg
+         }) | break  # exit outer loop if this loop completed
+      }
+   Decompress_read_code()
+   return maxTableSize
+end
+
+
+procedure Decompress_read_code(inproc,stringTableSize,EOF)
+   local code
+   static max,bits,buffer,bufferbits,lastSize
+
+   #
+   #  Initialize.
+   #
+   initial {
+      lastSize := 1000000
+      buffer := bufferbits := 0
+      }
+   #
+   #  Reinitialize if called with no arguments.
+   #
+   if /inproc then {
+      lastSize := 1000000
+      buffer := bufferbits := 0
+      return
+      }
+   #
+   #  Expand code size if necessary.
+   #
+   if stringTableSize < lastSize then {
+      max := 1
+      bits := 0
+      }
+   while stringTableSize > max do {
+      max *:= 2
+      bits +:= 1
+      }
+   #
+   #  Read in more data if necessary.
+   #
+   while bufferbits < bits do {
+      buffer := ior(ishift(buffer,8),ord(inproc())) |
+            stop("Premature end of file")
+      bufferbits +:= 8
+      }
+   #
+   #  Extract code from buffer and return.
+   #
+   code := ishift(buffer,bits - bufferbits)
+   buffer := ixor(buffer,ishift(code,bufferbits - bits))
+   bufferbits -:= bits
+   return EOF ~= code
+end
+
+
+procedure whole_wild_match(p,s)
+   return wild_match(p,s) > *s
+end
+
+
+procedure not_wild_match(p,s)
+   return not (wild_match(p,s) > *s)
+end
+

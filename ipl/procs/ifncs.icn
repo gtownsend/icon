@@ -1,0 +1,859 @@
+############################################################################
+#
+#	File:     ifncs.icn
+#
+#	Subject:  Procedure wrappers for function tracing
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 28, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These are procedure wrappers for use in Icon function tracing.  Don't let
+#  the apparent recursion fool you.
+#
+############################################################################
+#
+#  See also:  iftrace.icn
+#
+############################################################################
+
+procedure active()
+   static __fnc_Active
+   initial __fnc_Active := proc("Active", 0)
+   suspend __fnc_Active()
+end
+
+procedure alert(a[])
+   static __fnc_Alert
+   initial __fnc_Alert := proc("Alert", 0)
+   suspend __fnc_Alert ! a
+end
+
+procedure bg(a[])
+   static __fnc_Bg
+   initial __fnc_Bg := proc("Bg", 0)
+   suspend __fnc_Bg ! a
+end
+
+procedure clip(a[])
+   static __fnc_Clip
+   initial __fnc_Clip := proc("Clip", 0)
+   suspend __fnc_Clip ! a
+end
+
+procedure clone(a[])
+   static __fnc_Clone
+   initial __fnc_Clone := proc("Clone", 0)
+   suspend __fnc_Clone ! a
+end
+
+procedure color(a[])
+   static __fnc_Color
+   initial __fnc_Color := proc("Color", 0)
+   suspend __fnc_Color ! a
+end
+
+procedure colorValue(a[])
+   static __fnc_ColorValue
+   initial __fnc_ColorValue := proc("ColorValue", 0)
+   suspend __fnc_ColorValue ! a
+end
+
+procedure copyArea(a[])
+   static __fnc_CopyArea
+   initial __fnc_CopyArea := proc("CopyArea", 0)
+   suspend __fnc_CopyArea ! a
+end
+
+procedure couple(a1, a2)
+   static __fnc_Couple
+   initial __fnc_Couple := proc("Couple", 0)
+   suspend __fnc_Couple(a1, a2)
+end
+
+procedure drawArc(a[])
+   static __fnc_DrawArc
+   initial __fnc_DrawArc := proc("DrawArc", 0)
+   suspend __fnc_DrawArc ! a
+end
+
+procedure drawCircle(a[])
+   static __fnc_DrawCircle
+   initial __fnc_DrawCircle := proc("DrawCircle", 0)
+   suspend __fnc_DrawCircle ! a
+end
+
+procedure drawCurve(a[])
+   static __fnc_DrawCurve
+   initial __fnc_DrawCurve := proc("DrawCurve", 0)
+   suspend __fnc_DrawCurve ! a
+end
+
+procedure drawImage(a[])
+   static __fnc_DrawImage
+   initial __fnc_DrawImage := proc("DrawImage", 0)
+   suspend __fnc_DrawImage ! a
+end
+
+procedure drawLine(a[])
+   static __fnc_DrawLine
+   initial __fnc_DrawLine := proc("DrawLine", 0)
+   suspend __fnc_DrawLine ! a
+end
+
+procedure drawPoint(a[])
+   static __fnc_DrawPoint
+   initial __fnc_DrawPoint := proc("DrawPoint", 0)
+   suspend __fnc_DrawPoint ! a
+end
+
+procedure drawPolygon(a[])
+   static __fnc_DrawPolygon
+   initial __fnc_DrawPolygon := proc("DrawPolygon", 0)
+   suspend __fnc_DrawPolygon ! a
+end
+
+procedure drawRectangle(a[])
+   static __fnc_DrawRectangle
+   initial __fnc_DrawRectangle := proc("DrawRectangle", 0)
+   suspend __fnc_DrawRectangle ! a
+end
+
+procedure drawSegment(a[])
+   static __fnc_DrawSegment
+   initial __fnc_DrawSegment := proc("DrawSegment", 0)
+   suspend __fnc_DrawSegment ! a
+end
+
+procedure drawString(a[])
+   static __fnc_DrawString
+   initial __fnc_DrawString := proc("DrawString", 0)
+   suspend __fnc_DrawString ! a
+end
+
+procedure eraseArea(a[])
+   static __fnc_EraseArea
+   initial __fnc_EraseArea := proc("EraseArea", 0)
+   suspend __fnc_EraseArea ! a
+end
+
+procedure event(a[])
+   static __fnc_Event
+   initial __fnc_Event := proc("Event", 0)
+   suspend __fnc_Event ! a
+end
+
+procedure fg(a[])
+   static __fnc_Fg
+   initial __fnc_Fg := proc("Fg", 0)
+   suspend __fnc_Fg ! a
+end
+
+procedure fillArc(a[])
+   static __fnc_FillArc
+   initial __fnc_FillArc := proc("FillArc", 0)
+   suspend __fnc_FillArc ! a
+end
+
+procedure fillCircle(a[])
+   static __fnc_FillCircle
+   initial __fnc_FillCircle := proc("FillCircle", 0)
+   suspend __fnc_FillCircle ! a
+end
+
+procedure fillPolygon(a[])
+   static __fnc_FillPolygon
+   initial __fnc_FillPolygon := proc("FillPolygon", 0)
+   suspend __fnc_FillPolygon ! a
+end
+
+procedure fillRectangle(a[])
+   static __fnc_FillRectangle
+   initial __fnc_FillRectangle := proc("FillRectangle", 0)
+   suspend __fnc_FillRectangle ! a
+end
+
+procedure font(a[])
+   static __fnc_Font
+   initial __fnc_Font := proc("Font", 0)
+   suspend __fnc_Font ! a
+end
+
+procedure freeColor(a[])
+   static __fnc_FreeColor
+   initial __fnc_FreeColor := proc("FreeColor", 0)
+   suspend __fnc_FreeColor ! a
+end
+
+procedure gotoRC(a[])
+   static __fnc_GotoRC
+   initial __fnc_GotoRC := proc("GotoRC", 0)
+   suspend __fnc_GotoRC ! a
+end
+
+procedure gotoXY(a[])
+   static __fnc_GotoXY
+   initial __fnc_GotoXY := proc("GotoXY", 0)
+   suspend __fnc_GotoXY ! a
+end
+
+procedure lower(a[])
+   static __fnc_Lower
+   initial __fnc_Lower := proc("Lower", 0)
+   suspend __fnc_Lower ! a
+end
+
+procedure newColor(a[])
+   static __fnc_NewColor
+   initial __fnc_NewColor := proc("NewColor", 0)
+   suspend __fnc_NewColor ! a
+end
+
+procedure paletteChars(a[])
+   static __fnc_PaletteChars
+   initial __fnc_PaletteChars := proc("PaletteChars", 0)
+   suspend __fnc_PaletteChars ! a
+end
+
+procedure paletteColor(a[])
+   static __fnc_PaletteColor
+   initial __fnc_PaletteColor := proc("PaletteColor", 0)
+   suspend __fnc_PaletteColor ! a
+end
+
+procedure paletteKey(a[])
+   static __fnc_PaletteKey
+   initial __fnc_PaletteKey := proc("PaletteKey", 0)
+   suspend __fnc_PaletteKey ! a
+end
+
+procedure pattern(a[])
+   static __fnc_Pattern
+   initial __fnc_Pattern := proc("Pattern", 0)
+   suspend __fnc_Pattern ! a
+end
+
+procedure pending(a[])
+   static __fnc_Pending
+   initial __fnc_Pending := proc("Pending", 0)
+   suspend __fnc_Pending ! a
+end
+
+procedure pixel(a[])
+   static __fnc_Pixel
+   initial __fnc_Pixel := proc("Pixel", 0)
+   suspend __fnc_Pixel ! a
+end
+
+procedure queryPointer(a1)
+   static __fnc_QueryPointer
+   initial __fnc_QueryPointer := proc("QueryPointer", 0)
+   suspend __fnc_QueryPointer(a1)
+end
+
+procedure raise(a[])
+   static __fnc_Raise
+   initial __fnc_Raise := proc("Raise", 0)
+   suspend __fnc_Raise ! a
+end
+
+procedure readImage(a[])
+   static __fnc_ReadImage
+   initial __fnc_ReadImage := proc("ReadImage", 0)
+   suspend __fnc_ReadImage ! a
+end
+
+procedure textWidth(a[])
+   static __fnc_TextWidth
+   initial __fnc_TextWidth := proc("TextWidth", 0)
+   suspend __fnc_TextWidth ! a
+end
+
+procedure uncouple(a1)
+   static __fnc_Uncouple
+   initial __fnc_Uncouple := proc("Uncouple", 0)
+   suspend __fnc_Uncouple(a1)
+end
+
+procedure wAttrib(a[])
+   static __fnc_WAttrib
+   initial __fnc_WAttrib := proc("WAttrib", 0)
+   suspend __fnc_WAttrib ! a
+end
+
+procedure wDefault(a[])
+   static __fnc_WDefault
+   initial __fnc_WDefault := proc("WDefault", 0)
+   suspend __fnc_WDefault ! a
+end
+
+procedure wFlush(a[])
+   static __fnc_WFlush
+   initial __fnc_WFlush := proc("WFlush", 0)
+   suspend __fnc_WFlush ! a
+end
+
+procedure wSync(a1)
+   static __fnc_WSync
+   initial __fnc_WSync := proc("WSync", 0)
+   suspend __fnc_WSync(a1)
+end
+
+procedure writeImage(a[])
+   static __fnc_WriteImage
+   initial __fnc_WriteImage := proc("WriteImage", 0)
+   suspend __fnc_WriteImage ! a
+end
+
+procedure Abs(a1)
+   static __fnc_abs
+   initial __fnc_abs := proc("abs", 0)
+   suspend __fnc_abs(a1)
+end
+
+procedure Acos(a1)
+   static __fnc_acos
+   initial __fnc_acos := proc("acos", 0)
+   suspend __fnc_acos(a1)
+end
+
+procedure Any(a1, a2, a3, a4)
+   static __fnc_any
+   initial __fnc_any := proc("any", 0)
+   suspend __fnc_any(a1, a2, a3, a4)
+end
+
+procedure Args(a1)
+   static __fnc_args
+   initial __fnc_args := proc("args", 0)
+   suspend __fnc_args(a1)
+end
+
+procedure Asin(a1)
+   static __fnc_asin
+   initial __fnc_asin := proc("asin", 0)
+   suspend __fnc_asin(a1)
+end
+
+procedure Atan(a1, a2)
+   static __fnc_atan
+   initial __fnc_atan := proc("atan", 0)
+   suspend __fnc_atan(a1, a2)
+end
+
+procedure Bal(a1, a2, a3, a4, a5, a6)
+   static __fnc_bal
+   initial __fnc_bal := proc("bal", 0)
+   suspend __fnc_bal(a1, a2, a3, a4, a5, a6)
+end
+
+procedure Callout(a[])
+   static __fnc_callout
+   initial __fnc_callout := proc("callout", 0)
+   suspend __fnc_callout ! a
+end
+
+procedure Center(a1, a2, a3)
+   static __fnc_center
+   initial __fnc_center := proc("center", 0)
+   suspend __fnc_center(a1, a2, a3)
+end
+
+procedure Char(a1)
+   static __fnc_char
+   initial __fnc_char := proc("char", 0)
+   suspend __fnc_char(a1)
+end
+
+procedure Chdir(a1)
+   static __fnc_chdir
+   initial __fnc_chdir := proc("chdir", 0)
+   suspend __fnc_chdir(a1)
+end
+
+procedure Close(a1)
+   static __fnc_close
+   initial __fnc_close := proc("close", 0)
+   suspend __fnc_close(a1)
+end
+
+procedure Collect(a1, a2)
+   static __fnc_collect
+   initial __fnc_collect := proc("collect", 0)
+   suspend __fnc_collect(a1, a2)
+end
+
+procedure Copy(a1)
+   static __fnc_copy
+   initial __fnc_copy := proc("copy", 0)
+   suspend __fnc_copy(a1)
+end
+
+procedure Cos(a1)
+   static __fnc_cos
+   initial __fnc_cos := proc("cos", 0)
+   suspend __fnc_cos(a1)
+end
+
+procedure Cset(a1)
+   static __fnc_cset
+   initial __fnc_cset := proc("cset", 0)
+   suspend __fnc_cset(a1)
+end
+
+procedure Delay(a1)
+   static __fnc_delay
+   initial __fnc_delay := proc("delay", 0)
+   suspend __fnc_delay(a1)
+end
+
+procedure Delete(a1, a2)
+   static __fnc_delete
+   initial __fnc_delete := proc("delete", 0)
+   suspend __fnc_delete(a1, a2)
+end
+
+procedure Detab(a[])
+   static __fnc_detab
+   initial __fnc_detab := proc("detab", 0)
+   suspend __fnc_detab ! a
+end
+
+procedure Display(a1, a2)
+   static __fnc_display
+   initial __fnc_display := proc("display", 0)
+   suspend __fnc_display(a1, a2)
+end
+
+procedure Dtor(a1)
+   static __fnc_dtor
+   initial __fnc_dtor := proc("dtor", 0)
+   suspend __fnc_dtor(a1)
+end
+
+procedure Entab(a[])
+   static __fnc_entab
+   initial __fnc_entab := proc("entab", 0)
+   suspend __fnc_entab ! a
+end
+
+procedure Errorclear()
+   static __fnc_errorclear
+   initial __fnc_errorclear := proc("errorclear", 0)
+   suspend __fnc_errorclear()
+end
+
+procedure Exit(a1)
+   static __fnc_exit
+   initial __fnc_exit := proc("exit", 0)
+   suspend __fnc_exit(a1)
+end
+
+procedure Exp(a1)
+   static __fnc_exp
+   initial __fnc_exp := proc("exp", 0)
+   suspend __fnc_exp(a1)
+end
+
+procedure Find(a1, a2, a3, a4)
+   static __fnc_find
+   initial __fnc_find := proc("find", 0)
+   suspend __fnc_find(a1, a2, a3, a4)
+end
+
+procedure Flush(a1)
+   static __fnc_flush
+   initial __fnc_flush := proc("flush", 0)
+   suspend __fnc_flush(a1)
+end
+
+procedure Function()
+   static __fnc_function
+   initial __fnc_function := proc("function", 0)
+   suspend __fnc_function()
+end
+
+procedure Get(a1)
+   static __fnc_get
+   initial __fnc_get := proc("get", 0)
+   suspend __fnc_get(a1)
+end
+
+procedure Getch()
+   static __fnc_getch
+   initial __fnc_getch := proc("getch", 0)
+   suspend __fnc_getch()
+end
+
+procedure Getche()
+   static __fnc_getche
+   initial __fnc_getche := proc("getche", 0)
+   suspend __fnc_getche()
+end
+
+procedure Getenv(a1)
+   static __fnc_getenv
+   initial __fnc_getenv := proc("getenv", 0)
+   suspend __fnc_getenv(a1)
+end
+
+procedure Iand(a1, a2)
+   static __fnc_iand
+   initial __fnc_iand := proc("iand", 0)
+   suspend __fnc_iand(a1, a2)
+end
+
+procedure Icom(a1)
+   static __fnc_icom
+   initial __fnc_icom := proc("icom", 0)
+   suspend __fnc_icom(a1)
+end
+
+procedure Image(a1)
+   static __fnc_image
+   initial __fnc_image := proc("image", 0)
+   suspend __fnc_image(a1)
+end
+
+procedure Insert(a1, a2, a3)
+   static __fnc_insert
+   initial __fnc_insert := proc("insert", 0)
+   suspend __fnc_insert(a1, a2, a3)
+end
+
+procedure Integer(a1)
+   static __fnc_integer
+   initial __fnc_integer := proc("integer", 0)
+   suspend __fnc_integer(a1)
+end
+
+procedure Ior(a1, a2)
+   static __fnc_ior
+   initial __fnc_ior := proc("ior", 0)
+   suspend __fnc_ior(a1, a2)
+end
+
+procedure Ishift(a1, a2)
+   static __fnc_ishift
+   initial __fnc_ishift := proc("ishift", 0)
+   suspend __fnc_ishift(a1, a2)
+end
+
+procedure Ixor(a1, a2)
+   static __fnc_ixor
+   initial __fnc_ixor := proc("ixor", 0)
+   suspend __fnc_ixor(a1, a2)
+end
+
+procedure Kbhit()
+   static __fnc_kbhit
+   initial __fnc_kbhit := proc("kbhit", 0)
+   suspend __fnc_kbhit()
+end
+
+procedure Key(a1)
+   static __fnc_key
+   initial __fnc_key := proc("key", 0)
+   suspend __fnc_key(a1)
+end
+
+procedure Left(a1, a2, a3)
+   static __fnc_left
+   initial __fnc_left := proc("left", 0)
+   suspend __fnc_left(a1, a2, a3)
+end
+
+procedure List(a1, a2)
+   static __fnc_list
+   initial __fnc_list := proc("list", 0)
+   suspend __fnc_list(a1, a2)
+end
+
+procedure Loadfunc(a1, a2)
+   static __fnc_loadfunc
+   initial __fnc_loadfunc := proc("loadfunc", 0)
+   suspend __fnc_loadfunc(a1, a2)
+end
+
+procedure Log(a1, a2)
+   static __fnc_log
+   initial __fnc_log := proc("log", 0)
+   suspend __fnc_log(a1, a2)
+end
+
+procedure Many(a1, a2, a3, a4)
+   static __fnc_many
+   initial __fnc_many := proc("many", 0)
+   suspend __fnc_many(a1, a2, a3, a4)
+end
+
+procedure Map(a1, a2, a3)
+   static __fnc_map
+   initial __fnc_map := proc("map", 0)
+   suspend __fnc_map(a1, a2, a3)
+end
+
+procedure Match(a1, a2, a3, a4)
+   static __fnc_match
+   initial __fnc_match := proc("match", 0)
+   suspend __fnc_match(a1, a2, a3, a4)
+end
+
+procedure Member(a1, a2)
+   static __fnc_member
+   initial __fnc_member := proc("member", 0)
+   suspend __fnc_member(a1, a2)
+end
+
+procedure Move(a1)
+   static __fnc_move
+   initial __fnc_move := proc("move", 0)
+   suspend __fnc_move(a1)
+end
+
+procedure Name(a1)
+   static __fnc_name
+   initial __fnc_name := proc("name", 0)
+   suspend __fnc_name(a1)
+end
+
+procedure Numeric(a1)
+   static __fnc_numeric
+   initial __fnc_numeric := proc("numeric", 0)
+   suspend __fnc_numeric(a1)
+end
+
+procedure Open(a[])
+   static __fnc_open
+   initial __fnc_open := proc("open", 0)
+   suspend __fnc_open ! a
+end
+
+procedure Ord(a1)
+   static __fnc_ord
+   initial __fnc_ord := proc("ord", 0)
+   suspend __fnc_ord(a1)
+end
+
+procedure Pop(a1)
+   static __fnc_pop
+   initial __fnc_pop := proc("pop", 0)
+   suspend __fnc_pop(a1)
+end
+
+procedure Pos(a1)
+   static __fnc_pos
+   initial __fnc_pos := proc("pos", 0)
+   suspend __fnc_pos(a1)
+end
+
+procedure Proc(a1, a2)
+   static __fnc_proc
+   initial __fnc_proc := proc("proc", 0)
+   suspend __fnc_proc(a1, a2)
+end
+
+procedure Pull(a1)
+   static __fnc_pull
+   initial __fnc_pull := proc("pull", 0)
+   suspend __fnc_pull(a1)
+end
+
+procedure Push(a[])
+   static __fnc_push
+   initial __fnc_push := proc("push", 0)
+   suspend __fnc_push ! a
+end
+
+procedure Put(a[])
+   static __fnc_put
+   initial __fnc_put := proc("put", 0)
+   suspend __fnc_put ! a
+end
+
+procedure Read(a1)
+   static __fnc_read
+   initial __fnc_read := proc("read", 0)
+   suspend __fnc_read(a1)
+end
+
+procedure Reads(a1, a2)
+   static __fnc_reads
+   initial __fnc_reads := proc("reads", 0)
+   suspend __fnc_reads(a1, a2)
+end
+
+procedure Real(a1)
+   static __fnc_real
+   initial __fnc_real := proc("real", 0)
+   suspend __fnc_real(a1)
+end
+
+procedure Remove(a1)
+   static __fnc_remove
+   initial __fnc_remove := proc("remove", 0)
+   suspend __fnc_remove(a1)
+end
+
+procedure Rename(a1, a2)
+   static __fnc_rename
+   initial __fnc_rename := proc("rename", 0)
+   suspend __fnc_rename(a1, a2)
+end
+
+procedure Repl(a1, a2)
+   static __fnc_repl
+   initial __fnc_repl := proc("repl", 0)
+   suspend __fnc_repl(a1, a2)
+end
+
+procedure Reverse(a1)
+   static __fnc_reverse
+   initial __fnc_reverse := proc("reverse", 0)
+   suspend __fnc_reverse(a1)
+end
+
+procedure Right(a1, a2, a3)
+   static __fnc_right
+   initial __fnc_right := proc("right", 0)
+   suspend __fnc_right(a1, a2, a3)
+end
+
+procedure Rtod(a1)
+   static __fnc_rtod
+   initial __fnc_rtod := proc("rtod", 0)
+   suspend __fnc_rtod(a1)
+end
+
+procedure Runerr(a[])
+   static __fnc_runerr
+   initial __fnc_runerr := proc("runerr", 0)
+   suspend __fnc_runerr ! a
+end
+
+procedure Seek(a1, a2)
+   static __fnc_seek
+   initial __fnc_seek := proc("seek", 0)
+   suspend __fnc_seek(a1, a2)
+end
+
+procedure Seq(a1, a2)
+   static __fnc_seq
+   initial __fnc_seq := proc("seq", 0)
+   suspend __fnc_seq(a1, a2)
+end
+
+procedure Set(a1)
+   static __fnc_set
+   initial __fnc_set := proc("set", 0)
+   suspend __fnc_set(a1)
+end
+
+procedure Sin(a1)
+   static __fnc_sin
+   initial __fnc_sin := proc("sin", 0)
+   suspend __fnc_sin(a1)
+end
+
+procedure Sort(a1, a2)
+   static __fnc_sort
+   initial __fnc_sort := proc("sort", 0)
+   suspend __fnc_sort(a1, a2)
+end
+
+procedure Sortf(a1, a2)
+   static __fnc_sortf
+   initial __fnc_sortf := proc("sortf", 0)
+   suspend __fnc_sortf(a1, a2)
+end
+
+procedure Sqrt(a1)
+   static __fnc_sqrt
+   initial __fnc_sqrt := proc("sqrt", 0)
+   suspend __fnc_sqrt(a1)
+end
+
+procedure Stop(a[])
+   static __fnc_stop
+   initial __fnc_stop := proc("stop", 0)
+   suspend __fnc_stop ! a
+end
+
+procedure String(a1)
+   static __fnc_string
+   initial __fnc_string := proc("string", 0)
+   suspend __fnc_string(a1)
+end
+
+procedure System(a1)
+   static __fnc_system
+   initial __fnc_system := proc("system", 0)
+   suspend __fnc_system(a1)
+end
+
+procedure Tab(a1)
+   static __fnc_tab
+   initial __fnc_tab := proc("tab", 0)
+   suspend __fnc_tab(a1)
+end
+
+procedure Table(a1)
+   static __fnc_table
+   initial __fnc_table := proc("table", 0)
+   suspend __fnc_table(a1)
+end
+
+procedure Tan(a1)
+   static __fnc_tan
+   initial __fnc_tan := proc("tan", 0)
+   suspend __fnc_tan(a1)
+end
+
+procedure Trim(a1, a2)
+   static __fnc_trim
+   initial __fnc_trim := proc("trim", 0)
+   suspend __fnc_trim(a1, a2)
+end
+
+procedure Type(a1)
+   static __fnc_type
+   initial __fnc_type := proc("type", 0)
+   suspend __fnc_type(a1)
+end
+
+procedure Upto(a1, a2, a3, a4)
+   static __fnc_upto
+   initial __fnc_upto := proc("upto", 0)
+   suspend __fnc_upto(a1, a2, a3, a4)
+end
+
+procedure Variable(a1)
+   static __fnc_variable
+   initial __fnc_variable := proc("variable", 0)
+   suspend __fnc_variable(a1)
+end
+
+procedure Where(a1)
+   static __fnc_where
+   initial __fnc_where := proc("where", 0)
+   suspend __fnc_where(a1)
+end
+
+procedure Write(a[])
+   static __fnc_write
+   initial __fnc_write := proc("write", 0)
+   suspend __fnc_write ! a
+end
+
+procedure Writes(a[])
+   static __fnc_writes
+   initial __fnc_writes := proc("writes", 0)
+   suspend __fnc_writes ! a
+end
+

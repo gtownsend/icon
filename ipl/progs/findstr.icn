@@ -1,0 +1,78 @@
+############################################################################
+#
+#	File:     findstr.icn
+#
+#	Subject:  Program to find embedded character strings
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     January 3, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Utility filter to list character strings imbedded in data files (e.g.
+#  object files).
+#
+#	findstr -options file...
+#
+#	-l length	minimum string size to be printed (default 3)
+#	-c chars	a string of characters (besides the standard ASCII
+#			printable characters) to be considered part of a
+#			string
+#
+#  Icon string escape sequences can be used to specify the -c option.
+#
+#  Multiple files can be specified as arguments, and will be processed
+#  in sequence.
+#
+
+link options,escape
+
+procedure main(arg)
+   local c, f, fn, header, min_string_size, okchars, opt, s, istring
+   #
+   #  Process command line options and file names.
+   #
+   opt := options(arg,"l+c:")
+   if *arg = 0 then stop("Usage: findstr -options file..._
+      \n_
+      \n-l length\tminimum string size to be printed (default 3)_
+      \n-c chars\ta string of characters (besides the standard ASCII_
+      \n\t\tprintable characters) to be considered part of a string_
+      \n")
+   #
+   #  Define minimum string size to print.
+   #
+   min_string_size := \opt["l"] | 3	# default min string size = 3
+   #
+   #  Define characters that can be in strings.
+   #
+   okchars := cset(&ascii[33:-1])	# normal ASCII printable characters
+   okchars ++:= istring(\opt["c"])	# additional chars supplied by user
+   #
+   #  Loop to process files.
+   #
+   every fn := !arg do {
+      f := open(fn,"u") | stop("Can't open input file \"",fn,"\"")
+      #
+      #  Now find and print the strings.
+      #
+      header := if *arg > 1 then fn || ": " else ""
+      s := ""
+      while c := reads(f) do {
+	 if any(okchars,c) then s ||:= c
+	 else {
+	    if *s >=  min_string_size then write(header,image(s))
+	    s := ""
+	    }
+	 }
+      #
+      #  Close this file.
+      #
+      close(f)
+      }
+end

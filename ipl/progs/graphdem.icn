@@ -1,0 +1,164 @@
+############################################################################
+#
+#	File:     graphdem.icn
+#
+#	Subject:  Program to demonstrate simple bar graphics
+#
+#	Author:   Matthias Heesch
+#
+#	Date:     November 19, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  graph.icn: simple bar graphics package with two demo applications:
+#    1. display the 4 most frequently used characters in a string.
+#    2. display the fibonacci numbers
+#
+############################################################################
+#
+#  Requires: ANSI terminal support
+#
+############################################################################
+
+procedure main()
+    local option
+
+    write("graph: simple bar graphics package for icon")
+    write("(b)yte frequency count or (f)ibonacci's numbers?")
+    option := read()
+    case option of {
+"b"     : countdemo()
+"f"     : fibodemo()
+default : write("erroneous option")
+    }
+end
+#
+procedure countdemo()
+    local numlist, line, a, ms, b
+
+    numlist := list(0)
+    write("type strings or quit using end-of-file")
+    while line := read() do {
+	a := frequ_count(line,4)
+	ms := a
+	a ? {
+	    while b := tab(upto(";")) do {
+		b ? {
+		    tab(upto(","))
+		    move(1)
+		    b := tab(0)
+		}
+		move(1)
+		put(numlist,b)
+	    }
+	}
+	graph(numlist,("the most frequently used characters: " || ms))
+    }
+end
+#
+procedure frequ_count(lin,item_number)
+    local result, n, byte_frequency_1, byte_frequency_2, byte, entry
+
+    result := ""
+    n := 1
+    byte_frequency_1 := table(0)
+    every byte := !lin do {
+	    byte_frequency_1[byte] +:= 1
+    }
+    byte_frequency_2 := sort(byte_frequency_1,2)
+    while n <= item_number do {
+	entry := pull(byte_frequency_2)
+	result := result || pop(entry) || "," || pull(entry) || ";"
+	n +:= 1
+    }
+return result
+end
+#
+# fibodemo(): calls user defined function fibo(n,m): fibodemo() will
+# use an ansi escape code to clear the screen after every call to
+# graph. therefore when using ms/dr dos the config.sys file should
+# contain: device=ansi.sys. using other operating systems, the line
+# containing the esc-code should be deleted.
+procedure fibodemo()
+    local a, l, b, fb
+
+    while every a := fibo(0,1) & a < 10000 do {
+	l := list(4,0)
+# delete the following line if you don't use ms/dr dos
+	write(char(27),"[2J")
+	l[1] := a
+	graph(l,("fibo: " || a || ".   <enter> to continue"))
+	b := read()
+    }
+end
+#
+procedure fibo(m,n)
+    local fb
+
+    while n < 30000 do {
+	fb := m + n
+	m := n
+	n := fb
+	suspend fb
+    }
+end
+#
+# graph(numbers,comment): bar graphics function which accepts a list
+# of 4 integers 10000 and a commentary message. it will display 4
+# bar graphic diagrams which each contains a diagram of one of the
+# argument values. in the order of the decimal system, the left bar
+# shows the 1000s, the following the 100s etc. Therefore the values
+# have to be <10000. When the diagram has been displayed argument
+# comment will be written to the screen.
+procedure graph(numbers,comment)
+    local item, itm, value, bar, graph_line, l, m, n, nn
+
+# item2 is a list which contains lists of each 4 strings. these strings
+# correspond to the numerical values in the lists contained in list
+# numbers. each of these strings contains repl(" ",(10-numerical_value))
+# || repl("\334",numerical_value).
+#
+# create item2 with its string contents
+    item := list(0)
+	 while itm := pop(numbers) do {
+# write every place of itm if there are less then 4 places.
+	    if *itm < 4 then itm := repl("0",(4 - *itm)) || itm
+# convert every place of itm to a "\334 "-string and assign it
+# to list item
+	    while every value := !itm do {
+	      bar := repl(" ",(10 - value)) || repl("\334",value)
+	      put(item,bar)
+	    }
+	}
+# display bar graphic
+    graph_line := ""
+    l := 1
+    m := 1
+    n := 1
+    nn := 10
+    while n <= 10 do {
+      while m <= 16 do {
+	  while l <= 4 do {
+	    graph_line := graph_line || " " || !item[m]
+	    item[m][1] := ""
+	    l +:= 1
+	    m +:= 1
+	  }
+	  graph_line := graph_line || "  \272 "
+	  l := 1
+	}
+      write(graph_line,"    ",nn)
+      graph_line := ""
+      l := 1
+      m := 1
+      n +:= 1
+      nn -:= 1
+    }
+    write(" a b c d")
+    write("a: 1000, b: 100, c: 10, d: 1")
+    write(comment)
+end

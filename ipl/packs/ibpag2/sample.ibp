@@ -1,0 +1,111 @@
+#
+# Sample Ibpag2 grammar file.
+#
+
+#
+# The code between %{ and %} gets copied directly.  Note the Iconish
+# comment syntax.
+#
+%{
+
+# Note:  If IIDEBUG is defined in the output file, debugging messages
+# about the stacks and actions get displayed.
+#
+$define IIDEBUG 1
+
+%}
+
+#
+# Here we declare the tokens returned by the lexical analyzer.
+# Precedences increase as we go on.  Note how (unlike YACC), tokens
+# are separated by commas.  Note also how UMINUS is used only for its
+# %prec later.
+#
+%token NUMBER
+%left '+', '-'
+%left '*', '/'
+%right UMINUS
+
+%%
+
+#
+# After this point, and up to the next %%, we have the grammar itself.
+# By default, the start symbol is the left-hand side of the first
+# rule. 
+#
+
+lines	:	lines, expr, '\n'	{ write($2) }
+	|	lines, '\n'
+	|	epsilon	 # Note use of epsilon/error tokens.
+	|	error, '\n'		{
+					  write("syntax error; try again:")
+					  # like YACC's yyerrok macro
+					  iierrok
+					}
+	;
+
+expr	:	expr, '+', expr	{ return $1 + $3 }
+	|	expr, '-', expr	{ return $1 - $3 }
+	|	expr, '*', expr	{ return $1 * $3 }
+	|	expr, '/', expr	{ return $1 / $3 }
+	|	'(', expr, ')'	{ return $2 }
+	|	'-', expr %prec UMINUS	{ return -$2 }
+	|	NUMBER		{ return $1 }
+	;
+
+%%
+
+#
+# From here on, code gets copied directly to the output file.  We are
+# no longer in the grammar proper.
+#
+
+#
+# The lexical analyzer must be called iilex, with the module name
+# appended (if there is one).  It must take one argument, infile (an
+# input stream).  It must be a generator, and fail on EOF (not return
+# something <= 0, as is the case for YACC + Lex).  Iilval holds the
+# literal string value of the token just suspended by iilex().
+#
+procedure iilex(infile)
+
+    local nextchar, c, num
+    initial {
+	# Here's where you'd initialize any %{ globals %} declared
+	# above.
+    }
+
+    nextchar := create !(!infile || "\n" || "\n")
+
+    c := @nextchar | fail
+    repeat {
+	if any(&digits, c) then {
+	    if not (\num ||:= c) then
+		num := c
+	} else {
+	    if iilval := \num then {
+		suspend NUMBER
+		num := &null
+	    }
+	    if any('+-*/()\n', c) then {
+		iilval := c
+		suspend ord(c)
+	    } else {
+		if not any(' \t', c) then {
+		    # deliberate error - will be handled later
+		    suspend &null
+		}
+	    }
+	}
+	c := @nextchar | break
+    }
+    if iilval := \num then {
+	return NUMBER
+	num := &null
+    }
+
+end
+
+procedure main()
+    return iiparse(&input, 1)
+end

@@ -1,0 +1,79 @@
+############################################################################
+#
+#	File:	  gediff.icn
+#
+#	Subject:  Program to "diff" for use with ged
+#
+#	Author:	  Robert J. Alexander
+#
+#	Date:	  July 9, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Program to produce diff output in a format for use with ged's
+#  "FindFileAndLine" (esc-S) command.  It causes the "diffed" files
+#  to be open in the editor with the differing portions selected.
+#
+############################################################################
+#
+#  Links: options, word
+#
+############################################################################
+#
+#  Requires: pipes, a "diff" command in the environment
+#
+############################################################################
+#
+#  See also: diffn.icn (a diff-type program)
+#
+############################################################################
+
+link options,word
+
+global Diff,ArgStr
+
+procedure Options(arg)
+   local opt,c
+   opt := options(arg,"dbitwrsS:")
+   Diff := \opt["d"] | "diff"
+   ArgStr := ""
+   ArgStr ||:= " -S " || \opt["S"]
+   every c := !"bitwrs" do {     # single-character options passed to diff
+      if \opt[c] then ArgStr ||:= " -" || c
+      }
+   return opt
+end
+
+procedure main(arg)
+   local argstr,fn1,fn2,p,dargs,cmd
+   Options(arg)
+   every ArgStr ||:= " " || !arg
+   fn1 := arg[-2]
+   fn2 := arg[-1]
+   cmd := Diff || ArgStr
+   #write(&errout,cmd)
+   p := open(cmd,"pr")
+   while read(p) ? {
+      if any(&digits) then {
+	 write(fn1,":",tab(upto(&letters)))
+	 move(1)
+	 write(fn2,":",tab(0))
+	 }
+      else if ="diff" & tab(many(' \t')) then {
+	 write(&subject)
+	 dargs := []
+	 while put(dargs,word_dequote(tab(word()))) do tab(many(' \t'))
+	 fn1 := dargs[-2]
+	 fn2 := dargs[-1]
+	 while match("./",fn1) do fn1[1+:2] := ""
+	 while match("./",fn2) do fn2[1+:2] := ""
+	 }
+      else write(tab(0))
+      {}
+      }
+   exit(close(p))
+end

@@ -1,0 +1,49 @@
+############################################################################
+#
+#	File:     ipicker.icn
+#
+#	Subject:  Program to print name of selected images
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 13, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program displays images listed on the command line and waits for
+#  user input typed into the wnodw.  If the input is the letter "y",
+#  the name of the image file is written to standard output.  If the
+#  input is "q", the program terminates.  Other input is ignored.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  wopen
+#
+############################################################################
+
+link wopen
+
+procedure main(args)
+   local name
+
+   every name := !args do {
+      WClose(\&window)
+      WOpen("image=" || name) | {
+         write(&errout, "Can't open image ", image(name))
+         next
+         }
+      case WReads(, 1) of {
+         "y":  write(name)
+         "q":  exit()
+         }
+      }
+
+end

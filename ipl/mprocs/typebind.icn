@@ -1,0 +1,56 @@
+############################################################################
+#
+#	File:     typebind.icn
+#
+#	Subject:  Procedures to produce table of graphic contexts for type
+#
+#	Author:   Ralph E. Griswold and Clinton L. Jeffery
+#
+#	Date:     March 4, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  typebind(window, codes, opts) returns a table of graphic contexts bound to 
+#  window with foreground colors keyed by type in the string of event codes.
+#
+#  Codes for which there is no corresponding color are ignored.
+#
+#  Note:  Event monitoring global identifiers must be linked by the program
+#  that uses this procedure.
+#
+############################################################################
+#
+#  Links: colormap
+#
+############################################################################
+#
+#  Requires: Version 9 graphics
+#
+############################################################################
+
+link colormap
+
+procedure typebind(window, codes, opts)
+   local code, context
+   static contexts, color
+
+   initial {
+      contexts := table()
+      if /opts then color := colormap("standard")
+      else color := colormap(opts["p"])
+      }
+
+   if /contexts[window] := table() then {
+      context := contexts[window]
+      every code := !codes do
+         context[code] := Clone(window, , "fg=" || \color[code])
+      }
+   contexts[window]["bg"] := Clone(window, "fg=" || WAttrib(window,"bg"))
+   return contexts[window]
+
+end
+

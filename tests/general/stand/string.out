@@ -1,0 +1,215 @@
+ ----> &null
+s := "abcd" ----> "abcd"
+s := "x" ----> "x"
+s ||:= "x" ----> "xx"
+s ----> "xx"
+s := "x" ----> "x"
+s ||:= "xx" ----> "xxx"
+s ----> "xxx"
+s := "x" ----> "x"
+s ||:= "X" ----> "xX"
+s ----> "xX"
+s := "x" ----> "x"
+s ||:= "abc" ----> "xabc"
+s ----> "xabc"
+s := "x" ----> "x"
+s ==:= "x" ----> "x"
+s ----> "x"
+s := "x" ----> "x"
+s ==:= "xx" ----> none
+s ----> "x"
+s := "x" ----> "x"
+s ==:= "X" ----> none
+s ----> "x"
+s := "x" ----> "x"
+s ==:= "abc" ----> none
+s ----> "x"
+{s[1:2] := "xx";s} ----> "xx"
+{s[-1:0] := "";s} ----> "x"
+{s[1] := "abc";s} ----> "abc"
+{s[1+:2] := "y";s} ----> "yc"
+{s[2] :=: s[3];s} ----> "yc"
+s[6] := "t" ----> none
+s[0-:6] := "u" ----> none
+{s[1:0] :=: s[0:1];s} ----> "yc"
+"x" << "x" ----> none
+"x" << "X" ----> none
+"X" << "x" ----> "x"
+"xx" <<= "xx" ----> "xx"
+"xxx" <<= "xx" ----> none
+"xx" <<= "xxx" ----> "xxx"
+"x" >>= "x" ----> "x"
+"x" >>= "xx" ----> none
+"xx" >>= "x" ----> "x"
+"x" >> "x" ----> none
+"x" >> "X" ----> "X"
+"X" >> "x" ----> none
+"x" == "x" ----> "x"
+"x" == "X" ----> none
+"X" == "x" ----> none
+"x" ~== "x" ----> none
+"x" ~== "X" ----> "X"
+"X" ~== "x" ----> "x"
+2
+22
+222
+2222
+22222
+222222
+2222222
+22222222
+222222222
+every i := 1 to 9 do write(integer(repl("2",i))) ----> none
+3
+23
+223
+2223
+22223
+222223
+2222223
+22222223
+222222223
+every i := 1 to 9 do write(repl("2",i) + 1) ----> none
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+every i := 1 to 30 do write(integer(repl("0",i) || "2")) ----> none
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+every i := 1 to 30 do write((repl("0",i) || "2") + 1) ----> none
+c1 := 'abcde' ----> 'abcde'
+c2 := 'aeuoi' ----> 'aeiou'
+c1 ++ c2 ----> 'abcdeiou'
+c1 -- c2 ----> 'bcd'
+c1 ** c2 ----> 'ae'
+2 ~=== +2 ----> none
+3 ~=== *"abc" ----> none
+'abc' ~=== ('abc' ++ '') ----> none
+any('aeiou',&lcase) ----> 2
+any('aeiou',&ucase) ----> none
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+6
+6
+6
+6
+6
+6
+6
+6
+6
+6
+6
+every write(any('aeiou',&lcase,1 to 5,10 to 20)) ----> none
+match("abc","abcabcabcabc") ----> 4
+match("abc","xabcabcabcabc") ----> none
+5
+5
+5
+5
+5
+5
+5
+8
+8
+8
+5
+5
+5
+8
+5
+8
+5
+8
+every write(match("abc","xabcabcabcabc",1 to 10,1 to 10)) ----> none
+upto('56d&',&lcase) ----> 4
+upto('56d&',&ucase) ----> none
+upto('56d&',&lcase,15) ----> none
+many(&lcase,"this is a Test") ----> 5
+many(&lcase,"this is a Test",5) ----> none
+many(&lcase,"this is a Test",5,9) ----> none
+find("aa","xxaaaaaa") ----> 3
+3
+4
+5
+6
+7
+every write(find("aa","xxaaaaaa")) ----> none
+4
+5
+every write(find("aa","xxaaaaaa",4,7)) ----> none
+bal('-','(',')',"-35") ----> 1
+bal('+','(',')',"((2*x)+3)+(5*y)") ----> 10
+10
+7
+7
+10
+every write(bal('+','(',')',"((2*x)+3)+(5*y)",1 to 10)) ----> none
+bal('+','[','[',"[[2*x[+3[+[5*y[") ----> none
+bal('+','([','])',"([2*x)+3]+(5*y]") ----> 10
+bal(,,,"()+()") ----> 1
+bal(&cset,,,"()+()") ----> 1

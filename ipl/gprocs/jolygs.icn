@@ -1,0 +1,49 @@
+############################################################################
+#
+#	File:     jolygs.icn
+#
+#	Subject:  Procedure to produce traces of "jolygons"
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 2, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure produces traces of jolygons.  See
+#
+#	Geometric and Artistic Graphics; Design Generation with
+#	Microcomputers, Jean-Paul Delahaye, Macmillan, 1987, pp. 20-24.
+#
+#  The arguments specify the starting positions, the extent of the
+#  drawing, the number of segments, the angle between consecutive
+#  segments, the ratio of the lengths of consecutive segments,
+#  a length factor, and a y scaling factor.
+#
+############################################################################
+
+procedure jolyg(x, y, extent, n, angle, ratio, lfact, yfact)
+   local xpos, ypos, i, offset, length
+
+   angle := dtor(angle)
+   offset := 0
+   length := extent * lfact
+
+   xpos := (extent - length) / 2
+   ypos := (extent - length) / 2
+
+   suspend Point(x + xpos, y + ypos)	# initial point
+
+   every i := 0 to n do {
+      xpos +:= length * cos(offset)
+      ypos +:= length * sin(offset)
+      suspend Point(x + xpos, y + yfact * ypos)
+      offset +:= angle
+      length *:= ratio
+      }
+
+end

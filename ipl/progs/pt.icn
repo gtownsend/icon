@@ -1,0 +1,1031 @@
+############################################################################
+#
+#	File:     pt.icn
+#
+#	Subject:  Program to produce parse table generator
+#
+#	Author:   Deeporn H. Beardsley
+#
+#	Date:     December 10, 1988
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  See pt.man for a description of functionality as well as input and
+#  output format.
+#
+############################################################################
+
+#**********************************************************************
+#*                                                                    *
+#* Main procedure as well as                                          * 
+#*      a routine to generate production table, nonterminal, terminal *
+#*      and epsilon sets from the input grammar                       *
+#**********************************************************************
+#
+#  1.  Data structures:-
+#
+#       E.g.  Grammar:-
+#               
+#               A -> ( B )
+#               A -> B , C
+#               A -> a
+#               B -> ( C )
+#               B -> C , A
+#               B -> b
+#               C -> ( A )
+#               C -> A , B
+#               C -> c
+#
+#       prod_table		           prod
+#               __________________         _____  _____  _____  
+#               |     |          |     num | 1 |  | 2 |  | 3 |
+#               | "A" |    ------|-->[     |---| ,|---| ,|---| ]
+#               |     |          |     rhs |_|_|  |_|_|  |_|_|
+#               |     |          |           |      |      v  
+#               |     |          |           |      v      ["a"]
+#               |     |          |           v      ["B",",","C"]
+#               |     |          |           ["(","B",")"]
+#               |_____|__________|         _____  _____  _____  
+#               |     |          |     num | 4 |  | 5 |  | 6 |
+#               | "B" |    ------|-->[     |---| ,|---| ,|---| ]
+#               |     |          |     rhs |_|_|  |_|_|  |_|_|
+#               |     |          |           |      |      v  
+#               |     |          |           |      v      ["b"]
+#               |     |          |           v      ["C",",","A"]
+#               |     |          |           ["(","C",")"]
+#               |_____|__________|         _____  _____  _____  
+#               |     |          |     num | 7 |  | 8 |  | 9 |
+#               | "C" |    ------|-->[     |---| ,|---| ,|---| ]
+#               |     |          |     rhs |_|_|  |_|_|  |_|_|
+#               |     |          |           |      |      v  
+#               |     |          |           |      v      ["c"]
+#               |     |          |           v      ["A",",","B"]
+#               |     |          |           ["(","A",")"]
+#               ------------------
+#
+#               __________________
+#       firsts  | "A" |    ------|-->("(", "a", "b", "c")
+#               |-----|----------|
+#               | "B" |    ------|-->("(", "a", "b", "c")
+#               |-----|----------|
+#               | "C" |    ------|-->("(", "a", "b", "c")
+#               ------------------
+#
+#               _______
+#       NTs     |  ---|-->("A", "B", "C")
+#               -------
+#
+#               _______
+#       Ts      |  ---|-->("(", "a", "b", "c")
+#               -------
+#
+#  2.  Algorithm:-
+#
+#       get_productions() -- build productions table (& NT, T 
+#          		     and epsilon sets):-
+#               open grammar file or from stdin
+#               while can get an input line, i.e. production, do
+#                 get LHS token and use it as entry value to table
+#                   (very first LHS token is start symbol of grammar)
+#                   (enter token in nonterminal, NT, set)
+#                 get each RHS token & form a list, put this list 
+#                   in the list, i.e.assigned value, of the table
+#                   (enter each RHS token in terminal, T, set)
+#                   (if first RHS token is epsilon
+#                      enter LHS token in the epsilon set)
+#               (T is the difference of T and NT)
+#               close grammar file
+#
+#**********************************************************************
+global prod_table, NTs, Ts, firsts, stateL, itemL
+global StartSymbol, start, eoi, epsilon
+global erratta			# to list all items in a state (debugging)
+record prod(num, rhs)           # assigned values for prod_table
+record arc(From, To)            # firsts computation -- closure
+record item(prodN, lhs, rhs1, rhs2, NextI)
+record state(C_Set, I_Set, goto)
+procedure main(opt_list)
+  local opt
+
+  start := "START"              # start symbol for augmented grammar
+  eoi := "EOI"                  # end-of-input token (constant)
+  epsilon := "EPSILON"          # epsilon token (constant)
+  prod_table := table()         # productions
+  NTs := set()                  # non-terminals
+  Ts := set()                   # terminals
+  firsts := table()             # nonterminals only; first(T) = {T}
+  get_firsts(get_productions())
+  if /StartSymbol then exit(0)	# input file empty
+  write_prods()
+  if opt := (!opt_list == "-nt") then
+    write_NTs()
+  if opt := (!opt_list == "-t") then
+    write_Ts()
+  if opt := (!opt_list == "-f") then
+    write_firsts()
+  if opt := (!opt_list == "-e") then
+    erratta := 1  
+  else
+    erratta := 0  
+  stateL := list()              # not popped, only for referencing
+  itemL := list()               # not popped, only for referencing
+  state0()                      # closure of start production
+  gotos()                       # sets if items
+  p_table()                     # output parse table
+end
+ 
+procedure get_productions()
+  local Epsilon_Set, LHS, first_RHS_token, grammarFile, line, prods, temp_list
+  local token, ws
+
+  prods := 0                    # for enumeration of productions
+  ws := ' \t'
+  Epsilon_Set := set()          # NT's that have epsilon production
+  grammarFile := (open("grammar") | &input)
+  while line := read(grammarFile) do {
+    first_RHS_token := &null    # to detect epsilon production
+    temp_list := []             # RHS of production--list of tokens
+    line ? {
+      tab(many(ws))
+      LHS := tab(upto(ws))      # LHS of production--nonterminal
+      /firsts[LHS] := set()     
+      /StartSymbol := LHS       # start symbol for unaug. grammar
+      insert(NTs, LHS)          # collect nonterminals
+      tab(many(ws)); tab(match("->")); tab(many(ws))
+      while put(temp_list, token := tab(upto(ws))) do {
+        /first_RHS_token := token
+        insert(Ts, token)       # put all RHS tokens into T set for now
+        tab(many(ws))
+      }
+      token := tab(0)		# get last RHS non-ws token
+      if *token > 0 then {
+        put(temp_list, token)
+        /first_RHS_token := token
+        insert(Ts, token)
+      }
+      Ts --:= NTs               # set of terminals
+      delete(Ts, epsilon)	# EPSILON is not a terminal
+      /prod_table[LHS] := []
+      put(prod_table[LHS], prod(prods +:=1, temp_list))
+    }
+    if first_RHS_token == epsilon then
+      insert(Epsilon_Set, LHS)
+  }
+  if not (grammarFile === &input) then 
+    close(grammarFile)
+  return Epsilon_Set
+end
+#**********************************************************************
+#*                                                                    *
+#* Routines to generate first sets                                    *
+#**********************************************************************
+#  1.  Data structures:-
+#       (see also data structures in mainProds.icn)
+#
+#               __________________
+#       needs   | "A" |    ------|-->[B]
+#               |-----|----------|
+#               | "B" |    ------|-->[C]
+#               |-----|----------|
+#               | "C" |    ------|-->[A]
+#               ------------------
+#
+#       has_all_1st
+#               _______
+#               |  ---|-->("A", "C")
+#               -------
+#
+#
+#       G    |-----------------------| 
+#            |  __________________   v 
+#            |  | "A" |    ------|-->(B)<--------|
+#            |  |-----|----------|               |
+#            |--|---  |      ----|-->"A"         |
+#               |-----|----------|               |
+#               | "B" |    ------|-->(C)<-----|  |
+#               |-----|----------|            |  |
+#               | (C) |    ------|-->"B"      |  |
+#               |-----|----------|            |  |
+#               | "C" |    ------|-->(A)<--|  |  |
+#               |-----|----------|         |  |  |
+#               | (A) |    ------|-->"C"   |  |  |
+#               ------------------         |  |  |
+#                                          |  |  |
+#       closure_table                      |  |  |
+#               __________________         |  |  |
+#               | "A" |    ------|-->( ----| ,| ,| ) 
+#               |-----|----------|
+#               | "B" |    ------|-->( as above    )
+#               |-----|----------|
+#               | "C" |    ------|-->( as above    )
+#               ------------------
+#
+#       (Note: G table: the entry values (B) and (C) should be analogous
+#                       to that of '(A)'.)
+#
+#  2.  Algorithms:-
+#
+#       2.1  Firsts sets (note: A is nonterminal & 
+#                               beta is a string of symbols):-
+#                         For definition, see Aho, et al, Compilers...
+#                               Addison-Wesley, 1986, p.188)
+#               for each production A -> beta (use production table above)
+#                 loop1
+#                   case next RHS token, B, is
+#                     epsilon    :  do nothing, break from loop1
+#                     terminal   :  insert it in first(A), break from loop1
+#                     nonterminal:  put B in needs[A] table
+#                                   if B in epsilon set & last RHS token
+#                                     insert A in epsilon set
+#                                     break from loop1
+#                                   loop1
+#               collect has_all_1st set (NTs whose first is fully defined
+#                       i.e. NTs not entry value of needs table)
+#               Loop2 (fill_firsts)
+#                 for each NT B in each needs[A]
+#                   if B is in has_all_1st
+#                     insert all elements of first(B) in first(A)
+#                     delete B from needs[A]
+#                 if needs[A] is empty 
+#                   insert A in has_all_1st
+#                 if *has_all_1st set equal to *NTs set
+#                   exit loop2
+#                 if *has_all_1st set not equal to *NTs set
+#                   if *has_all_1st not changed from beginning of loop2
+#                   (i.e. circular dependency e.g.
+#                       needs[X] = [Y]
+#                       needs[Y] = [Z]
+#                       needs[Z] = [X])
+#                       find closure of each A
+#                       find a set of A's whose closure sets are same
+#                         pool their firsts together
+#                         add pooled firsts to first set of each A
+#                       goto loop2
+#
+#
+#               This algorithm is implemented by the following procedures:-
+#
+#                 get_firsts(Epsilon_Set) -- compute first sets of all
+#                    NTs, given the NTs that have epsilon productions.
+#
+#                 fill_firsts(needs) -- given the needs table that says
+#                    which first set contains the elements of other
+#                    first set(s), complete computation of first sets.
+#
+#                 buildgraph(tempL) -- given the productions in tempL,
+#                    build table G above.
+#
+#                 closure(G, S1, S2) -- given the productions in tempL,
+#                    the entry value S1 and its closure set S2, build 
+#                    closure_table.
+#
+#                 addnode(n, t) -- given table t ( G, actually), and
+#                    1. entry value of n, enter its assigned value in
+#                       in table t to be a set (empty, for now) 
+#                    2. use t[n] (in 1) as the entry value, enter its
+#                       assigned value in table t to be "n".
+#
+#                 closed_loop(G, SS, closure_table, tempL_i) -- given
+#                    table G, closure_table and a nonterminal tempL_i
+#                    that still needs its firsts completed, return the
+#                    set SS of nonterminals if each and every of these
+#                    nonterminals has identical closure set.
+#
+#                 finish_firsts(closed_set) -- given the set closed_set
+#                    of nonterminals where every member of of the set
+#                    has identical closure set, pool the elements 
+#                    (terminals) from their so-far known firsts sets
+#                    together and reenter this pooled value into their
+#                    firsts sets (firsts table).
+#
+#       2.2  Note that buildgraph(), closure() and addnode()
+#                 are either exactly or essentially the same as
+#                 given in class (by R. Griswold).
+#
+#**********************************************************************
+ 
+procedure get_firsts(Epsilon_Set)
+  local needs, prods, i, j, k, token
+
+  needs := table()
+  prods := sort(prod_table, 3)
+  every i := 1 to *prods by 2 do                # production(s) of a NT
+    every j := 1 to *prods[i+1] do              # RHS of each production
+      every k := 1 to *prods[i+1][j].rhs do     #  and each token
+        if ((token := prods[i+1][j].rhs[k]) == epsilon) then
+          break                                 # did in get_productions
+        else if member(Ts, token) then {        # leading token on RHS
+          insert(firsts[prods[i]], token)       # e.g. A -> ( B )
+          break
+        }
+        else { #if member(NTs, token) then      #      A -> B a C
+          /needs[prods[i]] := [] 
+          put(needs[prods[i]], token)
+          if not (member(Epsilon_Set, token)) then # not B -> EPSILON
+            break
+          if k = *prods[i+1][j].rhs then   # all RHS tokens are NTs &
+            insert(Epsilon_Set, prods[i])  # each has epsilon production
+        }
+  fill_firsts(needs)    # do firsts that contain firsts of other NT(s)
+  every insert(firsts[!Epsilon_Set], epsilon) # add epsilon last
+end
+ 
+procedure fill_firsts(needs)
+  local G, L, NTy, SS, closed_set, closure_table, has_all_1st, i, lhs
+  local new_temp, rhs, size_has_all_1st, ss, ss_table, tempL, x
+
+  closure_table := table()
+  has_all_1st := copy(NTs)              # set of NTs whose firsts fully defined
+  tempL := sort(needs, 3)
+  every i := 1 to *tempL by 2 do
+    delete(has_all_1st, tempL[i])
+  repeat {
+    ss := ""
+    ss_table := table()
+    size_has_all_1st := *has_all_1st
+    new_temp := list()
+    while lhs := pop(tempL) do {
+      rhs := pop(tempL)
+      L := list()
+      while NTy := pop(rhs) do
+        if NTy ~== lhs then
+          if member(has_all_1st, NTy) then
+            firsts[lhs] ++:= firsts[NTy]
+          else
+            put(L, NTy)
+      if *L = 0 then
+        insert(has_all_1st, lhs)
+      else {
+        put(new_temp, lhs)
+        put(new_temp, L)
+      }
+    }
+    tempL := new_temp
+    if *has_all_1st = *NTs then
+      break
+    if size_has_all_1st = *has_all_1st then {
+      G := buildgraph(tempL)
+      every i := 1 to *tempL by 2 do 
+        closure_table[tempL[i]] := closure(G, tempL[i])
+      every i := 1 to *tempL by 2 do {
+        closed_set := set()
+        SS := set([tempL[i]])
+        every x := !closure_table[tempL[i]] do
+          insert(SS, G[x])
+        closed_set := closed_loop(G,SS,closure_table,tempL[i])
+        if \closed_set then {
+          finish_firsts(closed_set) 
+          every insert(has_all_1st, !closed_set)
+          break
+        }
+      }
+    }
+  }
+  return
+end
+ 
+procedure buildgraph(tempL)     # modified from the original version 
+  local arclist, nodetable, x, i
+
+  arclist := []                 # by Ralph Griswold
+  nodetable := table()
+  every i := 1 to *tempL by 2 do {
+    every x := !tempL[i+1] do {
+     addnode(tempL[i], nodetable)
+     addnode(x, nodetable)
+     put(arclist, arc(tempL[i], x))
+    }
+  }
+  while x := get(arclist) do
+    insert(nodetable[x.From], nodetable[x.To])
+  return nodetable
+end
+ 
+procedure closure(G, S1, S2)    # modified from the original version 
+  local S
+
+  /S2 := set([G[S1]])           # by Ralph Griswold
+  every S := !(G[S1]) do
+    if not member(S2, S) then {
+      insert(S2, S)
+      closure(G, G[S], S2)
+    }
+  return S2
+end
+ 
+procedure addnode(n, t)         # author: Ralph Griswold 
+  local S
+
+  if /t[n] then {
+    S := set()
+    t[n] := S
+    t[S] := n
+  }
+  return
+end
+ 
+procedure closed_loop(G, SS, closure_table, tempL_i)
+  local S, x, y
+
+  delete(SS, tempL_i)
+  every x := !SS do {
+    S := set()
+    every y := !closure_table[x] do
+      insert(S, G[y])
+    delete(S, tempL_i)
+    if *S ~= *SS then fail
+    every y := !S do
+      if not member(SS, y) then fail
+  }
+  return insert(SS, tempL_i)
+end 
+ 
+procedure finish_firsts(closed_set)
+  local S, x
+
+  S := set()
+  every x := !closed_set do
+    every insert(S, !firsts[x]) 
+  every x := !closed_set do
+    every insert(firsts[x], !S)
+end
+#**********************************************************************
+#*                                                                    *
+#* Routines to generate states                                        *
+#**********************************************************************
+#
+#  1.  Data structures:-
+#
+#       E.g. Augmented grammar:-
+#       
+#               START -> S              (production 0)
+#               S -> ( S )              (production 1)
+#               S -> ( )                (production 2)
+#
+#             Item is a record of 5 fields:-
+#                 Example of an item: itemL[1] is [START->.S , $] 
+#                      prodN     represents the production number
+#                      lhs       represents the nonterminal at the
+#                                left hand side of the production
+#                      rhs1      represents the list of tokens seen so 
+#                                far (i.e. left of the dot in item)
+#                      rhs2      represents the list of tokens yet to be
+#                                seen (i.e. right of the dot in item)
+#                      NextI     represents the next input symbol
+#                                (the end of input symbol $ is 
+#                                represented by EOI.)
+#             
+#             
+#				  item             
+#                                _________       _________
+#                           prodN|   0   |       |   1   |
+#                                |-------|       |-------|
+#                           lhs  |"START"|       |  "S"  |
+#               _______          |-------|       |-------|     
+#       itemL   |  ---|-->[ rhs1 |    ---|---| , |  -----|---| , ...  ]
+#               -------          |-------|   |   |-------|   | 
+#                           rhs2 |    ---|-| |   |  -----|-| |
+#                                |-------| | |   |-------| | | 
+#                           NextI| "EOI" | | |   | "EOI" | | | 
+#                                --------- | |   --------- | | 
+#                                          | |             | | 
+#                                          | |             | |    
+#                                          | v             | v
+#                                          | []            | []
+#                                          |               |
+#                                          v               v
+#                                          ["S"]           ["(", "S", ")"]
+#
+#				 state
+#                                _______         
+#                           C_Set|  ---|-----|
+#               _______          |-----|     |
+#       stateL  |  ---|-->[ I_Set|  ---|---| |  , ...  ]
+#               -------          |-----|   | | 
+#                           goto |  ---|-| | |
+#                                ------- | | |
+#                                        | | v
+#                                        | | (1, 2, 3)
+#                                        | v        
+#                                        | (1)   
+#                                        v        
+#                                        __________________    
+#               	   	         | "A" |    5     |
+#			                 |-----|----------|
+#			                 | "B" |    2     |
+#			                 |-----|----------|
+#			                 | "C" |    3     |
+#			                 ------------------
+#
+#
+#       (Note: 1.  The above 2 lists:-
+#                    -- are not to be popped
+#                    -- new elements are put in the back
+#                    -- index represents the identity of the element
+#                    -- no duplicate elements in either list
+#	       2.  The state record:-
+#			I_Set represents J in function goto(I,x) in 
+#		 	  Compiler, Aho, et al, Addison-Wesley, 1986,
+#			  p. 232.
+#			C_Set represents the closure if I_Set.
+#			goto is part of the goto table and the shift 
+#			  actions of the final parse table.)
+#              3.  The 1 in C_Set and I_Set in the diagrams above refer 
+#                       the same (physical) element.
+#
+#  2.  Algorithms:-
+#
+#         state0() -- create itemL[1] and stateL[1] as well as its
+#                       closure.
+#
+#         item_num(P_num, N_lhs, N_rhs1, N_rhs2, NI) --
+#                     if the item with the values given in the
+#                       argument list already exists in itemL list,
+#                       it returns the index of the item in the list,
+#                     if not, it builds a new item and put it at the 
+#                       end of the list and returns the new index.
+#
+# 	  prod_equal(prod1, prod2) --  prod1 and prod2 are lists of
+#		      strings; fail if they are not the same.
+#
+# 	  state_closure(st) -- given the item set (I_set of the state 
+#		      st), set the value of C_Set of st to the closure
+#		      of this item set.  For definition of closure, 
+#                     see Aho, et al, Compilers..., Addison-Wesley, 
+#		      1986, pp. 222-224)
+#		      
+# 	  new_item(st,O_itm) -- given the state st and an item O_itm,
+#		      suppose the item has the following configuration:-
+#			     [A -> B.CD,x]
+#		      where CD is a string of terminal and nonterminal
+#		      tokens.  If C is a nonterminal, 
+# 		        for each C -> E in the grammar, and 
+#			for each y in first(Dx), add the new item
+#			     [C -> .E,y] 
+#			to the C_Set of st.
+#
+# 	  all_firsts(itm) -- given an item itm and suupose it has the
+#		      following configuration:-
+#			     [A -> B.CD,x]
+#		      where D is a string of terminal and nonterminal
+#		      tokens.  The procedure returns first(Dx).
+#
+# 	  gotos() -- For definition of goto operation, see Aho, et al,
+#                    Compilers..., Addison-Wesley, 1986, pp. 224-227)
+#		     The C = {closure({[S'->S]})} is set up by the
+#		            state0()
+#		     call in the main procedure.
+#	
+#		     It also compiles the goto table.  The errata part
+#		     (last section of the code in this procedure) is
+#		     for debugging purposes and is left intact for now.
+#		      
+# 	  moved_item(itm) -- given the item itm and suppose it has the
+#		      following configuration:-
+#			     [A -> B.CD,x]
+#		      where D is a string of terminal and nonterminal
+#		      tokens.  The procedure builds a new item:-
+#			     [A -> BC.D,x]
+#		      It then looks up itemL to see if it already is
+#		      in it.  If so, it'll return its index in the list,
+#		      else, it'll put it in the back of the list and
+#		      return this new index.  (This is done by calling
+#		      item_num()).
+#		      
+# 	  exists_I_Set(test) -- given the I_Set test, look in the stateL
+#		     list and see if any state does contain similar
+#		     I_Set, if so, return its index to the stateL list,
+#		     else fail.
+#		      
+#	  set_equal(set1, set2) -- set1 and set2 are sets of integers;
+#		      return set1 if the two sets have the same elements
+#		      else fail.  (It is used strictly in comparison of
+#		      I_Sets).
+#
+#
+#**********************************************************************
+ 
+procedure state0()
+  local itm, st
+
+  itm := item_num(0, start, [], [StartSymbol], eoi)
+  st := state(set(), set([itm]), table())
+  put(stateL, st)
+  state_closure(st)     # closure on initial state
+end
+ 
+procedure item_num(P_num, N_lhs, N_rhs1, N_rhs2, NI)
+  local itm, i
+
+  itm := item(P_num, N_lhs, N_rhs1, N_rhs2, NI)
+  every i := 1 to *itemL do {
+    if itm.prodN ~== itemL[i].prodN then next
+    if itm.lhs ~== itemL[i].lhs then next
+    if not prod_equal(itm.rhs1, itemL[i].rhs1) then next
+    if not prod_equal(itm.rhs2, itemL[i].rhs2) then next
+    if itm.NextI == itemL[i].NextI then return i
+  }
+  put(itemL, itm)
+  return *itemL
+end
+ 
+procedure prod_equal(prod1, prod2)      # compare 2 lists of strings
+  local i
+
+  if *prod1 ~= *prod2 then fail
+  every i := 1 to *prod1 do
+    if prod1[i] ~== prod2[i] then fail
+  return
+end
+ 
+procedure state_closure(st)
+  local addset, more_set, i
+
+  st.C_Set := copy(st.I_Set)
+  addset := copy(st.C_Set)
+  while *addset > 0 do {
+    more_set := set()
+    every i := !addset do
+      if (itemL[i].rhs2[1] ~== epsilon) then
+        if member(NTs, itemL[i].rhs2[1]) then
+          more_set ++:= new_item(st,itemL[i])
+    addset := more_set
+  }
+end
+ 
+procedure new_item(st,O_itm)
+  local N_Lhs, N_Rhs1, N_prod, NxtInput, T_itm, i, rtn_set
+  rtn_set := set()
+  NxtInput := all_firsts(O_itm)
+  N_Lhs := O_itm.rhs2[1]
+  N_Rhs1 := []
+  every N_prod := !prod_table[N_Lhs] do
+    every i := !NxtInput do {
+      T_itm := item_num(N_prod.num, N_Lhs, N_Rhs1, N_prod.rhs, i)
+      if not member(st.C_Set, T_itm) then {
+        insert(st.C_Set, T_itm)
+        insert(rtn_set, T_itm)
+      }
+    }
+  return rtn_set
+end
+ 
+procedure all_firsts(itm)
+  local rtn_set, i
+
+  if *itm.rhs2 = 1 then
+    return set([itm.NextI])
+  rtn_set := set()
+  every i := 2 to *itm.rhs2 do
+    if member(Ts, itm.rhs2[i]) then 
+      return insert(rtn_set, itm.rhs2[i])
+    else {
+      rtn_set ++:= firsts[itm.rhs2[i]]
+      if not member(firsts[itm.rhs2[i]], epsilon) then
+        return rtn_set
+    }
+  return insert(rtn_set, itm.NextI)
+end
+ 
+procedure gotos()
+  local New_I_Set, gost, i, i_num, j, j_num, looked_at, scan, st, st_num, x
+  st_num := 1
+  repeat{
+    looked_at := set()
+    scan := sort(stateL[st_num].C_Set)
+    every i := 1 to *scan do {
+      i_num := scan[i]
+      if member(looked_at, i_num) then next
+      insert(looked_at, i_num)
+      x := itemL[i_num].rhs2[1]         # next LHS
+      if ((*itemL[i_num].rhs2 = 0) | (x == epsilon)) then next
+      New_I_Set := set([moved_item(itemL[i_num])])
+      every j := i+1 to *scan do {
+        j_num := scan[j]
+        if not member(looked_at, j_num) then
+          if (x == itemL[j_num].rhs2[1]) then {
+            insert(New_I_Set, moved_item(itemL[j_num]))
+            insert(looked_at, j_num)
+          }
+      }
+      if gost := exists_I_Set(New_I_Set) then 
+        stateL[st_num].goto[x] := gost    #add into goto
+      else { # add a new state
+        st := state(set(), New_I_Set, table())
+        put(stateL, st)
+        state_closure(st)
+        stateL[st_num].goto[x] := *stateL    #add into goto
+      }
+    }
+    if erratta=1 then {
+      write("--------------------------------")
+      write("State ", st_num-1)
+      write_state(stateL[st_num])
+    }
+    st_num +:= 1
+    if st_num > *stateL then {
+      if erratta=1 then
+        write("--------------------------------")
+      return stateL
+    }
+  }
+end
+ 
+procedure moved_item(itm)
+  local N_Rhs1, N_Rhs2, i
+
+  N_Rhs1 := copy(itm.rhs1)
+  put(N_Rhs1, itm.rhs2[1])
+  N_Rhs2 := list()
+  every i := 2 to *itm.rhs2 do
+    put(N_Rhs2, itm.rhs2[i])
+  return item_num(itm.prodN, itm.lhs, N_Rhs1, N_Rhs2, itm.NextI)
+end
+ 
+procedure exists_I_Set(test)
+  local st
+
+  every st := 1 to *stateL do
+    if set_equal(test, stateL[st].I_Set) then return st
+  fail
+end
+ 
+procedure set_equal(set1, set2)         
+  local i
+
+   if *set1 ~= *set2 then fail
+   every i := !set2 do
+     if not member(set1, i) then fail
+   return set1
+end
+#**********************************************************************
+#*                                                                    *
+#* Miscellaneous write routines                                       *
+#**********************************************************************
+#	The following are write routines; some for optional output
+#	while others are for debugging purposes. 
+# 
+#	    write_item(itm) -- write the contents if item itm.
+#	    write_state(st) -- write the contents of state st.
+#	    write_tbl_list(out) -- (for debugging purposes only).
+#	    write_prods()-- write the enmnerated grammar productions.
+#	    write_NTs() -- write the set of nonterminals.
+#	    write_Ts() -- write the set of terminals.
+#	    write_firsts() -- write the first sets of each nonterminal.
+#	    write_needs(L) -- write the list of all nonterminals and the
+#			      associated nonterminals whose first sets 
+#			      it still needs to compute its own first
+#			      set.
+# 
+#**********************************************************************
+ 
+procedure write_item(itm)
+  local i
+
+  writes("[(",itm.prodN,") ",itm.lhs," ->")
+  every i := !itm.rhs1 do writes(" ",i)
+  writes(" .")
+  every i := !itm.rhs2 do writes(" ",i)
+  writes(", ",itm.NextI,"]\n")
+end
+ 
+procedure write_state(st)
+  local i, tgoto
+
+  write("I_Set")
+  every i := ! st.I_Set do {
+    writes("Item ", i, " ")
+    write_item(itemL[i])
+  }
+  write()
+  write("C_Set")
+  every i := ! st.C_Set do {
+    writes("Item ", i, " ")
+    write_item(itemL[i])
+  }
+  tgoto := sort(st.goto, 3)
+  write()
+  write("Gotos")
+  every i := 1 to *tgoto by 2 do
+    write("Goto state ", tgoto[i+1]-1, " on ", tgoto[i])
+end
+ 
+procedure write_tbl_list(out)
+  local i, j
+
+  every i := 1 to *out by 2 do {
+    writes(out[i], ", [")
+    every j := *out[i+1] do {
+      if j ~= 1 then
+        writes(", ")
+      writes(out[i+1][j])
+    }
+    writes("]\n")
+  }
+end
+ 
+procedure write_prods()
+  local i, j, k, prods
+
+  prods := sort(prod_table, 3)
+  every i := 1 to *prods by 2 do 
+    every j := 1 to *prods[i+1] do {
+      writes(right(string(prods[i+1][j].num),3," "),":  ")
+      writes(prods[i], " ->")
+      every k := 1 to *prods[i+1][j].rhs do
+        writes(" ", prods[i+1][j].rhs[k])
+      writes("\n")
+    }
+end
+ 
+procedure write_NTs()
+  local temp_list
+
+  temp_list := sort(NTs)
+  write("\n")
+  write("nonterminal sets are:")
+  every write(|pop(temp_list))
+end
+ 
+procedure write_Ts()
+  local temp_list
+
+  temp_list := sort(Ts)
+  write("\n")
+  write("terminal sets are:")
+  every write(|pop(temp_list))
+end
+ 
+procedure write_firsts()
+  local temp_list, i, j, first_list
+
+  temp_list := sort(firsts, 3)
+  write("\nfirst sets:::::")
+  every i := 1 to *temp_list by 2 do {
+    writes(temp_list[i], ": ")
+    first_list := sort(temp_list[i+1])
+    every j := 1 to *first_list do
+      writes(" ", pop(first_list))
+    writes("\n\n")
+  }
+end
+ 
+procedure write_needs(L)
+  local i, temp
+
+  write("tempL : ")
+  every i := 1 to *L by 2 do {
+    writes(L[i], " ")
+    temp := copy(L[i+1])
+    every writes(|pop(temp))
+    writes("\n")
+  }
+end
+#**********************************************************************
+#*                                                                    *
+#* Output the parse table routines                                    *
+#**********************************************************************
+#
+#	p_table() -- output parse table: tablulated (vertical and
+#		     horizontal lines, etc.) if the width is within
+#		     80 characters long else a listing.
+#
+#	outline(size, out, st_num, T_list, NT_list) -- print the header;
+#		     used in table form.
+#
+#	border(size, T_list, NT_list, col) -- draw a horizontal line
+#		     for the table form, given the table size that tells
+#		     the length of each token given the lists of 
+#		     terminals and nonterminals.  If the line is the 
+#		     last line of the table, col given is "-", else it 
+#		     is "-". 
+#
+#	outstate(st, out, T_list, NT_list) -- print the shift, reduce
+#		     and goto for state st from information given in
+#		     out, and the lists of terminals and nonterminals;
+#		     used to output the parse table in the listing form.
+#
+#**********************************************************************
+ 
+procedure p_table()
+  local NT_list, T_list, action, gs, i, itm, msize, out, s, size, st_num, tsize
+
+  T_list := sort(Ts)
+  put(T_list, eoi)
+  NT_list := sort(NTs)
+  size := table()
+  out := table()
+  if *stateL < 1000 then msize := 4
+  else if *stateL < 10000 then msize := 5
+  else msize := 6
+  tsize := 7
+  every s := !T_list do {
+    size[s] := *s
+    size[s] <:= msize
+    tsize +:= size[s] + 3
+    out[s] := s
+  }
+  every s := !NT_list do {
+    size[s] := *s
+    size[s] <:= msize
+    tsize +:= size[s] + 3
+    out[s] := s
+  }
+  write()
+  write()
+  write("PARSE TABLE")
+  write()
+  if tsize <= 80 then {
+    outline(size, out, 0, T_list, NT_list)
+    border(size, T_list, NT_list, "+")
+  }
+  every st_num := 1 to *stateL do {
+    out := table()
+    gs := sort(stateL[st_num].goto,3)
+    every i := 1 to * gs by 2 do {  # do the shifts and gotos
+      if member(Ts, gs[i]) then
+        out[gs[i]] := "S" || string(gs[i+1]-1)	# shift (action table)
+      else
+        out[gs[i]] := string(gs[i+1]-1)		# for goto table
+    }
+    every itm := itemL[!stateL[st_num].C_Set] do {
+      if ((*itm.rhs2 = 0) | (itm.rhs2[1] == epsilon))  then {
+        if itm.prodN = 0 then
+          action := "ACC"			# accept state
+        else
+          action := "R" || string(itm.prodN)	# reduce (action table)
+        if /out[itm.NextI] then
+          out[itm.NextI] := action
+        else { # conflict
+          write(&errout, "Conflict on state ", st_num-1, " symbol ",
+           itm.NextI, " between ", action, " and ", out[itm.NextI])
+          write(&errout, "  ", out[itm.NextI], " takes presidence")
+        }
+      }
+    }
+    if tsize <= 80 then
+      outline(size, out, st_num, T_list, NT_list)
+    else
+      outstate(st_num, out, T_list, NT_list)
+  }
+end
+ 
+procedure outline(size, out, st_num, T_list, NT_list)
+  local s
+
+  if st_num = 0 then
+    writes("State")
+  else
+    writes(right(string(st_num-1),5," "))
+  writes(" ||")
+  every s := !T_list do {
+    /out[s] := ""
+    writes(" ", center(out[s],size[s]," "), " |")
+  }
+  writes("|")
+  every s := !NT_list do {
+    /out[s] := ""
+    writes(" ", center(out[s],size[s]," "), " |")
+  }
+  write()
+  if st_num < * stateL then
+    border(size, T_list, NT_list, "+")
+  else
+    border(size, T_list, NT_list, "-")
+end
+ 
+procedure border(size, T_list, NT_list, col)
+  local s
+
+  writes("------", col, col)
+  every s := !T_list do
+    writes("-", center("",size[s],"-"),"-", col)
+  writes(col)
+  every s := !NT_list do
+    writes("-",center("",size[s],"-"), "-", col)
+  writes("\n")
+end
+ 
+procedure outstate(st, out, T_list, NT_list)
+  local s
+
+  write()
+  write("Actions for state ", st-1)
+  every s := !T_list do
+    if \out[s] then
+      if out[s][1] == "R" then
+        write("   On ", s, " reduce by production ", out[s][2:0])
+      else if out[s][1] == "A" then
+	write("   On ", s, " ACCEPT")
+      else
+        write("   On ", s, " shift to state ", out[s][2:0])
+  every s := !NT_list do
+    if \out[s] then
+      write("   On ", s, " Goto ", out[s])
+  write()
+end
+

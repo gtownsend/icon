@@ -1,0 +1,126 @@
+# Semantics routines called while parsing the input
+# grammar to TCLL1.
+#	(written by Thomas W. Christopher)
+
+procedure FirstAlt()
+push(semanticsStack,[pop(semanticsStack)])
+return
+end
+
+procedure NextAlt()
+local r
+r:=pop(semanticsStack)
+pop(semanticsStack)	# |
+put(semanticsStack[1],r)
+return
+end
+
+procedure DeclAction()
+pop(semanticsStack)	# !
+declareAction(semanticsStack[1].body)
+return
+end
+
+#procedure edit_rhs(rhs)
+#local s
+#r:=[]
+#every s:=!rhs do put(r,s.body)
+#return
+#end
+
+global lhsymb
+
+procedure DeclProduction()
+local i,a,r
+pop(semanticsStack)	# .
+a:=pop(semanticsStack)
+pop(semanticsStack)	# =
+i:=pop(semanticsStack)
+every r := !a do declareProduction(i,r)
+return
+end
+
+
+procedure Group()
+local a,lp,lhs,r
+pop(semanticsStack)
+a:=pop(semanticsStack)
+lp:=pop(semanticsStack)
+
+lhs:=lhsymb||"_"||lp.line||"_"||lp.column
+every r := !a do declareProduction(lhs,r)
+push(semanticsStack,Token("ID",lhs,lp.line,lp.column))
+return
+end
+
+procedure Option()
+local a,lp,lhs,r
+pop(semanticsStack)
+a:=pop(semanticsStack)
+lp:=pop(semanticsStack)
+
+lhs:=lhsymb||"_"||lp.line||"_"||lp.column
+every r := !a do declareProduction(lhs,r)
+declareProduction(lhs,[])
+push(semanticsStack,Token("ID",lhs,lp.line,lp.column))
+return
+end
+
+procedure Repeat()
+local a,lp,lhs,r
+pop(semanticsStack)
+a:=pop(semanticsStack)
+lp:=pop(semanticsStack)
+
+lhs:=lhsymb||"_"||lp.line||"_"||lp.column
+every r := !a do declareProduction(lhs,r|||[lhs])
+declareProduction(lhs,[])
+push(semanticsStack,Token("ID",lhs,lp.line,lp.column))
+return
+end
+
+procedure StartRHS()
+push(semanticsStack,[])
+return
+end
+
+procedure ExtendRHS()
+local s
+s:=pop(semanticsStack).body
+put(semanticsStack[1],s)
+return
+end
+
+procedure DeclLHS()
+lhsymb:=pop(semanticsStack).body
+push(semanticsStack,lhsymb)
+return
+end
+
+procedure DeclSymbols()
+local l,r,s
+pop(semanticsStack)	# .
+r := pop(semanticsStack)
+pop(semanticsStack)	# :
+l := pop(semanticsStack)
+map(l,&ucase,&lcase) ?
+	if ="s" then {
+		if not (="tart"&pos(0)) then
+			warning(l,"--\"start\" assumed")
+		declareStartSymbol(r[1])
+	} else if ="e" then {
+		if not (="oi"&pos(0)) then
+			warning(l,"--\"EOI\" assumed")
+		declareEOI(r[1])
+	} else if ="f" then {
+		if not (="iducial") then
+			warning(l,"--\"fiducials\" assumed")
+		every declareFiducial(!r)
+	} else if ="a" then {
+		if not (="ction") then
+			warning(l,"--\"actions\" assumed")
+		every declareAction(!r)
+	} else error(l,"--unknown declaration")
+return
+end
+

@@ -1,0 +1,51 @@
+############################################################################
+#
+#	File:     isrcline.icn
+#
+#	Subject:  Program to count code lines in Icon program
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 7, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program counts the number of lines in a Icon program that actually
+#  contain code, as opposed to being comments or blank lines.
+#
+#  Note:  preprocessor directives are counted as code lines.
+#
+############################################################################
+#
+#  Links:  numbers
+#
+############################################################################
+
+link numbers
+
+procedure main()
+   local total, chaff, code, line
+
+   total := chaff := 0
+
+   while line := read() do {
+      total +:= 1
+      line ? {
+         tab(many(' \t'))
+         if ="#" | pos(0) then chaff +:= 1
+         }
+      }
+
+   code := total - chaff
+
+   write(left("total lines:", 17), right(total, 6))
+   write(left("code lines:", 17), right(code, 6))
+   write(left("non-code lines:", 17), right(chaff, 6))
+   write()
+   write(left("percentage code:", 17), fix(100 * code, total, 7, 2))
+
+end

@@ -1,0 +1,104 @@
+############################################################################
+#
+#	File:     drawlab.icn
+#
+#	Subject:  Procedure to draw figures
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 17, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure is a general-purpose interface used by various programs
+#  that draw figures of various kinds.
+#
+#  Although it's listed as requiring graphics, that's really not necessary
+#  for interfaces to other devices or just producing coordinates.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  ifg, gtrace, gdisable, wopen, xgtrace
+#
+############################################################################
+
+link ifg
+link gtrace
+link gdisable
+link wopen
+link xgtrace
+
+procedure drawlab(p, callt, label)
+   local line, ws, calls, arg, trace, dlist, name
+
+   ws := ' \t'
+
+   calls := callt()
+
+   dlist := []
+   every put(dlist, key(calls))
+   dlist := sort(dlist)
+
+#  If a window can be opened, set things up for drawing.  If not, just
+#  list coordinates.  (This is useful for testing when an X server
+#  is not available.)
+
+   if ifg() then {
+      WOpen("label=" || label, "width=" || size, "height=" || size) |
+         stop("*** cannot open window")
+      trace := line_trace
+      }
+   else {
+      gdisable()
+      trace := list_coords
+      }
+
+   while line := read() do {
+      EraseArea()			# clear window if there is one
+      args := []
+      line ? {
+         tab(many(ws))
+         if ="=" then {
+            name := tab(0)
+            GotoRC(2, 2)
+            writes(&window, name)
+            trace(\calls[name]) | {
+               write(&errout, "*** erroneous specification")
+               next
+               }
+            }
+         else if ="all" then {
+            every name := !dlist do {
+               GotoRC(2, 2)
+               writes(&window, name)
+               trace(calls[name])
+               Event()
+               EraseArea()
+               }
+            }
+         else {				# not tested yet
+            tab(many(ws))
+            while arg := tab(upto(',')) do {
+               if *arg = 0 then put(args, &null) else {
+                  put(args, numeric(arg)) | {
+                     write(&errout, "*** erroneous specification")
+                     next
+                     }
+                  }
+               move(1) | break
+               tab(many(ws))
+               }
+            trace(call(p, args))
+            }
+         }
+      }
+
+end

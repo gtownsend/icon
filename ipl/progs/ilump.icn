@@ -1,0 +1,104 @@
+############################################################################
+#
+#	File:     ilump.icn
+#
+#	Subject:  Program to lump linked Icon source files
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     November 14, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#  usage:  ilump [file...]
+#
+#     ilump copies one or more Icon source files, incorporating recursively
+#  the source code for files named by "link" directives.  This produces a
+#  standalone source program in one file, which is useful with certain
+#  profiling and visualization tools.
+#
+#     Searching for link'd source files is similar to the action of Iconc
+#  under UNIX.  If a link'd file is not found in the current directory,
+#  directories specified by the LPATH environment variable are tried.
+#
+############################################################################
+
+
+global path, todo
+
+
+procedure main(args)
+   local fname
+
+   path := [""]
+   getenv("LPATH") ? repeat {
+      tab(many(' '))
+      if pos(0) then
+         break
+      put(path, tab(upto(' ')|0) || "/")
+   }
+   todo := args
+   if *todo = 0 then
+      dofile(&input)
+   while fname := get(todo) do
+      dofile(newfile(fname))
+end
+
+
+#  newfile(fname) -- open and return a file, if it wasn't seen earlier
+
+procedure newfile(fname)
+   local f, fullname
+   static done
+   initial done := set()
+
+   if member(done, fname) then
+      fail
+   insert(done, fname)
+   if f := open(fullname := !path || fname) then {
+      write("\n\n\n#", right("  " || fullname, 78, "="), "\n\n\n")
+      return f
+      }
+   else {
+      write(&errout, "can't open ", fname)
+      write("\n\n\n#", right("  can't open " || fname, 78, "="), "\n\n\n")
+      fail
+      }
+end
+
+
+#  dofile(f) -- copy one file, stacking file names seen on link directives
+
+procedure dofile(f)
+   local line, base
+   static idset
+   initial idset := &letters ++ &digits ++ '_'
+
+   while line := read(f) do {
+      line ? {
+         tab(many(' \t'))
+         if ="link" & not any(idset) then {
+            write("#====== ", line)
+            repeat {
+               tab(many(' \t,'))
+               if pos(0) | ="#" then
+                  break
+               if ="\"" then
+                  base := tab(upto('"')|0)
+               else
+                  base := tab(many(idset)) | break
+               put(todo, base || ".icn")
+               }
+            }
+         else {
+            write(line)
+            }
+         }
+      }
+    
+   close(f)
+end

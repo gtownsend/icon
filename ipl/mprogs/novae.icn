@@ -1,0 +1,93 @@
+############################################################################
+#
+#	File:     novae.icn
+#
+#	Subject:  Program to show allocations as exploding stars
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 25, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program shows allocation on two stars with radiating lines
+#
+#  The tool-specific options are:
+#
+#	-h i	Height of panel, default 300
+#	-w i	Width of one panel, default 300
+#	-s i	number of lines, default 360
+#	-d	draw dot at end of line instead of full line
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  em_setup, visprocs
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+$include "evdefs.icn"
+
+link em_setup
+link visprocs
+
+$define Height 300
+$define Width 300
+$define Sectors 360
+
+procedure main(args)
+   local clear, sdegrees, bdegrees
+   local degrees, arc, advance, fullcircle
+   local xorg, yorg, radius, radians, dots, sxorg, syorg, bxorg, byorg
+
+   em_setup(args)
+
+   fullcircle := 360
+   sdegrees := bdegrees := 0
+   radians := 0
+   advance := fullcircle / Sectors		# amount to advance
+
+   sxorg := integer(Width / 2.0)
+   syorg := (Height / 2.0)
+   bxorg := sxorg + Width
+   byorg := syorg
+   radius := ((Height < Width) | Height) / 2.0
+
+   vis_setup("label=novae", "size=" || (2 * Width) || "," || Height,
+      "bg=black")
+
+   Context := context_setup(AllocMask)
+
+   while EvGet(AllocMask) do {
+      if &eventcode === E_String then {
+         xorg := sxorg
+         yorg := syorg
+         sdegrees +:= advance
+         sdegrees %:= fullcircle
+         radians := -dtor(sdegrees)
+         }
+      else {
+         xorg := bxorg
+         yorg := byorg
+         bdegrees +:= advance
+         bdegrees %:= fullcircle
+         radians := -dtor(bdegrees)
+         }
+      DrawLine(Context[&eventcode], xorg, yorg, &eventvalue * cos(radians) +
+         xorg, &eventvalue * sin(radians) + yorg)
+      }
+
+   em_end()
+
+end

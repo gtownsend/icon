@@ -1,0 +1,78 @@
+############################################################################
+#
+#	File:     getkeys.icn
+#
+#	Subject:  Procedures to get keys for a gettext file
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     July 9, 1991
+#	
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.2
+#
+############################################################################
+#
+#  Getkeys(FNAME) generates all keys in FNAME in order of occurrence.
+#  See gettext.icn for a description of the requisite file structure
+#  for FNAME.
+#
+############################################################################
+#
+#  Links: adjuncts
+#
+#  Requires: UNIX (maybe MS-DOS; untested)
+#
+#  See also gettext.icn
+#
+############################################################################
+
+# declared in adjuncts.icn
+# global _slash, _baselen
+
+procedure getkeys(FNAME)
+
+    local line, intext, start_unindexed_part
+    initial {
+	if /_slash then {
+	    if find("UNIX"|"Amiga", &features) then {
+		_slash := "/"
+		_baselen := 10
+	    }
+	    else if find("MS-DOS", &features) then {
+		_slash := "\\"
+		_baselen := 8
+	    }
+	    else stop("getkeys:  OS not supported")
+	}
+    }
+
+    /FNAME & stop("error (getkeys):  null argument")
+
+    # Try to open index file (there may not be one).
+    if intext := open(Pathname(FNAME) || getidxname(FNAME)) then {
+	# If there's an index file, then just suspend all the keys in
+	# it (i.e. suspend every line except the first, upto the tab).
+	# The first line tells how many bytes in FNAME were indexed.
+	# save it, and use it to seek to unindexed portions later on.
+	start_unindexed_part := integer(read(intext))
+	while line := read(intext) do
+	    line ? suspend tab(find("\t")) \ 1
+	close(intext)
+    }
+
+    intext := open(FNAME) | stop("getkeys:  ",FNAME," not found")
+    seek(intext, \start_unindexed_part | 1)
+    while line := read(intext) do
+	line ? { suspend (="::", tab(0)) \ 1 }
+
+    # Nothing left to suspend, so fail.
+    fail
+
+end
+

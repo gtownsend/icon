@@ -1,0 +1,141 @@
+############################################################################
+#
+#	File:     latexidx.icn
+#
+#	Subject:  Program to process LaTeX idx file
+#
+#	Author:   David S. Cargo
+#
+#	Date:     April 19, 1989
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Input:
+#
+#     A latex .idx file containing the \indexentry lines.
+#
+#  Output:
+#
+#     \item lines sorted in order by entry value,
+#  with page references put into sorted order.
+#
+# Processing:
+#
+#     While lines are available from standard input
+#         Read a line containing an \indexentry
+#         Form a sort key for the indexentry
+#         If there is no table entry for it
+#         Then create a subtable for it and assign it an initial value
+#         If there is a table entry for it,
+#         But not an subtable entry for the actual indexentry
+#         Then create an initial page number set for it
+#         Otherwise add the page number to the corresponding page number set
+#    Sort the table of subtables by sort key value
+#    For all subtables in the sorted list
+#         Sort the subtables by indexentry values
+#         For all the indexentries in the resulting list
+#             Sort the set of page references
+#             Write an \item entry for each indexentry and the page references
+#
+#  Limitations:
+#
+#     Length of index handled depends on implementation limits of memory alloc.
+#  Page numbers must be integers (no roman numerals).  Sort key formed by
+#  mapping to lower case and removing leading articles (a separate function
+#  is used to produce the sort key, simplifying customization) -- otherwise
+#  sorting is done in ASCII order.
+#
+############################################################################
+
+procedure main()                       # no parameters, reading from stdin
+    local key_table, s, page_num, itemval, key, item_list, one_item
+    local page_list, refs
+
+    key_table := table()               # for items and tables of page sets
+    while s := read() do               # read strings from standard input
+        {
+        # start with s = "\indexentry{item}{page}"
+        # save what's between the opening brace and the closing brace,
+        # and reverse it
+        s := reverse(s[upto('{',s)+1:-1])
+        # giving s = "egap{}meti"
+
+        # reversing allows extracting the page number first, thereby allowing
+        # ANYTHING to be in the item field
+
+        # grab the "egap", reverse it, convert to integer, convert to set
+        # in case of conversion failure, use 0 as the default page number
+        page_num := set([integer(reverse(s[1:upto('{',s)])) | 0])
+
+        # the reversed item starts after the first closing brace
+        # grab the "meti", reverse it
+        itemval := reverse(s[upto('}', s)+1:0])
+
+        # allow the sort key to be different from the item
+        # reform may be customized to produce different equivalence classes
+        key := reform(itemval)
+
+        # if the assigned value for the key is null
+        if /key_table[key]
+        then
+            {
+            # create a subtable for the key and give it its initial value
+            key_table[key] := table()
+            key_table[key][itemval] := page_num
+            }
+
+        # else if the assigned value for the itemval is null
+        # (e. g., when the second itemval associated with a key is found)
+        else if /key_table[key][itemval]
+
+        # give it its initial value
+        then key_table[key][itemval] := page_num
+
+        # otherwise just add it to the existing page number set
+        else key_table[key][itemval] ++:= page_num
+        }
+
+    # now that all the input has been read....
+    # sort keys and subtables by key value
+    key_table := sort(key_table, 3)
+
+    # loop, discarding the sort keys
+    while get(key_table) do
+        {
+        # dequeue and sort one subtable into a list
+        # sort is strictly by ASCII order within the equivalence class
+        item_list := sort(get(key_table), 3)
+
+        # loop, consuming the item and the page number sets as we go
+        while one_item := get(item_list) do
+            {
+            # convert the page number set into a sorted list
+            page_list := sort(get(item_list))
+
+            # dequeue first integer and convert to string
+            refs := string(get(page_list))
+
+            # dequeue rest of page nums and append
+            while (refs ||:= ", " || string(get(page_list)))
+
+            write("\\item ", one_item, " ", refs)
+            }
+        }
+    return
+end
+
+# reform - modify the item to enforce sort order appropriately
+# This could do much more. For example it could strip leading braces,
+# control sequences, quotation marks, etc.  It doesn't.  Maybe later.
+procedure reform(item)
+   item := map(item)		# map to lowercase
+# drop leading article if present
+   if match("a ",   item) then return item[3:0]
+   if match("an ",  item) then return item[4:0]
+   if match("the ", item) then return item[5:0]
+   return item
+end

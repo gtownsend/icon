@@ -1,0 +1,58 @@
+############################################################################
+#
+#	File:     adlfiltr.icn
+#
+#	Subject:  Program to filter address list entries
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 2, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#    This program filters address lists, allowing through only those entries
+#  with specified selectors.
+#
+#    The options are:
+#
+#	-s arg	selects entries with characters in args (default is all)
+#	-x	inverts the logic, selecting characters not in args
+#
+############################################################################
+#
+#  See also: address.doc, adlcheck.icn, adlcount.icn, adllist.icn,
+#     adlsort,icn, labels.icn
+#
+#  Links: adlutils, options
+#
+############################################################################
+
+link adlutils, options
+
+procedure main(args)
+   local selectors, add, opts
+
+   opts := options(args,"xs:")
+
+   selectors := cset(\opts["s"]) | &cset
+
+   if /opts["x"] then {
+      while add := nextadd() do
+         add.header ? {
+            move(1)
+            if upto(selectors) then writeadd(add)
+            }
+      }
+   else {
+      while add := nextadd() do
+         add.header ? {
+            move(1)
+            if not upto(selectors) then writeadd(add)
+            }
+      }
+
+end

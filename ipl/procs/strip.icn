@@ -1,0 +1,41 @@
+############################################################################
+#
+#	File:     strip.icn
+#
+#	Subject:  Procedure to strip characters from a string
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     June 3, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.1
+#
+############################################################################
+#  
+#  strip(s,c)    - strip characters c from string s
+#
+############################################################################
+
+procedure strip(s,c)
+
+    # Return string s stripped of characters c.  Succeed whether
+    # any characters c were found in s or not.
+
+    local s2
+
+    s2 := ""
+    s ? {
+	while s2 ||:= tab(upto(c))
+	do tab(many(c))
+	s2 ||:= tab(0)
+    }
+
+    return s2
+
+end

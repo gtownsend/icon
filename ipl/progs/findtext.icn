@@ -1,0 +1,85 @@
+############################################################################
+#
+#	File:     findtext.icn
+#
+#	Subject:  Program to retrieve data from files indexed by idxtext
+#
+#	Author:   Phillip Lee Thomas
+#
+#	Date:     November 21, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  History:  Tested with DOS, DOS-386, OS/2, ProIcon, UNIX
+#
+############################################################################
+#
+#  Version:  1.2 (August 5, 1995)
+#
+############################################################################
+#
+#  See documentation with idxtext.icn, gettext.icn, adjuncts.icn
+#
+# History:
+#   (1.1) Tested with DOS, DOS-386, OS/2, ProIcon, UNIX
+#   (1.2) Use preprocessor include statement instead of link.
+#
+############################################################################
+#
+#  Links:  gettext
+#
+#  Program findtext retrieves multiline text from database indexed by
+#     idxtext. Each stretch of text follows a line declaring the index
+#     terms:
+#
+#  ::be ::to ::by ::retrieved
+#  Text to be retrieved
+#  by findtext.
+#  ::index ::line
+#  Each index line begins with "::".
+#
+############################################################################
+
+link gettext
+
+procedure main(args)
+
+   local count, file, out_line, s
+  
+   Set_OS()
+
+   s    := \args[1] | ""
+   file := \args[2] | ""
+
+   if *args ~= 2 then {
+      while *s = 0 do {                # force entry of search string
+         writes("Search string: ")
+         s := read()
+         }
+
+      while *file = 0 do {             # force entry of datafile name
+         writes("Search file:   ")
+         file := read()
+         }
+      }
+
+   # Find text associated with index s in file 'file'.
+
+   count := 0
+   every out_line := gettext(s, file) do {
+      count +:= 1
+      write(count, ": ", out_line)
+      }
+
+   if count = 0 then {
+      write("String '", s, "' not found in indexed file '", file, "'")
+      write("Format: [iconx] findtext string filename")
+      exit(1)
+      }
+
+   exit(0)
+end

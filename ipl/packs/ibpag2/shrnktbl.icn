@@ -1,0 +1,130 @@
+############################################################################
+#
+#	Name:	 shrnktbl.icn
+#
+#	Title:	 table shrinker
+#
+#	Author:	 Richard L. Goerwitz
+#
+#	Version: 1.4
+#
+############################################################################
+#
+#  Action/goto table shrinking routine.
+#
+#  Entry point: shrink_tables(start_symbol, st, atbl, gtbl), where
+#  start_symbol is the start symbol for the grammar whose productions
+#  are contained in the list/set st, and where atbl and gtbl are the
+#  action and goto tables, respectively.  Returns &null, for lack of
+#  anything better.
+#  
+#  Basically, this routine merges duplicate structures in atbl and
+#  gtbl (if there are any), replaces the nonterminal symbols in the
+#  action table with integers (including the start symbol), then
+#  resets the goto table so that its keys point to these integers,
+#  instead of to the original nonterminal symbol strings.
+#
+############################################################################
+#
+#  Links: lists, sets, tables, outbits
+#
+############################################################################
+#
+#  See also: ibpag2, slrtbls
+#
+############################################################################
+
+# structs has equiv; outbits is for outputting variable-width integers
+# as 8-bit characters
+#
+link lists
+link sets
+link tables
+link outbits
+
+#
+# shrink_tables
+#
+procedure shrink_tables(grammar, atbl, gtbl)
+
+    local t, k, seen, nontermtbl, r, a, action, state, by_rule,
+	rule_len, LHS, keys
+
+    # Create a table mapping nonterminal symbols to integers.
+    nontermtbl := table()
+    every r := !grammar.rules do
+	# r is a production; production records have LHS, RHS,...no
+	# fields, where the no field contains the rule number; we can
+	# use this as an arbitrary representation for that rule's LHS
+	# nonterminal
+	insert(nontermtbl, r.LHS, r.no)
+
+    # Replace old start symbol.
+    grammar.start := nontermtbl[grammar.start]
+
+    # Re-form the goto table to use the new integer values for
+    # nonterminals.
+    keys := set()
+    every insert(keys, key(gtbl))
+    every k := !keys do {
+	# first create a column for the new integer-valued nonterminal
+	insert(gtbl, string(nontermtbl[k]), gtbl[k])
+	# then clobber the old column with a string-valued nonterminal
+	gtbl[k] := &null
+    }
+
+    # Rewrite actions using a fixed field-width format.
+    every t := !atbl do {
+	every k := key(t) do {
+	    a := ""
+	    t[k] ? {
+		while action := tab(any('sra')) do {
+		    case action of {
+			"s": {
+			    outbits(0, 2)
+			    state := integer(tab(find(".")))
+			    every a ||:= outbits(state, 11)
+			    move(1)
+			    by_rule := integer(tab(many(&digits)))
+			    every a ||:= outbits(by_rule, 11)
+			    outbits()
+			}
+			"r": {
+			    outbits(1, 2)
+			    state := integer(tab(find("<")))
+			    every a ||:= outbits(state, 11)
+			    move(1)
+			    LHS := nontermtbl[tab(find(">"))]
+			    every a ||:= outbits(LHS, 11)
+			    move(1)
+			    rule_len := integer(tab(many(&digits)))
+			    every a ||:= outbits(rule_len, 8)
+			    outbits()
+			}
+			"a": {
+			    outbits(2, 2)
+			    a ||:= outbits()
+			}
+		    }
+		}
+	    }
+	    t[k] := a
+	}
+    }
+
+    #
+    # Turn pointers to identical structures into pointers to the same
+    # structure.
+    #
+    seen := set()
+    every t := atbl | gtbl do {
+	every k := key(t) do {
+	    if t[k] := equiv(t[k], !seen)
+	    then next else insert(seen, t[k])
+	}
+    }
+
+    # signal success
+    return &null
+
+end

@@ -1,0 +1,254 @@
+############################################################################
+#
+#	File:     randweav.icn
+#
+#	Subject:  Program to create random weavable patterns
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     April 6, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Randweav is an interactive program for generating random
+#	weavable patterns.  The top and left rows of the displayed
+#	pattern are a "key" to the vertical and horizontal threads
+#	of an imaginary loom.  The colors of the other cells are chosen
+#	so that each matches either the vertical or horizontal thread
+#	with which it is aligned.
+#
+#	The interactive controls are as follows:
+#
+#	Colors	Specifies the number of different colors from which
+#		the threads are selected.
+#
+#		If "cycle warp" is checked, the vertical thread colors
+#		repeat regularly.  If "cycle weft" is checked, the
+#		horizontal thread colors repeat regularly.
+#
+#	RENDER	When pressed, generates a new random pattern.
+#		Pressing the Enter key or space bar does the same thing.
+#
+#	Side	Specifies the number of threads along each side
+#		of the pattern.  The pattern is always square.
+#
+#	Bias	Specifies as a percentage the probability that the
+#		vertical thread will determine the color of a pixel.
+#
+#		If "perfect" is checked, vertical and horizontal
+#		threads alternate perfectly, ignoring the bias value.
+#
+#	Save	Brings up a dialog for saving the pattern as an image.
+#
+#	Quit	Exits the program.
+#
+#	Note that the mouse must be over a numeric field to type in
+#	a new value.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: random, vsetup 
+#
+############################################################################
+
+link random
+link vsetup
+
+
+global vidgets		# table of vidgets
+global root		# root vidget
+global region		# pattern region
+
+global hidwin		# hidden window for saving to file
+
+global allcolors	# string of all palette colors
+
+global maxsiz		# maximum pattern size
+global patsize		# pattern size selected
+
+$define PALETTE "c1"				# color palette
+$define PREFCOLORS "06NBCDFsHIJM?!"		# preferred colors
+
+
+procedure main(args)
+
+   randomize()
+   allcolors := PREFCOLORS || (PaletteChars(PALETTE) -- PREFCOLORS)
+
+   Window ! put(ui_atts(), args)	# open window
+   vidgets := ui()			# set up vidgets
+   root := vidgets["root"]
+   region := vidgets["region"]
+   VSetState(vidgets["vcyclic"], 1)	# default "cycle warp" on
+   VSetState(vidgets["hcyclic"], 1)	# default "cycle weft" on
+
+   hidwin := WOpen("canvas=hidden",	# open hidden window
+      "width=" || region.uw, "height=" || region.uh)
+
+   maxsiz := region.uw			# set maximum size
+   maxsiz >:= region.uh
+   
+   render()				# draw once without prompting
+   GetEvents(root, , all)		# then wait for events
+end
+
+
+#  all(a, x, y) -- process all events, checking for keyboard shortcuts
+
+procedure all(a, x, y)
+   if a === !" \n\r" then render()	# draw new pattern for SPACE, CR, LF
+   else if &meta then case a of {
+      !"qQ":  exit()			# exit for @Q
+      !"sS":  save()			# save image for @S
+      }
+   return
+end
+
+
+#  render() -- draw a new pattern according to current parameters
+
+procedure render()
+   local ncolors, bias
+   local s, x, y, w, h, z, k
+   static prevsize
+
+   ncolors := txtval("colors", 1, *allcolors)	# retrieve "Colors" setting
+   patsize := txtval("side", 1, maxsiz)		# retrieve "Side" setting
+   bias := txtval("bias", 0, 100)		# retrieve "Bias" setting
+
+   k := (shuffle(PREFCOLORS) | allcolors)[1+:ncolors]	  # pick a color set
+   s := genpatt(patsize, k, bias / 100.0) 		  # generate a pattern
+   DrawImage(hidwin, 0, 0, s)				  # draw on hidden win
+
+   z := maxsiz / patsize				# calculate scaling
+   x := region.ux + (region.uw - z * patsize) / 2
+   y := region.uy + (region.uh - z * patsize) / 2
+
+   #  copy to main window with enlargement
+   if prevsize ~===:= patsize then
+      EraseArea(region.ux, region.uy, region.uw, region.uh)  # erase old pattern
+   Zoom(hidwin, &window, 0, 0, patsize, patsize, x, y, z * patsize, z * patsize)
+
+   return
+end
+
+
+#  genpatt(size, colors, bias) -- generate a new pattern as DrawImage() string
+
+procedure genpatt(size, colors, bias)
+   local warp, weft, perfect, s, x, y, w
+
+   #  choose thread colors
+   warp := genthreads(size, colors, VGetState(vidgets["vcyclic"]))
+   weft := genthreads(size, colors, VGetState(vidgets["hcyclic"]))
+
+   #  initialize output string (including first row)
+   s := size || "," || PALETTE || "," || warp
+
+   perfect := VGetState(vidgets["perfect"])
+
+   #  fill in remaining rows
+   every y := 2 to size do {
+      w := ?weft[y]			# get weft color
+      s ||:= w				# put in first column
+      if \perfect then
+         every x := 2 to size do	# fill the rest (perfect case)
+            s ||:= if ((x + y) % 2) = 0 then w else warp[x]
+      else
+         every x := 2 to size do	# fill the rest (random case)
+            s ||:= if ?0 > bias then w else warp[x]
+      }
+
+   return s
+end
+
+
+#  genthreads(n, colors, cyclic) -- generate a set of warp or weft threads
+
+procedure genthreads(n, colors, cyclic)
+   local s
+
+   if \cyclic then
+      return repl(shuffle(colors), 1 + n / *colors)[1+:n]
+
+   s := ""
+   every 1 to n do s ||:= ?colors
+   return s
+end
+
+
+
+#  txtval(s, min, max) -- get numeric value from named vidget and clamp to range
+
+procedure txtval(s, min, max)
+   local v, n
+
+   v := vidgets[s]			# find the vidget
+   VEvent(v, "\r", v.ax, v.ay)		# set RETURN event to update state
+   n := integer(VGetState(v)) | min	# retrieve int value, else use minimum
+   n <:= min				# limit value by min and max
+   n >:= max
+   VSetState(v, n)			# update vidget with validated value
+   return n				# return value
+end
+
+
+#  save() -- present dialog box and save pattern as image file
+
+procedure save()
+   local g
+
+   g := WAttrib("gamma")	# save old gamma value
+   WAttrib("gamma=1.0")		# don't gamma-correct on write
+   repeat case OpenDialog("Save pattern as:") of {
+      "Cancel": {
+         WAttrib("gamma=" || g)
+         fail
+         }
+      "Okay": {
+         if WriteImage(hidwin, dialog_value, 0, 0, patsize, patsize) then
+            break
+         else
+            Notice("cannot write file:", dialog_value)
+         }
+      }
+   WAttrib("gamma=" || g)	# restore gamma value
+   return
+end
+
+
+procedure quit()
+   exit()
+end
+
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=380,492", "bg=pale gray", "label=weaver"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,380,492:weaver",],
+   ["bias:Text::3:285,37,87,19:Bias:   \\=60",],
+   ["colors:Text::3:10,9,87,19:Colors: \\=6",],
+   ["hcyclic:Button:checkno:1:5,56,97,20:cycle weft",],
+   ["perfect:Button:checkno:1:281,57,76,20:perfect",],
+   ["quit:Button:regular::293,462,78,20:quit   @Q",quit],
+   ["render:Button:regular::159,24,72,36:RENDER",render],
+   ["save:Button:regular::8,462,78,20:save   @S",save],
+   ["side:Text::3:285,8,87,19:Side:   \\=90",],
+   ["vcyclic:Button:checkno:1:5,36,97,17:cycle warp",],
+   ["outline:Rect:sunken::153,18,84,48:",],
+   ["region:Rect:grooved::8,84,364,364:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

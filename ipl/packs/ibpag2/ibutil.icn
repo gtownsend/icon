@@ -1,0 +1,296 @@
+############################################################################
+#
+#	Name:	 ibutil.icn
+#
+#	Title:	 utilities for Ibpag2
+#
+#	Author:	 Richard L. Goerwitz
+#
+#	Version: 1.21
+#
+############################################################################
+#  
+#  Contains:
+#
+#      production_2_string(p)	    makes production or item p human-
+#				    readable 
+#
+#      print_item_list(C, i)        returns human-readable version of
+#                                   item list C
+#
+#      print_grammar(grammar, f)    sends to file f (default &output)
+#                                   a human-readable printout of a grammar,
+#                                   as recorded in an ib_grammar structure
+#
+#      print_action_goto_tables(atbl, gtbl, ibtoktbl, f)
+#                                   sends to file f (default (&output)
+#                                   a human-readable printout of action
+#                                   table atbl and goto table gtbl
+#
+#      print_follow_sets(FOLLOW_table)
+#                                   returns a human-readable version
+#                                   of a FOLLOW table (table of sets)
+#
+#      print_first_sets(FIRST_table)
+#                                   returns a human-readable version
+#                                   of a FIRST table (a table of sets)
+#
+#      ibreplace(s1, s2, s3)	    replaces s2 with s3 in s1
+#
+#      equivalent_items(i1, i2)     succeeds if item i1 is structurally
+#				    identical to item i2
+#
+#      equivalent_item_lists(l1,l2) same as equivalent_items, but for
+#                                   lists of items, not individual items
+#
+############################################################################
+#
+#  Links: none
+#
+############################################################################
+
+
+record production(LHS, RHS, POS, LOOK, no, prec, assoc)
+
+#
+# production_2_string:  production record -> string
+#                       p                 -> s
+#
+#     Stringizes an image of the LHS and RHS of production p in
+#     human-readable form.
+#
+procedure production_2_string(p, ibtoktbl)
+
+    local s, m, t
+
+    s := image(p.LHS) || " -> "
+    every m := !p.RHS do {
+	if t := \ (\ibtoktbl)[m]
+	then s ||:= t || " "
+	else s ||:= image(m) || " "
+    }
+    # if the POS field is nonnull, print it
+    s ||:= "(POS = " || image(\p.POS) || ") "
+    # if the LOOK field is nonnull, print it, too
+    s ||:= "lookahead = " || image(\p.LOOK)
+
+    return trim(s)
+
+end
+
+
+#
+# print_item_list:  makes item list human readable
+#
+procedure print_item_list(C, i)
+
+    write(&errout, "Productions for item list ", i, ":")
+    every write(&errout, "\t", production_2_string(!C[i]))
+    write(&errout)
+    return
+
+end
+
+
+#
+# print_grammar:  makes entire grammar human readable
+#
+procedure print_grammar(grammar, f)
+
+    local p, i, sl
+
+    /f := &errout
+
+    write(f, "Start symbol:")
+    write(f, "\t", grammar.start)
+    write(f)
+    write(f, "Rules:")
+    every p := !grammar.rules do {
+	writes(f, "\tRule ", right(p.no, 3, " "), "  ")
+	write(f, production_2_string(p, grammar.tbl))
+    }
+    write(f)
+    write(f, "Tokens:")
+    sl := sort(grammar.tbl, 3)
+    every i := 1 to *sl-1 by 2 do
+	write(f, "\t", left(sl[i], 5, "."), right(sl[i+1], 20, "."))
+    write(f)
+    return
+
+end
+
+
+#
+# print_action_goto_tables
+#
+#     Makes action & goto tables human readable.  If a table mapping
+#     integer (i.e. char) literals to token names is supplied, the
+#     token names themselves are printed.
+#
+procedure print_action_goto_tables(atbl, gtbl, ibtoktbl, f)
+
+    local TAB, tbl, key_set, size, i, column, k
+
+    /f := &errout
+    TAB := "\t"
+
+    every tbl := atbl|gtbl do {
+
+	key_set := set(); every insert(key_set, key(tbl))
+	writes(f, TAB)
+	every k := !key_set do
+	    writes(f, \(\ibtoktbl)[k] | k, TAB)
+	write(f)
+	
+	size := 0; every size <:= key(!tbl)
+	every i := 1 to size do {
+	    writes(f, i, TAB)
+	    every column := tbl[!key_set] do {
+		# action lists may have more than one element
+		if /column[i] then
+		    writes(f, "  ", TAB) & next
+		\column[i] ? {
+		    if any('asr') then {
+			while any('asr') do {
+			    writes(f, ="a") & next
+			    writes(f, tab(upto('.<')))
+			    if ="<" then tab(find(">")+1) else ="."
+			    tab(many(&digits))
+			}
+			writes(f, TAB)
+		    }
+		    else writes(f, tab(many(&digits)), TAB)
+		}
+	    }
+	    write(f)
+	}
+	write(f)
+    }
+
+    return
+
+end
+
+
+#
+# print_follow_sets:  make FOLLOW table human readable
+#
+procedure print_follow_sets(FOLLOW_table)
+
+    local FOLLOW_sets, i
+
+    FOLLOW_sets := sort(FOLLOW_table, 3)
+    write(&errout, "FOLLOW sets are as follows:")
+    every i := 1 to *FOLLOW_sets-1 by 2 do {
+	writes(&errout, "\tFOLLOW(", image(FOLLOW_sets[i]), ") = ")
+	every writes(&errout, image(! FOLLOW_sets[i+1]), " ")
+	write(&errout)
+    }
+    write(&errout)
+    return
+
+end
+
+
+#
+# print_first_sets:  make FIRST table human readable
+#
+procedure print_first_sets(FIRST_table)
+
+    local FIRST_sets, i
+
+    FIRST_sets := sort(FIRST_table, 3)
+    write(&errout, "FIRST sets are as follows:")
+    every i := 1 to *FIRST_sets-1 by 2 do {
+	writes(&errout, "\tFIRST(", image(FIRST_sets[i]), ") = ")
+	every writes(&errout, image(! FIRST_sets[i+1]), " ")
+	write(&errout)
+    }
+    write(&errout)
+    return
+
+end
+
+
+#
+# ibreplace: string x string x string -> string
+#            (s1,     s2,      s3)    -> s4
+#
+#     Where s4 is s1, with every instance of s2 stripped out and
+#     replaced by s3.  E.g. replace("hello there; hello", "hello",
+#     "hi") yields "hi there; hi".  Taken straight from the IPL.
+#
+procedure ibreplace(s1,s2,s3)
+
+    local result, i
+
+    result := ""
+    i := *s2
+
+    s1 ? {
+	while result ||:= tab(find(s2)) do {
+	    result ||:= s3
+	    move(i)
+	}
+	return result || tab(0)
+    }
+
+end
+
+    
+#
+# equivalent_items:  record x record -> record or failure
+#                    (item1,  item2) -> item1  or failure
+#
+#     Where item1 and item2 are records having LHS, RHS, POS, & LOOK
+#     fields (and possibly others, though they aren't used).  Returns
+#     item1 if item1 and item2 are structurally identical as far as
+#     their LHS, RHS, LOOK, and POS fields are concerned.  For SLR
+#     table generators, LOOK will always be null.
+#
+procedure equivalent_items(item1, item2)
+
+    local i
+
+    item1 === item2 & (return item1)
+
+    if item1.LHS == item2.LHS &
+	item1.POS = item2.POS &
+	#
+	# This comparison doesn't have to be recursive, since I take
+	# care never to alter RHS structures.  Identical RHSs should
+	# always be *the same underlying structure*.
+	#
+	item1.RHS === item2.RHS &
+	item1.LOOK === item2.LOOK
+    then
+	return item1
+
+end
+
+
+#
+# equivalent_item_lists: list x list -> list or fail
+#                        (il1,  il2) -> il1
+#
+#     Where il1 is one sorted list-of-items (as returned by goto() or
+#     by closure()), where il2 is another such list.  Returns the
+#     first list if the LHS, RHS, and POS fields of the constituent
+#     items are all structurally identical, i.e. if the two lists
+#     contain the structurally identical items.
+#
+procedure equivalent_item_lists(il1, il2)
+
+    local i
+
+    il1 === il2 & (return il1)
+    if *il1 = *il2
+    then {
+	every i := 1 to *il1 do
+            equivalent_items(il1[i], il2[i]) | fail
+    }
+    else fail
+
+    return il1
+
+end

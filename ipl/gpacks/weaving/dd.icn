@@ -1,0 +1,47 @@
+############################################################################
+#
+#	File:     dd.icn
+#
+#	Subject:  Program to show drawdown from unravel -r output
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 26, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  AD HOC
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics  
+#
+############################################################################
+#
+#  Links:  cells, tieutils
+#
+############################################################################
+
+link cells
+link tieutils
+
+procedure main()
+
+   shafts := *read() | stop("short file")
+   treadles := *read() | stop("short file")
+
+   dd := tie2tier(shafts, treadles, read()) | stop("short file")
+
+   panel := makepanel(shafts, treadles, 5)
+
+   tiercells(panel, dd)
+
+   WAttrib(panel.window, "canvas=normal")
+
+   WDone(panel.window)
+
+end

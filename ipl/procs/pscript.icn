@@ -1,0 +1,113 @@
+############################################################################
+#
+#	File:     pscript.icn
+#
+#	Subject:  Procedure for explicitly writing PostScript
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	epsheader(f, x, y, w, h, flags) writes an Encapsulated PostScript
+#	file header and initializes the PostScript coordinate system.
+#
+############################################################################
+#
+#  This file is intended to contain procedures for writing PostScript
+#  output explicitly, as contrasted with the procedures in psrecord.icn
+#  that write PostScript as a side effect of normal graphics calls.
+#  There is only one procedure at present.
+#
+#  epsheader(f, x, y, w, h, flags) aids the creation of an Encapsulated
+#  PostScript file by writing a header.  An EPS file can either be
+#  incorporated as part of a larger document or sent directly to a
+#  PostScript printer.
+#
+#  Epsheader() writes the first portion of the PostScript output to file
+#  f; the calling program then generates the rest.  It is the caller's
+#  responsibility to ensure that the rest of the file conforms to the
+#  requirements for EPS files as documented in the PostScript Reference
+#  Manual, second edition.
+#
+#  (x,y,w,h) specify the range of coordinates that are to be used in the
+#  generated PostScript code.  Epsheader() generates PostScript commands
+#  that center this region on the page and clip anything outside it.
+#
+#  If the flags string contains the letter "r" and abs(w) > abs(h), the
+#  coordinate system is rotated to place the region in "landscape" mode.
+#
+#  The generated header also defines an "inch" operator that can be used
+#  for absolute measurements as shown in the example below.
+# 
+#  Usage example:
+#
+#	f := open(filename, "w") | stop("can't open ", filename)
+#	epsheader(f, x, y, w, h)
+#	write(f, ".07 inch setlinewidth")
+#	write(f, x1, " ", y1, " moveto ", x2, " ", y2, " lineto stroke")
+#	   ...
+#	write(f, "showpage")
+#
+############################################################################
+
+$define PSPoint 72	# PostScript points per inch
+
+#  8.5x11" paper size parameters -- change these to use A4 or something else
+$define PageWidth   8.5
+$define PageHeight 11.0
+$define HorzMargin  0.75
+$define VertMargin  1.0
+
+procedure epsheader(f, x, y, w, h, flags)	#: write PostScript header
+   local xctr, yctr, xsize, ysize, xscale, yscale, dx, dy
+
+   if w < 0 then
+      x -:= (w := -w)
+   if h < 0 then
+      y -:= (h := -h)
+
+   xctr := integer(PSPoint * PageWidth / 2)	# PS center coordinates
+   yctr := integer(PSPoint * PageHeight / 2)
+   xsize := PSPoint * (PageWidth - HorzMargin)	# usable width
+   ysize := PSPoint * (PageHeight - VertMargin)	# usable height
+   if w > h & upto('r', \flags) then
+      xsize :=: ysize
+
+   xscale := xsize / w
+   yscale := ysize / h
+   xscale >:= yscale
+   yscale >:= xscale
+
+   dx := integer(xscale * w / 2 + 0.99999)
+   dy := integer(yscale * h / 2 + 0.99999)
+   if xsize > ysize then
+      dx :=: dy
+
+   write(f, "%!PS-Adobe-3.0 EPSF-3.0")
+   write(f, "%%BoundingBox: ",
+      xctr - dx, " ", yctr - dy, " ", xctr + dx, " ", yctr + dy)
+   write(f, "%%Creator: ", &progname)
+   write(f, "%%CreationDate: ", &dateline)
+   write(f, "%%EndComments")
+   write(f)
+   write(f, xctr, " ", yctr, " translate")
+   if xsize > ysize then
+      write(f, "90 rotate \n", -dy, " ", -dx, " translate")
+   else
+      write(f, -dx, " ", -dy, " translate")
+   write(f, xscale, " ", yscale, " scale")
+   write(f, -x, " ", -y, " translate")
+   write(f, x, " ", y, " moveto ", x, " ", y + h, " lineto ",
+	    x + w, " ", y + h, " lineto ", x + w, " ", y, " lineto ")
+   write(f, "closepath clip newpath")
+   write(f, "/inch { ", 72 / xscale, " mul } bind def")
+   write(f, "1 72 div inch setlinewidth")
+   write(f)
+   return
+end

@@ -1,0 +1,33 @@
+############################################################################
+#
+#	File:     ftype.icn
+#
+#	Subject:  Procedure to produce type for file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 10, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure returns the file identification produced by file(1).
+#
+############################################################################
+#
+#  Requires:  UNIX
+#
+############################################################################
+
+procedure ftype(file)
+   
+   read(open("file " || file, "p")) ? {
+      tab(upto('\t'))
+      tab(many('\t'))
+      return tab(0)
+      }
+
+end

@@ -1,0 +1,49 @@
+############################################################################
+#
+#	File:     mkpasswd.icn
+#
+#	Subject:  Program to make passwords
+#
+#	Author:   Jere K{pyaho
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program creates a list of randomly generated passwords.
+#
+#  Passwords consist of eight random characters [A-Z][0-9].
+#
+#  Number of passwords to generate is given as the first argument; default 1.
+#
+############################################################################
+ 
+procedure main(Args)
+   local count, i
+ 
+        count := integer(Args[1]) | 1
+        
+        every i := 1 to count do
+                write( genpasswd() )
+ 
+end
+ 
+#
+# genpasswd: generate and return an 8-character password
+#
+procedure genpasswd()
+        
+        local i, s, ucalnum
+ 
+        s := ""
+        ucalnum := &ucase ++ &digits
+        every i := 1 to 8 do
+                s := s || ?ucalnum
+ 
+        return s
+ 
+end

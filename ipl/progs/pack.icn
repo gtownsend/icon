@@ -1,0 +1,42 @@
+############################################################################
+#
+#	File:     pack.icn
+#
+#	Subject:  Program to package multiple files
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 1, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This programs takes a list of file names on the command line and
+#  packages the files into a single file, which is written to standard
+#  output.
+#
+#     Files are separated by a header, ##########, followed by the file
+#  name.  This simple scheme does not work if a file contains such a header
+#  itself, and it's problematical for files of binary data.
+#
+############################################################################
+#
+#  See also:  unpack.icn
+#
+############################################################################
+
+procedure main(args)
+   local in, name
+
+   every name := !args do {
+      close(\in)
+      in := open(name) | stop("cannot open input file: ",name)
+      write("##########")
+      write(name)
+      while write(read(in))
+      }
+
+end

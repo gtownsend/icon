@@ -1,0 +1,44 @@
+############################################################################
+#
+#	File:     title.icn
+#
+#	Subject:  Procedure to produce title portion of name
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 2, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#    This procedure produces the "title" of a name, as "Mr." from
+#  "Mr. John Doe".
+#
+#    The processs is imperfect.
+#
+############################################################################
+#
+#  Links:  titleset
+#
+############################################################################
+
+link titleset
+
+procedure title(name)
+   local result
+   static titles
+
+   initial titles := titleset()
+
+   result := ""
+
+   name ? {
+      while result ||:= =!titles || " " do
+        tab(many(' \t'))
+      return result ? tab(-1 | 0)
+      }
+
+end

@@ -1,0 +1,15 @@
+link graphics
+
+procedure nextpixel(w)
+	suspend PaletteKey(c1, Pixel(w))
+end
+
+procedure main(L)
+	WOpen("image="||L[1], "gamma=1.0") | die("no image ?")
+	writes("\"")
+	g := create nextpixel(&window)
+	every	1 to WAttrib("height") do
+		every (| writes(@g) \ WAttrib(&window, "width")) | write("_") 
+	write("\"")
+end
+

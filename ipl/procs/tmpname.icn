@@ -1,0 +1,100 @@
+############################################################################
+#
+#       File:     tmpname.icn
+#
+#       Subject:  Procedure to get temporary file name
+#
+#       Author:   Richard L. Goerwitz
+#
+#       Date:     February 11, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#       Version:  1.5
+#
+############################################################################
+#
+#  Need to open up a temporary file?  This procedure prevents you from
+#  clobbering existing files by giving you a unique temp file name.
+#  Note that tempname() does not return an open file.  It merely returns
+#  a string.  The user is responsible for open()'ing a file by that
+#  name, and for removing it when done.
+#
+#  Note that tempname() is a generator, suspending upto 999 unique
+#  (and MS-DOS compatible) filenames.
+#
+#  Bug:  Icon has no exists() call, so the only way we can tell if a
+#  filename is already in use is to try to open it for reading.  On
+#  most systems, inability to read a file by a given name does not
+#  necessarily indicate that the filename is not in use.  Hence this
+#  procedure may, under very, very rare circumstances, return the
+#  name of a file already in use.  We're safe, though, since if this
+#  ever happens to anyone (which I doubt), no files will get clob-
+#  bered.  One workaround for the problem is to call tempname() with-
+#  out using any intermediate variables, so that it is resumed until
+#  some open function succeeds (e.g. open(tempname())).
+#
+############################################################################
+#
+#  History:
+#
+#  25 Mar 94 - D. Gamey - changes to use DOS temp directory and .tmp names
+#  20 Feb 95 - R. Griswold - changed to use of exists()
+# 
+############################################################################
+#
+#  Requires:  UNIX, MS-DOS or another congenial operating system
+#
+############################################################################
+#
+#  See also:  tempfile() in io.icn
+#
+############################################################################
+#
+#  Links:  io
+#
+############################################################################
+
+link io
+
+procedure tempname()
+    local os, temp_name
+
+    static dir,tname
+
+    initial {
+        os := &features
+        tname := tempname_default
+        if find("UNIX",os) then
+           dir := "/tmp/"
+        else
+           if find("MS-DOS",os) then {
+              dir := (getenv("TEMP") | "")      # locate temp file directory
+              dir ||:= (dir[-1] ~== "\\")       # ensure trailing \
+              tname := tempname_ext
+              }
+           else
+              dir := ""
+    }
+
+    every temp_name := dir || tname() do {
+        if not exists(temp_name) then suspend \temp_name
+    }
+
+end
+
+procedure tempname_default()
+
+   suspend "icontmp." || right(1 to 999,3,"0")
+
+end
+
+procedure tempname_ext()
+
+   suspend "icon" || right(1 to 999,4,"0") || ".tmp"
+
+end

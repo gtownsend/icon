@@ -1,0 +1,71 @@
+############################################################################
+#
+#	File:     memrfncs.icn
+#
+#	Subject:  Procedures for recursive functions using memory
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 4, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures implement commonly referenced ``text-book''
+#  recursively defined functions using memory to avoid redundant calls.
+#
+#	acker(i, j)	 Ackermann's function
+#	fib(i)	 	 Fibonacci sequence
+#	q(i)		 "Chaotic" sequence
+#
+############################################################################
+#
+#  See also:  fastfncs, iterfncs.icn, and recrfncs.icn
+#
+############################################################################
+
+procedure acker(i, j)
+   static memory
+
+   initial {
+      memory := table()
+      every memory[0 to 100] := table()
+      }
+
+   if i = 0 then return j + 1
+
+   if j = 0 then /memory[i][j] := acker(i - 1, 1)
+   else /memory[i][j] := acker(i - 1, acker(i, j - 1))
+
+   return memory[i][j]
+
+end
+
+procedure fib(i)
+   static memory
+
+   initial {
+      memory := table()
+      memory[1] := memory[2] := 1
+      }
+
+   /memory[i] := fib(i - 1) + fib(i - 2)
+   return memory[i]
+
+end
+
+procedure q(i)
+   static memory
+
+   initial {
+      memory := table()
+      memory[1] := memory[2] := 1
+      }
+
+   /memory[i] := q(i - q(i - 1)) + q(i - q(i - 2))
+   return memory[i]
+
+end

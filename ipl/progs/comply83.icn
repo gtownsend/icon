@@ -1,0 +1,60 @@
+############################################################################
+#
+#	File:     comply83.icn
+#
+#	Subject:  Program to check compliance with MS-DOS name restrictions
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     October 4, 1997
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program checks the file names given on standard input and reports
+#  any that are not valid MS-DOS file names.
+#
+#  It is designed handle output UNIX ls -R, but it will handle a list
+#  of file names, one per line.
+#  
+############################################################################
+
+procedure main()
+   local line, base, ext, dir, forbid
+
+   forbid := &cset -- &letters -- &digits -- '._^$~!#%&-{}()@\'`'
+
+   while line := read() do {
+      if *line = 0 then next			# skip blank lines
+      line ? {
+         if upto(forbid, line) then {		# contains forbidden character
+            write(dir, line)
+            next
+            }
+         if = "." then {			# directory header
+            dir := tab(-1) || "/"
+            next
+            }
+         if base := tab(upto('.')) then {
+            move(1)
+            ext := tab(0)
+            ext ? {
+               if upto('.') then {		# period in "extension"
+                  write(dir, line)
+                  next
+                  }
+               }
+            }
+         else {
+            base := tab(0)
+            ext := ""
+            }
+         if (*base > 8) | (*ext > 3) then	# check sizes
+            write(dir, line)
+         }
+      }
+
+end

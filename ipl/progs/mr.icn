@@ -1,0 +1,429 @@
+############################################################################
+#
+#	File:     mr.icn
+#
+#	Subject:  Program to read mail
+#
+#	Author:   Ronald Florence
+#
+#	Date:     November 19, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.4
+#
+############################################################################
+#
+#  With no arguments, mr reads the default mail spool.  Another user,
+#  a spool file, or the recipient for outgoing mail can be given as 
+#  a command line argument.  Help, including the symbols used to 
+#  indicate the status of mail, is available with the H command. 
+#
+#  Usage:  mr [recipient] [-u user] [-f spool]
+#	
+#  Configuration:
+#
+#    Editor	for replies or new mail.
+#    Host  	optional upstream routing address for outgoing mail;
+#		a domained Host is appended to the address, a uucp
+#		Host prefixes the address.
+#    Mail_cmd  	the system mailer (usually sendmail, smail, or mail).
+#    print_cmd 	command to format and/or spool material for the printer
+#		(for OS with pipes).  &null for ms-dos.
+#    ignore 	a list of headers to hide when paging messages.  The V
+#    		command views hidden headers.
+#
+#  Non-UNIX systems only:
+#
+#    non_unix_mailspool  full path of the default mailspool.
+#
+############################################################################
+#
+#  Links:  iolib, options, io
+#
+############################################################################
+
+link iolib, options, io
+
+global Host, Editor, Spool, Status, Mail_cmd
+
+procedure main(arg)
+  local i, opts, cmd, art, mailspool, print_cmd, ignore, non_unix_mailspool
+
+				# configuration 
+  Editor := "vi"
+  Host := &null
+  Mail_cmd := "/usr/lib/sendmail -t"
+  print_cmd := "mp -F | lpr"
+  ignore := ["From ", "Message-Id", "Received", "Return-path", "\tid", 
+	     "Path", "Xref", "References", "X-mailer", "Errors-to", 
+	     "Resent-Message-Id", "Status", "X-lines", "X-VM-Attributes"]
+  non_unix_mailspool := &null
+
+				# end of configuration
+
+  if not "UNIX" == &features then 
+      mailspool := getenv("MAILSPOOL") | \non_unix_mailspool | "DUNNO"
+  opts := options(arg, "u:f:h?") 
+  \opts["h"] | \opts["?"] | arg[1] == "?" & 
+    stop("usage: mr [recipient] [-f spoolfile] [-u user]")
+  \arg[1] & { write(); newmail(arg[1]); exit(0) }
+  /mailspool := "/usr/spool/mail/" || (\opts["u"] | getenv("LOGNAME"|"USER"))
+  \opts["f"] & mailspool := opts["f"] 
+  i := readin(mailspool)
+  headers(mailspool, i)
+  repeat {
+    cmd := query("\n[" || i || "/" || *Status || "]: ", " ")
+    if integer(cmd) & (cmd > 0) & (cmd <= *Status) then 
+	headers(mailspool, i := cmd)
+    else case map(!cmd) of {
+      " ":  { showart(i, ignore); i := inc(i) }
+      "a":  save(query("Append to: "), i, "append")
+      "d":  { Status[i] ++:= 'D'; clear_line(); i := inc(i) }
+      "f":  forward(query("Forward to: "), i)
+      "g":  readin(mailspool, "update") & headers(mailspool, i)
+      "l":  headers(mailspool, i)
+      "m":  newmail(query("Address: "))
+      "p":  print(print_cmd, i)
+      "q":  quit(mailspool)
+      "r":  reply(i)
+      "s":  save(query("Filename: "), i)
+      "u":  { Status[i] --:= 'D'; clear_line(); i := inc(i) }
+      "v":  showart(i, ignore, "all")
+      "x":  upto('yY', query("Are you sure? ")) & exit(1) 
+      "|":  pipeto(query("Command: "), i)
+      "!":  { system(query("Command: ")) 
+	      write() & query("Press <return> to continue") }
+      "-":  { if (i -:= 1) = 0 then i := *Status; showart(i, ignore) }
+      "+"|"n":  showart(i := inc(i), ignore)
+      "?"|"h":  help()
+      default:  clear_line() & writes("\^g")
+    }
+  }
+end
+
+				# Read the mail spool into a list of
+				# lists and set up a status list.
+procedure readin(spoolname, update)
+  local sf, i, article
+
+  Spool := []
+  \update | Status := []
+  sf := open(spoolname) | stop("Can't read " || spoolname)
+  i := 0
+  every !sf ? {
+    ="From " & {
+      ((i +:= 1) > 1) & put(Spool, article)
+      article := []      
+      (i > *Status) & put(Status, 'N')
+    }
+    (i > 0) & put(article, &subject)
+  }
+  (i > 0) & {
+    put(Spool, article)
+    i := 1
+  }
+  close(sf)
+  return i
+end
+
+				# Parse messages for author & subject,
+				# highlight the current message.
+procedure headers(spoolname, art)
+  local hlist, i, entry, author, subj
+
+  hlist := []
+  every i := 1 to *Status do {
+    entry := if i = art then getval("md"|"so") else ""
+    entry ||:= left(i, 3, " ") || left(Status[i], 4, " ")
+    author := ""
+    subj := ""
+    while (*author = 0) | (*subj = 0) do !Spool[i] ? {
+      ="From: " & author := tab(0)
+      ="Subject: " & subj := tab(0)
+      (*&subject = 0) & break
+    }
+    entry ||:= " [" || right(*Spool[i], 3, " ") || ":" 
+    entry ||:= left(author, 17, " ") || "]  " || left(subj, 45, " ")
+    (i = art) & entry ||:= getval("me"|"se")
+    put(hlist, entry)
+  }
+  put(hlist, "")
+  more(spoolname, hlist)
+end
+
+				# Check if any messages are deleted;
+				# if the spool cannot be written,
+				# write a temporary spool.  Rename
+				# would be convenient, but won't work
+				# across file systems.
+procedure quit(spoolname)
+  local msave, f, tfn, i
+
+  every !Status ? { find("D") & break msave := 1 }
+  \msave & {
+    readin(spoolname, "update")
+    (f := open(spoolname, "w")) | {
+      f := open(tfn := tempname(), "w")      
+      write("Cannot write " || spoolname || ".  Saving changes to " || tfn)
+    }
+    every i := 1 to *Status do {
+      find("D", Status[i]) | every write(f, !Spool[i])
+    }
+  }
+  exit(0)
+end
+
+
+procedure save(where, art, append)
+  local mode, outf
+
+  mode := if \append then "a" else "w"
+  outf := open(where, mode) | { write("Can't write ", where) & fail }
+  every write(outf, !Spool[art])
+  Status[art] ++:= 'S'
+  return close(outf)
+end
+
+
+procedure pipeto(cmd, art)
+  static real_pipes
+  local p, tfn, status
+
+  initial real_pipes := "pipes" == &features
+  p := (\real_pipes & open(cmd, "wp")) | open(tfn := tempname(), "w")
+  every write(p, !Spool[art])
+  if \real_pipes then return close(p) 
+  else {
+    cmd ||:= " < " || tfn
+    status := system(cmd)
+    remove(tfn)
+    return status
+  }
+end
+
+
+procedure print(cmd, art)
+  local p, status
+  
+  if \cmd then status := pipeto(cmd, art)
+  else if not "MS-DOS" == &features then 
+      return write("Sorry, not configured to print messages.")
+  else {
+    p := open("PRN", "w")
+    every write (p, !Spool[art])
+    status := close(p) 
+  }
+  \status & { Status[art] ++:= 'P'; clear_line() }
+end
+
+
+				# Lots of case-insensitive parsing.
+procedure reply(art)
+  local tfn, fullname, address, quoter, date, id, subject, newsgroup, refs, r
+
+  r := open(tfn := tempname(), "w")
+  every !Spool[art] ? {
+    tab(match("from: " | "reply-to: ", map(&subject))) & {
+      if find("<") then {
+	fullname := tab(upto('<'))
+	address := (move(1), tab(find(">")))
+      }
+      else {
+	address := trim(tab(upto('(') | 0))
+	fullname := (move(1), tab(find(")")))
+      }
+      while match(" ", \fullname, *fullname) do fullname ?:= tab(-1)
+      quoter := if *\fullname > 0 then fullname else address
+    }
+    tab(match("date: ", map(&subject))) & date := tab(0)
+    tab(match("message-id: ", map(&subject))) & id := tab(0)
+    match("subject: ", map(&subject)) & subject := tab(0)
+    match("newsgroups: ", map(&subject)) & newsgroup := tab(upto(',') | 0)
+    match("references: ", map(&subject)) & refs := tab(0)
+    (\address & *&subject = 0) & {
+      writes(r, "To: " || address)
+      write(r, if *\fullname > 0 then " (" || fullname || ")" else "")
+      \subject & write(r, subject)
+      \newsgroup & write(r, newsgroup)
+      \refs & write(r, refs, " ", id)
+      write(r, "In-reply-to: ", quoter, "'s message of ", date);
+      write(r, "\nIn ", id, ", ", quoter, " writes:\n")
+      break
+    }
+  }
+  every write(r, " > ", !Spool[art])
+  send(tfn, address) & {
+    Status[art] ++:= 'RO'
+    Status[art] --:= 'N'
+  }
+end
+
+				# Put user in an editor with a temp
+				# file, query for confirmation, if
+				# necessary rewrite address, and send.
+procedure send(what, where)
+  local edstr, mailstr, done
+  static console
+
+  initial {
+    if "UNIX" == &features then console := "/dev/tty"
+    else if "MS-DOS" == &features then console := "CON"
+    else stop("Please configure `console' in mr.icn.")
+  }
+  edstr := (getenv("EDITOR") | Editor) || " " || what || " < " || console
+  system(edstr)
+  upto('nN', query( "Send to " || where || " y/n? ")) & {
+    if upto('yY', query("Save your draft y/n? ")) then 
+      clear_line() & write("Your draft is saved in " || what || "\n")
+    else clear_line() & remove(what)
+    fail
+  }
+  clear_line()
+  \Host & not find(map(Host), map(where)) & upto('!@', where) & {
+    find("@", where) & where ? {
+      name := tab(upto('@'))
+      where := (move(1), tab(upto(' ') | 0)) || "!" || name
+    }
+    if find(".", Host) then where ||:= "@" || Host
+    else where := Host || "!" || where
+  }
+  mailstr := Mail_cmd || " " || where || " < " || what
+  done := system(mailstr)
+  remove(what)
+  return done
+end
+
+
+procedure forward(who, art)
+  local out, tfn
+
+  out := open(tfn := tempname(), "w")
+  write(out, "To: " || who)
+  write(out, "Subject: FYI (forwarded mail)\n")
+  write(out, "-----[begin forwarded message]-----")
+  every write(out, !Spool[art])
+  write(out, "------[end forwarded message]------")
+  send(tfn, who) & Status[art] ++:= 'F'
+end
+
+  
+procedure newmail(address)
+  local out, tfn
+
+  out := open(tfn := tempname(), "w")
+  write(out, "To: " || address)
+  write(out, "Subject:\n")
+  return send(tfn, address)
+end
+
+
+procedure showart(art, noshow, eoh)
+  local out
+
+  out := []
+  every !Spool[art] ? {
+    /eoh := *&subject = 0
+    if \eoh | not match(map(!noshow), map(&subject)) then put(out, tab(0))
+  }
+  more("Message " || art, out, "End of Message " || art)
+  Status[art] ++:= 'O'
+  Status[art] --:= 'N'
+end
+      
+
+procedure help()
+  local hlist, item
+  static pr, sts
+
+  initial {
+    pr := ["Append message to a file",
+	   "Delete message", 
+	   "eXit, without saving changes", 
+	   "Forward message",
+	   "Get new mail",
+	   "Help", 
+	   "List headers",
+	   "Mail to a new recipient", 
+	   "Next message", 
+	   "Print message", 
+	   "Quit, saving changes", 
+	   "Reply to message", 
+	   "Save message", 
+	   "Undelete message", 
+	   "View all headers",
+	   "| pipe message to a command",
+	   "+ next message",
+	   "- previous message",
+	   "! execute command",
+	   "# make # current message",
+	   " "]
+    sts := ["New", "Old", "Replied-to", "Saved", 
+	    "Deleted", "Forwarded", "Printed"]
+  }
+  hlist := []
+  every !(pr ||| sts) ? {
+    item := "  "
+    item ||:= tab(upto(&ucase++'!|+-#') \1) || getval("md"|"so") || 
+	move(1) || getval("me"|"se") || tab(0)
+    put(hlist, item)
+  }
+  put(hlist, "")
+  more("Commands & Status Symbols", hlist)
+end
+
+				# The second parameter specifies a
+				# default response if the user presses
+				# <return>.
+procedure query(prompt, def)
+  local ans
+
+  clear_line()
+  writes(prompt)
+  ans := read()
+  return (*ans = 0 & \def) | ans
+end
+
+				# Increment the count, then cycle
+				# through again when user reaches the
+				# end of the list.
+procedure inc(art)
+
+  if (art +:= 1) > *Status then art := 1
+  return art
+end
+
+
+procedure more(header, what, footer)
+  local ans, lines
+
+  writes(getval("cl"))
+  lines := 0
+  \header & {
+    write(getval("us") || header || getval("ue"))
+    lines +:= 1
+  }
+  every !what ? {
+    write(tab(0))
+    ((lines +:= 1 + *&subject/getval("co")) % (getval("li") - 1) = 0) & {
+      writes(getval("so") || 
+	     "-MORE-(", (100 > (lines - 2)*100/*what) | 100, "%)" || 
+	     getval("se"))
+      ans := read() & clear_line()
+      upto('nNqQ', ans) & fail
+    }
+  }
+  \footer & {
+    writes(getval("so") || footer || getval("se")) 
+    read() & clear_line()
+  }
+end
+
+procedure clear_line()
+
+  return writes(getval("up") || getval("ce"))
+end

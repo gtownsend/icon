@@ -1,0 +1,90 @@
+############################################################################
+#
+#	File:     longstr.icn
+#
+#	Subject:  Procedure to match longest string
+#
+#	Author:   Jerry Nowlin
+#
+#	Date:     June 1, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Contributors:  Stephen B. Wampler, Kenneth Walker, Bob Alexander,
+#                      and Richard E. Goerwitz
+#
+############################################################################
+#
+#	Version:  1.9
+#
+############################################################################
+#
+#  longstr(l,s,i,j) works like any(), except that instead of taking a
+#  cset as its first argument, it takes instead a list or set of
+#  strings (l).  Returns i + *x, where x is the longest string in l
+#  for which match(x,s,i,j) succeeds.  Fails if no match occurs.
+#
+#  Defaults:
+#      s     &subject
+#      i     &pos if s is defaulted, otherwise 1
+#      j     0
+#
+#  Errors:
+#      The only manual error-checking that is done is to test l to
+#      be sure it is, in fact, a list or set.  Errors such as non-
+#      string members in l, and non-integer i/j parameters, are
+#      caught by the normal Icon built-in string processing and sub-
+#      scripting mechanisms.
+#
+############################################################################
+
+procedure longstr(l,s,i,j)
+
+    local elem, tmp_table
+    static l_table
+    initial l_table := table()
+
+    #
+    # No-arg invocation wipes out all static structures, and forces an
+    # immediate garbage collection.
+    #
+    if (/l, /s) then {
+	l_table := table()
+	collect()		# do it NOW
+	return			# return &null
+    }
+
+    #
+    # Is l a list, set, or table?
+    #
+    type(l) == ("list"|"set"|"table") |
+	stop("longstr:  list, set, or table expected (arg 1)")
+
+    #
+    # Sort l longest-to-shortest, and keep a copy of the resulting
+    # structure in l_table[l] for later use.
+    #
+    if /l_table[l] := [] then {
+
+	tmp_table := table()
+	# keys = lengths of elements, values = elements
+	every elem := !l do {
+	    /tmp_table[*elem] := []
+	    put(tmp_table[*elem], elem)
+	}
+	# sort by key; stuff values, in reverse order, into a list
+	every put(l_table[l], !sort(tmp_table,3)[*tmp_table*2 to 2 by -2])
+
+    }
+
+    #
+    # First element in l_table[l] to match is the longest match (it's
+    # sorted longest-to-shortest, remember?).
+    #
+    return match(!l_table[l],s,i,j)
+
+end

@@ -1,0 +1,87 @@
+############################################################################
+#
+#	File:     spread.icn
+#
+#	Subject:  Program to format tab-separated data columns
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     June 6, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Spread reads data presented in tab-separated fields, such
+#	as some some spreadsheets export, and outputs the data in
+#	space-separated columns of the minimum necessary width.
+#
+#	Usage:  spread [-t c] [-g n] [-r] [file...]
+#
+#	-g n	set gutter width between output columns (default is 1)
+#	-r	right-justify the fields instead of left-justifying
+#	-t c	set separator character(s) for data (default is \t)
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local opts, sep, gutter, justify, fname, f 
+   local data, colsz, s, n, i, t
+
+   # process options and set defaults
+   opts := options(args, "g+t:r")			# command options
+   sep := cset(\opts["t"]) | '\t'			# separator cset
+   gutter := integer(\opts["g"]) | 1			# output gutter width
+   justify := if \opts["r"] then right else left	# justifying procedure
+
+   # load data into memory
+   data := []
+   if *args = 0 then
+      while put(data, read())
+   else {
+      every fname := !args do {
+         f := open(fname) | stop("can't open ", fname)
+	 while put(data, read(f))
+	 }
+      }
+
+   # scan data to record maximum column widths needed
+   colsz := []
+   every s := !data do s ? {
+      i := 0
+      while n := (*tab(upto(sep)) | (0 < *tab(0))) do {
+	 move(1)
+	 i +:= 1
+	 if n <= colsz[i] then
+	    next
+	 if i > *colsz then
+	    put(colsz, n)
+	 else
+	    colsz[i] := n
+         }
+      }
+
+   # adjust column sizes to allow for gutters
+   every !colsz +:= gutter
+   if justify === right then
+      colsz[1] -:= gutter
+
+   # write padded output
+   every s := !data do s ? {
+      i := 0
+      while t := tab(upto(sep)) do {
+         writes(justify(t, colsz[i +:= 1]))
+	 move(1)
+	 }
+      write(justify(tab(0), colsz[i +:= 1]))
+      }
+   
+end

@@ -1,0 +1,88 @@
+############################################################################
+#
+#	File:     newsrc.icn
+#
+#	Subject:  Program to organize UNIX .newsrc file
+#
+#	Author:   Alan D. Corre
+#
+#	Date:     April 1, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program takes the .newsrc file, moves active groups to the beginning
+#  then appends inactive groups with the numbers omitted, then anything else.
+#  the groups are alphabetized.
+#
+#  The user may retain a set of groups at the top of the file by specifying how
+#  many groups on the command line. If not specified, it will be prompted for.
+#  the new file is called newnewsrc. The user can replace .newsrc with it if it
+#  is satisfactory.
+#
+############################################################################
+
+procedure main(times)
+	process(times)
+end
+
+procedure process(times)
+local active, inactive, defective, invar, outvar, line, newline
+
+#create three empty lists
+	active := []
+	inactive := []
+	defective := []
+
+#open old and new files
+	if not (invar := open(".newsrc")) then stop("Unable to open .newsrc")
+	outvar := open("newnewsrc","w")
+
+#get saved lines
+if *times = 0 then put(times,ask()) else {
+	if not integer(times[1]) then stop("Bye")
+	if times[1] = 1 then write("The following line has been saved:") else
+	if times[1] > 1 then
+           write("The following ",times[1]," lines have been saved:")}
+	every 1 to times[1] do
+		write(write(outvar,read(invar)))
+#place the lines in appropriate lists
+	while line := read(invar) do {
+		newline := line
+		line	?	{if find(":") then
+					put(active,newline) else
+				 if newline := (tab(find("!")) || "!") then
+					put(inactive,newline) else
+				 put(defective,newline)}}
+	close(invar)
+#sort the lists
+	active := sort(active)
+	inactive := sort(inactive)
+	defective := sort(defective)
+#create the new file
+	every line := !active do
+		write(outvar,line)
+	every line := !inactive do
+		write(outvar,line)
+	every line := !defective do
+		write(outvar,line)
+#notify user
+	write("File newnewsrc has been created.  If it is satisfactory, use")
+	write("mv newnewsrc .newsrc to replace old file.")
+	close(outvar)
+end
+ 
+
+procedure ask()
+local number,n
+	n := 0
+	write("You may save any number of lines at the top of the file.")
+	writes("Enter a whole number, 0 or greater.> ")
+	while not integer(number := read()) do  {
+		if (n +:= 1) > 3 then stop("Bye.")
+		writes("You must enter a whole number.> ")}
+		return number
+end

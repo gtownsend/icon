@@ -1,0 +1,515 @@
+############################################################################
+#
+#	Name:	 ibreader.icn
+#
+#	Title:	 reader for Ibpag2 source files
+#
+#	Author:	 Richard L. Goerwitz
+#
+#	Version: 1.29
+#
+############################################################################
+#
+#  This file contains a collection of procedures that 1) read in an
+#  Ibpag2 source file, 2) output token defines, 3) emit action code,
+#  and finally 4) pass a start symbol, list of productions, and token
+#  table back to the calling procedure.  Described formally:
+#
+#      ibreader:  file x file x string  -> ib_grammar record
+#                 (in,   out,   module) -> grammar
+#
+#  In is the input stream; out is the output stream; module is an
+#  optional string that distinguishes this grammar from others that
+#  might also be running simultaneously.  Grammar is an ib_grammar
+#  record containing the start symbol in its first field and the
+#  production list in its second.  Its third field contains a table
+#  used to map integers to actual token names or character literals,
+#  i.e. its keys are things like -1, 0, etc. and its values are things
+#  like "error," "EOF," etc.
+#
+#  Note that if a module argument is supplied to ibreader(), one must
+#  also be supplied to ibwriter().  See ibwriter.icn.
+#
+#  The format of the input file is highly reminiscent of YACC.  It
+#  consists of three basic sections, the first two of which are
+#  followed by %%.  See the main documentation to Ibpag2 for
+#  specifics.  Major differences between Ibpag2 and YACC input format
+#  include:
+#
+#      1) "$$ = x" constructs are replaced by "return x" (e.g. "$$ =
+#         $1 + $3" -> "return $1 + $3")
+#
+#      2) all variables within a given action are, by default, local
+#         to that action; i.e. they cannot be accessed by other
+#         actions unless you declare them global elsewhere (e.g. in
+#         the pass-through part of the declarations section %{ ... %})
+#
+#      3) the %union declaration is not needed by Ibpag
+#
+#      4) tokens and symbols are separated from each other by a comma
+#         (e.g. %token '+', '-' and S : NP, VP)
+#
+#      5) epsilon is indicated by the keyword "epsilon" (e.g. REL :
+#         epsilon)
+#
+#      6) both epsilon and error *may* be declared as %tokens for
+#         reasons of precedence, although they retain hard-coded
+#         internal values (-2 and -1, respectively)
+#
+#      7) all actions must follow the last RHS symbol of the rule they
+#         apply to (preceded by an optional %prec directive); to
+#         achieve S : NP { action1 }, VP { action2 }, insert a dummy
+#         rule: S : NP, dummy, VP { action2 }; dummy : epsilon {
+#         action1 } ;
+#
+#      8) YYERROR, YYACCEPT, yyclearin, and yyerrok are the same,
+#         except they are written IIERROR, IIACCEPT, iiclearin, and
+#         iierrok (i.e. "ii" replaces "yy")
+#
+#      9) Ibpag2's input files are tokenized like modified Icon files,
+#         and, as a consequence, Icon's reserved words must not be
+#         used as symbols (e.g. "if : if, then" is no go)
+#
+############################################################################
+#
+#  Links: itokens, escape
+#
+#  See also: ibwriter
+#
+############################################################################
+
+#link itokens, escape
+link escape
+
+record ib_grammar(start, rules, tbl)
+record tokstats(str, no, prec, assoc)
+
+# Declared in itokens.icn:
+# global line_number
+
+#
+# ibreader:  file x file x string x string        -> ib_grammar record
+#            (in,   out,   module,  source_fname) -> grammar
+#
+#     Where in is an input stream, out is an output stream, module is
+#     some string uniquely identifying this module (optional), and
+#     where grammar is an ib_grammar record containing the start
+#     symbol in its first field and a list of production records in
+#     its second.  Source_fname is the string name of Ibpag2's input
+#     grammar file.  Defaults to "source file."
+#
+procedure ibreader(in, out, module, source_fname)
+
+    local tmp, grammar, toktbl, next_token, next_token_no_nl,
+	token, LHS, t
+
+    /source_fname    := "source file"
+    grammar          := ib_grammar(&null, list(), table())
+    toktbl           := table()
+    next_token       := create itokens(in, 1)
+    next_token_no_nl := create 1(tmp := |@next_token, \tmp.sym)
+    token            := @next_token_no_nl | iohno(4)
+
+    # Do the %{ $} and %token stuff, i.e. everything up to %%
+    # (NEWSECT).
+    #
+    until token.sym == "NEWSECT" do {
+	case token.sym of {
+	    default     : {
+		iohno(48, "token "||image(token.str) ||"; line "|| line_number)
+	    }
+	    "SEMICOL"   :  {
+		# Skip semicolon.  Get another token while we're at it.
+		token := @next_token_no_nl | iohno(47, "line "||line_number)
+	    }
+	    "BEGGLOB" : {
+		write(out, "\n$line ", line_number, " ", image(source_fname))
+		# Copy token values to out until we reach "%}" (ENDGLOB).
+		(token := copy_icon_stuff(next_token, out)).sym == "ENDGLOB"
+		token := @next_token_no_nl
+	    }
+	    "MOD"     : {
+		(token := @next_token_no_nl).sym == "IDENT" |
+		    iohno(30, "line " || line_number)
+		#
+		# Read in token declarations, set associativity and
+		# precedences, and enter the tokens into toktbl.
+		#
+		token := {
+		    case token.str of {
+			 default  : iohno(30, "line " || line_number)
+			"token"   : read_decl(next_token_no_nl, toktbl, &null)
+			"right"   : read_decl(next_token_no_nl, toktbl, "r")
+			"left"    : read_decl(next_token_no_nl, toktbl, "l")
+			"nonassoc": read_decl(next_token_no_nl, toktbl, "n")
+			"union"   : iohno(45, "line "|| line_number)
+			"start"   : {
+			    (token := @next_token_no_nl).sym == "IDENT" |
+				iohno(31, "line " || line_number)
+			    /grammar.start := token.str |
+				iohno(32, "line " || line_number)
+			    @next_token_no_nl | iohno(4)
+			}
+		    }
+		}
+	    }
+	}
+    }
+    # Skip past %% (NEWSECT) and semicolon (if present).
+    token := @next_token_no_nl | iohno(47, "line "|| line_number)
+    (token := token | @next_token_no_nl | iohno(4)).sym ~== "SEMICOL"
+    token.sym == "NEWSECT" & iohno(47, "line "|| line_number)
+
+    #
+    # Fetch start symbol if it wasn't defined above via %start; by
+    # default the start symbol is the LHS of rule 1.
+    #
+    /grammar.start := token.str
+
+    # Having reached the end of the declarations section, we can now
+    # copy out a define for each token number, not counting character
+    # literals (which are stored as integers).  While we're at it,
+    # create a table that maps token numbers back to character
+    # literals and strings (for use in later verbose and debugging
+    # displays).
+    #
+    write(out, "\n")
+    every t := !toktbl do {
+	if type(t.str) == "integer" then
+	    insert(grammar.tbl, t.no, image(char(t.str)))
+	else {
+	    insert(grammar.tbl, t.no, t.str)
+	    write(out, "$define ", t.str, "\t", t.no)
+	}
+    }
+
+    # Now, finally, read in rules up until we reach EOF or %% (i.e.
+    # NEWSECT).  EOF is signaled below by failure of read_RHS().
+    #
+    until token.sym == "NEWSECT" do {
+	token.sym == "IDENT" | iohno(33, token.str ||" line "|| line_number)
+	LHS := token.str
+	token := @next_token_no_nl | iohno(4)
+	token.sym == "COLON" | iohno(34, token.str ||" line "|| line_number)
+	#
+	# Read in RHS, then the action (if any) then the prec (if
+	# any).  If we see a BAR, then repeat, re-using the same
+	# left-hand side symbol.
+	#
+	while token := 
+	    read_RHS(next_token, next_token_no_nl, out, toktbl, LHS,
+		     grammar, module, source_fname) |
+	    # if read_RHS fails, we're at EOF
+	    break break
+	do token.sym == "BAR" | break
+    }
+
+    # Copy the remainder of the file to out as Icon code.
+    write(out, "\n$line ", line_number, " ", image(source_fname))
+    every copy_icon_stuff(next_token, out, "EOFX")
+
+    # Do final setup on the reverse token table.  This table will be
+    # used later to map integers to their original names in verbose or
+    # debugging displays.
+    #
+    insert(grammar.tbl,  0, "$")
+
+    return grammar
+
+end
+
+
+#
+# copy_icon_stuff:  coexpression x file x string  -> ib_TOK records
+#                   (next_token,   out,   except) -> token records
+#
+#     Copy Icon code to output stream, also suspending as we go.
+#     Insert separators between tokens where needed.  Do not output
+#     any token whose sym field matches except.  The point in
+#     suspending tokens as we go is to enable the calling procedure to
+#     look for signal tokens that indicate insertion or termination
+#     points.
+#
+procedure copy_icon_stuff(next_token, out, except)
+
+    local separator, T
+
+    separator := ""
+    while T := @next_token do {
+	if \T.sym then suspend T
+	if \T.sym == \except then next
+	if any(&digits ++ &letters ++ '_.', \T.str, 1, 2) & \T.sym ~== "DOT"
+	then writes(out, separator)
+	writes(out, T.str)
+	if any(&digits ++ &letters ++ '_.', \T.str, -1, 0) & \T.sym ~== "DOT"
+	then separator := " " else separator := ""
+    }
+
+    # unexpected EOF error
+    (except === "EOFX") | iohno(4)
+
+end
+
+
+#
+# read_decl:  coexpression     x table x string -> ib_TOK
+#             (next_token_no_nl, toktbl, assoc) -> token
+#
+#     Read in token declarations, assigning them the correct
+#     precedence and associativity.  Number the tokens for later
+#     $define preprocessor directives.  When done, return the last
+#     token processed.  Toktbl is the table that holds the stats for
+#     each declared token.
+#
+procedure read_decl(next_token_no_nl, toktbl, assoc)
+
+    local   token, c
+    static  token_no, prec
+    initial {
+	token_no := 256
+	prec := 0
+    }
+
+    # All tokens in this list have the same prec and assoc.
+    # Precedence is determined by order.  Associativity is determined
+    # by keyword in the calling procedure, and is passed as arg 3.
+    #
+    prec +:= 1
+    assoc === ("n"|"r"|"l"|&null) | iohno(5, image(assoc))
+
+    # As long as we find commas and token names, keep on adding tokens
+    # to the token table.  Return the unused token when done.  If we
+    # reach EOF, there's been an error.
+    #
+    repeat {
+	token := @next_token_no_nl | iohno(4)
+	case token.sym of {
+	    default  : iohno(31, token.str ||" line "|| line_number)
+	    "CSETLIT" | "STRING": {
+		# Enter character literals as integers.
+		*escape(token.str[2:-1]) = 1 | iohno(49, token.str)
+		c := ord(escape(token.str[2:-1]))
+		toktbl[c] := tokstats(c, c, prec, assoc)
+	    }
+	    "IDENT"  : {
+		case token.str of {
+		    "error"  :
+			toktbl[token.str] := tokstats("error", -1, prec, assoc)
+		    "epsilon":
+			toktbl[token.str] := tokstats("epsilon",-2,prec, assoc)
+		    default  : {
+			# Enter TOKENs as string-keyed records in toktbl.
+			token_no +:= 1
+			toktbl[token.str] :=
+			    tokstats(token.str, token_no, prec, assoc)
+		    }
+		}
+	    }
+	}
+	# As long as we're seeing commas, go back for more tokens.
+	token := @next_token_no_nl | iohno(4)
+	token.sym == "COMMA" | break
+    }
+
+    # Skip past semicolon, if present (as set up now, it shouldn't be).
+    (token := token | @next_token_no_nl | iohno(4)).sym ~== "SEMICOL"
+    return token
+
+end
+
+
+#
+# read_RHS:  coexpression x coexpression x file x table x
+#            string x ib_grammar record x string x string -> token
+#
+#     Read_RHS goes through the RHS of rule definitions, inserting the
+#     resulting productions into a master rule list.  At the same
+#     time, it outputs the actions corresponding to those productions
+#     as procedures that are given names corresponding to the numbers
+#     of the productions.  I.e. production 1, if endowed with an {
+#     action }, will correspond to procedure _1_.  Prec and assoc are
+#     automatically set to that of the last RHS nonterminal, but this
+#     may be changed explicitly by the %prec keyword, as in YACC.
+#     Source_fname is the name of the source grammar file we're pro-
+#     cessing (caller will give us some reasonable default if we're
+#     reading &input).
+#
+#     Fails on EOF.
+#
+procedure read_RHS(next_token, next_token_no_nl, out, toktbl, LHS,
+		   grammar, module, source_fname)
+
+    local   token, rule, c
+    static  rule_no
+    initial rule_no := 0
+
+    rule_no +:= 1
+    #                  LHS  RHS     POS    LOOK   no       prec   assoc
+    rule := production(LHS, list(), &null, &null, rule_no, &null, &null)
+    put(grammar.rules, rule)
+
+    # Read in RHS symbols.
+    #
+    repeat {
+	token := @next_token_no_nl | iohno(4)
+	case token.sym of {
+	    default  :
+		iohno(35, "token "|| image(token.str)||"; line "|| line_number)
+	    "CSETLIT" | "STRING": {
+		*escape(token.str[2:-1]) = 1 | iohno(49, token.str)
+		c := ord(escape(token.str[2:-1]))
+		if \toktbl[c] then {
+		    rule.prec  := toktbl[c].prec
+		    rule.assoc := toktbl[c].assoc
+		}
+		# literals not declared earlier will get caught here
+		else insert(grammar.tbl, c, image(char(c)))
+		put(rule.RHS, c)
+	    }
+	    "IDENT"  : {
+		# If it's a terminal (i.e. a declared token), assign
+		# this rule its precedence and associativity.  If it's
+		# not in toktbl, then it's not a declared token....
+		if \toktbl[token.str] then {
+		    rule.prec  := toktbl[token.str].prec
+		    rule.assoc := toktbl[token.str].assoc
+		    put(rule.RHS, toktbl[token.str].no)
+		    if toktbl[token.str].no = -2 then {
+			*rule.RHS > 1 & iohno(44, "line ", line_number)
+		        rule.POS := 2
+		    }
+		}
+		# ...undeclared stuff.  Could be a nonterminal.  If
+		# error and/or epsilon weren't declared as tokens,
+		# they will get caught here, too.
+		else {
+		    case token.str of {
+			&null     : stop("What is going on here?")
+			default   : put(rule.RHS, token.str)
+			"error"   : {
+			    put(rule.RHS, -1)
+			    insert(grammar.tbl, -1, "error")
+			}
+			"epsilon" : {
+			    if *put(rule.RHS, -2) > 1
+			    then iohno(44, "line ", line_number)
+			    else rule.POS := 2
+			    insert(grammar.tbl, -2, "epsilon")
+			}
+		    }
+		}
+	    }
+	}
+	# Comma means:  Go back for another RHS symbol.
+	token := @next_token_no_nl | fail
+	token.sym == "COMMA" | break
+    }
+
+    # Skip semicolon token, if present.
+    (token := token | @next_token_no_nl | fail).sym ~== "SEMICOL"
+
+    # Read and set (optional) precedence.
+    #
+    if token.sym == "MOD" then {
+	token := @next_token_no_nl | iohno(4)
+	(token.sym == "IDENT" & token.str == "prec") |
+	    iohno(43, token.str || " line " || line_number)
+	token := @next_token_no_nl | iohno(4)
+	case token.sym of {
+	    "CSETLIT" | "STRING" : {
+		*escape(token.str[2:-1]) = 1 | iohno(49, token.str)
+		c := ord(escape(token.str[2:-1])) &
+		rule.prec  := toktbl[c].prec &
+		rule.assoc := toktbl[c].assoc
+	    }
+	    "IDENT"    : {
+		\toktbl[token.str] |
+		    iohno(43, token.str || " line " || line_number)
+		rule.prec  := toktbl[token.str].prec &
+		rule.assoc := toktbl[token.str].assoc
+	    }
+	    default    : 1 = 4	# deliberate failure
+	} | iohno(43, "line ", line_number)
+	token := @next_token_no_nl | fail
+    }
+
+    # Skip semicolon token, if present.
+    (token := token | @next_token_no_nl | fail).sym ~== "SEMICOL"
+
+    # Read in (optional) action.
+    #
+    if token.sym == "LBRACE" then {
+	write_action_as_procedure(next_token, out, rule,
+				  module, source_fname)
+	token := @next_token_no_nl | fail
+    }
+
+    # Skip semicolon token, if present.
+    (token := token | @next_token_no_nl | fail).sym ~== "SEMICOL"
+    return token
+
+end
+
+
+#
+# write_action_as_procedure
+#
+procedure write_action_as_procedure(next_token, out, rule,
+				    module, source_fname)
+
+    local argstr, bracelevel, token, i, neg
+
+    /module := ""
+     argstr := ""
+    #
+    # Decide the number of arguments based on the length of the RHS of
+    # rule.  Exception: Epsilon productions are empty, and pop nothing
+    # off the stack, so take zero args.
+    #
+    if rule.RHS[1] ~=== -2 then {
+	every argstr ||:= "arg" || (1 to *rule.RHS) || ","
+	argstr := trim(argstr, ',')
+    }
+    write(out, "procedure _", rule.no, "_", module, "(", argstr, ")")
+    write(out, "\n$line ", line_number, " ", image(source_fname))
+
+    bracelevel := 1
+    until bracelevel = 0 do {
+	every token := copy_icon_stuff(next_token, out, "RHSARG") do {
+	    case token.sym of {
+		default   : next
+		"LBRACE"  : bracelevel +:= 1
+		"RBRACE"  : bracelevel -:= 1
+		"RHSARG"  : {
+		    until \ (token := @next_token).sym do
+			writes(out, token.str)
+		    if neg := (token.sym == "MINUS") then
+			until \ (token := @next_token).sym do 
+			    writes(out, token.str)
+		    else neg := &null
+		    token.sym == "INTLIT"  | iohno(37, "$"||token.str)
+		    if /neg & token.str ~== "0" then {
+			token.str <= *rule.RHS | iohno(38, "$"||token.str)
+			writes(out, " arg", token.str, " ")
+		    } else {
+			# Code for $0, $-1, etc.
+			#
+			# Warning!  If the name of the stack is changed
+			# in iiparse.lib, it has to be changed here, too.
+			#
+			i := abs(token.str)+1
+			writes(out, " value_stack", module, "[", i, "] ")
+		    }
+	        }
+	    }
+	    if bracelevel = 0 then {
+		write(out, "\nend\n")
+		return token
+	    }
+        }
+    }
+	    
+    iohno(39, "line "|| line_number)
+
+end
+

@@ -1,0 +1,48 @@
+############################################################################
+#
+#	File:     pascal.icn
+#
+#	Subject:  Procedure to write Pascal triangles
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 7, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure writes numeric triangles as "carpets".
+#
+#  The argument determines the number of rows written, default 16.
+#
+############################################################################
+#
+#  Requires:  large integers
+#
+############################################################################
+#
+#  Links:  binocoef
+#
+############################################################################
+
+link binocoef
+
+#  The Pascal Triangle
+
+procedure pascal(n)		#: Pascal triangle
+   local i, j
+
+   /n := 16
+
+   write("width=", n, " height=", n)	# carpet header
+
+   every i := 0 to n - 1 do {
+      every j := 0 to n - 1 do
+         writes(binocoef(i, j) | 0, " ")
+      write()
+      }
+
+end

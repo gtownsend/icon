@@ -1,0 +1,105 @@
+############################################################################
+#
+#	Name:	skout.icn
+#
+#	Title:	Scheme in Icon
+#
+#	Author: Bob Alexander
+#
+#	Date:	February 19, 1995
+#
+#	Description: see skeem.icn
+#
+############################################################################
+
+#
+# skeem -- Scheme in Icon
+#
+# Output utility procedures
+#
+
+procedure Print(x,display)
+   local s,node,sep
+   static symFirst,symRest
+   initial {
+      symFirst := &ucase ++ '!$%&*/:<=>?~_^'
+      symRest := symFirst ++ &digits ++ '.+-'
+      }
+   return {
+      if LLIsNull(x) then "()"
+      else if LLIsPair(x) then {
+	 s := "("
+	 sep := ""
+	 every node := LLPairs(x) do {
+	    s ||:= sep || Print(LLFirst(node),display)
+	    sep := " "
+	    }
+	 s ||:= if LLIsNull(LLRest(node)) then ")"
+	 else " . " || Print(LLRest(node),display) || ")"
+	 }
+      else if x === T then "#t"
+      else if x === F then "#f"
+      else if x === Unbound then "#<unbound>"
+      else if x === EOFObject then "#<eof>"
+      else if type(x) == "Promise" then "#<promise>"
+      else if type(x) == "Port" then "#<" ||
+	    (if find("w",x.option) then "output " else "input ") ||
+	    image(x.file) || ">"
+      else if VectorP(x) then {
+	 s := "#("
+	 sep := ""
+	 every node := !x do {
+	    s ||:= sep || Print(node,display)
+	    sep := " "
+	    }
+	 s ||:= ")"
+	 }
+      else if s := case type(x) of {
+	 "Function": PrintFunction(x,"built-in function")
+	 "Lambda": PrintFunction(x,"interpreted function")
+	 "Macro": PrintFunction(x,"macro")
+	 "Syntax":  PrintFunction(x,"syntax")
+	 } then s
+      else if StringP(x) then if \display then x.value else image(x.value)
+      else if CharP(x) then if \display then x.value else {
+	 "#\\" || (case x.value of {
+	    " ": "space"
+	    "\t": "tab"
+	    "\n": "newline"
+	    "\b": "backspace"
+	    "\d": "delete"
+	    "\e": "escape"
+	    "\f": "formfeed"
+	    "\r": "return"
+	    "\v": "verticaltab"
+	    default: x.value
+	    })
+	 }
+      else if SymbolP(x) then if \display then x else {
+	 (x ? ((=("+" | "-" | "...") |
+	       (tab(any(symFirst)) & tab(many(symRest)) | &null)) &
+	       pos(0)),x) | {
+	    x ? {
+	       s := ""
+	       while s ||:= tab(upto('|\\')) do s ||:= case move(1) of {
+		  "|": "\\|"
+		  default: "\\\\"
+		  }
+	       s ||:= tab(0)
+	       }
+	    "|" || s || "|"
+	    }
+	 }
+      else if numeric(x) then string(x)
+      else "#<Icon(" || image(x) || ")>"
+      }
+end
+
+procedure PrintFunction(fun,fType)
+   local p
+   return case type(p := fun.proc) of {
+      "LLPair": "#<" || fType || " " || (\fun.name | "???") || ">"
+      "procedure": "#<" || image(p) || ">"
+      default: runerr(500,type(p))
+      }
+end

@@ -1,0 +1,123 @@
+############################################################################
+#
+#	File:     bitstrm.icn
+#
+#	Subject:  Procedures to read and write strings of bits in files
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Procedures for reading and writing integer values made up of an
+#  arbitrary number of bits, stored without regard to character
+#  boundaries.
+#
+############################################################################
+#
+#  Usage of BitStreamWrite, by example:
+#
+#       record bit_value(value, nbits)
+#       ...
+#       BitStreamWrite()                        #initialize
+#       while value := get_new_value() do       # loop to output values
+#               BitStreamWrite(outfile, value.nbits, value.value)
+#       BitStreamWrite(outfile)                 # output any buffered bits
+#
+#  Note the interesting effect that BitStreamWrite(outproc), as well as
+#  outputting the complete string, pads the output to an even character
+#  boundary.  This can be dune during construction of a bit string if
+#  the effect is desired.
+#
+#  The "value" argument defaults to zero.
+#
+############################################################################
+#
+#  Usage of BitStreamRead, by example:
+#
+#       BitStreamRead()
+#       while value := BitStreamRead(infile, nbits) do
+#               # do something with value
+#
+#  BitStringRead fails when too few bits remain to satisfy a request.
+#
+############################################################################
+#
+#  See also: bitstr.icn
+#
+############################################################################
+
+procedure BitStreamWrite(outfile,bits,value,outproc)
+    local outvalue
+    static buffer,bufferbits
+    #
+    #  Initialize.
+    #
+    initial {
+	 buffer := bufferbits := 0
+	    }
+    /outproc := writes
+    #
+    #  If this is "close" call, flush buffer and reinitialize.
+    #
+    if /value then {
+	 outvalue := &null
+	 if bufferbits > 0 then
+		  outproc(outfile,char(outvalue := ishift(buffer,8 - bufferbits)))
+	 buffer := bufferbits := 0
+	 return outvalue
+	    }
+    #
+    #  Merge new value into buffer.
+    #
+    buffer := ior(ishift(buffer,bits),value)
+    bufferbits +:= bits
+    #
+    #  Output bits.
+    #
+    while bufferbits >= 8 do {
+	 outproc(outfile,char(outvalue := ishift(buffer,8 - bufferbits)))
+	 buffer := ixor(buffer,ishift(outvalue,bufferbits - 8))
+	 bufferbits -:= 8
+	    }
+    return outvalue
+end
+
+
+procedure BitStreamRead(infile,bits,inproc)
+    local value
+    static buffer,bufferbits
+    #
+    #  Initialize.
+    #
+    initial {
+	 buffer := bufferbits := 0
+	    }
+    #
+    #  Reinitialize if called with no arguments.
+    #
+    if /infile then {
+	 buffer := bufferbits := 0
+	 return
+	    }
+    #
+    #  Read in more data if necessary.
+    #
+    /inproc := reads
+    while bufferbits < bits do {
+	 buffer := ior(ishift(buffer,8),ord(inproc(infile))) | fail
+	 bufferbits +:= 8
+	    }
+    #
+    #  Extract value from buffer and return.
+    #
+    value := ishift(buffer,bits - bufferbits)
+    buffer := ixor(buffer,ishift(value,bufferbits - bits))
+    bufferbits -:= bits
+    return value
+end

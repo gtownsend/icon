@@ -1,0 +1,45 @@
+############################################################################
+#
+#	File:     filedim.icn
+#
+#	Subject:  Procedure to compute file dimensions
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 30, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  filedim(s, p) computes the number of rows and maximum column width
+#  of the file named s.  The procedure p, which defaults to detab, i
+#  applied to each line.  For example, to have lines left as is, use
+#
+#	filedim(s, 1)
+#
+############################################################################
+
+record textdim(cols, rows)
+
+procedure filedim(s, p)
+   local input, rows, cols, line
+
+   /p := detab
+
+   input := open(s) | stop("*** cannot open ", s)
+
+   rows := cols := 0
+
+   while line := p(read(input)) do {
+      rows +:= 1
+      cols <:= *line
+      }
+
+   close(input)
+
+   return textdim(cols, rows)
+
+end

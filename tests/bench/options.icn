@@ -1,0 +1,74 @@
+############################################################################
+#
+#	Name:		options.icn
+#
+#	Title:		Get command-line options
+#
+#	Authors:	Robert J. Alexander, June 10, 1988
+#			Gregg M. Townsend, November 9, 1989
+#
+############################################################################
+#  
+#     options(arg,optstring) -- Get command line options.
+#  
+#     This procedure analyzes the -options on the command line
+#  invoking an Icon program.  The inputs are:
+#  
+#       arg         the argument list as passed to the main procedure.
+#
+#       optstring   a string of allowable option letters. If a
+#                   letter is followed by ":" the corresponding
+#                   option is assumed to be followed by a string of
+#                   data, optionally separated from the letter by
+#                   space. If instead of ":" the letter is followed
+#                   by a "+", the parameter will converted to an
+#                   integer; if a ".", converted to a real.  If opt-
+#                   string is omitted any letter is assumed to be
+#                   valid and require no data.
+#  
+#     It returns a table containing the options that were specified.
+#  The keys are the specified option letters. The assigned values are
+#  the data words following the options, if any, or 1 if the option
+#  has no data. The table's default value is &null.
+#  
+#     If an error is detected, stop() is called with an appropriate
+#  error message.
+#
+#     Options may be freely interspersed with non-option arguments.
+#  An argument of "-" is treated as a non-option.  The special argument
+#  "--" terminates option processing.  Non-option arguments are returned
+#  in the original argument list for interpretation by the caller.
+#  
+############################################################################
+
+procedure options(arg,optstring)
+   local x,i,c,otab,flist,o,p
+   /optstring := string(&letters)
+   otab := table()
+   flist := []
+   while x := get(arg) do
+      x ? {
+         if ="-" & not pos(0) then {
+            if ="-" & pos(0) then break
+            while c := move(1) do
+               if i := find(c,optstring) + 1 then
+                  otab[c] :=
+                     if any(':+.',o := optstring[i]) then {
+                        p := "" ~== tab(0) | get(arg) |
+                              stop("No parameter following -",c)
+                        case o of {
+                           ":": p
+                           "+": integer(p) |
+                                 stop("-",c," needs numeric parameter")
+                           ".": real(p) |
+                                 stop("-",c," needs numeric parameter")
+                           }
+                        }
+                     else 1
+               else stop("Unrecognized option: -",c)
+         }
+         else put(flist,x)
+      }
+   while push(arg,pull(flist))
+   return otab
+end

@@ -1,0 +1,380 @@
+############################################################################
+#
+#	File:     window.icn
+#
+#	Subject:  Procedure for opening window
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     October 10, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Window() opens a window with provisions for option processing and
+#  error handling.  The returned window is assigned to &window if
+#  &window is null.  If the window cannot be opened, the program is
+#  aborted.
+#
+#  The characteristics of the window are set from several sources:
+#  Window's arguments, optionally including the program argument list;
+#  user defaults; and built-in defaults.  These built-in defaults are
+#  the same as for optwindow(): bg=pale gray, fg=black, size=500,300.
+#
+############################################################################
+#
+#  With one exception, arguments to Window() are attribute specifications
+#  such as those used with open() and WAttrib().  Order is significant,
+#  with later attributes overriding earlier ones.
+#
+#  Additionally, the program argument list -- the single argument passed
+#  to the main procedure -- can be passed as an argument to Window().
+#  Options specified with a capital letter are removed from the list and
+#  interpreted as attribute specifications, again in a manner consistent
+#  with optwindow().
+#
+#  Because the Window() arguments are processed in order, attributes that
+#  appear before the program arglist can be overridden by command-line
+#  options when the program is executed.  If attributes appear after the
+#  program arglist, they cannot be overridden.  For example, with
+#
+#	procedure main(args)
+#	Window("size=600,400", "fg=yellow", args, "bg=black")
+#
+#  the program user can change the size and foreground color
+#  but not the background color.
+#
+#  User defaults are applied at the point where the program arglist appears
+#  (and before processing the arglist).  If no arglist is supplied, no
+#  defaults are applied.  Defaults are obtained by calling WDefault().
+#  Icon attribute names are used as option names;  &progname is used
+#  as the program name after trimming directories and extensions.
+#
+#  The following table lists the options recognized in the program arglist,
+#  the corresponding attribute (and WDefault()) names, the default values
+#  if any, and the meanings.  All legal attributes are allowed in the
+#  Window() call, but only these are set from the command line or
+#  environment:
+#
+#	arg	attribute	default		meaning
+#	---	---------	-------		--------------------------
+#	-B	bg		pale gray	background color
+#	-F	fg		black		foreground color
+#	-T	font		 -		text font
+#	-L	label		&progname	window title
+#				(trimmed)
+#
+#	-D	display		 -		window device
+#	-X	posx		 -		horizontal position
+#	-Y	posy		 -		vertical position
+#	-W	width		500		window width
+#	-H	height		300		window height
+#
+#	-S	size		500,300		size
+#	-P	pos		 -		position
+#	-G	geometry	 -		window size and/or position
+#
+#	-A	<any>		 -		use "-A name=value"
+#						to set arbitrary attribute
+#
+#	-!	 -		 -		write open() params to &error
+#						(for debugging)
+#
+############################################################################
+#
+#  Includes:  vdefns
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+
+$include "vdefns.icn"
+
+global wdw_debug			# non-null if to trace open call
+
+
+#  Window(att, ..., arglist, ..., att) -- open window and set &window
+
+procedure Window(args[])
+   local cs, pname, att, omit1, omit2, name, val, a, win
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   wdw_debug := &null
+   att := table()
+
+   # Trim &progname for use as option index and window label.
+   cs := &cset -- &letters -- &digits -- '.$_'
+   &progname ? {
+      while tab(upto(cs)) do
+         move(1)
+      pname := tab(upto('.') | 0)
+   }
+   if pname == "" then
+      pname := &progname
+
+   # Process arguments.
+   every a := !args do
+      case type(a) of {
+         "string": a ? {
+            name := tab(upto("=")) | runerr(205, a)
+            move(1)
+            val := tab(0)
+            wdw_register(att, name, val)
+            }
+         "list": {
+            wdw_defaults(att, a, pname)
+            wdw_options(att, a)
+            }
+         default:
+            runerr(110, a)
+         }
+
+   # Set defaults for certain attributes if not set earlier.
+   /att["fg"] := "black"
+   /att["bg"] := VBackground
+   /att["label"] := pname
+
+   if /att["image"] & not (att["canvas"] === "maximal") then {	# don't override
+      /att["width"] := 500
+      /att["height"] := 300
+      }
+
+   # Open the window.  Defer "font" and "fg" until later because they can
+   # cause failure.  Don't defer "bg", because it affects the initial
+   # window appearance, but try again without it if the open fails.
+   omit1 := set(["fg", "font"])
+   omit2 := set(["fg", "font", "bg"])
+   win := wdw_open(att, omit1 | omit2) | stop(&progname, ": can't open window")
+
+   # Set foreground, background, and font, giving a nonfatal message if
+   # the value is unacceptable.  Then return the window.
+   wdw_attrib(win, att, "fg")
+   wdw_attrib(win, att, "bg")
+   wdw_attrib(win, att, "font")
+   GotoRC(win, 1, 1)			# now that font has been set
+   /&window := win
+   return win
+end
+
+
+#  wdw_defaults(att, arglist, pname) -- find defaults and store in att table
+#
+#  arglist is checked for "-D displayname", which is honored if present.
+#  pname is the program name for calling xdefault.
+#  A list of several attribute names (see code) is checked.
+
+procedure wdw_defaults(att, arglist, pname)
+   local w, oname, dpy
+
+   # We need to have a window in order to read defaults, and unless we honor
+   # the -D option from the command line here it becomes pretty useless.
+   dpy := ("display=" || wdw_peekopt(arglist, "D")) | "fg=black"
+
+   # Open an offscreen window.
+   w := open("Window()", "g", "canvas=hidden", "size=32,32", dpy) |
+      stop(&progname, ": can't open display")
+
+   # Set attributes from environment.  Order is significant here:
+   # pos & size override geometry, and posx/posy/width/height override both.
+   every oname := "display" | "bg" | "fg" | "font" | "windowlabel" | "label" |
+         "geometry" | "size" | "pos" | "posx" | "posy" | "width" | "height" do
+      wdw_register(att, oname, WDefault(w, pname, oname))
+
+   # Delete the offscreen window, and return.
+   Uncouple(w)
+   return
+end
+
+
+#  wdw_peekopt(arglist, ch) -- return value of option 'ch' from arglist
+#
+#  Option cracking rules are identical with wdw_options().
+#  Fails if the option does not appear.
+
+procedure wdw_peekopt(arglist, ch)
+   local a, opt, val
+
+   arglist := copy(arglist)
+   while a := get(arglist) do a ? {
+      if ="-" & (opt := tab(any(&ucase))) then {
+         if pos(0) then
+            val := get(arglist) | fail
+         else
+            val := tab(0)
+         if opt == ch then
+            return val
+         }
+      }
+   fail
+end
+
+
+#  wdw_options(att, arglist) - move options from arglist into att table
+#
+#  Upper-case options in the argument list are stored in the table "att"
+#  under their attribute names (see code for list).  An "option" is a list
+#  entry beginning with "-" and an option letter; its value follows in the
+#  same string (if more characters remain) or in the next entry.
+#
+#  This procedure can be "fooled" if a non-upper-case option is followed
+#  in the next entry by a value that looks like the start of an option.
+#
+#  Options and values are removed from arglist, leaving only the unprocessed
+#  entries.
+#
+#  The special option "-!" takes no value and causes wdw_debug to be set.
+
+procedure wdw_options(att, arglist)
+   local a, opt, name, val, rejects
+
+   rejects := []
+   while a := get(arglist) do a ? {
+      if ="-" & (opt := tab(any(&ucase))) then {
+         if pos(0) then
+            val := get(arglist) | stop(&progname, ": missing value for ", a)
+         else
+            val := tab(0)
+         case opt of {
+            "B":  wdw_register(att, "bg", val)
+            "F":  wdw_register(att, "fg", val)
+            "T":  wdw_register(att, "font", val)
+            "L":  wdw_register(att, "label", val)
+            "D":  wdw_register(att, "display", val)
+            "X":  wdw_register(att, "posx", val)
+            "Y":  wdw_register(att, "posy", val)
+            "W":  wdw_register(att, "width", val)
+            "H":  wdw_register(att, "height", val)
+            "P":  wdw_register(att, "pos", val)
+            "S":  wdw_register(att, "size", val)
+            "G":  wdw_register(att, "geometry", val)
+            "A":  val ? {
+               name := tab(upto("=")) |
+                  stop(&progname, ": malformed -A option: ", val)
+               move(1)
+               wdw_register(att, name, tab(0))
+               }
+            default:  stop(&progname, ": unrecognized option -", opt)
+            }
+         }
+      else if ="-!" & pos(0) then
+         wdw_debug := 1
+      else
+         put(rejects, a)
+      }
+
+   # Arglist is now empty; put back args that we didn't use.
+   while put(arglist, get(rejects))
+   return
+end
+
+
+
+#  wdw_register(att, name, val) -- store attribute val in att[name]
+#
+#  The compound attributes "pos", "size",  and "geometry" are broken down
+#  into their component parts and stored as multiple values.  A runtime
+#  error occurs if any of these is malformed.  Interactions with
+#  "canvas=maximal" are also handled.
+
+procedure wdw_register(att, name, val)
+   wdw_reg(att, name, val) | runerr(205, name || "=" || val)
+   return
+end
+
+procedure wdw_reg(att, name, val)
+   case name of {
+      "size": val ? {		# size=www,hhh
+         att["width"] := tab(many(&digits)) | fail
+         ="," | fail
+         att["height"] := tab(many(&digits)) | fail
+         pos(0) | fail
+         if \att["canvas"] == "maximal" then
+            delete(att, "canvas")
+         }
+      "pos": val ? {		# pos=xxx,yyy
+         att["posx"] := tab(many(&digits)) | fail
+         ="," | fail
+         att["posy"] := tab(many(&digits)) | fail
+         pos(0) | fail
+         }
+      "geometry": val ? {	# geometry=[wwwxhhh][+xxx+yyy]
+         if att["width"] := tab(many(&digits))
+         then {
+            ="x" | fail
+            att["height"] := tab(many(&digits)) | fail
+            if \att["canvas"] == "maximal" then
+               delete(att, "canvas")
+            }
+         if ="+" then {
+            att["posx"] := tab(many(&digits)) | fail
+            ="+" | fail
+            att["posy"] := tab(many(&digits)) | fail
+            }
+         pos(0) | fail
+         }
+      "canvas": {
+         att[name] := val
+         if val == "maximal" then
+            every delete(att, "width" | "height")
+         }
+      default: {
+         att[name] := val
+         }
+      }
+   return
+end
+
+
+#  wdw_open(att, omit) -- open window with attributes from att table
+#
+#  Ignore null or empty attributes and those in the "omit" set.
+#  Trace open call if wdw_debug is set.  Set &window.
+
+procedure wdw_open(att, omit)
+   local args, name
+   static image
+
+   initial image := proc("image", 0)	# protect attractive name
+
+   args := [&progname, "g"]
+   every name := key(att) do
+      if not member(omit, name) then
+         put(args, name || "=" || ("" ~== \att[name]))
+
+   if \wdw_debug then {
+      writes(&errout, "Window: open(", image(args[1]))
+      every writes(&errout, ",", image(args[2 to *args]))
+      write(&errout, ")")
+      }
+
+   return open ! args
+end
+
+
+#  wdw_attrib(win, att, name) -- call WAttrib(win, name=att[name])
+#
+#  Null and empty values are ignored.
+#  Failure is diagnosed on stderr.
+#  The call is traced if wdw_debug is set.
+
+procedure wdw_attrib(win, att, name)
+   local val, s
+   static image
+
+   initial image := proc("image", 0)	# protect attractive name
+
+   val := ("" ~== \att[name]) | return
+   s := name || "=" || val
+   if \wdw_debug then
+      write(&errout, "Window: WAttrib(", image(s), ")")
+   WAttrib(win, s) | write(&errout, &progname, ": can't set ", s)
+   return
+end

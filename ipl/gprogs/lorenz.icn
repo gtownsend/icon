@@ -1,0 +1,118 @@
+############################################################################
+#
+#	File:     lorenz.icn
+#
+#	Subject:  Program to display Lorenz strange attractor
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 5, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This is a barebones version of a display of the Lorenz strange
+#  attractor.  It has deliberately been left simple and free of options so
+#  that the basic idea is clear and so that it can be used as the basis of
+#  more capable versions.
+#
+#  This program is based on material given in "Fractal, Programming in
+#  Turbo Pascal", Roger T. Stevens, M&T Books, 1990.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  numbers, wopen
+#
+############################################################################
+
+link numbers
+link wopen
+
+procedure main()
+   local col, color, colorlist, cx, cy, cz, d0_x, d0_y, d0_z, d1_x
+   local d1_y, d1_z, d2_x, d2_y, d2_z, d3_x, d3_y, d3_z, dt, dt2
+   local i, old_col, old_row, old_y, row, sx, sy, sz, x, x_angle
+   local xt, y, y_angle, yt, z, z_angle, zt
+
+   x_angle  :=  rtod(45)
+   sx  :=  sin(x_angle)
+   cx  :=  cos(x_angle)
+   y_angle  :=  rtod(0)
+   sy  :=  sin(y_angle)
+   cy  :=  cos(y_angle)
+   z_angle  :=  rtod(90)
+   sz  :=  sin(z_angle)
+   cz  :=  cos(z_angle)
+
+   WOpen("label=Lorenz", "width=640", "height=350",
+      "fg=white", "bg=black") | stop("*** cannot open window")
+
+   colorlist := ["red", "blue", "green", "magenta", "cyan", "yellow"]
+
+   color := colorlist[1]
+
+   x  :=  0.0
+   y  :=  1.0
+   z  :=  0.0
+   old_col  :=  round(y * 9 + 320)
+   old_row  :=  round(350 - 6.56 * z)
+   dt  :=  0.01
+   dt2  :=  dt / 2
+   every i := 0 to 8000 do {
+      d0_x  :=  10 * (y-x) * dt2
+      d0_y  :=  (-x * z + 28 * x - y) * dt2
+      d0_z   :=  (x * y - 8 * z / 3) * dt2
+      xt  :=  x + d0_x
+      yt  :=  y + d0_y
+      zt  :=  z + d0_z
+      d1_x  :=  (10 * (yt-xt)) * dt2
+      d1_y  :=  (-xt * zt + 28 * xt - yt) * dt2
+      d1_z   := (xt * yt - 8 * zt / 3) * dt2
+      xt  :=  x + d1_x
+      yt  :=  y + d1_y
+      zt  :=  z + d1_z
+      d2_x  :=  (10 * (yt-xt)) * dt
+      d2_y  :=  (-xt * zt + 28 * xt - yt) * dt
+      d2_z   := (xt * yt - 8 * zt / 3) * dt
+      xt  :=  x + d2_x
+      yt  :=  y + d2_y
+      zt  :=  z + d2_z
+      d3_x  :=  (10 * (yt - xt)) * dt2
+      d3_y  :=  (-xt * zt + 28 * xt - yt) * dt2
+      d3_z  :=  (xt * yt - 8 * zt / 3) * dt2
+                     old_y  :=  y
+      x  :=  x + (d0_x + d1_x + d1_x + d2_x + d3_x) * 0.333333333
+      y  :=  y + (d0_y + d1_y + d1_y + d2_y + d3_y) * 0.333333333
+      z  :=  z +  (d0_z + d1_z + d1_z + d2_z + d3_z) * 0.333333333
+
+      col  :=  round(y * 9 + 320)
+      row  :=  round(350 - 6.56 * z)
+
+      if col < 320 then
+         if old_col >= 320 then {
+            color := get(colorlist)
+            put(colorlist, color)
+            }
+      else if col > 320 then
+         if old_col <= 320 then {
+            color := get(colorlist)
+            put(colorlist, color)
+            }
+
+      Fg(color)
+      DrawLine(old_col, old_row, col, row)
+      old_row := row
+      old_col := col
+ 
+      }
+
+   Event()
+
+end

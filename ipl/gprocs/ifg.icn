@@ -1,0 +1,33 @@
+############################################################################
+#
+#	File:     ifg.icn
+#
+#	Subject:  Procedure to tell if graphics are running
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 14 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  ifg() fails if (a) the running version of Icon does not support
+#  graphics, or (b) if it is, the graphics system is not running.
+#
+############################################################################
+
+procedure ifg()
+   local win
+
+   if (&features == "graphics") &
+      win := open("", "x", "canvas=hidden") then {
+         close(win)
+         return
+         }
+      
+   else fail
+
+end

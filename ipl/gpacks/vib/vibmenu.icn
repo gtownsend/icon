@@ -1,0 +1,468 @@
+############################################################################
+#
+#  vibmenu.icn -- procedures for defining a menu object
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+
+$include "vdefns.icn"
+$include "vibdefn.icn"
+
+global startyMENU, MENU_TALK 
+global MENU_VIDGET
+global reg_list, ins_list
+global SIM_TAB
+
+##########################################################################
+# menu_obj:
+#    v        : vidget used for drawing menu
+#    proc     : name of user callback procedure
+#    id       : unique means of identifying instance
+#    x,y,w,h  : bounding box
+#    label    : menu button label
+#    lx,ly    : label coordinates
+#    style    : style of menu ... currently only pull down is supported
+#    focus    : should focus lines be drawn around this object?
+#    items    : a list of menu items that make up the menu
+#
+# menu_item:
+#    label    : menu choice name
+#    items    : a list of menu_items for a submenu, or an empty list
+#
+# menu_id:
+#    v        : text vidget for label field
+#    item     : corresponding menu_item record
+##########################################################################
+
+record menu_obj(v, proc, id, x, y, w, h, label, lx, ly, style, focus, items)
+record menu_item(label, items)
+record menu_id(tv, item)
+
+##########################################################################
+# create_menu() creates a menu instance and draws the menu button.
+##########################################################################
+procedure create_menu(x, y, label, style)
+   local r, id
+
+   id := next_id("menu")
+   /style := "pull"
+   r := menu_obj(, "menu_cb" || id, "menu" || id,
+                  x, y, 0, 0, label, 0, 0, style, 0, [])
+   r.v := Vbutton(ROOT, x, y, APPWIN, label, , id, V_RECT)
+   VRemove(ROOT, r.v, 1)
+   return r
+end
+
+##########################################################################
+# copy_submenu() recursively copies a cascading menu.
+##########################################################################
+procedure copy_submenu(old, temp)
+   local i
+
+   /temp := copy(old)
+   if *old.items > 0 then {
+      temp.items := []
+      every put(temp.items, copy_submenu(!old.items))
+   }
+   return temp
+end
+
+##########################################################################
+# copy_menu() makes a copy of a menu old and returns it in new.
+##########################################################################
+procedure copy_menu(new, old)
+   every put(new.items, copy_submenu(!old.items))
+end
+
+##########################################################################
+# add_item() adds a menu choice with name "label" to the menu at the
+#            location indicated by "after".
+##########################################################################
+procedure add_item(menu, label, after)
+   local choice
+
+   after >:= *menu.items
+   choice := menu_item(label, [])
+   menu.items := menu.items[1:after+1] ||| [choice] ||| menu.items[after+1:0]
+end
+
+##########################################################################
+# update_menu_bb() updates various attributes of the menu that
+#                  change when the menu button label is altered.
+##########################################################################
+procedure update_menu_bb(object)
+   object.w := object.v.aw		# disallow changes
+   object.h := object.v.ah
+   # .lx/.ly values must agree with locations drawn by menu vidgets
+   # else the simulation of a menu leaves the label in the wrong place
+   # and moving the menu then leaves debris behind on the screen
+   object.lx := object.x + 4
+   object.ly := object.y + WAttrib(APPWIN, "ascent") + 4
+end
+
+##########################################################################
+# draw_menu() draws the given menu button object.
+##########################################################################
+procedure draw_menu(r)
+   VResize(r.v, r.x, r.y, r.w, r.h)
+   VDraw(r.v)
+   return r
+end
+
+##########################################################################
+# load_menu() restores a menu object from session code.
+##########################################################################
+procedure load_menu(r, o)
+   r.style := o.sty
+   r.label := o.lbl
+   r.items := load_submenu(o.etc)
+   r.v := Vbutton(ROOT, r.x, r.y, APPWIN, r.label, , r.id, V_RECT)
+   VRemove(ROOT, r.v, 1)
+end
+
+##########################################################################
+# load_submenu() restores a menu or submenu list.
+##########################################################################
+procedure load_submenu(spec)
+   local i, r, lst
+
+   lst := []
+   while i := get(spec) do {
+      r := menu_item()
+      r.label := i
+      if type(spec[1]) == "list" then {
+         r.items := load_submenu(get(spec))
+         }
+      else
+         r.items := []
+      put(lst, r)
+      }
+   return lst
+end
+
+##########################################################################
+# save_menu() augments the record for saving a menu object.
+##########################################################################
+procedure save_menu(r, o)
+   r.typ := "Menu"
+   r.lbl := o.label
+   r.sty := o.style
+   r.etc := save_submenu(o.items)
+   return
+end
+
+##########################################################################
+# save_submenu() builds a list representing a submenu.
+##########################################################################
+procedure save_submenu(items)
+   local l, i
+   l := []
+   every i := !items do {
+      put(l, i.label)
+      if *i.items > 0 then
+         put(l, save_submenu(i.items))
+      }
+   return l
+end
+
+##########################################################################
+# simulate_sub_menu() is called by simulate_menu to recursively construct
+#                     WIT submenus and place them in a table for reference
+#                     by simulate_menu().
+##########################################################################
+procedure simulate_sub_menu(obj, label)
+   local i, temp_list
+
+   every i := 1 to *obj.items do {
+      if *obj.items[i].items > 0 then
+         simulate_sub_menu(obj.items[i], label || "_" || obj.items[i].label)
+   }
+   temp_list := [&window]
+   every i := 1 to *obj.items do {
+      put(temp_list, obj.items[i].label)
+      if *obj.items[i].items > 0 then
+         put(temp_list, SIM_TAB["id_" || label || "_" || obj.items[i].label])
+      else
+          put(temp_list, &null)		# null callback
+   }
+   SIM_TAB["id_" || label] := Vsub_menu ! temp_list
+end
+
+##########################################################################
+# simulate_menu() creates a complete WIT menu object so that the
+#                 VIB user can see what the menu looks like without
+#                 prototyping.
+##########################################################################
+procedure simulate_menu(obj)
+   local i, temp_list, sim_menu, tmp
+
+   SIM_TAB := table()
+   every i := 1 to *obj.items do {
+      if *obj.items[i].items > 0 then
+         simulate_sub_menu(obj.items[i], obj.items[i].label)
+   }
+   temp_list := [&window]
+   every i := 1 to *obj.items do {
+      put(temp_list, obj.items[i].label)
+      if *obj.items[i].items > 0 then
+         put(temp_list, SIM_TAB["id_" || obj.items[i].label])
+      else
+         put(temp_list, &null)		# null callback
+   }
+   sim_menu := Vmenu_bar_item(&window, obj.label, , , , , Vsub_menu ! temp_list)
+   tmp := ScratchCanvas(ROOT.win, obj.w, obj.h)
+   CopyArea(ROOT.win, tmp, obj.x, obj.y, obj.w, obj.h)
+   VInsert(ROOT, sim_menu, obj.x, obj.y)
+   VResize(sim_menu)
+   VEvent(sim_menu, &mpress)
+   VRemove(ROOT, sim_menu, 1)
+   CopyArea(tmp, ROOT.win, 0, 0, obj.w, obj.h, obj.x, obj.y)
+   EraseArea(tmp)
+end
+
+##########################################################################
+# menu_atts() defines the attribute sheet template for a menu object.
+##########################################################################
+procedure menu_atts()
+   local tempy
+
+   MENU_TALK := Vdialog(&window, PAD, PAD)
+   tempy := 0
+   VRegister(MENU_TALK,
+      Vtext(&window, "menu label: ", , 1, TEXTCHARS, LBMASK), 0, tempy)
+   tempy +:= PAD
+   VRegister(MENU_TALK,
+      Vtext(&window, "ID:         ", , 2, TEXTCHARS, IDMASK), 0, tempy)
+   tempy +:= PAD
+   VRegister(MENU_TALK,
+      Vtext(&window, "callback:   ", , 3, TEXTCHARS, CBMASK), 0, tempy)
+
+   VRegister(MENU_TALK,
+      Vtext(&window, "x: ", , 4, 3, &digits), 80 + TEXTWIDTH + 10, 0)
+   VRegister(MENU_TALK,
+      Vtext(&window, "y: ", , 5, 3, &digits), 80 + TEXTWIDTH + 10, PAD)
+   VFormat(MENU_TALK)
+   startyMENU := tempy
+end
+
+##########################################################################
+# display_menu_atts() displays the attribute sheet with the current
+#                     attributes for the given menu instance.
+##########################################################################
+procedure display_menu_atts(object)
+   local i, data, send_data, new, v, dw, l
+   initial menu_atts()
+
+   new := copy(object)
+   new.y -:= CANVASY
+   new.items := []
+   copy_menu(new, object)
+
+   repeat {
+
+      menu_list_atts(MENU_TALK, startyMENU, new.items)
+      VFormat(MENU_TALK)
+
+      MENU_VIDGET := &null
+      send_data := [new.label, new.id, new.proc, new.x, new.y]
+      every put(send_data, (!new.items).label)
+      data := VOpenDialog(MENU_TALK, , "menu_dialog", send_data, "Okay")
+      every VUnregister(MENU_TALK, !reg_list)
+      every VRemove(MENU_TALK, !ins_list, 1)
+
+      if data === send_data then
+         fail					# cancelled
+
+      new.label  := strip(get(data))
+      new.id     := strip(get(data))
+      new.proc   := strip(get(data))
+      new.x      := get(data)
+      new.y      := get(data)
+      every (!new.items).label := get(data)
+
+      # if "add" or "del" was pressed, process it and loop to re-post dialog
+      if \MENU_VIDGET then {
+         l := []
+         every i := 1 to *new.items do {
+            v := reg_list[i] 
+            if v.ay - PAD < MENU_VIDGET.ay-1 < v.ay then
+               put(l, menu_item("", []))
+            if v.ay ~= MENU_VIDGET.ay-1 then
+               put(l, new.items[i])
+         }
+         if MENU_VIDGET.ay-1 > reg_list[*new.items].ay | *l = 0 then
+            put(l, menu_item("", []))
+         new.items := l
+         next
+      }
+
+      # check for legal field values
+
+      if illegal(new.id, "ID", "s") |
+         illegal(new.label, "Label", "l") | 
+         illegal(new.proc, "Callback", "p") |
+         illegal(new.x, "X", "i") |
+         illegal(new.y, "Y", "i")
+      then
+         fail
+
+      # everything is valid
+
+      dw := VFWidth * (*new.label - *object.label)
+
+      object.label := new.label
+      object.id := new.id
+      object.proc := new.proc
+      object.items := new.items
+
+      object.v.s := object.label
+      object.v.aw := object.w + dw
+
+      unfocus_object(object)
+      move_object(object, new.x, new.y + CANVASY, object.w, object.h)
+      focus_object(object)
+      break
+   }
+end
+
+##########################################################################
+# display_submenu_atts() displays the attribute sheet with the current
+#                        attributes for the given submenu instance.
+##########################################################################
+procedure display_submenu_atts(button, val)
+   local submenu_talk, send_data, data, old_reg, old_ins
+   local entry, items, s, i, v
+
+   old_reg := reg_list
+   old_ins := ins_list
+   entry := button.id.item
+   items := copy(entry.items)
+   if *items = 0 then
+      every 1 to 3 do 
+         put(items, menu_item("", []))
+
+   repeat {
+
+      submenu_talk := Vdialog(&window, PAD, PAD)
+      v := Vmessage(&window, "\"" || button.id.tv.data || \"\" submenu entries")
+      VInsert(submenu_talk, v, 0, 0)
+      menu_list_atts(submenu_talk, 0, items)
+      VFormat(submenu_talk)
+
+      MENU_VIDGET := &null
+      send_data := []
+      every put(send_data, (!items).label)
+      data := VOpenDialog(submenu_talk, , "submenu_dialog", send_data, "Okay")
+      every VUnregister(MENU_TALK, !reg_list)
+      every VRemove(MENU_TALK, !ins_list, 1)
+
+      if data === send_data then {
+         reg_list := old_reg
+         ins_list := old_ins
+         fail					# cancelled
+      }
+
+      every (!items).label := get(data)		# update new labels
+
+      if *(items := update_menu_list(items)) > 0 then
+         next					# loop to re-post dialog
+
+      # the revised list has been accepted
+
+      entry.items := items
+      VErase(button)
+      if *items = 0 then
+         s := "create submenu"
+      else
+         s := "edit submenu (" || *items || ")"
+      button.aw +:= VFWidth * (*s - *button.s)
+      button.s := s
+      VResize(button)
+      VDraw(button)
+      break
+   }
+   reg_list := old_reg
+   ins_list := old_ins
+end
+
+##########################################################################
+#  menu_list_atts() adds the menu items (with add/del/submenu buttons)
+#                     and okay/cancel buttons to a dialog box.
+#                     ins_list and reg_list are set.
+##########################################################################
+procedure menu_list_atts(menu, y, itemlist)
+   local i, s, v, id
+
+   # construct text fields with "add", "del", and "submenu" buttons
+
+   reg_list := []
+   ins_list := []
+   every i := 0 to *itemlist do {
+      y +:= PAD
+
+      v := Vbutton(&window, "add", menu_mod_cb, V_OK, , 28, 17)
+      VInsert(menu, v, 0, y + PAD / 2)
+      put(ins_list, v)
+
+      if i = 0 then
+         next
+
+      v := Vbutton(&window, "del", menu_mod_cb, V_OK, , 28, 17)
+      VInsert(menu, v, 35 + TEXTWIDTH, y + 1)
+      put(ins_list, v)
+
+      v := Vtext(&window, "", , 100 + i, TEXTCHARS, LBMASK)
+      VRegister(menu, v, 35, y)
+      put(reg_list, v)
+      id := menu_id(v, itemlist[i])
+
+      if *itemlist[i].items = 0 then
+         s := "create submenu"
+      else
+         s := "edit submenu (" || *itemlist[i].items || ")"
+      v := Vbutton(&window, s, display_submenu_atts, id, , , 17)
+      VInsert(menu, v, 35 + TEXTWIDTH + 40, y + 1)
+      put(ins_list, v)
+   }
+
+   # add "Okay" and "Cancel"
+   y +:= 2 * PAD
+   v := Vbutton(&window, "Okay", , V_OK, , 50, 30)
+   VInsert(menu, v, TEXTWIDTH / 2 + 30, y)
+   put(ins_list, v)
+   v := Vbutton(&window, "Cancel", , V_CANCEL, , 50, 30)
+   VInsert(menu, v, TEXTWIDTH / 2 + 100, y)
+   put(ins_list, v)
+end
+
+##########################################################################
+#  update_menu_list() creates a new item list reflecting adds and deletes.
+##########################################################################
+procedure update_menu_list(oldlist)
+   local newlist, v, i
+
+   if /MENU_VIDGET then
+      fail
+   newlist := []
+   every i := 1 to *oldlist do {
+      v := reg_list[i] 
+      if v.ay - PAD < MENU_VIDGET.ay-1 < v.ay then
+         put(newlist, menu_item("", []))
+      if v.ay ~= MENU_VIDGET.ay-1 then
+         put(newlist, oldlist[i])
+   }
+   if MENU_VIDGET.ay-1 > reg_list[*oldlist].ay then
+      put(newlist, menu_item("", []))
+   MENU_VIDGET := &null
+   return newlist
+end
+
+##########################################################################
+# menu_mod_cb is called when an "add" or "del" button is pressed.
+##########################################################################
+procedure menu_mod_cb(v)
+   MENU_VIDGET := v
+end

@@ -1,0 +1,68 @@
+############################################################################
+#
+#	File:     oldicon.icn
+#
+#	Subject:  Program to update the date in an Icon program header
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 23, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program updates the date line in a standard Icon program header.
+#  The old file is saved with the suffix ".bak".
+#
+#  The file then is brought up in the vi editor unless the -f option
+#  is specified.
+#
+############################################################################
+#
+#  Requires:  system(), vi(1), UNIX
+#
+############################################################################
+#
+#  Links:  datetime, options
+#
+############################################################################
+
+link datetime
+link options
+
+procedure main(args)
+   local name, input, output, line, opts
+
+   opts := options(args, "f")
+
+   name := (args[1] | "foo")
+   if (*name < 4) | (name[-4:0] ~== ".icn") then name ||:= ".icn"
+
+   if system("cp " || name || " " || name || ".bak >/dev/null") ~= 0 then {
+      if /opts["f"] then system("vi " || name)	# if file didn't exist
+      exit()
+      }
+
+   input := open(name || ".bak") | stop("*** cannot open backup file")
+
+   output := open(name, "w") | stop("*** cannot open ", name, " for writing")
+
+   repeat {				# to provide a way out ...
+      every 1 to 8 do write(output, read(input)) | break
+      line := read(input) | break
+      line ? {
+         write(output, ="#	Date:     ", date()) | write(output, tab(0))
+         }
+      break
+      }
+
+   while write(output, read(input))
+
+   close(output)
+
+   if /opts["f"] then system("vi " || name)
+
+end

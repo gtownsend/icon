@@ -1,0 +1,62 @@
+############################################################################
+#
+#	File:     ipatch.icn
+#
+#	Subject:  Program to patch iconx path in executable
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     September 30, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Usage:  ipatch file path
+#
+#     Ipatch changes the path to iconx, the Icon interpreter, that is
+#  embedded in an Icon executable file under Unix.  Because the headers
+#  of such files are not designed to expand,  a different form of header
+#  is written to accommodate a possibly-longer path.
+#
+############################################################################
+#
+#  Requires:  Unix
+#
+############################################################################
+
+procedure main(args)
+   local fname, path, f, header, hlength
+
+   if *args ~= 2 then
+      stop("usage: ", &progname, " file iconx")
+   fname := get(args)
+   path := get(args)
+
+   f := open(fname, "rwu") | stop("cannot open ", fname, " for writing")
+   header := reads(f, 1000) | stop(fname, ": empty file")
+
+   header ? {
+     (tab(find("\n[executable Icon binary follows]\n")) & tab(find("\f\n\0"))) |
+	 stop(fname, ": not an Icon executable")
+      hlength := &pos - 1
+   }
+
+   header := "#!/bin/sh" ||
+      "\n" ||
+      "\nexec ${ICONX-" || path || "} $0 ${1+\"$@\"}" ||
+      "\n" ||
+      "\n[executable Icon binary follows]" ||		# must appear exactly
+      "\n"
+
+   if *header + 3 > hlength then
+      stop("cannot patch: path is too long to fit")
+
+   if not close(open(path)) then
+      write(&errout, "warning: cannot open ", path, "; patching anyway")
+
+   seek(f, 1) | stop("cannot reposition ", fname)
+   writes(f, left(header, hlength)) | stop("write failed")
+end

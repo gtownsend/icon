@@ -1,0 +1,440 @@
+############################################################################
+#
+#	Name:	sknumber.icn
+#
+#	Title:	Scheme in Icon
+#
+#	Author: Bob Alexander
+#
+#	Date:	March 23, 1995
+#
+#	Description: see skeem.icn
+#
+############################################################################
+
+#
+# skeem -- Scheme in Icon
+#
+# Number procedures
+#
+
+#
+# Initialize
+#
+# List entries are described in skfun.icn.
+#
+procedure InitNumber()
+   DefFunction([
+      ABS,
+      ACOS,
+      ADD,&null,"+",
+      ASIN,
+      ATAN,1,2,
+      CEILING,
+      COMPLEX_P,
+      COS,
+      DIVIDE,"oneOrMore","/",
+      EQ,"twoOrMore","=",
+      EVEN_P,
+      EXACT_2_INEXACT,
+      EXACT_P,
+      EXP,
+      EXPT,2,
+      FLOOR,
+      GCD,&null,
+      GE,"twoOrMore",">=",
+      GT,"twoOrMore",">",
+      INEXACT_2_EXACT,
+      INEXACT_P,
+      INTEGER_P,
+      LCM,&null,
+      LE,"twoOrMore","<=",
+      LOG,
+      LT,"twoOrMore","<",
+      MAX,"oneOrMore",
+      MIN,"oneOrMore",
+      MODULO,2,
+      MULTIPLY,&null,"*",
+      NE,"twoOrMore","<>",
+      NEGATIVE_P,
+      NUMBER_2_STRING,1,2,
+      NUMBER_P,
+      ODD_P,
+      POSITIVE_P,
+      QUOTIENT,2,
+      RATIONAL_P,
+      REAL_P,
+      REMAINDER,2,
+      ROUND,
+      SIN,
+      SQRT,
+      STRING_2_NUMBER,1,2,
+      SUBTRACT,"oneOrMore","-",
+      TAN,
+      TRUNCATE,
+      ZERO_P])
+   return
+end
+
+
+#
+# Numbers
+#
+
+procedure NUMBER_P(x)
+   return REAL_P(x)
+end
+
+procedure COMPLEX_P(x)
+   return REAL_P(x)
+end
+
+procedure REAL_P(x)
+   return (type(x) == ("integer" | "real"),T) | F
+end
+
+procedure RATIONAL_P(x)
+   return INTEGER_P(x)
+end
+
+procedure INTEGER_P(x)
+   return (type(x) == "integer",T) | F
+end
+
+procedure EXACT_P(x)
+   return (type(numeric(x)) == "real",F) | T
+end
+
+procedure INEXACT_P(x)
+   return (type(numeric(x)) == "real",T) | F
+end
+
+invocable "<":2
+
+procedure LT(n[])
+   static op
+   initial op := proc("<",2)
+   return NumericPredicate(n,op)
+end
+
+invocable "<=":2
+
+procedure LE(n[])
+   static op
+   initial op := proc("<=",2)
+   return NumericPredicate(n,op)
+end
+
+invocable "=":2
+
+procedure EQ(n[])
+   static op
+   initial op := proc("=",2)
+   return NumericPredicate(n,op)
+end
+
+invocable ">=":2
+
+procedure GE(n[])
+   static op
+   initial op := proc(">=",2)
+   return NumericPredicate(n,op)
+end
+
+invocable ">":2
+
+procedure GT(n[])
+   static op
+   initial op := proc(">",2)
+   return NumericPredicate(n,op)
+end
+
+invocable "~=":2
+
+procedure NE(n[])
+   static op
+   initial op := proc("~=",2)
+   return NumericPredicate(n,op)
+end
+
+procedure ZERO_P(n)
+   return (n = 0,T) | F
+end
+
+procedure POSITIVE_P(n)
+   return (n > 0,T) | F
+end
+
+procedure NEGATIVE_P(n)
+   return (n < 0,T) | F
+end
+
+procedure ODD_P(n)
+   return (n % 2 ~= 0,T) | F
+end
+
+procedure EVEN_P(n)
+   return (n % 2 = 0,T) | F
+end
+
+procedure MAX(n[])
+   local result,x
+   result := get(n)
+   every x := !n do {
+      if type(x) == "real" then result := real(result)
+      result <:= x
+      }
+   return result
+end
+
+procedure MIN(n[])
+   local result,x
+   result := get(n)
+   every x := !n do {
+      if type(x) == "real" then result := real(result)
+      result >:= x
+      }
+   return result
+end
+
+invocable "+":2,"+":1
+
+procedure ADD(n[])
+   static op,op1
+   initial {
+      op := proc("+",2)
+      op1 := proc("+",1)
+      }
+   return Arithmetic(n,op,op1,0)
+end
+
+invocable "*":2,"+":1
+
+procedure MULTIPLY(n[])
+   static op,op1
+   initial {
+      op := proc("*",2)
+      op1 := proc("+",1)
+      }
+   return Arithmetic(n,op,op1,1)
+end
+
+invocable "-":2,"-":1
+
+procedure SUBTRACT(n[])
+   static op,op1
+   initial {
+      op := proc("-",2)
+      op1 := proc("-",1)
+      }
+   return Arithmetic(n,op,op1)
+end
+
+procedure DIVIDE(n[])
+   return Arithmetic(n,Divide,Reciprocal)
+end
+
+procedure Divide(n1,n2)
+   return n1 / ZeroDivCheck(DIVIDE,n2)
+end
+
+procedure Reciprocal(n)
+   return Divide(1.0,n)
+end
+
+procedure ZeroDivCheck(fName,n)
+   return if n = 0 then Error(fName,"divide by zero") else n
+end
+
+procedure ABS(n)
+   return abs(n)
+end
+
+procedure QUOTIENT(num,den)
+   return integer(num) / ZeroDivCheck(QUOTIENT,integer(den))
+end
+
+procedure REMAINDER(num,den)
+   return num % ZeroDivCheck(REMAINDER,den)
+end
+
+procedure MODULO(num,den)
+   local result
+   result := num % ZeroDivCheck(REMAINDER,den)
+   if result ~= 0 then
+      result +:= if 0 > num then 0 <= den else 0 > den
+   return result
+end
+
+procedure GCD(n[])
+   local min,i,areal,x
+   min := 0 < abs(!n)
+   if /min then return 0
+   every i := 1 to *n do {
+      x := numeric(n[i])
+      areal := type(x) == "real"
+      min >:= 0 < (n[i] := abs(x))
+      }
+   x := ((every i := min to 2 by -1 do !n % i ~= 0 | break),i) | 1
+   return (\areal,real(x)) | x
+end
+
+procedure LCM(n[])
+   local max,i,areal,x
+   max := 0
+   every i := 1 to *n do {
+      x := numeric(n[i])
+      areal := type(x) == "real"
+      max <:= n[i] := abs(x)
+      }
+   if max = 0 then return 1
+   x := ((every i := seq(max,max) do i % !n ~= 0 | break),i)
+   return (\areal,real(x)) | x
+end
+
+procedure FLOOR(n)
+   local intn
+   if type(n) == "integer" then return n
+   intn := integer(n)
+   return real(if n < 0.0 & n ~= intn then intn - 1 else intn)
+end
+
+procedure CEILING(n)
+   local intn
+   if type(n) == "integer" then return n
+   intn := integer(n)
+   return real(if n > 0.0 & n ~= intn then intn + 1 else intn)
+end
+
+procedure TRUNCATE(n)
+   return (type(n) == "integer",n) | real(integer(n))
+end
+
+procedure ROUND(n)
+   return (
+      if type(n) == "integer" then n
+      else real(Round(n)))
+end
+
+procedure Round(n)
+   local intn,diff
+   intn := integer(n)
+   diff := abs(n) - abs(intn)
+   return (
+      if diff < 0.5 then intn
+      else if diff > 0.5 then
+	 if n < 0.0 then intn - 1
+	 else intn + 1
+      else if intn % 2 = 0 then
+	 intn
+      else if n < 0.0 then
+	 intn - 1
+      else
+	 intn + 1)
+end
+
+procedure EXP(n)
+   return exp(n)
+end
+
+procedure LOG(n)
+   return log(n)
+end
+
+procedure SIN(n)
+   return sin(n)
+end
+
+procedure COS(n)
+   return cos(n)
+end
+
+procedure TAN(n)
+   return tan(n)
+end
+
+procedure ASIN(n)
+   return asin(n)
+end
+
+procedure ACOS(n)
+   return acos(n)
+end
+
+procedure ATAN(num,den)
+   return atan(num,den)
+end
+
+procedure SQRT(n)
+   return sqrt(n)
+end
+
+procedure EXPT(n1,n2)
+   return n1 ^ n2
+end
+
+procedure EXACT_2_INEXACT(n)
+   return real(n)
+end
+
+procedure INEXACT_2_EXACT(n)
+   return Round(n)
+end
+
+
+#
+# Numerical input and output.
+#
+
+procedure STRING_2_NUMBER(s,rx)
+   return StringToNumber(s.value,rx) | F
+end
+
+procedure NUMBER_2_STRING(n,rx)
+   return String(
+      if \rx ~= 10 then
+	 AsRadix(n,rx)
+      else
+	 string(n)
+      ) | Error(NUMBER_2_STRING,"can't convert")
+end
+
+#
+# Procedure to return print representation of a number in specified
+# radix (2 - 36).
+#
+procedure AsRadix(i,radix)
+  local result,sign
+  static digits
+  initial digits := &digits || &lcase
+  if radix <= 1 then runerr(205,radix)
+  if i = 0 then return "0"
+  sign := (i < 0,"-") | ""
+  i := abs(i)
+  result := ""
+  until i = 0 do {
+    result := (digits[i % radix + 1] | fail) || result
+    i /:= radix
+  }
+  return sign || result
+end
+
+procedure Arithmetic(nList,op,op1,zeroArgValue)
+   local result,x
+   if not nList[1] then return \zeroArgValue
+   if not nList[2] & \op1 then return op1(nList[1])
+   else {
+      result := get(nList)
+      every x := !nList do
+	 result := op(result,x) | fail
+      return result
+      }
+end
+
+procedure NumericPredicate(nList,op)
+   local result,x
+   result := get(nList)
+   every x := !nList do
+      result := op(result,x) | (if &errornumber then fail else return F)
+   return T
+end

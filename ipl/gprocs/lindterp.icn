@@ -1,0 +1,72 @@
+############################################################################
+#
+#	File:     lindterp.icn
+#
+#	Subject:  Procedure to interpret and draw L-System strings
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 14, 1009
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure interpreters strings of characters produced by
+#  L-Systems and draws them using turtle graphics.
+#
+############################################################################
+#
+#  Links:  lindrec, turtle
+#
+############################################################################
+
+link lindrec
+link turtle
+
+global size
+
+#  The string to be interpreted is s.  length is the length of line segments
+#  and delta is the amount of direction change.
+
+procedure lindterp(x, y, lsys, gener, length, color, fnc)
+   local rewrite, delta, axiom, symbols, c
+
+   /size := 500
+   /x := size / 2
+   /y := size / 2
+   rewrite := lsys.rewrite
+   axiom := lsys.axiom
+   delta := lsys.delta
+   /gener := lsys.gener
+   /length := lsys.length
+
+#  The table symbols contains definitions for other symbols as
+#  string of other characters.  It remains to be seen how this
+#  will be represented.  Note also there is a potential for
+#  circularity and unbounded recursion.
+
+   symbols := table()				# table of defined symbols
+
+   TReset()
+   TGoto(x, y)
+
+   every c := lindgen(!axiom, rewrite, gener) do
+      case c of {
+         "F":   TDraw(length)			# draw forward
+         "f":   TSkip(length)			# skip forward
+         "+":   TRight(delta)			# turn right
+         "-":   TLeft(delta)			# turn left
+         "[":   TSave()				# save state
+         "]":   TRestore()			# restore state
+						# interpret defined symbol
+         default:   lindterp(\symbols[c], length, delta)
+         }					# ignore other characters
+
+   WFlush()
+
+   return
+
+end

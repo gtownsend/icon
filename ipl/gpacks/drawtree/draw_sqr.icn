@@ -1,0 +1,333 @@
+$include "info.icn"
+
+$define Win_Size    2000
+$define BG          "white"
+$define FG          "black"
+$define START       15
+
+# set the default for DrawTree_Square_R
+procedure drawtree_square_default(fg, bg)
+
+   local draw_record
+
+   draw_record := DrawTree_Square_R()
+
+   draw_record.win_width := Win_Size
+   draw_record.win_height := Win_Size
+   if /fg then draw_record.fg := FG else draw_record.fg := fg
+   if /bg then draw_record.bg  := BG else draw_record.bg := bg
+   draw_record.color_list := [1, 2, 3, 4]
+   draw_record.color_list_u := 
+       ["red", "blue", "green", "orange", "yellow", "brown", "purple"]
+   draw_record.num_color := 4
+   draw_record.win :=
+      WOpen("canvas=hidden", "size=" || Win_Size || "," || Win_Size + 100,
+            "bg=" || draw_record.bg, "fg=" || draw_record.fg)
+   draw_record.linewidth   := 10
+   draw_record.gridwidth   := 2
+   draw_record.line_pos    := VER
+   draw_record.justification := MIDDLE
+   draw_record.length      := 580
+   draw_record.space       := 2
+   draw_record.move        := 15
+   draw_record.under       := &null
+   draw_record.population  := &null
+   draw_record.x           := START
+   draw_record.y           := START
+   draw_record.num_children_code := &null
+   draw_record.tree        := &null
+   draw_record.bar         := 1
+
+   draw_record.menu := ["background", format_square_cb, "color list", 
+                        format_square_cb, "linewidth", format_square_cb, 
+                        "space", format_square_cb, "length", format_square_cb,
+                        "index", format_square_cb, 
+                        "justification", format_square_cb,
+                        "snapshot", format_square_cb, "grid", format_square_cb,
+                        "line pos", format_square_cb, 
+                        "grid format", format_square_cb,
+                        "population", format_square_cb,
+                        "color format", format_square_cb,
+                        "tree", format_square_cb,
+                        "bar", format_square_cb]
+
+   return draw_record
+
+end
+
+
+# draw the tree with grids
+procedure drawtree_square(draw_record)
+
+   \draw_record.num_children_code &
+    draw_record.num_children_code  :=  children.num_children / (*draw_record.color_list)
+
+   draw_grid(draw_record)
+   drawtree_square_rec(draw_record, children, 0, draw_record.x,
+                   draw_record.y, draw_record.linewidth,
+                   draw_record.length)
+   \draw_record.tree & drawtree_square_line(draw_record, children, 0, draw_record.x, 
+                                            draw_record.y, draw_record.length)
+
+   return
+
+end
+
+
+# draw a grid
+procedure draw_grid_blue(draw_record)
+
+   local win, row
+  
+   win := Clone(draw_record.win)
+   Fg(win, "light-blue")
+
+   every row := draw_record.move 
+         to draw_record.window_size by draw_record.move do 
+     DrawLine(win, row, 0, row, draw_record.window_size) 
+
+end
+
+
+# draw a grid by using color
+procedure draw_grid(draw_record)
+
+   local win, row, id, length
+ 
+   EraseArea(draw_record.win)
+
+   if draw_record.gridwidth = 0 then return
+
+   win := Clone(draw_record.win, "linewidth=" || draw_record.gridwidth)
+   id := 1
+   length := 2 * START + draw_record.length 
+
+   every row := START to draw_record.length/2  by draw_record.move do  {
+
+     Fg(win, draw_record.color_list_u[draw_record.color_list[id]])    
+     if draw_record.line_pos === VER then 
+        draw_ver(win, draw_record, row, length) 
+     else 
+        draw_hoz(win, draw_record, row, length) 
+
+     if id >= *draw_record.color_list then id := 1 else id +:= 1
+
+   }
+
+end
+
+
+# draw the grid line vertical
+procedure draw_ver(win, draw_record, row, length)
+
+   case draw_record.justification of {
+
+      LEFT   : {
+           DrawLine(win, length - row * 2 + START, START, 
+                    length - row * 2 + START, draw_record.win_height)  
+                 }
+      MIDDLE : {
+           DrawLine(win, row, START, row, draw_record.win_height) 
+           DrawLine(win, length - row, START, length - row, 
+                    draw_record.win_height)  }
+      RIGHT  : {
+           DrawLine(win, row * 2, START, 
+                    row * 2, draw_record.win_height)  
+                 }
+   }
+ 
+   return
+
+end
+
+
+
+# draw the grid line horizontal
+procedure draw_hoz(win, draw_record, row, length)
+
+   case draw_record.justification of {
+
+      LEFT : {
+          DrawLine(win, START, row * 2,
+                   draw_record.win_width, row * 2)
+             }
+      MIDDLE : {
+          DrawLine(win, START, row, draw_record.win_width, row) 
+          DrawLine(win, START, length - row, draw_record.win_width, 
+           length - row) 
+         }
+      RIGHT : {
+          DrawLine(win, START, length - row * 2 + START, 
+                   draw_record.win_width, length - row * 2 + START)
+            }
+
+
+   }
+   return
+
+end
+
+
+
+# draw the tree seperated with line between each node
+procedure drawtree_square_rec(draw_record, children, id, x, y, width, length)
+
+    local gen, new_id, win, x_new, y_new, new_length, x_o, tmp, angle
+
+    win := Clone(draw_record.win)
+
+    if draw_record.num_children_code === &null then {
+       Fg(win, draw_record.color_list_u[draw_record.color_list[
+              (children.all[id].generation) % 
+              draw_record.num_color + 1]])   }
+    else {
+       tmp := integer(children.all[id].children_num  /  draw_record.num_children_code)
+       if tmp > *draw_record.color_list then  tmp := *draw_record.color_list
+       else if tmp < *draw_record.color_list then tmp +:= 1
+       Fg(win, draw_record.color_list_u[draw_record.color_list[tmp]])
+    }
+                  
+    draw_record.line_pos === HOR & draw_record.justification == LEFT & 
+       y == START & y +:= START
+    draw_record.line_pos === VER & draw_record.justification == RIGHT &
+       x == START & x +:= START
+
+    if draw_record.line_pos === VER then  {
+       \draw_record.under & EraseArea(win, x - draw_record.space, 
+                 y - draw_record.space, 
+                 length + ( 2 * draw_record.space), draw_record.space)
+       \draw_record.bar & FillRectangle(win, x, y, length, width - draw_record.space)
+       \draw_record.population &
+          new_length := (draw_record.length * children.all[id].children_num) /
+                     (children.all[0].children_num) &
+          (if draw_record.justification == MIDDLE then
+                x_o := (draw_record.length - new_length)/2 + START
+           else x_o := x) &
+          WAttrib(win, "fg=gray") &
+          if draw_record.population == "Bar" then
+             FillRectangle(win, x_o, y, new_length, width - draw_record.space)
+          else {
+             angle := (children.all[id].children_num * 2 * &pi) / children.num_children 
+             FillCircle(win, x_o + START, y + width/2, (width -  draw_record.space) / 2, 0, angle)
+          }
+    }
+    else {
+
+      \draw_record.under & EraseArea(win, x - draw_record.space, 
+                 y - draw_record.space,
+                 draw_record.space, length)
+       \draw_record.bar & FillRectangle(win, x, y,  width - draw_record.space, length)       
+       \draw_record.population &   
+          new_length := (draw_record.length * children.all[id].children_num) /
+                     (children.all[0].children_num) &
+          WAttrib(win, "fg=gray") &
+          if draw_record.population == "Bar" then
+             FillRectangle(win, x, y + length - new_length, 
+                        width - draw_record.space, 
+                        new_length)
+          else {
+             angle := (children.all[id].children_num * 2 * &pi) / children.num_children 
+             FillCircle(win, x + draw_record.linewidth/2, y + length - START, 
+                     (width -  draw_record.space) / 2, 0, angle)          
+          }
+    }
+
+    gen := 1
+    every new_id := !children.all[id].children_id do
+    {
+
+       if (length) < (2 * draw_record.move) then
+          return
+   
+       #gen +:= .1 * deep_children(new_id, children)
+
+       if draw_record.line_pos === VER then {
+
+          case draw_record.justification of {
+             LEFT : {  y_new := y + (gen * draw_record.linewidth)
+                       x_new := x }
+             MIDDLE: { y_new := y + (gen * draw_record.linewidth)
+                       x_new := x + draw_record.move }
+             RIGHT:  { y_new := y + (gen * draw_record.linewidth)
+                       x_new := draw_record.length - length +  4 * START
+                     }
+          }
+
+          drawtree_square_rec(draw_record, children, new_id,
+                       x_new, y_new, draw_record.linewidth,                
+                       length - (2 * draw_record.move))
+        }
+       else  {
+
+         case draw_record.justification of {
+             LEFT : {  y_new := draw_record.length - length + 4 * START
+                       x_new := x + (gen * draw_record.linewidth) }
+             MIDDLE: { y_new := y + draw_record.move  
+                       x_new := x + (gen * draw_record.linewidth) }
+             RIGHT:  { y_new := y
+                       x_new := x + (gen * draw_record.linewidth) }
+          }
+
+          drawtree_square_rec(draw_record, children, new_id,
+                       x_new, #(x + (gen * draw_record.linewidth)),
+                       y_new, # (y + draw_record.move), 
+                       (draw_record.linewidth),
+                       (length - (2 * draw_record.move)))
+       }
+  
+       gen := children.all[new_id].children_num + gen + 1 
+    }
+
+end
+
+
+
+procedure drawtree_square_line(draw_record, children, id, x, y, length)
+
+   local gen, new_id, y_new, x_new, win
+
+   win := Clone(draw_record.win)
+
+   if draw_record.line_pos === VER  then {
+
+      gen := 1   
+      every new_id := !children.all[id].children_id do {
+
+         case draw_record.justification of {
+            LEFT : {  y_new := y + (gen * draw_record.linewidth)
+                      x_new := x }
+            MIDDLE: { y_new := y + (gen * draw_record.linewidth)
+                      x_new := x + draw_record.move }
+            RIGHT:  { y_new := y + (gen * draw_record.linewidth)
+                      x_new := draw_record.length - length +  4 * START
+                    }
+          }
+
+       DrawLine(win, x, y, x_new, y_new)
+       FillCircle(win, x, y, 2)
+       drawtree_square_line(draw_record, children, new_id, x_new, y_new, length - (2 * draw_record.move))
+       gen := children.all[new_id].children_num + gen + 1
+    }       
+   }
+   else  {  
+
+      gen := 1
+      every new_id := !children.all[id].children_id do {
+   
+         case draw_record.justification of {
+             LEFT : {  y_new := draw_record.length - length + 4 * START
+                       x_new := x + (gen * draw_record.linewidth) }
+             MIDDLE: { y_new := y + draw_record.move  
+                       x_new := x + (gen * draw_record.linewidth) }
+             RIGHT:  { y_new := y
+                       x_new := x + (gen * draw_record.linewidth) }
+          }         
+
+       DrawLine(win, x, y, x_new, y_new)
+       FillCircle(win, x, y, 2)
+       drawtree_square_line(draw_record, children, new_id, x_new, y_new, length - (2 * draw_record.move))
+       gen := children.all[new_id].children_num + gen + 1
+       }
+   }
+
+end

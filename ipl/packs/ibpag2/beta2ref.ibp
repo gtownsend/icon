@@ -1,0 +1,117 @@
+#
+# Ibpag2 source file for OT betacode-to-English converter.
+#
+# "Betacode" is the name used for the markers that the Thesaurus
+# Linguae Graecae uses to segment texts into works, books, chapters,
+# verses, etc.  The Michigan-Claremont scan of the Hebrew OT (BHS)
+# uses a subset of the betacode "language."  This file contains a
+# parser for that language that converts it into human readable form.
+#
+# Reads the standard input.  Sends the original text, with betacode
+# markers converted to human-readable form, to the standard output.
+#
+
+%{
+
+# These need to be global, because all of the actions modify them.
+# Remember that the default scope for a variable used in an action is
+# that action.
+#
+global betavals, blev
+
+%}
+
+%token INTVAL, STRVAL, LINE
+
+%%
+
+betalines	: betalines, betaline
+		| epsilon
+		;
+
+betaline	: '~', cvalue, xvalue, yvalue, '\n'
+					{ if integer(betavals[2]) then {
+					      write(betavals[1], " ",
+						    betavals[2], ":",
+						    betavals[3])
+					  }
+					  blev := 4 # global
+					}
+		| LINE, '\n'		{ write($1) }
+		;
+
+cvalue		: 'a', value, 'b', value, 'c', value
+					{ betavals[blev := 1] := $6 }
+		| 'c', value		{ betavals[blev := 1] := $2 }
+		| epsilon
+		;
+
+xvalue		: 'x', value		{ betavals[blev := 2] := $2 }
+		| 'x'			{ if integer(betavals[2])
+					  then betavals[blev := 2] +:= 1
+					  else betavals[blev := 2]  := 1
+					}
+		| epsilon		{ if blev < 2 then
+					      betavals[2] := 1
+					}
+		;
+
+yvalue		: 'y', value		{ betavals[blev := 3] := $2 }
+		| 'y'			{ betavals[blev := 3] +:= 1 }
+		| epsilon		{ if blev < 3 then
+					      betavals[3] := 1
+					}
+		;
+
+value		: INTVAL		{ return $1 }
+		| STRVAL		{ return $1 }
+		;
+
+
+%%
+
+
+procedure iilex(infile)
+
+    local line
+    # betavals is global
+    initial betavals := ["", 0, 0]
+
+    while line := read(infile) do {
+	line ? {
+	    if ="~" then {
+		suspend ord("~")
+		until pos(0) do {
+		    case move(1) of {
+			"a"     : suspend ord("a")
+			"b"     : suspend ord("b")
+			"c"     : suspend ord("c")
+			"x"     : suspend ord("x")
+			"y"     : suspend ord("y")
+			default : stop("betacode error:  ", line)
+		    }
+		    if ="\"" then {
+			iilval := tab(find("\""))
+			suspend STRVAL
+			move(1)
+		    } else {
+			if iilval := integer(tab(many(&digits)))
+			then suspend INTVAL
+		    }
+		}
+		suspend ord("\n")
+	    }
+	    else {
+		iilval := line
+		suspend LINE
+		suspend ord("\n")
+	    }
+	}
+    }
+
+end
+
+
+procedure main()
+    return iiparse(&input)
+end

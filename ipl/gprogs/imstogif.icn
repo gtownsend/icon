@@ -1,0 +1,66 @@
+############################################################################
+#
+#	File:     giftoims.icn
+#
+#	Subject:  Program to convert image strings to GIF files
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 4, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program converts image strings whose names are given on the command
+#  line to GIF files.  Image files are expected to have the suffix .ims.
+#
+#  The GIF files are written to files with the basenames of the image string
+#  files and the suffix "gif".
+#
+#  The following option is supported:
+#
+#	-l	read Icon literal instead of plain string
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  basename, graphics, imrutils, options, strings
+#
+############################################################################
+
+link basename
+link graphics
+link imrutils
+link options
+link strings
+
+procedure main(args)
+   local file, opts, name, imr, input, literal
+
+   opts := options(args, "l")
+
+   literal := opts["l"]			# NOT YET IMPLEMENTED
+
+   every file := !args do {
+      name := basename(file, ".ims") || ".gif"
+      input := open(file) | {
+         write(&errout, "*** can't open ", file)
+         next
+         }
+      imr := imstoimr(read(input)) | {
+          write(&errout, "*** bad image file: ", file)
+          next
+          }
+      imropen(imr) | stop("*** bad image file: ", file)
+      close(input)
+      WriteImage(name)
+      WClose()
+      }
+
+end

@@ -1,0 +1,162 @@
+############################################################################
+#
+#	File:     exprsum.icn
+#
+#	Subject:  Program to tabulate operator and function evaluation
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 20, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This tool tabulates operator and function activity.  It is called as
+#
+#	exprsum prog
+#
+#  where prog is a program compiled under MT Icon whose events are to
+#  be tabulated.
+#	
+#  The options supported are:
+#
+#	-o s	write output to file s; default &output.
+#
+#	-t	record time spent in monitoring.
+#
+############################################################################
+#
+#  Requires:  Version 9 MT Icon and event monitoring.
+#
+############################################################################
+#
+#  Links:  evinit, evnames, options, procname
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+link evaltree			# maintenance of call tree
+link evinit			# event monitoring initialization
+link evnames			# mapping of events to names
+link options			# command-line options
+link procname			# string name for procedure
+
+$include "evdefs.icn"		# event code and mask definitions
+
+global callcount
+global calltbl
+global failtbl
+global namemap
+global names
+global output
+global remvtbl
+global resmtbl
+global retntbl
+global susptbl
+
+$define NameColumn	14
+$define	ValueColumn	10
+
+procedure main(args)
+   local opts, itime
+
+   namemap := evnames()
+
+   opts := options(args, "o:t")
+
+   output := open(\opts["o"], "w") | &output
+   if \opts["t"] then itime := &time
+
+   #  Load and initialize the source program.
+
+   EvInit(args) | stop("*** cannot load source program")
+
+   #  Assign tables to for the various kinds of activity.
+
+   every calltbl | retntbl | susptbl | failtbl | resmtbl | remvtbl := table(0)
+
+   #  Process the events using the procedure note().
+
+   evaltree(FncMask ++ OperMask, note)
+
+   #  Format the results.
+
+   format(output)
+
+   write(output, "\nelapsed time: ", &time - \itime, "ms")
+
+end
+
+procedure format(output)
+
+   write(output,
+      left("name", NameColumn),
+      right("calls", ValueColumn),
+      right("returns", ValueColumn),
+      right("suspends", ValueColumn),
+      right("failures", ValueColumn),
+      right("resumps", ValueColumn),
+      right("removals", ValueColumn)
+      )
+   write(output)
+
+   # sort names by number of calls
+
+   names := sort(calltbl, 4)
+
+   while callcount := pull(names) do {
+      name := pull(names)
+      write(output,
+         left(name, NameColumn),
+         right(callcount, ValueColumn),
+         right(retntbl[name], ValueColumn),
+         right(susptbl[name], ValueColumn),
+         right(failtbl[name], ValueColumn),
+         right(resmtbl[name], ValueColumn),
+         right(remvtbl[name], ValueColumn)
+         )
+      }
+
+   write(output,
+      "\n",
+      left("total", NameColumn),
+      right(tblsum(calltbl), ValueColumn),
+      right(tblsum(retntbl), ValueColumn),
+      right(tblsum(susptbl), ValueColumn),
+      right(tblsum(failtbl), ValueColumn),
+      right(tblsum(resmtbl), ValueColumn),
+      right(tblsum(remvtbl), ValueColumn)
+      )
+
+end
+
+procedure note(new, old)
+
+   case &eventcode of {
+      !CallCodes:	calltbl[procname(new.node, 1)] +:= 1
+      !ReturnCodes:	retntbl[procname(old.node, 1)] +:= 1
+      !SuspendCodes:	susptbl[procname(old.node, 1)] +:= 1
+      !FailCodes:	failtbl[procname(old.node, 1)] +:= 1
+      !ResumeCodes:	resmtbl[procname(new.node, 1)] +:= 1
+      !RemoveCodes:	remvtbl[procname(old.node, 1)] +:= 1
+      }
+
+   return
+
+end
+
+procedure tblsum(tbl)
+   local count
+
+   count := 0
+   every count +:= !tbl
+
+   return count
+
+end

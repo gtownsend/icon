@@ -1,0 +1,134 @@
+############################################################################
+#
+#	File:     stripunb.icn
+#
+#	Subject:  Procedures to strip unbalanced material
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:	  August 8, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.7
+#
+############################################################################
+#  
+#  This routine strips material from a line which is unbalanced with
+#  respect to the characters defined in arguments 1 and 2 (unbalanced
+#  being defined as bal() defines it, except that characters preceded
+#  by a backslash are counted as regular characters, and are not taken
+#  into account by the balancing algorithm).
+#
+#  One little bit of weirdness I added in is a table argument. Put
+#  simply, if you call stripunb() as follows,
+#
+#      stripunb('<','>',s,&null,&null,t)
+#
+#  and if t is a table having the form,
+#
+#      key:  "bold"        value: outstr("\e[2m", "\e1m")
+#      key:  "underline"   value: outstr("\e[4m", "\e1m")
+#      etc.
+#
+#  then every instance of "<bold>" in string s will be mapped to
+#  "\e2m," and every instance of "</bold>" will be mapped to "\e[1m."
+#  Values in table t must be records of type output(on, off).  When
+#  "</>" is encountered, stripunb will output the .off value for the
+#  preceding .on string encountered.
+#
+############################################################################
+#
+#  Links: scan.icn
+#
+############################################################################
+
+link scan
+
+global last_k
+record outstr(on, off)
+
+
+procedure stripunb(c1,c2,s,i,j,t)
+
+    # NB:  Stripunb() returns a string - not an integer (like find,
+    # upto).
+
+    local lookinfor, bothcs, s2, k, new_s
+    #global last_k
+    initial last_k := list()
+
+    /c1 := '<'
+    /c2 := '>'
+    bothcs := c1 ++ c2
+    lookinfor := c1 ++ '\\'
+    c := &cset -- c1 -- c2
+
+    /s := &subject
+    if \i then {
+	if i < 1 then
+	    i := *s + (i+1)
+    }
+    else i := \&pos | 1
+    if \j then {
+	if j < 1 then
+	    j := *s + (j+1)
+    }
+    else j := *s + 1
+
+    s2 := ""
+    s ? {
+	while s2 ||:= tab(upto(lookinfor)) do {
+	    if ="\\" then {
+		if not any(bothcs) then
+		    s2 ||:= "\\"
+		&pos+1 > j & (return s2)
+		s2 ||:= move(1)
+		next
+	    }
+	    else {
+		&pos > j & (return s2)
+		any(c1) |
+		    stop("stripunb:  Unbalanced string, pos(",&pos,").\n",s)
+		if not (k := tab(&pos <= slashbal(c,c1,c2,&subject)))
+		then {
+		    # If the last char on the line is the right-delim...
+		    if (.&subject[&pos:0]||" ") ? slashbal(c,c1,c2)
+		    # ...then, naturally, the rest of the line is the tag.
+		    then k := tab(0)
+		    else {
+			# BUT, if it's not the right-delim, then we have a
+			# tag split by a line break.  Blasted things.
+			return stripunb(c1,c2,&subject||read(&input),
+					*.&subject,,t) |
+			# Can't find the right delimiter.  Parsing error.
+			stop("stripunb:  Incomplete tag\n",s[1:80] | s)
+		    }
+		}
+		# T is the maptable.
+		if \t then {
+		    k ?:= 2(tab(any(c1)), tab(upto(c2)), move(1), pos(0))
+		    if k ?:= (="/", tab(0)) then {
+			compl:= pop(last_k) | stop("Incomplete tag, ",&subject) 
+			if k == ""
+			then k := compl
+			else k == compl | stop("Incorrectly paired tag,/tag.")
+			s2 ||:= \(\t[k]).off
+		    }
+		    else {
+			s2 ||:= \(\t[k]).on
+			push(last_k, k)
+		    }
+		}
+	    }
+	}
+	s2 ||:= tab(0)
+    }
+
+    return s2
+
+end

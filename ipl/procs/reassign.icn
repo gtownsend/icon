@@ -1,0 +1,51 @@
+#############################################################################
+#
+#	File:     reassign.icn
+#
+#	Subject:  Procedures to access RE groupings and format into a string
+#
+#	Author:   David A. Gamey
+#
+#	Date:     November 10, 1998
+#
+#############################################################################
+#
+#   This file is in the public domain.
+#
+#############################################################################
+#
+#     Descriptions:
+#
+#     ReAssign( s ) : s2
+#
+#        Replaces sequences of \n in s with the corresponding parenthesis groups 
+#        from the last reqular expression match/find (if one exists).
+#
+#        Special characters:
+#        \n	use nth parenthesis group
+#        \\	escaped \
+#        \n.i   nth group followed by a number
+#
+#
+#############################################################################
+
+procedure ReAssign( s )
+local s1
+
+s1 := ""
+
+s ?
+{ 
+   while s1 := 1( tab(upto('\\')), move(1) ) do
+   { 
+         if s1 ||:= ="\\" then next
+         if n := integer(tab(many(&digits))) then
+         {
+            n := Re_ParenGroups[n]
+            s1 ||:= n 
+            if ( =".", tab(any(&digits)) ) then move(-1)
+         }
+   }
+   return s1 ||:= tab(0)
+}
+end

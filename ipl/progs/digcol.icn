@@ -1,0 +1,36 @@
+############################################################################
+#
+#	File:     digcol.icn
+#
+#	Subject:  Program to produce nth column of digit data
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 25, 1996
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program filters input to produce the nth column of digit date.
+#
+############################################################################
+
+procedure main(args)
+   local n, line, s
+
+   n := (0 < integer(args[1])) | stop("*** invalid specification")
+
+   while line := read() do
+      line ? {
+         every 1 to n do {
+            tab(upto(&digits)) | stop("*** column ", n, " does not exist")
+            s := tab(many(&digits))
+            }
+      
+         write(s)
+         }
+
+end

@@ -1,0 +1,113 @@
+############################################################################
+#
+#	File:     giftoims.icn
+#
+#	Subject:  Program to convert GIF files to image strings
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 22, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program converts GIF images whose names are given on the command
+#  line to image strings as used by DrawImage().
+#
+#  The image strings are written to files with the basenames of the GIF
+#  files and the suffix "ims" or "iml" depending on the output option.
+#
+#  The following options are supported:
+#
+#	-l	write Icon literal instead of plain string; suffix is
+#		  .iml (default .ims).
+#	-i i	make lines of literals at most i characters long; the
+#                 default is the image width (a line of characters for
+#		  every line of the image.
+#	-p s	palette to use; default c1.
+#
+#  For -l, the length refers to the number of characters represented.  If
+#  they require escapes, thea actual line length will be longer.  This is
+#  to prevent errors from trying to continue a string literal in the
+#  middle of an escape sequence.  In addition, three blanks are prepended
+#  to each line and the characters # and $ are escaped to prevent then
+#  from being misinterpreted by Icon's translator.
+#
+#  .iml files are suitable for inclusion in program text, either
+#  directly or by $include.
+#
+#  .ims files are suitable for reading.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  basename, graphics, options, strings
+#
+############################################################################
+
+link basename
+link graphics
+link options
+link strings
+
+procedure main(args)
+   local file, opts, name, output, literal, length, seg, palette, str
+   local suffix
+
+   opts := options(args, "i+lp:")
+
+   literal := opts["l"]
+   length := opts["i"]
+   palette := \opts["p"] | "c1"
+
+   suffix := if \literal then ".iml" else ".ims"
+
+   if not PaletteChars(palette) then
+      stop("*** invalid palette specification")
+
+   every file := !args do {
+      name := basename(file, ".gif") || suffix
+      WOpen("canvas=hidden", "image=" || file) | {
+         write(&errout, "**** can't open ", file)
+         next
+         }
+      output := open(name, "w") | {
+         write(&errout, "*** can't write to ", name)
+         next
+         }
+      str := Capture(palette)
+      if /literal then writes(output, str)
+      else {
+         if  /length then str ? {
+         length := integer(tab(upto(',')))
+         }
+         str ? {
+            write(output, "   \"", tab(upto(',') + 1), tab(upto(',') + 1), "_")
+            while seg := move(length) do {
+               if pos(0) then write(output, "   ", fix(seg), "\"")
+               else write(output, "   ", fix(seg), "_")
+               }
+            if not pos(0) then write(output, "   ", fix(tab(0)), "\"")
+            }
+         }
+      close(output)
+      WClose()
+      }
+
+end
+
+procedure fix(s)
+
+   s := image(s)
+   s := replace(s, "$", "\\x24")
+   s := replace(s, "#", "\\x23")
+
+   return s[2:-1]
+
+end

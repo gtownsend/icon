@@ -1,0 +1,167 @@
+############################################################################
+#
+#	File:     parsex.icn
+#
+#	Subject:  Program to parse arithmetic expressions
+#
+#	Author:   Cheyenne Wills
+#
+#	Date:     June 10, 1988
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Adapted from C code written by Allen I. Holub published in the
+#  Feb 1987 issue of Dr. Dobb's Journal.
+#
+#  General purpose expression analyzer.  Can evaluate any expression
+#  consisting of number and the following operators (listed according
+#  to precedence level):
+#
+#  () - ! 'str'str'
+#  * / &
+#  + -
+#  < <= > >= == !=
+#  && ||
+#
+# All operators associate left to right unless () are present.
+# The top - is a unary minus.
+#
+#
+#  <expr>   ::= <term> <expr1>
+#  <expr1>  ::= && <term> <expr1>
+#	    ::= || <term> <expr1>
+#	    ::= epsilon
+#
+#  <term>   ::= <fact> <term1>
+#  <term1>  ::= <  <fact> <term1>
+#	    ::= <= <fact> <term1>
+#	    ::= >  <fact> <term1>
+#	    ::= >= <fact> <term1>
+#	    ::= == <fact> <term1>
+#	    ::= != <fact> <term1>
+#	    ::= epsilon
+#
+#  <fact>   ::= <part> <fact1>
+#  <fact1>  ::= + <part> <fact1>
+#	    ::= - <part> <fact1>
+#	    ::= - <part> <fact1>
+#	    ::= epsilon
+#
+#  <part>   ::= <const> <part1>
+#  <part1>  ::= * <const> <part1>
+#	    ::= / <const> <part1>
+#	    ::= % <const> <part1>
+#	    ::= epsilon
+#
+#  <const>  ::= ( <expr> )
+#	    ::= - ( <expr> )
+#	    ::= - <const>
+#	    ::= ! <const>
+#	    ::= 's1's2'    # compares s1 with s2  0 if ~= else 1
+#	    ::= NUMBER	   # number is a lose term any('0123456789.Ee')
+#
+############################################################################
+
+procedure main()
+   local line
+
+   writes("->")
+   while line := read() do {
+       write(parse(line))
+       writes("->")
+       }
+end
+
+procedure parse(exp)
+   return exp ? expr()
+end
+
+procedure expr(exp)
+   local lvalue
+
+   lvalue := term()
+   repeat {
+       tab(many(' \t'))
+       if ="&&" then lvalue := iand(term(),lvalue)
+       else if ="||" then lvalue := ior(term(),lvalue)
+       else break
+       }
+   return lvalue
+end
+
+procedure term()
+   local lvalue
+
+   lvalue := fact()
+   repeat {
+       tab(many(' \t'))
+       if      ="<=" then lvalue := if lvalue <= fact() then 1 else 0
+       else if ="<"  then lvalue := if lvalue <  fact() then 1 else 0
+       else if =">=" then lvalue := if lvalue >= fact() then 1 else 0
+       else if =">"  then lvalue := if lvalue >  fact() then 1 else 0
+       else if ="==" then lvalue := if lvalue =  fact() then 1 else 0
+       else if ="!=" then lvalue := if lvalue ~= fact() then 1 else 0
+       else break
+       }
+   return lvalue
+end
+
+procedure fact()
+   local lvalue
+
+   lvalue := part()
+   repeat {
+       tab(many(' \t'))
+       if ="+" then lvalue +:= part()
+       else if ="-" then lvalue -:= part()
+       else break
+       }
+   return lvalue
+end
+
+procedure part()
+   local lvalue
+
+   lvalue := const()
+   repeat {
+       tab(many(' \t'))
+       if ="*" then lvalue *:= part()
+       else if ="%" then lvalue %:= part()
+       else if ="/" then lvalue /:= part()
+       else break
+       }
+   return lvalue
+end
+
+procedure const()
+   local sign, logical, rval, s1, s2
+
+   tab(many(' \t'))
+
+   if ="-" then sign := -1 else sign := 1
+   if ="!" then logical := 1 else logical := &null
+   if ="(" then {
+       rval := expr()
+       if not match(")") then {
+	   write(&subject)
+	   write(right("",&pos-1,"_"),"^ Mis-matched parenthesis")
+	   }
+       else move(1)
+       }
+   else if ="'" then {
+       s1 := tab(upto('\''))
+       move(1)
+       s2 := tab(upto('\''))
+       move(1)
+       rval := if s1 === s2 then 1 else 0
+       }
+   else {
+       rval := tab(many('0123456789.eE'))
+       }
+   if \logical then { return if rval = 0 then 1 else 0 }
+   else return rval * sign
+end

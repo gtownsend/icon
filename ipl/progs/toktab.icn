@@ -1,0 +1,126 @@
+############################################################################
+#
+#	File:     toktab.icn
+#
+#	Subject:  Program to summarize Icon token counts
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 21, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program reads the token files given on the command line and
+#  summarizes them in a single file.
+#
+#  The supported options are:
+#
+#	-n	sort tokens by category in decreasing numerical order;
+#		   default alphabetical sorting
+#	-l i	limit output in any category to i items; default no limit
+#
+############################################################################
+#
+#  Links:  options, showtbl
+#
+############################################################################
+
+link options
+link showtbl
+
+global binops, unops, vars, controls, procs, others, keys
+global clits, ilits, rlits, slits
+global summary, globals, locals, statics, declarations, fields, files, parms
+global fldref
+
+procedure main(args)
+   local names, tables, i, file, input, count, line, tbl, opts, k, limit
+   local total, result
+
+   opts := options(args, "nl+")
+   k := if \opts["n"] then "val" else "ref"
+   limit := \opts["l"] | 2 ^ 31
+
+   total := 0
+
+   # WARNING:  The following data must match the data in tokgen.icn.
+   #           Ideally, they both should work from an include file.
+   #           Later ...
+
+   #  Build a list of tables for the different types of tokens.  The order
+   #  of the tables determines the order of output.
+
+   tables := []
+   every put(tables, (unops | binops | others | controls | keys | clits | 
+      ilits | rlits | slits | vars | fldref | declarations | globals |
+      locals | statics | parms | fields | files) := table(0))
+
+   #  Create a list of names for the different types of tokens.  The order
+   #  of the names must correspond to the order of the tables above.
+
+   names := ["Unary operators", "Binary operators", "Other operations", 
+      "Control structures", "Keywords", "Cset literals", "Integer literals",
+      "Real literals", "String literals",  "Variable references",
+      "Field references", "Declarations", "Globals", "Locals", "Statics",
+      "Procedure parameters", "Record fields", "Included files"]
+
+   #  Read the token files
+
+   every file := !args do {
+      input := open(file) | stop("*** cannot open ", file)
+      read(input)				# get rid of first line
+      while line := trim(read(input)) do {
+         line ? {
+            if ="Total tokens:" then break
+            if any(&ucase) & name := tab(upto(':')) & pos(-1) then {
+               (tbl := tables[index(names, name)]) |
+                  stop("*** invalid token category: ", name)
+               read(input)			# get rid of blank line
+               next
+               }
+            if *line = 0 then {
+               read(input)			# get rid of "total"
+               read(input)			# and blank line
+               next
+               }
+            if tab(upto(&digits)) then {
+               count := tab(many(&digits)) | next
+               tab(many(' '))
+               name := tab(0)
+               tbl[name] +:= count
+               }
+            }
+         }
+         close(input)
+      }
+
+   #  Now output the results
+
+   every i := 1 to *names do {
+      result := showtbl(names[i], tables[i], k, limit)
+      count := result[1]
+      total +:= count
+      if result[2] > limit then write("        ...") else write()
+      write(right(count, 8), "   total")
+      }
+   write("\nTotal tokens: ", total)
+
+
+end
+
+#  This procedure returns the first index in L whose corresponding element
+#  is x
+
+procedure index(L, x)
+   local i
+
+   every i := 1 to *L do
+      if L[i] === x then return i
+
+   fail
+
+end

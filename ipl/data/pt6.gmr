@@ -1,0 +1,23 @@
+program -> PROGRAM ID ; declarations compound_stmt .
+declarations -> declarations VAR id_list : INTEGER ;
+declarations -> EPSILON
+id_list -> ID
+id_list -> id_list , ID
+compound_stmt -> BEGIN optional_stmts END
+optional_stmts -> stmt_list
+optional_stmts -> EPSILON
+stmt_list -> stmt
+stmt_list -> stmt_list ; stmt
+stmt -> ID := simple_expression
+stmt -> compound_stmt
+stmt -> IF expression THEN stmt ELSE stmt
+stmt -> IF expression THEN stmt 
+expression -> simple_expression
+expression -> simple_expression RELOP simple_expression
+simple_expression -> term
+simple_expression -> simple_expression ADDOP term
+term -> factor
+term -> term MULOP factor
+factor -> ID
+factor -> INTCON
+factor -> ( expression )

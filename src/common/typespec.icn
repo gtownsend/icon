@@ -1,0 +1,482 @@
+#
+# typespec - transform Icon type specifications into C tables.
+#    Specifications are read from standard input; tables are written
+#    to standard output.
+#
+#  The grammar for the a type specifcation is:
+#
+#    <type-def>      ::= <identifier> <opt-abrv> : <kind> <opt-return>
+#  
+#    <kind>          ::= simple |
+#                        aggregate(<component>, ... ) |
+#                        variable <var-type-spec>
+#  
+#    <component>     ::= var <identifier> <opt-abrv> |
+#                            <identifier>
+#  
+#    <var-type-spec> ::= initially <type> |
+#                        always <type>
+#  
+#    <type>          ::= <type-name> | <type> ++ <type-name>
+#  
+#    <opt-abrv>      ::= <nil> |
+#                        { <identifier> }
+#  
+#    <opt-return>    ::= <nil> |
+#                        return block_pointer |
+#                        return descriptor_pointer |
+#                        return char_pointer |
+#                        return C_integer
+
+# Information about an Icon type.
+#
+record icon_type(
+   id,          # name of type
+   support_new, # supports RTL "new" construct
+   deref,       # dereferencing needs
+   rtl_ret,     # kind of RTL return supported if any
+   typ,         # for variable: initial type
+   num_comps,   # for aggregate: number of type components
+   compnts,     # for aggregate: index of first component
+   abrv)        # abreviation used for type tracing
+
+# Information about a component of an aggregate type.
+#
+record typ_compnt (
+   id,        # name of component
+   n,         # position of component within type aggragate
+   var,       # flag: this component is an Icon-level variable
+   aggregate, # index of type that owns the component
+   abrv)      # abreviation used for type tracing
+
+record token(kind, image)
+
+global icontypes, typecompnt, type_indx, compnt_indx
+global lex, line_num, saved_token, error_msg, prog_name
+
+procedure main()
+   local typ, tok, compnt, indx, x
+
+   prog_name := "typespec"
+   lex := create tokenize_input()
+
+   icontypes := []
+   typecompnt := []
+
+   #
+   # Read each of the type specifications
+   #
+   while typ := icon_type(ident("may be EOF")) do {
+      #
+      # Check for abreviation
+      #
+      typ.abrv := opt_abrv(typ.id)
+
+      if next_token().kind ~== ":" then
+          input_err("expected ':'")
+
+      #
+      # See what kind of type this is
+      #
+      case ident() of {
+         "simple": {
+            typ.support_new := "0"
+            typ.deref := "DrfNone"
+            typ.num_comps := "0"
+            typ.compnts := "0"
+            }
+
+         "aggregate": {
+            typ.support_new := "1"
+            typ.deref := "DrfNone"
+
+            #
+            # get the component names for the type
+            #
+            typ.compnts := *typecompnt
+            if next_token().kind ~== "(" then
+               input_err("expected '('")
+            typ.num_comps := 0
+            tok := next_token()
+            if tok.kind ~== "id" then
+               input_err("expected type component")
+            while tok.kind ~== ")" do {
+               #
+               # See if this component is an Icon variable.
+               #
+               if tok.image == "var" then {
+                  compnt := typ_compnt(ident(), typ.num_comps, "1", *icontypes)
+                  compnt.abrv := opt_abrv(compnt.id)
+                  }
+               else
+                  compnt := typ_compnt(tok.image, typ.num_comps, "0",
+                     *icontypes)
+
+               put(typecompnt, compnt)
+               typ.num_comps +:= 1
+
+               tok := next_token()
+               if tok.kind == "," then {
+                  tok := next_token()
+                  if tok.kind ~== "id" then
+                     input_err("expected type component")
+                  }
+               else if tok.kind ~== ")" then
+                  input_err("expected type component")
+               }
+            }
+
+         "variable": {
+            typ.support_new := "0"
+            typ.num_comps := "0"
+            typ.compnts := "0"
+            case ident() of {
+                "initially":
+                   typ.deref := "DrfGlbl"
+                "always":
+                   typ.deref :=  "DrfCnst"
+                default:
+                  input_err("expected 'initially' or 'always'")
+               }
+
+            #
+            # Get the initial type associated with the variable
+            #
+            typ.typ := [ident()]
+            tok := &null
+            while (tok := next_token("may be EOF")).kind == "++" do {
+                put(typ.typ, ident())
+                tok := &null
+                }
+            saved_token := tok  # put token back
+            }
+         default:
+            input_err("expected 'simple', 'aggregate', or 'variable'")
+         }
+
+      #
+      # Check for an optional return clause
+      #
+      tok := &null
+      if (tok := next_token("may be EOF")).image == "return" then {
+         case next_token().image of {
+            "block_pointer":
+               typ.rtl_ret := "TRetBlkP"
+            "descriptor_pointer":
+               typ.rtl_ret := "TRetDescP"
+            "char_pointer":
+               typ.rtl_ret := "TRetCharP"
+            "C_integer":
+               typ.rtl_ret := "TRetCInt"
+            default:
+               input_err("expected vword type")
+            }
+         }
+      else {
+         typ.rtl_ret := "TRetNone"
+         saved_token := tok    # put token back
+         }
+
+      put(icontypes, typ)
+      }
+
+   #
+   # Create tables of type and compontent indexes.
+   #
+   type_indx := table()
+   indx := -1
+   every type_indx[(!icontypes).id] := (indx +:= 1)
+   compnt_indx := table()
+   indx := -1
+   every compnt_indx[(!typecompnt).id] := (indx +:= 1)
+
+   write("/*")
+   write(" * This file was generated by the program ", prog_name, ".")
+   write(" */")
+   write()
+
+   #
+   # Locate the indexes of types with special semantics or which are
+   #  explicitly needed by iconc. Output the indexes as assignments to
+   #  variables.
+   #
+   indx := req_type("string")
+   icontypes[indx + 1].rtl_ret := "TRetSpcl"
+   write("int str_typ = ", indx, ";")
+
+   indx := req_type("integer")
+   write("int int_typ = ", indx, ";")
+
+   indx := req_type("record")
+   write("int rec_typ = ", indx, ";")
+
+   indx := req_type("proc")
+   write("int proc_typ = ", indx, ";")
+
+   indx := req_type("coexpr")
+   write("int coexp_typ = ", indx, ";")
+
+   indx := req_type("tvsubs")
+   icontypes[indx + 1].deref := "DrfSpcl"
+   icontypes[indx + 1].rtl_ret := "TRetSpcl"
+   write("int stv_typ = ", indx, ";")
+
+   indx := req_type("tvtbl")
+   icontypes[indx + 1].deref := "DrfSpcl"
+   write("int ttv_typ = ", indx, ";")
+
+   indx := req_type("null")
+   write("int null_typ = ", indx, ";")
+
+   indx := req_type("cset")
+   write("int cset_typ = ", indx, ";")
+
+   indx := req_type("real")
+   write("int real_typ = ", indx, ";")
+
+   indx := req_type("list")
+   write("int list_typ = ", indx, ";")
+
+   indx := req_type("table")
+   write("int tbl_typ = ", indx, ";")
+
+   #
+   # Output the type table.
+   #
+   write()
+   write("int num_typs = ", *icontypes, ";")
+   write("struct icon_type icontypes[", *icontypes, "] = {")
+   x := copy(icontypes)
+   output_typ(get(x))
+   while typ := get(x) do {
+      write(",")
+      output_typ(typ)
+      }
+   write("};")
+
+   #
+   # Locate the indexes of components which are explicitly needed by iconc.
+   #  Output the indexes as assignments to variables.
+   #
+   write()
+   indx := req_compnt("str_var")
+   write("int str_var = ", indx, ";")
+
+   indx := req_compnt("trpd_tbl")
+   write("int trpd_tbl = ", indx, ";")
+
+   indx := req_compnt("lst_elem")
+   write("int lst_elem = ", indx, ";")
+
+   indx := req_compnt("tbl_dflt")
+   write("int tbl_dflt = ", indx, ";")
+
+   indx := req_compnt("tbl_val")
+   write("int tbl_val = ", indx, ";")
+
+   #
+   # Output the component table.
+   #
+   write()
+   write("int num_cmpnts = ", *typecompnt, ";")
+   write("struct typ_compnt typecompnt[", *typecompnt, "] = {")
+   output_compnt(get(typecompnt))
+   while compnt := get(typecompnt) do {
+      write(",")
+      output_compnt(compnt)
+      }
+   write("};")
+end
+
+#
+# ident - insure that next token is an identifier and return its image
+#
+procedure ident(may_be_eof)
+   local tok  
+
+   tok := next_token(may_be_eof) | fail
+
+   if tok.kind == "id" then
+      return tok.image
+   else 
+      input_err("expected identifier")
+end
+
+#
+# opt_abrv - look for an optional abreviation. If there is none, return the
+#   default value supplied by the caller.
+#
+procedure opt_abrv(abrv)
+   local tok
+
+   tok := next_token("may be EOF")
+   if tok.kind == "{" then {
+      abrv := ident()
+      if next_token().kind ~== "}" then
+          input_err("expected '}'")
+      }
+   else
+      saved_token := tok   # put token back
+
+   return abrv
+end
+
+#
+# next_token - get the next token, looking to see if one was put back.
+#
+procedure next_token(may_be_eof)
+   local tok
+
+   if \saved_token then {
+      tok := saved_token
+      saved_token := &null
+      return tok
+      }
+   else if tok := @lex then
+      return tok
+   else if \may_be_eof then
+      fail
+   else {
+      write(&errout, prog_name, ", unexpected EOF")
+      exit(1)
+      }
+end
+
+#
+# req_type - get the index of a required type.
+#
+procedure req_type(id)
+   local indx
+
+   if indx := \type_indx[id] then
+      return indx
+   else {
+      write(&errout, prog_name, ", the type ", id, " is required")
+      exit(1)
+      }
+end
+
+#
+# req_compnt - get the index of a required component.
+#
+procedure req_compnt(id)
+   local indx
+
+   if indx := \compnt_indx[id] then
+      return indx
+   else {
+      write(&errout, prog_name, ", the component ", id, " is required")
+      exit(1)
+      }
+end
+
+#
+# output_typ - output the table entry for a type.
+#
+procedure output_typ(typ)
+   local typ_str, s, indx
+
+   writes("  {", image(typ.id), ", ", typ.support_new, ", ", typ.deref, ", ",
+      typ.rtl_ret, ", ")
+   if \typ.typ then {
+      typ_str := repl(".", *type_indx)
+      every s := !typ.typ do {
+         if s == "any_value" then {
+            every indx := 1 to *icontypes do {
+               if icontypes[indx].deref == "DrfNone" then
+                  typ_str[indx] := icontypes[indx].abrv[1]
+               }
+            }
+         else if indx := \type_indx[s] + 1 then
+            typ_str[indx] := icontypes[indx].abrv[1]
+         else {
+            write(&errout, prog_name, ", the specification for ", typ.id,
+               " contains an illegal type: ", s)
+            exit(1)
+            }
+         }
+      writes(image(typ_str))
+      }
+   else
+      writes("NULL")
+   writes(", ", typ.num_comps, ", ", typ.compnts, ", ", image(typ.abrv), ", ")
+   writes(image(map(typ.id[1], &lcase, &ucase) || typ.id[2:0]), "}")
+end
+
+#
+# output_compnt - output the table entry for a component.
+#
+procedure output_compnt(compnt)
+   writes("  {", image(compnt.id), ", ", compnt.n, ", ", compnt.var, ", ",
+      compnt.aggregate, ", ", image(\compnt.abrv) | "NULL", "}")
+end
+
+#
+# input_err - signal the lexical anaylser to print an error message about
+#   the last token
+#
+procedure input_err(msg)
+   error_msg := msg
+   @lex
+end
+
+#
+# tokenize_input - transform standard input into tokens and suspend them
+#
+procedure tokenize_input()
+   local line
+
+   line_num := 0
+   while line := read() do {
+      line_num +:= 1
+      suspend line ? tokenize_line()
+      }
+   fail
+end
+
+#
+# tokenize_line - transform the subject of string scanning into tokens and
+#   suspend them
+#
+procedure tokenize_line()
+   local s, tok, save_pos
+   static id_chars
+
+   initial id_chars := &letters ++ &digits ++ '_'
+
+   repeat {
+      tab(many(' \t'))        # skip white space
+      if ="#" | pos(0) then
+         fail                 # end of input on this line
+
+      save_pos := &pos
+
+      if any(&letters) then
+         tok := token("id", tab(many(id_chars)))
+      else if s := =(":" | "(" | "," | ")" | "++" | "{" | "}") then
+         tok := token(s, s)
+      else
+         err("unknown symbol")
+
+      suspend tok
+      err(\error_msg, save_pos)   # was the last token erroneous?
+      }
+end
+
+#
+# err - print an error message about the current string being scanned
+#
+procedure err(msg, save_pos)
+   local s, strt_msg
+
+   tab(\save_pos)    # error occured here
+
+   strt_msg := prog_name || ", " || msg || "; line " || line_num || ": "
+   (s := image(tab(1))) & &fail      # get front of line then undo tab
+   strt_msg ||:= s[1:-1]             # strip ending quote from image
+   s := image(tab(0))                # get end of line
+   s := s[2:0]                       # strip first quote from image
+   write(&errout, strt_msg, s)
+   write(&errout, repl(" ", *strt_msg), "^")  # show location of error
+   exit(1)
+end

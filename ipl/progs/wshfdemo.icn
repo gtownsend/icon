@@ -1,0 +1,68 @@
+############################################################################
+#
+#       File:     wshfdemo.icn
+#
+#       Subject:  Program to demonstrate weighted shuffle procedure
+#
+#       Author:   Erik Eid
+#
+#       Date:     May 23, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This program is a short demo of the WeightedShuffle procedure.  The
+# user is first prompted for a random number seed.  Then, the user is asked
+# to enter a size for the list to be shuffled and what percentage of that
+# list to be shuffled.  The original and shuffled lists are then displayed.
+#
+############################################################################
+#
+#  Links:  weighted
+#
+############################################################################
+
+link weighted
+
+procedure main()
+local before, after, num, pct, yn, seed
+  write (center("Weighted Shuffle Demonstration", 80))
+  repeat {
+    writes ("Enter random number seed: ")
+    seed := read()
+    if seed == "" then break               # Use default random seed.
+    if seed = integer(seed) then 
+      break &random := seed                # Use given random seed.
+  }
+  repeat {
+    repeat {
+      writes ("Size of list to shuffle (1-500)? ")
+      num := read()
+      if num = integer(num) then if (0 < num <= 500) then break
+    }
+    repeat {
+      writes ("Shuffle what percentage (0=none, 100=all)? ")
+      pct := read()
+      if pct = numeric(pct) then if (0 <= pct <= 100) then break
+    }
+    before := list()
+    every put (before, (1 to num))
+    write ("\nBefore shuffle:")
+    DisplayList (before)
+    after := WeightedShuffle (before, pct)
+    write ("\nAfter ", pct, "% shuffle:")
+    DisplayList (after)
+    writes ("\nDo another [Y/N]? ")
+    yn := getche()
+    write("\n")
+    if not (yn == ("Y" | "y")) then break
+  }
+end
+
+procedure DisplayList (L)  
+  every writes (right(!L, 4))
+end  
+

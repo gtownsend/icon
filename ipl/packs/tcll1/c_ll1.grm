@@ -1,0 +1,18 @@
+# c-ll1
+# LL(1)
+start = s .
+
+s = i ("=" e | ttail etail) .
+s = n ttail etail .
+s = "(" e ")" ttail etail .
+
+e = t etail.
+etail = { "+" t | "-" t } .
+
+t = f ttail .
+ttail = [ "*" t | f "/" t ].
+
+f = i .
+f = n .
+f = "(" e ")" .
+

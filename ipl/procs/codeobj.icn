@@ -1,0 +1,251 @@
+############################################################################
+#
+#	File:     codeobj.icn
+#
+#	Subject:  Procedures to encode and decode Icon data
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 19, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     These procedures provide a way of storing Icon values as strings and
+#  retrieving them.  The procedure encode(x) converts x to a string s that
+#  can be converted back to x by decode(s). These procedures handle all
+#  kinds of values, including structures of arbitrary complexity and even
+#  loops.  For "scalar" types -- null, integer, real, cset, and string --
+#
+#	decode(encode(x)) === x
+#
+#     For structures types -- list, set, table, and record types --
+#  decode(encode(x)) is, for course, not identical to x, but it has the
+#  same "shape" and its elements bear the same relation to the original
+#  as if they were encoded and decode individually.
+#
+#     No much can be done with files, functions and procedures, and
+#  co-expressions except to preserve type and identification.
+#
+#     The encoding of strings and csets handles all characters in a way
+#  that it is safe to write the encoding to a file and read it back.
+#
+#     No particular effort was made to use an encoding of value that
+#  minimizes the length of the resulting string. Note, however, that
+#  as of Version 7 of Icon, there are no limits on the length of strings
+#  that can be written out or read in.
+#
+############################################################################
+#
+#     The encoding of a value consists of four parts:  a tag, a length,
+#  a type code, and a string of the specified length that encodes the value
+#  itself.
+#
+#     The tag is omitted for scalar values that are self-defining.
+#  For other values, the tag serves as a unique identification. If such a
+#  value appears more than once, only its tag appears after the first encoding.
+#  There is, therefore, a type code that distinguishes a label for a previously
+#  encoded value from other encodings. Tags are strings of lowercase
+#  letters. Since the tag is followed by a digit that starts the length, the
+#  two can be distinguished.
+#
+#     The length is simply the length of the encoded value that follows.
+#
+#     The type codes consist of single letters taken from the first character
+#  of the type name, with lower- and uppercase used to avoid ambiguities.
+#
+#     Where a structure contains several elements, the encodings of the
+#  elements are concatenated. Note that the form of the encoding contains
+#  the information needed to separate consecutive elements.
+#
+#     Here are some examples of values and their encodings:
+#
+#	x                     encode(x)
+#  -------------------------------------------------------
+#
+#	1                     "1i1"
+#	2.0                   "3r2.0"
+#	&null                 "0n"
+#	"\377"                "4s\\377"
+#	'\376\377'            "8c\\376\\377"
+#	procedure main        "a4pmain"
+#	co-expression #1 (0)  "b0C"
+#	[]                    "c0L"
+#	set()                 "d0S"
+#	table("a")            "e3T1sa"
+#	L1 := ["hi","there"]  "f11L2shi5sthere"
+#
+#  A loop is illsutrated by
+#
+#	L2 := []
+#	put(L2,L2)
+#
+#  for which
+#
+#	x                     encode(x)
+#  -------------------------------------------------------
+#
+#	L2                    "g3L1lg"
+#
+#     Of course, you don't have to know all this to use encode and decode.
+#
+############################################################################
+#
+#  Links: escape, gener, procname, typecode
+#
+############################################################################
+#
+#  Requires:  co-expressions
+#
+############################################################################
+
+invocable all
+
+link escape, gener, procname, typecode
+
+global outlab, inlab
+
+record triple(type,value,tag)
+
+#  Encode an arbitary value as a string.
+#
+procedure encode(x,level)
+   local str, tag, Type
+   static label
+   initial label := create "l" || star(string(&lcase))
+   if /level then outlab := table()	# table is global, but reset at
+					# each root call.
+   tag := ""
+   Type := typecode(x)
+   if Type == !"ri" then str := string(x)	# first the scalars
+   else if Type == !"cs" then str := image(string(x))[2:-1]	# remove quotes
+   else if Type == "n" then str := ""
+   else if Type == !"LSRTfpC" then	# next the structures and other types
+      if str := \outlab[x] then		# if the object has been processed,
+         Type := "l"			# use its label and type it as label.
+      else {
+         tag := outlab[x] := @label	# else make a label for it.
+         str := ""
+         if Type == !"LSRT" then {	# structures
+            every str ||:= encode(	# generate, recurse, and concatenate
+               case Type of {
+                  !"LS":   !x		# elements
+                  "T":    x[[]] | !sort(x,3)	# default, then elements
+                  "R":    type(x) | !x		# type then elements
+                  }
+               ,1)			# indicate internal call
+            }
+            else str ||:= case Type of {	# other things
+               "f":   image(x)
+               "C":   ""
+               "p":   procname(x)
+               }
+         }
+   else stop("unsupported type in encode: ",image(x))
+   return tag || *str || Type || str
+end
+
+#  Generate decoded results.  At the top level, there is only one,
+#  but for structures, it is called recursively and generates the
+#  the decoded elements. 
+#
+procedure decode(s,level)
+   local p
+   if /level then inlab := table()	# global but reset
+   every p := separ(s) do {
+      suspend case p.type of {
+         "l":  inlab[p.value]		# label for an object
+         "i":  integer(p.value)
+         "s":  escape(p.value)
+         "c":  cset(escape(p.value))
+         "r":  real(p.value)
+         "n":  &null
+         "L":  delist(p.value,p.tag)
+         "R":  derecord(p.value,p.tag)
+         "S":  deset(p.value,p.tag)
+         "T":  detable(p.value,p.tag)
+         "f":  defile(p.value)
+         "C":  inlab[p.tag] := create &fail	# can't hurt much to fail
+         "p":  inlab[p.tag] := (proc(p.value) |
+            stop("encoded procedure not found")) \ 1
+         default:  stop("unexpected type in decode: ",p.type)
+         }
+      }
+end
+
+#  Generate triples for the encoded values in concatenation.
+#
+procedure separ(s)
+   local p, size
+
+   while *s ~= 0 do {
+      p := triple()
+      s ?:= {
+         p.tag := tab(many(&lcase))
+         size := tab(many(&digits)) | break
+         p.type := move(1)
+         p.value := move(size)
+         tab(0)
+         }
+      suspend p
+      }
+end
+
+#  Decode a list. The newly constructed list is added to the table that
+#  relates tags to structure values.
+#
+procedure delist(s,tag)
+   local a
+   inlab[tag] := a := []	# insert object for label
+   every put(a,decode(s,1))
+   return a
+end
+
+#  Decode a set. Compare to delist above.
+#
+procedure deset(s,tag)
+   local S
+   inlab[tag] := S := set()
+   every insert(S,decode(s,1))
+   return S
+end
+
+#  Decode a record.
+#
+procedure derecord(s,tag)
+   local R, e
+   e := create decode(s,1)	# note use of co-expressions to control
+				# generation, since record must be constructed
+				# before fields are produced.
+   inlab[tag] := R := proc(@e)() | stop("error in decoding record")
+   every !R := @e
+   return R
+end
+
+#  Decode  a table.
+#
+procedure detable(s,tag)
+   local t, e
+   e := create decode(s,1)	# see derecord above; here it's the default
+				# value that motivates co-expressions.
+   inlab[tag] := t := table(@e)
+   while t[@e] := @e
+   return t
+end
+
+#  Decode a file.
+#
+procedure defile(s, tag)
+   return inlab[tag] := case s of {		# files aren't so simple ...
+      "&input":  &input
+      "&output": &output
+      "&errout": &errout
+      default: s ? {
+            ="file("		# open for reading to play it safe
+            open(tab(upto(')'))) | stop("cannot open encoded file")
+            }
+       }
+end

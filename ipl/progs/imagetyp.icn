@@ -1,0 +1,109 @@
+############################################################################
+#
+#	File:     imagetyp.icn
+#
+#	Subject:  Program to show types of image files
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 8, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program accepts file names from standard input and writes their
+#  image type to standard output.
+#
+#  imagetyp(s) attempts to determine the type of image file named s.
+#  This is, of course, problematical and corrupted or fake files can
+#  easily fool it.  Furthermore, examples of some iamge files types
+#  were not available for testing.
+#
+#  The types presently recognized are:
+#
+#	value returned		image file type
+#
+#	ps			PostScript document
+#	cgm text		Computer Graphics Metafil, text
+#	cgm binary		Computer Graphics Metafil, binary
+#	cgm char		Computer Graphics Metafil, character
+#	sundraw			SunDraw document
+#	ras			UNIX raster image
+#	iris			Iris image
+#	rle			UNIX RLE image
+#	pbm			PBM image
+#	pgm			PGM image
+#	ppm			PPM image
+#	xwd			X Window dump
+#	gif			Compuserv GIF image
+#	bmp			BMP image
+#	xmp			XMP image
+#	xpm			XPM image
+#	pcx			PCX image
+#	tiff			TIFF image
+#	iff			IFF/ILBM image
+#	?			unknown type
+#
+#  If the file cannot be opened or is empty, imagetyp() fails.
+#
+############################################################################
+#
+#  Links:  bincvt
+#
+############################################################################
+
+link bincvt
+
+procedure main()
+   local s
+
+   while s := writes(read()) do write(" ", imagetyp(s))
+
+end
+
+procedure imagetyp(s)
+   local input, header, type
+
+   input := open(s, "u") | fail			# must be untranslated
+
+   header := reads(input, 640) | fail
+
+   type := {
+      header ? {
+         if ="%!" then "ps"
+         else if ="\x59\xa6\x6a\x95" then "ras"
+         else if ="\122\314" then "rle"
+         else if ="GIF8" then "gif"
+         else if =("\111\111\52\0" | "\115\115\0\52") then "tiff"
+         else if find("BMHD") then "iff"
+         else if find("PNTG") then "mac paint"
+         else if ="BEGMF" then "cgm text"
+         else if ="\001\332" then "iris"
+         else if ="#define" & find("width ") then "xbm"
+         else if ="/* XPM */" then "xpm"
+         else if =("P1" | "P4") then "pbm"
+         else if =("P2" | "P5") then "pgm"
+         else if =("P3" | "P6") then "ppm"
+         else if move(4) & raw(move(4)) = 7 then "xwd"
+         else if move(10) & ="sundraw" then "sundraw"
+         else if raw(move(2)) = 12320 then "cgm char"
+         else if iand(raw(move(2)), 65504) = 32 then "cgm binary"
+         else if ="\x0a" & raw(move(1)) = (0 | 2 | 3 | 4 | 5) & tab(65) &
+            raw(move(1)) = 0 then "pcx"
+         else if move(512) & move(11) & =("\x11" | "\x00\x11") then "pict"
+         else &fail			# none of that worked
+         }
+      }
+
+   if \type then return type
+
+   seek(input, -17)			# and now for one at the end ...
+
+   if read(input) == "TRUEVISION-TARGA\x0" then return "targa"
+
+   return "?"				# who knows?
+
+end

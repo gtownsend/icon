@@ -1,0 +1,252 @@
+############################################################################
+#
+#	Name:	sklist.icn
+#
+#	Title:	Scheme in Icon
+#
+#	Author: Bob Alexander
+#
+#	Date:	March 23, 1995
+#
+#	Description: see skeem.icn
+#
+############################################################################
+
+#
+# skeem -- Scheme in Icon
+#
+# List and vector procedures
+#
+
+#
+# Initialize
+#
+# List entries are described in skfun.icn.
+#
+procedure InitList()
+   DefFunction([
+      APPEND,&null,
+      ASSOC,2,
+      ASSQ,2,
+      ASSV,2,
+      CAR,
+      CDR,
+      CONS,2,
+      CXXR,"CAAR",
+      CXXR,"CADR",
+      CXXR,"CDAR",
+      CXXR,"CDDR",
+      CXXR,"CAAAR",
+      CXXR,"CAADR",
+      CXXR,"CADAR",
+      CXXR,"CADDR",
+      CXXR,"CDAAR",
+      CXXR,"CDADR",
+      CXXR,"CDDAR",
+      CXXR,"CDDDR",
+      CXXR,"CAAAAR",
+      CXXR,"CAAADR",
+      CXXR,"CAADAR",
+      CXXR,"CAADDR",
+      CXXR,"CADAAR",
+      CXXR,"CADADR",
+      CXXR,"CADDAR",
+      CXXR,"CADDDR",
+      CXXR,"CDAAAR",
+      CXXR,"CDAADR",
+      CXXR,"CDADAR",
+      CXXR,"CDADDR",
+      CXXR,"CDDAAR",
+      CXXR,"CDDADR",
+      CXXR,"CDDDAR",
+      CXXR,"CDDDDR",
+      LENGTH,
+      LIST,&null,
+      LIST_2_VECTOR,
+      LIST_P,
+      LIST_REF,2,
+      LIST_TAIL,2,
+      MAKE_VECTOR,1,2,
+      MEMBER,2,
+      MEMQ,2,
+      MEMV,2,
+      NULL_P,
+      PAIR_P,
+      REVERSE,
+      SET_CAR_BANG,2,
+      SET_CDR_BANG,2,
+      VECTOR,&null,
+      VECTOR_2_LIST,
+      VECTOR_FILL_BANG,2,
+      VECTOR_LENGTH,
+      VECTOR_P,
+      VECTOR_REF,2,
+      VECTOR_SET_BANG,3])
+   return
+end
+
+
+#
+# Pairs and lists.
+#
+
+procedure PAIR_P(x)
+   return (LLIsPair(x),T) | F
+end
+
+procedure CONS(first,rest)
+   return LLPair(first,rest)
+end
+
+procedure CAR(pair)
+   return LLFirst(pair)
+end
+
+procedure CDR(pair)
+   return LLRest(pair)
+end
+
+procedure SET_CAR_BANG(pair,value)
+   return LLFirst(pair) := value
+end
+
+procedure SET_CDR_BANG(pair,value)
+   return LLRest(pair) := value
+end
+
+## procedure ArgErr(fName,argList,msg,argNbr)
+##    /argNbr := 1
+##    return Error(fName,"bad argument ",argNbr,": ",
+##	 Print(LLElement(argList,argNbr))," -- " || \msg | "")
+## end
+
+procedure CXXR(lst)
+   local result,c
+   result := lst
+   every c := !reverse(FuncName[2:-1]) do {
+      result := (if c == "A" then LLFirst else LLRest)(result)
+      }
+   return result
+end
+
+procedure NULL_P(x)
+   return (LLIsNull(x),T) | F
+end
+
+procedure LIST_P(x)
+   local beenThere
+   beenThere := set()
+   while LLIsPair(x) do {
+      if member(beenThere,x) then break
+      insert(beenThere,x)
+      x := LLRest(x)
+      }
+   return (LLIsNull(x),T) | F
+end
+
+procedure LIST(x[])
+   return LList!x
+end
+
+procedure LENGTH(lst)
+   return LLLength(lst)
+end
+
+procedure APPEND(lst[])
+   return LLAppend!lst
+end
+
+procedure REVERSE(lst)
+   return LLReverse(lst)
+end
+
+procedure LIST_TAIL(lst,i)
+   return LLTail(lst,i + 1)
+end
+
+procedure LIST_REF(lst,i)
+   return LLElement(lst,i + 1)
+end
+
+invocable "===":2
+
+procedure MEMQ(lst,x)
+   static eq
+   initial eq := proc("===",2)
+   return Member(eq,lst,x) | F
+end
+
+procedure MEMV(lst,x)
+   return Member(Eqv,lst,x) | F
+end
+
+procedure MEMBER(lst,x)
+   return Member(Equal,lst,x) | F
+end
+
+procedure Member(test,obj,L)
+   return if /L then fail else (test(obj,LLFirst(L)),L) | Member(test,obj,LLRest(L))
+end
+
+invocable "===":2
+
+procedure ASSQ(alst,x)
+   static eq
+   initial eq := proc("===",2)
+   return Assoc(eq,alst,x) | F
+end
+
+procedure ASSV(alst,x)
+   return Assoc(Eqv,alst,x) | F
+end
+
+procedure ASSOC(alst,x)
+   return Assoc(Equal,alst,x) | F
+end
+
+procedure Assoc(test,obj,L)
+   return if /L then fail else (test(obj,LLFirst(LLFirst(L))),LLFirst(L)) |
+	 Assoc(test,obj,LLRest(L))
+end
+
+
+#
+# Vectors
+#
+
+procedure VECTOR_P(x)
+   return (VectorP(x),T) | F
+end
+
+procedure MAKE_VECTOR(len,value[])
+   return list(len,value[1] | F)
+end
+
+procedure VECTOR(x[])
+   return x
+end
+
+procedure VECTOR_LENGTH(vec)
+   return *vec
+end
+
+procedure VECTOR_REF(vec,i)
+   return vec[i + 1]
+end
+
+procedure VECTOR_SET_BANG(vec,i,value)
+   return vec[i + 1] := value
+end
+
+procedure VECTOR_2_LIST(vec)
+   return LList!vec
+end
+
+procedure LIST_2_VECTOR(lst)
+   return LLToList(lst)
+end
+
+procedure VECTOR_FILL_BANG(vec,value)
+   every !vec := value
+   return vec
+end

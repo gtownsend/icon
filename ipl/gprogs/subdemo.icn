@@ -1,0 +1,264 @@
+############################################################################
+#
+#	File:     subdemo.icn
+#
+#	Subject:  Program to show the turtle graphics subset
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     May 31, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     subdemo displays various random designs in a window using the
+#  turtle graphics subset library procedures.  Click in the window,
+#  or enter a character on the keyboard, to start a new design.
+#
+#     The following keyboard characters have meaning:
+#
+#	w or W:			random walk
+#	b or B:			fractal bush (looks like "desert broom")
+#	s or S:			spiral design
+#	p or P:			polygon design
+#	t or T:			rectangular tiling
+#	r or R:			radial tiling
+#
+#	\n, \r, \t, or SP:	choose design randomly
+#	q or Q:			exit program
+#
+#	0:			pause drawing
+#	1, ... 9:		set speed of drawing (9 is fastest)
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: options, optwindw, subturtl, random, graphics
+#
+############################################################################
+
+link options
+link optwindw
+link subturtl
+link random
+link graphics
+
+global msec	# delay between drawing actions
+global event	# interrupting event, if any
+
+procedure main(args)
+   local opts, dlist, p, e
+
+   opts := options(args, winoptions())
+   /opts["W"] := /opts["H"] := 500
+   &window := optwindow(opts)
+
+   randomize()
+   dlist := [walk, bush, poly, spiral, tile, radial]
+   msec := 0
+   event := "\r"
+   repeat {
+      e := \event | Event()
+      event := &null
+      case e of {
+         QuitEvents():				break
+         "\n" | "\r" | "\t" | " ":		run(?dlist)
+         &lrelease | &mrelease | &rrelease:	run(?dlist)
+         "b" | "B":				run(bush)
+         "w" | "W":				run(walk)
+         "s" | "S":				run(spiral)
+         "p" | "P":				run(poly)
+         "t" | "T":				run(tile)
+         "r" | "R":				run(radial)
+         "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9": setdelay(e)
+         }
+      }
+end
+
+#  run(p) -- execute procedure p after resetting screen environment
+
+procedure run(p)
+   TReset()
+   return p()
+end
+
+#  continue() -- delay and check for interrupts
+#
+#  Every demo should call this periodically and should exit if it fails.
+#  The global "event" is set to the interrupting event and can be checked
+#  to exit from recursive calls.
+
+procedure continue()
+   local evlist
+
+   event := &null
+   delay(msec)
+   if *Pending() = 0 then
+      return
+   event := Event()
+   if setdelay(event) then {
+      event := &null
+      return
+      }
+   else
+      fail
+end
+
+#  setdelay(e) -- handle delay-setting event, or fail
+
+procedure setdelay(e)
+   while e === "0" do		# 0 is pause -- wait until anything else input
+      e := Event()
+   if type(e) == "string" & *e = 1 & (e ? any(&digits)) then {
+      if e === "9" then
+         msec := 0
+      else
+         msec := ishift(1, 12 - e)
+      return
+      }
+   else
+      fail
+end
+
+
+#################### drawing routines ####################
+
+
+procedure walk()				# random walk
+   local stepsize, maxturn, bias
+
+   maxturn := 30
+   bias := 1
+   while continue() do
+      every 1 to 10 do {
+         TDraw(1)
+         TRight(?maxturn - maxturn/2.0 + bias)
+         }
+end
+
+
+procedure bush(n, len)				# fractal bush
+   local maxturn
+
+   if /n then {
+      TSkip(-150)
+      n := 4 + ?4
+      len := 400 / n
+      }
+   maxturn := 60
+   TSave()
+   TRight(?maxturn - maxturn / 2.0)
+   TDraw(?len)
+   if n > 0 & /event then {
+      continue()
+      every 1 to ?4 do
+         bush(n - 1, len)
+      }
+   TRestore()
+end
+
+
+procedure poly()				# regular nonconvex polygon
+   local angle, side, x0, y0
+   angle := 60 + ?119
+   side := 200 - 100 * cos(dtor(angle))
+   x0 := WAttrib("width") / 2 - side / 2
+   y0 := WAttrib("height") / 2 - side / 3
+   TGoto(x0, y0)
+   TLeft(THeading())				# set heading to zero (East)
+   while continue() do {
+      TDraw(side)
+      TRight(angle)
+      if abs(TX() - x0) + abs(TY() - y0) < 1 then break
+      }
+end
+
+
+procedure spiral()				# polygon spiral
+   local angle, side, incr
+   angle := 30 + ?149
+   incr := sqrt(4 * ?0) + 0.3
+   side := 0
+   while side < 1000 & continue() do {
+      TDraw(side +:= incr)
+      TRight(angle)
+      }
+end
+
+
+procedure tile()
+   local i, j, n, x0, y0, x, y, dx, dy, f, m
+
+   n := 5
+   x0 := WAttrib("width") / 2
+   y0 := WAttrib("height") / 2
+   dx := x0 / n
+   dy := y0 / n
+   f := mkfig(?10)
+   x := dx / 2
+   m := dx + dy
+   every i := 1 to n do {
+      y := dy / 2
+      every j := 1 to n do {
+         THeading(45)
+         TGoto(x0 + x, y0 + y);  every 1 to 4 do { putfig(f, m); TRight(90) }
+         TGoto(x0 + x, y0 - y);  every 1 to 4 do { putfig(f, m); TRight(90) }
+         TGoto(x0 - x, y0 + y);  every 1 to 4 do { putfig(f, m); TRight(90) }
+         TGoto(x0 - x, y0 - y);  every 1 to 4 do { putfig(f, m); TRight(90) }
+         y +:= dy
+         if not continue() then
+            return
+         }
+      x +:= dx
+      }
+end
+
+
+procedure radial()
+   local f, i, j, nrings, rwidth, fwd, circ, nfig, da
+
+   f := mkfig(?8)
+   nrings := 5
+   rwidth := WAttrib("width") / (2 * nrings)
+   every i := 1 to nrings do {
+      circ := &pi * 2 * i * rwidth
+      nfig := integer(circ / 50)
+      nfig := nfig / 2 + ?nfig
+      da := 360.0 / nfig
+      every j := 0 to nfig-1 do {
+         TGoto(WAttrib("width") / 2, WAttrib("height") / 2)
+         TRight(-THeading() + 90 - j * da)
+         TSkip(rwidth * (i - 0.9))
+         putfig(f, rwidth)
+         if not continue() then
+            return
+         }
+      }
+end
+
+
+procedure mkfig(nseg)
+   local f
+   f := []
+   every 1 to nseg do {
+      put(f, ?0 / nseg)		# draw
+      put(f, -90 + 180 * ?0)	# turn
+      }
+   return f
+end
+
+procedure putfig(f, m)
+   local i
+   TSave()
+   every i := 1 to *f by 2 do {
+      TDraw(m * f[i])
+      TRight(f[i+1])
+      }
+   TRestore()
+end

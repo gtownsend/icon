@@ -1,0 +1,106 @@
+############################################################################
+#
+#	File:     evaltree.icn
+#
+#	Subject:  Procedures to maintain activation tree
+#
+#	Author:   Clinton Jeffery
+#
+#	Date:     June 19, 1994
+#
+###########################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Usage: evaltree(cset, procedure, record constructor)
+#
+#  The record type must have fields node, parent, children
+#
+#  See "A Framework for Monitoring Program Execution", Clinton L. Jeffery,
+#  TR 93-21, Department of Computer Science, The University of Arizona,
+#  July 30, 1993.
+#
+############################################################################
+#
+#  Requires:  MT Icon and event monitoring
+#
+############################################################################
+
+$include "evdefs.icn"
+
+record __evaltree_node(node,parent,children)
+
+global CallCodes,
+   SuspendCodes,
+   ResumeCodes,
+   ReturnCodes,
+   FailCodes,
+   RemoveCodes
+
+procedure evaltree(mask, callback, activation_record)
+   local c, current, p, child
+
+
+   /activation_record := __evaltree_node
+   CallCodes := string(mask ** cset(E_Pcall || E_Fcall || E_Ocall || E_Snew))
+   SuspendCodes := string(mask ** cset(E_Psusp || E_Fsusp ||
+      E_Osusp || E_Ssusp))
+   ResumeCodes := string(mask ** cset(E_Presum || E_Fresum || E_Oresum ||
+      E_Sresum))
+   ReturnCodes  := string(mask ** cset(E_Pret || E_Fret || E_Oret))
+   FailCodes := string(mask ** cset(E_Pfail || E_Ffail || E_Ofail || E_Sfail))
+   RemoveCodes  := string(mask ** cset(E_Prem || E_Frem || E_Orem || E_Srem))
+
+   current := activation_record()
+   current.parent := activation_record()
+   current.children := []
+   current.parent.children := []
+
+   while EvGet(mask) do {
+      case &eventcode of {
+	 !CallCodes: {
+	    c := activation_record()
+	    c.node := &eventvalue
+	    c.parent := current
+	    c.children := []
+	    put(current.children, c)
+	    current := c
+	    callback(current, current.parent)
+	    }
+	 !ReturnCodes | !FailCodes: {
+	    p := pull(current.parent.children)
+	    current := current.parent
+	    callback(current, p)
+	    }
+	 !SuspendCodes: {
+	    current := current.parent
+	    callback(current, current.children[-1])
+	    }
+	 !ResumeCodes: {
+	    current := current.children[-1]
+	    callback(current, current.parent)
+	    }
+	 !RemoveCodes: {
+	    if child := pull(current.children) then {
+	       while put(current.children, pop(child.children))
+	       callback(current, child)
+	       }
+	    else {
+	       if current === current.parent.children[-1] then {
+		  p := pull(current.parent.children)
+		  current := current.parent
+		  callback(current, p)
+		  next
+		  }
+	       else stop("evaltree: unknown removal")
+	       }
+	    }
+	 default: {
+	    callback(current, current)
+	    }
+	 }
+      }
+end
+

@@ -1,0 +1,71 @@
+############################################################################
+#
+#	File:     stripcom.icn
+#
+#	Subject:  Procedures to strip comments from Icon line
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:	  March 3, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.5
+#
+############################################################################
+#  
+#  Strip commented-out portion of a line of Icon code.  Fails on lines
+#  which, either stripped or otherwise, come out as an empty string.
+#
+############################################################################
+#
+#  BUGS:  Can't handle lines ending in an underscore as part of a
+#  broken string literal, since stripcom is not intended to be used
+#  on sequentially read files.  It simply removes comments from indi-
+#  vidual lines.
+#
+############################################################################
+
+
+# To preserve parallelism between file and procedure names.
+procedure stripcom(s)
+    return strip_comments(s)
+end
+
+
+# The original name -
+procedure strip_comments(s)
+
+    local i, j, c, c2, s2
+
+    s ? {
+	tab(many(' \t'))
+	pos(0) & fail
+        find("#") | (return trim(tab(0),' \t'))
+	match("#") & fail
+	(s2 <- tab(find("#"))) ? {
+	    c2 := &null
+	    while tab(upto('\\"\'')) do {
+		case c := move(1) of {
+		    "\\"   : {
+			if match("^")
+			then move(2)
+			else move(1)
+		    }
+		    default: {
+			if \c2
+			then (c == c2, c2 := &null)
+			else c2 := c
+		    }
+		}
+	    }
+	    /c2
+	}
+	return "" ~== trim((\s2 | tab(0)) \ 1, ' \t')
+    }
+
+end

@@ -1,0 +1,194 @@
+############################################################################
+#
+#	File:     showtile.icn
+#
+#	Subject:  Program to display tiles
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 10, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program displays pattern tiles given in standard input.
+#
+#  The options are:
+#
+#	-P	show pattern produced by tile; default show tile
+#	-i s	create image files with prefix s
+#	-a	run without waiting for event in window
+#	-u	don't show on-screen images; implies -a
+#	-p i	start with page i
+#	-r i	number of rows, default 7 for -P, otherwise 10
+#	-c i	number of columns, default 6 for -P, otherwise 12
+#	-n s	number pages using s as a prefix
+#	-w i	width of area for tile; default 48 unless -P
+#	-h i	height of area for file; default 48 unless -P
+#	-d	add date line
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  options, patutils, xio, xutils, graphics, xcompat
+#
+############################################################################
+
+link options
+link patutils
+link xio
+link xutils
+link graphics
+link xcompat
+
+procedure main(args)
+   local x, y, w, h, pattern, count, page, opts, images, auto, unseen, foot
+   local rows, cols, prefix, bfont, nfont, dims, areaw, areah, signal, poff
+   local date, HGap, VGap, patterns
+
+   opts := options(args, "Pi:aup+r+c+w+h+n:d")
+
+   images := \opts["i"]
+   auto := \opts["a"]
+   auto := unseen := \opts["u"]
+   page := (\opts["p"] - 1) | 0
+   prefix := \opts["n"]
+   if \opts["d"] then date := &dateline else date := ""
+   foot := \prefix | \opts["d"]
+
+   if \opts["P"] then {				# pattern mode
+      patterns := 1
+      HGap := 32				# gap between
+      VGap := 32				# gap below
+      areaw := 128				# pattern width
+      areah := 64				# pattern height
+      rows := \opts["r"] | 7
+      cols := \opts["c"] | 6
+      w := (areaw + HGap) * cols - HGap
+      h := (areah + VGap) * rows
+      if \foot then h +:= 20
+      }
+   else {					# image mode
+      HGap := 16				# gap between
+      VGap := 16				# gap below
+      rows := \opts["r"] | 10
+      cols := \opts["c"] | 12
+      areaw := \opts["w"] | 48
+      areah := \opts["h"] | 48
+      w := (areaw + HGap) * cols + 1
+      h := (areah + VGap) * rows + 1
+      if \foot then h +:= 20			# space for page number
+      }
+
+   WOpen("width=" || w, "height=" || h, "canvas=hidden") |
+      stop("*** cannot open window")
+   if /unseen then WAttrib("canvas=normal")
+
+   if \patterns then WAttrib("fillstyle=textured")
+
+   bfont := "-misc-fixed-medium-r-normal--10-100-75-75-c-60-iso8859-1"
+   nfont := "-misc-fixed-medium-r-normal--15-140-75-75-c-90-iso8859-1"
+
+   Font(bfont | "6x10" | "fixed")
+
+   count := 0
+
+#  Skip pages if requested.
+
+   every 1 to (rows * cols) * page do {
+      readpatt() | stop("*** premature end of file")
+      count +:= 1
+      }
+
+#  Main processing loop.
+
+   repeat {
+      if \patterns then EraseArea()
+      else grid(areaw + HGap, areah + VGap, cols, rows)
+
+      x := y := 0
+
+#  Do a page.
+
+      every 1 to rows do {
+         every 1 to cols do {
+            pattern := readpatt() | break break break
+            count +:= 1
+            if \patterns then {
+               Pattern(pattern) | {
+                   write(&errout, "*** could not set pattern: ", pattern)
+                   next
+                   }
+               FillRectangle(x, y, areaw, areah)
+               GotoXY(x, y + areah + VGap / 3)
+               WWrites(left(count || ":", 5))
+               dims := tiledim(pattern)
+               WWrites(left(dims.w || "x" || dims.h, 7))
+               WWrites("d=", left(pdensity(pattern), 7))
+               GotoXY(x, y + areah + VGap / 3 + 11)
+               if *pattern > 20 then pattern := pattern[1+:18] || "..."
+               WWrites(pattern)
+               }
+            else {
+               poff := (HGap + areaw - tiledim(pattern).w) / 3
+               DrawImage(x + poff, y + VGap / 2, pattern)
+               WFlush()
+               CenterString(x + poff * 2, y + areah + VGap / 3, count)
+               }
+            x +:= areaw + HGap
+            }
+         x := 0
+         y +:= areah + VGap
+         }
+
+      page +:= 1
+      if \foot then {
+         GotoXY(0, h - 5)
+         Font(nfont | "10x20" | "fixed")		# numbering font
+         WWrites(\prefix || page)
+         GotoXY(w - TextWidth(date), h - 5)
+         WWrites(date)
+         Font(bfont | "6x10" | "fixed")		# restore body font
+         }
+      if /auto & /unseen then signal := Event()
+      WriteImage(\images || right(page, 2, "0") || ".gif")
+      if signal === "q" then exit()
+      }
+
+   page +:= 1
+   if \foot then {
+      GotoXY(0, h - 5)
+      Font(nfont | "10x20" | "fixed")			# numbering font
+      WWrites(\prefix || page)
+      GotoXY(w - TextWidth(date), h - 5)
+      WWrites(date)
+      }
+   WriteImage(\images || right(page, 2, "0") || ".gif")
+   if /auto then WDone()
+
+end
+
+#  Draw a grid for the tile mode
+
+procedure grid(w, h, c, r)
+   local wc, hr, x, y
+
+   wc := w * c
+   hr := h * r
+
+   EraseArea()
+
+   every x := 0 to wc by w do
+      DrawLine(x, 0, x, hr)
+   every y := 0 to hr by h do
+      DrawLine(0, y, wc, y)
+
+   return
+
+end

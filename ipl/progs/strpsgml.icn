@@ -1,0 +1,88 @@
+############################################################################
+#
+#	File:     strpsgml.icn
+#
+#	Subject:  Program to strip/translate SGML tags
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     November 19, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.9
+#
+############################################################################
+#
+#  Strip or perform simple translation on SGML <>-style tags.  Usage
+#  is as follows:
+#
+#      strpsgml [-f translation-file] [left-delimiter [right-delimiter]]
+#
+#  The default left-delimiter is <, the default right delimiter is >.
+#  If no translation file is specified, the program acts as a strip-
+#  per, simply removing material between the delimiters.  Strpsgml
+#  takes its input from stdin, writing to stdout.
+#
+#  The format of the translation file is:
+#
+#      code	initialization	completion
+#
+#  A tab or colon separates the fields.  If you want to use a tab or colon
+#  as part of the text (and not as a separator), place a backslash before
+#  it.  The completion field is optional.  There is not currently any way
+#  of specifying a completion field without an initialization field.  Do
+#  not specify delimiters as part of code.
+#
+#  Note that, if you are translating SGML code into font change or escape
+#  sequences, you may get unexpected results.  This isn't strpsgml's
+#  fault.  It's just a matter of how your terminal or WP operate.  Some
+#  need to be "reminded" at the beginning of each line what mode or font
+#  is being used.  Note also that stripsgml assumes < and > as delimiters.
+#  If you want to put a greater-than or less-than sign into your text,
+#  put a backslash before it.  This will effectively "escape" the spe-
+#  cial meaning of those symbols.  It is now possible to change the
+#  default delimiters, but the option has not been thoroughly tested.
+#
+############################################################################
+#
+#  Links: scan, stripunb, readtbl
+#
+############################################################################
+
+link scan
+link stripunb
+link readtbl
+
+procedure main(a)
+
+    local usage, _arg, L, R, map_file, t, readtbl, line, stripunb, last_k
+
+    usage:=
+     "usage:  stripsgml [-f map-file] [left-delimiter(s) [right-delimiter(s)]]"
+
+    L := '<'; R := '>'
+    while _arg := get(a) do {
+        if _arg == "-f" then {
+            map_file := open(get(a)) |
+                stop("stripsgml:  can't open map_file\n",usage)
+            t := readtbl(map_file)
+        }
+        else {
+            L := _arg
+            R := cset(get(a))
+        }
+    }
+
+    every line := !&input do
+	write(stripunb(L,R,line,&null,&null,t))  # t is the map table
+
+    # last_k is the stack used in stripunb.icn
+    if *\last_k ~= 0 then
+	stop("Unexpected EOF encountered.  Expecting ", pop(last_k), ".")
+
+end

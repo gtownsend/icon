@@ -1,0 +1,70 @@
+############################################################################
+#
+#	File:     tiler.icn
+#
+#	Subject:  Procedures to tile window with image
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 18, 1997
+#
+############################################################################
+#
+#  tileimg(win, image) tiles win with copies of image.
+#
+#  tileims(win, ims) tiles win with copies of the image specified by ims
+#
+#  Note that tileimg() uses the gamma value of win.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  imutils, tile
+#
+############################################################################
+
+link imutils
+link tile
+
+procedure tileimg(win, img)		#: tile image
+   local hidden
+
+   hidden := WOpen("canvas=hidden", "image=" || img, "gamma=" ||
+      WAttrib(win, "gamma")) | {
+      write(&errout, "*** cannot open image ", img)
+      fail
+      }
+
+   tile(hidden, win)
+
+   WClose(hidden)
+
+   return
+
+end
+
+procedure tileims(win, ims)		#: tile image string
+   local w, h
+
+   w := imswidth(ims)
+   h := imsheight(ims)
+
+   if ims ? {
+      tab(many(&digits)) & =",#"
+      } then {
+         WAttrib(win, "pattern=" || ims)
+         WAttrib(win, "fillstyle=textured")
+         FillRectangle(win)
+         }
+   
+   else {
+      DrawImage(win, 0, 0, ims) | fail
+      tile(win, win, 0, 0, w, h)
+      }
+
+   return
+
+end

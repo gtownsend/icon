@@ -1,0 +1,136 @@
+############################################################################
+#
+#	File:     pbkform.icn
+#
+#	Subject:  Procedures to process HP95 phone book files
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Icon procedure set to read and write HP95LX phone book (.pbk) files.
+#
+############################################################################
+#
+# HP 95LX Phone Book File Format
+# 
+# The HP 95LX Phone Book file is structured as a file identification 
+# record, followed by a variable number of phone book data records, 
+# and terminated by an end of file record.  Each data record contains
+# the information for one phone book entry.
+# 
+# The format of these phone book records is described below.  In the
+# descriptions, the type <int> refers to a two byte integer stored least 
+# significant byte first, the type <char> refers to a one byte integer, 
+# and the type <ASCII> refers to a string of ASCII characters.
+# 
+# HP 95LX Phone Book File Identification Record:
+# 
+# Byte Offset      Name            Type     Contents
+# 
+# 0                ProductCode     int      -2 (FEh, FFh)
+# 2                ReleaseNum      int      1 (01h, 00h)
+# 4                FileType        char     3 (03h)   
+# 
+############################################################################
+#
+#  Links: bkutil
+#
+############################################################################
+#
+#  See also: pbkutil.icn, abkform.icn
+#
+############################################################################
+
+link bkutil
+
+record pbk_id(releaseNum,fileType)
+
+procedure pbk_write_id(f)
+   writes(f,"\xfe\xff\x01\x00\x03")
+   return
+end
+
+procedure pbk_read_id(f)
+   bk_read_int(f) = 16rfffe | fail
+   return pbk_id(bk_read_int(f),ord(reads(f)))
+end
+
+# 
+# HP 95LX Phone Book Data Record:
+# 
+# Byte Offset      Name            Type     Contents
+# 
+# 0                RecordType      char     1 (01h)
+# 1                RecordLength    int      Number of bytes in remainder
+#                                           of this data record, see note
+#                                           below.
+# 3                NameLength      char     Length of name text in bytes.
+# 4                NumberLength    char     Length on number text in bytes.
+# 5                AddressLength   int      Length of address text in bytes.
+# 7                NameText        ASCII    Name text, 30 characters maximum.
+# 7+NameLength     NumberText      ASCII    Number text, 30 characters maximum.
+# 7+NameLength+
+#   NumberLength   AddressText     ASCII    Address text where the null 
+#                                           character is used as the line 
+#                                           terminator.  Addresses are limited
+#                                           to a maximum of 8 lines of 39
+#                                           characters per line (not counting
+#                                           the line terminator).
+# 
+record pbk_data(name,number,address)
+
+procedure pbk_write_data(f,data)
+   local name,number,address
+   name := \data.name | ""
+   number := \data.number | ""
+   address := \data.address | ""
+   writes(f,"\x01",bk_int(*name + *number + *address + 4),char(*name),
+	 char(*number),bk_int(*address),name,number,address)
+   return data
+end
+
+procedure pbk_read_data(f,id)
+   local next_rec,name_len,number_len,address_len,data
+   (reads(f) == "\x01" | (seek(f,where(f) - 1),&fail) &
+   next_rec := bk_read_int(f) + where(f) &
+   name_len := ord(reads(f)) &
+   number_len := ord(reads(f)) &
+   address_len := bk_read_int(f) &
+   data := pbk_data(reads(f,0 ~= name_len) | "",reads(f,0 ~= number_len) | "",
+	 reads(f,0 ~= address_len) | "") | fail &
+   seek(f,next_rec)) | fail
+   return data
+end
+
+#
+# HP 95LX Phone Book End of File Record:
+# 
+# Byte Offset      Name            Type     Contents
+# 
+# 0                RecordType     char      2 (02h)
+# 1                RecordLength   int       0 (00h, 00h)
+# 
+procedure pbk_write_end(f)
+   writes(f,"\x02\x00\x00")
+   return
+end
+
+procedure pbk_read_end(f,id)
+   (reads(f) == "\x02" & reads(f,2)) | fail
+   return
+end
+
+# 
+# 
+# Note: Files created by the Phone Book application may contain 
+# some padding following the last field of some data records.  Hence,
+# the RecordLength field must be used to determine the start of the
+# next record.  Phone book files created by other programs need not
+# have any padding.

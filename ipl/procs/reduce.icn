@@ -1,0 +1,34 @@
+############################################################################
+#
+#	File:     reduce.icn
+#
+#	Subject:  Procedure to perform operation on list of arguments
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 14, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  reduce(op, init, args[]) applies the binary operation op to all the
+#  values in args, using init as the initial value.  For example, 
+#
+#	reduce("+", 1, args[])
+#
+#  produces the sum of the values in args.
+#
+############################################################################
+
+procedure reduce(op, init, args[])
+
+   op := proc(op, 2) | stop("*** invalid operator for reduce()")
+
+   every init := op(init, !args)
+
+   return init
+
+end

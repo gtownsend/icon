@@ -1,0 +1,305 @@
+############################################################################
+#
+#	File:     profile.icn
+#
+#	Subject:  Program to display scrolling histogram
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 21, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program displays successive numbers by lines of corresponding
+#  height.  When the display area is full, it scrolls from right to
+#  left.
+#
+#  If a line has a number followed by a blank and a string, the string
+#  is interpreted as a color.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  interact, navitrix, vsetup
+#
+############################################################################
+
+link interact
+link vsetup
+
+global animate			# animation toggle
+global count			# frame count
+global height			# height of scrolling area
+global input			# input file
+global name			# input file name
+global offset			# base-line offset
+global pause			# pause vidget
+global prefix			# image file name prefix
+global rate			# sample rate
+global reset			# reset switch
+global scale			# vertical scale
+global state			# pause/run state
+global strip			# graphics context for display
+global width			# width of scrolling area
+global vidgets
+global root
+
+procedure main()
+   local value, n, color
+
+   init()
+
+   color := "black"		# default color
+
+   while value := read() do {
+      if (*Pending() > 0) | \state then
+         ProcessEvent(root, , shortcuts)
+      value ? {
+         n := tab(upto(' \t') | 0)
+         if tab(many(' \t')) then color := tab(0)
+         }
+      n := (scale * numeric(n)) | {
+         Fg("black")
+         Notice("Nonnumeric data; terminating.")
+         exit()
+         }
+      n >:= height			# clip to avoid window-manager bugs
+      CopyArea(strip, 1, 0, width - 1, height, 0, 0)
+      EraseArea(strip, width - 1, 0, width, height)
+      Fg(strip, color) | stop("bad color: ", image(color))
+      DrawLine(strip, width - 1, height - n - offset, width - 1,
+         height - offset)
+      if \animate then
+         WriteImage(strip, prefix || right(count +:= 1, 4, "0") || ".gif",
+               0, 0, width, height)
+      }
+
+   Fg("black")
+
+   case TextDialog("End of stream.", , , , ["Quit", "Snapshot", "Hold"]) of {
+      "Quit"      :  exit()
+      "Snapshot"  :  snapshot(strip, 0, 0, width, height)
+      "Hold"      :  WDone()
+      }
+
+end
+
+procedure init()
+
+   vidgets := ui()
+
+   root := vidgets["root"]
+   pause := vidgets["pause"]
+   VSetState(pause, 1)			# initially paused
+
+   name := ""
+   rate := 1
+   scale := 1
+   offset := 0
+
+   count := 0
+   prefix := "image"
+
+   width :=  vidgets["strip"].uw
+   height :=  vidgets["strip"].uh
+
+   strip := Clone("dx=" || vidgets["strip"].ux, "dy=" || vidgets["strip"].uy)
+   Clip(strip, 0, 0, width, height)
+
+   return
+
+end
+
+procedure animation_cb(vidget, value)
+
+   case value[1] of {
+      "prefix"  :  set_prefix()
+      "rate"    :  set_frame_rate()
+      }
+
+end
+
+procedure set_prefix()
+
+   return
+
+end
+
+procedure set_frame_rate()
+
+   return
+
+end
+
+procedure animate_cb(vidget, value)
+
+   animate := value
+
+   return
+
+end
+
+procedure parameters_cb(vidget, value)
+
+   case value[1] of {
+      "scale  @V"  :  set_scale()
+      "offset @F"  :  set_offset()
+      "rate   @R"  :  set_rate()
+      }
+
+   fail
+
+end
+
+procedure file_cb(vidget, value)
+
+   case value[1] of {
+      "snapshot @S"  :  return snapshot(strip, 0, 0, width, height)
+      "quit     @Q"  :  exit()
+      }
+   
+end
+
+procedure pause_cb(vidget, value)
+
+   state := value
+
+   return
+
+end
+
+procedure clear_cb()
+
+   EraseArea(strip)
+
+   return
+
+end
+
+procedure set_rate()
+
+   repeat {
+      if TextDialog(, "sample rate", rate, 10) == "Okay" then {
+         rate := (0 < numeric(dialog_value[1])) | {
+            Notice("Invalid sample rate.")
+            next
+            }
+         clear_cb()
+         return
+         }
+      else fail			# user canceled
+      }
+
+end
+
+procedure set_offset()
+
+   repeat {
+      if TextDialog(, "vertical offset", offset, 10) == "Okay" then {
+         offset := numeric(dialog_value[1]) | {
+            Notice("Invalid offset.")
+            next
+            }
+         clear_cb()
+         return
+         }
+      else fail			# user canceled
+      }
+
+end
+
+procedure set_scale()
+
+   repeat {
+      if TextDialog(, "vertical scale", scale, 10) == "Okay" then {
+         scale := (0 < numeric(dialog_value[1])) | {
+            Notice("Invalid scale value.")
+            next
+            }
+         clear_cb()
+         return
+         }
+      else fail			# user canceled
+      }
+
+end
+
+procedure shortcuts(e)
+
+   if &meta then
+      case map(e) of {
+         "c"  :  clear_cb()
+         "f"  :  set_offset()
+         "p"  :  if \state then VSetState(pause) else VSetState(pause, 1)
+         "q"  :  exit()
+         "r"  :  set_rate()
+         "s"  :  snapshot(strip, 0, 0, width, height)
+         "v"  :  set_scale()
+         }
+
+   return
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=651,305", "bg=pale gray", "label=Scrolling Histogram"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,651,305:Scrolling Histogram",],
+   ["animate:Button:regular:1:21,189,56,20:movie",animate_cb],
+   ["animation:Menu:pull::113,1,71,21:Animation",animation_cb,
+      ["prefix","rate","clear"]],
+   ["clear:Button:regular::21,88,56,20:clear",clear_cb],
+   ["file:Menu:pull::0,1,36,21:File",file_cb,
+      ["snapshot @S","quit     @q"]],
+   ["label1:Label:::619,144,21,13:100",],
+   ["label10:Label:::90,269,21,13:500",],
+   ["label11:Label:::584,269,21,13:  0",],
+   ["label2:Label:::619,195,21,13: 50",],
+   ["label3:Label:::619,94,21,13:150",],
+   ["label4:Label:::619,45,21,13:200",],
+   ["label5:Label:::619,247,21,13:  0",],
+   ["label6:Label:::489,269,21,13:100",],
+   ["label7:Label:::388,269,21,13:200",],
+   ["label8:Label:::287,269,21,13:300",],
+   ["label9:Label:::188,269,21,13:400",],
+   ["line10:Line:::501,253,501,262:",],
+   ["line11:Line:::200,255,200,264:",],
+   ["line12:Line:::500,40,500,49:",],
+   ["line13:Line:::200,40,200,49:",],
+   ["line14:Line:::615,51,604,51:",],
+   ["line15:Line:::615,253,604,253:",],
+   ["line16:Line:::603,256,603,265:",],
+   ["line17:Line:::101,255,101,264:",],
+   ["line18:Line:::101,253,90,253:",],
+   ["line19:Line:::100,51,89,51:",],
+   ["line2:Line:::90,151,99,151:",],
+   ["line20:Line:::603,40,603,49:",],
+   ["line21:Line:::101,40,101,49:",],
+   ["line22:Line:::400,255,400,264:",],
+   ["line23:Line:::400,40,400,49:",],
+   ["line3:Line:::90,200,99,200:",],
+   ["line4:Line:::90,100,99,100:",],
+   ["line5:Line:::615,100,604,100:",],
+   ["line6:Line:::615,151,604,151:",],
+   ["line7:Line:::615,201,604,201:",],
+   ["line8:Line:::300,255,300,264:",],
+   ["line9:Line:::300,40,300,49:",],
+   ["menu line:Line:::0,23,655,23:",],
+   ["parameters:Menu:pull::35,1,78,21:Parameters",parameters_cb,
+      ["scale  @V","offset @F","rate   @R"]],
+   ["pause:Button:regular:1:21,41,56,20:pause",pause_cb],
+   ["strip:Rect:grooved::100,50,504,204:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

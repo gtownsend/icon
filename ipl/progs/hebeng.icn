@@ -1,0 +1,297 @@
+############################################################################
+#
+#	File:     hebeng.icn
+#
+#	Subject:  Program to print mixed Hebrew/English text
+#
+#	Author:   Alan D. Corre
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program is written in ProIcon for the Macintosh computer. Alan D. Corre
+#  August 1991. It takes input in a transcription of Hebrew which represents
+#  current pronunciation adequately but mimics the peculiarities of Hebrew
+#  spelling. Here are some sentences from the beginning of Agnon's story 
+#  "Friendship": marat qliyngel 'i$ah mefursemet haytah umenahelet beyt sefer
+#  haytah qowdem liymowt hamilHamah. mi$eni$tanu sidrey ha`owlam,neHtexah
+#  migdulatah..wexol miy $eyac'u low mowniyTiyn ba`owlam haytah mitqarevet
+#  'eclow weyowce't wenixneset leveytow" The letter sin is represented by the
+#  German ess-zed which is alt-s on the Mac and cannot be represented here.
+#  The tilde (~)toggles between English and Hebrew, so the word "bar" will be
+#  the English word "bar" or the Hebrew beyt-rey$ according to the current
+#  mode of the program. Finals are inserted automatically. Justification
+#  both ways occurs unless the program detects a blank or empty line, in
+#  which case the previous line is not justified.
+#  Since I took out non-ASCII chars, and have not rechecked that this
+#  works with the corresponding octal chars, there could be some slips in
+#  this text.
+#
+############################################################################
+#
+#  Requires:  ProIcon
+#
+############################################################################
+
+$ifdef _MACINTOSH
+
+global outfilename, outvar, outwin,hebrew_string_flag, hebrew_text_flag,
+	screenwidth,screenheight,markers
+
+procedure main()
+#message() creates a standard Mac message box
+	if message("Do you wish to create a new text or print an old one?","New",
+		"Old") then newtext() else
+		oldtext()
+#Empty and hide the interactive window
+	wset(0,5)
+	wset(0,0)
+end
+
+
+procedure newtext()
+	set_markers()
+	get_info()
+	get_screensize()
+	create_file()
+	go()
+end
+
+procedure oldtext()
+#getfile() allows selection of a file already available
+	outfilename := getfile("Please select file.",,)
+#attempt to open a window with the name of the file
+	if not (outwin := wopen(outfilename,"f")) then stop()
+#put a font in this window which has Hebrew letters in high ASCII numbers
+	wfont(outwin,"Ivrit")
+#use 12-point
+	wfontsize(outwin,12)
+#show the window. The user wishing to edit must make the window active
+#and use the appropriate alt keys to edit the Hebrew text. This is not
+#necessary when using the transcription initially
+	wset(outwin,1)
+	if message("Do you wish to edit? (Press return when through editing.)","Yes","No") then
+			read()
+	if message("Do you wish to print?","Yes","No") then
+#send the window to the printer if the user desires
+			wprint(outwin,1,1)
+end
+
+procedure set_markers()
+#five letters preceding these characters take a special final shape
+	markers := ' ,.;:-\324\"?)]}'
+end
+
+
+procedure get_info()
+local dimlist
+	outfilename := gettext("What is the name of your output file?",,"Cancel")
+	if /outfilename then stop()
+#the program has to know what is the principal language in order to leave
+#blanks at paragraph endings properly. When the text flag is set, then the
+#program overall is operating in Hebrew mode. When the string flag is set
+#the current string is Hebrew
+	if message("What is the principal language of the text?","Hebrew","English") then
+		hebrew_string_flag := hebrew_text_flag := 1
+	if \hebrew_text_flag then {
+		if not message("The principal language used is Hebrew.","Okay","Cancel") then
+		stop()} else
+	if not message("The principal language used is English.","Okay","Cancel") then
+		stop()
+end
+
+procedure get_screensize()
+local dimlist
+#&screen is a list. Work with the old standard mac screen
+	dimlist := &screen
+	screenheight := dimlist[3]
+	screenwidth := dimlist[4]
+	if screenwidth > 470 then screenwidth := 470
+end
+
+
+procedure create_file()
+#arrange the various fonts and sizes
+	outwin := wopen(outfilename,"n")
+	outvar := open(outfilename,"w")
+	wsize(0,screenwidth,(screenheight / 2 - 40))
+	wsize(outwin,screenwidth,(screenheight / 2 - 40))
+	wfont(outwin,"Ivrit")
+	wfontsize(outwin,12) 
+	wfont(0,"Geneva")
+	wfontsize(0,12)
+#position windows
+	wmove(0,0,40)
+	wmove(outwin,0,screenheight / 2 + 20)
+	wset(outwin,1) #show the output window
+end
+	
+procedure process(l)
+local cursor,substring,newline
+if *l = 0 then return " "
+	cursor := 1
+	newline := ""
+#look for a tilde, and piece together a new line accordingly
+	l ? while substring := tab(upto('~')) do {
+	move(1)
+	if \hebrew_string_flag then substring := hebraize(substring)
+	if /hebrew_text_flag then newline ||:= substring else
+		newline := (substring || newline)
+#string flag toggle
+	(/hebrew_string_flag := 1) | (hebrew_string_flag := &null)
+	cursor := &pos}
+	substring := l[cursor:0]
+	if \hebrew_string_flag then substring := hebraize(substring) 
+	if /hebrew_text_flag then newline ||:= substring else
+		newline := (substring || newline)
+return newline
+end
+
+procedure justify(l)
+#doesnt give perfect right justification, but its good enough
+local stringlength,counter,n,increment,newline
+	stringlength := wtextwidth(outwin,l)
+	newline := l
+	increment := 1
+	while stringlength < screenwidth do {
+		counter := 0
+		l ? every n := upto(' ') do {
+					newline[n + (counter * increment)] := "  "
+					counter +:= 1
+					stringlength +:= 4
+					if stringlength >= screenwidth then break}
+		increment +:= 1}
+return newline
+end
+
+procedure go()
+#the appearence of the Hebrew/English window lags one line behind the
+#input window
+local line,line2,counter,mess
+	counter := 0
+	line := read()	
+#octal 263 is option-period.
+	if line == "\263" then stop()
+	while (line2 := read()) ~== "\263" do {
+		counter +:= 1
+		if ((not match(" ",line2)) & (*line2 ~= 0)) then
+		line := justify(process(line)) else 
+		  if /hebrew_text_flag then line := process(line) else
+				line := rt(process(line))
+		if (wtextwidth(outwin,line) - screenwidth) > 10 then {
+			mess := "Warning. Line " || counter || " is " || (wtextwidth(outwin,line) -
+			screenwidth) || " pixels too long."
+			message(mess,"Okay","")}
+		write(outvar,line)
+		line := line2}
+	if /hebrew_text_flag then line := process(line) else
+		line := rt(process(line))
+			if (wtextwidth(outwin,line) - screenwidth) > 10 then {
+			mess := "Warning. Last Line is " || (wtextwidth(outwin,line) -
+			screenwidth) || " pixels too long."
+			message(mess,"Okay","")}
+	write(outvar,line)
+	if message("Do you wish to print?","Yes","No") then wprint(outwin,1,1)
+	close(outvar)
+	wclose(outwin,"")
+end
+
+procedure hebraize(l)
+static s2,s3
+#' is used for aleph. For the abreviation sign use either alt-] which gives
+#an appropriate sign, or alt-' which is easier to remember but gives a funny
+#looking digraph on the screen
+	initial{ s2 := "u\'\276\324bvgdhwzHTykKlmMnNs`pfFcCqr$\247tx\261\335(){}[]X"
+					 s3 := "\267\324\'\'\272\272\355\266\372\267\275\305\303\264\373\373\302\265_
+					 				\265\176\176\247\322\304\304\304\215\215\317\250\246\244\240_
+									\373+$)(}{][\373"}
+#the following (1) inserts initial aleph in case the student has forgotten it
+#(2) takes care of final x with vowel (all other finals are vowelless in
+#modern Hebrew (3) takes out vowels except u which is usually represented in
+#modern Hebrew (4) takes care of other finals (5) converts to Hebrew letters
+#(6) reverses to Hebrew direction
+	l := reverse(map(finals(devowel(xa(aleph(l)))),s2,s3))
+return l
+end
+
+procedure aleph(l)
+#inserts an aleph in words beginning with vowels only
+#this alters the duplicate line; compare procedure devowel which rebuilds
+#the line from scratch
+local newl,offset
+	newl := l
+	offset := 0
+	if upto('aeiou',l[1]) then {
+		offset +:= 1
+		newl[1] := ("\'" || l[1])}
+		l ?  while tab(upto(' ')) do {
+						tab(many(' '))
+						if upto('aeiou',l[&pos]) then {
+							newl[&pos + offset] := ("\'" || l[&pos])
+							offset +:= 1}}
+return newl
+end
+
+procedure xa(s)
+#takes care of the special case of final xa
+local substr,newstr
+	newstr := ""
+	s ||:= " "
+	s ? {while substr := tab(find("xa")) || move(2) || tab(any(markers)) do {
+					substr[-3] := char(170)
+					newstr ||:= substr}
+				newstr ||:= s[&pos:-1]}
+return newstr
+end
+
+
+procedure finals(l)
+#arranges the final letters
+static finals,corresp
+local newline
+initial {finals := 'xmncf'
+					 corresp := table("")
+					 corresp["x"] := "\301"
+					 corresp["m"] := "\243"
+					 corresp["n"] := "\242"
+					 corresp["f"] := "\354"
+					 corresp["c"] := "\260"}
+	newline := l
+	l ? while tab(upto(finals)) do {
+				move(1)
+				if (any(markers)) | (&pos = *l + 1) then
+					newline[&pos - 1] := corresp[l[&pos - 1]]
+																	}
+return newline
+end
+
+procedure rt(l)
+#for right justification; chars are of different size
+local stringlength,newline
+	stringlength := wtextwidth(outwin,l)
+	newline := l
+	if (screenwidth-stringlength) > 0 then
+	newline := (repl(" ",(screenwidth-stringlength +2) / 4) || l)
+return newline
+end
+
+procedure devowel(l)
+local newline,substring
+	newline := ""
+	l ? {while substring := tab(upto('aeio')) do {
+		newline ||:= substring
+		move(1)}
+		newline ||:= l[&pos:0]}
+return newline
+end
+
+$else   # not Macintosh
+procedure main()
+   stop("sorry, ", &progname, " only runs under Macintosh ProIcon")
+end
+$endif

@@ -1,0 +1,157 @@
+############################################################################
+#
+#	File:     plexity.icn
+#
+#	Subject:  Program to count distinct weaves
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 6, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program counts the distinct weaves with k color, m warp threads,
+#  and n wft threads.
+#
+#  The options supported are:
+#
+#	-k i	number of colors; default 2 (the maximum supported is 10)
+#	-m i	number of warp threads (columns); default 2
+#	-n i	number of weft threads (rows); default 2
+#
+#  To allow k up to 10 (temporary), the representation of colors goes
+#  from 0 to k - 1.
+#
+############################################################################
+#
+#  Links:  imxform, options
+#
+############################################################################
+
+link imxform
+link options
+
+global symlist
+
+procedure main(args)
+   local opts, k, m, n
+
+   opts := options(args, "k+n+m+")
+
+   k := \opts["k"] | 2
+   m := \opts["m"] | 2
+   n := \opts["n"] | 2
+
+   syminit(m, n)
+
+   plexity(k, m, n)
+
+end
+
+# weaves for k combinations on an m-by-n grid
+#
+# presently limited to 10 combinations ...
+
+procedure plexity(k, m, n)
+   local warps, wefts, boards, weaves, test
+
+   warps := []
+   every put(warps, combinations(k, m))
+
+   wefts := []
+   every put(wefts, combinations(k, n))
+
+   boards := []
+   every put(boards, combinations(2, n * m))
+
+   weaves := set()
+
+   every test := weave(!warps, !wefts, !boards) do
+      if not member(weaves, symmetries(test)) then
+         insert(weaves, test)
+
+   write(*weaves)
+
+end
+
+procedure combinations(k, n)	#: all combinations of k characters n times
+
+   if n = 0 then return ""
+
+   suspend (0 to k - 1) || combinations(k, n - 1)
+
+end
+
+procedure weave(warp, weft, board)
+   local i, j, weaving, row
+
+   weaving := ""
+   j := 0
+
+   board ? {
+      while row := move(*warp) do {
+         j +:= 1
+         every i := 1 to *row do {
+            if row[i] == "0" then row[i] := weft[j] else row[i] := warp[i]  
+            }
+         weaving ||:= row
+         }
+      }
+
+   return weaving
+
+end
+
+procedure syminit(m, n)
+   local str, rows
+
+   str := ""
+
+   every str ||:= !&letters \ (m * n)
+
+   symlist := [str]
+
+   rows := str2rows(str, m, n)
+
+   every 1 to 3 do put(symlist, rows2str(rows := imxrotate(rows, "cw")))
+
+   return
+
+end
+
+procedure symmetries(weave)
+
+   suspend map(symlist[1], !symlist, weave)
+
+end
+
+procedure str2rows(str, m, n)
+   local rows, i
+
+   rows := list(n)
+
+   i := 1
+
+   str ? {
+      while rows[i] := move(m) do
+      i +:= 1
+      }
+
+   return rows 
+
+end
+
+procedure rows2str(rows)
+   local str
+
+   str := ""
+
+   every str ||:= !rows
+
+   return str
+
+end

@@ -1,0 +1,174 @@
+############################################################################
+#
+#	Name:	llist.icn
+#
+#	Title:	Linked-list utilities, Lisp-style
+#
+#	Author: Bob Alexander
+#
+#	Date:	February 19, 1995
+#
+############################################################################
+
+#
+# Procedure kit supporting operations on linked lists, Lisp-style.
+#
+
+global LLNull
+
+record LLPair(first,rest)
+
+#
+# Basic list operations.
+#
+
+procedure LLFirst(x)
+   return (\x).first
+end
+
+procedure LLRest(x)
+   return (\x).rest
+end
+
+
+#
+# Predicates -- the predicates fail if false, and return their arguments if
+# true.  Note that the returned value for the true condition might be null.
+#
+
+procedure LLIsNull(x)
+   return /x
+end
+
+procedure LLIsPair(x)
+   return (type(x) == "LLPair",x)
+end
+
+procedure LLIsNotPair(x)
+   return (type(x) ~== "LLPair",x)
+end
+
+procedure LLIsList(x)
+   return (LLIsNull | LLIsPair)(x)
+end
+
+procedure LLIsNotList(x)
+   return (not (LLIsNull | LLIsPair)(x),x)
+end
+
+
+#
+# More list operations.
+#
+
+procedure LList(x[])
+   local ll
+   every ll := LLPair(!x,ll)
+   return LLInvert(ll)
+end
+
+procedure LLToList(ll)
+   local result
+   result := []
+   every put(result,LLElements(ll))
+   return result
+end
+
+procedure LLAppend(ll[])
+   local result
+   every result := LLPair(LLElements(ll[1 to *ll - 1]),result)
+   return LLInvert(result,ll[-1] | &null)
+end
+
+procedure LLSplice(ll[])
+   local result,x,prev
+   every x := !ll do {
+      result := \x
+      (\prev).rest := x
+      prev := LLLastPair(x)
+      }
+   return result
+end
+
+procedure LLLastPair(ll)
+   local result
+   every result := LLPairs(ll)
+   return \result
+end
+
+procedure LLPut(ll,x)
+   return ((\LLLastPair(ll)).rest := LLPair(x),ll) | LLPair(x)
+end
+
+procedure LLInvert(ll,dot)
+   local nxt
+   while \ll do {
+      nxt := ll.rest
+      ll.rest := dot
+      dot := ll
+      ll := nxt
+      }
+   return dot
+end
+
+procedure LLReverse(ll)
+   local new_list
+   every new_list := LLPair(LLElements(ll),new_list)
+   return new_list
+end
+
+procedure LLElements(ll)
+   while LLIsPair(ll) do {
+      suspend ll.first
+      ll := ll.rest
+      }
+end
+
+procedure LLPairs(ll)
+   while LLIsPair(ll) do {
+      suspend ll
+      ll := ll.rest
+      }
+end
+
+procedure LLSecond(ll)
+   return (\(\ll).rest).first
+end
+
+procedure LLThird(ll)
+   return LLElement(ll,3)
+end
+
+procedure LLElement(ll,i)
+   return LLTail(ll,i).first
+end
+
+procedure LLTail(ll,i)
+   return 1(LLPairs(ll),(i -:= 1) = 0)
+end
+
+procedure LLCopy(ll)
+   return LLInvert(LLReverse(ll))
+end
+
+procedure LLLength(ll)
+   local result
+   result := 0
+   every LLPairs(ll) do result +:= 1
+   return result
+end
+
+procedure LLImage(x)
+   local result,pair
+   return {
+      if /x then "()"
+      else if LLIsPair(x) then {
+	 result := "("
+	 every pair := LLPairs(x) do
+	    result ||:= LLImage(pair.first) || " "
+	 if /pair.rest then result[1:-1] || ")"
+	 else result || ". " || LLImage(pair.rest) || ")"
+	 }
+      else image(x)
+      }
+end

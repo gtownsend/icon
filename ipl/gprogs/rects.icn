@@ -1,0 +1,106 @@
+############################################################################
+#
+#	File:     rects.icn
+#
+#	Subject:  Program to tile window with colored rectangles
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     December 3, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#      Rects tiles the window with randomly colored nonuniform
+#  rectangles.  Pressing the space bar produces a new tiling.
+#  Pressing "q" exits the program.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: graphics, random
+#
+############################################################################
+
+
+
+link graphics
+link random
+
+$define MinSide 10	# minimum size of a rectangle side
+$define Gap 3		# gap between rectangles
+$define Bias 20		# bias setting -- affects size choices
+
+
+
+procedure main(args)
+   local w, h
+
+   Window("bg=white", "width=600", "height=400", args)
+   w := integer(WAttrib("width"))
+   h := integer(WAttrib("height"))
+
+   randomize()
+   rect(Gap, Gap, w - Gap, h - Gap)
+
+   repeat case Event() of {
+      "q":  exit()
+      " ": {
+         EraseArea()
+         rect(Gap, Gap, w - Gap, h - Gap)
+         }
+   }
+
+end
+
+
+
+#  rect(x,y,w,h) -- draw rectangle, possibly subdivided, at (x,y)
+
+procedure rect(x, y, w, h)
+   local d
+   static darkness, hue
+   initial {
+      darkness := ["light", "medium", "dark", "deep"]
+      hue := ["red", "orange", "yellow", "green", "blue", "gray"]
+      }
+
+   if d := divide(w < h) then {		# if cut horizontally:
+      rect(x, y, w, d)			#    draw top portion
+      rect(x, y + d, w, h - d)		#    draw bottom portion
+      }
+   else if d := divide(w) then {	# if cut vertically:
+      rect(x, y, d, h)			#    draw left portion
+      rect(x + d, y, w - d, h)		#    draw right portion
+      }
+   else {				# else draw single rect
+      Fg(?darkness || " strong " || ?hue)	# set random color
+      FillRectangle(x, y, w - Gap, h - Gap)	# draw
+      }
+
+   return
+
+end
+
+
+
+#  divide(n) -- find division point along length n
+#
+#  Choose and return a division point at least MinSide units from
+#  either end.  Fail if the length is too small to subdivide;
+#  also fail randomly, depending partially on the Bias setting.
+
+procedure divide(n)
+
+   if (n > 2 * MinSide) & (?n > Bias) then
+      return MinSide + ?(n - 2 * MinSide)
+   else
+      fail
+
+end

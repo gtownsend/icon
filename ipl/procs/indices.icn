@@ -1,0 +1,69 @@
+############################################################################
+#
+#	File:     indices.icn
+#
+#	Subject:  Procedure to produce indices
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 2, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	indices(spec, last)
+#			produces a list of the integers given by the
+#			specification spec, which is a common separated list
+#			of either positive integers or integer spans, as in
+#
+#				"1,3-10, ..."
+#
+#			If last is specified, it it used for a span of
+#			the form "10-".
+#
+#			In an integer span, the low and high values need not
+#			be in order.  For example, "1-10" and "10-1"
+#			are equivalent.  Similarly, indices need not be
+#			in order, as in "3-10, 1, ..."
+#
+#			And empty value, as in "10,,12" is ignored.
+#
+#			indices() fails if the specification is syntactically
+#			erroneous or if it contains a value less than 1.
+#
+############################################################################
+
+procedure indices(spec, last)		#: generate indices
+   local item, hi, lo, result
+
+   if \last then last := (0 < integer(last)) | fail
+
+   result := set()
+
+   spec ? {
+      while item := tab(upto(',') | 0) do {
+         if item := integer(item) then
+            ((insert(result, 0 < item)) | fail)
+         else if *item = 0 then {
+             move(1) | break
+             next
+             }
+         else item ? {
+            (lo := (0 < integer(tab(upto('-')))) | fail)
+            move(1)
+            hi := (if pos(0) then last else
+               ((0 < integer(tab(0)) | fail)))
+            /hi := lo
+            if lo > hi then lo :=: hi
+            every insert(result, lo to hi)
+            }
+         move(1) | break
+         }
+      }
+
+   return sort(result)
+
+end

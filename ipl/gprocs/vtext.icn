@@ -1,0 +1,478 @@
+############################################################################
+#
+#	File:     vtext.icn
+#
+#	Subject:  Procedures for textual vidgets
+#
+#	Authors:  Jon Lipp and Gregg M. Townsend
+#
+#	Date:     July 22, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Vidgets defined in this file:
+#	Vtext
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Includes:  keysyms
+#
+############################################################################
+#
+#  Links:  vidgets
+#
+############################################################################
+
+link vidgets
+
+$include "keysyms.icn"
+
+$ifndef _X_WINDOW_SYSTEM
+   $define Key_KP_Up Key_Up
+   $define Key_KP_Down Key_Down
+   $define Key_KP_Left Key_Left
+   $define Key_KP_Right Key_Right
+$endif
+
+
+############################################################################
+#  Vtext
+############################################################################
+
+record Vstd_text(draw_cursor, erase_cursor, draw_data, unblock, block,
+   DataPixelSize, MaxPixelSize, NumericData, CursorPos, DataLength,
+   OldCursorPos, CursorOn, ta, tb, dx, dy)
+
+record Vtext_rec (win, s, callback, id, MaxChars, mask, data, uid,
+   ax, ay, aw, ah, T, P, V)
+
+procedure Vtext(params[])
+   local frame, x, y, ins, self
+   static procs, type
+
+   initial {
+       procs := Vstd(event_Vtext, draw_Vtext,
+          outline_Vtext, resize_Vtext, inrange_Vpane, init_Vtext,
+          couplerset_Vtext,,,,, set_value_Vtext)
+      type := proc("type", 0)		# protect attractive name
+      }
+
+   if ins := Vinsert_check(params) then {
+      frame := pop(params); x := pop(params); y:= pop(params)
+      }
+   self := Vtext_rec ! params[1:7|0]
+   Vwin_check(self.win, "Vtext()")
+   if (\self.MaxChars, not numeric(self.MaxChars) ) then
+      _Vbomb("invalid size parameter to Vtext()")
+   if type(\self.mask) ~== "cset" then
+      _Vbomb("invalid mask parameter to Vtext()")
+   if type(\self.s) ~== "string" & not numeric(self.s) then
+      _Vbomb("invalid prompt passed to Vtext()")
+
+   self.uid := Vget_uid()
+   self.V := procs
+   self.P := Vstd_pos()
+   self.T := Vstd_text(draw_cursor_Vtext, erase_cursor_Vtext,
+      draw_data_Vtext, unblock_Vtext, block_Vtext)
+   init_Vtext(self)
+
+   if \ins then VInsert(frame, self, x, y)
+   return self
+end
+
+#
+#  Initialization
+#
+procedure init_Vtext(self)
+   local p
+
+   /self.s := ""
+   /self.MaxChars := 18
+   self.s ? if self.s := tab(find("\\=")) then ="\\=" & self.data := tab(0)
+   /self.data := ""
+   if *self.data > self.MaxChars then self.data := self.data[1:self.MaxChars]
+   self.T.DataLength := *self.data
+   self.T.MaxPixelSize := WAttrib(self.win, "fwidth")*self.MaxChars
+#   /self.T.MaxPixelSize := 250
+
+## check max length by pixel size.
+#   if TextWidth(self.win, self.data) > self.T.MaxPixelSize then {
+#      t := get_pos_Vtext(self, self.T.MaxPixelSize)
+#      self.data := self.data[1:t]
+#      }
+#   self.T.DataLength := *self.data
+   self.T.DataPixelSize := TextWidth(self.win, self.data)
+
+## size by characters - taken out.
+   /self.mask := &cset
+
+## initialize with cursor at end
+   self.T.ta := self.T.tb := self.T.CursorPos := self.T.DataLength + 1
+
+## initialize with all data blocked out (selected)
+#  self.T.ta := 1
+#  self.T.tb := self.T.CursorPos := self.T.DataLength + 1
+
+   self.T.dx := TextWidth (self.win, self.s) + 6
+   self.aw := self.T.dx + self.T.MaxPixelSize + 4
+   self.ah := WAttrib(self.win, "fheight") + 6	# 4 for bevel, 2 for I-bar
+   self.T.dy := self.ah - 3 - WAttrib(self.win, "descent")
+
+   p := \self.callback
+   self.callback := Vcoupler()
+   add_clients_Vinit(self.callback, p, self)
+end
+
+#
+#  Reconfigure the text vidget.
+#
+procedure resize_Vtext(s, x, y, w, h)
+   s.T.dx := TextWidth (s.win, s.s) + 6
+   s.T.DataLength := *s.data
+   s.T.MaxPixelSize := WAttrib(s.win, "fwidth") * s.MaxChars
+   w := s.aw := s.T.dx + s.T.MaxPixelSize + 4
+   h := s.ah := WAttrib(s.win, "fheight") + 6
+   resize_Vidget(s, x, y, w, h)
+end
+
+#
+#  Draw the prompt, the data, outline the data area, then draw
+#  the cursor if it was already on previous to calling this
+#  procedure (happens with dialog boxes and resize events).
+#
+procedure draw_Vtext(self)
+   local t
+
+   t := self.T.CursorOn
+   self.T.CursorOn := &null
+   draw_prompt_Vtext(self)
+   draw_data_Vtext(self)
+   outline_Vtext(self)
+   if \t then draw_cursor_Vtext(self)
+end
+
+#
+#  Outline the data field.
+#
+procedure outline_Vtext(self)
+
+   BevelRectangle(self.win, self.ax+self.T.dx-4, self.ay,
+                  self.aw-(self.T.dx-4), self.ah, -2)
+end
+
+#
+#  Draw the prompt.
+#
+procedure draw_prompt_Vtext(self)
+   GotoXY(self.win, self.ax, self.ay+self.T.dy)
+   writes(self.win, self.s)
+   return
+end
+
+#
+#  Since the cursor is drawn in "reverse" mode, erase it only if it
+#  is "on" upon entering this procedure.
+#
+procedure erase_cursor_Vtext(self)
+   local ocx, cy
+
+   if /self.T.CursorOn then fail
+   ocx :=  self.T.OldCursorPos
+
+## bracket cursor
+   WAttrib(self.win, "drawop=reverse", "linewidth=1")
+   DrawSegment(self.win, \ocx-2, self.ay+2, ocx+2, self.ay+2,
+             ocx, self.ay+3, ocx, self.ay+self.ah-4,
+             ocx-2, self.ay+self.ah-3, ocx+2, self.ay+self.ah-3)
+   WAttrib(self.win, "drawop=copy")
+   self.T.CursorOn := &null
+end
+
+#
+#  Draw the cursor only if it was previously "off" at this location.
+#
+procedure draw_cursor_Vtext(self)
+   local ocx, cx, cy
+
+   if \self.T.CursorOn then fail
+   cx := self.ax+self.T.dx + get_pixel_pos_Vtext(self, self.T.CursorPos) - 1
+## bracket cursor
+   WAttrib(self.win, "drawop=reverse", "linewidth=1")
+   DrawSegment(self.win, cx-2, self.ay+2, cx+2, self.ay+2,
+             cx, self.ay+3, cx, self.ay+self.ah-4,
+             cx-2, self.ay+self.ah-3, cx+2, self.ay+self.ah-3)
+   WAttrib(self.win, "drawop=copy")
+   self.T.OldCursorPos := cx
+   self.T.CursorOn := 1
+end
+
+#
+#  De-block the data (reset ta and tb to CursorPos).
+#
+procedure unblock_Vtext(self)
+   self.T.ta := self.T.CursorPos := self.T.tb
+   draw_data_Vtext(self)
+end
+
+#
+#  Block (select) all the data
+#
+procedure block_Vtext(self)
+   self.T.ta := 1
+   self.T.tb := self.T.CursorPos := self.T.DataLength + 1
+   draw_data_Vtext(self)
+   if self.T.DataLength = 0 then
+      draw_cursor_Vtext(self)
+end
+
+#
+#  Draw the data, reversing that text that lies between ta and tb
+#  fields.
+#
+procedure draw_data_Vtext(self)
+
+#   if self.T.ta = self.T.tb then return
+   erase_cursor_Vtext(self)
+   GotoXY(self.win, self.ax+self.T.dx, self.ay+self.T.dy)
+   if self.T.ta <= self.T.tb then {
+      writes(self.win, self.data[1:self.T.ta])
+      WAttrib(self.win, "reverse=on")
+      writes(self.win, self.data[self.T.ta:self.T.tb])
+      WAttrib(self.win, "reverse=off")
+      writes(self.win, self.data[self.T.tb:0])
+   }
+   else {
+      writes(self.win, self.data[1:self.T.tb])
+      WAttrib(self.win, "reverse=on")
+      writes(self.win, self.data[self.T.tb:self.T.ta])
+      WAttrib(self.win, "reverse=off")
+      writes(self.win, self.data[self.T.ta:0])
+   }
+   EraseArea(self.win, self.ax+self.T.dx+self.T.DataPixelSize, self.ay+2,
+              self.aw-(self.T.dx +self.T.DataPixelSize+1), self.ah-4)
+   return
+end
+
+#
+#  Wow.  Mouse events, block out text, key presses, enter, delete
+#  etcetera stuff.  Call callback if linefeed key or return key
+#  is pressed.
+#
+procedure event_Vtext(self, e, x, y)
+   static ota
+   local otb, rv
+
+   if \self.callback.locked then fail
+   /x := &x; /y := &y
+   self.T.DataLength := *self.data
+   if e === (&lpress|&mpress|&rpress) then {
+      WAttrib(self.win, "pointer=xterm")
+      otb := self.T.ta := self.T.tb := self.T.CursorPos :=
+         get_pos_Vtext(self, &x-(self.ax+self.T.dx))
+      if otb = self.T.DataLength+1 & otb = \ota then
+         self.T.ta := 1
+      draw_data_Vtext(self)
+      draw_cursor_Vtext(self)
+      until e === (&lrelease|&mrelease|&rrelease) do {
+         self.T.tb := get_pos_Vtext(self, &x-(self.ax+self.T.dx))
+         if otb ~= self.T.tb then {
+            draw_data_Vtext(self)
+            self.T.CursorPos := self.T.tb
+            draw_cursor_Vtext(self)
+            otb := self.T.tb
+            }
+         e := Event(self.win)
+         }
+      rv := &null
+      WAttrib(self.win, "pointer=top left arrow")
+      } ## end mouse event loop
+   else if (not &meta) & (not (integer(e) < 0)) then  {
+      ## it's a keypress
+      if rv := case e of {
+         "\^b" | Key_Left | Key_KP_Left:	move_cursor_Vtext(self, -1)
+         "\^f" | Key_Right | Key_KP_Right:	move_cursor_Vtext(self, 1)
+         "\b" | "\d":				delete_left_Vtext(self)
+         "\^k" | "\^u" | "\^x":			delete_line_Vtext(self)
+	 (&shift & "\t") | Key_Up | Key_KP_Up:  return V_PREVIOUS
+         "\t" | Key_Down | Key_KP_Down:		return V_NEXT
+         "\r" | "\l": {
+	    self.callback.V.set(self.callback, self, self.data)
+	    V_NEXT
+	    }
+         default:				insert_char_Vtext(self, e)
+         }
+      then {
+         draw_data_Vtext(self)
+         draw_cursor_Vtext(self)
+         self.T.ta := self.T.tb := self.T.CursorPos
+         }
+      }
+   else
+      fail				# not our event
+
+   ota := self.T.ta
+   return rv
+end
+
+#  Move the cursor one way or another, determine if at bounds.
+#
+procedure move_cursor_Vtext(self, increment)
+   local t
+
+   t := self.T.CursorPos + increment
+   if t < 1 | t > self.T.DataLength+1 then fail
+   self.T.ta := self.T.tb := self.T.CursorPos := t
+   return
+end
+
+#
+#  Blank out the whole data field.
+#
+procedure delete_line_Vtext(self)
+
+   self.data := ""
+   self.T.DataLength := *self.data
+   self.T.DataPixelSize := 0
+   self.T.ta := self.T.tb := self.T.CursorPos := 1
+   return
+end
+
+#
+#  Get the character position based on mouse x coordinate.
+#
+procedure get_pos_Vtext(self, x)
+   local tp, c, i, j
+
+   c := 1
+   i := j := 0
+   while i < x do {
+      j := i
+      i +:= TextWidth(self.win, self.data[c])
+      if (c +:= 1) > self.T.DataLength then break
+   }
+   if x <= ((i + j) / 2) then
+      c -:= 1				# less than halfway into the char
+   if i < x then tp := self.T.DataLength+1
+   else tp := (1 <= c) | 1
+   return tp
+end
+
+#
+#  Get pixel position in data field based on character position.
+#
+procedure get_pixel_pos_Vtext(self, CursorPos)
+   local sum, i
+
+   sum := 1
+   every i := 1 to CursorPos-1 do sum +:= TextWidth(self.win, self.data[i])
+   return sum
+end
+
+#
+#  Insert a character; could replace blocked out text.  Check if
+#  insertion will go over bounds.
+#
+procedure insert_char_Vtext(self, c)
+
+   c := c[1]
+
+   if TextWidth(self.win, c) == 0 then
+      fail				# not displayable
+
+   if (self.T.DataLength - abs(self.T.ta-self.T.tb) + 1) > self.MaxChars |
+      not (c ? any(self.mask)) then fail
+
+   if self.T.ta ~= self.T.tb then
+      change_data_Vtext(self, c)
+   else
+      self.data := self.data[1:self.T.CursorPos] || c ||
+                   self.data[self.T.CursorPos:0]
+   self.T.DataLength := *self.data
+   self.T.DataPixelSize := TextWidth(self.win, self.data)
+   self.T.CursorPos +:= 1
+   return
+end
+
+#
+#  Replace a character at current position.
+#
+procedure change_data_Vtext(self, c)
+   if self.T.tb < self.T.ta then {
+      self.data := self.data[1:self.T.tb] || (\c | "") ||
+                   self.data[self.T.ta:0]
+      self.T.ta := self.T.CursorPos := self.T.tb
+      }
+   else {
+      self.data := self.data[1:self.T.ta] || (\c | "") ||
+                   self.data[self.T.tb:0]
+      self.T.tb := self.T.CursorPos := self.T.ta
+      }
+end
+
+#
+#  Delete the character to the left of the cursor.
+#
+procedure delete_left_Vtext(self)
+   if self.T.ta ~= self.T.tb then {
+      change_data_Vtext(self)
+      self.T.DataPixelSize := TextWidth(self.win, self.data)
+      return
+      }
+   else
+      if self.T.CursorPos > 1 then {
+         self.data := self.data[1:self.T.CursorPos-1] ||
+                      self.data[self.T.CursorPos:0]
+         self.T.DataPixelSize := TextWidth(self.win, self.data)
+         self.T.CursorPos -:= 1
+         return
+         }
+end
+
+#
+#  Set the data field to value passed in.
+#  NOTE: doesn't pass it through mask right now.
+#  Call callback if value if different from internal coupler's
+#  value.
+#
+procedure couplerset_Vtext(self, caller, value)
+   local data
+
+   data := string(\value) | ""
+   self.data := data
+   if *self.data > self.MaxChars then self.data := self.data[1:self.MaxChars]
+   self.T.DataLength := *self.data
+   self.T.DataPixelSize := TextWidth(self.win, self.data)
+
+## initialize with cursor at end
+   self.T.ta := self.T.tb := self.T.CursorPos := self.T.DataLength + 1
+
+## initialize with all data blocked out (selected)
+#  self.T.ta := 1
+#  self.T.tb := self.T.CursorPos := self.T.DataLength + 1
+
+   draw_data_Vtext(self)
+
+   if numeric(value) then {
+      if value = \self.T.NumericData then fail
+      self.T.NumericData := value
+      }
+   else if data === self.data then fail
+   self.callback.V.set(self.callback, caller, value)
+#   draw_cursor_Vtext(self)
+end
+
+#
+#  Call couplerset to set value.
+#
+procedure set_value_Vtext(self, value)
+   couplerset_Vtext(self, , value)
+   return
+end

@@ -1,0 +1,445 @@
+############################################################################
+#
+#	File:     gen.icn
+#
+#	Subject:  Procedures for meta-variant code generation
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 30, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures are for use with code produced by a meta-variant
+#  translator.  As given here, they produce an identity translation.
+#  Modifications can be made to effect variant translations.
+#
+############################################################################
+
+#  main() calls program(), which is produced by the meta-variant
+#  translation.
+
+procedure main()
+
+   program()
+
+end
+
+procedure Alt_(e1, e2)			# e1 | e2
+
+   return "(" || e1 || "|" || e2 || ")"
+
+end
+
+procedure Apply_(e1, e2)		# e1 ! e2
+
+   return "(" || e1 || "!" || e2 || ")"
+
+end
+
+procedure Asgnop_(op, e1, e2)		# e1 op e2
+
+   return "(" || e1 || " " || op || " " || | e2 || ")"
+
+end
+
+procedure Augscan_(e1, e2)		# e1 ?:= e2
+
+   return "(" || e1 || " ?:= " || e2 || ")"
+
+end
+
+procedure Bamper_(e1, e2)		# e1 & e2
+
+   return "(" || e1 || " & " || e2 || ")"
+
+end
+
+procedure Binop_(op, e1, e2)		# e1 op e2
+
+   return "(" || e1 || " " ||  op || " " ||  e2 || ")"
+
+end
+
+procedure Break_(e)			# break e
+
+   return "break " || e
+
+end
+
+procedure Case_(e, clist)		# case e of { caselist }
+
+   return "case " || e || " of {" || clist || "}"
+
+end
+
+procedure Cclause_(e1, e2)		# e1 : e2
+
+   return e1 || " : " || e2 || "\n"
+
+end
+
+procedure Clist_(e1, e2)		# e1 ; e2 in case list
+
+   return e1 || ";" || e2
+
+end
+
+procedure Clit_(e)			# 's'
+
+   return "'" || e || "'"
+
+end
+
+procedure Compound_(es[])		# { e1; e2; ... }
+   local result
+
+   if *es = 0 then return "{}\n"
+
+   result := "{\n"
+   every result ||:= !es || "\n"
+
+   return result || "}\n"
+
+end
+
+procedure Create_(e)			# create e
+
+   return "create " || e
+
+end
+
+procedure Default_(e)			# default: e
+
+   return "default: " || e
+
+end
+
+procedure End_()			# end
+
+   write("end")
+
+   return
+
+end
+
+procedure Every_(e)			# every e
+
+   return "every " || e
+
+end
+
+procedure Every_Do_(e1, e2)		# every e1 do e2
+
+   return "every " || e1 || " do " || e2
+
+end
+
+procedure Fail_()			# fail
+
+   return "fail"
+
+end
+
+procedure Field_(e1, e2)		# e . f
+
+   return "(" || e1 || "." || e2 || ")"
+
+end
+
+procedure Global_(vs[])		# global v1, v2, ...
+   local result
+
+   result := ""
+   every result ||:= !vs || ", "
+
+   write("global ", result[1:-2])
+   
+   return
+
+end
+
+procedure If_(e1, e2)			# if e1 then e2
+
+   return "if " || e1 || " then " || e2
+
+end
+
+procedure If_Else_(e1, e2, e3)		# if e1 then e2 else e3
+
+   return "if " || e1 || " then " || e2 || " else " || e3
+
+end
+
+procedure Ilit_(e)			# i
+
+   return e
+
+end
+
+procedure Initial_(s)			# initial e
+
+   write("initial ", s)
+
+   return
+
+end
+
+procedure Invoke_(e0, es[])		# e0(e1, e2, ...)
+   local result
+
+   if *es = 0 then return e0 || "()"
+
+   result := ""
+   every result ||:= !es || ", "
+
+   return e0 || "(" || result[1:-2] || ")"
+
+end
+
+procedure Key_(s)			# &s
+
+   return "&" || s
+
+end
+
+procedure Limit_(e1, e2)		# e1 \ e2
+
+   return "(" || e1 || "\\" || e2 || ")"
+
+end
+
+procedure Link_(vs)			# link "v1, v2, ..." (problem)
+
+   write("link ", vs)
+
+end
+
+procedure List_(es[])			# [e1, e2, ... ]
+   local result
+
+   if *es = 0 then return "[]"
+
+   result := ""
+   every result ||:= !es || ", "
+
+   return "[" || result[1:-2] || "]"
+
+end
+
+procedure Local_(vs[])			# local v1, v2, ...
+   local result
+
+   result := ""
+   every result ||:= !vs || ", "
+
+   write("local ", result[1:-2])
+   
+   return
+
+end
+
+procedure Next_()			# next
+
+   return "next"
+
+end
+
+procedure Null_()			# &null
+
+   return ""
+
+end
+
+procedure Paren_(es[])			# (e1, e2, ... )
+   local result
+
+   if *es = 0 then return "()"
+
+   result := ""
+   every result ||:= !es || ", "
+
+   return "(" || result[1:-2] || ")"
+
+end
+
+procedure Pdco_(e0, es[])		# e0{e1, e2, ... }
+   local result
+
+   if *es = 0 then return e0 || "{}"
+
+   result := ""
+   every result ||:= !es || ", "
+
+   return e0 || "{" || result[1:-2] || "}"
+
+end
+
+procedure Proc_(s, es[])		# procedure s(v1, v2, ...)
+   local result, e
+
+   if *es = 0 then write("procedure ", s, "()")
+
+   result := ""
+   every e := !es do
+      if e == "[]" then result[-2:0] := e || ", "
+      else result ||:= (\e | "") || ", "
+
+   write("procedure ", s, "(", result[1:-2], ")")
+
+   return
+
+end
+
+procedure Record_(s, es[])		# record s(v1, v2, ...)
+   local result, field
+
+   if *es = 0 then write("record ", s, "()")
+
+   result := ""
+   every field := !es do
+      result ||:= (\field | "") || ", "
+
+   write("record ", s, "(", result[1:-2], ")")
+
+   return
+
+end
+
+procedure Reduce_(s[])			# used in code generation
+
+   every write(!s)
+
+   return
+
+end
+
+procedure Repeat_(e)			# repeat e
+
+   return "repeat " || e
+
+end
+
+procedure Return_(e)			# return e
+
+   return "return " || e
+
+end
+
+procedure Rlit_(e)
+
+   return e
+
+end
+
+procedure Scan_(e1, e2)			# e1 ? e2
+
+   return "(" || e1  || " ? " || e2 || ")"
+
+end
+
+procedure Section_(op, e1, e2, e3)	# e1[e2 op  e3]
+
+   return e1 || "[" || e2 || op || e3 || "]"
+
+end
+
+procedure Slit_(s)			# "s"
+
+   return image(s)
+
+end
+
+procedure Static_(ev[])			# static v1, v2, ..
+   local result
+
+   result := ""
+   every result ||:= !ev || ", "
+
+   write("static ", result[1:-2])
+   
+   return
+
+end
+
+procedure Subscript_(e1, e2)		# e1[e2]
+
+   return e1 || "[" || e2 || "]"
+
+end
+
+procedure Suspend_(e)			# suspend e
+
+   return "suspend " || e
+
+end
+
+procedure Suspend_Do_(e1, e2)		# suspend e1 do e2
+
+   return "suspend " || e1 || " do " || e2
+
+end
+
+procedure To_(e1, e2)			# e1 to e2
+
+   return "(" || e1 || " to " || e2 || ")"
+
+end
+
+procedure To_By_(e1, e2, e3)		# e1 to e2 by e3
+
+   return "(" || e1 || " to " || e2 || " by " || e3 || ")"
+
+end
+
+procedure Repalt_(e)			# |e
+
+   return "(|" || e || ")"
+
+end
+
+procedure Unop_(op, e)			# op e
+
+   return "(" || op || e || ")"
+
+end
+
+procedure Not_(e)			# not e
+
+   return "not(" || e || ")"
+
+end
+
+procedure Until_(e)			# until e
+
+   return "until " || e
+
+end
+
+procedure Until_Do_(e1, e2)		# until e1 do e2
+
+   return "until " || e1 || " do " || e2
+
+end
+
+procedure Var_(s)			# v
+
+   return s
+
+end
+
+procedure While_(e)			# while e
+
+   return "while " || e
+
+end
+
+procedure While_Do_(e1, e2)		# while e1 do e2
+
+   return "while " || e1 || " do " || e2
+
+end

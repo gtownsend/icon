@@ -1,0 +1,34 @@
+############################################################################
+#
+#	File:     listhtml.icn
+#
+#	Subject:  Program to create Web page with links to listed files
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 17, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  The files to be included are listed in standard input.  There is no
+#  check that the files actually exist.
+#
+############################################################################
+
+procedure main()
+   local file
+
+   write("<HTML><HEAD>")
+   write("<TITLE>File Links</TITLE></HEAD>")
+   write("<BODY>")
+
+   every file := !&input do
+      write("<A HREF=\"", file, "\">", file, "</A><BR>")
+
+   write("</BODY></HTML>")
+
+end

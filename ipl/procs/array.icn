@@ -1,0 +1,69 @@
+############################################################################
+#
+#	File:     array.icn
+#
+#	Subject:  Procedures for n-dimensional arrays
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 30, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  create_array([lbs], [ubs], value) creates a n-dimensional array
+#  with the specified lower bounds, upper bounds, and with each array element
+#  having the specified initial value.
+#
+#  ref_array(A, i1, i2, ...) references the i1-th i2-th ... element of A.
+#
+############################################################################
+
+record array(structure, lbs)
+
+procedure create_array(lbs, ubs, value)
+   local lengths, i
+
+   if (*lbs ~= *ubs) | (*lbs = 0) then stop("*** bad specification")
+
+   lengths :=list(*lbs)
+
+   every i := 1 to *lbs do
+     lengths[i] := ubs[i] - lbs[i] + 1
+
+   return array(create_struct(lengths, value), lbs)
+
+end
+
+procedure create_struct(lengths, value)
+   local A
+
+   lengths := copy(lengths)
+
+   A := list(get(lengths), value)
+
+   if *lengths > 0 then
+      every !A := create_struct(lengths, value)
+
+   return A
+
+end
+
+procedure ref_array(A, subscrs[])
+   local lbs, i, A1
+
+   if *A.lbs ~= *subscrs then
+      stop("*** bad specification")
+
+   lbs := A.lbs
+   A1 := A.structure
+
+   every i := 1 to *subscrs - 1 do
+      A1 := A1[subscrs[i] - lbs[i] + 1] | fail
+
+   return A1[subscrs[-1] - lbs[-1] + 1]
+
+end

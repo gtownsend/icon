@@ -1,0 +1,150 @@
+############################################################################
+#
+#	Name:	skcontrl.icn
+#
+#	Title:	Scheme in Icon
+#
+#	Author: Bob Alexander
+#
+#	Date:	March 23, 1995
+#
+#	Description: see skeem.icn
+#
+############################################################################
+
+#
+# skeem -- Scheme in Icon
+#
+# Control procedures
+#
+
+#
+# Initialize
+#
+# List entries are described in skfun.icn.
+#
+procedure InitControl()
+   DefFunction([
+      APPLY,"oneOrMore",
+      CALL_WITH_CURRENT_CONTINUATION,
+      CALL_WITH_CURRENT_CONTINUATION,"CALL/CC",
+      FOR_EACH,"oneOrMore",
+      FORCE,
+      MAP,"twoOrMore",
+      PROCEDURE_P])
+   return
+end
+
+
+#
+# Control features
+#
+
+procedure PROCEDURE_P(x)
+   return (type(x) ==
+	 ("Lambda" | "Function" | "Syntax" | "Macro"),T) | F
+end
+
+procedure APPLY(fcn,arg[])
+   local last,argList
+   last := pull(arg)
+   argList := LList!arg
+   LLRest(\argList) | argList := last
+   return Apply(fcn,argList)
+end
+
+procedure MAP(fcn,lsts[])
+   local arg,result
+   result := LLNull
+   repeat {
+      arg := MapArgs(lsts) | break
+      result := LLPair(Apply(fcn,arg),result) | fail
+      }
+   return LLInvert(result)
+end
+
+procedure MapArgs(lsts)
+   local arg,i,x
+   arg := LLNull
+   every i := 1 to *lsts do {
+      x := lsts[i]
+      if /x then fail
+      arg := LLPair(LLFirst(x),arg)
+      lsts[i] := LLRest(x)
+      }
+   return LLInvert(arg)
+end
+
+procedure FOR_EACH(fcn,lsts[])
+   local arg,result
+   result := F
+   repeat {
+      arg := MapArgs(lsts) | break
+      result := Apply(fcn,arg) | fail
+      }
+   return result
+end
+
+procedure FORCE(promise)
+   return Force(promise)
+end
+
+procedure Force(promise)
+   local x
+   return {
+      if \promise.ready then
+	 promise.result
+      else {
+	 x := Apply(promise.proc,LLNull) | fail
+	 if \promise.ready then
+	    promise.result
+	 else {
+	    promise.ready := "true"
+	    .(promise.result := x)
+	    }
+	 }
+      }
+end
+
+procedure CALL_WITH_CURRENT_CONTINUATION(func)
+   local continuationProc,checkObj
+   static invokeContinuation,continuationExpr
+   initial {
+      invokeContinuation :=
+	 Function(InvokeContinuation,"InvokeContinuation",3,3)
+      continuationExpr :=
+	 [LList("VALUE"),
+	    LList("INVOKE-CONTINUATION","CONT-LEVEL","VALUE","CHECK-OBJ")]
+      }
+   PushFrame()
+   DefVar("CONT-LEVEL",&level)
+   DefVar("INVOKE-CONTINUATION",invokeContinuation)
+   DefVar("CHECK-OBJ",checkObj := CurrentEnv)
+   #
+   # (define continuationProc
+   #   (lambda (value) (invoke-continuaton cont-level value check-obj)))
+   #
+   continuationProc := LAMBDA!continuationExpr
+   #
+   DiscardFrame()
+   return Apply(func,LLPair(continuationProc)) |
+      EscapeCheck(&level,checkObj)
+end
+
+procedure InvokeContinuation(data[])
+   EscapeData := data
+   fail
+end
+
+procedure EscapeCheck(level,checkObj)
+   local escapeData
+   if \EscapeData & (/level | EscapeData[1] = level) then {
+      escapeData := EscapeData
+      EscapeData := &null
+      if /level | checkObj ~=== escapeData[3] then
+	 return Error(CALL_WITH_CURRENT_CONTINUATION,
+	    "escape procedure no longer valid (expires when its call/cc returns)")
+      FailProc := &null
+      return escapeData[2]
+      }
+end

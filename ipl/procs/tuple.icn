@@ -1,0 +1,67 @@
+############################################################################
+#
+#	File:     tuple.icn
+#
+#	Subject:  Procedure to process n-tuples
+#
+#	Author:   William H. Mitchell
+#
+#	Date:     June 10, 1988
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This procedure implements a "tuple" feature that produces the effect
+#  of multiple keys.  A tuple is created by an expression of the
+#  form
+#
+#	tuple([exrp1, expr2, ..., exprn])
+#
+#  The result can be used in a case expression or as a table subscript.
+#  Lookup is successful provided the values of expr1, expr2, ..., exprn
+#  are the same (even if the lists containing them are not).  For example,
+#  consider selecting an operation based on the types of two operands.  The
+#  expression
+#
+#	case [type(op1), type(op2)] of  {
+#	   ["integer", "integer"]:  op1 + op2
+#	   ["string", "integer"] :  op1 || "+" || op2
+#	   ["integer", "string"] :  op1 || "+" || op2
+#	   ["string", "string"]  :  op1 || "+" || op2
+#	   }
+#
+#  does not work, because the comparison in the case clauses compares lists
+#  values, which cannot be the same as control expression, because the lists
+#  are different, even though their contents are the same.  With tuples,
+#  however, the comparison succeeds, as in
+#
+#	case tuple([type(op1), type(op2)]) of {
+#	   tuple(["integer", "integer"]):  op1 + op2
+#	   tuple(["string", "integer"]) :  op1 || "+" || op2
+#	   tuple(["integer", "string"]) :  op1 || "+" || op2
+#	   tuple(["string", "string"])  :  op1 || "+" || op2
+#	   }
+#
+############################################################################
+
+procedure tuple(tl)
+   local tb, i, e, le
+
+   static tuptab
+   initial tuptab := table()	# create the root node
+
+   /tuptab[*tl] := table()	# if there is no table for this size, make one
+   tb := tuptab[*tl]		# go to tuple for size of table
+   i := 0			# assign default value to i
+   every i := 1 to *tl - 1 do {	# iterate though all but last value
+      e := tl[i]		# ith value in tuple
+      /tb[e] := table()		# if it is not in the table, make a new one
+      tb := tb[e]		# go to table for that value
+      }
+   le := tl[i + 1]		# last value in tuple
+   /tb[le] := copy(tl)		# if it is new, entr a copy of the list
+   return tb[le]		# return the copy; it is unique
+end

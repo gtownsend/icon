@@ -1,0 +1,54 @@
+############################################################################
+#
+#	File:     rcat.icn
+#
+#	Subject:  Program to output a file from back to front
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     October 22, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#   This program outputs in reverse order the lines of one or more files.
+#   Unlike some versions of "tail -r", the input file does not need to
+#   fit in memory; but it must be seekable.
+#
+#   usage:  rcat file...
+#
+############################################################################
+
+$define BUFSIZE 65536
+
+procedure main(args)
+   local f, fname, len, i, nseg, buf, leftover, lines
+
+   if *args = 0 then
+      stop("usage: ", &progname, "file...")
+
+   every fname := !args do {
+
+      lines := []
+      leftover := ""
+      f := open(fname, "u") | stop("cannot open ", fname)
+      len := where(seek(f, 0)) - 1 | stop("cannot seek ", fname)
+      nseg := (len + BUFSIZE - 1) / BUFSIZE
+
+      every i := nseg - 1 to 0 by -1 do {
+         seek(f, 1 + BUFSIZE * i)
+         (reads(f, BUFSIZE) || leftover) ? {
+            leftover := tab(upto('\n') + 1 | 0)
+            while push(lines, tab(upto('\n') + 1))
+            if not pos(0) then
+               push(lines, tab(0))
+            }
+         while writes(get(lines))
+         }
+
+      writes(leftover)
+      }
+end

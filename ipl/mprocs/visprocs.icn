@@ -1,0 +1,139 @@
+############################################################################
+#
+#	File:     visprocs.icn
+#
+#	Subject:  Procedures for visualization code
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 17, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This file contains link and global declarations for visualization programs,
+#  as well as the following procedures:
+#
+#  evget(c) sits on top of EvGet() for storage visualization tools to
+#  handle some clerical matters.
+#
+#  vopen(extra[]) opens the Visualization window.
+#
+#  configure(name, descrip, specs, defaults, args) configures strorage
+#  visualization.
+#
+#  evgetlist(c, n) gathers n events into a list.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  augargs, evcheck, evinit, gcvis, options, optspecs, optwindw,
+#          startup, typebind, vcontrol, xcompat
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+link augargs
+link evcheck
+link evinit
+link gcvis
+link options
+link optspecs
+link optwindw
+link startup
+link typebind
+link vcontrol
+link xcompat
+
+$include "evdefs.icn"
+
+global Background		# background graphics context
+global Context			# table of graphic contexts
+global Controls			# control window
+global Opts			# options table
+global Limit 			# limit on events between control checks
+global Visualization		# visualization window
+
+global StaticRegion		# code for static region collection
+global StringRegion		# code for string region collection
+global BlockRegion		# code for block region collection
+global NoRegion			# code for collection with no specified region
+
+global Eov			# flag for end of events
+
+# Get events with control checks
+
+procedure evget(c)
+   static i, blockstr
+
+   initial {
+      i := 0
+      blockstr := string(AllocMask -- E_String)
+      }
+
+   i := (i + 1) % Limit
+
+   if i = 0 then evcheck(Controls, Visualization, Opts) | fail
+
+   repeat {EvGet(c) | {
+      Eov := 1
+      fail
+      }
+
+   if &eventcode === E_Collect then gclear(&eventvalue)
+   else return Running
+   }
+
+
+end
+
+procedure vopen(extra[])
+
+   Context := typebind(Visualization, AllocMask, Opts)
+
+   Context[NoRegion] := Clone(Visualization, "fg=gray")
+   Context[StaticRegion] := Context[E_Refresh]
+   Context[StringRegion] := Context[E_String]
+   Context[BlockRegion] := Context[E_Lelem]
+
+   Background := Context["bg"]
+
+   return
+
+end
+
+procedure configure(name, descrip, specs, defaults, args)
+
+   args := augargs(defaults ||| ["-L", name, "-I", name], args)
+
+   Opts := options(args, optspecs() || specs)
+   Limit := Opts["i"]
+
+   EvInit(args) | fail
+
+   vstart(name, descrip, Opts, specs)
+
+   return
+
+end
+
+procedure evgetlist(c, n)
+   local result
+
+   result := []
+
+   every |evget(c) \ n do
+      every put(result, &eventcode | &eventvalue)
+
+   return result
+
+end

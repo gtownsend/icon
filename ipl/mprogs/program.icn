@@ -1,0 +1,138 @@
+############################################################################
+#
+#	File:     program.icn
+#
+#	Subject:  Program to display portion of a program in a window
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 28, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program views the text of a program through a window.  The image
+#  of the program is maintained in a pixmap.  Positioning the desired
+#  portion of the program amounts to copying the appropriate portion
+#  of the pixmap to the window.
+#
+#  The pixmap has half a window's white space at the top and at the
+#  bottom to that the beginning and ends of a program can be shown
+#  using the same logic as for interior portions of the program.
+#
+#  The program is written as a visual monitor to run under the control
+#  of another program, such as Eve.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: basename, em_setup, filedim
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+$include "evdefs.icn"
+
+link basename
+link em_setup
+link filedim
+
+global Visualization, textmap, twidth, wheight, oheight, hsize, ncols
+global highlight
+
+procedure main(args)
+   local vrows, SourceFile, size, mrows, mcols
+   local input, line_no, cwidth, x, colmask, column
+   local xwidth, wwidth, maxcols, linemask, line, i
+
+   colmask := 2 ^ 16
+   linemask := colmask - 1
+
+   em_setup(args)
+
+   vrows := 10				# ad hoc for now
+   ncols := 6				# ditto
+   maxcols := 85			# ditto
+
+   hsize := 4
+
+   SourceFile := prog_name()
+
+   size := filedim(SourceFile)
+
+   mrows := vrows + size.rows		# white space at top and bottom
+   mcols := size.cols
+   mcols >:= maxcols
+   mcols +:= ncols + 1			# space for line numbers and bar
+
+#  Now create hidden canvases for the program and identifying line numbers.
+
+   textmap := WOpen("canvas=hidden", "lines=" || mrows,
+      "columns=" || mcols) | stop("*** cannot hidden canvas for program")
+
+   twidth := WAttrib(textmap, "width")
+   oheight := (WAttrib(textmap, "height") / mrows) / 2 + (hsize / 2)
+
+#  Set positions in the pixmaps to leave space at the top and the bottom.
+
+   GotoRC(textmap, vrows / 2, 1)
+
+#  Put the text of the program into the canvas, while adding line
+#  numbers to the other canvas.
+
+   input := open(SourceFile) | stop("*** cannot open ", SourceFile)
+
+   line_no := 0
+
+   while write(textmap, right(line_no +:= 1, ncols - 1), "  ", read(input))
+
+#  Draw a line in linemap to separate the line numbers from the
+#  program text when they get copied into the window.
+
+   cwidth := TextWidth(textmap, repl("x", ncols + 1))
+   x := cwidth - (cwidth / (2 * (ncols))) - 5
+
+   DrawLine(textmap, x, 0, x, WAttrib(textmap, "height"))
+
+   vis_setup("label=" || basename(SourceFile), "lines=" || vrows,
+      "columns=80")
+
+   highlight := Clone(Visualization, "fg=red")
+
+   wwidth := WAttrib(Visualization, "width")
+   wheight := WAttrib(Visualization, "height")
+
+   focus(1, 0)						# start-up view
+
+   while EvGet('', 1) do
+      if &eventcode === E_ALoc then {
+         line := iand(&eventvalue, linemask) - 1	# for positioning
+         column := &eventvalue / colmask
+         focus(line, column)
+         }
+
+end
+
+procedure focus(line, column)
+   local x, y
+
+   y := (line - 1) * WAttrib("leading")			# for positioning
+   CopyArea(textmap, Visualization, 0, y, twidth, wheight)
+   FillRectangle(highlight, 2, y := wheight / 2 - oheight, hsize, hsize)
+   if column > 0 then {
+      x := (column + ncols + 1) * WAttrib("fwidth")
+      FillRectangle(highlight, x, y + 10, 6, 1)
+      }
+
+   return
+
+end

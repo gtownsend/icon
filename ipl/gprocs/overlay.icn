@@ -1,0 +1,48 @@
+############################################################################
+#
+#	File:     overlay.icn
+#
+#	Subject:  Procedure to overlay an image in a window
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 26, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  overlay(window, image) writes the image in the window, a line at a time.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  xcompat
+#
+############################################################################
+
+link xcompat
+
+procedure overlay(window, name)
+   local pixmap, width, height, x
+
+   pixmap := XBind(, , "image=" || name) |
+      stop("*** cannot bind image")
+
+   width := WAttrib(pixmap, "width")
+   height := WAttrib(pixmap, "height")
+
+   every x := 0 to width - 1 do
+      CopyArea(pixmap, window, x, 0, 1, height, x, 0)
+
+   close(pixmap)
+
+   return
+
+end
+

@@ -1,0 +1,182 @@
+############################################################################
+#
+#	File:     delam.icn
+#
+#	Subject:  Program to delaminate file
+#
+#	Author:   Thomas R. Hicks
+#
+#	Date:     June 10, 1988
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This program delaminates standard input into several output
+#  files according to the specified fields.  It writes the fields in
+#  each line to the corresponding output files as individual lines.
+#  If no data occurs in the specified position for a given input
+#  line an empty output line is written. This insures that all out-
+#  put files contain the same number of lines as the input file.
+#  
+#     If - is used for the input file, the standard input is read.
+#  If - is used as an output file name, the corresponding field is
+#  written to the standard output.
+#  
+#     The fields are defined by a list of field specifications,
+#  separated by commas or colons, of the following form:
+#  
+#          n    the character in column n
+#          n-m  the characters in columns n through m
+#          n+m  m characters beginning at column n
+#  
+#  where the columns in a line are numbered from 1 to the length of
+#  the line.
+#  
+#     The use of delam is illustrated by the following examples.
+#  The command
+#  
+#          delam 1-10,5 x.txt y.txt
+#  
+#  reads standard input and writes characters 1 through 10 to file
+#  x.txt and character 5 to file y.txt.  The command
+#  
+#          delam 10+5:1-10:1-10:80 mid x1 x2 end
+#  
+#  writes characters 10 through 14 to mid, 1 through 10 to x1 and
+#  x2, and character 80 to end.  The command
+#  
+#          delam 1-80,1-80 - -
+#  
+#  copies standard input to standard output, replicating the first
+#  eighty columns of each line twice.
+#  
+############################################################################
+#
+#  Links: usage
+#
+############################################################################
+
+link usage
+
+procedure main(a)
+   local fylist, ranges
+   if any(&digits,a[1]) then
+      ranges := fldecode(a[1])
+   else
+      {
+      write(&errout,"Bad argument to delam: ",a[1])
+      Usage("delam fieldlist {outputfile | -} ...")
+      }
+   if not a[2] then
+      Usage("delam fieldlist {outputfile | -} ...")
+   fylist := doutfyls(a,2)
+   if *fylist ~= *ranges then
+      stop("Unequal number of field args and output files")
+   delamr(ranges,fylist)
+end
+
+# delamr - do actual division of input file
+#
+procedure delamr(ranges,fylist)
+   local i, j, k, line
+   while line := read() do
+      {
+      i := 1
+      while i <= *fylist do
+         {
+         j := ranges[i][1]
+         k := ranges[i][2]
+         if k > 0 then
+            write(fylist[i][2],line[j+:k] | line[j:0] | "")
+         i +:= 1
+         }
+      }
+end
+
+# doutfyls - process the output file arguments; return list
+#
+procedure doutfyls(a,i)
+   local lst, x
+   lst := []
+   while \a[i] do
+      {
+      if x := llu(a[i],lst) then		# already in list
+         lst |||:= [[a[i],lst[x][2]]]
+      else					# not in list
+         if a[i] == "-" then			# standard out
+            lst |||:= [[a[i],&output]]
+         else					# new file
+            if not (x := open(a[i],"w")) then
+               stop("Cannot open ",a[i]," for output")
+            else
+               lst |||:= [[a[i],x]]
+      i +:= 1
+      }
+   return lst
+
+end
+
+# fldecode - decode the fieldlist argument
+#
+procedure fldecode(fldlst)
+   local fld, flst, poslst, m, n, x
+   poslst := []
+   flst := str2lst(fldlst,':,')
+   every fld := !flst do
+      {
+      if x := upto('-+',fld) then
+         {
+         if not (m := integer(fld[1:x])) then
+            stop("bad argument in field list; ",fld)
+         if not (n := integer(fld[x+1:0])) then
+            stop("bad argument in field list; ",fld)
+         if upto('-',fld) then
+            {
+            if n < m then
+               n := 0
+            else
+               n := (n - m) + 1
+            }
+         }
+      else {
+         if not (m := integer(fld)) then
+            stop("bad argument in field list; ",fld)
+         n := 1
+         }
+      poslst |||:= [[m,n]]
+      }
+   return poslst
+end
+
+# llu - lookup file name in output file list
+#
+procedure llu(str,lst)
+   local i
+   i := 1
+   while \lst[i] do
+      {
+      if \lst[i][1] == str then
+         return i
+      i +:= 1
+      }
+end
+
+# str2lst - create a list from a delimited string
+#
+procedure str2lst(str,delim)
+   local lst, f
+   lst := []
+   str ? {
+      while f := (tab(upto(delim))) do
+      {
+      lst |||:= [f]
+      move(1)
+      }
+        if "" ~== (f := tab(0)) then
+        lst |||:= [f]
+        }
+   return lst
+end

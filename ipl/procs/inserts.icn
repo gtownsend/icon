@@ -1,0 +1,26 @@
+############################################################################
+#
+#	File:     inserts.icn
+#
+#	Subject:  Procedures to build tables with duplicate keys
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     September 7, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  inserts() -- Inserts values into a table in which the same key can
+#  have more than one value (i.e., duplicate keys).  The value of each
+#  element is a list of inserted values.  The table must be created
+#  with default value &null.
+#
+
+procedure inserts(tabl,key,value)
+   (/tabl[key] := [value]) | put(tabl[key],value)
+   return tabl
+end

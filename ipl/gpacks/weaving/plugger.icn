@@ -1,0 +1,45 @@
+############################################################################
+#
+#	File:     plugger.icn
+#
+#	Subject:  Program to plug holes in body include file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 17, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  AD HOC.
+#
+############################################################################
+
+$define LINK "\"GIF/bgener/bgener002.gif\""
+$define THUMB "\"Blocks/ad_hoc1_thumb.gif\""
+
+procedure main()
+
+   write("body := [")
+
+   while line := read() do {
+      if find(LINK, line) then {
+         line ? {
+            write(image(tab(find(LINK))), ",")
+            move(*LINK)
+            write(",")
+            write(image(tab(find(THUMB))), ",")
+            move(*THUMB)
+            write(",")
+            write(image(tab(0)), ",")
+            }
+         }
+      else write(image(line), ",")
+      }
+
+   write("]")
+
+end

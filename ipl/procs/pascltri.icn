@@ -1,0 +1,54 @@
+############################################################################
+#
+#       File:     pascltri.icn
+#
+#       Subject:  Procedure to compute a row of Pascal's Triangle
+#
+#       Author:   Erik Eid
+#
+#       Date:     August 7, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     The procedure, when invoked by a call to PascalsTriangle(n), returns
+# the nth row of Pascal's Triangle in list form.  Pascal's Triangle is a
+# mathematical structure in which each element of a row is the sum of the
+# two elements directly above it.  The first few levels are:
+# 
+#    Row 1:          1           Triangle stored as: [[1],
+#        2:        1   1                              [1, 1],
+#        3:      1   2   1                            [1, 2, 1],
+#        4:    1   3   3   1                          [1, 3, 3, 1],
+#        5:  1   4   6   4   1                        [1, 4, 6, 4, 1]]
+#
+# For example, PascalsTriangle(4) would return the list [1, 3, 3, 1].
+#
+#     The procedure fails if n is not an integer or if it is less than one.
+#
+############################################################################
+
+procedure PascalsTriangle(level)	#: Pascal triangle row
+static tri
+local row, elem, temp
+initial tri := [[1], [1, 1]]               # Start with first two rows stored
+  if not (level = integer(level)) then fail
+  if level < 1 then fail
+  if level > *tri then                     # If we haven't calculated this
+                                           # row before, then do so and keep
+                                           # it statically to prevent having
+                                           # to do so again.
+    every row := *tri+1 to level do {
+      temp := [1]                          # First element of any row is 1.
+      every elem := 2 to row-1 do          # Each of the next elements is
+        put (temp, tri[row-1][elem-1] +    # the sum of the two above it.
+             tri[row-1][elem])
+      put (temp, 1)                        # Last element of any row is 1.
+      put (tri, temp)                      # Attach this row to the triangle.
+    }
+  return tri[level]                        # Return the chosen level.
+end
+

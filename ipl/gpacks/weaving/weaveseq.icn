@@ -1,0 +1,47 @@
+############################################################################
+#
+#	File:     weaveseq.icn
+#
+#	Subject:  Procedures for sequence drafting
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 19, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  AD HOC
+#
+############################################################################
+#
+#  Links: seqfncs, curves, math, random
+#
+############################################################################
+
+link curves
+link math
+link random
+link seqfncs
+
+procedure apos(c)		#: character position relative to "a"
+
+   return ord(c) - ord("a")	# may be negative ...
+
+end
+
+procedure code_name(s)
+
+   s := map(s)
+
+   s ? {
+      while upto(&lcase) do {
+         i := apos(move(1))
+         suspend i
+         }
+      }
+
+end

@@ -1,0 +1,188 @@
+############################################################################
+#
+#	Name:	skio.icn
+#
+#	Title:	Scheme in Icon
+#
+#	Author: Bob Alexander
+#
+#	Date:	March 23, 1995
+#
+#	Description: see skeem.icn
+#
+############################################################################
+
+#
+# skeem -- Scheme in Icon
+#
+# Output procedures
+#
+
+#
+# Initialize
+#
+# List entries are described in skfun.icn.
+#
+procedure InitIO()
+   DefFunction([
+      CALL_WITH_INPUT_FILE,2,
+      CALL_WITH_OUTPUT_FILE,2,
+      CLOSE_INPUT_PORT,
+      CLOSE_OUTPUT_PORT,
+      CURRENT_INPUT_PORT,0,
+      CURRENT_OUTPUT_PORT,0,
+      DISPLAY,1,2,
+      EOF_OBJECT_P,
+      INPUT_PORT_P,
+      NEWLINE,0,1,
+      OPEN_INPUT_FILE,
+      OPEN_OUTPUT_FILE,
+      OUTPUT_PORT_P,
+      PEEK_CHAR,0,1,
+      READ,0,1,
+      READ_CHAR,0,1,
+      WITH_INPUT_FROM_FILE,2,
+      WITH_OUTPUT_FROM_FILE,2,
+      WRITE,1,2,
+      WRITE_CHAR,1,2])
+   return
+end
+
+
+#
+# Input and Output
+#
+# Ports
+#
+
+procedure CALL_WITH_INPUT_FILE(file,func)
+   return CallWithFile(file,func,"r",CALL_WITH_INPUT_FILE)
+end
+
+procedure CALL_WITH_OUTPUT_FILE(file,func)
+   return CallWithFile(file,func,"w",CALL_WITH_OUTPUT_FILE)
+end
+
+procedure CallWithFile(file,func,option,funName)
+   local f,result
+   f := OpenFile(file,option,funName) | fail
+   result := Apply(func,LLPair(Port(f,option))) | fail
+   close(f)
+   return result
+end
+
+procedure INPUT_PORT_P(x)
+   return (type(x) == "Port",find("w",x.option),F) | T
+end
+
+procedure OUTPUT_PORT_P(x)
+   return (type(x) == "Port",find("w",x.option),T) | F
+end
+
+procedure CURRENT_INPUT_PORT()
+   return InputPortStack[1]
+end
+
+procedure CURRENT_OUTPUT_PORT()
+   return OutputPortStack[1]
+end
+
+procedure WITH_INPUT_FROM_FILE(file,func)
+   return WithFile(file,func,"r",WITH_INPUT_FROM_FILE,InputPortStack)
+end
+
+procedure WITH_OUTPUT_FROM_FILE(file,func)
+   return WithFile(file,func,"w",WITH_OUTPUT_FROM_FILE,OutputPortStack)
+end
+
+procedure WithFile(file,func,option,funName,portStack)
+   local f,result
+   f := OpenFile(file,option,funName) | fail
+   push(portStack,Port(f,option))
+   result := Apply(func,LLNull) | fail
+   close(f)
+   pop(portStack)
+   return result
+end
+
+procedure OpenFile(file,option,funName)
+   local fn
+   fn := file.value | fail
+   return open(fn,option) |
+      Error(funName,"Can't open file ",file)
+end
+
+procedure OPEN_INPUT_FILE(file)
+   return Port(OpenFile(file,"r",OPEN_INPUT_FILE),"r")
+end
+
+procedure OPEN_OUTPUT_FILE(file)
+   return Port(OpenFile(file,"w",OPEN_OUTPUT_FILE),"w")
+end
+
+procedure CLOSE_INPUT_PORT(port)
+   return ClosePort(port)
+end
+
+procedure CLOSE_OUTPUT_PORT(port)
+   return ClosePort(port)
+end
+
+procedure ClosePort(port)
+   close(port.file)
+   return port
+end
+
+#
+# Input
+#
+
+procedure READ(port)
+   local f
+   f := (\port | InputPortStack[1]).file
+   return ReadOneExpr(f) | EOFObject
+end
+
+procedure READ_CHAR(port)
+   local f
+   f := (\port | InputPortStack[1]).file
+   return Char(reads(f)) | EOFObject
+end
+
+procedure PEEK_CHAR(port)
+   local f
+   f := (\port | InputPortStack[1]).file
+   return Char(1(reads(f),seek(f,where(f) - 1))) | EOFObject
+end
+
+procedure EOF_OBJECT_P(x)
+   return (x === EOFObject,T) | F
+end
+
+#
+# Output.
+#
+
+procedure WRITE(value,port)
+   /port := OutputPortStack[1]
+   writes(port.file,Print(value))
+   return port
+end
+
+procedure DISPLAY(value,port)
+   /port := OutputPortStack[1]
+   writes(port.file,Print(value,"display"))
+   return port
+end
+
+procedure NEWLINE(port)
+   /port := OutputPortStack[1]
+   write(port.file)
+   return port
+end
+
+procedure WRITE_CHAR(char,port)
+   /port := OutputPortStack[1]
+   writes(port.file,char.value)
+   return port
+end

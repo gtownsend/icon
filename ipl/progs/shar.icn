@@ -1,0 +1,62 @@
+############################################################################
+#
+#	File:     shar.icn
+#
+#	Subject:  Program to create UNIX shell archive
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     May 6, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Program to create Bourne shell archive of text files.
+#
+#  Usage: shar text_file...
+#
+############################################################################
+
+procedure main(arg)
+   local fn, chars, f, line
+
+   write(
+	  "#! /bin/sh_
+	 \n# This is a shell archive, meaning:_
+	 \n# 1. Remove everything above the #! /bin/sh line._
+	 \n# 2. Save the resulting text in a file._
+	 \n# 3. Execute the file with /bin/sh (not csh) to create:")
+   every write("#\t",!arg)
+   write(
+	  "# This archive created: ",&dateline,
+       "\nexport PATH; PATH=/bin:/usr/bin:$PATH")
+   every fn := !arg do {
+      chars := 0
+      f := open(fn) | stop("Can't open \",fn,"\"")
+      write(
+	     "if test -f '",fn,"'_
+	    \nthen_
+	    \n\techo shar: \"will not over-write existing file '",fn,"'\"_
+	    \nelse_
+	    \ncat << \\SHAR_EOF > '",fn,"'")
+      while line := read(f) do {
+	 write(line)
+	 chars +:= *line + 1
+	 }
+      write(
+	    "SHAR_EOF_
+	    \nif test ",chars," -ne \"`wc -c < '",fn,"'`\"_
+	    \nthen_
+	    \n\techo shar: \"error transmitting '",fn,"'\" '(should have been ",
+		  chars," characters)'_
+	    \nfi_
+	    \nfi")
+      close(f)
+      }
+   write(
+	  "exit 0_
+	 \n#\tEnd of shell archive")
+end

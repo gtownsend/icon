@@ -1,0 +1,279 @@
+
+link gramanal
+link xcode
+
+global outFile
+
+global fiducials	#set(Symbol)
+global selectionSet	#table:Production->Set(Symbol)
+			# set of symbols that choose this production
+			# if lhs is atop the stack
+
+#
+#
+#
+procedure analyzeGrammar()
+
+findMinLeng()
+checkMinLeng()
+checkAccessibility()
+findFirstSets()
+findLastSets()
+checkLnRRecursive()
+findFollowSets()
+
+end
+
+procedure declareFiducial(s)
+local t
+/symbol[s] := Symbol(s)
+t := symbol[s]
+/t.kind := "Terminal"
+if t.kind ~== "Terminal" then {
+	error(t.kind," ",s," being declared a fiducial")
+	fail
+}
+insert(fiducials,t)
+return
+end
+
+procedure findSelectionSets()
+local p,r,s,t
+every p:=!!productions do {
+	s:= set()
+	every r := exposedLeft(p) do {
+		if isNonterminal(r) then {
+			s ++:= first[r]
+		} else if isTerminal(r) then {
+			insert(s,r)
+		}
+	}
+	if p.minLeng=0 then s ++:= follow[p.lhs]
+	every t := !s & not isTerminal(t) do delete(s,t)
+	selectionSet[p] := s
+}
+return
+end
+
+procedure ll1(outFileName)
+local t,g
+
+analyzeGrammar()
+findSelectionSets()
+
+testLL1()
+
+if errorCount>0 then fail
+
+outFile := open(outFileName,"w") |
+	{error( "unable to open output file ",outFileName)
+	return}
+
+t:=genLL1()
+#g:=encode(t)
+#write(outFile,g)
+xencode(t,outFile)
+#
+close(outFile)
+return
+
+end
+
+procedure testLL1()
+
+local n, plist, p1, p2, px, py, m, i, s
+
+#check for left recursion
+
+every n := !nonterminals do
+  if member(first[n],n) then
+    error(n.name," is left recursive, the grammar is not LL(1)")
+
+#check for overlapping selection sets
+
+every n := !nonterminals do {
+	plist := productions[n]
+	m := *plist
+	every p1 := plist[i:=1 to m-1] &
+		p2 := plist[i+1 to m] do {
+	   if p1.minLeng = p2.minLeng = 0 then {
+		error("productions\n1.\t",
+			productionToString(p1),"\n2.\t",
+			productionToString(p2),
+			"\nboth derive the empty string" )
+	   } else if *(s:=selectionSet[p1]**selectionSet[p2]) > 0 then {
+		if (p1.minLeng = 0) | (p2.minLeng = 0) then {
+		   px:=p1; py:=p2; if px.minLeng=0 then px:=:py
+		   warning("overlapping selection sets for\n\t",
+			productionToString(px),
+			"\nand empty-deriving production\n\t",
+			productionToString(py) )
+		} else {
+		   error("overlapping selection sets for\n1.\t",
+			productionToString(p1),"\n2.\t",
+			productionToString(p2) )
+		}
+		showSymbolSet("  overlap: ",s)
+	   }
+	}
+}
+return
+end
+
+procedure genLL1()
+local	mapSymbol,
+	rhsList,
+	mapRHS,
+	emptyRHS,
+	sel,
+	deflt,
+	firstFiduc,
+	fiducList,
+	actionList,
+	termList,
+	minLengRHS
+local s,p,r,L,n,m,mr,ml,ms,nullrhs,t,i
+# build encapsulated symbols, [ name ], so that all references
+#  to the symbol can share the same string
+mapSymbol := table()
+every s := !symbol do {
+	mapSymbol[s] := [s.name]
+}
+# map productions into right hand side lists with encapsulated symbols
+emptyRHS:=list()
+mapRHS := table()
+every p := !!productions do {
+	L:=list()
+	every s:= !p.rhs do put(L,mapSymbol[s])
+	mapRHS[p] := if *L = 0 then emptyRHS else L
+}
+#make a list of all right hand sides
+# the list will be used after input to remove the symbols
+# from their encapsulating lists
+rhsList:=[]
+every L:=!mapRHS do put(rhsList,L)
+
+#create selection and default tables
+sel:=table()
+deflt:=table()
+every n:=!nonterminals do {
+
+ # Build a list of productions for the nonterminal sorted by
+ # cardinality of selection set. Reserve a production with an
+ # empty-string-deriving RHS for special treatment. Put the
+ # productions into the sel table, but reserve the empty-deriving
+ # RHS or, if none, then the RHS with the largest selection set to
+ # be the default. If there is an overlap in selection sets between
+ # a non-empty-deriving and the empty-deriving RHS, then this will
+ # give precedence to the non-empty-deriving RHS, as is required to
+ # solve the "dangling else problem."
+
+  nullrhs:=&null
+  t:=table()	#map productions into cardinality of selection set
+  every p:=!productions[n] do
+	if p.minLeng=0
+		then nullrhs:=p
+		else t[p] := *selectionSet[p]
+  L:=sort(t,2)
+  put(L,[\nullrhs,*selectionSet[nullrhs]])
+  if *L = 1  then {
+  	deflt[mapSymbol[n]] := mapRHS[L[1][1]]
+  } else {
+	/sel[mapSymbol[n]] := table()
+	# if there is an empty-deriving RHS then put all other
+	# RHS's into sel table--the empty-deriving one will be
+	# the default. Or, if the largest selection set
+	# for any RHS is small enough, then put all RHS's into
+	# selection table. Otherwise, reserve the RHS with the
+	# largest selection set to be the default.
+	m := if /nullrhs & L[*L][2] < 5 then *L else *L-1
+  	every i := 1 to m &
+		p := L[i][1] &
+		mr := mapRHS[p] &
+		ml := mapSymbol[p.lhs] &
+		ms := mapSymbol[!selectionSet[p]] do {
+	  sel[ml][ms] := mr
+	}
+	# If not included already, handle the last.
+	if m~=*L then deflt[mapSymbol[n]]:=mapRHS[L[*L][1]]
+  }
+}
+
+termList := list()
+every s:=!terminals do put(termList,mapSymbol[s])
+
+actionList := list()
+every put(actionList,mapSymbol[!actions])
+
+fiducList := list()
+insert(fiducials,eoiSymbol)
+every put(fiducList,mapSymbol[!fiducials])
+
+firstFiduc := table()
+every n:=!nonterminals & *(s:=first[n]**fiducials)>0 do {
+	firstFiduc[mapSymbol[n]] := list()
+	every put(firstFiduc[mapSymbol[n]],
+		mapSymbol[!s])
+}
+
+minLengRHS := table()
+every n := !nonterminals do {
+	p := productions[n][1]
+	every r := !productions[n] &
+		p.minLeng > r.minLeng do p:=r
+	minLengRHS[mapSymbol[n]] := mapRHS[p]
+}
+
+return	[
+	rhsList,
+	sel,
+	deflt,
+	termList,
+	actionList,
+	fiducList,
+	firstFiduc,
+	minLengRHS,
+	mapSymbol[startSymbol],
+	mapSymbol[eoiSymbol]
+	]
+end
+
+
+#######################################################################
+#
+#	printing the grammar
+#
+procedure printGrammar()
+local n,p,st,s
+write("start symbol:\t",startSymbol.name)
+write("EOI symbol:\t",eoiSymbol.name)
+write()
+showSymbolSet("terminal symbols: ",terminals)
+
+write()
+showSymbolSet("fiducial symbols: ",fiducials)
+
+write()
+showSymbolSet("action symbols: ",actions)
+
+write()
+write("nonterminal symbols:")
+st := set()
+every insert(st,(!nonterminals).name)
+st := sort(st)
+every n := !st do {
+	s := symbol[n]
+	write(" ",n,":")
+	showSymbolSet("  first set: ",first[s])
+	showSymbolSet("  follow set: ",follow[s])
+	write()
+}
+
+write("productions:")
+every p := !productions[symbol[!st]] do {
+	writeIndented(productionToString(p))
+	showSymbolSet("   : ",selectionSet[p])
+}
+return
+end
+

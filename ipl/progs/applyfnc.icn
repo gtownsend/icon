@@ -1,0 +1,30 @@
+############################################################################
+#
+#	File:     applyfnc.icn
+#
+#	Subject:  Program to apply function to lines of a file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 25, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program applies a function specified on the command line to the
+#  lines of a file.
+#
+############################################################################
+
+procedure main(args)
+   local func
+
+   func := args[1] | stop("*** no function specified")
+
+   while args[1] := read() do
+      every write(func ! args)
+
+end

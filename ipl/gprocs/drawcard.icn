@@ -1,0 +1,194 @@
+############################################################################
+#
+#	File:     drawcard.icn
+#
+#	Subject:  Procedure to draw a playing card
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     July 25, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     drawcard(win, x, y, c) draws the playing card labeled <c> with its
+#  upper left corner at (x,y).  The card size is fixed at 80w x 124h.
+#
+#     Card labelings are those used in the examples in the "Mappings and
+#  Labelings" chapter of the Icon book (pp 205-207, 2/e).
+#
+#         label: ABCDEFGHIJKLM NOPQRSTUVWXYZ abcdefghijklm nopqrstuvwxyz
+#         rank:  A23456789TJQK A23456789TJQK A23456789TJQK A23456789TJQK
+#         suit:  clubs........ diamonds..... hearts....... spades.......
+#
+#  If the label is unrecognized, the back of a card is drawn.
+#  "-" is suggested as a conventional label for a card back.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  cardbits, graphics
+#
+############################################################################
+
+link cardbits
+link graphics
+
+procedure drawcard(win, x, y, label)
+   static cmap, gc, bk, plist, deck
+   local ysuit, yrank, r, s, i, l, dx, dy
+
+   if type(win) ~== "window" then {
+      win :=: x :=: y :=: label
+      win := &window
+      }
+   if /gc then {
+      # funny order of card deck is for conversion to ranks below
+      deck := "ABCDEFGHIJKLMnopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZ"
+      cmap := cardmap() | stop("can't initialize card fragments")
+      gc := Clone(win, "fg=black", "bg=white")
+      bk := Clone(gc)
+      Pattern(bk, "32,#_
+         04444044_
+         0A08000A_
+         11101011_
+         0A00080A_
+         44004404_
+         8000A000_
+         10011001_
+         A0002000_
+         40044404_
+         000A0A02_
+         01111101_
+         020A0A00_
+         44440440_
+         00A00020_
+         11100111_
+         008000A0_
+         40440444_
+         000A0A08_
+         10111110_
+         080A0A00_
+         44044400_
+         A0008000_
+         10011001_
+         2000A000_
+         44044004_
+         0A02000A_
+         11010111_
+         0A00020A_
+         04404444_
+         002000A0_
+         01111110_
+         00A00080")
+      WAttrib(bk, "fillstyle=textured")
+      if WAttrib(bk, "depth") > 1 then
+         WAttrib(bk, "fg=dark red-yellow", "bg=light red-yellow")
+      plist := [
+         [0, 0],			#  A
+         [0, 39],			#  2
+         [0, 39, 0, 0],			#  3
+         [16, 39],			#  4
+         [16, 39, 0, 0],		#  5
+         [16, 0, 16, 39],		#  6
+         [16, 0, 16, 39, 0, -20],	#  7
+         [16, 0, 16, 39, 0, 20],	#  8
+         [16, 13, 16, 39, 0, 0],	#  9
+         [16, 13, 16, 39, 0, 26]	# 10
+         ]
+      }
+
+   if (i := (deck ? find(label)) - 1) then {
+      r := i % 13 + 1			# 1 to 13 for A,2,...,9,10,J,Q,K
+      s := i / 13 + 1			# 1=heart, 2=diamond, 3=spade, 4=club
+      }
+   else {
+      # unrecognized; draw card back
+      DrawRectangle(gc, x, y, 80-1, 124-1)
+      FillRectangle(bk, x+1, y+1, 80-2, 124-2)
+      return
+      }
+
+   ClearOutline(gc, x, y, 80-1, 124-1)
+   ysuit := 94 * (s-1)
+   yrank := (if s <= 2 then 404 else 376)
+
+   CopyArea(cmap, gc, 9 * (r-1), yrank, 9, 14, x+4, y+6)	# rank
+   CopyArea(cmap, gc, 9 * (r-1), yrank+14, 9, 14, x+67, y+104)	# inverted rank
+   CopyArea(cmap, gc, 148, ysuit+40, 9, 14, x+4, y+22)		# suit
+   CopyArea(cmap, gc, 148, ysuit+54, 9, 14, x+67, y+88)	# inverted suit
+
+   if r > 10 then
+      CopyArea(cmap, gc, 48 * (r-11), ysuit, 48, 94, x+16, y+15) # faces
+   else if (r = 1) & (s = 4) then
+      CopyArea(cmap, gc, 117, 376, 43, 56, x+18, y+34)		# ace of spaces
+   else {
+      l := plist[r]
+      i := 0
+      while (dx := l[i +:= 1]) & (dy := l[i +:= 1]) do {
+         if dy = 0 then {
+            # pip in center row; reflect horizontally if dx positive
+            CopyArea(cmap, gc, 144, ysuit, 16, 20, x + dx + 32, y + 52)
+            if dx > 0 then
+               CopyArea(cmap, gc, 144, ysuit, 16, 20, x - dx + 32, y + 52)
+            }
+         else if dx = 0 then {
+            # pip in center column; reflect vertically if dy positive
+            if dy > 0 then {
+               CopyArea(cmap, gc, 144, ysuit + 20, 16, 20, x + 32, y + dy + 52)
+               CopyArea(cmap, gc, 144, ysuit, 16, 20, x + 32, y - dy + 52)
+               }
+            else
+               CopyArea(cmap, gc, 144, ysuit, 16, 20, x + 32, y + dy + 52)
+            }
+         else {
+            # all other positions are 4-way symmetric
+            CopyArea(cmap, gc, 144, ysuit+20, 16, 20, x + dx + 32, y + dy + 52)
+            CopyArea(cmap, gc, 144, ysuit+20, 16, 20, x - dx + 32, y + dy + 52)
+            CopyArea(cmap, gc, 144, ysuit, 16, 20, x + dx + 32, y - dy + 52)
+            CopyArea(cmap, gc, 144, ysuit, 16, 20, x - dx + 32, y - dy + 52)
+            }
+         }
+      }
+   return
+end
+
+#  cardmap() -- create and load card bitmap
+#
+#  The bitmap is in a separate source file cardbits.icn due to its size.
+#  It is represented there as a bilevel image.
+
+procedure cardmap()		# create and load card bitmap
+   local ims, cmap, rmap
+
+   ims := cardbits()
+   cmap := open("cardbits", "g", "canvas=hidden", "size=160,432") | fail
+						# make offscreen canvas
+   DrawImage(cmap, 0, 0, cardbits()) 		# load card fragments
+
+   if WAttrib(cmap, "depth") == "1" then {	# if monchrome screen
+      # dither red portions
+      Pattern(cmap, "4,#4141")
+      WAttrib(cmap, "fillstyle=masked", "fg=white")
+      FillRectangle(cmap, 0, 0, 160, 188, 0, 404, 117, 128)
+      # redraw face outlines
+      WAttrib(cmap, "fillstyle=solid", "fg=black")
+      every DrawRectangle(cmap, 0 to 96 by 48, 0 to 282 by 94, 47, 93)
+      }
+   else {					# if color screen
+      # replace red portions with red bitmaps
+      rmap := open("redcards", "g", "canvas=hidden", "size=160,432",
+         "fg=dark red") | fail
+      DrawImage(rmap, 0, 0, cardbits())
+      CopyArea(rmap, cmap, 0, 0, 160, 188, 0, 0)
+      CopyArea(rmap, cmap, 0, 404, 117, 128, 0, 404)
+      Uncouple(rmap)
+      }
+   return cmap					# return pixmap
+end

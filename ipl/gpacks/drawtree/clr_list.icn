@@ -1,0 +1,155 @@
+global shape_type
+
+
+# main changing color procedure that setups the window and sets control
+procedure change_color(shape)
+
+   local fg, num, fill, tmp
+
+   color_dialog_open := 1
+   WAttrib(color_window, "canvas=normal")
+
+   fg := Fg(color_window)
+
+   num := 1
+   every fill := !active_win_record.tree.color_list_u do {
+       Fg(color_window, fill)
+       FillRectangle(color_window, vidgets_color[string(num)].ux, 
+                                   vidgets_color[string(num)].uy,
+                                   vidgets_color[string(num)].uw, 
+                                   vidgets_color[string(num)].uh)
+       num +:= 1
+   }
+
+   Fg(color_window, fg)
+
+   every num := !active_win_record.tree.color_list do  
+      SetVidget(vidgets_color["color" || string(num)], 1)
+
+   shape_type := shape
+
+   return
+  
+end
+
+
+
+# close the window and update the tree (picture)
+procedure color_done_cb(vidget, value)
+
+   color_dialog_open := &null
+   WAttrib(color_window, "canvas=hidden")
+ 
+   case shape_type of {
+      "circle"    :   drawtree_circle(active_win_record.tree, children)
+      "rectangle" :   drawtree_rectangle(active_win_record.tree, children)
+      "square"    : { draw_grid(square_record)
+                      drawtree_square(square_record, children, 0, square_record.x,
+                      square_record.y, square_record.linewidth,
+                      square_record.length)  }
+   }
+
+   sl_cb()
+
+   return
+
+end
+
+
+
+procedure color_region_cb(vidget, e, x, y)
+  
+   ColorDialog("Select a new color:", 
+                active_win_record.tree.color_list_u[integer(vidget.id)],
+               change_color_select, integer(vidget.id))
+   return
+
+end
+
+
+
+procedure change_color_select(id, s)
+
+   local fg
+   fg := Fg(color_window)
+   id := string(id)
+
+   active_win_record.tree.color_list_u[id] := s
+   Fg(color_window, s)
+   FillRectangle(color_window, vidgets_color[id].ux, 
+                               vidgets_color[id].uy,
+                               vidgets_color[id].uw, 
+                               vidgets_color[id].uh)   
+   Fg(color_window, fg)
+
+end
+
+
+procedure select_color_cb(vidget, value)
+
+   local num, id, con 
+
+   con := 1
+
+   vidget.id ? {
+      tab(upto('1234567'))
+      num := tab(0)
+   }
+
+   if /value then  {
+     every id := 1 to *active_win_record.tree.color_list do {
+       if num == string(active_win_record.tree.color_list[id]) then 
+             break  }
+       active_win_record.tree.color_list := active_win_record.tree.color_list[1:id] |||
+                                            active_win_record.tree.color_list[id + 1:0]
+       active_win_record.tree.num_color := *active_win_record.tree.color_list
+   }
+   else if \value then {
+     every id := 1 to *active_win_record.tree.color_list do
+        if num == string(active_win_record.tree.color_list[id]) then {
+           con := &null
+           break;
+        }
+     if \con then {
+        put(active_win_record.tree.color_list, integer(num))
+        active_win_record.tree.num_color := *active_win_record.tree.color_list
+     }
+   }
+
+   if active_win_record.tree.num_color == 0 then  {
+      put(active_win_record.tree.color_list, 1)
+      active_win_record.tree.num_color := 1 }
+
+   return
+
+end
+
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure color_setup_atts()
+   return ["size=258,390", "bg=pale-gray", "label=Color Selection", "canvas=hidden"]
+end
+
+procedure color_setup(win, cbk)
+return vsetup(win, cbk,
+   ["color_setup:Sizer:::0,0,258,390:Color Selection",],
+   ["color3:Button:regular:1:212,121,21,33:S",select_color_cb],
+   ["color5:Button:regular:1:211,200,21,33:S",select_color_cb],
+   ["color7:Button:regular:1:212,278,21,33:S",select_color_cb],
+   ["cancel:Button:regular::136,343,54,31:Cancel",color_done_cb],
+   ["color1:Button:regular:1:211,39,21,33:S",select_color_cb],
+   ["color2:Button:regular:1:213,81,21,33:S",select_color_cb],
+   ["color4:Button:regular:1:213,161,21,33:S",select_color_cb],
+   ["color6:Button:regular:1:212,238,21,33:S",select_color_cb],
+   ["color_selection:Label:::20,12,112,13:Color Selection:",],
+   ["okay:Button:regular::50,341,54,31:Okay",color_done_cb],
+   ["1:Rect:sunken::18,40,183,34:",color_region_cb],
+   ["2:Rect:sunken::18,80,183,34:",color_region_cb],
+   ["3:Rect:sunken::18,120,183,34:",color_region_cb],
+   ["4:Rect:sunken::18,160,183,34:",color_region_cb],
+   ["5:Rect:sunken::18,200,183,34:",color_region_cb],
+   ["6:Rect:sunken::18,240,183,34:",color_region_cb],
+   ["7:Rect:sunken::18,280,183,34:",color_region_cb],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

@@ -1,0 +1,100 @@
+############################################################################
+#
+#	File:     strsum.icn
+#
+#	Subject:  Program to tabulate string computation
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 14, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This tool tabulates string-computation activity.  It is called as
+#
+#	strsum prog
+#
+#  where prog is a program compiled under MT Icon whose events are to
+#  be tabulated.
+#	
+#  The options supported are:
+#
+#	-o s	write output to file s; default &output.
+#
+#	-t	record time spent in monitoring.
+#
+############################################################################
+#
+#  Requires:  MT Icon and event monitoring.
+#
+############################################################################
+#
+#  Links:  evinit, options, procname
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+link evinit
+link options
+link procname
+
+$include "evdefs.icn"
+
+procedure main(args)
+   local opts, itime, output, cnttbl, amttbl, cmask, rmask, numlist, op, cat
+   local subs
+
+   opts := options(args, "o:t")
+
+   output := open(\opts["o"], "w") | &output
+
+   if \opts["t"] then itime := &time
+
+   EvInit(args) | stop("*** cannot load program")	# initialize interface
+
+   cnttbl := table(0)
+   amttbl := table(0)
+
+   cat := proc("||", 2)
+   subs := proc("[]", 2)
+
+   cmask := E_Fcall ++ E_Ocall ++ E_Ssasgn
+   rmask := E_Fret ++ E_Oret
+
+   while EvGet(cmask) do {
+      case &eventcode of {
+         E_Fcall | E_Ocall: {
+            if (op := &eventvalue) === (
+               cat | right | left | center | entab | detab | repl |
+               reverse | map
+               )  then {
+                  EvGet(rmask)
+                  cnttbl[op] +:= 1
+                  amttbl[op] +:= *&eventvalue
+                  }
+            }
+         E_Ssasgn: {
+            cnttbl[subs] +:= 1
+            amttbl[subs] +:= 1
+            }
+            }
+      }
+
+   write(output, "\nString operation count:\n")
+   numlist := sort(cnttbl, 3)
+   while write(output, left(procname(get(numlist)), 6), right(get(numlist), 8))
+
+   write(output, "\nString allocation:\n")
+   numlist := sort(amttbl, 3)
+   while write(output, left(procname(get(numlist)), 6), right(get(numlist), 8))
+
+   write(output, "\nelapsed time: ", &time - \itime, "ms")
+
+end

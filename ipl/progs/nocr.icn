@@ -1,0 +1,135 @@
+############################################################################
+#
+#	File:     nocr.icn
+#
+#	Subject:  Program to convert MS-DOS text files to UNIX
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     December 30, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.4
+#
+############################################################################
+#  
+#    This program simply converts \r\n to \n in each line of each of the
+#  files supplied as command-line arguments, thereby effecting conversion
+#  of MS-DOS format text files to the corresponding UNIX format.
+#
+#	usage:  nocr file1 [file2 [etc.]]
+#
+#    No check done to see whether the file is in fact a text file.
+#
+############################################################################
+#
+#  Requires:  UNIX or MS-DOS
+#
+#  See also: yescr.icn
+#
+############################################################################
+
+procedure main(a)
+
+    local fname, infile, outfile, line, temp_name
+
+    # Static variables, initial clause not really necessary in main().
+    static slash, l, ms, DOSos, nok, ok
+    initial {
+
+	nok := string(~&letters)
+	ok := repl("X",*nok)
+
+	# Find us a place to put temporary files.
+	if find("UNIX",&features) then {
+	    slash := "/"
+	    l := 10
+	    ms := ""
+	}
+	else if find("MS-DOS", &features) then {
+	    slash := "\\"
+	    l := 8
+	    ms := "u"
+	    DOSos := 1
+	}
+	# Don't take this out unless you're sure of what you're doing.
+	else stop("nocr:  tested only under UNIX and MS-DOS")
+    }
+
+    # Check to see if we have any arguments.
+    *a = 0 & stop("usage:  nocr file1 [file2...]")
+
+    # Start popping filenames off of the argument list.
+    while fname := pop(a) do {
+
+	# Open input file.
+	infile := open(fname,"r") | (er_out(fname), next)
+	# Get temporary file name.
+	every temp_name :=
+	    pathname(fname, slash) ||
+	    map(left(basename(fname,slash),l,"X"), nok, ok) ||
+	    "." || right(0 to 999,3,"0")
+	do close(open(temp_name)) | break
+	# Open temporary file.
+	outfile := open(\temp_name,"w"||ms) | (er_out(fname), next)
+
+	if \DOSos then {
+	    # Infile above was opened in translate mode (removing the CR),
+	    # while outfile was opened in untranslate mode (automatically
+            # writing the line in UNIX format).
+	    while write(outfile,read(infile))
+	}
+	else {
+	    # If not running under DOS, then we're under UNIX (unless
+	    # we've been hacked).  Trim CR manually, then write.
+	    while line := read(infile) do {
+                if line[-1] == "\x0D" then
+		    line[-1] := ""
+	        write(outfile, line)
+            }
+	}
+
+	# Close opened input and output files.
+	close(infile)  | stop("nocr:  cannot close, ",fname,"; aborting")
+	close(outfile) | stop("nocr:  cannot close, ",temp_name,"; aborting")
+
+	# Remove physical input file.
+	remove(fname) | stop("nocr:  cannot remove ",fname,"; aborting")
+
+	# Give temp name the same name as the input file, completing the
+	# conversion process.
+	rename(temp_name,fname) |
+	    stop("nocr:  Can't find temp file ",temp_name,"; aborting")
+    }
+
+end
+
+
+procedure er_out(s)
+    write(&errout,"nocr:  cannot open ",s," for reading")
+    return
+end
+
+
+procedure basename(s,slash)
+    s ? {
+	while tab(find(slash)+1)
+	return tab(0)
+    }
+end
+
+
+procedure pathname(s,slash)
+    local s2
+
+    s2 := ""
+    s ? {
+	while s2 ||:= tab(find(slash)+1)
+	return s2
+    }
+end

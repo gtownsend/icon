@@ -1,0 +1,58 @@
+############################################################################
+#
+#	File:     orbit.icn
+#
+#	Subject:  Program to display quadratic orbit
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 17, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This is a barebones version of a display of the orbit of a quadratic
+#  equation.  It has deliberately been left simple and free of options so
+#  that the basic idea is clear and so that it can be used as the basis of
+#  more capable versions.
+#
+#  This program is based on material given in "Chaos, Fractals,
+#  and Dynamics", Robert L. Devaney, Addison-Wesley, 1990.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  wopen
+#
+############################################################################
+
+link wopen
+
+procedure main()
+   local extent, c, i, j, m, x
+
+   extent := 360
+
+   WOpen("label=orbit", "height=" || extent, "width=" || extent) |
+      stop("*** cannot open window")
+
+   every i := -320 to 40 do {
+      x := 0.0
+      c := i / 160.0
+      m := 160 * (c + 2)
+      every j := 0 to extent do {
+         x := x ^ 2 + c
+         if j < 50 then next		# wait for things to take hold
+         DrawPoint(m,  75 * (2 - x))
+         }
+      }
+    
+   Event()
+
+end

@@ -1,0 +1,44 @@
+
+A generic makefile skeleton for Icon programs by Bob Alexander:
+
+-------------------------------------------------------------------------
+#
+#  Makefile for Icon Programming Language program:
+#
+PROGRAM=|>Program Name<|
+
+#
+#  To customize this file, usually only the definitions of macros
+#  PROGRAM and FILES require modification.
+#
+
+#
+#  Specification of separate files that make up the program.
+#
+#  Note that the .u1 suffix is used here; the corresponding .icn files
+#  are automatically identified by the implicit rule.
+#
+FILES=|>List of component files, space separated, using .u1 suffix<|
+
+#
+#  Option flag definitions, etc.
+#
+ICFLAGS=-s
+IFLAGS=-s
+ICONT=icont
+
+#
+#  Implicit rule for making ucode files.
+#
+.SUFFIXES: .u1 .icn
+.icn.u1:
+	$(ICONT) -c $(ICFLAGS) $*
+
+#
+#  Explicit rules for making an Icon program.
+#
+all:	$(PROGRAM)
+
+$(PROGRAM): $(FILES)
+	$(ICONT) -o $(PROGRAM) $(IFLAGS) $(FILES)
+

@@ -1,0 +1,49 @@
+############################################################################
+#
+#	File:     revadd.icn
+#
+#	Subject:  Procedure to generate reverse-summed integers
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 11, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure is designed to help explore the number-theory problem
+#  in which an integer is added to its (digit) reversal until a
+#  palidrome appears.
+#
+#  It is unknown if this process terminates for all integers.  For
+#  example, for 196, it appears not to, but no proof, to our
+#  knowledge, exists for nontermination.  The radix used is important.
+#  For bases that are powers of 2, it can be proved that there are
+#  integers for which the process does not terminate in a palindrome.
+#
+############################################################################
+#
+#  Requires:  Large integer arithmetic
+#
+############################################################################
+
+#  Generate integers in the reverse-addition sequence starting at i,
+#  but terminating when the number is palindromic.
+#
+#  Note that revadd() returns an integer (native or large).
+
+procedure revadd(i)
+   local j
+
+   i := integer(i) | stop("*** invalid type to revadd()")
+
+   repeat {
+      j := reverse(i)
+      if i == j then return i else suspend i
+      i +:= j
+      }
+
+end

@@ -1,0 +1,52 @@
+############################################################################
+#
+#	File:     xformpat.icn
+#
+#	Subject:  Program to apply transformation to patterns
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 12, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program takes patterns from standard input and applies a
+#  transformation to each one, writing the results to standard output.
+#  The transformation to be applied is given in terms of command-line
+#  arguments, with the transformation first, followed by any arguments,
+#  as in
+#
+#	xformpat center 32 32
+#
+#  which would attempt to produce a 32x32 centered pattern from each
+#  pattern in standard input.
+#
+#  Warning:  Some transformations can fail.  In cae of failure, no
+#  pattern is written.
+#
+############################################################################
+#
+#  Links:  patxform
+#
+############################################################################
+
+invocable all
+
+link patxform
+
+procedure main(args)
+   local xform, rows
+
+   xform := proc("p" || args[1]) | stop("** invalid transformation")
+
+   while rows := pat2rows(readpatt()) do {
+      get(args)			# a trick here; there's always an extra
+      push(args, rows)
+      write(rows2pat(xform ! args))
+      }
+
+end

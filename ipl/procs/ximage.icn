@@ -1,0 +1,209 @@
+############################################################################
+#
+#	File:     ximage.icn
+#
+#	Subject:  Procedures to produce string image of structured data
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     May 19, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  ximage(x) : s
+#
+#  Produces a string image of x.  ximage() differs from image() in that
+#  it outputs all elements of structured data types.  The output
+#  resembles Icon code and is thus familiar to Icon programmers.
+#  Additionally, it indents successive structural levels in such a way
+#  that it is easy to visualize the data's structure.  Note that the
+#  additional arguments in the ximage procedure declaration are used for
+#  passing data among recursive levels.
+#
+#  xdump(x1,x2,...,xn) : xn
+#
+#  Using ximage(), successively writes the images of x1, x2, ..., xn to
+#  &errout.
+#
+#  Some Examples:
+#
+#  The following code:
+#	...
+#	t := table() ; t["one"] := 1 ; t["two"] := 2
+#	xdump("A table",t)
+#	xdump("A list",[3,1,3,[2,4,6],3,4,3,5])
+#
+#  Writes the following output (note that ximage() infers the
+#  predominant list element value and avoids excessive output):
+#
+#	"A table"
+#	T18 := table(&null)
+#	   T18["one"] := 1
+#	   T18["two"] := 2
+#	"A list"
+#	L25 := list(8,3)
+#	   L25[2] := 1
+#	   L25[4] := L24 := list(3)
+#	      L24[1] := 2
+#	      L24[2] := 4
+#	      L24[3] := 6
+#	   L25[6] := 4
+#	   L25[8] := 5
+#
+
+
+procedure ximage(x,indent,done)		#: string image of value
+   local i,s,ss,state,t,xtag,tp,sn,sz
+   static tr, name
+
+   initial name := proc("name", 0)	# REG: in case name is a global
+
+   #
+   #  If this is the outer invocation, do some initialization.
+   #
+   if /(state := done) then {
+      tr := &trace ; &trace := 0    # postpone tracing while in here
+      indent := ""
+      done := table()
+      }
+   #
+   #  Determine the type and process accordingly.
+   #
+   indent := (if indent == "" then "\n" else "") || indent || "   "
+   ss := ""
+   tp := type(x)
+   s := if xtag := \done[x] then xtag else case tp of {
+      #
+      #  Unstructured types just return their image().
+      #
+      "integer": x
+      "null" | "string" | "real" | "cset" | "window" |
+	    "co-expression" | "file" | "procedure" | "external": image(x)
+      #
+      #  List.
+      #
+      "list": {
+	 image(x) ? {
+	    tab(6)
+	    sn := tab(find("("))
+	    sz := tab(0)
+	    }
+	 done[x] := xtag := "L" || sn
+	 #
+	 #  Figure out if there is a predominance of any object in the
+	 #  list.  If so, make it the default object.
+	 #
+	 t := table(0)
+	 every t[!x] +:= 1
+	 s := [,0]
+	 every t := !sort(t) do if s[2] < t[2] then s := t
+	 if s[2] > *x / 3 & s[2] > 2 then {
+	    s := s[1]
+	    t := ximage(s,indent || "   ",done)
+	    if t ? (not any('\'"') & ss := tab(find(" :="))) then
+		  t := "{" || t || indent || "   " || ss || "}"
+	    }
+	 else s := t := &null
+	 #
+	 #  Output the non-defaulted elements of the list.
+	 #
+	 ss := ""
+	 every i := 1 to *x do if x[i] ~=== s then {
+	    ss ||:= indent || xtag || "[" || i || "] := " ||
+		  ximage(x[i],indent,done)
+	    }
+	 s := tp || sz
+	 s[-1:-1] := "," || \t
+	 xtag || " := " || s || ss
+	 }
+      #
+      #  Set.
+      #
+      "set": {
+	 image(x) ? {
+	    tab(5)
+	    sn := tab(find("("))
+	    }
+	 done[x] := xtag := "S" || sn
+	 every i := !sort(x) do {
+	    t := ximage(i,indent || "   ",done)
+	    if t ? (not any('\'"') & s := tab(find(" :="))) then
+		  t := "{" || t || indent || "   " || s || "}"
+	    ss ||:= indent || "insert(" || xtag || "," || t || ")"
+	    }
+	 xtag || " := " || "set()" || ss
+	 }
+      #
+      #  Table.
+      #
+      "table": {
+	 image(x) ? {
+	    tab(7)
+	    sn := tab(find("("))
+	    }
+	 done[x] := xtag := "T" || sn
+	 #
+	 #  Output the table elements.  This is a bit tricky, since
+	 #  the subscripts might be structured, too.
+	 #
+	 every i := !sort(x) do {
+	    t := ximage(i[1],indent || "   ",done)
+	    if t ? (not any('\'"') & s := tab(find(" :="))) then
+		  t := "{" || t || indent || "   " || s || "}"
+	    ss ||:= indent || xtag || "[" ||
+		  t || "] := " ||
+		  ximage(i[2],indent,done)
+	    }
+	 #
+	 #  Output the table, including its default value (which might
+	 #  also be structured).
+	 #
+	 t := ximage(x[[]],indent || "   ",done)
+	 if t ? (not any('\'"') & s := tab(find(" :="))) then
+	       t := "{" || t || indent || "   " || s || "}"
+	 xtag || " := " || "table(" || t || ")" || ss
+	 }
+      #
+      #  Record.
+      #
+      default: {
+	 image(x) ? {
+	    move(7)
+	    t := ""
+	    while t ||:= tab(find("_")) || move(1)
+	    t[-1] := ""
+	    sn := tab(find("("))
+	    }
+	 done[x] := xtag := "R_" || t ||  "_" || sn
+	 every i := 1 to *x do {
+	    name(x[i]) ? (tab(find(".")),sn := tab(0))
+	    ss ||:= indent || xtag || sn || " := " ||
+		  ximage(\x[i],indent,done)
+	    }
+	 xtag || " := " || t || "()" || ss
+	 }
+      }
+   #
+   #  If this is the outer invocation, clean up before returning.
+   #
+   if /state then {
+      &trace := tr                        # restore &trace
+      }
+   #
+   #  Return the result.
+   #
+   return s
+end
+
+
+#
+#  Write ximages of x1,x1,...,xn.
+#
+procedure xdump(x[])		#: write images of values
+   every write(&errout,ximage(!x))
+   return x[-1] | &null
+end

@@ -1,0 +1,78 @@
+procedure main()
+   s1 := collate(&cset,&cset)
+   s2 := collate(reverse(&cset),reverse(&cset))
+   write(image(decollate(s1,0)))
+   write(image(decollate(s1,1)))
+   write(image(decollate(s2,1)))
+   write(image(decollate(s2,0)))
+   perm()
+end
+
+procedure collate(s1,s2)
+  local length, ltemp, rtemp, t
+  static llabels, rlabels, clabels, blabels, half
+  initial {
+    llabels := "abxy"
+    rlabels := "cduv"
+    blabels := llabels || rlabels
+    clabels := "acbdxuyv"
+    half := 4
+    ltemp := left(&cset,*&cset/2)
+    rtemp := right(&cset,*&cset/2)
+    clabels := collate(ltemp,rtemp)
+    llabels := ltemp
+    rlabels := rtemp
+    blabels := string(&cset)
+    half := *llabels
+    }
+   if *s1 > *s2 then {
+      t := s1[*s2+1:0]
+      s1 := s1[1:*s2+1]
+      }
+   else if *s2 > *s1 then {
+      t := s2[*s1+1:0]
+      s2 := s2[1:*s1+1]
+      }
+   else t := ""
+  length := *s1
+  if length <= half then
+    return map(left(clabels,2*length),left(llabels,length) ||
+      left(rlabels,length),s1 || s2) || t
+  else
+    return map(clabels,blabels,left(s1,half) || left(s2,half)) ||
+      collate(right(s1,length-half),right(s2,length-half)) || t
+end
+
+procedure decollate(s,n)
+   static dsize, image, object
+   local ssize
+   initial {
+      image := collate(&cset[2:0],repl(&cset[1],*&cset-1))
+      object := string(&cset)
+      dsize := *image
+      }
+   n %:= 2
+   ssize := *s
+   if ssize + n <= dsize then
+      return map(object[1+:(ssize+n)/2],image[(n+1)+:ssize],s)
+   else
+      return map(object[1+:(dsize-2)/2],image[(n+1)+:dsize-2],
+         s[1+:(dsize-2)]) || decollate(s[dsize-1:0],n)
+end
+procedure perm()
+   output := set()
+   every 1 to 2 do
+      every insert(output,permute("ogram"))
+   every write(!sort(output))
+end
+
+procedure permute(s)
+   local i, x, t
+   if s == "" then return ""
+   every i := 1 to *s do {
+      x := s[i]
+      t := s
+      t[i] := ""
+      suspend x || permute(t)
+      }
+end

@@ -1,0 +1,54 @@
+############################################################################
+#
+#	File:     hostname.icn
+#
+#	Subject:  Procedures to produce host name
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     April 30, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.1
+#
+############################################################################
+#  
+#  This procedure determines the name of the current host.  It takes no
+#  arguments.  Aborts with an error message if the necessary commands
+#  are not found.  Geared specifically for UNIX machines.
+#
+############################################################################
+#
+#  Requires: UNIX, pipes
+#
+############################################################################
+
+procedure hostname()
+    local fname, get_name
+
+    static h_name
+    initial {
+	(find("UNIX",&features), find("pipes",&features)) |
+	    stop("hostname:  works only under UNIX")
+	close(open(fname <- "/usr/bin/hostname"|"/bin/uuname"|"/bin/uname"))
+        fname := {
+	    case \fname of {
+		"/usr/bin/hostname" :  "/usr/bin/hostname"
+		"/usr/bin/uuname"   :  "/usr/bin/uuname -l"
+		"/bin/uname"        :  "/bin/uname -n"
+            } | "/usr/bin/uuname -l"
+	}
+	get_name := open(fname, "pr") |
+	    stop("hostname:  can't find hostname/uuname/uname commands")
+        h_name := !get_name
+        close(get_name)
+    }
+
+    return h_name
+
+end

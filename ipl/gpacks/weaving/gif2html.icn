@@ -1,0 +1,94 @@
+############################################################################
+#
+#	File:     gif2html.icn
+#
+#	Subject:  Program to create Web pages for weaving GIFs
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 15, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program produces Web pages with images in the cells of
+#  tables.  File names are given on the command line.  The main Web
+#  page contains links to the pages with the images.
+#
+#  The following options are supported:
+#
+#	-n s	page name prefix; default "images"
+#	-s i	cell size -- typically the size of the GIFs; default 128
+#	-t s	page title, default "Images"
+#	-w i	maximum width of page (for printing constraints); default 700
+#
+#  The main page is named <name>.html; the image pages are named
+#  <name>ddd.html.
+#
+############################################################################
+#
+#  Link:  options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local td, size, n, opts, width, pages, output, count, title, mainout, file
+
+   opts := options(args, "mn:s+t:w+")
+
+   pages := opts["m"]
+   name := \opts["n"] | "image"
+   size := \opts["s"] | 128
+   title := \opts["t"] | "Images"
+   width := \opts["w"] | 700
+
+   size +:= 1
+
+   n := width / size
+
+   if n < 1 then stop("*** images too large")
+
+   td := "<TD ALIGN=center WIDTH=\"" || size || "\" HEIGHT=\"" || size ||
+      "\"><IMG SRC=\""
+
+   mainout := open(name || ".html", "w") | stop("*** cannot open main page")
+
+   write(mainout, "<HTML><HEAD><TITLE>", title, "</TITLE></HEAD><BODY>")
+
+   count := 0
+
+   repeat {
+      until *args = 0 do {
+      output := open(file := name || right(count +:= 1, 3, "0") ||
+         ".html", "w") | stop("*** cannot open image page")
+      write(output, "<HTML>")
+      write(output, "<HEAD><TITLE>", title, right(count, 3), "</TITLE></HEAD>")
+      write(output, "<BODY>")
+      write(output, "<H2>", title, right(count, 3), "</H2>")
+         write(output, "<TABLE BORDER=\"1\" CELLSPACING=\"2\" CELLPADDING=\"0\">")
+         every 1 to 10 do {
+            write(output, "<TR>")
+            every 1 to n do {
+               write(output, td, get(args), "\"></TD>") |
+                  break break
+               }
+            write(output, "</TR>")
+            }
+         write(output, "</TABLE><BR><BR>")
+         write(output, "</BODY>")
+         write(output, "</HTML>")
+         close(output)
+         write(mainout, "<A HREF=\"", file, "\">", file, "</A><BR>")
+         }
+      if *args = 0 then break
+      }
+   
+   write(mainout, "</BODY>")
+   write(mainout, "</HTML>")
+
+end

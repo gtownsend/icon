@@ -1,0 +1,165 @@
+############################################################################
+#
+#	File:     vnq.icn
+#
+#	Subject:  Program to display solutions to n-queens problem
+#
+#	Author:   Stephen B. Wampler
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program displays solutions to the n-queens problem.
+#
+############################################################################
+#
+#  Links: options
+#
+############################################################################
+
+link options
+
+global n, nthq, solution, goslow, showall, line, border
+
+procedure main(args)
+local i, opts
+
+   opts := options(args, "sah")  
+   n := integer(get(args)) | 8	# default is 8 queens
+   if \opts["s"] then goslow := "yes"
+   if \opts["a"] then showall := "yes"
+   if \opts["h"] then helpmesg()
+
+   line := repl("|   ", n) || "|"
+   border := repl("----", n) || "-"
+   clearscreen()
+   movexy(1, 1)
+   write()
+   write("  ", border)
+   every 1 to n do {
+      write("  ", line)
+      write("  ", border)
+      }
+
+   nthq := list(n+2)	# need list of queen placement routines
+   solution := list(n)	# ... and a list of column solutions
+
+   nthq[1] := &main	# 1st queen is main routine.
+   every i := 1 to n do	# 2 to n+1 are real queen placement
+      nthq[i+1] := create q(i)	#    routines, one per column.
+   nthq[n+2] := create show()	# n+2nd queen is display routine.
+
+   write(n, "-Queens:")
+   @nthq[2]	# start by placing queen in first colm.
+
+   movexy(1, 2 * n + 5)
+end
+
+# q(c) - place a queen in column c (this is c+1st routine).
+procedure q(c)
+local r 
+static up, down, rows
+
+   initial {
+      up := list(2 * n -1, 0)
+      down := list(2 * n -1, 0)
+      rows := list(n, 0)
+      }
+
+   repeat {
+      every (0 = rows[r := 1 to n] = up[n + r - c] = down[r + c -1] &
+            rows[r] <- up[n + r - c] <- down[r + c -1] <- 1) do {
+         solution[c] := r	# record placement.
+         if \showall then {
+            movexy(4 * (r - 1) + 5, 2 * c + 1)
+            writes("@")
+            }
+         @nthq[c + 2]	# try to place next queen.
+         if \showall then {
+            movexy(4  * (r - 1) + 5, 2 * c + 1)
+            writes(" ")
+            }
+         }
+      @nthq[c]	# tell last queen placer 'try again'
+      }
+
+end
+
+# show the solution on a chess board.
+
+procedure show()
+   local c
+   static count, lastsol
+
+   initial {
+      count := 0
+      }
+
+   repeat {
+      if /showall & \lastsol then {
+         every c := 1 to n do {
+            movexy(4 * (lastsol[c] - 1) + 5, 2 * c + 1)
+            writes(" ")
+            }
+         }
+      movexy(1, 1)
+      write("solution: ", right(count +:= 1, 10))
+      if /showall then {
+         every c := 1 to n do {
+            movexy(4 * (solution[c] - 1) + 5, 2 * c + 1)
+            writes("Q")
+            }
+         lastsol := copy(solution)
+         }
+      if \goslow then {
+         movexy(1, 2 * n + 4)
+         writes("Press return to see next solution:")
+         read() | {
+            movexy(1, 2 * n + 5)
+            stop("Aborted.")
+         }
+         movexy(1, 2 * n + 4)
+         clearline()
+         }
+
+      @nthq[n+1]                          # tell last queen placer to try again
+      }
+
+end
+
+procedure helpmesg()
+   write(&errout, "Usage: vnq [-s] [-a] [n]")
+   write(&errout, "	where -s means to stop after each solution, ")
+   write(&errout, "	      -a means to show placement of every queen")
+   write(&errout, "	          while trying to find a solution")
+   write(&errout, "	  and  n is the size of the board (defaults to 8)")
+   stop()
+end
+
+# Move cursor to x, y
+#
+procedure movexy (x, y)
+   writes("\^[[", y, ";", x, "H")
+   return
+end
+
+#
+# Clear the text screen
+#
+procedure clearscreen()
+   writes("\^[[2J")
+   return
+end
+
+#
+# Clear the rest of the line
+#
+procedure clearline()
+   writes("\^[[2K")
+   return
+end

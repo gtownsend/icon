@@ -1,0 +1,61 @@
+############################################################################
+#
+#	File:     drawscan.icn
+#
+#	Subject:  Program to analyze scanned drawdowns
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 14, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  AD HOC and experimental.  The parameters are setup for a 32x32 cell
+#  draft.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  numbers, wopen
+#
+############################################################################
+
+link numbers
+link wopen
+
+$define Cells 32
+
+procedure main(args)
+   local x, y, pixel, popl, width, cellsize
+
+   WOpen("canvas=hidden", "image=" || args[1]) | stop("*** cannot open image")
+
+   width := WAttrib("width")
+
+   cellsize := round(real(width) / Cells)
+
+   writes(Cells, ",g2,")
+
+   width := cellsize * Cells
+
+   every y := 0 to width - cellsize / 2 by cellsize do {
+      every x := 0 to width - cellsize / 2 by cellsize do {
+         popl := table(0)
+         every pixel := Pixel(x + 4, y + 4, cellsize - 8, cellsize - 8) do
+               popl[PaletteKey("g2", pixel)] +:= 1
+         popl := sort(popl, 4)
+         pull(popl)
+         writes(pull(popl))
+         }
+      }
+
+   WriteImage("drawscan.gif")
+
+end

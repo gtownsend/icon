@@ -1,0 +1,37 @@
+############################################################################
+#
+#	File:     pat2tie.icn
+#
+#	Subject:  Program to convert patterns to tie-ups
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 29, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  AD HOC
+#
+############################################################################
+#
+#  Links:  patutils, tieutils
+#
+############################################################################
+
+link patutils
+link tieutils
+
+procedure main()
+   local tieup, pat, matrix
+
+   while pat := read() do {
+      matrix := pat2rows(pat)
+      tieup := tie(*matrix[1], *matrix, matrix)
+      write(tier2string(tieup))
+      }
+
+end 

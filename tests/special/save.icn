@@ -1,0 +1,19 @@
+procedure main(a)
+   if not proc("save") then runerr(121)
+   q()
+   suspend 3
+end
+
+procedure p()
+   q()
+   suspend 1
+end
+
+procedure q()
+   initial {
+      save("foobar")
+      exit()
+      }
+   write("hello world")
+   suspend 2
+end

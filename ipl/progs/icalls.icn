@@ -1,0 +1,47 @@
+############################################################################
+#
+#	File:     icalls.icn
+#
+#	Subject:  Program to tabulate Icon calls
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 25, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program processes trace output and tabulates calls of procedures
+#
+############################################################################
+
+procedure main()
+   local procs, name, args
+
+   procs := table()
+
+   every !&input ? {
+      while tab(find("| ") + 2)			# get rid of level bars
+      if name := tab(upto('(')) then {		# if call
+         move(1)
+         args := tab(-1)
+         /procs[name] := table(0)		# new table if necessary
+         procs[name][args] +:= 1
+         }
+      }
+
+   procs := sort(procs, 3)
+
+   while write(get(procs)) do {			# write the procedure name
+      write()
+      args := sort(get(procs), 3)		# sorted arguments
+      while write(left(get(args), 20), right(get(args),6))
+      write()
+      }
+
+end
+
+   

@@ -1,0 +1,92 @@
+############################################################################
+#
+#	File:     diffn.icn
+#
+#	Subject:  Program to show differences among files
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     January 3, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#   This program shows the differences between n files. Is is invoked as
+#
+#        diffn file1 file2 ... filen
+#  
+############################################################################
+#
+#  Links: dif
+#
+############################################################################
+#
+#  Most of the work is done by an external procedure, dif().  This
+#  program analyzes the command line arguments, sets up a call to
+#  dif(), and displays the results.
+#
+
+
+link dif
+global f1,f2
+record dfile(file,linenbr)
+
+invocable all
+
+procedure main(arg)
+  local f, i, files, drec, status
+  #
+  #  Analyze command line arguments, open the files, and output
+  #  some initial display lines.
+  #
+  if *arg < 2 then stop("usage: diffn file file ...")
+  f := list(*arg)
+  every i := 1 to *arg do
+    	f[i] := dfile(open(arg[i]) | stop("Can't open ",arg[i]),0)
+  files := list(*arg)
+  every i := 1 to *arg do {
+    write("File ",i,": ",arg[i])
+    files[i] := diff_proc(myread,f[i])
+  }
+  #
+  #  Invoke dif() and display its generated results.
+  #
+  every drec := dif(files) do {
+    status := "diffs"
+    write("==================================")
+    every i := 1 to *drec do {
+      write("---- File ",i,", ",
+      		 (drec[i].pos > f[i].linenbr & "end of file") |
+		 "line " || drec[i].pos,
+		 " ---- (",arg[i],")")
+      listrange(drec[i].diffs,drec[i].pos)
+    }
+  }
+  if /status then write("==== Files match ====")
+  return
+end
+
+
+#
+#  listrange() -- List a range of differing lines, each preceded by its
+#  line number.
+#
+procedure listrange(dlist,linenbr)
+  local x
+  every x := !dlist do {
+    write(x); linenbr +:= 1
+  }
+  return
+end
+
+
+#
+#  myread() -- Line-reading procedure to pass to dif().
+#
+procedure myread(x)
+  return x.linenbr <- x.linenbr + 1 & read(x.file)
+end
+

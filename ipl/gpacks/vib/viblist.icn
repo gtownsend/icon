@@ -1,0 +1,168 @@
+############################################################################
+#
+#  viblist.icn -- procedures for defining a list object
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+
+$include "vdefns.icn"
+$include "vibdefn.icn"
+
+$define MINIMUM_HEIGHT (VSlider_DefWidth * VSlider_MinAspect)
+$define MINIMUM_WIDTH (VFWidth + VSlider_DefWidth + 10)
+$define DEFAULT_HEIGHT 100
+$define DEFAULT_WIDTH 100
+$define DEFAULT_STYLE "w"
+$define DEFAULT_SCROLL 0
+
+##########################################################################
+# list_obj:
+#    v       : vidget used for drawing list object
+#    proc    : name of user callback procedure
+#    id      : unique means of identifying instance
+#    x,y,w,h : bounding box
+#    style   : "r", "w", or "a" indicating list editing mode
+#    scroll  : 1 for passive scrolling that waits for mouse release
+##########################################################################
+record list_obj(v, proc, id, x, y, w, h, style, scroll, focus)
+
+##########################################################################
+# create_list() creates a list instance and draws it.
+##########################################################################
+procedure create_list(x, y, w, h, style, scroll)
+   local r, id
+
+   /w := DEFAULT_WIDTH
+   /h := DEFAULT_HEIGHT
+   /style := DEFAULT_STYLE
+   /scroll := DEFAULT_SCROLL
+   id := next_id("list")
+   r := list_obj(, "list_cb" || id, "list" || id, x, y, w, h, style, scroll)
+   r.v := Vlist(ROOT, x, y, APPWIN, , id, [], scroll, w, h, style)
+   VRemove(ROOT, r.v, 1)
+   return r
+end
+
+##########################################################################
+# draw_list() draws the given list object.
+##########################################################################
+procedure draw_list(r)
+   VResize(r.v)
+   VDraw(r.v)
+   return r
+end
+
+##########################################################################
+# update_list_bb() enforces a minimum size when resizing.
+##########################################################################
+procedure update_list_bb(object)
+   object.w <:= MINIMUM_WIDTH
+   object.h <:= MINIMUM_HEIGHT
+end
+
+##########################################################################
+# load_list() restores a list object from session code.
+##########################################################################
+procedure load_list(r, o)
+   r.style := o.sty
+   if integer(o.num) > 0 then
+      r.scroll := 1
+   else
+      r.scroll := &null
+   r.v := Vlist(ROOT, r.x, r.y,
+      APPWIN, , r.id, [], r.scroll, r.w, r.h, r.style)
+   VRemove(ROOT, r.v, 1)
+end
+
+##########################################################################
+# save_list_obj() augments the record for saving a list object.
+# (_obj is in the name due to a name conflict with a library procedure.)
+##########################################################################
+procedure save_list_obj(r, o)
+   r.typ := "List"
+   r.sty := o.style
+   r.num := o.scroll
+   return
+end
+
+##########################################################################
+# display_list_atts() displays the attribute sheet with the current
+#                           attributes for the given list instance.
+##########################################################################
+procedure display_list_atts(object)
+   local t
+
+   t := table()
+   t["a_id"]		:= object.id
+   t["b_callback"]	:= object.proc
+   t["c_x"]		:= object.x
+   t["d_y"]		:= object.y - CANVASY
+   t["e_width"]		:= object.w
+   t["f_height"]	:= object.h
+   
+   t["g_style"] := case object.style of {
+      "r" : "read only"
+      "w" : "select one"
+      "a" : "select many"
+      }
+
+   repeat {
+      if list_dialog(t) == "Cancel" then
+         fail
+
+      if illegal(t["a_id"], "ID", "s") |
+         illegal(t["b_callback"], "Callback", "p") |
+         illegal(t["c_x"], "X", "i") |
+         illegal(t["d_y"], "Y", "i") |
+         illegal(t["e_width"], "Width", MINIMUM_WIDTH) |
+         illegal(t["f_height"], "Height", MINIMUM_HEIGHT)
+      then
+         next
+
+      object.id		:= t["a_id"]
+      object.proc	:= t["b_callback"]
+
+      object.style := case t["g_style"] of {
+         "read only"   : "r"
+         "select one"  : "w"
+         "select many" : "a"
+         }
+
+      unfocus_object(object)
+      move_object(object,
+	  t["c_x"], t["d_y"] + CANVASY, t["e_width"], t["f_height"])
+
+      # delete and recreate the vidget in case the style changed
+      erase_object(object)
+      object.v := Vlist(ROOT, object.x, object.y, APPWIN, , object.id, 
+	 [], object.scroll, object.w, object.h, object.style)
+      VRemove(ROOT, object.v)
+
+      draw_object(object)
+      focus_object(object)
+      break
+   }
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure list_dialog(win, deftbl)
+static dstate
+initial dstate := dsetup(win,
+   ["list_dialog:Sizer::1:0,0,383,198:",],
+   ["_cancel:Button:regular::197,148,50,30:Cancel",],
+   ["_okay:Button:regular:-1:130,148,50,30:Okay",],
+   ["a_id:Text::40:13,14,360,19:ID:       \\=",],
+   ["b_callback:Text::40:13,35,360,19:callback: \\=",],
+   ["c_x:Text::3:13,62,101,19:       x: \\=",],
+   ["d_y:Text::3:13,83,101,19:       y: \\=",],
+   ["e_width:Text::3:129,63,101,19:   width: \\=",],
+   ["f_height:Text::3:129,84,101,19:  height: \\=",],
+   ["g_style:Choice::3:266,59,106,63:",,
+      ["read only","select one","select many"]],
+   )
+return dpopup(win, deftbl, dstate)
+end
+#===<<vib:end>>===	end of section maintained by vib

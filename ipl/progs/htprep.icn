@@ -1,0 +1,316 @@
+############################################################################
+#
+#	File:     htprep.icn
+#
+#	Subject:  Program to prepare HTML files
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     July 18, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  usage:  htprep [file]
+#
+#  Htprep is a filter for preparing HTML files (used, e.g., by Mosaic)
+#  from a simpler and less error-prone input language.
+#
+#  The following transformations are applied:
+#
+#	input		output
+#	------------	------------
+#	{}		
+#	{!comment}	<!--comment-->
+#	{tag}		<tag>
+#	{tag ... }	<tag> ... <\tag>
+#	  att=val...	  att="val"...   
+#	{@url ...	<a href="url" ...
+#	{:lbl ...	<a name="lbl" ...
+#
+#  Any input character can be preceded by a backslash (\) to prevent 
+#  special interpretation by htprep.
+#
+#  Output is normally to stdout, but the command
+#	{divert fname}
+#  redirects output to the named file.  This can be used to produce
+#  multiple related output files from a single input file.
+#
+############################################################################
+
+$define SIGNATURE "<!-- Created by HTPREP -->"
+$define WSPACE ' \t'		# whitespace cset
+
+
+record tag(label, line)		# tag record
+global tagstack			# currently open tags
+
+global cmdtable			# table of known special commands
+
+global infile			# input file
+global outfile			# output file
+global stdout			# standard output, if usable
+
+global lineno			# current input line number
+global errors			# error count
+
+global idset			# identifier characters
+
+
+#  main procedure
+
+procedure main(args)
+   local line, t
+
+   idset := &letters ++ &digits ++ '.-'
+   
+   lineno := 0
+   errors := 0
+   tagstack := []
+
+   stdout := &output
+
+   cmdtable := table()
+   cmdtable["divert"] := divert
+
+   if *args = 0 then
+      infile := &input
+   else
+      infile := open(args[1]) | stop("can't open ", args[1])
+
+   while line := in() do {
+      lineno +:= 1
+      line := braces(line)
+      out(line)
+      }
+
+   while t := pop(tagstack) do
+      warn("unclosed tag {", t.label, "} from line ", t.line)
+
+   if errors > 0 then
+      stop
+   else
+      return
+end
+
+
+
+#  braces(line) -- process items identified by braces ('{}')
+
+procedure braces(line)
+   local c, s, t
+
+   line ? {
+      s := ""
+      while s ||:= tab(upto('{}')) do {
+         c := move(1)
+         if c == "{" then
+            s ||:= newtag()
+         else {	  # "}"
+            if t := pop(tagstack) then {
+               if t.label == "!" then
+                  s ||:= "-->"
+               else
+                  s ||:= "</" || t.label || ">"
+               }
+            else
+               lwarn("tag stack underflow")
+            }
+         }
+      return s ||:= tab(0)
+      }
+end
+
+
+
+#  newtag() -- process text following left brace ('{')
+
+procedure newtag()
+   local label, s, c
+
+   if ="}" then
+      return ""
+   if ="!" then {
+      push(tagstack, tag("!", lineno))
+      return "<!--"
+      }
+
+   if c := tab(any('@:')) then {
+      label := "a"
+      if c == "@" then
+         s := "<a href="
+      else
+         s := "<a name="
+      s ||:= attval()
+      }
+   else {
+      label := tab(many(idset)) | (lwarn("unlabeled tag") & "noname")
+      s := "<" || label
+      }
+
+   if \cmdtable[map(label)] then
+      return s := docommand(label)
+
+   while s ||:= attrib()
+   tab(many(WSPACE))
+   ="}" | push(tagstack, tag(label, lineno))
+   return s || ">"
+end
+
+
+
+#  attrib() -- match and return attribute
+
+procedure attrib()
+   return tab(many(WSPACE)) || tab(many(idset)) || ="=" || attval()
+end
+
+
+
+#  attval() -- match and return attribute value
+
+procedure attval()
+   static valset
+   initial valset := &cset[34+:94] -- '\'\\"{}'
+   return (="\"" || tab(upto('"')) || move(1)) |
+      (="'" || tab(upto('\'')) || move(1)) |
+      ("\"" || tab(many(valset)) || "\"")
+end
+
+
+
+#  docommand(label) -- process a tag recognized as a command
+
+procedure docommand(label)
+   local p, atts, words, id, s
+
+   p := cmdtable[label]
+   atts := table()
+   words := []
+   while s := attrib() do s ? {
+      tab(many(WSPACE))
+      id := tab(many(idset))
+      move(2)
+      atts[id] := tab(-1)
+      }
+   while tab(many(WSPACE)) & (s := tab(bal(' }', '{', '}'))) do
+      put(words, s)
+   tab(many(WSPACE))
+   ="}" | lwarn(label, ": unterminated command")
+   return p(atts, words) | ""
+end
+
+
+
+#  in() -- read next line, interpreting escapes
+#
+#  Reads the next line from infile, removing leading and trailing whitespace.
+#
+#  If an ASCII character is preceded by a backslash, the character's eighth
+#  bit is set to prevent its recognition as a special character, and the
+#  backslash is retained.  If it's not an ASCII character (that is, if the
+#  eighth bit is already set) the backslash is simply discarded.
+
+procedure in()
+   local s
+
+   trim(read(infile), WSPACE) ? {
+      tab(many(WSPACE))
+      s := ""
+      while s ||:= tab(upto('\\')) do {
+         move(1)
+         if any(&ascii) then
+            s ||:= "\\" || char(128 + ord(move(1)))
+         else
+            s ||:= move(1)
+         }
+      return s ||:= tab(0)
+      }
+   fail
+end
+
+
+
+# divert(attlist, wordlist) -- process "divert" command
+#
+# If an error is seen, a message is issued and subsequent output is
+# simply discarded.
+
+procedure divert(atts, words)
+   local fname, f
+
+   close(\outfile)			# always close current file
+   outfile := stdout := &null		# no current file, and no fallback
+
+   if *words ~= 1 then {
+      lwarn("usage: {divert filename}")
+      fail
+      }
+
+   fname := get(words)
+   if f := open(fname) then {
+      if read(f) ~== SIGNATURE then {
+         lwarn("divert: won't overwrite non-htprep file ", fname)
+         close(f)
+         fail
+         }
+      close(f)
+      }
+
+   if outfile := open(fname, "w") then {
+      out(SIGNATURE)
+      return ""
+      }
+   else {
+      lwarn("divert: can't open ", fname)
+      fail
+      }
+end
+
+
+
+#  out(s) -- write line, interpreting escapes
+#
+#  When a backslash is seen, the backslash is discarded and the eighth
+#  bit of the following character is cleared.
+
+procedure out(s)
+   local c
+
+   if /outfile := (\stdout | fail) then
+      write(outfile, SIGNATURE)		# if first write to &output
+
+   s ? {
+      while writes(outfile, tab(upto('\\'))) do {
+         move(1)
+         writes(outfile, char(iand(127, ord(move(1)))))
+         }
+      write(outfile, tab(0))
+      }
+   return
+end
+
+
+
+#  lwarn(s, ...) -- issue warning with line number  
+
+procedure lwarn(a[])
+   push(a, "line " || lineno || ": ")
+   warn ! a
+   return
+end
+
+
+
+# warn(s,...) -- issue warning message
+
+procedure warn(a[])
+   push(a, "  ")
+   push(a, &errout)
+   write ! a
+   errors +:= 1
+   return
+end

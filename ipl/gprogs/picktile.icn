@@ -1,0 +1,164 @@
+############################################################################
+#
+#	File:     picktile.icn
+#
+#	Subject:  Program to pick a tile out of an image
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 21, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program provides an optionally magnified view of an image file.
+#  Clicking on a pixel produces a pattern specification for the tile
+#  with the selected upper-left corner.
+#
+#  Options are:
+#
+#	-z i	zoom factor, default 1 (no magification)
+#	-f	use fixed size tiles rather than selection; default selection
+#	-w i	width of tile, default 32
+#	-h i	height of tile, default width
+#	-I	pick tiles to make icons; implies -z2, -f, -w38, -w38 (the
+#		  larger size leaves room for error and trimming)
+#	-R i	specs for ResEdit files; i = 32 or 16
+# 	-t	trim whitepace around tile
+#
+#  Typical usage is
+#
+#	picktile image.xbm >image.tle
+#
+#  The program terminates if "q" is pressed when in the image window.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  options, patxform, win, xcompat
+#
+############################################################################
+
+link options
+link patxform
+link win
+link xcompat
+
+procedure main(args)
+   local pixmap, wix, hix, c, x, y, event, opts, base, magnif, cols, rows
+   local arglist, state, x0, x1, y0, y1, pattern
+
+   opts := options(args, "tz+w+h+If")
+   magnif := \opts["z"] | 1
+   cols := \opts["w"] | 32
+   rows := \opts["h"] | cols
+
+   if \opts["I"] then {
+      magnif := 2
+      cols := rows := 38
+      opts["f"] := 1
+      }
+
+   pixmap := XBind(, , ,"image=" || args[1]) |
+      stop("*** cannot open image file")
+
+   wix := WAttrib(pixmap, "width")
+   hix := WAttrib(pixmap, "height")
+
+   win(magnif * wix, magnif * hix)
+
+#  Build the magnified image.
+
+#  But if the magnification happens to be 1, don't do it the dumb way.
+
+   if magnif = 1 then
+      CopyArea(pixmap, &window)
+
+   else {
+      every y := 0 to hix - 1 do {
+         arglist := []
+
+         every x := 0 to wix - 1 do {
+            c := Pixel(pixmap, x, y, 1, 1)
+            if c == "0,0,0" then {
+               every put(arglist, (magnif * x) | (magnif * y) | magnif | magnif)
+               }
+            x +:= 1
+            }
+
+         if *arglist > 0 then FillRectangle ! arglist
+         }
+      }
+
+   if \opts["f"] then {				# let user pick corners
+      while event := Event() do {
+         case event of {
+            "q":   exit()
+            &lpress | &mpress | &rpress: {
+               pattern := pix2pat(pixmap, &x / magnif, &y / magnif, cols, rows)
+               if \opts["t"] then pattern := rows2pat(ptrim(pat2rows(pattern)))
+               write(pattern)
+               }
+            }
+         }
+      }
+
+
+   else {					# let user drag to select area
+      state := "pick"				# waiting for user to pick
+   
+      WAttrib("drawop=reverse")
+      WAttrib("linestyle=dashed")
+   
+      while event := Event() do {
+         if event === "q" then exit()
+         case state of {
+            "pick": {				# pick the upper-left corner
+               if event === &lpress then {
+                  x1 := x0 := &x		# initial coordinates
+                  y1 := y0 := &y
+                  DrawRectangle(x0, y0, 0, 0)	# start the selection rectangle
+                  state := "select"		# now select the rectangle
+                  }
+               }
+            "select": {				# select the rectangle
+               case event of {
+                  &ldrag: {			# searching ...
+                     DrawRectangle(x0, y0, x1 - x0, y1 - y0) # erase rectangle
+                     x1 := &x			# new lower-right
+                     y1 := &y
+                     DrawRectangle(x0, y0, x1 - x0, y1 - y0) # new rectangle
+                     }
+                  &lrelease: {			# got it!
+                     DrawRectangle(x0, y0, x1 - x0, y1 - y0) # erase rectangle
+                     x1 := &x			# new lower-right
+                     y1 := &y
+                     DrawRectangle(x0, y0, x1 - x0, y1 - y0) # new rectangle
+                     state := "decide"			# now decide
+                     }
+                  }
+               }
+            "decide": {				# is it wanted or not?
+               DrawRectangle(x0, y0, x1 - x0, y1 - y0) # erase rectangle
+               if event === &lpress then {
+                  if (x0 <= &x <= x1) & (y0 <= &y <= y1) then {
+                     pattern := pix2pat(pixmap, x0 / magnif, y0 / magnif,
+                        (x1 - x0) / magnif, (y1 - y0) / magnif)
+                     if \opts["t"] then
+                        pattern := rows2pat(ptrim(pat2rows(pattern)))
+                     write(pattern)
+                     }
+                  }
+               state := "pick"			# go for another
+               }
+            }
+         }
+      }
+
+end

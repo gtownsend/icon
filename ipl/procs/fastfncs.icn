@@ -1,0 +1,67 @@
+############################################################################
+#
+#	File:     fastfncs.icn
+#
+#	Subject:  Procedures for integer functions using fastest method
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 26, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures implement integer-valued using the fastest
+#  method known to the author.  "Fastest" does not mean "fast".
+#
+#	acker(i, j)	 Ackermann's function
+#	fib(i)	 	 Fibonacci sequence
+#	g(k, i)		 Generalized Hofstader nested recurrence
+#	q(i)		 "Chaotic" sequence
+#	robbins(i)	 Robbins numbers
+#
+############################################################################
+#
+#  See also:  iterfncs.icn, memrfncs.icn,  recrfncs.icn
+#
+############################################################################
+#
+#  Links:  factors, memrfncs
+#
+############################################################################
+
+link factors
+link memrfncs
+
+procedure g(k, n)
+   local value
+   static psi
+
+   initial psi := 1.0 / &phi
+
+   if n = 0 then return 0
+
+   value := 0
+
+   value +:= floor(psi * floor((seq(0) \ k + n) / real(k)) + psi)
+
+   return value
+
+end 
+
+procedure robbins(n)
+   local numer, denom, i
+
+   numer := denom := 1
+
+   every i := 0 to n - 1 do {
+      numer *:= factorial(3 * i + 1)
+      denom *:= factorial(n + i)
+      }
+
+   return numer / denom
+
+end

@@ -1,0 +1,116 @@
+############################################################################
+#
+#	File:     models.icn
+#
+#	Subject:  Procedure to model Icon functions
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 1, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures model built-in Icon functions.  Their purpose is
+#  primarily pedagogical.
+#
+#  See Icon Analyst 11, pp. 5-7.
+#
+############################################################################
+
+procedure tab(i)
+
+   suspend .&subject[.&pos : &pos <- i]
+
+end
+
+procedure upto(c, s, i, j)
+   local k
+
+   if /s := &subject then {			# handle defaults
+      /i := &pos
+      }
+   else {
+      s := string(s) | runerr(103, s)
+      /i := 1
+      }
+
+   i := integer(i) | runerr(101, i)
+   i := cvpos(i, s) | fail
+
+   if not(/j := *s + 1) then {
+      j := integer(j) | runerr(101, j)
+      j := cvpos(j, s) | fail
+      if i > j then i :=: j
+      }
+
+   every k := i to j do
+      if !c == s[k] then suspend k		# perform the actual mapping
+
+#  The following is faster, but not as clear.
+#
+#  every k := i to j do
+#     if any(c, s[k]) then suspend k
+
+   fail
+
+end
+
+procedure map(s1, s2, s3)
+   local i, result
+   static last_s2, last_s3, map_array
+
+   initial map_array := list(256)
+
+   s1 := string(s1) | runerr(103, s1)			# check types
+   s2 := def_str(s2, string(&ucase)) | runerr(103, s2)	# default null values
+   s3 := def_str(s3, string(&lcase)) | runerr(103, s3)
+   if *s2 ~= *s3 then runerr(208)
+
+#  See if mapping array needs to be rebuilt
+
+   if (s2 ~=== last_s2) | (s3 ~=== last_s3) then {
+      last_s2 := s2
+      last_s3 := s3
+
+      every i := 1 to 256 do
+         map_array[i] := char(i - 1)
+
+      every i := 1 to *s2 do
+         map_array[ord(s2[i]) + 1] := s3[i]
+      }
+
+   result := ""
+
+#  every result ||:= map_array[ord(!s1) + 1]		# do actual mapping
+
+   every i := 1 to *s1 do				# do actual mapping
+      result ||:= map_array[ord(s1[i]) + 1]
+
+   return result
+
+end
+
+#  Support procedures
+
+#  Produce the positive equivalent of i with respect to s.
+
+procedure cvpos(i, s)
+
+   if i <= 0 then i +:= *s + 1
+   if i <= i <= *s + 1 then return i
+   else fail
+
+end
+
+#  Default the null value to a specified string.
+
+procedure def_str(s1, s2)
+
+   if /s1 then return s2
+   else return string(s1)		# may fail
+ 
+end

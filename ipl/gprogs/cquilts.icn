@@ -1,0 +1,239 @@
+############################################################################
+#
+#	File:     cquilts.icn
+#
+#	Subject:  Program to create "chaotic square quilts"
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 14, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program creates square quilting patterns as described in
+#  "Symmetry in Chaos", Michael Field and Martin Golubitsky, Oxford
+#  University Press, 1992.
+#
+#  Instead of plotting an image, the values are computed and saved
+#  in "numerical carpets" for off-line plotting.
+#
+#  The following options are supported:
+#
+#	-i i	Save carpet files every i iterations; default 100000
+#
+#	-p s	Prefix for carpet file names, default q_
+#
+#	-t i	Terminate execution after i iterations; default no limit
+#
+#  Warning:  This program takes a long time to go through enough iterations
+#  to produce nice results.
+#
+#  Note:  This is an unfinished work, supplied for interest only.
+#
+#  There are several sections of parameter values below.  All but one
+#  is commented out.  Change this to get other patterns.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  matrix, options, writecpt
+#
+############################################################################
+
+link matrix
+link options
+link writecpt
+
+global pi_2
+global pi_4
+global pi_6
+
+$define Size 200
+
+procedure main(args)
+   local x, y, xnew, ynew, lambda, alpha, beta, gamma, omega, ma, shift
+   local mcount, sx, sy, xp, yp, max, min, i
+   local count, prefix, iter, opts, interval, limit
+
+   pi_2 := 2 * &pi
+   pi_4 := 4 * &pi
+   pi_6 := 6 * &pi
+
+   iter := 0
+   count := -1
+
+   opts := options(args, "i+p:t+")
+
+   interval := \opts["i"] | 100000
+   prefix := \opts["p"] | "q_"
+   limit := \opts["t"]
+
+   xnew := x := 0.1
+   ynew := y := 0.334
+
+# Sugar and Spice
+
+#  lambda := -0.59
+#  alpha := 0.2
+#  beta := 0.1
+#  gamma := -0.27
+#  omega := 0.0
+#  ma := 0.0
+#  shift := 0.5
+
+# Emerald Mosaic
+
+#  lambda := -0.59
+#  alpha := 0.2
+#  beta := 0.1
+#  gamma := -0.33
+#  omega := 0.0
+#  ma := 2.0
+#  shift := 0.0
+
+# Sicilian Tile
+
+#  lambda := -0.2
+#  alpha := -0.1
+#  beta := 0.1
+#  gamma := -0.25
+#  omega := 0.0
+#  ma := 0.0
+#  shift := 0.0
+
+# Roses
+
+#  lambda := 0.25
+#  alpha := -0.3
+#  beta := 0.2
+#  gamma := 0.3
+#  omega := 0.0
+#  ma := 1.0
+#  shift := 0.0
+
+# Wagon Wheels
+
+#  lambda := -0.28
+#  alpha := 0.25
+#  beta := 0.05
+#  gamma := -0.24
+#  omega := 0.0
+#  shift := 0.0
+#  ma := -1.0
+
+# Victorian Tiles
+
+#  lambda := -0.12
+#  alpha := -0.36
+#  beta := 0.18
+#  gamma := -0.14
+#  omega := 0.0
+#  shift := 0.5
+#  ma := 1.0
+
+# Mosque
+
+#  lambda := 0.1
+#  alpha := 0.2
+#  beta := 0.1
+#  gamma := 0.39
+#  omega := 0.0
+#  shift := 0.0
+#  ma := -1.0
+
+# Red Tiles
+
+#  lambda := -0.589
+#  alpha := 0.2
+#  beta := 0.04
+#  gamma := -0.2
+#  omega := 0.0
+#  shift := 0.5
+#  ma := 0.0
+
+# Cathedral Attractor
+
+#  lambda := -0.28
+#  alpha := 0.08
+#  beta := 0.45
+#  gamma := -0.05
+#  omega := 0.0
+#  shift := 0.5
+#  ma := 0.0
+
+# Gyroscopes
+
+#  lambda := -0.59
+#  alpha := 0.2
+#  beta := 0.2
+#  gamma := 0.3
+#  omega := 0.0
+#  shift := 0.0
+#  ma := 2.0
+
+# Cats Eyes
+
+#  lambda := -0.28
+#  alpha := 0.25
+#  beta := 0.05
+#  gamma := -0.24
+#  omega := 0.0
+#  shift := 0.5
+#  ma := -1.0
+
+# Flowers with Ribbons
+
+   lambda := -0.11
+   alpha := -0.26
+   beta := 0.19
+   gamma := -0.059
+   omega := 0.07
+   shift := 0.5
+   ma := 2.0
+
+   mcount := create_matrix(Size, Size, 0)
+
+   repeat {
+
+      # iterate
+      sx := sin(pi_2 * x)
+      sy := sin(pi_2 * y)
+      xnew := (lambda + alpha * cos(pi_2 * y)) * sx - omega * sy + beta *
+         sin(pi_4 * x) + gamma * sin(pi_6 * x) * cos(pi_4 * y) + ma *
+         x + shift
+      ynew := (lambda + alpha * cos(pi_2 * x)) * sy + omega * sx + beta *
+         sin(pi_4 * y) + gamma * sin(pi_6 * y) * cos(pi_4 * x) + ma *
+         y + shift
+      if xnew > 1.0 then xnew -:= integer(xnew)
+      else if xnew < 0.0 then xnew +:= integer(-xnew) + 1
+      if ynew > 1.0 then ynew -:= integer(ynew)
+      else if ynew < 0.0 then ynew +:= integer(-ynew) + 1
+      x := xnew
+      y := ynew
+
+      xp := integer(Size * x)
+      yp := integer(Size * y)
+      mcount[xp + 1, yp + 1] +:= 1
+      iter +:= 1
+      if iter % \interval = 0 then {
+         max := 0
+         min := 2 ^ 31
+         every i := mcount[1 to Size, 1 to Size] do {
+            max <:= i
+            min >:= i
+            }
+         if min < 0 then min := 0
+         write_cpt(prefix || right(count +:= 1, 3, "0") || ".cpt",
+            mcount, min, max)
+         }
+      if iter >= \limit then exit()
+      }
+
+end

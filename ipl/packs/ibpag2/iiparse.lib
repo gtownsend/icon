@@ -1,0 +1,419 @@
+############################################################################
+#
+#	Name:	 iiparse.lib
+#
+#	Title:	 LR parser code
+#
+#	Author:	 Richard L. Goerwitz
+#
+#	Version: 1.31
+#
+############################################################################
+#
+#  LR parser code for use by Ibpag2-generated files.  Entry point is
+#  iiparse(infile, fail_on_error).  Infile is the stream from which
+#  input is to be taken.  Infile is passed as argument 1 to the
+#  user-supplied lexical analyzer, iilex_module() (where _module is
+#  the string supplied with the -m option to Ibpag2).  If
+#  fail_on_error is nonnull, the parser, iiparse, will fail on errors,
+#  rather than abort.  Iiparse() returns the top element on its value
+#  stack on a successful parse (which can be handy).
+#
+#  Iilex_module() must suspend integers for tokens and may also set
+#  iilval_module to the actual string values.  Tokens -2, -1, and 0
+#  are reserved.  -2 is epsilon, and -1 is error.  0 is EOF, and is
+#  automatically appended to the token stream when iilex_module, the
+#  tokenizer, fails.  These values should not normally be returned by
+#  the analyzer.  In general, it is a good idea to $include
+#  iilex_module from your Ibpag2 source files, so that it can use the
+#  symbolic %token names declared in the original Ibpag2 source file.
+#  As implied above ("suspend"), iilex_module must be a generator,
+#  failing on EOF.
+#
+#  If desired, the user may include his or her own error-handling
+#  routine.  It must be called iiparse_module (where _module is once
+#  again the module name supplied to ibpag2 via the -m option).  The
+#  global variable line_number_module is automatically defined below,
+#  so a typical arrangement would be for the lexical analyzer to
+#  initialize line_number_module to 0, and increment by 1 for each
+#  line read.  The error handler, iierror_module() can then display
+#  this variable.  Note that the error handler should accept a single
+#  string argument (set by iiparse to describe the error just
+#  encountered).
+#
+############################################################################
+#
+#  See also: ibpag2.icn
+#
+############################################################################
+
+$$line 50 "iiparse.lib"
+
+# These defines are output by Ibpag2 ahead of time (with the module
+# name appended, if need be):
+#
+# $define iierrok    	recover_shifts  := &null;
+# $define IIERROR    	iidirective ||:= "error";
+# $define IIACCEPT   	iidirective ||:= "accept";
+# $define iiclearin  	iidirective ||:= "clearin";
+
+# Warning!  If you change the name of the value stack, change it also
+# in ibreader.icn, procedure write_action_as_procedure().
+#
+global $iilval, $errors, $line_number, $state_stack, $value_stack,
+    $iidirective, $recover_shifts, $discards
+
+#
+# iiparse: file x   anything        -> ?
+#          (stream, fail_on_error)  -> ?
+#
+#     Where stream is an open file, where fail_on_error is a switch
+#     that (if nonnull) tells the iiparse to fail, rather than abort,
+#     on error, and where ? represents the user-defined result of a
+#     completed parse of file, from the current location up to the
+#     point where the parser executes an "accept" action.
+#
+procedure $iiparse(stream, fail_on_error)
+
+    local token, next_token, act, ruleno, newsym, rhsize, arglist,
+	result, tmp, func
+    static atbl, gtbl, ttbl
+
+    initial {
+	$iidirective := ""
+	atbl := $atbl_insertion_point
+	gtbl := $gtbl_insertion_point
+	ttbl := $ttbl_insertion_point
+    $$line 86 "iiparse.lib"
+	\$iilex | stop("no iilex tokenizer defined")
+    }
+
+$$ifndef IIDEBUG
+    $iidebug := 1
+$$endif				# not IIDEBUG
+
+    $state_stack := [1]
+    $value_stack := []
+
+    $errors := 0		# errors is global
+    next_token := create $iilex(stream, fail_on_error) | 0
+
+    token := @next_token
+    repeat {
+	#
+	# Begin cycle by checking whether there is a valid action
+	# for state $state_stack[1] and lookahead token.  Atbl and
+	# gtbl here have a "backwards" structure: t[token][state]
+	# (usually they go t[state][token]).
+	#
+	if act := \ (\atbl[token])[$state_stack[1]] then {
+	$$ifdef COMPRESSED_TABLES
+	    act := $uncompress_action(act)
+	$$endif	#COMPRESSED TABLES
+	    act ? {
+		# There's a valid action:  Perform it.
+		case move(1) of {
+		    "s": {
+			#
+			# Shift action format, e.g. s2.1 = shift and
+			# go to state 2 by rule 1.
+			#
+			push($state_stack, integer(tab(find("."))))
+			push($value_stack, $iilval)
+			="."; ruleno := integer(tab(many(&digits)))
+			pos(0) | stop("malformed action:  ", act)
+			#
+			# If, while recovering, we can manage to
+			# shift 3 tokens, then we consider ourselves 
+			# resynchronized.  Don't count error (-1).
+			#
+			if token ~= -1 then {
+			    if \$recover_shifts +:= 1 then {
+				# 3 shifts = successful recovery
+				if $recover_shifts > 4 then {
+				    $recover_shifts := &null
+				    $discards := 0
+				}
+			    }
+			}
+			$iidebug("s", ttbl, token, ruleno)
+			token := @next_token | break
+		    }
+		    "r": {
+			#
+			# Reduce action format, e.g. r1<S>2 = reduce
+			# by rule 1 (LHS = S, RHS length = 2).
+			#
+			ruleno := integer(1(tab(find("<")), move(1)))
+			newsym := 1(tab(find(">")), move(1))
+			rhsize := integer(tab(many(&digits)))
+			arglist := []
+			every 1 to rhsize do {
+			    pop($state_stack)
+			    push(arglist, pop($value_stack))
+			}
+			# on the structure of gtbl, see above on atbl
+			push($state_stack, gtbl[newsym][$state_stack[1]])
+			#
+			# The actions are in procedures having the same
+			# name as the number of their rule, bracketed
+			# by underscores followed by the current module.
+			#
+			if func := proc("_" || ruleno || "_" || $module)
+			then {
+			    result := func!arglist | arglist[-1] | &null
+			    tmp := $iidirective
+			    $iidirective := ""
+			    #
+			    # IIERROR, IIACCEPT, iierrok, and iiclearin
+			    # are implemented using a search through a global
+			    # iidirective variable; see the $defines
+			    # above
+			    #
+			    if *tmp > 0 then {
+				if find("clearin", tmp) then
+				    token := @next_token
+				if find("error", tmp) then {
+				    # restore stacks & fake an error
+				    pop($state_stack)
+				    every 1 to rhsize do
+					push($value_stack, !arglist)
+				    $errors +:= 1
+				    next_token := create (token |
+					(|@next_token))
+				    token := -1
+				    next
+				}
+				if find("accept", tmp) then {
+				    $iidebug("a", ttbl, token, ruleno)
+				    return result
+				}
+			    }
+			}
+			# If there is no action code for this rule...
+			else {
+			    # ...push the value of the last RHS arg.
+			    # For 0-length e-productions, push &null.
+			    result := arglist[-1] | &null
+			}
+			push($value_stack, result)
+			$iidebug("r", ttbl, token, ruleno)
+		    }
+		    # We're done.  Return the last-generated value.
+		    "a": {
+			$iidebug("a", ttbl, token, ruleno)
+			return $value_stack[1]
+		    }
+		}
+	    }
+	}
+	#
+	# ...but if there is *no* action for atbl[token][$state_stack[1]],
+	# then we have an error.
+	#
+	else {
+	    if \$recover_shifts := 0 then {
+		#
+		# If we're already in an error state, discard the
+		# current token, and increment the number of discards
+		# we have made.  500 is too many; abort.
+		#
+		if ($discards +:= 1) > 500 then {
+		    if \$iierror
+		    then $iierror("fatal error: can't resynchronize")
+		    else write(&errout, "fatal error: can't resynchronize")
+		    if \fail_on_error then fail
+		    else stop()
+		}
+		$iidebug("e", ttbl, token)
+		#
+		# We were in the process of recovering, and the late
+		# token didn't help; discard it and try again.
+		#
+		token := @next_token | break
+	    } else {
+		$errors +:= 1 # global error count
+		$discards := $recover_shifts := 0
+		if \$iierror
+		then $iierror(image(\ttbl[token]) | image(token))
+		else write(&errout, "parse error")
+		#
+		# If error appears in a RHS, pop states until we get to
+		# a spot where error (-1) is a valid lookahead token:
+		#
+		if \ttbl[-1] then {
+		    until *$state_stack = 0 do {
+			if \atbl[-1][$state_stack[1]] then {
+			    $iidebug("e", ttbl, token)
+			    next_token := create (token | (|@next_token))
+			    token := -1
+			    break next
+			} else pop($state_stack) & pop($value_stack)
+		    }
+		# If we get past here, the stack is now empty.  Abort.
+		}
+		if \fail_on_error then fail
+		else stop()
+	    }
+	}
+    }
+
+    #
+    # If we get to here without hitting a final state, then we aren't
+    # going to get a valid parse.  Abort.
+    #
+    if \$iierror
+    then $iierror("unexpected EOF")
+    else write(&errout, "unexpected EOF")
+
+    if \fail_on_error then fail
+    else stop()
+
+end
+
+
+$$ifdef IIDEBUG
+
+record production(LHS, RHS, POS, LOOK, no, prec, assoc)
+#
+# iidebug
+#
+procedure $iidebug(action, ttbl, token, ruleno)
+
+    local p, t, state
+    static rule_list
+    initial {
+	rule_list := $rule_list_insertion_point
+    $$line 279 "iiparse.lib"
+    }
+
+    case action of {
+	"a"     : writes(&errout, "accepting ")    & state := $state_stack[1]
+	"e"     : writes(&errout, "***ERROR***\n") &
+	          writes(&errout, "recovery shifts = ", $recover_shifts,"\n") &
+		  writes(&errout, "discarded tokens = ", $discards, "\n") &
+		  writes(&errout, "total error count = ", $errors, "\n") &
+	          writes(&errout, "error action ") & state := $state_stack[1]
+	"r"     : writes(&errout, "reducing ")     & state := $state_stack[2]
+	"s"     : writes(&errout, "shifting ")     & state := $state_stack[2]
+	default : stop("malformed action argument to iidebug")
+    }
+
+    t := image(token) || (" (" || (\ttbl[token] | "unknown") || ")")
+    writes(&errout, "on lookahead ", t, ", in state ", state)
+    if \ruleno then {
+	(p := !rule_list).no = ruleno |
+	    stop("no rule number ", tbl[symbol][state])
+	write(&errout, "; rule ", $production_2_string(p, ttbl))
+    }
+    # for errors, ruleno is null
+    else write(&errout)
+
+    write(&errout, "    state stack now: ")
+    every write(&errout, "\t", image(!$state_stack))
+    write(&errout, "    value stack now: ")
+    if *$value_stack > 0
+    then every write(&errout, "\t", image(!$value_stack))
+    else write(&errout, "\t(empty)")
+
+    return
+
+end
+
+
+#
+# production_2_string:  production record -> string
+#                       p                 -> s
+#
+#     Stringizes an image of the LHS and RHS of production p in
+#     human-readable form.
+#
+procedure $production_2_string(p, ibtoktbl)
+
+    local s, m, t
+
+    s := image(p.LHS) || " -> "
+    every m := !p.RHS do {
+	if t := \ (\ibtoktbl)[m]
+	then s ||:= t || " "
+	else s ||:= image(m) || " "
+    }
+    # if the POS field is nonnull, print it
+    s ||:= "(POS = " || image(\p.POS) || ") "
+    # if the LOOK field is nonnull, print it, too
+    s ||:= "lookahead = " || image(\p.LOOK)
+
+    return trim(s)
+
+end
+$$endif				# IIDEBUG
+
+
+$$ifdef COMPRESSED_TABLES
+
+#
+# uncompress_action
+#
+procedure $uncompress_action(action)
+
+    local next_chunk, full_action
+
+    next_chunk := create ord(!action)
+    case $in_ib_bits(next_chunk, 2) of {
+	0: {
+	    full_action := "s"
+	    full_action ||:= $in_ib_bits(next_chunk, 11)
+	    full_action ||:= "."
+	    full_action ||:= $in_ib_bits(next_chunk, 11)
+	}
+	1: {
+	    full_action := "r"
+	    full_action ||:= $in_ib_bits(next_chunk, 11)
+	    full_action ||:= "<"
+	    full_action ||:= $in_ib_bits(next_chunk, 11)
+	    full_action ||:= ">"
+	    full_action ||:= $in_ib_bits(next_chunk, 8)
+	}
+        2: {
+	    full_action := "a"
+	}
+    }
+
+    return full_action
+
+end
+
+
+#
+# in_ib_bits:  like inbits (IPL), but with coexpression for file
+#
+procedure $in_ib_bits(next_chunk, len)
+
+    local i, byte, old_byte_mask
+    static old_byte, old_len, byte_length
+    initial {
+	old_byte := old_len := 0
+	byte_length := 8
+    }
+
+    old_byte_mask := (0 < 2^old_len - 1) | 0
+    old_byte := iand(old_byte, old_byte_mask)
+    i := ishift(old_byte, len-old_len)
+
+    len -:= (len > old_len) | {
+	old_len -:= len
+	return i
+    }
+    
+    while byte := @next_chunk do {
+	i := ior(i, ishift(byte, len-byte_length))
+	len -:= (len > byte_length) | {
+	    old_len := byte_length-len
+	    old_byte := byte
+	    return i
+	}
+    }
+
+end
+
+$$endif				# COMPRESSED_TABLES

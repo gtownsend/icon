@@ -1,0 +1,42 @@
+############################################################################
+#
+#	File:     lindgen.icn
+#
+#	Subject:  Procedures for rewriting 0L-systems
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 5, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  lindgen() assumes a "full" mapping table; lindgenx() does not.
+#
+#  Note that the first argument is a single character.  At the top level
+#  it might be called as
+#
+#	lindgen(!axiom, rewrite, gener)
+#
+############################################################################
+
+procedure lindgen(c, rewrite, gener)	#: rewrite L-system
+
+   if gener = 0 then suspend c
+   else suspend lindgen(!rewrite[c], rewrite, gener - 1)
+
+end
+
+procedure lindgenx(c, rewrite, gener)	#: rewrite L-system
+   local k
+
+   if gener = 0 then suspend c
+   else every k := !c do {
+      k := \rewrite[k]
+      suspend lindgenx(!k, rewrite, gener - 1)
+      }
+
+end

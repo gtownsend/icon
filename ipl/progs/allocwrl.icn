@@ -1,0 +1,167 @@
+############################################################################
+#
+#	File:     allocwrl.icn
+#
+#	Subject:  Program to display storage allocation in VRML
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 19, 1997
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program produces VRML 1.0 worlds with shapes representing storage
+#  allocation in the program it monitors.
+#
+#  The structures nomally are laid out in the x-z plane along a path with
+#  the shapes rising in the y direction. The size of the allocation
+#  determines the size of the shapes.  The same shape is used for all
+#  allocations, but the color indicates the type of allocation.
+#
+#  The kinds of allocation modeled are given by masks:
+#
+#	structs		only allocation related to Icon's structure types
+#	blocks		all allocations in the block region
+#	non-structs	all allocations except for structures
+#
+#  The supported shapes are:
+#
+#	cylinder
+#	cuboid
+#	cone
+#
+#  In this version, if the path file is exhausted before the SP terminates,
+#  the path file is closed and reopened.
+#
+############################################################################
+#
+#  Requires:  MT Icon
+#
+############################################################################
+#
+#  Links: colormap, dialog, emutils, evinit, interact, options, vrml,
+#            vrml1lib
+#
+############################################################################
+
+link colormap
+link dialog
+link emutils
+link evinit
+link interact
+link vrml
+link vrml1lib
+
+$include "evdefs.icn"
+
+procedure main(args)
+   local model, color_table, code, object_list, trans, mask, object
+   local path, input, scale, steps, symbol, hfactor, color, shape
+   local ashape, output
+
+   if TextDialog("Configuration:",
+      ["SP", "path file", "coordinate scale", "shape scale",
+         "number of events", "mask", "shape", "world file"],
+      ["structalc", "line.path", 10.0, 0.2,
+         200, "structs", "cylinder", "alloc.wrl"],
+      [15, 30, 5, 5, 5, 10, 10, 20]
+      ) == "Cancel" then exit()
+
+   args := [dialog_value[1]]
+   path := dialog_value[2]
+   scale := dialog_value[3]
+   hfactor := dialog_value[4]
+   steps := dialog_value[5]
+   mask := case dialog_value[6] of {
+      "structs" | &null:  cset(E_List || E_Lelem || E_Record || E_Selem ||
+         E_Set || E_Slots || E_Table || E_Telem || E_Tvtbl)
+      "blocks":           AllocMask -- (E_String || E_Coexpr)
+      "strings":          cset(E_String)
+      default:            ExitNotice("Invalid mask.")
+      }
+   ashape := case dialog_value[7] of {
+      "cylinder" | &null: Cylinder(2, 2)
+      "cuboid":           Cube(4, 2, 4)
+      "cone":             Cone(2, 2)
+      default:            ExitNotice("Invalid shape.")
+      }
+   output := open(dialog_value[8], "w") |
+      ExitNotice("Cannot open " || dialog_value[8])
+
+   EvInit(args) | ExitNotice("Cannot load SP.")
+
+   variable("write", &eventsource) := -1	# turn off output in SP
+   variable("writes", &eventsource) := -1
+
+   model := []					# list of children
+
+   color_table := colormap()			# standard colors
+
+   every code := key(color_table) do {		# convert colors to shapes
+      color := vrml_color(color_table[code])	# standard color
+      symbol := evsym(code)			# use event code name
+      shape := Separator([
+         Material(color), 			# diffuse color only
+         Translation("0 1 0"),
+         ashape,
+         Translation("0 -1 0")
+         ])
+
+      color_table[code] := USE(symbol)		# put USE node in table
+      put(model, DEF(symbol, shape))		# create DEF node
+      }
+
+   model := [Switch(-1, model)]
+
+   input := open(path) | ExitNotice("Cannot open path file.")
+
+   trans := "0 0 0"				# initial "translation"
+
+   every 1 to steps do {
+      EvGet(mask) | {				# get allocation event
+         write(&errout, "*** event stream terminated")
+         break
+         }
+      object := \color_table[&eventcode] | {	# get shape
+         write(&errout, "*** no entry for ", evsym(&eventcode))
+         next
+         }
+      trans := Translation(scale_translate(read(input), scale)) | {
+         Notice("Path ended.")
+         break
+         }
+      put(
+         model,
+         Separator([
+            trans,
+            Transform(, , "1.0 " || (&eventvalue * hfactor) || " 1.0"),
+            object
+            ])
+         )
+      }
+
+   vrml1(Group(model), output)			# generate world
+
+end
+
+procedure scale_translate(s, n)
+   local x, y, z
+
+   s ? {
+      x := tab(find(" "))
+      move(1)
+      y := tab(find(" "))
+      move(1)
+      z := tab(0)
+      }
+
+   return (x * n) || " " || (y * n) || " " || (z * n)
+
+end
+
+
+

@@ -1,0 +1,128 @@
+############################################################################
+#
+#	Name:	skmisc.icn
+#
+#	Title:	Scheme in Icon
+#
+#	Author: Bob Alexander
+#
+#	Date:	March 23, 1995
+#
+#	Description: see skeem.icn
+#
+############################################################################
+
+#
+# skeem -- Scheme in Icon
+#
+# Various procedures:
+#
+#     Booleans
+#     Equivalence predicates
+#     Symbols
+#     System interface
+#
+
+#
+# Initialize
+#
+# List entries are described in skfun.icn.
+#
+procedure InitMisc()
+   DefFunction([
+      BOOLEAN_P,
+      EQUAL_P,2,
+      EQV_P,2,
+      EQ_P,2,
+      LOAD,
+      NOT,
+      STRING_2_SYMBOL,
+      SYMBOL_2_STRING,
+      SYMBOL_P])
+   return
+end
+
+
+#
+# Booleans
+#
+
+procedure NOT(bool)
+   return (F === bool,T) | F
+end
+
+procedure BOOLEAN_P(x)
+   return (x === (T | F),T) | F
+end
+
+
+#
+# Equivalence predicates
+#
+
+procedure EQV_P(x1,x2)
+   return (Eqv(x1,x2),T) | F
+end
+
+procedure EQ_P(x1,x2)
+   return (x1 === x2,T) | F
+end
+
+procedure EQUAL_P(x1,x2)
+   return (Equal(x1,x2),T) | F
+end
+
+procedure Eqv(x1,x2)
+   local t1,t2
+   t1 := type(x1)
+   t2 := type(x2)
+   return {
+      if not (("integer" | "real") ~== (t1 | t2)) then x1 = x2
+      else if not ("Char" ~== (t1 | t2)) then x1.value == x2.value
+      else x1 === x2
+      }
+end
+
+procedure Equal(x1,x2)
+   local t1,t2,i
+   return Eqv(x1,x2) | {
+      case (t1 := type(x1)) == (t2 := type(x2)) of {
+	 "LLPair": Equal(LLFirst(x1),LLFirst(x2)) & Equal(LLRest(x1),LLRest(x2))
+	 "list": {
+	    not (every i := 1 to (*x1 == *x2) do
+	       if not Equal(x1[i],x2[i]) then break)
+	    }
+	 "String": x1.value == x2.value
+	 }
+      }
+end
+
+
+#
+# Symbols
+#
+
+procedure SYMBOL_P(x)
+   return (SymbolP(x),T) | F
+end
+
+procedure SYMBOL_2_STRING(sym)
+   return String(sym)
+end
+
+procedure STRING_2_SYMBOL(s)
+   return s.value
+end
+
+
+#
+# System interface
+#
+
+procedure LOAD(file)
+   local result,f
+   f := OpenFile(file,"r",LOAD) | fail
+   result := ReadEvalPrint(f,"quiet") | Failure
+   close(f)
+   return Failure ~=== result
+end

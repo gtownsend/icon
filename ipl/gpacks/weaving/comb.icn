@@ -1,0 +1,98 @@
+############################################################################
+#
+#	File:     plexity.icn
+#
+#	Subject:  Program to count distinct weaves
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 5, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program counts the distinct weaves with k color, m warp threads,
+#  and n wft threads.
+#
+#  The options supported are:
+#
+#	-k i	number of colors; default 2 (the maximum supported is 10)
+#	-m i	number of warp threads (columns); default 2
+#	-n i	number of weft threads (rows); default 2
+#
+#  To allow k up to 10 (temporary), the representation of colors goes
+#  from 0 to k - 1.
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local opts, k, m, n
+
+   opts := options(args, "k+n+m+")
+
+   k := \opts["k"] | 2
+   m := \opts["m"] | 2
+   n := \opts["n"] | 2
+
+   plexity(k, m, n)
+
+end
+
+# weaves for k combinations on an m-by-n grid
+#
+# presently limited to 10 combinations ...
+
+procedure plexity(k, m, n)
+   local warps, wefts, boards, weaves
+
+   warps := []
+   every put(warps, combinations(k, m))
+
+   wefts := []
+   every put(wefts, combinations(k, n))
+
+   boards := []
+   every put(boards, combinations(2, n * m))
+
+#  weaves := set()
+   weaves := []
+
+#  every insert(weaves, weave(!warps, !wefts, !boards))
+   every put(weaves, weave(!warps, !wefts, !boards))
+
+#  write(*weaves)
+
+   every write(!weaves)
+
+end
+
+procedure combinations(k, n)	#: all combinations of k characters n times
+
+   if n = 0 then return ""
+
+   suspend (0 to k - 1) || combinations(k, n - 1)
+
+end
+
+procedure weave(warp, weft, board)
+   local n, m, weaving
+
+   weaving := board
+
+   every n := 1 to *weft do
+      every m := 1 to *warp do
+         weaving[m + n - 1] := if weaving[m + n - 1] == "0"
+            then weft[n] else warp[m]
+
+   return weaving
+
+end

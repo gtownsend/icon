@@ -1,0 +1,922 @@
+############################################################################
+#
+#  vibedit.icn -- shared graphical editing routines
+#
+## #########################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+
+$include "vibdefn.icn"
+$include "vdefns.icn"
+
+record palette_obj(name, x, y, bwimage, colrimage)
+
+############################################################################
+# next_id() generates an ID number for a new object
+############################################################################
+procedure next_id(s)
+   local obj, n
+
+   n := 0
+   every obj := !O_LIST do
+      obj.id ?
+         if =s then
+            n <:= integer(tab(0))	# find highest used so far
+   return n + 1
+end
+
+############################################################################
+# strip() deletes trailing blanks from the incoming string.
+############################################################################
+procedure strip(s)
+   local index
+
+   index := 0
+   every index := *s to 1 by -1 do
+      if s[index] ~== " " then break
+   return s[1:index+1]
+end
+
+############################################################################
+# set_align() sets the align flag and changes the cursor to indicate that
+#             the system is in align mode.
+############################################################################
+procedure set_align(kind)
+   ALIGN := kind
+   if kind == "alignv" then
+       WAttrib("pointer=" || ("top side" | "sb v double arrow" | "crosshair"))
+   else
+       WAttrib("pointer=" || ("left side" | "sb h double arrow" | "crosshair"))
+end
+
+############################################################################
+# unset_align() unsets the align flag and restores the cursor to its
+#               original state.
+############################################################################
+procedure unset_align()
+   ALIGN := &null
+   WAttrib("pointer=" || ("left ptr" | "arrow"))
+end
+
+############################################################################
+# minimum() returns the smaller of two numeric values.
+############################################################################
+procedure minimum(x, y)
+   return x > y | x
+end
+
+############################################################################
+# maximum() returns the larger of two numeric values.
+############################################################################
+procedure maximum(x, y)
+   return x < y | x
+end
+
+############################################################################
+# draw_outline() draws an outline for the given object.  Used for resizing.
+############################################################################
+procedure draw_outline(object)
+   case type(object) of {
+      "line_obj" : outline_line(object)
+      default    : DrawRectangle(XORWIN,
+                      object.x-1, object.y-1, object.w+1, object.h+1)
+   }
+end
+
+############################################################################
+# update_bb() calls update routines for the various object types so
+#             that attributes correctly get updated when an object is
+#             resized or a label changes, etc.
+############################################################################
+procedure update_bb(object)
+   case type(object) of {
+      "button_obj"      : update_button_bb(object)
+      "radio_button_obj": update_radio_bb(object)
+      "line_obj"        : update_line_bb(object)
+      "slider_obj"      : update_slider_bb(object)
+      "text_input_obj"  : update_text_input_bb(object)
+      "label_obj"       : update_label_bb(object)
+      "menu_obj"        : update_menu_bb(object)
+      "list_obj"        : update_list_bb(object)
+      # nothing to do for rectangles
+   }
+end
+
+############################################################################
+# move_object() is called to reposition, resize, and redraw an object.
+############################################################################
+procedure move_object(object, x, y, w, h)
+
+   erase_object(object)
+   draw_overlap(object)
+
+   if type(object) == "line_obj" then {
+      object.x2 := object.x2 - object.x + x
+      object.y2 := object.y2 - object.y + y
+      object.x1 := object.x1 - object.x + x
+      object.y1 := object.y1 - object.y + y
+      update_bb(object)
+   }
+   else {
+      x <:= 0
+      y <:= CANVASY		# ensure object does not overlap palette
+      object.x := x
+      object.y := y
+      object.w := \w
+      object.h := \h
+      update_bb(object)
+      VResize(object.v, object.x, object.y, object.w, object.h)
+   }
+
+   draw_object(object)
+   DIRTY := 1
+end
+
+############################################################################
+# resize_object() is called to resize the outline of an object.  First,
+#                 draw_outline() is called to erase the outline, then the
+#                 attributes are updated, then draw_outline is called to
+#                 draw the new outline.
+############################################################################
+procedure resize_object(object, x, y, direction)
+   local neww, newh, newy, xcorner, ycorner
+
+   # move particular enpoint of line and adjust bounding box of line
+   if type(object) == "line_obj" then {
+      draw_outline(object)
+      if direction == "lpt" then {
+         object.x1 := x
+         object.y1 := maximum(CANVASY, y)
+      }
+      else if direction == "rpt" then {
+         object.x2 := x
+         object.y2 := maximum(CANVASY, y)
+      }
+      update_bb(object)
+      draw_outline(object)
+      return
+   }
+
+   # all other objects can be resized freely,
+   # subject to minimum width/height imposed in update_bb()
+
+   draw_outline(object)
+   y <:= CANVASY
+   ycorner := direction[1]	# "u" or "l"
+   xcorner := direction[2]	# "l" or "r"
+
+   if xcorner == "r" then {
+      neww := x - object.x
+      neww <:= MIN_W
+      }
+   else {
+      neww := object.w + object.x - x
+      neww <:= MIN_W
+      object.x +:= object.w - neww
+      }
+
+   if ycorner == "l" then {
+      newh := y - object.y
+      newh <:= MIN_H
+      }
+   else {
+      newh := object.h + object.y - y
+      newh <:= MIN_H
+      object.y +:= object.h - newh
+      }
+
+   object.h := newh
+   object.w := neww
+   update_bb(object)
+   if object.w ~= neww & xcorner == "l" then
+      object.x +:= neww - object.w
+   if object.h ~= newh & ycorner == "u" then
+      object.y +:= newh - object.h
+
+   VResize(object.v, object.x, object.y, object.w, object.h)
+   draw_outline(object)
+end
+
+############################################################################
+# display_talk() is called to display the attribute sheets of the various
+#                object types.
+############################################################################
+procedure display_talk(object)
+   case type(object) of {
+      "button_obj"      : display_button_atts(object)
+      "slider_obj"      : display_slider_atts(object)
+      "text_input_obj"  : display_text_input_atts(object)
+      "rect_obj"        : display_rect_atts(object)
+      "menu_obj"        : display_menu_atts(object)
+      "line_obj"        : display_line_atts(object)
+      "label_obj"       : display_label_atts(object)
+      "radio_button_obj": display_radio_button_atts(object)
+      "list_obj"        : display_list_atts(object)
+   }
+end
+
+############################################################################
+# draw_object() is called to draw the various object types.
+############################################################################
+procedure draw_object(object)
+   update_bb(object)
+   case type(object) of {
+      "sizer_obj"	 : draw_sizer(object)
+      "button_obj"       : draw_button(object)
+      "text_input_obj"   : draw_text_input(object)
+      "radio_button_obj" : draw_radio_button(object)
+      "rect_obj"         : draw_rect(object)
+      "slider_obj"       : draw_slider(object)
+      "line_obj"         : draw_line(object)
+      "label_obj"        : draw_label(object)
+      "menu_obj"         : draw_menu(object)
+      "list_obj"         : draw_list(object)
+   }
+end
+
+############################################################################
+# erase_object() removes an object from the screen.
+############################################################################
+procedure erase_object(object)
+   if type(object) == "line_obj" then
+      DrawGroove(APPWIN, object.x1, object.y1, object.x2, object.y2, 0)
+   else if type(object) == "button_obj" & \object.dflt then
+      EraseArea(APPWIN, object.x - 4, object.y - 4, object.w + 8, object.h + 8)
+   else
+      EraseArea(APPWIN, object.x, object.y, object.w, object.h)
+end
+
+############################################################################
+# draw_focus() is called to draw focus lines around an object.
+############################################################################
+procedure draw_focus(o)
+   if type(o) == "line_obj" then {
+      FillRectangle(XORWIN, o.x1 - 3, o.y1 - 3, 6, 6)
+      FillRectangle(XORWIN, o.x2 - 3, o.y2 - 3, 6, 6)
+   } else {
+      DrawLine(XORWIN, o.x-2, o.y+2, o.x-2, o.y-2, o.x+2, o.y-2)
+      DrawLine(XORWIN, o.x-2, o.y+o.h-3, o.x-2, o.y+o.h+1, o.x+2, o.y+o.h+1)
+      DrawLine(XORWIN, o.x+o.w-3, o.y-2, o.x+o.w+1, o.y-2, o.x+o.w+1, o.y+2)
+      DrawLine(XORWIN,
+         o.x+o.w-3, o.y+o.h+1, o.x+o.w+1, o.y+o.h+1, o.x+o.w+1, o.y+o.h-3)
+   }
+end
+
+############################################################################
+# focus_object() sets the given object to be the object with the focus.
+#                Focus lines are drawn around the object and the FOCUS
+#                global is set to be the object.
+############################################################################
+procedure focus_object(object)
+   unfocus_object(\FOCUS)
+   draw_focus(object)
+   object.focus := 1
+   FOCUS := object
+   return object
+end
+
+############################################################################
+# unfocus_object() unsets the focus.  The focus lines are erased about
+#                  the object and the FOCUS global is set to null.
+############################################################################
+procedure unfocus_object(object)
+   draw_focus(object)
+   object.focus := 0
+   FOCUS := &null
+   return object
+end
+
+############################################################################
+# on_focus() returns either
+#   "lpt" : if object is a line and the mouse is on the left endpoint
+#   "rpt" : if object is a line and the mouse is on the right endpoint
+#   "ur"  : if mouse is on upper-right focus point of object
+#   "ul"  : if mouse is on upper-left focus point of object
+#   "lr"  : if mouse is on lower-right focus point of object
+#   "ll"  : if mouse is on lower-left focus point of object
+# otherwise it fails
+############################################################################
+procedure on_focus(object, x, y)
+   local range
+
+   range := 5
+   if type(object) == "line_obj" then {
+      if (object.x1 - range < x < object.x1 + range) &
+         (object.y1 - range < y < object.y1 + range) then
+         return "lpt"
+      else if (object.x2 - range < x < object.x2 + range) &
+              (object.y2 - range < y < object.y2 + range) then
+         return "rpt"
+      else fail
+   }
+   if (object.x+object.w-range) < x < (object.x+object.w+range) &
+      (object.y - range) < y < (object.y + range) then
+        return "ur"
+   if (object.x - range) < x < (object.x + range) &
+      (object.y - range) < y < (object.y + range) then
+      return "ul"
+   if (object.x - range) < x < (object.x + range) &
+      (object.y+object.h-range) < y < (object.y+object.h+range) then
+        return "ll"
+   if (object.x+object.w-range) < x < (object.x+object.w+range) &
+      (object.y+object.h-range) < y < (object.y+object.h+range) then
+        return "lr"
+   fail
+end
+
+############################################################################
+# on_target() returns the object if the mouse is over the object.
+#             Else fails.
+############################################################################
+procedure on_target(o, x, y)
+   local m, a, b, c, d
+
+   if y < CANVASY then fail
+   if not ((o.x <= x <= o.x + o.w) &
+      (o.y <= y <= o.y + o.h)) then
+         fail
+   if type(o) == "line_obj" & o.w > 6 & o.h > 6 then {	# if skewed line
+      # make sure (x,y) is reasonably close to the line
+      m := (o.y2 - o.y1) / real(o.x2 - o.x1)		# slope
+      a := o.y1 - m * o.x1				# y-intercept
+      b := o.x1 - o.y1 / m				# x-intercept
+      c := -a * o.x1 - b * o.y1				# ax + by + c = 0
+      d := (a * x + b * y + c) / sqrt(a ^ 2 + b ^ 2)	# distance
+      if abs(d) > 5 then
+         fail
+      }
+   return o
+end
+
+############################################################################
+# object_of_event() checks the canvas object list against the mouse event
+#                   coordinates to determine if the event correlates to
+#                   a canvas object.  If multiple objects match, the
+#                   smallest is returned.  (The area of a "line" is fudged.)
+#                   Null is returned if the event does not correlate.
+############################################################################
+procedure object_of_event(x, y)
+   local o, a, obj, area
+
+   every o := !O_LIST do
+      if on_target(o, x, y) then {
+         if type(o) == "line_obj" then
+            a := 5 * maximum(o.w, o.h)
+         else
+            a := o.w * o.h
+         if /obj | a < area then {
+            obj := o
+            area := a
+            }
+         }
+   return obj
+end
+
+############################################################################
+# clear_screen() empties the entire screen, redrawing just the palette
+#                and sizer object.  The canvas list is emptied.
+############################################################################
+procedure clear_screen()
+   O_LIST := list()
+   FOCUS := &null
+   DIRTY := &null
+   redraw_screen()
+end
+
+############################################################################
+# redraw_screen() clears the screen and redraws both the palette and canvas.
+############################################################################
+procedure redraw_screen()
+   EraseArea()
+   draw_header()
+   draw_canvas()
+end
+
+############################################################################
+# shift_focus() moves the object with the FOCUS by in the amount given.
+############################################################################
+procedure shift_focus(dx, dy)
+   local object
+
+   if object := \FOCUS then {
+      unfocus_object(object)
+      move_object(object, object.x + dx, object.y + dy)
+      focus_object(object)
+   }
+end
+
+############################################################################
+# copy_focus() makes a copy of the object with the focus.
+############################################################################
+procedure copy_focus()
+   local r, drawin, temp, obj
+
+   if obj := \FOCUS then {
+      unfocus_object(obj)
+      case type(obj) of {
+         "rect_obj": {
+            r := create_rect(obj.x + 10, obj.y + 10, obj.w, obj.h, obj.style)
+         }
+         "menu_obj": {
+            temp := copy(obj)
+            r := create_menu(obj.x + 10, obj.y + 10, obj.label, obj.style)
+            copy_menu(r, temp)
+         }
+         "button_obj": {
+            r := create_button(obj.x + 10, obj.y + 10, obj.w, obj.h,
+                              obj.label, obj.style, obj.toggle)
+         }
+         "text_input_obj": {
+            r := create_text_input(obj.x + 10, obj.y + 10,
+                                    obj.label, obj.value, obj.length)
+         }
+         "label_obj": {
+            r := create_label(obj.x + 10, obj.y + 10, obj.label)
+         }
+         "radio_button_obj": {
+            r := create_radio_button(obj.x + 10, obj.y + 10, copy(obj.alts))
+         }
+         "slider_obj": {
+            r := create_slider(obj.x + 10, obj.y + 10, obj.w, obj.h,
+                              obj.typ, obj.min, obj.max, obj.value, obj.filter)
+         }
+         "line_obj": {
+            r := create_line(obj.x1 + 10, obj.y1 + 10, obj.x2 + 10, obj.y2 + 10)
+         }
+	 "list_obj": {
+	    r := create_list(obj.x + 10, obj.y + 10, obj.w, obj.h,
+				obj.style, obj.scroll)
+	 }
+         default: return
+      }
+      push(O_LIST, r)
+      draw_object(r)
+      focus_object(r)
+      DIRTY := 1
+   }
+end
+
+############################################################################
+# delete_focus() removes the object with the FOCUS from the canvas list.
+############################################################################
+procedure delete_focus()
+   local i
+
+   if \FOCUS then {
+      draw_focus(FOCUS)
+      erase_object(FOCUS)
+      DELETED := FOCUS
+      every i := 1 to *O_LIST do
+         if (O_LIST[i] === FOCUS) then
+            O_LIST := O_LIST[1:i] ||| O_LIST[i+1:*O_LIST+1]
+      FOCUS := &null
+      DELETED.focus := 0
+      DIRTY := 1
+      draw_overlap(DELETED)
+   }
+end
+
+############################################################################
+# undelete() restores the most recently deleted object.
+############################################################################
+procedure undelete()
+   if \DELETED then {
+      unfocus_object(\FOCUS)
+      push(O_LIST, DELETED)
+      draw_object(DELETED)
+      focus_object(DELETED)
+      DELETED := &null
+      DIRTY := 1
+   }
+end
+
+############################################################################
+# add_palette_entry() adds one entry to the palette
+############################################################################
+procedure add_palette_entry(name, bwimage, colrimage)
+   static x
+   initial x := 0
+
+   push(P_LIST, palette_obj(name, x, MENUBAR.ah + 3, bwimage, colrimage))
+   x +:= PAL_W
+end
+
+############################################################################
+# draw_decor() redraws the decorative lines that extend across the window.
+############################################################################
+procedure draw_decor()
+   DrawLine(0, MENUBAR.ah, 2000, MENUBAR.ah)
+   DrawLine(0, CANVASY-1, 2000, CANVASY-1)
+end
+
+############################################################################
+# draw_header() redraws the window header.
+############################################################################
+procedure draw_header()
+   local e, xpad, ypad, w, d, h, im
+
+   MENUBAR.V.draw(MENUBAR)
+   DrawString(SELECT.ax + 4, SELECT.ay + 15, "Select")
+   BevelRectangle(SELECT.ax, SELECT.ay, SELECT.aw, SELECT.ah)
+   draw_decor()
+   every e := !P_LIST do {
+      if WAttrib("depth") > 1 then (im := e.colrimage) ? {
+         w := tab(upto(','))		# width of image
+         move(1)
+         tab(upto(',') + 1)		# skip over palette spec
+         h := *tab(0) / w		# height of image
+         }
+      else (im := e.bwimage) ? {
+         w := tab(upto(','))		# width of image
+         d := ((w + 3) / 4)		# digits per row
+         move(2)
+         h := *tab(0) / d		# height of image
+         }
+      xpad := (PAL_W - w) / 2
+      ypad := (PAL_H - h) / 2
+      DrawImage(e.x + xpad, e.y + ypad, im)
+      }
+end
+
+############################################################################
+# draw_canvas() draws all the objects that exist within the canvas.
+############################################################################
+procedure draw_canvas()
+   every draw_object(O_LIST[*O_LIST to 1 by -1])
+   draw_sizer(SIZER)
+   draw_focus(\FOCUS)
+end
+
+############################################################################
+# draw_overlap() draws any objects that overlap the argument object.
+############################################################################
+procedure draw_overlap(object)
+   local f, o, d
+
+   if type(object) == "button_obj" & \object.dflt then
+      d := 8		# fudge factor for default box on both objects
+   else
+      d := 4		# only the other object can have default box
+
+   unfocus_object(f := \FOCUS)
+   every o := O_LIST[*O_LIST to 1 by -1] do {
+      if o.x >= object.x + object.w + d	then next
+      if object.x >= o.x + o.w + d	then next
+      if o.y >= object.y + object.h + d	then next
+      if object.y >= o.y + o.h + d	then next
+      if o === object			then next
+      draw_object(o)
+      }
+   if object.x + object.w + d >= SIZER.x |
+      object.y + object.h + d >= SIZER.y then
+	 draw_sizer(SIZER)
+   focus_object(\f)
+end
+
+############################################################################
+# palette_object_of_event() cycles through the list of palette objects
+#                           to determine if any of them were the target
+#                           of a mouse event.
+############################################################################
+procedure palette_object_of_event(x, y)
+   local o
+
+   every o := !P_LIST do
+      if o.x <= x <= o.x + PAL_W & o.y <= y <= o.y + PAL_H then
+         return o
+   return &null
+end
+
+############################################################################
+# create_object_instance() creates an instance of the given object.
+############################################################################
+procedure create_object_instance(obj)
+   local r, temp, x, y, w, h
+
+   x := &x
+   y := CANVASY
+   w := 32
+   h := 20
+   case obj.name of {
+      "line":
+         r := create_line(x, y + 3, x + PAL_W, y + 3)
+      "rect":
+         r := create_rect(x, y, w, h, "grooved")
+      "menu": {
+         r := create_menu(x, y, "Menu", "pull")
+         add_item(r, "three", 0)
+         add_item(r, "two", 0)
+         add_item(r, "one", 0)
+         }
+      "button":
+         r := create_button(x, y, w, h, "push")
+      "radio_button":
+         r := create_radio_button(x, y, ["one","two","three"])
+      "text":
+         r := create_text_input(x, y, "Text:", "", 3)
+      "label":
+         r := create_label(x, y, "Label")
+      "slider":
+         r := create_slider(x, y, VSlider_DefWidth, VSlider_DefLength,
+            "Slider", 0.0, 1.0, 0.5, 1)
+      "scroll":
+         r := create_slider(x, y, VSlider_DefWidth, VSlider_DefLength,
+            "Scrollbar", 0.0, 1.0, 0.5, 1)
+      "list":
+	 r := create_list(x, y)
+      default: return &null
+   }
+   push(O_LIST, r)
+   DIRTY := 1
+   return r
+end
+
+############################################################################
+# create_palette() creates the palette objects.
+############################################################################
+procedure create_palette()
+
+   add_palette_entry("button",
+      "25,#1ffffff10000011000001115555110aaaa11155551100000110000011ffffff",
+      "25,c1,_
+      6666666666666666666666666_
+      6~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~~~222222222222222~~~~1_
+      6~~~~222222222222222~~~~1_
+      6~~~~222222222222222~~~~1_
+      6~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~~~~~~~~~~~~~~~~~~~~~~1_
+      6111111111111111111111111_
+      ")
+   add_palette_entry("radio_button",
+      "32,#FFFFFFFF8000000180000021800000518555508982AAA1058555508980000051_
+      80000021800000018000000180000021800000518555508982AAA10585555089_
+      800000518000002180000001800000018000002180000071855550F982AAA1FD_
+      855550F9800000718000002180000001FFFFFFFF",
+      "33,c1,_
+      666666666666666666666666666666661_
+      6~~~~~6~~~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~~~666~~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~~66~66~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~66~~~66~~~222222222222222~~~~1_
+      6~66~~~~~66~~222222222222222~~~~1_
+      6~~11~~~11~~~222222222222222~~~~1_
+      6~~~11~11~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~~~111~~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~~~~1~~~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~~~~6~~~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~~~666~~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~~66~66~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~66~~~66~~~222222222222222~~~~1_
+      6~66~~~~~66~~222222222222222~~~~1_
+      6~~11~~~11~~~222222222222222~~~~1_
+      6~~~11~11~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~~~111~~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~~~~1~~~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~~~~6~~~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~~~666~~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~~66066~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~6600066~~~222222222222222~~~~1_
+      6~660000066~~222222222222222~~~~1_
+      6~~1100011~~~222222222222222~~~~1_
+      6~~~11011~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~~~111~~~~~~~~~~~~~~~~~~~~~~~~1_
+      6~~~~~1~~~~~~~~~~~~~~~~~~~~~~~~~1_
+      611111111111111111111111111111111_
+      ")
+   add_palette_entry("menu",
+      "20,#1ffff1ffff1d5571eaaf1d5571fffffffff800018000180001955518aaa98000_
+      18000180001955518aaa9800018000180001955518aaa9800018000180001955_
+      518aaa98000180001fffff",
+      "20,c1,_
+      1111111111111116~~~~_
+      1000000000000006~~~~_
+      1005555555550006~~~~_
+      1005555555550006~~~~_
+      1000000000000006~~~~_
+      1000000000000006~~~~_
+      66666666666666666666_
+      6~~~~~~~~~~~~~~~~~~1_
+      6~~~~~~~~~~~~~~~~~~1_
+      6~~~~~~~~~~~~~~~~~~1_
+      6~~22222222222222~~1_
+      6~~22222222222222~~1_
+      6~~~~~~~~~~~~~~~~~~1_
+      6~~~~~~~~~~~~~~~~~~1_
+      6~~~~~~~~~~~~~~~~~~1_
+      6~~22222222222222~~1_
+      6~~22222222222222~~1_
+      6~~~~~~~~~~~~~~~~~~1_
+      6~~~~~~~~~~~~~~~~~~1_
+      6~~~~~~~~~~~~~~~~~~1_
+      6~~22222222222222~~1_
+      6~~22222222222222~~1_
+      6~~~~~~~~~~~~~~~~~~1_
+      6~~~~~~~~~~~~~~~~~~1_
+      6~~~~~~~~~~~~~~~~~~1_
+      6~~22222222222222~~1_
+      6~~22222222222222~~1_
+      6~~~~~~~~~~~~~~~~~~1_
+      6~~~~~~~~~~~~~~~~~~1_
+      6~~~~~~~~~~~~~~~~~~1_
+      61111111111111111111_
+      ")
+   add_palette_entry("list",
+      "32,#FFFFFFFF92000001AA000001AA555551C62AAAA9FE0000018200000182555551_
+      FE2AAAA9C6000001C7FFFFFFC7AAAAAFC7D55557C7FFFFFFC6000001C6555551_
+      C62AAAA9FE0000018200000182555551822AAAA9820000018200000182555551_
+      822AAAA982000001FE000001C6555551AA2AAAA9AA00000192000001FFFFFFFF",
+      "32,c1,_
+      111111111111111111111111~1111111_
+      1~~~~~~~~~~~~~~~~~~~~~~6~1~~6~~6_
+      1~~~~~~~~~~~~~~~~~~~~~~6~1~6~1~6_
+      1~~222222222222222222~~6~1~6~1~6_
+      1~~222222222222222222~~6~16~~~16_
+      1~~~~~~~~~~~~~~~~~~~~~~6~1611116_
+      1~~~~~~~~~~~~~~~~~~~~~~6~1~~~~~6_
+      1~~222222222222222222~~6~1666666_
+      1~~222222222222222222~~6~16~~~16_
+      1~~~~~~~~~~~~~~~~~~~~~~6~16~~~16_
+      100000000000000000000006~16~~~16_
+      100222222222222222222006~16~~~16_
+      100222222222222222222006~16~~~16_
+      100000000000000000000006~16~~~16_
+      1~~~~~~~~~~~~~~~~~~~~~~6~16~~~16_
+      1~~222222222222222222~~6~16~~~16_
+      1~~222222222222222222~~6~1611116_
+      1~~~~~~~~~~~~~~~~~~~~~~6~1~~~~~6_
+      1~~~~~~~~~~~~~~~~~~~~~~6~1~~~~~6_
+      1~~222222222222222222~~6~1~~~~~6_
+      1~~222222222222222222~~6~1~~~~~6_
+      1~~~~~~~~~~~~~~~~~~~~~~6~1~~~~~6_
+      1~~~~~~~~~~~~~~~~~~~~~~6~1~~~~~6_
+      1~~222222222222222222~~6~1~~~~~6_
+      1~~222222222222222222~~6~1~~~~~6_
+      1~~~~~~~~~~~~~~~~~~~~~~6~1666666_
+      1~~~~~~~~~~~~~~~~~~~~~~6~16~~~16_
+      1~~222222222222222222~~6~16~~~16_
+      1~~222222222222222222~~6~1~6~1~6_
+      1~~~~~~~~~~~~~~~~~~~~~~6~1~6~1~6_
+      1~~~~~~~~~~~~~~~~~~~~~~6~1~~6~~6_
+      16666666666666666666666641666666_
+      ")
+   add_palette_entry("text",
+      "32,#ffffc00080004000800040008000400080004555800042aa9ffe455580004000_
+      80004000ffffc000",
+      "32,c1,_
+      ~~~~~~~~~~~~~~111111111111111111_
+      ~~~~~~~~~~~~~~1~~~~~~~~~~~~~~~~6_
+      ~~~~~~~~~~~~~~1~~~~~~~~~~~~~~~~6_
+      ~~~~~~~~~~~~~~1~~~~~~~~~~~~~~~~6_
+      22222222222~~~1~~~~~~~~~~~~~~~~6_
+      22222222222~~~1~~~~~~~~~~~~~~~~6_
+      22222222222~~~1~~~~~~~~~~~~~~~~6_
+      ~~~~~~~~~~~~~~1~~~~~~~~~~~~~~~~6_
+      ~~~~~~~~~~~~~~1~~~~~~~~~~~~~~~~6_
+      ~~~~~~~~~~~~~~166666666666666666_
+      ")
+   add_palette_entry("slider",
+      "9,#1FF1011011011011011011011011011011FF1831831831831831FF_
+      1831831831831831FF1011011011011011011011FF",
+      "9,c1,_
+      111111111_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      166666666_
+      16~~~~~16_
+      16~~~~~16_
+      16~~~~~16_
+      16~~~~~16_
+      16~~~~~16_
+      161111116_
+      166666616_
+      16~~~~~16_
+      16~~~~~16_
+      16~~~~~16_
+      16~~~~~16_
+      16~~~~~16_
+      161111116_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      166666666_
+      ")
+   add_palette_entry("scroll",
+      "9,#1FF1111291291451451FF1011011011011FF1831831831831831FF_
+      1011011011011011011011FF1451451291291111FF",
+      "9,c1,_
+      111111111_
+      1~~~6~~~6_
+      1~~6~1~~6_
+      1~~6~1~~6_
+      1~6~~~1~6_
+      1~6~~~1~6_
+      16~~~~~16_
+      161111116_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      166666666_
+      16~~~~~16_
+      16~~~~~16_
+      16~~~~~16_
+      16~~~~~16_
+      16~~~~~16_
+      161111116_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      1~~~~~~~6_
+      166666666_
+      16~~~~~16_
+      1~6~~~1~6_
+      1~6~~~1~6_
+      1~~6~1~~6_
+      1~~6~1~~6_
+      1~~~6~~~6_
+      166666666_
+      ")
+   add_palette_entry("rect",
+      "32,#ffffffff80000001800000018000000180000001800000018000000180000001_
+      8000000180000001800000018000000180000001800000018000000180000001_
+      800000018000000180000001ffffffff",
+      "32,c1,_
+      33333333333333333333333333333333_
+      36666666666666666666666666666666_
+      36~~~~~~~~~~~~~~~~~~~~~~~~~~~~36_
+      36~~~~~~~~~~~~~~~~~~~~~~~~~~~~36_
+      36~~~~~~~~~~~~~~~~~~~~~~~~~~~~36_
+      36~~~~~~~~~~~~~~~~~~~~~~~~~~~~36_
+      36~~~~~~~~~~~~~~~~~~~~~~~~~~~~36_
+      36~~~~~~~~~~~~~~~~~~~~~~~~~~~~36_
+      36~~~~~~~~~~~~~~~~~~~~~~~~~~~~36_
+      36~~~~~~~~~~~~~~~~~~~~~~~~~~~~36_
+      36~~~~~~~~~~~~~~~~~~~~~~~~~~~~36_
+      36~~~~~~~~~~~~~~~~~~~~~~~~~~~~36_
+      36~~~~~~~~~~~~~~~~~~~~~~~~~~~~36_
+      36~~~~~~~~~~~~~~~~~~~~~~~~~~~~36_
+      36~~~~~~~~~~~~~~~~~~~~~~~~~~~~36_
+      36~~~~~~~~~~~~~~~~~~~~~~~~~~~~36_
+      36~~~~~~~~~~~~~~~~~~~~~~~~~~~~36_
+      36~~~~~~~~~~~~~~~~~~~~~~~~~~~~36_
+      36333333333333333333333333333336_
+      36666666666666666666666666666666_
+      ")
+   add_palette_entry("label",
+      "13,#0040004000e000e000e001b00190019003180308030807fc060406040c061e0f",
+      "13,c1,_
+      ~~~~~~0~~~~~~_
+      ~~~~~~0~~~~~~_
+      ~~~~~000~~~~~_
+      ~~~~~000~~~~~_
+      ~~~~~000~~~~~_
+      ~~~~00~00~~~~_
+      ~~~~0~~00~~~~_
+      ~~~~0~~00~~~~_
+      ~~~00~~~00~~~_
+      ~~~0~~~~00~~~_
+      ~~~0~~~~~0~~~_
+      ~~000000000~~_
+      ~~0~~~~~~00~~_
+      ~~0~~~~~~00~~_
+      ~00~~~~~~~00~_
+      0000~~~~~0000_
+      ")
+   add_palette_entry("line",
+      "32,#0000000f0000000f0000001f0000006f00000180000006000000180000006000_
+      0001800000060000001800000060000001800000f6000000f8000000f0000000f0000000",
+      "30,c1,_
+      ~~~~~~~~~~~~~~~~~~~~~~~~~~0000_
+      ~~~~~~~~~~~~~~~~~~~~~~~~~~3300_
+      ~~~~~~~~~~~~~~~~~~~~~~~~336600_
+      ~~~~~~~~~~~~~~~~~~~~~~33660000_
+      ~~~~~~~~~~~~~~~~~~~~3366~~~~~~_
+      ~~~~~~~~~~~~~~~~~~3366~~~~~~~~_
+      ~~~~~~~~~~~~~~~~3366~~~~~~~~~~_
+      ~~~~~~~~~~~~~~3366~~~~~~~~~~~~_
+      ~~~~~~~~~~~~3366~~~~~~~~~~~~~~_
+      ~~~~~~~~~~3366~~~~~~~~~~~~~~~~_
+      ~~~~~~~~3366~~~~~~~~~~~~~~~~~~_
+      ~~~~~~3366~~~~~~~~~~~~~~~~~~~~_
+      00003366~~~~~~~~~~~~~~~~~~~~~~_
+      003366~~~~~~~~~~~~~~~~~~~~~~~~_
+      0066~~~~~~~~~~~~~~~~~~~~~~~~~~_
+      0000~~~~~~~~~~~~~~~~~~~~~~~~~~_
+      ")
+end

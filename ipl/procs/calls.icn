@@ -1,0 +1,154 @@
+############################################################################
+#
+#	File:     calls.icn
+#
+#	Subject:  Procedures for calls as objects
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 28, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures deal with procedure invocations that are encapulated in
+#  records.
+#
+############################################################################
+#
+#  Links:  ivalue, procname
+#
+############################################################################
+
+invocable all
+
+link ivalue
+link procname
+
+record call(proc, args)
+
+#
+#  Invoke a procedure with a argument list from a call record.
+
+procedure invoke(call)
+
+   suspend call.proc ! call.args
+
+end
+
+
+#
+#  Produce a string images of a call
+
+procedure call_image(call)
+   local args
+
+   args := ""
+
+   every args ||:= !call.args || ", "
+
+   return procname(call.proc) || "(" || args[1:-2] || ")"
+
+end
+
+  
+#  Make a call record from a string that looks like an invocation.
+#  What the arguments can be is limited to the capabilities of ivalue.
+
+procedure make_call(s)
+   local arg, args, result
+
+   s ? {
+      result := call(proc(tab(upto('(')))) | fail
+      move(1)
+      result.args := make_args(tab(-1))
+      }
+
+   return result
+
+end
+
+#  Make an argument list from a comma-separated string
+
+procedure make_args(s)
+   local args, arg
+
+   args := []
+
+   s ? {
+      while arg := tab(upto(',') | 0) do {
+         put(args, ivalue(arg)) | fail
+         move(1) | break
+         }
+      }
+
+   return args
+
+end
+
+#  Produce a string of Icon code to construct a call record.
+
+procedure call_code(s)
+   local code, arg, result
+
+   s ? {
+      result := "call(" || tab(upto('(')) || ", [" | fail
+      move(1)
+      while arg := tab(upto(',)')) do {
+         result ||:= ivalue(arg) || ", " | fail
+         move(1) | break
+         }
+      }
+
+   return result[1:-2] || "])"
+
+end
+
+#  Write a table of calls to a file.  The file format is
+#
+#	name=proc:arg1,arg2,arg3, ... argn,
+#
+#  where name is the name associated with the call, proc is the
+#  procedure, and arg1, arg2, arg3, ... argn are the arguments.
+#  Note the trailing comma.
+
+procedure write_calltable(T, p, f)
+   local name
+
+   every name := key(T) do {
+      writes(f, name, "=")
+      writes(f, procname(p), ":")
+      every writes(f, image(!T[name]), ",")
+      }
+
+   write(f)
+
+   return
+
+end
+   
+#  read a call table file into a table
+
+procedure read_calltable(f)
+   local T, line, p, args
+
+   T := table()
+
+   every line := read(f) do
+      line ? {
+         name := tab(upto('="')) | fail
+         move(1)
+         p := tab(upto(':')) | fail
+         move(1)
+         args := []
+         while put(args, ivalue(tab(upto(',')))) do
+             move(1)
+         T[name] := call(proc(p), args) | fail
+         }
+
+   return T
+
+end

@@ -1,0 +1,90 @@
+#
+# @(#)os2.icn	1.5 5/5/90
+# OS-specific code for OS/2 Idol
+# Adapted from msdos.icn by cheyenne wills
+#
+global icontopt,cd,md,env,sysok
+
+procedure mysystem(s)
+  if \loud then write(s)
+  return system(s)
+end
+
+procedure filename(s,ext)
+  s[9:0] := ""
+  s ||:= \ext
+  return s
+end
+# if the filename s has extension ext then return the filename less the
+# extension, otherwise fail.
+procedure fileroot(s,ext)
+  if s[- *ext : 0] == ext then return s[1 : - *ext]
+end
+procedure writesublink(s)
+  writelink(env||"\\\\"||s)
+end
+procedure envpath(filename)
+  return env||"\\"||filename
+end
+#
+# Installation.
+# Uses hierarchical filesystem on some systems (see initialize)
+#
+procedure install(args)
+  write("Installing idol environment in ",env)
+  if env ~== "" then mysystem(md||env)
+  fout := envopen("i_object.icn","w")
+  write(fout,"record idol_object(__state,__methods)")
+  close(fout)
+  fout := &null
+  cdicont(["i_object"])
+end
+procedure uninstall(args)
+  # not implemented yet
+end
+
+procedure makeexe(args,i)
+  exe := args[i]
+  if icont(exe) = \sysok then {
+      mysystem((if find("UNIX",&features) then "rm " else "del ")||exe||".icn")
+      if \exec then {
+	write("Executing:")
+	if not find("UNIX",&features) then exe := "iconx "||exe
+	every i := exec+1 to *args do exe ||:= " "||args[i]
+	mysystem(exe)
+      }
+  }
+end
+#
+# system-dependent compilation of idolfile.icn
+#   (in the idol subdirectory, if there is one)
+#
+procedure cdicont(idolfiles)
+initial { s := (getenv("ICONT")|"icont") }
+
+  if comp = -2 then return  # -t --> don't call icont at all
+  args := " -c"
+  rms  := ""
+  every ifile := !idolfiles do args ||:= " " || ifile
+  every ifile := !idolfiles do rms  ||:= " " || ifile || ".icn"
+  cdcmd := open("idolenv.cmd","w")
+  write(cdcmd,"@echo off")
+  write(cdcmd,"cd idolcode.env")
+  write(cdcmd,s,args)
+  write(cdcmd,"if errorlevel 1 goto xit")
+  every ifile := !idolfiles do
+    write(cdcmd,"del ",ifile,".icn")
+  write(cdcmd,":xit")
+  write(cdcmd,"cd ..")
+  close(cdcmd)
+  mysystem("idolenv.cmd")
+  mysystem("del idolenv.cmd")
+  return
+end
+procedure sysinitialize()
+  icontopt := " -Sr500 -SF30 -Si1000 "
+  cd := "cd "
+  md := "mkdir "
+  env := getenv("IDOLENV") | "idolcode.env"
+  sysok := 0
+end

@@ -1,0 +1,69 @@
+############################################################################
+#
+#	File:     palcheck.icn
+#
+#	Subject:  Program to check palindromic sentences
+#
+#	Authors:  K'vin D'vries and Ralph E. Griswold
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program reads lines from standard input.  If a line is a
+#  palindromic sentence (see The Icon Programming Language, 2nd edition,
+#  p. 58), it is ignored.  If it is not a palindromic sentence, it is
+#  written to a window with the outermost characters that don't match
+#  highlighted.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  wopen, xcompat
+#
+############################################################################
+
+link wopen
+link xcompat
+
+procedure main()
+   local normal, highlight, line, s1, s2, i1, i2
+
+   normal := WOpen("label=palindrome check", "lines=20", "columns=80",
+      "leading=18") | stop("*** cannot open window")
+
+   highlight := XBind(normal, , "reverse=on")
+
+   while line := read() do {
+       s1 := map(line)
+       s2 := reverse(s1)
+
+       i1 := i2 := 1
+
+       while i1 < *line do {
+           (i1 := upto(&lcase, s1, i1) & i2 := upto(&lcase, s2, i2)) | break
+           if s1[i1] ~== s2[i2] then {
+               line ? {
+                  writes(normal, tab(i1))
+                  writes(highlight, move(1))
+                  writes(normal, tab(*line - i2 + 1)) 
+                  writes(highlight, move(1))
+                  write(normal, tab(0))
+                  }
+               break
+           }
+           i1 +:= 1
+           i2 +:= 1
+       }
+   }
+
+   Event(normal)
+
+end

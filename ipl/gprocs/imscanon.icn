@@ -1,0 +1,61 @@
+############################################################################
+#
+#	File:     imscanon.icn
+#
+#	Subject:  Procedure to put bi-level image string in canonical form
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 6, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure puts a bi-level image string in canonical form so
+#  that duplicates up to shifting can be eliminated.  It is intended to
+#  be used in imlreduc.icn, which handles the rotational case.
+#
+#  It presently only handles widths that are a multiple of four.
+#
+############################################################################
+#
+#  Requires:  Large integers
+#
+############################################################################
+#
+#  Links:  strings
+#
+############################################################################
+
+link strings
+
+procedure imscanon(ims)
+   local head, spec, dspec, max, val, imax, i, width
+
+   ims ? {
+      head := tab(upto('#~') + 1)
+      spec := tab(0)
+      }
+
+   head ? {
+      width := tab(many(&digits))
+      }
+
+   if (width % 4) ~= 0 then return ims		# one digit for 4 columns
+   width /:= 4
+   if (*spec % width) ~= 0 then return ims	# must be even number of digits
+
+   dspec := spec || spec
+   max := -1
+   every i := 1 to (*spec / width) do {
+      val := integer("16r" || dspec[1 +: *spec])
+      if max <:= val then imax := (((i - 1) * width) + 1)
+      dspec := rotate(dspec, width)
+      }
+ 
+   return head || dspec[imax +: *spec]
+
+end

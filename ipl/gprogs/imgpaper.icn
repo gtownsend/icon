@@ -1,0 +1,129 @@
+############################################################################
+#
+#	File:     imgpaper.icn
+#
+#	Subject:  Program to tile images to form wallpaper
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 18, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program tiles images to fill a window.
+#
+#  The supported options are:
+#
+#	-s	read image strings from standard input; default, use
+#		  image file names given on command line
+#	-w i	window width, default 640
+#	-h i	window height, default 480
+#	-g r	gamma; default to Icon default
+#	-m	manual mode; wait for event before going to next image
+#	-a i	automatic mode (default); hold pane for i seconds, default 2
+#	-l	list names of files on standard output
+#	-i	save GIF file of each image
+#	-n s	prefix for image names, default "paper"
+#	-b	fill window with black at end and hold for event
+#	-v	size for video recording, 342x240; overrides other settings
+#	-M	mirror image before tiling
+#
+#  In the case of the -m option for images, if the event is a letter, the
+#  letter, a colon, and current image name is printed to standard output.
+#  In case of the -m option for image strings, if the event is a letter,
+#  the image string is written.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  imsutils, mirror, options, tiler, xio
+#
+############################################################################
+
+link imsutils
+link mirror
+link options
+link tiler
+link xio
+
+procedure main(args)
+   local opts, w, h, hold, names, name, prefix, images, count, number
+   local lines, ims, bad, Hold, mir, background, e, gamma, tmp1, tmp2
+
+   Hold := Event
+
+   opts := options(args, "w+h+g.ma+lisn:bvM")
+   w := \opts["w"] | 640
+   h := \opts["h"] | 480
+   mir := \opts["M"]
+   if \opts["v"] then {			# size for video recording
+      w := 320
+      h := 240
+      }
+   background := opts["b"]
+   if /opts["m"] then Event := 1
+   hold := (\opts["a"] * 1000.0) | 2000
+   names := opts["l"]
+   images := opts["i"]
+   prefix := \opts["n"] | "paper"
+   if (gamma := \opts["g"]) & (gamma <= 0.0) then
+      stop("gamma value must be greater than 0.0")
+   number := 0
+   count := -1
+
+   WOpen("size=" || w || "," || h, "fillstyle=textured") |
+      stop("*** cannot open window")
+   WAttrib("gamma="|| \opts["g"])
+
+   if \background then Hold()
+
+   if \opts["s"] then {
+      while ims := readims() do {
+         tileims(&window, ims) | {
+            write(&errout, "*** cannot draw image")
+            /bad := open("bad.ims", "a") | stop("*** cannot open bad.ims")
+            write(bad, ims)
+            }
+         WFlush()
+         if \lines then write(number +:= 1)
+         if Event === 1 then delay(hold) else {
+            if Event() === !&letters then write(ims)
+            }
+         EraseArea()
+         }
+      }
+   else {
+      every name := !args do {
+         WAttrib("label=" || name)
+         if \mir then {
+            tmp1 := WOpen("image=" || name, "canvas=hidden")
+            tmp2 := mirror(tmp1)
+            tile(tmp2, &window)
+            WClose(tmp1)
+            WClose(tmp2)
+            }
+         else tileimg(&window, name)
+         if \names then write(name)
+         if \images then WriteImage(prefix || right(count +:= 1, 3, "0") ||
+            ".gif")
+         if Event === 1 then delay(hold) else {
+            e := Event()
+            write(!&letters === e, ":", name)
+            }
+         EraseArea()
+         }
+      }
+
+   if \background then {			# fill with black and hold?
+      FillRectangle()
+      Hold()
+      }
+
+end

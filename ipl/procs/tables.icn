@@ -1,0 +1,177 @@
+############################################################################
+#
+#	File:     tables.icn
+#
+#	Subject:  Procedures for table manipulation
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 20, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Contributor:  Alan Beale
+#
+############################################################################
+#
+# 	keylist(T)	  produces list of keys in table T.
+#
+#	kvallist(T)	  produces values in T ordered by sorted order
+#			  of keys.
+#
+#	tbleq(T1, T2)	  tests equivalences of tables T1 amd T2.
+#  
+#	tblunion(T1, T2)  approximates T1 ++ T2.
+#
+#	tblinter(T1, T2)  approximates T1 ** T2.
+#
+#	tbldiff(T1, T2)	  approximates T1 -- T2.
+#
+#	tblinvrt(T)	  produces a table whose keys are T's values and
+#			  whose values are T's keys.
+#
+#	tbldflt(T)	  produces the default value for T.
+#
+#	twt(T)		  produces a two-way table based on T.
+#
+#	vallist(T)	  produces list of values in table T.
+#
+############################################################################
+#
+#  For the operations on tables that mimic set operations, the
+#  correspondences are only approximate and do not have the mathematical
+#  properties of the corresponding operations on  sets.  For example, table
+#  "union" is not symmetric or transitive.
+#
+#  Where there is potential asymmetry, the procedures "favor" their
+#  first argument.
+#
+#  All the procedures that return tables return new tables and do not
+#  modify their arguments.
+#
+############################################################################
+
+procedure tblunion(T1, T2)			#: table union
+   local T3, x
+
+   T3 := copy(T1)
+
+   every x := key(T2) do
+      insert(T3, x, T2[x])
+
+   return T3
+
+end
+
+procedure tblinter(T1, T2)			#: table intersection
+   local T3, x
+
+   T3 := table(tbldflt(T1))
+
+   every x := key(T1) do
+      if member(T2, x) then insert(T3, x, T1[x])
+   
+   return T3
+
+end
+
+procedure tbldiff(T1, T2)			#: table difference
+   local T3, x
+
+   T3 := copy(T1)
+
+   every x := key(T2) do
+      delete(T3, x)
+
+   return T3
+
+end
+
+procedure tblinvrt(T)				#: table inversion
+   local T1, x
+
+   T1 := table(tbldflt(T))
+
+   every x := key(T) do
+      insert(T1, T[x], x)
+
+   return T1
+
+end
+procedure tbldflt(T)				#: table default
+   static probe
+
+   initial probe := []			# only need one
+
+   return T[probe]
+
+end
+
+procedure twt(T)				#: two-way table
+   local T1, x
+
+   T1 := copy(T)
+
+   every x := key(T) do
+      insert(T1, T[x], x)
+
+   return T1
+
+end
+
+procedure keylist(tbl)			#: list of keys in table
+   local lst
+
+   lst := []
+   every put(lst, key(tbl))
+   return sort(lst)
+
+end
+
+procedure kvallist(T)
+   local result
+
+   result := []
+   
+   every put(result, T[!keylist(T)])
+
+   return result
+
+end
+
+procedure tbleq(tbl1, tbl2)		#: table equivalence
+   local x
+   static prod
+
+   initial prod := []
+
+   if *tbl1 ~= *tbl2 then fail
+   if tbl1[prod] ~=== tbl2[prod] then fail
+   else every x := key(tbl1) do
+      if not(member(tbl2, x)) |
+         (tbl2[x] ~=== tbl1[x]) then fail
+   return tbl2
+
+end
+
+procedure vallist(tbl)		#: list of table values
+   local list1
+
+   list1 := []
+   every put(list1, !tbl)
+   return sort(list1)
+
+end
+
+procedure valset(tbl)		#: set of table values
+   local set1
+
+   set1 := set()
+   every insert(set1, !tbl)
+   return set1
+
+end

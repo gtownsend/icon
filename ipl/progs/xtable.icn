@@ -1,0 +1,138 @@
+############################################################################
+#
+#	File:     xtable.icn
+#
+#	Subject:  Program to show character code translations
+#
+#	Author:   Robert J. Alexander, modified by Alan Beale
+#
+#	Date:     July 20, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Program to print various character translation tables.  See
+#  procedure help() for the capabilities.
+#
+############################################################################
+#
+#  Links: options, colmize, hexcvt, ebcdic
+#
+############################################################################
+
+link options, colmize, hexcvt, ebcdic
+
+global Graphic, Conv
+
+procedure main(arg)
+   local opt
+
+   opt := options(arg,"acedo")
+   Conv := if \opt["d"] then "d" else if \opt["o"] then "o"
+   init()
+   every write(colmize(
+	 if \opt["a"] then ASCII()
+	 else if \opt["e"] then EBCDIC()
+	 else if \opt["c"] then ASCIICtrl()
+	 else help()
+   ))
+end
+
+procedure help()
+   write("Usage: xtable -<option>")
+   write("Options:")
+   write("\ta: ASCII table")
+   write("\tc: ASCII control char table")
+   write("\te: EBCDIC table")
+   write("\td: decimal numbers")
+   write("\te: octal numbers")
+end
+
+procedure init()
+   Graphic := cset(Ascii128()[33:-1])
+end
+
+procedure ASCII()
+   local c,i,lst,a128
+   lst := []
+   a128 := Ascii128()
+   every c := !a128 do {
+      i := AsciiOrd(c)
+      if not any(Graphic,c) then {
+	 c := image(c)[2:-1]
+	 if match("\\x",c) then next
+	 }
+      put(lst,"|  " || convert(i) || " " || c)
+      }
+   return lst
+end
+
+procedure ASCIICtrl()
+   local a,c,ctrls,i,lst,a128
+   ctrls := "\^ \^!\^"\^#\^$\^%\^&\^'\^(\^)\^*\^+\^,\^-\^.\^/_
+	 \^0\^1\^2\^3\^4\^5\^6\^7\^8\^9\^:\^;\^<\^=\^>\^?\^@_
+	 \^A\^B\^C\^D\^E\^F\^G\^H\^I\^J\^K\^L\^M_
+	 \^N\^O\^P\^Q\^R\^S\^T\^U\^V\^W\^X\^Y\^Z_
+	 \^[\^\\^]\^^\^_\^`_
+	 \^a\^b\^c\^d\^e\^f\^g\^h\^i\^j\^k\^l\^m_
+	 \^n\^o\^p\^q\^r\^s\^t\^u\^v\^w\^x\^y\^z_
+	 \^{\^|\^}\^~"
+   lst := []
+   a128 := Ascii128()
+   a := create !a128[33:-1]
+   every c := !ctrls do {
+      i := AsciiOrd(c)
+      put(lst,"|  " || convert(i) || " ^" || @a)
+      }
+   return lst
+end
+
+procedure EBCDIC()
+   local EBCDICMap,c,i,lst
+   EBCDICMap := repl(".",64) ||                    # 00 - 3F
+	 " ...........<(+|&.........!$*);^" ||     # 40 - 5F
+	 "-/.........,%_>?.........`:#@'=\"" ||    # 60 - 7F
+	 ".abcdefghi.......jklmnopqr......" ||     # 80 - 9F
+	 ".~stuvwxyz...[...............].." ||     # A0 - BF
+	 "{ABCDEFGHI......}JKLMNOPQR......" ||     # C0 - CF
+	 "\\.STUVWXYZ......0123456789......"       # E0 - FF
+   lst := []
+   i := -1
+   every c := !EBCDICMap do {
+      i +:= 1
+      if i = 16r4B | "." ~== c then
+	    put(lst,"|  " || convert(i) || " " || c)
+      }
+   return lst
+end
+
+procedure convert(n)
+   return case Conv of {
+      "d": right(n,3,"0")
+      "o": octstring(n,3)
+      default: hexstring(n,2)
+      }
+end
+
+#
+#  octstring() -- Returns a string that is the octal
+#  representation of the argument.
+#
+procedure octstring(i,n)
+   local s
+   i := integer(i) | fail
+   if i = 0 then s := "0"
+   else {
+	s := ""
+	while i ~= 0 do {
+	    s := iand(i,7) || s
+	    i := ishift(i,-3)
+	    }
+	}
+   s := right(s,\n,"0")
+   return s
+end
+

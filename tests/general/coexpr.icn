@@ -1,0 +1,65 @@
+record array(a,b,c,d,e,f,g)
+
+procedure dummy(u,v,x,y,z)
+   suspend u | v
+   return x
+end
+
+
+procedure f(x,y,z)
+end
+
+procedure main()
+   if not(&features == "co-expressions") then
+      stop("co-expressions not supported")
+   write(image(&main))
+   write(image(&source))
+   write(image(&current))
+   e := create foo
+   write(image(foo))
+   f(&main,&source,e)
+   write(image(x := [array(),table(),write,input,1,"abc",'aa',&null,create 1]) | "failed")
+   write(image(x := sort(x)) | "failed")
+   write(image(every write(image(!x))) | "failed")
+   write(image(e := create 1 to 10) | "failed")
+   write(image(@e) | "failed")
+   write(image(@e) | "failed")
+   write(image(@e) | "failed")
+   write(image(e := ^e) | "failed")
+   write(image(@e) | "failed")
+   write(image(@e) | "failed")
+   write(image(@e) | "failed")
+   write(image(@e) | "failed")
+   write(image(@e) | "failed")
+   write(image(@e) | "failed")
+   write(image(@e) | "failed")
+   write(image(@e) | "failed")
+   write(image(@e) | "failed")
+   write(image(@e) | "failed")
+   write(image(@e) | "failed")
+   write(image(@e) | "failed")
+   write(image(@e) | "failed")
+   write(image(@e) | "failed")
+   write(image(*e) | "failed")
+   write(image(*e) | "failed")
+   write(image(image(e)) | "failed")
+   write(image(tab := create {write("entering tab"); 1 | 2 | 3}) | "failed")
+   write(image(trim := create {write("entering trim"); @tab | (main @:= tab)}) | "failed")
+   write(image(@trim) | "failed")
+   write(image(@trim) | "failed")
+   write(image(write(image(trim))) | "failed")
+   write(image(write(image(tab))) | "failed")
+   write(image(write(image(main))) | "failed")
+   &trace := -1
+   dummy{1,2,3,4}
+   dummy{}
+   dummy(image{1,2,3,4})
+   dummy(put{1,2,3,4})
+   dummy("*"{1,2,3,4})
+   dummy(image("|||"([],[])))
+   dummy("+"(1,2))
+   dummy("+"(1))
+   dummy("image"(image(image)))
+end
+
+invocable "*", "|||", "+", "image"

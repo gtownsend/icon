@@ -1,0 +1,22 @@
+
+procedure clear_pane(win, n, m, size)
+   local x, y, width, height, save_fg
+
+   width := n * size + 1
+   height := m * size + 1
+
+   save_fg := Fg(win)
+
+   Fg(win, "black")
+
+   every x := 0 to width by size do
+      DrawLine(win, x, 0, x, height)
+
+   every y := 0 to height by size do
+      DrawLine(win, 0, y, width, y)
+
+   Fg(win, save_fg)
+
+   return
+
+end

@@ -1,0 +1,52 @@
+############################################################################
+#
+#	File:     streamer.icn
+#
+#	Subject:  Program to append lines of file into one long line
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 12, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program outputs one long line obtained by concatenating the
+#  lines of the input file.
+#
+#  The supported options are:
+#
+#	-l i	stop when line reaches or exceeds i; default no limit
+#	-s s	insert s after each line; default no separator
+#
+#  Separators are counted in the length limit.
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local opts, length, line, limit, sep, ssize
+
+   opts := options(args, "l+s:")
+   limit := opts["l"]
+   sep := \opts["s"] | ""
+   ssize := *sep
+
+   length := 0
+
+   while line := writes(read(), sep) do {
+      length +:= *line + ssize
+      if length >= \limit then break
+      }
+
+   write()
+
+end

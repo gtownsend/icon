@@ -1,0 +1,94 @@
+				TCLL1
+		The TCLL1 Parser Generator and Parser
+		(TC: "Tools of Computing")
+
+BUILD1.BAT    MS-DOS batch file to compile TCLL1. It should be
+		able to execute	as a shell script under UNIX.
+
+TCLL1.ICN	main program for TCLL1
+LL1.ICN		LL(1) parser generation routines
+SCANGRAM.ICN	scanner for input grammars
+SEMGRAM.ICN	semantics routines for handling the input grammars
+TCLL1.GRM	grammar for input grammars
+TCLL1.LL1	translated input grammar for input grammars
+GRAMANAL.ICN	context-free grammar analysis module
+
+PARSELL1.ICN	LL(1) parser
+READLL1.ICN	input routine for translated grammars
+SEMSTK.ICN	semantics routines called by PARSELL1.ICN to handle
+		the semantics stack
+
+RPTPERR.ICN	routine to report syntax errors
+
+SEMOUT.ICN	semantics routines just to write out the tokens and
+		action symbols (for early stages of debugging the
+		grammar)
+
+
+		Building the parser generator
+
+Before reading the rest of this description of TCLL1, you
+should compile it on your own system. That will allow you to
+try out the test grammars as they are discussed.
+
+If you do not have a copy of Icon, you can get it over the
+Internet: ftp it from cs.arizona.edu:
+	ftp ftp.cs.arizona.edu
+	name: anonymous
+	password: your_e-mail_address
+	cd icon
+
+Versions of Icon for several machines are in subdirectories of
+directory icon. You may also want to pick up the Icon
+Programming Library.
+
+If you have the Icon Programming Library (IPL) installed on a
+DOS/WINDOWS machine, you can execute the batch file
+mktcll1.bat to build the parser generator. The three files from
+the IPL that the parser generator uses are included with this
+distribution and can be compiled separately. To build the
+parser generator by hand, you may execute
+
+	rem 	These are from the Icon Program Library:
+
+	icont -c  escape ebcdic xcode
+
+	rem 	These form the parser generator proper
+
+	icont -c gramanal ll1 semstk readll1 parsell1 scangram semgram
+	icont -fs tcll1
+
+The first icont line compiles the files from the IPL. You may
+omit the line if you have the IPL installed. The second icont
+line compiles modules used by the parser generator. The third
+line compiles the parser generator's main program. The flag -fs
+tells the translator that the parser generator calls some
+procedures by giving their names as strings. In Icon version 8,
+this flag is not needed; in version 9 it is.
+
+To use TCLL1 to build a parsing table, execute
+
+		Under Icon version 8:
+
+	iconx tcll1 grammar.grm
+
+		Under Icon version 9:
+
+	tcll1 grammar.grm
+
+where grammar.grm is the grammar file. The output of the parser
+generator will be encoded parse tables in file grammar.ll1 . If
+you would also like a listing of the grammar and diagnostic
+information, execute
+
+		Under Icon version 8:
+
+	iconx tcll1 -p grammar.grm
+
+		Under Icon version 9:
+
+	tcll1 -p grammar.grm
+
+Tlcll1 reads its own parsing table from file tcll1.ll1 which
+must be in the current directory.
+

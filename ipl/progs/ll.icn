@@ -1,0 +1,36 @@
+############################################################################
+#
+#	File:     ll.icn
+#
+#	Subject:  Program to list shortest and longest lines in a file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 12, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program reads a file from standard input and writes out the
+#  lengths of the shortest and longest lines in it.
+#
+############################################################################
+
+procedure main()
+   local length, max, min
+
+   max := 0
+   min := 2 ^ 31			#  good enough ...
+
+   while length := *read() do {
+      max <:= length
+      min >:= length
+      }
+
+   write(min)
+   write(max)
+
+end

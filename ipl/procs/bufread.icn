@@ -1,0 +1,235 @@
+############################################################################
+#
+#   File:     bufread.icn
+#
+#   Subject:  Procedures for buffered read and lookahead
+#
+#   Author:   Charles A. Shartsis
+#
+#   Date:     March 11,1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#   Version:  1.0
+#
+############################################################################
+#
+#   Synopsis:
+#
+#       bufopen(s)      Open a file name s for buffered read and lookahead
+#       bufread(f)      Read the next line from file f
+#       bufnext(f, n)   Return the next nth record from file f
+#                       without changing the next record to be read by
+#                       bufread
+#       bufclose(f)     Close file f
+#
+############################################################################
+#    
+#   These procedures provide a mechanism for looking ahead an 
+#   arbitrary number of records in an open file while still
+#   keeping track of the logical current record and end-of-file.
+#   Although similar in intent to the procedures in buffer.icn, these
+#   procedures are used differently.  The procedures bufopen, 
+#   bufread, and bufclose were designed to closely mirror the
+#   built-in open, read, and close.
+#   
+#   A code segment like
+#   
+#           file := open("name", "r") | stop("open failed")
+#           while line := read(file) do {
+#               ...process current line...
+#           }
+#           close(file)
+#   
+#   can be changed to the following with no difference in behavior:
+#   
+#           file := bufopen("name", "r") | stop("open failed")
+#           while line := bufread(file) do {
+#               ...process current line...
+#           }
+#           bufclose(file)
+#   
+#   However in addition to processing the current line, one may
+#   also process subsequent lines BEFORE they are logically
+#   read:
+#   
+#           file := bufopen("name", "r") | stop("open failed")
+#           while line := bufread(file) do {
+#               ...process current line...
+#               line := bufnext(file,1) # return next line
+#               ...process next line...
+#               line := bufnext(file,2) # return 2nd next line
+#               ...process 2nd next line...
+#               ...etc...
+#           }
+#           bufclose(file)
+#   
+#   In the code above, calls to bufnext do not affect the results of 
+#   subsequent bufread's.  The bufread procedure always steps through
+#   the input file a line at a time without skipping lines whether or 
+#   not bufnext is called.
+#
+############################################################################
+#
+#   Here is a more detailed description of the procedures:
+#   
+#   bufopen(s)
+#   ==========
+#   Produces a file resulting from opening s for reading ("r" option),
+#   but fails if the file cannot be opened.  if s is missing or
+#   the value of s is &null, then standard input is opened and
+#   &input is returned.  Unlike the Icon open function, bufopen()
+#   can and must be called prior to any call to bufread or bufnext
+#   involving standard input.  Unlike named files, only one buffered
+#   standard input may be open at any given time.
+#   
+#   Default:
+#   s   &null   (indicates &input should be opened for buffered
+#               reading)
+#               
+#   Errors (from open):
+#   103     s not string
+#   
+#   Errors (new):
+#   Attempt to open standard input when currently open
+#   
+#
+#   bufread(f)
+#   ==========
+#   Produces a string consisting of the next line from f, but fails on
+#   end of file.   Calls to bufnext do not affect the results of
+#   subsequent bufread's.  The procedure bufread always steps
+#   through a file a line at a time without skipping lines.  The 
+#   procedure bufread fails when a logical end of file is
+#   reached, i.e., when the physical end of file has 
+#   been reached AND the internal buffer is empty.
+#   
+#   Default:
+#   f   &input
+#   
+#   Errors:
+#   f is not a file
+#   f not opened for buffered reads (includes &input)
+#   
+#   
+#   bufnext(f, n)
+#   =============
+#   Produces a string consisting of the nth next line from f after
+#   the current line.  It fails when the physical end of file
+#   has been reached.
+#   
+#   Default:
+#   f   &input
+#   n   1 (the next line after the current one)
+#   
+#   Errors:
+#   f is not a file
+#   f not opened for buffered reads (includes &input)
+#   n not convertible to integer
+#   n not positive
+#
+#   
+#   bufclose(f)
+#   ===========
+#   Produces f after closing it.  Standard input must
+#   be closed before it can be reopened using bufopen.
+#   If standard input is closed, all lines read using bufnext
+#   are lost when it is reopened.  In general, there is no
+#   practical reason to bufclose and then bufopen standard input.
+#   One may want to bufclose standard input to release its
+#   internal buffer for garbage collection.
+#   
+#   Default:
+#   f   &input
+#   
+#   Errors (from close):
+#   105     f not file
+#   
+############################################################################
+
+global __buf
+
+procedure bufopen(fname)
+
+    local file
+    
+    if /__buf then
+        __buf := table(&null)
+    
+    if /fname then {
+        /__buf[&input] | stop("bufopen: Standard input is already open")
+        __buf[&input] := []
+        return &input
+    }
+    else
+        if file := open(fname, "r") then {
+            __buf[file] := []
+            return file
+        }
+        else fail
+        
+end
+
+procedure bufclose(file)
+
+    if /__buf then
+        __buf := table(&null)
+        
+    if /file then {
+        __buf[&input] := &null
+        return &input
+    }
+    else {
+        close(file)
+        __buf[file] := &null
+        return file
+    }
+
+end
+
+procedure bufread(file)
+
+    local buf
+
+    if /__buf then
+        __buf := table(&null)
+        
+    if /file then
+        file := &input
+
+    type(file) == "file" | stop("bufread: Parameter is not a file")
+    buf := \__buf[file] | stop("bufread: File not open for buffered reads")
+    return get(buf) | read(file)
+
+end
+
+procedure bufnext(file, n)
+
+    local buf
+
+    if /__buf then
+        __buf := table(&null)
+    
+    if /file then
+        file := &input
+        
+    if /n then
+        n := 1
+        
+    type(file) == "file" | stop("bufnext: Parameter is not a file")
+    integer(n) | stop("bufnext: Look ahead count was not convertible to integer")
+    (n > 0) | stop("bufnext: Look ahead count was non-positive")
+    buf := \__buf[file] | stop("bufnext: File not open for buffered reads")
+
+    return buf[n] |
+        (
+            while *buf < n do
+                (put(buf, read(file)) | break &fail) 
+        ) |
+        buf[n]
+
+end

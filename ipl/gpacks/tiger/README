@@ -1,0 +1,66 @@
+Tiger README file
+Gregg M. Townsend
+January 20, 1996
+(updated August 7, 1998)
+
+These programs draw road and street maps from the "TIGER94" data files
+of the U.S. Census Bureau.  Two programs are key:
+
+   tgrprep.icn	reformats the data into smaller, more easily displayed
+		"line chain" files.
+
+   tgrmap.icn	reads a line chain file and displays a map.  Zooming
+		and other features are provided.  A subset of the map
+		can be saved as either line chains or as a PostScript
+		file for printing.
+
+Some sample line chain files are available from the Icon web site:
+	http://www.cs.arizona.edu/icon/oddsends/tiger/tiger.htm
+
+Other programs are useful, though not necessary:
+
+   tgrlink.icn	connects line chains to produce a smaller, faster version
+		of the same data
+
+   trgmerge.icn	merges data from multiple line chain files
+
+There is a wealth of information in the TIGER files; only some of it is
+displayed.  In particular, street names are not displayed, and bounded
+regions such as lakes are not filled in.
+
+
+TIGER94 data is available from the Census Bureau on CD-ROM; six discs
+cover the entire United States.  Each CD-ROM also includes documentation
+of the file formats.  The discs are $250 each; telephone +1 301 457 4100.
+
+The Census Bureau has a TIGER page on the World Wide Web:
+	http://tiger.census.gov/
+They have an on-line mapping service that is somewhat more sophisticated
+that these programs.
+
+
+At this writing the six CD-ROMs are available on-line via NFS or FTP
+over the internet from a CD-ROM farm at the University of California
+at Berkeley.  For details see their page on the World Wide Web:
+	http://www.lib.berkeley.edu/GSSI/uc_cdrom.html
+Be sure to get the *1994* data.  Older data is in a different format.
+
+CD-ROMs may also be available at your nearest Federal Depository Library.
+Check with nearby research universities or big-city public libraries.
+Local data may also be available from city or county planning offices
+and the like.
+
+
+The process of making a map goes something like this:
+    * find the appropriate data file; there is one for every county
+    * unzip the county file, producing about 15 separate files
+    * run tgrprep, using the first two of those files, to make a .lch file
+    * run tgrmap, reading the .lch file
+    * zoom in on the area of interest
+    * save that as a new and smaller .lch file
+    * optimize the .lch file using tgrlink  [this step is optional]
+
+The final .lch file can be redisplayed, explored, printed, and so on.
+
+
+These programs and scripts were developed and tested under UNIX.

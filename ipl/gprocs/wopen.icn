@@ -1,0 +1,231 @@
+############################################################################
+#
+#	File:     wopen.icn
+#
+#	Subject:  Procedures for graphics input/output
+#
+#	Authors:  Gregg M. Townsend and Ralph E. Griswold
+#
+#	Date:     September 16, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	These procedures provide window input and output using "W" names as
+#	substitutes for standard input and output functions.  WOpen() opens
+#	and returns a window; the result is also assigned to &window if
+#	&window is null. 
+#
+#	WOpen(attrib, ...)	opens and returns a window.
+#
+#	WRead(W)		reads a line from a window.
+#
+#	WReads(W, i)		reads i characters from a window.
+#
+#	WWrite(W, s, ...)	writes a line to window.
+#
+#	WWrites(W, s, ...)	writes a partial line to window.
+#
+#	WDelay(W, n)		flushes a window, then delays n milliseconds.
+#				default:  n = 1
+#
+#	WClose(W)		closes a window;
+#				if W === &window, sets &window to &null.
+#
+#	WDone(), WQuit(), QuitCheck(), and QuitEvents() incorporate knowledge
+#	of the Icon standard set of "quit" events, currently the letters
+#	"q" or "Q".  The procedures themselves are trivial.
+#
+#	WQuit() consumes unread window events and succeeds if a quit event
+#	is seen.  It does not wait.  WDone() waits until a quit event is read,
+#	then exits the program.  QuitCheck(ev) calls exit() if its parameter
+#	is a quit event; QuitCheck can be used with the vidget package as a
+#	default event handler.  QuitEvents() generates the standard set of
+#	quit events.
+#
+#	ZDone() is a zooming version of WDone().  If the window is resized
+#	while waiting for a quit event, its contents are zoomed to fill the
+#	new size.  Zooming to a multiple of the original size can also be
+#	accomplished by typing a nonzero digit into the window.
+#
+#	Subwindow(W, x, y, w, h) produces a subwindow by creating and
+#	reconfiguring a clone of the given window.  The original window
+#	is not modified.  In the clone, which is returned, clipping
+#	bounds are set by the given rectangle and the origin is
+#	set at the rectangle's upper left corner.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+link gpxop
+
+
+procedure WOpen(args[])
+   push(args, "g")
+   push(args, "")
+   if /&window then
+      return &window := open ! args
+   else
+      return open ! args
+end
+
+
+procedure WRead(window)
+   if /window then
+      window := \&window | runerr(140, &window)
+   return read(window)
+end
+
+
+procedure WReads(window, i)
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+   if /window then
+      window := \&window | runerr(140, &window)
+   else if type(window) ~== "window" then {
+      i := window
+      window := \&window | runerr(140, &window)
+      }
+   return reads(window, i)
+end
+
+
+procedure WWrite(args[])
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+   if not (type(args[1]) == "window") then
+      push(args, \&window) | runerr(140, &window)
+   return write ! args
+end
+
+
+procedure WWrites(args[])
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+   if not (type(args[1]) == "window") then
+      push(args, \&window) | runerr(140, &window)
+   return writes ! args
+end
+
+
+procedure WDelay(window, n)
+   static delay, type
+
+   initial {
+      delay := proc("delay", 0)		# protect attractive names
+      type := proc("type", 0)
+      }
+
+   if /window then
+      window := \&window | runerr(140, &window)
+   else if type(window) ~== "window" then {
+      n := window
+      window := \&window | runerr(140, &window)
+      }
+   /n := 1
+   integer(n) | runerr(101, n)
+   WFlush(window)
+   delay(n)
+
+   return window
+
+end
+
+
+procedure WClose(window)
+   if /window then
+      window := \&window | runerr(140, &window)
+   if window === &window then
+      &window := &null
+   return close(window)
+end
+
+
+procedure QuitEvents()
+   suspend !"qQ"
+end
+
+
+procedure QuitCheck(ev)
+   if ev === QuitEvents() then
+      exit()
+   return
+end
+
+
+procedure WQuit(win)
+   /win := &window
+   while *Pending(win) > 0 do
+      if Event(win) === QuitEvents() then
+         return win
+   fail
+end
+
+
+procedure WDone(win)
+   /win := &window
+   until Event(win) === QuitEvents()
+   exit()
+end
+
+
+#  ZDone(win) -- like WDone(), but zoom window if resized while waiting
+
+procedure ZDone(win)
+   local org, e, w, h, ww, hh, x0, y0
+
+   /win := &window
+   x0 := -WAttrib(win, "dx")
+   y0 := -WAttrib(win, "dy")
+   w := WAttrib(win, "width")
+   h := WAttrib(win, "height")
+   org := WOpen("width=" || w, "height=" || h, "canvas=hidden") | WDone()
+   CopyArea(win, org, x0, y0)
+   WAttrib(win, "resize=on")
+   while e := Event(win) do case e of {
+      QuitEvents(win):
+         exit()
+      &resize:
+         Zoom(org, win, , , , , x0, y0)
+      !"123456789": {
+         ww := e * w
+         hh := e * h
+         WAttrib(win, "width=" || ww, "height=" || hh)
+         Zoom(org, win, , , , , x0, y0, ww, hh)
+         }
+      }
+end
+
+procedure SubWindow(win, x, y, w, h)
+   static type
+   initial type := proc("type", 0)	# protect attractive name
+
+   if type(win) ~== "window" then
+      return SubWindow((\&window | runerr(140)), win, x, y, w)
+
+   /x := -WAttrib(win, "dx")
+   /y := -WAttrib(win, "dy")
+   /w := WAttrib(win, "width") - (x + WAttrib(win, "dx"))
+   /h := WAttrib(win, "height") - (y + WAttrib(win, "dy"))
+
+   if w < 0 then
+      x -:= (w := -w)
+   if h < 0 then
+      y -:= (h := -h)
+
+   win := Clone(win,
+      "dx=" || WAttrib(win, "dx") + x,
+      "dy=" || WAttrib(win, "dy") + y)
+   Clip(win, 0, 0, w, h)
+   GotoRC(win, 1, 1)
+   return win
+end

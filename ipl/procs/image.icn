@@ -1,0 +1,323 @@
+############################################################################
+#
+#	File:     image.icn
+#
+#	Subject:  Procedures to produce images of Icon values
+#
+#	Authors:  Michael Glass, Ralph E. Griswold, and David Yost
+#
+#	Date:     March 7, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#  The procedure Image(x,style) produces a string image of the value x.
+#  The value produced is a generalization of the value produced by
+#  the Icon function image(x), providing detailed information about
+#  structures. The value of style determines the formatting and
+#  order of processing:
+#
+#     1   indented, with ] and ) at end of last item (default)
+#     2   indented, with ] and ) on new line
+#     3   puts the whole image on one line
+#     4   as 3, but with structures expanded breadth-first instead of
+#         depth-first as for other styles.
+#  
+############################################################################
+#
+#     Tags are used to uniquely identify structures. A tag consists
+#  of a letter identifying the type followed by an integer. The tag
+#  letters are L for lists, R for records, S for sets, and T for
+#  tables. The first time a structure is encountered, it is imaged
+#  as the tag followed by a colon, followed by a representation of
+#  the structure. If the same structure is encountered again, only
+#  the tag is given.
+#  
+#     An example is
+#  
+#     a := ["x"]
+#     push(a,a)
+#     t := table()
+#     push(a,t)
+#     t[a] := t
+#     t["x"] := []
+#     t[t] := a
+#     write(Image(t))
+#  
+#  which produces
+#  
+#  T1:[
+#    "x"->L1:[],
+#    L2:[
+#      T1,
+#      L2,
+#      "x"]->T1,
+#    T1->L2]
+#
+#  On the other hand, Image(t,3) produces
+#
+#     T1:["x"->L1:[],L2:[T1,L2,"x"]->T1,T1->L2]
+#  
+#  Note that a table is represented as a list of entry and assigned
+#  values separated by ->.
+#  
+############################################################################
+#
+#  Problem:
+#
+#     The procedure here really is a combination of an earlier version and
+#  two modifications to it.  It should be re-organized to combine the
+#  presentation style and order of expansion.
+#
+#  Bug:
+#
+#     Since the table of structures used in a call to Image is local to
+#  that call, but the numbers used to generate unique tags are static to
+#  the procedures that generate tags, the same structure gets different
+#  tags in different calls of Image.
+#
+############################################################################
+
+procedure Image(x,style,done,depth,nonewline)
+   local retval
+
+   if style === 4 then return Imageb(x)	# breadth-first style
+
+   /style := 1
+   /done := table()
+   if /depth then depth := 0
+   else depth +:= 2
+   if (style ~= 3 & depth > 0 & /nonewline) then
+      retval := "\n" || repl(" ",depth)
+   else retval := ""
+   if match("record ",image(x)) then retval ||:= rimage(x,done,depth,style)
+   else {
+      retval ||:=
+      case type(x) of {
+	 "list":  Limage(x,done,depth,style)
+	 "table": Timage(x,done,depth,style)
+	 "set":   Simage(x,done,depth,style)
+	 default: image(x)
+	 }
+   }
+   depth -:= 2
+   return retval
+end
+
+#  list image
+#
+procedure Limage(a,done,depth,style)
+   static i
+   local s, tag
+   initial i := 0
+   if \done[a] then return done[a]
+   done[a] := tag := "L" || (i +:= 1)
+   if *a = 0 then s := tag || ":[]" else {
+      s := tag || ":["
+      every s ||:= Image(!a,style,done,depth) || ","
+      s[-1] := endof("]",depth,style)
+      }
+   return s
+end
+
+#  record image
+#
+procedure Rimage(x,done,depth,style)
+   static i
+   local s, tag
+   initial i := 0
+   s := image(x)
+					#  might be record constructor
+   if match("record constructor ",s) then return s
+   if \done[x] then return done[x]
+   done[x] := tag := "R" || (i +:= 1)
+   s ?:=  (="record " & (":" || (tab(upto('(') + 1))))
+   if *x = 0 then s := tag || s || ")" else {
+      s := tag || s
+      every s ||:= Image(!x,style,done,depth) || ","
+      s[-1] := endof(")",depth,style)
+      }
+   return s
+end
+
+# set image
+#
+procedure Simage(S,done,depth,style)
+   static i
+   local s, tag
+   initial i := 0
+   if \done[S] then return done[S]
+   done[S] := tag := "S" || (i +:= 1)
+   if *S = 0 then s := tag || ":[]" else {
+      s := tag || ":["
+      every s ||:= Image(!S,style,done,depth) || ","
+      s[-1] := endof("]",depth,style)
+      }
+   return s
+end
+
+#  table image
+#
+procedure Timage(t,done,depth,style)
+   static i
+   local s, tag, a, a1
+   initial i := 0
+   if \done[t] then return done[t]
+   done[t] := tag := "T" || (i +:= 1)
+   if *t = 0 then s := tag || ":[]" else {
+      a := sort(t,3)
+      s := tag || ":["
+      while s ||:= Image(get(a),style,done,depth) || "->" ||
+		   Image(get(a),style,done,depth,1) || ","
+      s[-1] := endof("]",depth,style)
+      }
+   return s
+end
+
+procedure endof (s,depth,style)
+   if style = 2 then return "\n" || repl(" ",depth) || "]"
+   else return "]"
+end
+
+############################################################################
+#
+#  What follows is the breadth-first expansion style
+#
+
+procedure Imageb(x, done, tags)
+   local t
+
+   if /done then {
+      done := [set()]  # done[1] actually done; done[2:0] pseudo-done
+      tags := table()    # unique label for each structure
+      }
+
+   if member(!done, x) then return tags[x]
+
+   t := tagit(x, tags)     # The tag for x if structure; image(x) if not
+
+   if /tags[x] then
+      return t                       # Wasn't a structure
+   else {
+      insert(done[1], x)             # Mark x as actually done
+      return case t[1] of {
+         "R":  rimageb(x, done, tags)     # record
+         "L":  limageb(x, done, tags)     # list
+         "T":  timageb(x, done, tags)     # table
+         "S":  simageb(x, done, tags)     # set
+         }
+      }
+end
+
+
+#  Create and return a tag for a structure, and save it in tags[x].
+#  Otherwise, if x is not a structure, return image(x).
+#
+procedure tagit(x, tags)
+   local ximage, t, prefix
+   static serial
+   initial serial := table(0)
+
+   if \tags[x] then return tags[x]
+
+   if match("record constructor ", ximage := image(x)) then
+      return ximage                # record constructor
+
+   if match("record ", t := ximage) |
+      ((t := type(x)) == ("list" | "table" | "set")) then {
+         prefix := map(t[1], "rlts", "RLTS")
+         return tags[x] := prefix || (serial[prefix] +:=1)
+         }                        # structure
+
+   else return ximage             # anything else
+end
+
+
+#  Every component sub-structure of the current structure gets tagged
+#  and added to a pseudo-done set.
+#
+procedure defer_image(a, done, tags)
+   local x, t
+   t := set()
+   every x := !a do {
+      tagit(x, tags)
+      if \tags[x] then insert(t, x)  # if x actually is a sub-structure
+      }
+   put(done, t)
+   return
+end
+
+
+#  Create the image of every component of the current structure.
+#  Sub-structures get deleted from the local pseudo-done set before
+#  we actually create their image.
+#
+procedure do_image(a, done, tags)
+   local x, t
+   t := done[-1]
+   suspend (delete(t, x := !a), Imageb(x, done, tags))
+end
+
+
+#  list image
+#
+procedure limageb(a, done, tags)
+   local s
+   if *a = 0 then s := tags[a] || ":[]" else {
+      defer_image(a, done, tags)
+      s := tags[a] || ":["
+      every s ||:= do_image(a, done, tags) || ","
+      s[-1] := "]"
+      pull(done)
+      }
+   return s
+end
+
+#  record image
+#
+procedure rimageb(x, done, tags)
+   local s
+   s := image(x)
+   s ?:=  (="record " & (":" || (tab(upto('(') + 1))))
+   if *x = 0 then s := tags[x] || s || ")" else {
+      defer_image(x, done, tags)
+      s := tags[x] || s
+      every s ||:= do_image(x, done, tags) || ","
+      s[-1] := ")"
+      pull(done)
+      }
+   return s
+end
+
+# set image
+#
+procedure simageb(S, done, tags)
+   local s
+   if *S = 0 then s := tags[S] || ":[]" else {
+      defer_image(S, done, tags)
+      s := tags[S] || ":["
+      every s ||:= do_image(S, done, tags) || ","
+      s[-1] := "]"
+      pull(done)
+      }
+   return s
+end
+
+#  table image
+#
+procedure timageb(t, done, tags)
+   local s, a
+   if *t = 0 then s := tags[t] || ":[]" else {
+      a := sort(t,3)
+      defer_image(a, done, tags)
+      s := tags[t] || ":["
+      while s ||:= do_image([get(a)], done, tags) || "->" ||
+                   do_image([get(a)], done, tags) || ","
+      s[-1] := "]"
+      pull(done)
+      }
+   return s
+end

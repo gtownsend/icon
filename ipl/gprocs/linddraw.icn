@@ -1,0 +1,62 @@
+############################################################################
+#
+#	File:     linddraw.icn
+#
+#	Subject:  Procedure to draw L-System strings
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 28, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure draws strings of characters produced by
+#  L-systems.
+#
+############################################################################
+#
+#  Links:  lindgen, turtle
+#
+############################################################################
+
+link lindgen
+link turtle
+
+#  The drawing is based on the axiom and the rewriting rules.  The other
+#  parameters are the line length, the angle delta between lines, and
+#  the number of generations.  Drawing starts at x,y.
+
+procedure linddraw(		#: draw L-system
+   x, y, axiom, rewrite, length, delta, gener, delay
+   )
+   local c
+
+   /x := (WAttrib(\&window, "width") / 2) | 250
+   /y := (WAttrib(\&window, "height") / 2) | 250
+   /length := 5
+   /delta := 90
+
+   TReset()
+   TGoto(x, y)
+
+   every c := lindgen(!axiom, rewrite, gener) do {
+      WDelay(delay)
+      case c of {
+         "F":   TDraw(length)			# draw forward
+         "f":   TSkip(length)			# skip forward
+         "+":   TRight(delta)			# turn right
+         "-":   TLeft(delta)			# turn left
+         "[":   TSave()				# save state
+         "]":   TRestore()			# restore state
+         }					# ignore other characters
+      }
+
+   WFlush()
+
+   return
+
+end

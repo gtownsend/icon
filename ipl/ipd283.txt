@@ -1,0 +1,1203 @@
+The Icon Program Library; Version 9.3.2
+
+Ralph E. Griswold and Gregg M. Townsend
+
+Department of Computer Science
+The University of Arizona
+Tucson, Arizona
+
+IPD283a
+July 8, 1999
+http://www.cs.arizona.edu/icon/docs/ipd283.htm
+
+  ------------------------------------------------------------------------
+
+Introduction
+
+The Icon program library consists of Icon programs, procedures,
+documentation, and data. Version 9.3 of Icon is required for some parts of
+the library [1,2].
+
+Additional documentation about the Icon program library is available on the
+World Wide Web:
+
+     http://www.cs.arizona.edu/icon/
+
+Look in the Program Library section.
+
+Unloading the Library
+
+Note: The complete library, when unloaded, requires about 12MB of disk
+space. In particular, some documents in PostScript form are quite large. If
+your disk space is limited, take this into consideration before starting to
+unload.
+
+The library is designed to be unloaded in a hierarchy that contains separate
+directories for different kinds of material. Material that requires graphics
+[2] is in separate directories whose names begin with g. If Icon doesn't
+support graphics on your platform, you can ignore these directories.
+
+The directory structure for this version of the library is
+
+      |--data                    data
+      |
+      |--docs                    documentation
+      |
+      |--incl                    include files
+      |
+      |--packs                   packages
+      |
+      |--procs                   procedures
+      |
+      |--progs                   programs
+ipl---|
+      |--gdata                   as above, but for graphics
+      |
+      |--gdocs
+      |
+      |--gincl
+      |
+      |--gpacks
+      |
+      |--gprocs
+      |
+      |--gprogs
+      |
+      |--mdata                   as above, but for MT Icon
+      |
+      |--mdocs
+      |
+      |--mincl
+      |
+      |--mpacks
+      |
+      |--mprocs
+      |
+      |--mprogs
+      |
+      |--cfuncs                  loadable C functions
+
+The packages contain material that is too complex fit into other parts of
+the hierarchy or that does not conform to the library structure.
+
+The loadable C functions are for platforms on which Icon supports the
+built-in function loadfunc(). See the README in that directory for more
+information.
+
+The library files are packaged in different ways for different platforms.
+See the installation instructions for your platform.
+
+Link and Include Search Paths
+
+Many library programs link procedures. For example, options() is used by
+many programs for processing command-line options and is linked from "ucode"
+files obtained from translating options.icn.
+
+Icon searches for ucode files first in the current directory and then in
+directories specified by the IPATH environment variable. IPATH consists of a
+sequence of blank-separated path names. The search is in the order of the
+names. For example, on a UNIX system running csh,
+
+     setenv IPATH "../procs /usr/icon/ilib"
+
+results in a search for file names in link declarations first in the current
+directory, then in ../procs, and finally in /usr/icon/ilib.
+
+Files included by the preprocessor directive $include are searched for on
+LPATH. It has the same form as IPATH.
+
+The method of setting IPATH and LPATH varies from system to system.
+
+Since the current directory always is searched first, IPATH and LPATH need
+not be set if ucode and include files are placed in the same directory as
+the program files. See the next section.
+
+Installing the Library
+
+Installing the Icon program library consists of two steps: (1) translating
+the procedure files to produce ucode files and (2) compiling and linking the
+programs.
+
+Ucode files are produced by translating the procedure files with the -c
+option to icont, as in
+
+     icont -c options
+
+which translates options.icn. The result is two ucode files named options.u1
+and options.u2. The .u1 file contains the procedure's code and the .u2 file
+contains global information about the procedure. It is these files that a
+link declaration such as
+
+     link options
+
+needs.
+
+Scripts for translating the procedure files are provided with the
+distribution. Once the procedure files have been translated, the ucode files
+can be moved to any place that is accessible from IPATH.
+
+The basic and graphics programs are compiled and linked using icont without
+the -c option, as in
+
+     icont deal
+
+which comiples and links deal.icn, a program that produces randomly selected
+bridge hands. The MT Icon programs must be compiled with mticont, not icont.
+
+The result of compiling and linking a program is an "icode" file. On some
+platforms, the name of the icode file is the same as the name of the program
+file with the .icn suffix removed (for example, deal). On other platforms,
+the icode file name has the suffix .exe in place of .icn (for example,
+deal.exe). Scripts for compiling and linking the programs are provided with
+distributions for individual platforms. Instructions for building the
+programs contained in separate packages are included with those packages.
+
+Some platforms (UNIX and MS-DOS, for example) support the direct execution
+of icode files. On such systems, an icode file can be run just by entering
+its name on the command line, as in
+
+     deal
+
+On other systems, it is necessary to run iconx with the icode file as an
+argument, as in
+
+     iconx deal
+
+(This also works on systems that support direct execution.) Note that the
+suffix (if any) need not be mentioned.
+
+Many library programs take arguments and options from the command line.
+Options are identified by dashes. For example, in
+
+     deal -h 10
+
+the -h 10 instructs deal to produce 10 hands.
+
+Icode files can be moved to any location accessible from your PATH. Ucode
+and include files are needed only during linking. They need not be
+accessible when icode files are run.
+
+Usage Notes
+
+It is important to read the documentation at the beginning of programs and
+procedures in the library. It includes information about special
+requirements, limitations, known bugs, and so forth.
+
+Some of the programs in the Icon program library are quite large and may
+require more memory than is available on some platforms.
+
+Disclaimer
+
+The material in the Icon program library is contributed by users. It is in
+the public domain and can be freely copied, although author information
+should be left intact and any modifications should be properly attributed.
+
+Neither the Icon Project nor the authors of material in the Icon program
+library assume any responsibility as to its correctness or its suitability
+for any purpose. The responsibility for use of the Icon program library lies
+entirely with the user.
+
+Contents
+
+Programs -- progs
+
+     adlcheck    check for bad address list data
+     adlcount    count address list entries
+     adlfiltr    filter address list entries
+     adlfirst    write first line of addresses
+     adllist     list address list fields
+     adlsort     sort address list entries
+     allocwrl    display storage allocation in VRML
+     animal      play "animal" guessing game
+     applyfnc    apply function to lines of a file
+     banner      display banner
+     based       do BASIC-style editing
+     bfd         compute best-fit-descending bin packing
+     bj          play blackjack game
+     blnk2tab    convert strings of 2 or more blanks to tabs
+     c2icn       assist C-to-Icon porting
+     calc        simulate desk calculator
+     catlines    concatenate lines of a file
+     chars       list the different characters in a file
+     chkhtml     check HTML files
+     chop        restrict numerical values
+     colm        arrange data into columns
+     comfiles    list common files in two directories
+     compare     look for duplicates in a collection of files
+     comply83    check compliance with MS-DOS name restrictions
+     concord     produce concordance
+     conman      convert units
+     countlst    count items in a list
+     cross       display intersection of words
+     crypt       encrypt file
+     csgen       generate context-sensitive sentences
+     cstrings    print strings in C files
+     cwd         write current working directory
+     daystil     calculate the number of days until a given date
+     deal        deal bridge hands
+     declchck    detect possible declaration errors
+     delam       delaminate file
+     delamc      delaminate file using tab characters
+     dellines    delete lines from a file
+     delta       list differences between successive numbers
+     detex       strip LaTeX commands
+     diffn       show differences among files
+     diffsort    reorder "diff" output
+     diffsum     count lines affected by a diff
+     diffu       show differences in files
+     diffword    list different words
+     digcol      produce nth column of digit data
+     diskpack    produce packing list for diskettes
+     duplfile    find directories with same files
+     duplproc    find duplicate declarations
+     edscript    produce script for ed(1)
+     empg        make expression-evaluation programs
+     envelope    address envelopes
+     evaluate    evaluate Icon expressions
+     extweave    extract weaving specifications from weave file
+     farb2       generate Farberisms
+     filecnvt    convert line terminators
+     filehtml    create Web page with links to files
+     fileprep    prepare file information for IPL indexes
+     fileprnt    display characters in file
+     filerepl    replicate file
+     filesect    produce section of a file
+     filexref    cross-reference files by components
+     filtskel    skeleton for generic filter
+     findstr     find embedded character strings
+     findtext    retrieve data from files indexed by idxtext
+     fixhqx      strip headers from BinHex files
+     fixpath     replace path in a binary file
+     fnctab      list function usage
+     fnctmpl     produce function templates
+     format      word wrap a range of text
+     former      format long string in fixed-length lines
+     fract       approximate real number as a fraction
+     fset        do set operations on file specifications
+     fuzz        perform fuzzy pattern matching
+     gcomp       produce complement of file specification
+     geddump     dump contents of GEDCOM file
+     gediff      "diff" for use with ged
+     gener       generate sequence from Icon expression
+     genfile     generate sequence from Icon expression in file
+     genqueen    solve arbitrary-size n-queens problem
+     getcol      extract column from data
+     getlines    extract lines from a file
+     gftrace     generating function tracing procedures
+     graphdem    demonstrate simple bar graphics
+     grpsort     sort groups of lines
+     hcal4unx    Jewish/Civil calendar in UNIX
+     headicon    add header to Icon program
+     hebcalen    combination Jewish/Civil calendar
+     hebeng      print mixed Hebrew/English text
+     hotedit     edit a Mosaic hotlist
+     hr          play horse-race game
+     htprep      prepare HTML files
+     huffstuf    huffman coding
+     hufftab     compute Huffman state transitions
+     ibar        equalize comment bars in Icon programs
+     ibrow       browse Icon files for declarations
+     icalc       simulate infix desk calculator
+     icalls      tabulate Icon calls
+     icn2c       assist Icon-to-C porting
+     icontent    list Icon procedures
+     icvt        ASCII/EBCDIC program conversion
+     idepth      report maximum recursion depth
+     idxtext     creating indexed text-base
+     ifilter     filter lines of file
+     ifncsgen    generate procedure wrappers for functions
+     igrep       string search similar to egrep
+     iheader     list Icon program library headers
+     ihelp       give on-line help for Icon
+     iidecode    decode text in style of uudecode
+     iiencode    encode text in the style of uuencode
+     ilnkxref    produce Icon link cross reference
+     ilump       lump linked Icon source files
+     imagetyp    show types of image files
+     imaghtml    produce Web page for image files
+     indxcomp    assist in index compilation
+     ineeds      print modules required by an Icon program
+     inter       find common values in two lists
+     interpe     interpret Icon expressions
+     interpp     interpret Icon programs
+     ipatch      patch iconx path in executable
+     ipldoc      collect library documentation
+     iplindex    produce indexed listing of the program library
+     iplkwic     produce keywords in context for IPL
+     iplweb      generate web pages from IPL header comments
+     ipower      write sequence of powers
+     ipp         preprocess Icon programs
+     iprint      print Icon program
+     iprofile    profile Icon procedure usage
+     ipsort      sort Icon procedures
+     ipsplit     split Icon program into files
+     ipxref      cross reference Icon program
+     irsort      sort Icon record declaration
+     irunerr     print Icon runtime errors
+     iseq        write sequence of integers
+     isize       measure size of an Icon program
+     isrcline    count code lines in Icon program
+     istrip      strip comments from Icon program
+     itab        entab an Icon program
+     itags       create tags file for Icon programs
+     itrbksum    give summary of traceback
+     itrcfltr    filter trace output
+     itrcsum     give summary of trace output
+     iundecl     find undeclared Icon identifiers
+     iversion    show icode version
+     iwriter     write Icon code to write input
+     knapsack    fill a container
+     krieg       play kriegspiel
+     kross       show intersections of strings
+     kwic        produce keywords in context
+     kwicprep    prepare information for IPL KWIC listings
+     la          give exponent approximation for large numbers
+     labels      format mailing labels
+     lam         laminate files
+     latexidx    process LaTeX idx file
+     lc          count lines in file
+     lcfile      convert file names to lowercase
+     lcn         tp convert file names to all lowercase
+     limitf      limit throughput
+     lindcode    produce Icon code from L-system specifications
+     lindsys     generate sentences in 0L-systems
+     lineseq     write a sequence of values on a line
+     link2url    convert links to URLs
+     lisp        interpret LISP programs
+     lister      list filess
+     listhtml    create Web page with links to listed files
+     listviz     visualize lists
+     literat     manage literature information
+     ll          list shortest and longest lines in a file
+     loadmap     show load map of UNIX object file
+     longest     write longest line in a file
+     lower       map file names to lowercase
+     lssum       sum the file sizes in an ls -l listing
+     lsysmap     map L-system symbols
+     maccvt      convert Macintosh special characters to ASCII
+     makepuzz    make find-the-word puzzle
+     mapcolrs    map colors in lists
+     midisig     show signature of a MIDI file
+     missile     play missile command game
+     miu         generate strings from MIU system
+     mkpasswd    make passwords
+     monkeys     generate random text
+     morse       convert string to Morse code
+     mover       move files from one name to another
+     mr          read mail
+     mszip       ZIP a directory for MS-DOS use
+     mtf3        map tar file
+     mtutils     fpr MT Icon
+     newicon     produce new Icon program file
+     newsrc      organize UNIX .newsrc file
+     nim         play the game of nim
+     nocr        convert MS-DOS text files to UNIX
+     normalize   normalize numeric channel
+     oldicon     update the date in an Icon program header
+     pack        package multiple files
+     paginate    insert formfeeds
+     papply      apply procedure to lines of file
+     parens      produce random balanced strings
+     pargen      generate context-free parser
+     parse       parse simple statements
+     parsex      parse arithmetic expressions
+     patchu      implement UNIX-like patch
+     pbkdump     dump HP95 phone book file
+     pdecomp     list primes factors of an integer
+     polydemo    demonstrate polynomial library
+     post        post news
+     press       archive files
+     pretrim     filter out first terms in an input stream
+     procprep    produce input to index for procedure comments
+     procwrap    produce Icon procedure wrappers
+     proto       show Icon syntactic forms
+     psrsplit    separate psrecord.icn output pages
+     pt          produce parse table generator
+     puzz        create word search puzzle
+     qei         evaluate Icon expressions interactively
+     qt          announce time in English
+     queens      generate solutions to the n-queens problem
+     ranstars    display star field
+     rcat        output a file from back to front
+     recgen      generate context-free recognizer
+     repeats     repeat stream
+     reply       reply to news-articles or mail
+     repro       self-reproduce
+     revsort     sort strings backwards
+     roffcmds    list roff commands and macros
+     rsg         generate randomly selected sentences
+     ruler       write a character ruler
+     sample      "sample" input stream
+     scale       scale numeric values in visualization stream
+     scramble    scramble a document
+     setmerge    combine sets of text items
+     shar        create UNIX shell archive
+     shortest    write shortest line in a file
+     shuffile    shuffle lines in a file
+     sing        sing The Twelve Days of Christmas
+     slice       write long line as multiple short lines
+     snake       play the snake game
+     solit       play solitaire
+     sortname    order by last name
+     splitlit    create string literal
+     spread      format tab-separated data columns
+     streamer    append lines of file into one long line
+     strimlen    produce lengths of string images.
+     strpsgml    strip/translate SGML tags
+     tabexten    tabulate file extensions
+     tablc       tabulate characters in a file
+     tablw       tabulate words in a file
+     tabulate    tabulate lines in a file
+     textcnt     tabulate properties of text file
+     textcvt     convert text file formats
+     toktab      summarize Icon token counts
+     trim        trim lines in a file
+     ttt         play tic-tac-toe
+     turing      simulate a Turing machine
+     unique      delete identical adjacent lines
+     unpack      unpackage files
+     upper       map file names to uppercase
+     url2link    convert bookmarked URLs to link references
+     utrim       remove unneeded procs from ucode
+     verse       generate bizarre verses
+     versum      produce versum sequence
+     vnq         display solutions to n-queens problem
+     vrepl       replicate input lines
+     weblinks    check links in HTML files
+     what        identify source-code information
+     when        show file age
+     wshfdemo    demonstrate weighted shuffle procedure
+     xtable      show character code translations
+     yahtz       play yahtzee
+     yescr       convert UNIX files to DOS format
+     zipsort     sort mailing labels by ZIP code
+
+Programs -- gprogs
+
+     autotile    produce tile from XBM image
+     bitdemo     demonstrate bitplanes
+     bme         edit bitmap
+     bpack       demonstrate some bin packing algorithms
+     browser     demonstrate file-navigation "dialog"
+     ca21        investigate cellular automata
+     calib       calibrate color monitor
+     cameleon    allow user to change colors in an image
+     chernoff    imitate a Chernoff face
+     coloralc    test color allocation
+     colormap    display palette from color list
+     colrbook    show the named colors
+     colrname    browse color names
+     colrpick    pick RGB or HLS colors
+     concen      play solitaire card game Concentration
+     cquilts     create "chaotic square quilts"
+     cw          manipulate color ways
+     design2     draw circular design
+     design3     draw square design
+     drawcolr    display color list
+     drip        demonstrate color map animation
+     etch        distributed Etch-A-Sketch
+     facebend    generate caricatures
+     fetti       explore families of confetti squares
+     fev         display text in fisheye view
+     fileimag    create GIF image of file text
+     findrpt     find smallest repeat in a repeat pattern.
+     findtile    find tiles in an image
+     flake       draw a fractal snowflake
+     fontpick    show the characters of a font
+     fract       demonstrate fractal lines
+     fractclr    map Fractint color maps to Icon color lists
+     fstarlab    draw fractal stars
+     gallery     display many images at once
+     gamma       perform gamma correction on images
+     giftoims    convert GIF files to image strings
+     giftopat    convert GIF image to hex-form pattern
+     gpxtest     test graphics procedures
+     gxplor      explore graphics facilities
+     hb          Hearts & Bones game
+     histo       display simple histogram
+     hsvpick     pick RGB or HSV colors
+     hvc         pick colors for Tek HVC space
+     img         create images
+     img2grid    convert images to grids
+     imgcolrs    list colors in images.
+     imgpaper    tile images to form wallpaper
+     imgtolst    convert image to list of pixel colors
+     imlreduc    reduce bi-level image strings
+     imstogif    convert image strings to GIF files
+     ipicker     print name of selected images
+     iview       display image files
+     julia1      display the Julia set
+     kaleid      produce kaleidoscope
+     kaleido     produce kaleidoscopic display
+     keypunch    simulate a keypunch
+     koch        demonstrate Koch curves
+     lindcomp    compile 0L-systems
+     linden      generate sentences in 0L-systems
+     lorenz      display Lorenz strange attractor
+     lsys        experiment with Lindenmayer systems
+     mandala     draw mandala design
+     mandel1     display the Mandelbrot set
+     mandel2     draw the Mandelbrot set
+     mercator    display surface of HLS color cones
+     mirroror    mirror images given on command line
+     moire       display Moire patterns
+     offtiler    tile images with offset
+     orbit       display quadratic orbit
+     painterc    convert Painter color sets to Icon colors
+     palcheck    check palindromic sentences
+     palette     display an Icon image palette
+     patfetch    extract patterns from a file
+     pattscan    find patterns in an image
+     penelope    edit graphic patterns
+     pextract    separate good and bad patterns
+     pgmtoims    make an image from a PGM file
+     picktile    pick a tile out of an image
+     plat        create image file with specified colors
+     plotter     display planes of 3-space coordinates
+     pme         edit pixmaps
+     poller      record image as pixel coordinates.
+     procater    display concatenation sizes
+     profile     display scrolling histogram
+     profiler    display number magnitudes
+     prompt      prompt in a window
+     randweav    create random weavable patterns
+     randweb     draw random web design
+     recticle    draw rectangles recursively
+     rectile     extract portion of image
+     rects       tile window with colored rectangles
+     repeater    repeat image
+     rings       draw tiles of rings and circles
+     rolypoly    draw ``abstract'' art
+     rstarlab    draw regular stars
+     scroller    scroll image
+     seamcut     cut image for seamless tiling
+     sensdemo    demonstrate sensor routines
+     showcolr    list colors in Icon palettes
+     showtile    display tiles
+     sier        generalized Sierpinski's triangle
+     sier1       draw the Sierpinski triangle
+     sier2       display the Sierpinski fractal
+     snapper     display images
+     spectra     report color spectra in images
+     spiral      draw polygonal spirals
+     spiro       display spirograph lines
+     splat       drop paint splatters in a window
+     spokes      draw spokes design
+     striper     make striped pattern from image edge
+     subdemo     show the turtle graphics subset
+     symdraw     draw symmetrically
+     sympmm      produce pmm symmetry composite images.
+     testpatt    show test patterns
+     textures    show various 4x4 patterns
+     tgdemo      demonstrate turtle graphics
+     tilescan    select tile from an image
+     travels     animate the traveling salesman problem
+     trycolor    investigate color specifications
+     tryfont     demonstrate X font rankings
+     uix         translate user interfaces
+     unravel     find thread colors for weaving
+     viewpane    view image through a "pane"
+     vqueens     display solutions to the n-queens problem
+     webimage    produce Web page for image files
+     wevents     report Icon window events
+     wheel       show wheel of colors
+     xbm2pat     convert XBM file to pattern specification
+     xformpat    apply transformation to patterns
+     xgamma      configure X color correction
+     xpmtoims    make Icon images from XPM files
+     zoomtile    show a tile magnified
+
+Programs -- mprogs
+
+     alcscope    visualize allocation as a kaleidoscopic display
+     alcview     display allocation events in various ways
+     algae       show expression evaluation as ``algae''
+     anim        show animated display of Icon source code
+     callcnt     count calls
+     cmpsum      tabulate comparisons
+     cnvsum      tabulate type-conversion activity
+     cvtsum      count conversion event tuples
+     evstream    show events
+     evsum       tabulate event codes
+     exprsum     tabulate operator and function evaluation
+     listev      list events
+     locus       trace execution locus
+     memsum      tabulate memory allocation
+     mmm         show allocation as a miniature "MemMon"
+     napoleon    track memory usage by type
+     novae       show allocations as exploding stars
+     numsum      tabulate numerical computation
+     opersum     tabulate operation activity
+     ostrip      show virtual-machine op-code strip
+     playev      play back events
+     program     display portion of a program in a window
+     recordev    record events
+     roll        display the program counter on a stripchart
+     scat        produce call/result scatterplot
+     scater      display visualize string concatenation
+     strsum      tabulate string computation
+     strucget    collect SP stuctures
+     vc          coordinate visualization programs
+     vmsum       tabulate virtual-machine operations
+
+Procedures -- procs
+
+     abkform     process HP95LX appointment books
+     adjuncts    gettext and idxtext
+     adlutils    process address lists
+     allof       conjunction control operation
+     allpat      produce all n-character patterns of characters
+     ansi        ANSI-based terminal control
+     apply       apply a list of functions to an argument
+     argparse    parse pseudo-command-line
+     array       n-dimensional arrays
+     asciinam    ASCII name of unprintable character
+     basename    produce base name of a file
+     binary      pack and unpack values
+     bincvt      convert binary data
+     binop       apply binary operation to list of values
+     bitint      convert integers and bit strings
+     bitstr      bits in Icon strings
+     bitstrm     read and write strings of bits in files
+     bkutil      HP95LX phone books and appointment books
+     bold        enbolden and underscore text
+     bufread     buffered read and lookahead
+     calendat    get date from Julian Day Number
+     calls       calls as objects
+     capture     echo output to a second file
+     caseless    perform caseless scanning
+     codeobj     encode and decode Icon data
+     colmize     arrange data into columns
+     colrspec    produce VRML color specifications
+     complete    complete partial input string
+     complex     perform complex arithmetic
+     conffile    read files of directives for "initialization"
+     convert     various conversions
+     created     determine number of structures created
+     currency    formatting currency
+     curves      generate points on plain curves
+     datefns     dates
+     datetime    date and time operations
+     dif         check for differences
+     digitcnt    count number of digits in file
+     ebcdic      convert between ASCII and EBCDIC
+     empgsup     support empg
+     equiv       compare structures
+     escape      interpret Icon literal escapes
+     escapesq    deal with character string escapes
+     eval        evaluate string as a call
+     evallist    produce a list generated by expression
+     everycat    generating all concatenations
+     expander    convert character pattern expressions
+     exprfile    produce programs on the fly
+     factors     related to factors and prime numbers
+     fastfncs    integer functions using fastest method
+     feval       evaluate string as function call
+     filedim     compute file dimensions
+     filenseq    get highest numbered filename in a sequence
+     filesize    get the size of a file
+     findre      find regular expression
+     ftype       produce type for file
+     fullimag    produce complete image of structured data
+     gauss       compute Gaussian distributions
+     gdl2        get directory lists
+     gedcom      reading GEDCOM files
+     gen         meta-variant code generation
+     gener       generate miscellaneous sequences
+     genrfncs    generate sequences
+     getchlib    getch for UNIX
+     getkeys     get keys for a gettext file
+     getmail     parse mail file
+     getpaths    generate elements in path
+     gettext     gettext (simple text-base routines)
+     graphpak    manipulating directed graphs
+     hetero      test structure typing
+     hexcvt      hexadecimal conversion
+     hostname    produce host name
+     html        parsing HTML
+     ibench      support Icon benchmarking
+     ichartp     a simple chart parser
+     identgen    meta-translation code generation
+     identity    produce identities for Icon types
+     ifncs       wrappers for function tracing
+     iftrace     trace Icon function calls
+     image       produce images of Icon values
+     inbits      read variable-length characters
+     indices     produce indices
+     inserts     build tables with duplicate keys
+     intstr      create string from bits
+     io          input and output
+     iolib       termlib support
+     iscreen     screen functions
+     isort       customizable sorting
+     ispf        communicate between Icon and ISPF
+     iterfncs    recursive functions using iteration
+     itlib       termlib-type tools
+     itlibdos    MS-DOS termlib-type tools
+     itokens     tokenizing Icon code
+     itrcline    filter out non-trace lines
+     ivalue      convert string to Icon value
+     jumpque     jump element to head of queue
+     kmap        map keyboard letter forms into letters
+     labeler     produce successive labels
+     lastc       string scanning
+     lastname    produce last name
+     lcseval     evaluate linear congruence parameters
+     lindgen     rewriting 0L-systems
+     lindstrp    interpret L-system output as striped pattern
+     list2tab    write list as tab-separated string
+     lists       manipulate lists
+     loadfile    produce and load program on the fly
+     longstr     match longest string
+     lrgapprx    approximate integer values
+     lu          LU manipulation
+     makelsys    convert L-Systems to records
+     mapbit      map string into bit representation
+     mapstr      map() for strings
+     matchlib    lexical matching
+     math        mathematical computations
+     matrix      matrix manipulation
+     memlog      log memory usage
+     memrfncs    recursive functions using memory
+     mixsort     sort tables with case mixing
+     models      model Icon functions
+     morse       convert string to Morse code
+     mset        multi-sets
+     namepfx     produce prefix portion of name
+     ngrams      produce n-grams
+     noncase     case-independent matching
+     numbers     related to numbers
+     openchk     aid in open/close debugging
+     opnames     produce opcode/names table
+     opsyms      produce table to map opcodes to symbols
+     options     get command-line options
+     outbits     write variable-length characters
+     packunpk    pack and unpack decimal strings
+     parscond    condense parse tree
+     partit      partition integer
+     pascal      write Pascal triangles
+     pascltri    compute a row of Pascal's Triangle
+     patch       UNIX-like patch(1)
+     patterns    SNOBOL4-style pattern matching
+     patword     find letter patterns
+     pbkform     process HP95 phone book files
+     pdco        programmer-defined control operations
+     phoname     generate letters for phone numbers
+     plural      produce plural of English noun
+     polystuf    manipulating polynomials
+     popen       pipes
+     printcol    format columnar data
+     printf      printf-style formatting
+     prockind    indicate kind of procedure
+     procname    produce name of procedure
+     progary     place program in a array
+     pscript     explicitly writing PostScript
+     ptutils     relating to objects in 3-space
+     random      related to random numbers
+     rational    arithmetic on rational numbers
+     readcpt     read produce "carpet" from file
+     readtbl     read user-created stripsgml table
+     reassign    access RE groupings and format into a string
+     rec2tab     write record as string
+     recog       recognition
+     records     manipulate records
+     recrfncs    recursive functions
+     recurmap    map recurrence declarations to procedures
+     reduce      perform operation on list of arguments
+     regexp      regular-expression pattern matching
+     repetit     find smallest repetition pattern in list
+     revadd      generate reverse-summed integers
+     rewrap      advanced line rewrap
+     rexx        communicate between Icon and Rexx
+     rng         generate random numbers
+     sandgen     "evaluation sandwiches" code
+     scan        related to scanning
+     scanmodl    model string scanning
+     scanset     setup for string scanning procedures
+     segment     segment string
+     senten1     generate sentences
+     sentence    generate sentences in file
+     seqfncs     designing with sequences
+     seqimage    produce string image of Icon result sequence
+     serial      return serial number of structure
+     sername     produce serialized names
+     sets        set manipulation
+     showtbl     show contents of a table
+     shquote     quote word for UNIX-like shells
+     signed      put bits into signed integer
+     sort        sorting
+     sortt       sort table into records
+     soundex     produce Soundex code for name
+     soundex1    Soundex algorithm
+     speedo      indcate percentage of completion
+     spin        spin cursor
+     statemap    table of states and abbreviations
+     step        generate in real increments
+     str2toks    convert string to tokens
+     strings     manipulating strings
+     strip       strip characters from a string
+     stripcom    strip comments from Icon line
+     stripunb    strip unbalanced material
+     tab2list    put tab-separated strings in list
+     tab2rec     put tab-separated strings in records
+     tables      table manipulation
+     tclass      classify values as atomic or composite
+     title       produce title portion of name
+     titleset    produce set of titles
+     tmpname     get temporary file name
+     tokgen      token counting
+     trees       manipulating trees and dags
+     tuple       process n-tuples
+     typecode    produce letter code for Icon type
+     unsigned    put bits unsigned integer
+     usage       service functions
+     varsub      perform UNIX-shell-style substitution
+     verncnt     compute number of n-digit versum numbers
+     version     produce Icon version number
+     vhttp       validating an HTTP URL
+     vrml        support creation of VRML files
+     vrml1lib    support construction of VRML 1.0 files
+     vrml2lib    support construction of VRML 2.0 files
+     wdiag       write values with labels
+     weaving     implement weaving expressions
+     weighted    shuffle list with randomness
+     wildcard    UNIX-like wild-card pattern matching
+     word        scan UNIX-style command line words
+     wrap        wrap output lines
+     writecpt    write a "carpet" file
+     xcodes      save and restore Icon data
+     xforms      do matrix transformations
+     ximage      produce string image of structured data
+     xrotate     rotate values in list or record
+
+Procedures -- gprocs
+
+     attribs     set attributes via dialog
+     autopost    activate PostScript recorder
+     barchart    dynamically growing barchart
+     bevel       drawing beveled objects
+     bitplane    bitplane manipulation
+     button      pushbutton sensors
+     cardbits    constructing playing card images
+     cells       creating and coloring panels of cells
+     clip        clipboard operations
+     clrnames    generate color names
+     color       dealing with colors
+     colorway    manipulate color ways
+     colrlist    produce list of colors
+     colrmodl    convert between color models
+     curves2     generate points on plain curves
+     cwutils     support color ways
+     decay       decaying-displays for windows
+     dialog      dialogs
+     dialogs     link to dialog
+     distance    compute distance in n-dimensions
+     drag        dragging rectangles
+     drawcard    draw a playing card
+     drawlab     draw figures
+     dsetup      creating dialog boxes
+     enqueue     queued events
+     event       produces events from a window event history
+     evmux       window event multiplexor
+     evplay      "play back" recorded window events
+     evrecord    record window events
+     fetchpat    fetch a pattern specification
+     fstartbl    produce calls for fractal stars
+     gdisable    disable graphics functions
+     getcolrs    getting color palette
+     gifsize     return size of GIF file
+     glabels     produce graph ticks
+     gobject     geometrical objects
+     gpxlib      graphics tasks
+     gpxop       graphics operations
+     grecords    graphics
+     gtrace      process graphic traces
+     ifg         tell if graphics are running
+     imagedim    getting image dimensions
+     imageseq    write sequences of images
+     imgcolor    produce table of colors in area
+     imrutils    deal with image records
+     imscanon    put bi-level image string in canonical form
+     imscolor    manipulating images
+     imsutils    manipulate image specifications
+     imutils     link graphics utilities
+     imxform     transform image matrices
+     interact    support interactive applications
+     joinpair    connect pairs of points
+     jolygs      produce traces of "jolygons"
+     linddefs    produce table of L-systems
+     linddraw    draw L-System strings
+     lindgen     rewriting 0L-systems
+     lindrec     L-systems
+     lindterp    interpret and draw L-System strings
+     lsystem     Lindenmayer systems support
+     mirror      mirror tile
+     modlines    produce trace of modular lines
+     navitrix    perform file navigation
+     optwindw    open window with standard options
+     orbits      produce traces of orbits
+     overlay     overlay an image in a window
+     patutils    manipulate patterns
+     patxform    transform patterns in row form
+     pixelmap    create image from pixel list
+     popular     show "popularity" of colors in image string
+     psrecord    PostScript record of window
+     putpixel    write quantized, processed pixel
+     randarea    generate random points in areas
+     randfigs    generate random figures
+     rawimage    write and read images in raw format
+     repeats     repeat image
+     rgbcomp     perform computations on RGB values
+     rgbrec      produce RGB record from color specification
+     rpolys      produce traces of regular polygons
+     rstars      generate traces of regular stars
+     rstartbl    produce calls for regular stars
+     select      get selection from window
+     slider      slider sensors
+     spirals     produce traces of fractal stars
+     spokes      draw spokes
+     strpchrt    dynamic stripchart for windows
+     subturtl    turtle-graphics (subset version)
+     symrand     generate random points
+     tile        tile window
+     tiler       tile window with image
+     turtle      turtle-graphics interface
+     twists      produce traces of "twists"
+     vbuttons    buttons
+     vcoupler    coupler variables
+     vdialog     dialog boxes
+     vfilter     change filter mode in sliders and scrollbars
+     vframe      pane frame vidgets
+     vgrid       vidget grids
+     vidgets     vidgets
+     viewpack    visualize color streams
+     viface      interfacing vidgets
+     vlist       a scrollable list vidget
+     vmenu       vidget menus
+     vpane       vidget panes
+     vquery      window queries
+     vradio      radio buttons
+     vscroll     scrollbars
+     vsetup      vidget application setup
+     vslider     sliders
+     vstd        standard lookups
+     vstyle      drawing buttons
+     vtext       textual vidgets
+     wattrib     attributes
+     win         open bare-bones window
+     window      opening window
+     winsnap     take snapshot of a portion of a window
+     wipe        wipe window area
+     wopen       graphics input/output
+     xbfont      X font selection
+     xcolor      link color
+     xcompat     compatibility with 8.10 graphics
+     xform       transform points
+     xformimg    transform image
+     xgtrace     draw traces of points
+     xio         link window I/O
+     xplane      link bitplane
+     xputpixl    link putpixel
+     xqueue      link enqueue
+     xutils      graphics utilities
+
+Procedures -- mprocs
+
+     colormap    map type event to color
+     colortyp    produce table of colors for Icon types
+     em_setup    set up execution monitors
+     emutils     support MT-Icon monitors
+     evaltree    maintain activation tree
+     evinit      event monitoring
+     evnames     map between event codes and names
+     evsyms      produce table of event codes and symbols
+     evtmap      map event code names to values
+     evutils     support event monitoring
+     hexlib      hexagons
+     opname      map VM opcodes to their names
+     typebind    produce table of graphic contexts for type
+     typesyms    map type codes to event codes
+     viewpack    visualize color streams
+     visprocs    visualization code
+
+Include files -- incl
+
+     invkdefs    operator symbols
+     lshade      VRML 1.0 ornament
+     opdefs      Icon virtual-machine instructions
+
+Include files -- gincl
+
+     keysyms     event key symbols
+     maccolor    Macintosh color mappings
+     vdefns      visual interface
+     xcolors     X color names
+     xnames      graphic procedure names
+
+Include files -- mincl
+
+     etdefs      artificial event codes
+     evdefs      event codes
+
+Loadable C Functions -- cfuncs
+
+     bitcount.c      count bits in an integer
+     files.c         manipulate file attributes
+     fpoll.c         poll file for input
+     internal.c      access Icon internals
+     lgconv.c        convert large integer to string
+     osf.c           return OSF system table value
+     pack.c          pack and unpack binary data
+     ppm.c           manipulate PPM files in memory
+     process.c       manipulate UNIX processes
+     tconnect.c      open TCP connection
+
+Data -- data
+
+     *.csg           data for csg.icn
+     *.krs           data for kross.icn
+     *.lbl           data for labels.icn
+     *.rsg           data for rsg.icn
+     *.tok           sample output of syntactic token counting
+     *.tur           data for turing.icn
+     *.txt           plain text
+     chart.gmr       data for ichartp.icn
+     conman.sav      data for conman.icn
+     farber.sen      ``Farberisms''
+     header          skeleton header for Icon program files
+     hebcalen.dat    data read by hebcalen.dat
+     hebcalen.hlp    help file for hebcalen.dat
+     hebcalpi.hlp    data read by ProIcon version of hebcalen.dat
+     icon.wrd        English words containing the substring ``icon''
+     ihelp.dat       data for ihelp.icn
+     noci.wrd        English words containing the substring ``noci''
+     palin.sen       Palindromic sentences
+     pt*.gmr         data for pt.icn
+     sample.grh      sample data for graphpak.icn
+     skeleton.icn    skeleton used to create/update Icon programs
+     termcap.dos     termcap data for MS-DOS
+     termcap2.dos    alternative termcap data for MS-DOS
+     verse.dat       vocabulary for verse.icn
+
+Data -- gdata
+
+     *.gif           GIF image files
+     *.ims           image strings in Icon code format
+     *.lch           data for gpacks/tiger/tgrmap.icn
+     *.pts           data for facebend.icn
+     clr.pack        "pack" containing Icon's color palettes
+     gpxtest.gif     GIF image from gpxtest.icn
+     gxplor.dat      test script for gxplor.icn
+     iml.pak         image strings in "pack" format
+     linden.dat      input to linden.icn
+     uix.dat         data for testing XIB-to-VIB conversion
+     vibapp.icn      sample VIB application
+     xibapp.icn      sample XIB application
+     xnames.ed       ed(1) script to convert 8.10 function names to 9.0
+
+Data -- mdata
+
+     There presently are no data files for MT-Icon.
+
+Documentation -- docs
+
+     address.doc             documentation for address procedures
+     hebcalen.hlp            documentation for hebcalen.icn
+     hebcalpi.hlp            documentation for hebcalpi.icn
+     iconmake.doc            make skeleton for Icon
+     ipp.doc                 supplementary documentation for ipp.icn
+     mr.man                  manual page for mr.icn
+     post.1                  manual page source for post.icn
+     polywalk.txt            description of polynomial programs
+     procs.pdx               index to procedures
+     pt.man                  manual page for pt.icn
+     *.fdx                   indexes to files
+
+Documentation -- gdocs
+
+     gprocs.pdx              index to procedures
+     gtrace.doc              documentation for graphic traces
+     linden.dat              input to linden.icn
+     penelope.ps             PostScript documentation for penelope.icn
+     vib.ps                  PostScript documentation for interface builder
+     vidgets.ps              PostScript documentation for vidgets
+     *.fdx                   indexes to files
+
+Documentation -- mdocs
+
+     mprocs.pdx      procedure indexes
+     *.fdx           file indexes
+
+Packages -- packs
+
+     euler           Euler compiler and interpreter
+     ibpag2          LR-based parser generator
+     idol            Idol; object-oriented Icon written in Icon
+     itweak          interactive debugger
+     loadfunc        C functions loaded dynamically
+     skeem           Scheme language, implemented in Icon
+     tcll1           parser-generator and parser
+
+Packages -- gpacks
+
+     carpets         numerical carpets
+     drawtree        tree-drawing package
+     ged             text editor
+     htetris         Tetris game
+     tiger           map drawing from Census TIGER data
+     vib             graphics interface builder
+     weaving         programs and procedures related to weaving
+     xtiles          game
+
+Packages -- mpacks
+
+     There are no MT-Icon packages at present.
+
+Contributions to the Icon Program Library
+
+New material for the Icon program library always is welcome. See Reference 4
+for guidelines and submission instructions.
+
+Feedback
+
+If you encounter problems with material in the Icon program library, please
+let us know. If you can provide corrections or improvements to library
+material, please send them by electronic mail or on a diskette.
+
+We can be reached as follows:
+
+     Icon Project
+     Department of Computer Science
+     The University of Arizona
+     P.O. Box 210077
+     Tucson, AZ 85721-0077
+     U.S.A.
+
+     (520) 621-6613 (voice)
+     (520) 621-4246 (fax)
+
+     icon-project@cs.arizona.edu
+
+Acknowledgements
+
+Dozens of persons have contributed material to this release of the Icon
+program library. See the program material itself for authorship information.
+
+References
+
+1. R. E. Griswold, C. L. Jeffery and G. M. Townsend, Version 9.3 of the Icon
+Programming Language, The Univ. of Arizona Icon Project Document IPD278,
+1996.
+
+2. G. M. Townsend, R. E. Griswold and C. L. Jeffery, Graphics Facilities for
+the Icon Programming Language; Version 9.3, The Univ. of Arizona Icon
+Project Document IPD281, 1996.
+
+3. C. L. Jeffery, The MT Icon Interpreter, The Univ. of Arizona Icon Project
+Document IPD169, 1993.
+
+4. R. E. Griswold, Icon Program Library Submissions, The Univ. of Arizona
+Icon Project Document IPD151,1996.
+
+  ------------------------------------------------------------------------
+Icon home page

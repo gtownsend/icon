@@ -1,0 +1,85 @@
+				EULER
+			A COMPILER AND INTERPRETER
+		Wirth's and Weber's contribution to the
+		development of ALGOL translated into Icon.
+
+
+
+euler.icn	The EULER compiler and interpreter main program
+eulerscn.icn	The EULER scanner
+eulersem.icn	The EULER translator module
+eulerint.icn	The EULER interpreter
+euler.ll1	The parse tables for parsellk
+euler.grm	The grammar file used by TLCLL1 to build euler.ll1
+
+	From the TLCLL1 Parser:
+PARSELL1.ICN	LL(1) parser
+READLL1.ICN	input routine for translated grammars
+SEMSTK.ICN	semantics routines called by PARSELL1.ICN to handle
+		the semantics stack
+
+	From the Icon Program Library:
+xcode.icn
+escape.icn
+ebcdic.icn
+
+
+		Building EULER
+
+You can execute the batch file buildk.bat to build EULER.
+
+Six files from the Icon Program Library and three files from 
+the TLCLL1 parser generator are included with this distribution 
+and can be compiled separately.
+
+To build EULER by hand, you may execute
+
+  icont -c xcodeobj escape ebcdic 
+
+  icont -c parsell1 readll1 semstk
+  icont -fs euler eulerscn eulersem eulerint parsell1.u1 readll1.u1 semstk.u1
+
+The first icont line compiles the files from the IPL. You may
+omit the line if you have the IPL installed. The second icont
+line compiles modules from the TLCLL1 parser. The third line
+compiles EULER's modules. The flag -fs tells the translator
+that EULER calls some procedures by giving their names as
+strings. In Icon version 8, this flag is not needed; in version
+9 it is.
+
+		Running EULER
+
+To have EULER translate and execute a program prog.eul, execute
+
+		Under Icon version 8:
+
+	iconx euler prog.eul
+
+		Under Icon version 9:
+
+	 euler prog.eul
+
+If you would also like a listing of the translated code, execute
+
+		Under Icon version 8:
+
+	iconx euler -s prog.eul
+
+		Under Icon version 9:
+
+	 euler -s prog.eul
+
+
+		Getting Icon
+
+If you do not have a copy of Icon, you can get it over the
+Internet: ftp it from cs.arizona.edu:
+	ftp ftp.cs.arizona.edu
+	name: anonymous
+	password: your_e-mail_address
+	cd icon
+
+Versions of Icon for several machines are in subdirectories of
+directory icon. You may also want to pick up the Icon
+Programming Library.
+

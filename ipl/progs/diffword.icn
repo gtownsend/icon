@@ -1,0 +1,31 @@
+############################################################################
+#
+#	File:     diffword.icn
+#
+#	Subject:  Program to list different words
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 9, 1989
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program lists all the different words in the input text.
+#  The definition of a "word" is naive.
+#
+############################################################################
+
+procedure main()
+   local letter, words, text
+
+   letter := &letters
+   words := set()
+   while text := read() do
+      text ? while tab(upto(letter)) do
+         insert(words,tab(many(letter)))
+   every write(!sort(words))
+end

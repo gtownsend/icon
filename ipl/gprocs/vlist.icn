@@ -1,0 +1,964 @@
+############################################################################
+#
+#	File:     vlist.icn
+#
+#	Subject:  Procedures for a scrollable list vidget
+#
+#	Author:   Jason Peacock and Gregg Townsend
+#
+#	Date:     March 10, 1997
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#   Vidgets defined in this file:
+#
+#      Vlist
+#
+#   Utility procedures in this file:
+#
+#      storage_Vlist()
+#      set_items_Vlist()
+#      get_items_Vlist()
+#      set_value_Vlist()
+#      get_value_Vlist()
+#      coupler_Vlist()
+#      drawlist_Vlist()
+#      Vframe_Vlist()
+#      outline_listframe()
+#      resize_listframe()
+#      Vpane_Vlist()
+#      event_Vlist()
+#      vlist_selection()
+#      outline_listpane()
+#
+############################################################################
+#
+#   Includes:  vdefns
+#
+############################################################################
+#
+#   Requires:  Version 9 graphics
+#
+############################################################################
+#
+#   Links:  graphics, vidgets, vscroll, vcoupler
+#
+############################################################################
+
+#  DEFICIENCIES TO REMEDY LATER:
+#
+#  don't clone two new windows every time the vidget is redrawn
+#  don't insist on string-valued ID
+#  toss out storage_Vlist()
+#
+#  dragging fast can skip items
+
+
+$include "vdefns.icn"
+
+link graphics, vidgets, vscroll, vcoupler
+
+$define V_READONLY	"r"
+$define V_SELECT	"w"
+$define V_MULTISELECT	"a"
+
+############################################################################
+#
+#   list vidget -
+#
+#   Creates a vidget that displays a list of strings within a region,
+#   can be scrolled to view the entire list a section at a time, and
+#   can call a callback procedure if an item(s) in the list is selected.
+#
+############################################################################
+
+
+
+############################################################################
+#
+# PROCEDURE
+#    Vlist(frame, x, y, win, cb, id, dl, c, w, h, m)
+#    vidget := Vlist(win, cb, id, dl, c, w, h, m)
+#
+# DESCRIPTION
+#    Create a list vidget.  A vlist is simply a square region
+#    in which lines of text are displayed.  Since the number of lines
+#    to be displayed can exceed the number of lines the region can
+#    display, a vertical scrollbar, set to the right of the region,
+#    is used to allow the user to scroll the list through the region.
+#
+#    It has been implemented by using a standard vframe vidget form
+#    with a few callbacks altered since a vlist is not a normal
+#    vframe.  Into the frame are placed two vidgets: a vpane, and
+#    a vvert_scrollbar.  The scrollbar's callback is a coupler
+#    variable that is used to link the scrollbar and the pane
+#    together.
+#
+# INPUTS
+#    frame - The frame the vlist will be inserted into
+#    x     - The x coordinate of the insertion
+#    y     - The y coordinate of the insertion
+#
+#    The above three parameters are optional.  If used, all three
+#    parameters must be given.
+#
+#    win   - the window the vidget is created in
+#    cb    - the procedure that will serve as the callback
+#    id    - the id of the vidget
+#    dl    - the initial list (of strings) that will be displayed
+#    c     - Is 1 for discontinuous scroll or &null for continuous scrolling
+#    w     - the width of the vidget
+#    h     - the height of the vidget
+#    m     - how the list will be displayed
+#
+#       These are the mode parameter values:
+#
+#       V_READONLY     - Instructs Vlist that the list will be a
+#                        display only.  No lines can be highlighted.
+#
+#       V_SELECT       - Only one line can be highlighted at a time.
+#                        The callback is not not executed until the
+#                        mouse button is released.
+#
+#       V_MULTISELECT  - Several lines may be highlighted at once.
+#                        The callback is executed every time the
+#                        mouse button is released.  A list of the
+#                        currently highlighted items is sent.
+#
+# OUTPUT
+#    vidget - A Vframe_rec record containing the list vidget
+#
+# EXAMPLE
+#    To create a vlist that will display the contents of the
+#    list (of strings) variable, datalist, in a region measuring
+#    640 pixels across and 480 pixels high, allow no selection,
+#    and have no callback procedure, make this call:
+#
+#       lv := Vlist(win, , "lv_id", datalist, 1, 640, 480, V_READONLY)
+#
+#    where win is the window variable and "lv_id" is the id value.
+#
+# BUGS
+#    The are no defaults for the win, id, dl, x, and y parameters.
+
+procedure Vlist(params[])
+
+## ins       - This flag is set if the vidget is to implicitely inserted
+##             into a frame (that was also passed as a parameter).
+## self      - The record containing the frame which is the list vidget
+## fh        - The height of the font used in the list
+## viewport  - The vpane vidget, to be inserted into 'self'
+## cv        - The coupler variable
+## sb        - The scrollbar vidget, to be inserted into 'self'
+## line      - Temporary storage for each line in 'dl'
+## window_sz - The number of lines the list can display at a time
+
+local frame, x, y, win, cb, id, dl, c, w, h, mode
+local self, ins, fh, viewport, cv, sb, line, window_sz
+local datalist
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+## CHECK FOR IMPLICIT INSERT INTO GIVEN FRAME ##############################
+
+   if ins := Vinsert_check(params) then {
+      frame := pop(params); x := pop(params); y:= pop(params)
+   }
+
+## CHECK THE INPUT VALUES ##################################################
+
+   if type(params[1]) == "window" then win := pop(params)
+   else _Vbomb("improper window parameter given to Vlist")
+   if type(params[1]) == ("procedure" | "null") then cb := pop(params)
+   else _Vbomb("improper callback parameter given to Vlist")
+   id := pop(params)
+   if type(params[1]) == ("list" | "null") then dl := pop(params)
+   else _Vbomb("improper list parameter given to Vlist")
+   if type(params[1]) == ("integer" | "null") then c := pop(params)
+   else _Vbomb("improper scrollmode parameter given to Vlist")
+
+   if \params[1] & \params[2] then {
+      w := pop(params); h := pop(params)
+   }
+   else _Vbomb("improper width and height values given to Vlist")
+
+   case \params[1] of {
+      V_READONLY | V_SELECT | V_MULTISELECT :
+         mode := pop(params)
+      default :
+         _Vbomb("improper mode parameter given to Vlist")
+   }
+
+   /mode := V_SELECT	## DEFAULT SELECT MODE IS SELECT ONE LINE ONLY
+   /dl := []		## DEFAULT LIST IS EMPTY LIST
+
+
+## CREATE THE VLIST ########################################################
+
+   self := Vframe_Vlist(win)
+   self.id := id
+
+   storage_Vlist(id, "write", "mode", mode)
+
+   viewport := Vpane_Vlist(win, cb, id, "sunken", w - VSlider_DefWidth - 2, h)
+   VInsert(self, viewport, 0, 0)
+
+   fh := WAttrib(viewport.win, "fheight")
+   window_sz := integer((h - 4) / fh) - 1
+
+   cv := Vcoupler()
+   VAddClient(cv, coupler_Vlist, viewport)
+
+   sb := Vvert_scrollbar(win, cv, id,
+      h, VSlider_DefWidth, *dl, 1, 1, window_sz, c)
+
+   VInsert(self, sb, w - VSlider_DefWidth, 0)
+   VFormat(self)
+
+   datalist := []
+   every line := !dl do put(datalist, "N" || line)
+
+   storage_Vlist(id, "write", "datalist", datalist)
+   storage_Vlist(id, "write", "top_line", 1)
+   storage_Vlist(id, "write", "selection", &null)
+   storage_Vlist(id, "write", "continuous", c)
+
+   if \ins then VInsert(frame, self, x, y)
+   return self
+
+end
+
+
+############################################################################
+#
+# PROCEDURE
+#    storage_Vlist(id, op, var, val)
+#    val := storage_Vlist(id, op, var)
+#
+# DESCRIPTION
+#    Used to store variables that are needed but can't be stored
+#    within a vframe_rec, vpane_rec, or vscrollbar_rec.
+#
+#    This procedure performs its magic by keeping a static table
+#    of data.  Information is indexed by using the vlist's id
+#    following by a "@" character and then the variable name as
+#    the suffix.
+#
+# INPUTS
+#    id  - The id of the vlist doing the storing
+#    op  - Which operation? "write" or "read"?  If "read", then the
+#          val parameter is ignored.
+#    var - The name to store the value under
+#    val - The value to be stored
+#
+# OUTPUT
+#    val - The value that was stored under the name var.
+#
+# EXAMPLES
+#
+#    If there is a vlist with an id of "lv_1" and the list of
+#    strings it is displaying is stored in variable "datalist", then
+#    that list can be stored with this call:
+#
+#       storage_Vlist("lv_1", "write", "datalist", datalist)
+#
+#    To retrieve that information:
+#
+#       datalist := storage_Vlist("lv_1", "read", "datalist")
+#
+# BUGS
+#    Since the table is static, it is possible for newly created
+#    vlists to "remember" the data from older vlists if
+#    the both and the new and old vlist have the same id.
+#
+#    This procedure requires that the vidget ID be a string, 
+#    an additional restriction not usually imposed.
+
+procedure storage_Vlist(id, op, var, val)
+local k
+static var_table
+
+initial var_table := table()
+
+   k := id || "@" || var
+
+   case op of {
+      "read" : return var_table[k]
+      "write" : var_table[k] := val
+   }
+
+   return
+
+end
+
+
+############################################################################
+#
+# PROCEDURE
+#    set_items_Vlist(self, slist)
+#
+# DESCRIPTION
+#    Set list of displayed lines.
+#    State is reset to no lines selected, scrolling at top.
+#
+# INPUTS
+#    self - the vidget record
+#    slist - list of strings
+
+procedure set_items_Vlist(self, slist)
+   local dl, tl, lv, sb, cv, c, s, window_sz
+
+   # build new datalist
+   tl := 1
+   dl := []
+   every s := !slist do
+      put(dl, "N" || string(s)) |
+         _Vbomb("list entry for VSetItems() is not a string")
+
+   # replace datalist and reset top_line
+   lv := self.lookup[1]
+   storage_Vlist(lv.id, "write", "datalist", dl)
+   storage_Vlist(lv.id, "write", "top_line", tl)
+   storage_Vlist(lv.id, "write", "selection", 0)
+
+   # replace scrollbar with a new one
+   sb := self.lookup[2]
+   VRemove(self, sb)
+   cv := Vcoupler()
+   c := storage_Vlist(lv.id, "read", "continuous")
+   VAddClient(cv, coupler_Vlist, lv)
+   window_sz := integer(lv.uh / WAttrib(lv.win, "fheight")) - 1
+   sb := Vvert_scrollbar(self.win, cv, self.id, self.ah, VSlider_DefWidth,
+                         *dl, 1, 1, window_sz, c)
+   VInsert(self, sb, self.aw - VSlider_DefWidth, 0)
+   VFormat(self)
+
+   # redraw everything
+   VDraw(self)
+   return
+end
+
+
+############################################################################
+#
+# PROCEDURE
+#    get_items_Vlist(self)
+#
+# DESCRIPTION
+#    Returns the list of displayed lines.
+#
+# INPUT
+#    self - the vidget record
+#
+# OUTPUT
+#    items - list of strings
+
+procedure get_items_Vlist(self)
+   local lv, dl, items
+
+   lv := self.lookup[1]
+   dl := storage_Vlist(lv.id, "read", "datalist")
+   items := []
+   every put(items, (!dl)[2:0])
+   return items
+end
+
+
+############################################################################
+#
+# PROCEDURE
+#    set_value_Vlist(self, state)
+#
+# DESCRIPTION
+#    This procedure sets the state of the vidget.
+#
+# INPUT
+#    self - the vidget record
+#    state - a list of integers:
+#	the first integer gives the index of the first viewable line
+#	any addition integers are indices of selected lines
+
+procedure set_value_Vlist(self, state)
+   local c, i, lv, sb, dl, tl, mode, window_sz, iset, val
+
+## lv        - the Vpane vidget of the vlist frame vidget
+## sb        - the scrollbar vidget of the vlist frame vidget
+## dl        - The list being displayed
+## tl        - The line in the list which is at the top of the display
+
+   lv := self.lookup[1]
+   sb := self.lookup[2]
+   dl := storage_Vlist(lv.id, "read", "datalist")
+   mode := storage_Vlist(lv.id, "read", "mode")
+   window_sz := integer(lv.uh / WAttrib(lv.win, "fheight")) - 1
+
+   if type(state) ~== "list" then
+      state := [state]
+   tl := state[1] | &null
+   /tl := 1
+   tl := integer(tl) | _Vbomb("non-integer value in VSetState() of a list")
+   tl >:= *dl - window_sz
+   tl <:= 1
+   storage_Vlist(lv.id, "write", "top_line", tl)
+   VSetState(sb, tl)
+
+   if *state > 1 & mode === V_READONLY then
+      _Vbomb("VSetState() cannot select lines of read-only list")
+   else if *state > 2 & mode ~=== V_MULTISELECT then
+      _Vbomb("VSetState() cannot select multiple lines of this list")
+
+   val := list()			# list of values for callback
+   iset := set()			# make set of indices
+   every i := state[2 to *state] do
+      insert(iset, integer(i)) | 
+         _Vbomb("non-integer value in VSetState() of a list")
+
+   every i := 1 to *dl do {
+      if member(iset, i) then {		# S is selected, N is not
+         c := "S"
+         put(val, dl[i][2:0])
+         }
+      else
+         c := "N"
+      dl[i][1] ~==:= c	
+      }
+
+   drawlist_Vlist(lv, dl, tl)	# redraw vidget
+
+   case mode of {			# invoke callback
+      V_SELECT: {
+         storage_Vlist(lv.id, "write", "selection", !iset | 0)
+         (\lv.callback)(self, val[1] | &null, !iset | 0)
+         }
+      V_MULTISELECT: {
+         (\lv.callback)(self, val, sort(iset))
+         }
+      }
+
+   return
+end
+
+
+############################################################################
+#
+# PROCEDURE
+#    get_value_Vlist(self)
+#
+# DESCRIPTION
+#    This procedure returns the state of the vidget.
+#
+# INPUT
+#    self - the vidget record
+#
+# OUTPUT
+#    state - a list of integers:
+#	the first integer gives the index of the first viewable line
+#	any addition integers are indices of selected lines
+
+procedure get_value_Vlist(self)
+   local i, lv, dl, tl, state
+
+## lv        - the Vpane vidget of the vlist frame vidget
+## dl        - The list being displayed
+## tl        - The line in the list which is at the top of the display
+
+   lv := self.lookup[1]
+   dl := storage_Vlist(lv.id, "read", "datalist")
+   tl := storage_Vlist(lv.id, "read", "top_line")
+   state := [tl]
+   every i := 1 to *dl do
+      if dl[i] ? ="S" then
+         put(state, i)
+   return state
+end
+
+
+############################################################################
+#
+# PROCEDURE
+#    coupler_Vlist(self, val)
+#
+# DESCRIPTION
+#    This function is the callback used by the coupler which connects the
+#    scrollbar to the pane.  Whenever the scrollbar is moved, this function
+#    gets called with the pane's record and the scrollbar's new value so
+#    that the display can be updated appropriately.
+#
+#    The scrollbar changes the current value of topline so the list must be
+#    redisplayed with the new topline position in the list as the top line.
+#
+# INPUTS
+#    self - the pane vidget which displays the list
+#    val  - the new value for topline
+
+procedure coupler_Vlist(self, val)
+local tl, dl, sl, dh, fh, fw
+
+   tl := storage_Vlist(self.id, "read", "top_line")
+   if tl === val then fail
+
+   dl := storage_Vlist(self.id, "read", "datalist")
+   fh := WAttrib(self.win, "fheight")
+   fw := WAttrib(self.win, "fwidth")
+
+   tl := val
+   storage_Vlist(self.id, "write", "top_line", tl)
+
+   drawlist_Vlist(self, dl, tl)
+
+   return
+
+end
+
+
+############################################################################
+#
+# PROCEDURE
+#    drawlist_Vlist(pane, dl, tl)
+#
+# DESCRIPTION
+#    Draw a list of strings within the specified region of the window
+#
+# INPUTS
+#    pane - the pane vidget the strings are drawn in
+#    dl   - the list of strings
+#    tl   - the first line in the list to be drawn
+
+procedure drawlist_Vlist(pane, dl, tl)
+local win, x, y, w, h
+local fh, fw, ds, z, col, rev, non, mode, margin
+
+##
+## z   - Serves as the counter through the list
+## col - The number of columns that can be displayed in the vpane
+## non - The normal draw mode
+## rev - Draw with "reverse=on"
+##
+
+   win := pane.win
+   x := pane.ux
+   y := pane.uy
+   w := pane.uw
+   h := pane.uh
+
+   fh := WAttrib(win, "fheight")
+   fw := WAttrib(win, "fwidth")
+   ds := WAttrib(win, "descent")
+
+   rev := Clone(win, "reverse=on", "clipx="||x, "clipy="||y,
+                                    "clipw="||w, "cliph="||h)
+   non := Clone(rev, "reverse=off")
+
+   case storage_Vlist(pane.id, "read", "mode") of {
+      V_READONLY:  {
+         margin := 4
+         EraseArea(non, x, y, margin, h)
+         }
+      V_SELECT:  {
+         margin := 8
+         EraseArea(non, x, y, margin, h)
+         DrawGroove(non, x + 4, y + 1, x + 4, y + h - 2)
+         }
+      V_MULTISELECT:  {
+         margin := 12
+         EraseArea(non, x, y, margin, h)
+         DrawGroove(non, x + 4, y + 1, x + 4, y + h - 2)
+         DrawGroove(non, x + 8, y + 1, x + 8, y + h - 2)
+         }
+      }
+
+   z := tl
+   h +:= (y - fh)
+   y -:= ds
+   col := integer((w - 2) / fw)
+
+   while ((y < h) & (z <= *dl)) do
+   {
+      GotoXY(win, x + margin, y + fh)
+      if dl[z][1] == "S" then
+         WWrites(rev, left(dl[z][2:0], col))
+      else
+         WWrites(non, left(dl[z][2:0], col))
+
+      y +:= fh
+      z +:= 1
+   }
+
+   EraseArea(non, x + margin, y + ds)
+   return
+
+end
+
+
+############################################################################
+#
+# PROCEDURE
+#    Vframe_Vlist([frame, x, y], win, aw, ah)
+#
+# DESCRIPTION
+#    Creates the frame for the list vidget.  The only differences
+#    between this procedure and the normal Vframe() procedure is that the
+#    outline_Vframe callback has been changed to outline_listframe() and
+#    there is now a set_value_Vlist() procedure callback that can
+#    respond to calls from VSetState().
+#
+# INPUTS
+#    frame - (optional) the frame to insert this vidget in
+#    x     - (optional) the x coordinate to insert the vidget at
+#    y     - (optional) the y coordinate to insert the vidget at
+#
+#    These three parameters listed above are optional.  However, they must
+#    all be present if you plan to use them.
+#
+#    win   - the window the vidget will appear in
+#    aw    - (optional) the width of the vidget
+#    ah    - (optional) the height of the vidget
+#
+#    The aw and ah parameters are usually not given because they are
+#    set later with a call to VFormat().
+#
+# OUTPUT
+#    A frame vidget
+
+procedure Vframe_Vlist(params[])
+local self, procs, spec_procs, frame, x, y, ins
+ 
+   procs := Vstd(event_Vframe, draw_Vframe, outline_listframe,
+      resize_listframe, inrange_Vpane, init_Vframe,
+      couplerset_Vpane, insert_Vframe, remove_Vframe,
+      lookup_Vframe, set_abs_Vframe, set_value_Vlist)
+   spec_procs := Vstd_dialog(, , format_Vframe)
+ 
+   if ins := Vinsert_check(params) then {
+      frame := pop(params); x := pop(params); y:= pop(params)
+      }
+   self := Vframe_rec ! params[1:6|0]
+   Vwin_check(self.win, "Vframe()")
+   if (\self.aw, not numeric(self.aw)) then
+      _Vbomb("invalid aw parameter to Vframe()")
+   if (\self.ah, not numeric(self.ah)) then
+      _Vbomb("invalid ah parameter to Vframe()")
+ 
+   self.uid := Vget_uid()
+   self.V := procs
+   self.F := spec_procs
+   self.P := Vstd_pos()
+   self.V.init(self)
+   if \ins then VInsert(frame, self, x, y)
+   return self
+end
+
+
+############################################################################
+#
+# PROCEDURE
+#    outline_listframe()
+#
+# DESCRIPTION
+#    This is a dummy function to prevent the list frame from drawing
+#    any kind of a border around the vidget.
+
+procedure outline_listframe()
+end
+
+
+############################################################################
+#
+# PROCEDURE
+#    resize_listframe(s, x, y, w, h) #
+# DESCRIPTION
+#    Handle resizing of a Vlist.
+
+procedure resize_listframe(s, x, y, w, h)
+   /x := s.ax
+   /y := s.ay
+   /w := s.aw
+   /h := s.ah
+   resize_Vidget(s, x, y, w, h)
+   VResize(s.draw[1], x, y, w - VSlider_DefWidth - 2, h)
+   VResize(s.draw[2], x + w - VSlider_DefWidth, y, VSlider_DefWidth, h)
+end
+
+
+############################################################################
+#
+# PROCEDURE
+#    pane := Vpane_Vlist(win, cb, id, style, aw, ah)
+#    Vpane_Vlist(frame, x, y, win, cb, id, style, aw, ah)
+#
+# DESCRIPTION
+#    Create a specialized Vpane that has been modified to display a list
+#    of strings.
+#
+# INPUTS
+#    frame - (optional) the frame to insert this vidget in
+#    x     - (optional) the x coordinate to insert the vidget at
+#    y     - (optional) the y coordinate to insert the vidget at
+#
+#    These three parameters listed above are optional.  However, they must
+#    all be present if you plan to use them.
+#
+#    win   - the window the vidget will appear in
+#    cb    - the callback procedure to handle events
+#    id    - the id of the vidget
+#    style - which outline style to use: "grooved", "sunken", or "raised"
+#    aw    - (optional) the width of the vidget
+#    ah    - (optional) the height of the vidget
+#
+# OUTPUT
+#    pane  - the Vpane vidget (record)
+
+procedure Vpane_Vlist(params[])
+local self, frame, x, y, ins
+static procs
+
+   initial procs := Vstd(event_Vlist, draw_Vpane_Vlist,
+                        outline_listpane, resize_Vpane,
+                        inrange_Vpane, init_Vpane, couplerset_Vpane)
+
+   if ins := Vinsert_check(params) then {
+      frame := pop(params); x := pop(params); y:= pop(params)
+      }
+   self := Vpane_rec ! params[1:7|0]
+   Vwin_check(self.win, "Vpane()")
+   if (\self.aw, not numeric(self.aw)) then
+      _Vbomb("invalid aw parameter to Vpane()")
+   if (\self.ah, not numeric(self.ah)) then
+      _Vbomb("invalid ah parameter to Vpane()")
+
+   /self.style := "invisible"
+   if integer(self.style) then
+      if self.style > 0 then
+         self.style := "grooved"
+      else
+         self.style := "invisible"
+
+   self.uid := Vget_uid()
+   self.V := procs
+   self.P := Vstd_pos()
+   
+   if \ins then VInsert(frame, self, x, y)
+   return self
+
+end
+
+
+############################################################################
+#
+# PROCEDURE
+#    draw_Vpane_Vlist(self)
+#
+# DESCRIPTION
+#    Call the drawlist_Vlist() procedure using the current list and
+#    top line values.
+#
+#    This function is called whenever the vlist is asked to
+#    draw itself.
+#
+# INPUTS
+#    self - the Vpane vidget (record)
+
+procedure draw_Vpane_Vlist(self)
+local dl, tl
+
+   self.V.outline(self)
+
+   dl := storage_Vlist(self.id, "read", "datalist")
+   tl := storage_Vlist(self.id, "read", "top_line")
+   drawlist_Vlist(self, dl, tl)
+
+   return
+
+end
+
+
+############################################################################
+#
+# PROCEDURE
+#    event_Vlist(self, e, x, y)
+#
+# DESCRIPTION
+#    Handles events in the Vpane containing the list.  This amounts to
+#    highlighting the line that was selected by the user with the mouse
+#    or by the programmer using VSetState().  Only one line at a time
+#    can be highlighted.  The list vidget callback is not called until
+#    a &lrelease event is detected (releasing the mouse button implies
+#    the user has made a selection).  It also supports dragging the mouse
+#    across the list, highlighting and unhighlighting each line in turn.
+#
+# INPUTS
+#    self - the Vpane vidget record
+#    e    - the event that triggered with callback
+#    x    - the x position of the mouse at the time of the event
+#    y    - the y position of the mouse at the time of the event
+#
+# BUGS
+#    If the vlist is showing a list that is smaller than the actual
+#    area of the list itself, the last line can still be selected
+#    by clicking anywhere in the empty space beneath the last line.
+
+procedure event_Vlist(self, e, x, y)
+   local cb, dl, tl, sl, selectmode, selected, cb_data, cb_items, i, mode
+
+   if e ~=== &lpress then
+      fail				# not our event
+
+   mode := storage_Vlist(self.id, "read", "mode")
+   if mode === V_READONLY then
+      fail				# no events on read-only vidget
+
+   cb := self.callback
+   /y := &y
+   dl := storage_Vlist(self.id, "read", "datalist")
+   tl := storage_Vlist(self.id, "read", "top_line")
+   sl := storage_Vlist(self.id, "read", "selection")
+
+##### Dragging the mouse while holding                               #######
+##### the mouse button down highlights or un-highlights lines        #######
+##### depending on whether the first line clicked on was highlighted #######
+##### or unhighlighted.                                              #######
+
+   selected := vlist_selection(self, y)
+
+##### Handle mouse events for V_SELECT mode.                         #######
+
+   if mode === V_SELECT then {
+
+      /sl := 0
+      if sl = selected then {
+         dl[selected][1] := "N"
+         sl := &null
+         }
+      else {
+         dl[selected][1] := "S"
+         dl[sl][1] := "N"
+         sl := selected
+         }
+      drawlist_Vlist(self, dl, tl)
+
+      while (e := Event(self.win)) ~=== &lrelease do {
+
+         if e ~=== &ldrag then
+            next
+
+         selected := vlist_selection(self, &y)
+
+         /sl := 0
+         if sl = selected then
+            next
+         else {
+            dl[selected][1] := "S"
+            dl[sl][1] := "N"
+            sl := selected
+            drawlist_Vlist(self, dl, tl)
+            }
+
+         }
+
+         storage_Vlist(self.id, "write", "selection", sl)
+
+         if find("coupler", type(\cb)) then {		# coupler
+            if \self.callback.locked then fail
+            return cb.V.set(cb, self) | &null
+            }
+    
+         if type(\cb) == "procedure" then {
+            if dl[selected][1] == "S" then
+               return cb(self, dl[selected][2:0], selected) | &null
+            else 
+               return cb(self, &null, 0) | &null
+            }
+
+         return
+      }
+
+##### Handle mouse events for V_MULTISELECT mode.                    #######
+
+   if dl[selected][1] == "S" then
+      selectmode := "N"
+   else
+      selectmode := "S"
+   dl[selected][1] := selectmode
+   drawlist_Vlist(self, dl, tl)
+
+   while (e := Event(self.win)) ~=== &lrelease do
+      if e === &ldrag then {
+         dl[vlist_selection(self, &y)][1] := selectmode
+         drawlist_Vlist(self, dl, tl)
+         }
+
+   if find("coupler", type(\cb)) then {		# coupler
+      if \self.callback.locked then fail
+      return cb.V.set(cb, self) | &null
+      }
+
+   if type(\cb) == "procedure" then {		# procedure
+      cb_data := []
+      cb_items := []
+      every i := 1 to *dl do
+         if dl[i][1] == "S" then {
+	    put(cb_data, dl[i][2:0])
+	    put(cb_items, i)
+	    }
+      return cb(self, cb_data, cb_items) | &null
+      }
+
+   return
+end
+
+
+############################################################################
+#
+# PROCEDURE
+#    vlist_selection(self, y)
+#
+# DESCRIPTION
+#    Determines the item selected by the mouse
+#
+# INPUTS
+#    self - the Vpane vidget record
+#    sval - the y coordinate of an event
+#
+# OUTPUT
+#    the index of the selected line
+
+procedure vlist_selection(self, y)
+   local fh, tl, dl, window_sz, selected
+
+   fh := WAttrib(self.win, "fheight")
+   tl := storage_Vlist(self.id, "read", "top_line")
+   dl := storage_Vlist(self.id, "read", "datalist")
+   window_sz := integer(self.uh / fh) - 1
+
+   selected := tl - 1 + integer((y - self.uy + fh - 2) / fh)
+   selected >:= tl + window_sz
+   selected >:= *dl
+   selected <:= 1
+   selected <:= tl
+   return selected
+end
+
+
+############################################################################
+#
+# PROCEDURE
+#    outline_listpane(self)
+#
+# DESCRIPTION
+#    Draws an outline around the Vpane being used to display the list.
+#
+# INPUTS
+#    self - the Vpane vidget record
+
+procedure outline_listpane(self)
+
+   BevelRectangle(self.win, self.ax, self.ay, self.aw, self.ah, -2)
+
+   return
+
+end

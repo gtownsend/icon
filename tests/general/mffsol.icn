@@ -1,0 +1,114 @@
+##  mffsol.icn -- show solution graphically in mff format
+#
+#   input is assumed to be one line per round
+#   each player is represented by a different ASCII character
+#   matches are broken by whitespace
+
+global range				# vertical coordinate range
+global red, green, blue			# current color
+
+procedure main (args)
+    range := 1000
+    aset := cset(&ascii ? (tab(upto(' ')) & move(1) & move(94)))
+    pset := ''				# set of chars in use as players
+    plist := ""				# same, in order of appearance
+    rounds := []			# list of rounds (one text line each)
+    nmatches := 0
+
+    if *args > 0 then
+	f := open(args[1]) | stop("can't open ",args[1])
+    else
+	f := &input
+
+    # read input and save in memory
+    # (this first pass just accumulates a list of players)
+    while line := read(f) do
+	if line[1] ~== "[" & upto(aset,line) then {
+	    put(rounds,line)
+	    line ? while tab(upto(aset)) do {
+		c := move(1)
+		if not any(pset,c) then { # if first appearance of new player
+		    pset ++:= c		# add to set of players
+		    plist ||:= c	# add at end of list
+		}
+	    }
+	}
+
+    # if all the characters are letters, arrange alphabetically
+    if *(plist -- &ucase -- &lcase) = 0 then
+	plist := string(cset(plist))
+
+    #  calculate a position (angle) for each player, and draw the clock face
+    write("1 metafile ", pct(125), " ", pct(100), " 0 0 0 init")
+    angle := table()
+    dtheta := 2 * 3.14159 / *pset
+    theta := 3.14159 / 2 - dtheta / 2
+    every c := !plist do {
+	angle[c] := theta
+	cart(47, theta, -1, -1)
+	write("(",c,") text")
+	theta -:= dtheta
+    }
+
+    # draw each round in a different color
+    n := 1
+    red := 250
+    green := 255
+    blue := 0
+    every r := !rounds do {
+	write(red, " ", green, " ", blue, " color")
+	x := pct(110)
+	y := pct(100 - 4 * n)
+	if y > 0 then
+	    write(x, " ", y, " (", n, ") text")
+	r ? while tab(upto(aset)) do {
+	    match := tab(many(aset))
+	    cart (45, angle[match[1]], 0, 0);  writes ("begin ")
+	    cart (45, angle[match[2]], 0, 0);  writes ("line ")
+	    cart (45, angle[match[3]], 0, 0);  writes ("line ")
+	    cart (45, angle[match[4]], 0, 0);  writes ("line ")
+	    cart (45, angle[match[1]], 0, 0);  write  ("line")
+	    cart (45, angle[match[3]], 0, 0);  writes ("line stroke ")
+	    cart (45, angle[match[2]], 0, 0);  writes ("begin ")
+	    cart (45, angle[match[4]], 0, 0);  write  ("line stroke")
+	    nmatches +:= 1
+	}
+	n +:= 1
+	newcolor()
+    }
+
+    # write some final statistics
+    write ("255 255 255 color")
+    write ("0 0 (",
+	*pset," players, ",*rounds," rounds, ",nmatches," matches) text")
+    end
+
+
+# given polar coordinates (radius,angle,dx,dy), write cartesian equivalents
+# offset by (dx,dy)
+
+procedure cart (r,a,dx,dy)
+    x := pct (50 + r * cos(a) + dy)
+    y := pct (50 + r * sin(a) + dy)
+    writes (x," ",y," ")
+    end
+
+
+# return a string representing a given percentage of the coordinate range
+
+procedure pct (n)
+    return string(integer(n * range / 100))
+    end
+
+
+# set new color coordinates.  iterate until acceptable.
+
+procedure newcolor()
+    repeat {
+	red := (red + 103) % 256
+	green := (green + 211) % 256
+	blue := (blue + 71) % 256
+	lum := 0.30 * red + 0.59 * green + 0.11 * blue
+	if lum > 96 then return
+    }
+    end

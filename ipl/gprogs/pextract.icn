@@ -1,0 +1,101 @@
+############################################################################
+#
+#	File:     pextract.icn
+#
+#	Subject:  Program to separate good and bad patterns
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 1, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program takes the name of a file containing tile specifications
+#  on the command line.   Tiles to be extracted are entered from standard
+#  input.  Extracted tiles are written to standard output.
+#
+#  Options:
+#
+#	-b		replace selected tiles by blank tiles
+#	-d		delete selected tiles from specification file
+#	-c		copy selected tiles, do not blank or delete
+#			  them.  This is the default; -c overrides
+#			  -b and -d.
+#
+############################################################################
+#
+#  Links:  options, patutils
+#
+############################################################################
+
+link options
+link patutils
+
+procedure main(args)
+   local file, input, i, hitlist, patlist, spec, lo, hi, output
+   local subspec, opts
+
+   opts := options(args, "cbd")
+   if \opts["c"] then opts["b"] := opts["d"] := &null
+   if \opts["d"] then opts["b"] := 1
+
+   file := args[1] | stop("*** no pattern list specified")
+
+   input := open(file) | stop(" *** cannot open input file")
+ 
+   hitlist := set()			# construct set of indices to remove
+
+   while spec := read() do {
+      spec ? {
+         while subspec := tab(upto(',') | 0) do {
+            if insert(hitlist, integer(subspec)) then {		# integer
+               move(1) | break
+               tab(many(' '))
+               }
+            else {
+               subspec ? {
+                  lo := tab(many(&digits)) &
+                  ="-" &
+                  hi := tab(many(&digits)) &
+                  lo <= hi &
+                  pos(0) | {
+                     write(&errout, "*** bad specification")
+                     next
+                     }
+                  if not(integer(hi) & integer(lo)) then {
+                     write(&errout, "*** bad specification")
+                     next
+                     }
+                  every insert(hitlist, 0 < (lo to hi))
+                  }
+               move(1) | break
+               tab(many(' '))
+               }
+            }
+         }
+      }
+
+   patlist := []			# read in list of patterns
+
+   while put(patlist, readpatt(input))
+
+   close(input)
+
+   output := open(file, "w") |
+      stop("*** cannot reopen specified file for output")
+   
+   every i := !sort(hitlist) do {		# discard and "delete"
+      write(patlist[i]) | write(&errout, "*** ", i, " out of bounds")
+      if \opts["b"] then patlist[i] := "1,#0"
+      }
+
+   if \opts["d"] then
+      every write(output, "1,#0" ~== !patlist)
+   else
+      every write(output, !patlist)
+
+end

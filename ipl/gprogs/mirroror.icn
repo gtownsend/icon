@@ -1,0 +1,55 @@
+############################################################################
+#
+#	File:     mirroror.icn
+#
+#	Subject:  Program to mirror images given on command line
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 2, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  To get from one image to another, type "n"; to quit, type "q". "s"
+#  produces a snapshot and "w" writes the name of the file.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics  
+#
+############################################################################
+#
+#  Links:  interact, mirror, wopen
+#
+############################################################################
+
+link interact
+link mirror
+link wopen
+
+procedure main(args)
+   local name, win
+
+   every name := !args do {
+      WOpen("image=" || name, "canvas=hidden") | {
+         write(&errout, "*** cannot open ", image(name))
+         next
+         }
+      win := mirror(&window)
+      WAttrib(win, "canvas=normal", "label=" || name)
+      repeat case Event(win) of {
+         "n":  break
+         "s":  snapshot(win)
+         "q":  exit()
+         "w":  write(name)		# write out file name
+         }
+      WClose(&window)
+      WClose(win)
+      &window := &null
+      }
+
+end

@@ -1,0 +1,52 @@
+############################################################################
+#
+#	File:     trim.icn
+#
+#	Subject:  Program to trim lines in a file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 26, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This program copies lines from standard input to standard out-
+#  put, truncating the lines at n characters and removing any trail-
+#  ing blanks and tabs. The default value for n is 80.  For example,
+#  
+#          trim 70 <grade.txt >grade.fix
+#  
+#  copies grade.txt to grade.fix, with lines longer than 70 charac-
+#  ters truncated to 70 characters and the trailing blanks removed
+#  from all lines.
+#  
+#     The -f option causes all lines to be n characters long by
+#  adding blanks to short lines; otherwise, short lines are left as
+#  is.
+#
+############################################################################
+#
+#  Links: options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local n, pad, line, opts
+
+   opts := options(args,"f")
+   if \opts["f"] then pad := 1 else pad := 0
+   n := (0 <= integer(args[1])) | 80
+
+   while line := read() do {
+      line := line[1+:n]
+      line := trim(line, ' \t')
+      if pad = 1 then line := left(line,n)
+      write(line)
+      }
+end

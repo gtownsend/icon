@@ -1,0 +1,158 @@
+############################################################################
+#
+#	File:     memsum.icn
+#
+#	Subject:  Program to tabulate memory allocation
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 17, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This tool tabulates storage allocation.  It is called as
+#
+#	memsum prog
+#
+#  where prog is a program compiled under MT Icon whose events are to
+#  be tabulated.
+#	
+#  The options supported are:
+#
+#	-o s	write output to file s; default &output.
+#
+#	-t	record time spent in monitoring.
+#
+############################################################################
+#
+#  Requires:  MT Icon and event monitoring.
+#
+############################################################################
+#
+#  Links:  evinit, evnames, numbers, options
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+link evinit
+link evnames
+link numbers
+link options
+
+$include "evdefs.icn"
+
+global highlights, alloccnt, alloctot, collections, output
+
+procedure main(args)
+   local opts, itime, mask
+
+   opts := options(args, "to:")
+   output := open(\opts["o"], "w") | &output
+   if \opts["t"] then itime := &time
+
+   EvInit(args) | stop("*** cannot load program")	# initialize interface
+
+   alloccnt := table(0)			# count of allocations
+   alloctot := table(0)			# total allocation
+   collections := table(0)		# garbage collection counts
+
+   #  Be sure all allocation types are listed even if there is no allocation
+   #  for them.
+
+   every alloccnt[!AllocMask] := 0
+   every alloctot[!AllocMask] := 0
+
+   mask := AllocMask ++ E_Collect
+
+   while EvGet(mask) do 
+      if &eventcode === E_Collect then collections[&eventvalue] +:= 1
+      else {
+         alloccnt[&eventcode] +:= 1
+         alloctot[&eventcode] +:= &eventvalue
+         }
+
+   report()
+
+   write(output, "\nelapsed time: ", &time - \itime, "ms")
+
+end
+
+#  Display a table of allocation data
+#
+procedure report()
+   local i, cnttotal, tottotal, cnt, tot, totalcoll
+
+   static col1, col2, gutter		# column widths
+
+   initial {
+      col1 := 20			# name field
+      col2 := 10			# number field
+      gutter := "  "
+      }
+
+   write(output, "\n",			# write column headings
+      left("type",col1), right("number",col2), gutter,
+      right("bytes",col2), gutter, right("average",col2), gutter,
+      right("% bytes",col2), "\n"
+      )
+
+   alloccnt := sort(alloccnt, 3)				# get the data
+   alloctot := sort(alloctot, 3)
+
+   cnttotal := 0
+   tottotal := 0
+ 
+   every i := 2 to *alloccnt by 2 do {
+      cnttotal +:= alloccnt[i]
+      tottotal +:= alloctot[i]
+      }
+
+   while write(output,					# write the data
+      left(name(get(alloccnt)), col1),
+      right(cnt := get(alloccnt), col2), gutter,
+      get(alloctot) & right(tot := get(alloctot), col2), gutter,
+      fix(tot, cnt, col2, 2) | right("0.00", col2), gutter,
+      fix(100.0 * tot, tottotal, col2, 2) | right("0.00", col2)
+      )
+
+   write(output, "\n",					# write totals
+      left("total:",col1), right(cnttotal,col2), gutter, right(tottotal,col2),
+      gutter, fix(tottotal,cnttotal,col2) | repl(" ",col2)
+      )
+
+   totalcoll := 0					# garbage collections
+   every totalcoll +:= !collections
+   write(output,"\n",left("collections:",col1),right(totalcoll,col2))
+   if totalcoll > 0 then {
+      write(output,left("  static region:",col1),right(collections[1],col2))
+      write(output,left("  string region:",col1),right(collections[2],col2))
+      write(output,left("  block region:",col1),right(collections[3],col2))
+      write(output,left("  no region:",col1),right(collections[0],col2))
+      }
+
+   return
+end
+
+#  Produce event name
+#
+procedure name(code)
+   local result
+
+   result := evnames(code)
+
+   result ?:= tab(find(" allocation"))
+
+   result ?:= {
+      tab(find("trapped variable")) || "tv"
+      }
+
+   return result
+
+end

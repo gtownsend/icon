@@ -1,0 +1,82 @@
+############################################################################
+#
+#	File:     drawdown.icn
+#
+#	Subject:  Program to produce drawdown
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 2, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program produces a weaving draw down from string weaving
+#  specification taken from standard input.  Black cells are the warp,
+#  white cells the weft. 
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics  
+#
+############################################################################
+#
+#  Links:  cells, expander,  interact, tieutils, weavutil
+#
+############################################################################
+
+link cells
+link expander
+link interact
+link tieutils
+link weavutil
+
+$define MaxSize 160
+
+procedure main()
+   local threading, treadling, panel, x, y, tieup, temp, cellsize
+   local shafts, treadles, treadle, i, j
+
+   cellsize := 5
+
+   read() | stop("*** short file")			# skip name
+
+   threading := pfl2str(read()) | stop("*** short file")
+   treadling := pfl2str(read()) | stop("*** short file")
+
+   if *threading > MaxSize then threading := left(threading, MaxSize)
+   if *treadling > MaxSize then treadling := left(treadling, MaxSize)
+
+   read() | stop("*** short file")			# skip warp colors
+   read() | stop("*** short file")			# skip weft colors
+
+   tieup := tie2tier(read(), *cset(threading)).matrix | stop("*** short file")
+
+   panel := makepanel(*threading, *treadling, cellsize, "black", "white", "black")
+
+   WAttrib(panel.window, "canvas=normal")
+
+   every y := 1 to *treadling do {
+      treadle := tieup[sympos(treadling[y])] | {
+         stop("*** treadling bogon")
+         }
+      every i := 1 to *treadle do {
+         if treadle[i] == "0" then {
+            every j := 1 to *threading do {
+               if sympos(threading[j]) = i then
+                  colorcell(panel, j, y, "white")
+               }
+            }
+         }
+      }
+
+   Fg(panel.window, "black")
+   Bg(panel.window, "light gray")
+
+   if TextDialog("Drawdown finished.", , , , ["Quit", "Save"]) == "Quit" then exit
+   else snapshot(panel.window)
+
+end

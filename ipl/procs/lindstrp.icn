@@ -1,0 +1,68 @@
+############################################################################
+#
+#	File:     lindstrp.icn
+#
+#	Subject:  Procedure to interpret L-system output as striped pattern
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 18, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Lindenmayer systems are usually are interpreted as specifications
+#  for drawing plant-like objects, fractals, or other geometric designs.
+#  This procedure illustrates that L-systems can be intrepreted in other
+#  ways -- as striped patterns, for example.
+#
+#  The procedure is called as lindstrp(prod, band_tbl) where prod is a
+#  "production" that is interpreted as being a sequence of one-character
+#  symbols, and band_tbl is a table with these symbols as keys whose
+#  corresponding values are specifications for bands of the form
+#  "color:width". An example of a table for the symbols A, B, and C is:
+#
+#	band_tbl := table()
+#
+#	band_tbl["A"] := "blue:3"
+#	band_tbl["B"] := "red:10"
+#	band_tbl["C"] := "black:5"
+#  
+#  With a table default of null, as above, symbols in prod that are not
+#  table keys are effectively ignored.  Other table defaults
+#  can be used to produce different behaviors for such symbols.
+#
+#  An example of a production is:
+#
+#	"ABCBABC"
+#
+#  The result is a string of band specifications for the striped pattern
+#  represented by prod.  It can be converted to an image by using
+#  strplang.icn, but graphics are not necessary for the use of this
+#  procedure itself.
+#
+#  One thing this procedure is useful for is developing an understanding
+#  of how to construct L-systems for specific purpose:  L-systems for
+#  plant-like objects and fractals are require specialized knowledge and
+#  are difficult to construct, while stripes are simple enough for
+#  anyone to understand and develop L-systems for.
+#
+############################################################################
+#
+#  See also linden.icn and lindsys.icn.
+#
+############################################################################
+
+procedure lindstrp(prod, band_tbl)
+   local result
+
+   result := ""
+
+   every result ||:= \band_tbl[!prod] || ";"
+
+   return result
+
+end

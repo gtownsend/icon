@@ -1,0 +1,269 @@
+############################################################################
+#
+#	File:     navitrix.icn
+#
+#	Subject:  Procedures to perform file navigation
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 6, 1999
+#
+############################################################################
+#
+#  This package provides an interface for file navigation.  It is
+#  intended for use with another application with a visual interface.
+#
+#  At present, it is UNIX-specific.  See the preprocessor definitions
+#  for where platform-specific code is needed.
+#
+#  Directories are shown with a trailing slash.  Clicking on a directory
+#  moves there.  Clicking on a file name selects it.  The text of the
+#  button used to dismiss the navigator is put in the global variable
+#  nav_state, while the name of the selected file is put in the global
+#  variable nav_file.
+#
+#  nav_keyboard() processes keyboard shortcuts.  A return character is
+#  equivalent to clicking on the Okay button.  Other characters cause
+#  the top list entry to be positioned at a name that starts with or is
+#  close to the character.
+#
+#  The other application needs only to know this:
+#
+#	The navigator is initialized by calling nav_init().  This opens a
+#	hidden window, assigned to the global variable nav_window, for
+#	the navigator.  It also assigns the navigator root vidget to the
+#	global variable nav_root.
+#
+#	To use the navigator, the other application needs to change the
+#	canvas status nav_window to normal so it can accept user events
+#	and hide it again when it has been "dismissed".  The navigator
+#	puts the selected file in nav_file as mentioned above.
+#
+#	If the application wants to support the navigator's keyboard
+#	shortcuts, it needs to set the shortcut procedure to nav_keyboard
+#	when the navigator window is active.
+#
+#  A typical event loop for using the navigator is:
+#
+#  repeat {			# event loop
+#     case Active() of {
+#        &window   :  {		# application window
+#           root_cur := root
+#           shortcuts_cur := shortcuts
+#           }
+#        nav_window   :  {	# navigation window
+#           root_cur := nav_root
+#           shortcuts_cur := nav_keyboard
+#           }
+#        }
+#     ProcessEvent(root_cur, , shortcuts_cur)
+#     case nav_state of {
+#        &null   :  next
+#        "Okay"  :  load_pattern()
+#        }
+#     nav_state := &null
+#     WAttrib(nav_window, "canvas=hidden")
+#     }
+#
+#  where process_file() is a procedure that does something with the
+#  file.
+#
+#  Note that the value of nav_state determines what needs to be done.  It is
+#  null when the navigator has not been used since the last event.  If
+#  the navigator is dismissed with "Cancel" instead of "Okay", nothing
+#  needs to be done except hide the navigator window and set the nav_state
+#  to null.
+#
+#  Coupled with this is a procedure (or more than one) that makes the
+#  navigator window visible, as in
+#
+#	procedure open_cb()
+#	   WAttrib(nav_window, "canvas=normal")
+#	   ...
+#	   return
+#	end
+#
+#  If there is more than one use of the navigator, the callbacks that
+#  enable it can set process_file to the appropriate companion procedure.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics, UNIX
+#
+############################################################################
+#
+#  Links: vsetup
+#
+############################################################################
+
+link vsetup
+
+$include "keysyms.icn"
+
+global directory
+global dir
+global file_list
+global files
+
+# Globals used to communicate with the application that uses the navigator
+
+global nav_file
+global nav_root
+global nav_state
+global nav_vidgets
+global nav_window
+
+procedure nav_init()
+   local window_save, atts
+
+   window_save := &window		# save current subject window
+   &window := &null			# clear for new subject
+   atts := navig_atts()
+   put(atts, "canvas=hidden")
+   (WOpen ! atts) | stop("*** can't open navigation window")
+   nav_vidgets := navig()		# initialize interface
+   nav_window := &window		# name navigation window
+   &window := window_save 		# restore previous subject window
+
+   files := nav_vidgets["files"]
+   nav_root := nav_vidgets["root"]
+
+   nav_file := &null
+
+   nav_refresh()
+
+   return
+
+end
+
+procedure nav_files_cb(vidget, value)
+
+   if /value then return
+
+
+$ifdef _UNIX
+   if value ?:= tab(upto('/')) then {
+      chdir(value)
+      nav_refresh()
+      return
+      }
+$else
+   Deliberate Syntax Error
+$endif
+
+   nav_file := value
+      
+   return
+
+end
+
+procedure nav_refresh()
+   local ls, input
+   static x, y
+
+   initial {
+      x := nav_vidgets["placeholder"].ax
+      y := nav_vidgets["placeholder"].ay
+      directory := ""
+      }
+
+$ifdef _UNIX
+   input := open("pwd", "p")
+$else
+   Deliberate Syntax Error
+$endif
+
+   WAttrib( nav_window, "drawop=reverse")
+   DrawString(nav_window, x, y, directory)
+   DrawString(nav_window, x, y, directory := !input)
+   WAttrib(nav_window, "drawop=copy")
+
+   close(input)
+
+   file_list := []
+
+$ifdef _UNIX
+   ls := open("ls -a -p .", "p")
+$else
+   Deliberate Syntax Error
+$endif
+
+   every put(file_list, !ls)
+
+   VSetItems(files, file_list)
+
+   close(ls)
+
+   return
+
+end
+
+procedure nav_okay_cb()
+
+   if /nav_file then {
+      Notice("No file selected.")
+      fail
+      }
+
+   nav_state := "Okay"
+
+   return
+
+end
+
+procedure nav_keyboard(e)
+
+   case e of {
+      "\r"      :  nav_okay_cb()
+      Key_Home  :  VSetState(files, 1)
+      Key_End   :  VSetState(files, *file_list)
+      default   :  if type(e) == "string" then nav_locate(e)
+      }
+
+   return
+
+end
+
+procedure nav_locate(e)
+   local i
+   static pos
+
+   initial pos := list(1)
+
+   every i := 1 to *file_list do {
+      if file_list[i] >>= e then break
+      }
+
+   pos[1] := i
+
+   VSetState(files, pos)
+
+   return
+
+end
+
+procedure nav_cancel_cb()
+
+   nav_state := "Cancel"
+
+   return
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure navig_atts()
+   return ["size=294,412", "bg=pale gray", "label=Navitrix"]
+end
+
+procedure navig(win, cbk)
+return vsetup(win, cbk,
+   ["navig:Sizer:::0,0,294,412:Navitrix",],
+   ["cancel:Button:regular::86,378,49,20:Cancel",nav_cancel_cb],
+   ["files:List:w::13,50,273,314:",nav_files_cb],
+   ["okay:Button:regular::21,378,49,20:Okay",nav_okay_cb],
+   ["placeholder:Button:regularno::20,22,65,17:    ",],
+   ["refresh:Button:regular::224,378,56,20:Refresh",nav_refresh],
+   ["border:Rect:grooved::18,374,55,28:",nav_okay_cb],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

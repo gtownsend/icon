@@ -1,0 +1,63 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<!--NewPage-->
+<html>
+<head>
+<title>htetris documentation</title>
+</head>
+<body>
+<h1>
+<center>User Manual For htetris Version 1.0</center>
+<center>Henrik Sandin 1999</center>
+</h1>
+<hr>
+<a href="http://lww.CS.Arizona.EDU:80/~henriks/htetrisdoc.html">Main page</a>
+<h2>Implementation details</h2><br>
+<font size="5">
+The bricks are represented with matrix structures in the game as well as
+the editor. An element in such a matrix represents one square in a brick.
+A matrix is never larger than the actual rectangle which constitutes the
+size of a brick which is measured in number of squares wide and high
+respectively.<br>
+In the editor, a brick-matrix consists of ones and zeros where a one
+represents a colored square and a zero represents an uncolored (black, since
+the backgroud of the edit pane is black) square.
+A string representation of such matrices is used when they are saved to file.<br>
+When a brick is used in the game, the brick-matrix elements plays a different
+role. The area where the bricks fall also has a matrix representation where
+every element, just like the brick matrices in the editor context contains
+one or zero, one representing a position where a brick-square is permanently
+stuck and zero representing a position that is "free".<br>
+<br>
+When a brick is shown and falling, its matrix conceptually resides on top of
+the background matrix. At all times a brick-matrix keeps updated information
+on where a particular square is as well as if that square is colored or not.
+A brick-matrix element contains a record which in turn contains information
+about the current row and column coordinates of the background matrix and
+whether that square is colored or should be drawn transparent (not drawn).
+When a brick changes position (falls one step or is moved to the left or
+to the right), its matrix is updated accordingly.<br>
+When a brick is considered to be stuck somewhere, the background matrix is
+updated by looking at the current information in the current brick-matrix.
+The determining of whether a brick is stuck or can/can not be moved, is done
+by looking at the surrounding elements relative to a brick's current
+position in the background matrix.
+An element in a brick matrix which is market as "colored" can never be
+located "on top" of an element in the background matrix which contains a one.<br>
+<br>
+The actual drawing and erasing of the bricks is based on the background matrix
+indeces where a brick currently resides.
+A brick square has a constant width and height, so it is only a matter of
+multiplying that constant number of pixels by the matrix row or column number
+to determining where the brick image should be drawn.<br>
+<br>
+Graphically, a brick is a rectangular image(string) which is drawn using the
+procedure <b>DrawImage()</b> which support transparency in drawing.
+This is useful since bricks are shaped as they are.<br>
+Erasing of a brick is done by a series of <b>EraseArea()</b> calls each of
+which is erasing one square of the brick. This is a little bit slow but is
+necessary to prevent already stuck bricks from being overwritten.
+This might happen if a falling brick is erased by clearing one single rectangle
+covering the whole brick when it is close enough to already stuck ones.
+</font>
+</body>
+</html>

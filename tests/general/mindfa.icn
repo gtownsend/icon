@@ -1,0 +1,214 @@
+### mindfa -- minimize a DFA
+
+record dfa(Q,S,d,q0,F)          # a DFA
+
+procedure main()
+
+   x := getdfa()
+   every 1 to 10 do
+      showdfa("Reduced",minimize(showdfa("Original",x)))
+
+end
+
+## - getdfa() -- accept a dfa from input, return it
+##
+procedure getdfa()
+local Q,S,d,q0,F
+local q,a
+
+   Q := readset("Enter states (1 character names): ")
+   S := readset("Enter input alphabet: ")
+   F := readset("Enter Final states (subset of states): ")
+   writes("What is the start state? ")
+   q0 := read()
+   d := table()
+   every q := !Q & a := !S do {
+      writes("enter delta(",q,",",a,") = ")
+      d[q||":"||a] := read()
+      }
+   return dfa(Q,S,d,q0,F)
+
+end
+
+
+## readset(s) - get a set
+#
+procedure readset(s)
+local t1
+
+   writes(s)
+   t1 := []
+   every put(t1,!cset(read()))  # the cset removes duplicates
+   return t1
+
+end
+
+## showdfa(msg,D) -- show a dfa
+#
+procedure showdfa(msg,D)
+local q,a
+
+   every 1 to 3 do write()
+   write(msg," Deterministic Finite Automaton is:")
+   write()
+   write("\t(Q,S,delta,q0,F)")
+   write()
+   write("where:")
+   write()
+   writeset("Q",D.Q)
+   writeset("S",D.S)
+   writeset("F",D.F)
+   write("\tStart state is ",D.q0)
+   write("\tDelta: ")
+   every q := !D.Q do {
+      every writes("\td(",q,",",a := !D.S,") = ",D.d[q||":"||a])
+      write()
+      }
+   return D
+
+end
+
+## writeset(msg,s) -- display a set
+#
+procedure writeset(msg,s)
+local tmp
+   tmp := ""
+   every tmp ||:= !s || ","
+   write("\t",msg," = {",tmp[1:-1],"}")
+   return
+end
+
+## minimize(D) -- minimize a dfa
+#
+global distab, dlists
+
+procedure minimize(D)
+local F,QF
+local p,q,a,cs
+
+   distab := table()
+   dlists := table()
+   F := D.F
+   QF := diff(D.Q,D.F)
+   every p := !F & q := !QF do
+      distab[cset(p||q)] := "X"
+   every ((p := !F & q := !F) |
+          (p := !QF & q := !QF)) & p ~== q do
+      if \distab[cset(D.d[p||":"||(a:=!D.S)]||D.d[q||":"||a])] then {
+         distab[cset(p||q)] := "X"
+         marklists(dlists[cset(p||q)])
+         }
+      else
+         every a := !D.S do
+            if D.d[p||":"||a] ~== D.d[q||":"||a] then {
+               cs := cset(D.d[p||":"||a]||D.d[q||":"||a])
+               if cs == cset(p||q) then next
+               /dlists[cs] := []
+               put(dlists[cs],cset(p||q))
+               }
+
+   return makemdfa(D,distab)
+
+end
+
+## marklists(l) -- recursively mark the pair of nodes
+#                  on list l.
+procedure marklists(l)
+local e
+
+   if /l then return
+   every e := !l do {
+      distab[e] := "X"
+      marklists(dlists[e])
+      }
+   return
+
+end
+
+## makemdfa(D,DT) -- Use the table from the minimization
+#                    to construct the minimal dfa
+procedure makemdfa(D,DT)
+local elist, etab, qset, tlist, echeck
+local p, q, Delta, q0
+
+   etab := table()              # table of new states
+   qset := ''
+   every p := !D.Q do {
+      qset ++:= p
+      plike := equiv(p,etab) | cset(p)
+      every q := !diff(D.Q,qset) & p ~== q do
+         if /distab[cset(p||q)] then {
+            plike ++:= equiv(q,etab) | q
+            }
+      etab[plike] := plike
+      }
+   tlist := []
+   elist := []
+   Delta := table()
+   q0 := equiv(D.q0,etab)       # start state of reduced machine
+   put(tlist,q0)
+   put(elist,q0)                # only worry about states reachable
+                                #   from [q0]
+   echeck := table()            #   keep track of states
+   echeck[q0] := q0
+   while q := get(tlist) do
+      every a := !D.S do {
+         Delta[q||":"||a] := equivdelta(q,a,D,etab)
+         if /echeck[Delta[q||":"||a]] then {
+            echeck[Delta[q||":"||a]] := Delta[q||":"||a]
+            put(tlist,Delta[q||":"||a])
+            put(elist,Delta[q||":"||a])
+            }
+         }
+
+   return dfa(elist,D.S,Delta,q0,finalstates(D,elist))
+end
+
+## equiv(q,el) -- return the equivalence class in el containing q
+#
+procedure equiv(q,el)
+   every p := !el do
+      if p++q == p then return p
+end
+
+## equivdelta(p,a,D,el) -- apply delta to equiv. classes
+#
+procedure equivdelta(p,a,D,el)
+local q, r
+   q := !p               # any state in equiv. class p
+   r := D.d[q||":"||a]   # find state in original dfa
+
+   return equiv(r,el)    # return its equivalence class
+end
+
+
+## finalstates(D,el) -- build the set of final states
+#
+procedure finalstates(D,el)
+local flist, p, q
+
+   ftab := table()
+   every p := !D.F do
+      ftab[q := equiv(p,el)] := q
+   flist := []
+   every put(flist,(!sort(ftab))[1])
+   return flist
+end
+
+
+## diff(l1,l2) -- return the difference of two sets
+#
+procedure diff(l1,l2)
+local l,t1,t2
+
+   t1 := ''
+   every t1 ++:= !l1
+
+   t2 := ''
+   every t2 ++:= !l2
+
+   l := []
+   every put(l,!(t1--t2))
+   if *l = 0 then fail
+   return l
+end

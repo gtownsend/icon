@@ -1,0 +1,75 @@
+############################################################################
+#
+#	File:     versum.icn
+#
+#	Subject:  Program to produce versum sequence 
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 12, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program writes the versum sequence for an integer to a file of a
+#  specified name.  If such a file exists, it picks up where
+#  it left off, appending new values to the file.
+#
+#  The supported options are:
+#
+#	-s i	The seed for the sequence, default 196
+#	-f s	Name of file to extend, no default
+#	-F s	Name of file, default <i>.vsq, where <i> is the
+#		   seed of the sequence
+#	-t i	The number of steps to carry the sequence out to, default
+#		   essentially unlimited
+#	-m i	Stop when value equals or exceeds m; default no limit
+#
+#  If both -f and -F are given, -f overrides.
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local start, output, input, i, opts, limit, name, max, count
+
+   opts := options(args, "t+s+m+f:F:")
+   start := (0 < \opts["s"]) | 196
+   limit := \opts["t"] | -1
+   max := opts["m"]
+   name := \opts["F"] | (start || ".vsq")
+   name := \opts["f"]
+  
+   if input := open(name) then {
+      count := 0
+      while i := read(input) do {
+          if not integer(i) then exit()			# link, not term
+         count +:= 1
+         if count > limit then exit()
+         }
+      close(input)
+      }
+
+   /i := start				# in case file doesn't exist or is empty
+
+   if not integer(i) then stop("*** invalid data")
+
+   output := open(name, "a") | stop("*** cannot open file")
+
+   limit -:= \count
+ 
+   until (limit -:= 1) = -1 do {
+      i +:= reverse(i)
+      if i > \max then break
+      write(output, i := string(i))
+      }
+
+end

@@ -1,0 +1,160 @@
+############################################################################
+#
+#	File:     sentence.icn
+#
+#	Subject:  Procedure to generate sentences in file
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.2
+#
+############################################################################
+#  
+#  sentence(f)   - suspends sentences from file f
+#
+#  A lot of grammatical and stylistic analysis programs are predicated
+#  on the notion of a sentence.  For instance, some programs count the
+#  number of words in each sentence.  Other count the number and length
+#  of clauses.  Still others pedantically check for sentence-final par-
+#  ticles and prepositions.
+#
+#  This procedure, sentence(), is supposed to be used as a filter for
+#  ASCII text files, suspending everything that looks remotely like a
+#  sentence in them.
+#
+############################################################################
+#
+#  BUGS:  Cannot correctly parse sentences with constructs like "R. L.
+#  Goerwitz" in them.  The algorithm can be much improved simply by
+#  checking to see if the word after the period is in /usr/dict/words
+#  or whatever your system dictionary file is.  If it isn't, then it's
+#  likely not to be the beginning of a sentence (this also is not in-
+#  fallible, naturally).
+#
+############################################################################
+#
+#  Requires:  co-expressions
+#
+############################################################################
+
+
+procedure sentence(intext)
+
+    local sentence, get_line, line, tmp_s, end_part, whole_thing
+    static inits, punct
+    initial {
+	inits := &ucase ++ &digits
+	punct := ".\"'!?)]"
+    }
+    sentence := ""
+    get_line := create read_line(intext)
+
+    while line := @get_line do {
+
+	# If we hit a blank line, it's a signal from read_line that we
+	# have encountered a change in the indentation level, and
+	# should call it a sentence break (though it could just be
+	# indentation for a quote, a section header, etc., it seems
+	# these all indicate major, sentence-like divisions in the
+	# text).
+	if line == "" then {
+	    suspend sentence
+	    sentence := ""
+	    next
+	}
+
+	# Go on until you can't find any more sentence-endings in line,
+	# then break and get another line.
+	repeat {
+
+	    # Scan for a sentence break somewhere in line.
+	    line ? {
+
+		# Ugly, but it works.  Look for sequences containing
+		# things like periods and question marks, followed by
+		# a space and another space or a word beginning with
+		# a capital letter.  If we don't have enough context,
+		# append the next line from intext to line & scan again.
+		if tmp_s := tab(upto(punct)) &
+		    upto('!?.', end_part := tab(many(punct))) &
+		    not (pos(-1), line ||:= @get_line, next) &
+		    =" " & (=" " | (tab(many('\'"('))|&null,any(inits)))
+		# IF YOU WANT TO ADD A DICTIONARY CHECK, then read in
+		# a dictionary like /usr/dict/words, and then change
+		# any(inits) above to something like (any(inits),
+		# longstr(list_of_usrdictwords,map(&subject),&pos), =" ")
+		# where longstr() matches each string in list_of_usr-
+		# dictwords.
+		then {
+
+		    # Don't bother with little two-letter hunks.
+		    whole_thing := sentence || tmp_s || end_part
+		    if *whole_thing > 3 | find(" ",whole_thing)
+		    then suspend whole_thing
+
+		    tab(many(' '))
+		    line := tab(0)
+		    sentence := ""
+		    next
+		}
+		else break
+	    }
+	}
+
+	# Otherwise just tack line onto sentence & try again.
+	sentence ||:= line
+    }
+
+    return sentence
+
+end
+
+
+
+
+procedure read_line(intext)
+
+    local new_line, ilevel, junk_count, space_count, line
+    static last_ilevel, blank_flag
+    last_ilevel := 0
+
+    while line := trim(!intext,'\t ') do {
+
+	# Check to see if line is blank; if so, set blank_flag.
+	if line == "" then
+	    { blank_flag := 1; next }
+
+	# Determine current indentation level.
+	detab(line) ? {
+	    ilevel := *tab(many(' ')) | 0
+	}
+
+	line ? {
+
+	    tab(many('\t '))
+
+	    # Signal the calling procedure if there is a change in the
+	    # indentation level by suspending a blank line.
+	    if (ilevel > last_ilevel) | (ilevel < last_ilevel, \blank_flag)
+	    then suspend ""
+	    last_ilevel := ilevel
+
+	    # Put a space on the end of line, unless it ends in a dash.
+	    new_line := tab(-1) || (="-" | (move(1) || " "))
+	    # Make sure the flag that indicates blank lines is unset.
+	    blank_flag := &null
+	}
+
+	# Suspend the newly reformatted, trimmed, space-terminated line.
+	suspend new_line
+    }
+
+end

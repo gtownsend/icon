@@ -1,0 +1,233 @@
+############################################################################
+#
+#	Name:	skin.icn
+#
+#	Title:	Scheme in Icon
+#
+#	Author: Bob Alexander
+#
+#	Date:	February 19, 1995
+#
+#	Description: see skeem.icn
+#
+############################################################################
+
+#
+# skeem -- Scheme in Icon
+#
+# Input utility procedures
+#
+
+global BackToken
+
+#
+# ReadAllExprs() - Generate expressions from file f
+#
+procedure ReadAllExprs(f)
+   "" ? (suspend |ScanExpr(FileRec(f)))
+end
+
+#
+# ReadOneExpr() - Read one expression from f.
+#
+procedure ReadOneExpr(f)
+   local result,fRec
+   "" ? {
+      result := ScanExpr(fRec := FileRec(f))
+      seek(f,fRec.where + &pos - 1)
+      }
+   return result
+end
+
+#
+# StringToExpr() - Generate expressions from string s
+#
+procedure StringToExpr(s)
+   s ? (suspend |ScanExpr())
+end
+
+procedure ScanExpr(f)
+   local token
+   return case token := ScanToken(f) | fail of {
+      "(": ScanList(f)
+      "#(": ScanVector(f)
+      !"'`," | ",@": ScanQuote(f,token)
+      default:
+	 if type(token) == "Symbol" then token.string
+	 else token
+      }
+end
+
+procedure ScanList(f)
+   local result,token,dot
+   result := LLNull
+   while (token := ScanToken(f)) ~=== ")" do {
+      if token === "." then {
+	 dot := ScanExpr(f)
+	 }
+      else {
+	 BackToken := token
+	 result := LLPair(ScanExpr(f),result)
+	 }
+      }
+   return LLInvert(result,dot)
+end
+
+procedure ScanVector(f)
+   local result,token
+   result := []
+   while (token := ScanToken(f)) ~=== ")" do {
+      BackToken := token
+      put(result,ScanExpr(f))
+      }
+   return result
+end
+
+procedure ScanQuote(f,token)
+   return LList(
+      case token of {
+	 "'": "QUOTE"
+	 "`": "QUASIQUOTE"
+	 ",": "UNQUOTE"
+	 ",@": "UNQUOTE-SPLICING"
+	 },
+      ScanExpr(f))
+end
+
+procedure ScanToken(f)
+   return 1(\.BackToken,BackToken := &null) | {
+      #
+      # Skip over leading white space (including comments, possibly
+      # spanning lines).
+      #
+      #showscan("before space")
+      while {
+	 tab(many(Space)) |
+	 (if pos(0) then &subject := ReadFileRec(\f)) |
+	 (if =";" then tab(0)) |
+	 (if ="#|" then {
+	    until tab(find("|#") + 2) do &subject := ReadFileRec(\f) | fail
+	    &null
+	    })
+	 }
+      #showscan("after space")
+      #
+      # Scan then token.
+      #
+      ScanSymbol() | ScanNumber() | ScanSpecial() | ScanString() |
+	    ScanChar() | ScanBoolean() | move(1)
+      }
+end
+
+procedure ScanSymbol()
+   static symFirst,symRest,nonSym
+   initial {
+      symFirst := &letters ++ '!$%&*/:<=>?~_^'
+      symRest := symFirst ++ &digits ++ '.+-'
+      nonSym := ~symRest
+      }
+   return Symbol(
+      (match("|"),escape(quotedstring("|")[2:-1])) |
+      map(1((tab(any(symFirst)) || (tab(many(symRest)) | "") |
+	    =("+" | "-" | "...")),
+	 (any(nonSym) | pos(0))),&lcase,&ucase))
+end
+
+procedure ScanNumber()
+   local nbr
+   static nbrFirst,nbrRest
+   initial {
+      nbrFirst := &digits ++ 'eE.'
+      nbrRest := nbrFirst ++ &letters ++ '#+-'
+      }
+   (nbr := ((tab(any('+-')) | "") || tab(any(nbrFirst))  |
+      ="#" || tab(any('bodxeiBODXEI'))) || (tab(many(nbrRest)) | "") &
+      nbr ~== ".") | fail
+   return StringToNumber(nbr) |
+      Error("READER","bad number: ",image(nbr))
+end
+
+procedure StringToNumber(nbr,radix)
+   local exact,sign,number,c
+   radix := if \radix ~= 10 then radix || "r" else ""
+   sign := ""
+   exact := 1
+   map(nbr) ? return {
+      while ="#" do case move(1) of {
+	 "b": radix := "2r"
+	 "o": radix := "8r"
+	 "d": radix := ""
+	 "x": radix := "16r"
+	 "e": exact := Round
+	 "i": exact := real
+	 default: &null # this case prevents the expression from failing
+	 }
+      sign := tab(any('+-'))
+      number := ""
+      while number ||:= tab(upto('#sfdl')) do {
+	 c := move(1)
+	 number ||:=
+	    if c == "#" then {
+	       if exact === 1 then exact := real
+	       "0"
+	       }
+	    else "e"
+	 }
+      number ||:= tab(0)
+      #write(&errout,"+++++ exact = ",image(exact),
+      #  "; radix = ",image(radix),"; sign = ",image(sign),
+      #  "; number = ",image(number))
+      exact(numeric(sign || radix || number))
+      }
+end
+
+procedure ScanSpecial()
+   return =("#(" | ",@" | !"()'`,") |
+      (="#<",Error("READER","unreadable object #<",tab(find(">") + 1 | 0)),F)
+end
+
+procedure ScanBoolean()
+   return (="#",(=!"fF",F) | (=!"tT",T))
+end
+
+procedure ScanString()
+   return String((match("\""),escape(quotedstring()[2:-1])))
+end
+
+procedure ScanChar()
+   local chName
+   return Char((="#\\",
+      (case map(1(chName := tab(many(&letters)),*chName > 1)) of {
+	 "space": " "
+	 "tab": "\t"
+	 "newline": "\n"
+	 "backspace": "\b"
+	 "delete": "\d"
+	 "escape": "\e"
+	 "formfeed": "\f"
+	 "return": "\r"
+	 "verticaltab": "\v"
+	 default: Error("READER","unknown character name")
+	 }) | move(1)))
+end
+
+record FileRec(file,where)
+
+procedure ReadFileRec(f)
+   local line
+   static doPrompt
+   initial  doPrompt := if find("MPW",&host) then &null else "true"
+   f.where := where(f.file)
+   if f.file === &input then {
+      if \doPrompt then
+	 writes(if BreakLevel = 0 then "> " else "[" || BreakLevel || "] ")
+      line := read() | fail
+##	 line ? {
+##	    if =">" | (="[" || tab(find("]") + 1)) then
+##	       \f.where +:= &pos - 1
+##	    line := tab(0)
+##	    }
+      return line
+      }
+   else return read(f.file)
+end

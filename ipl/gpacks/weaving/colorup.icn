@@ -1,0 +1,49 @@
+############################################################################
+#
+#	File:     colorup.icn
+#
+#	Subject:  Program to produce a weave structure from unravel data
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 26, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+#############################################################################
+#
+#  Input is expected to be the output of unravel -2.
+#
+#############################################################################
+#
+#  AD HOC
+#
+############################################################################
+
+procedure main()
+   local warp, weft, pattern, rows, row, i, j
+
+   warp := read() | stop("*** short file")
+   weft := read() | stop("*** short file")
+   pattern := read() | stop("*** short file")
+
+   write(warp)
+   write(weft)
+
+   rows := []
+
+   pattern ? {
+      while put(rows, move(*warp))
+      }
+
+   every i := 1 to *weft do {
+      row := rows[i]
+      every j := 1 to *warp do
+         if row[j] == warp[j] then writes("1") else writes("0")
+      }
+
+   write()
+
+end

@@ -1,0 +1,38 @@
+############################################################################
+#
+#	Name:	skdebug.icn
+#
+#	Title:	Scheme in Icon
+#
+#	Author: Bob Alexander
+#
+#	Date:	February 19, 1995
+#
+#	Description: see skeem.icn
+#
+############################################################################
+
+#
+# skeem -- Scheme in Icon
+#
+# Debugging utility procedures (not needed for "production" version)
+#
+
+procedure ShowEnv(tag,env,showInitial)
+   local frame,pair
+   /env := CurrentEnv
+   write("+++ Environment ",tag)
+   every frame := LLPairs(env) do {
+      if /showInitial & /LLRest(frame) then break
+      write("  +++ Frame:")
+      every pair := !sort(LLFirst(frame)) do {
+	 write("    ",Print(pair[1]),"\t",Print(pair[2]))
+	 }
+      }
+   return
+end
+
+procedure Show(x[])
+   every write("+++ ",Print(!x))
+   return
+end

@@ -1,0 +1,62 @@
+############################################################################
+#
+#	File:     bincvt.icn
+#
+#	Subject:  Procedures to convert binary data
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     October 16, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  unsigned() -- Converts binary byte string into unsigned integer.
+#  Detects overflow if number is too large.
+#
+#  This procedure is normally used for processing of binary data
+#  read from a file.
+#
+#  raw() -- Puts raw bits of characters of string s into an integer.  If
+#  the size of s is less than the size of an integer, the bytes are put
+#  into the low order part of the integer, with the remaining high order
+#  bytes filled with zero.  If the string is too large, the most
+#  significant bytes will be lost -- no overflow detection.
+#
+#  This procedure is normally used for processing of binary data
+#  read from a file.
+#
+#  rawstring() -- Creates a string consisting of the raw bits in the low
+#  order "size" bytes of integer i.
+#
+#  This procedure is normally used for processing of binary data
+#  to be written to a file.
+#
+############################################################################
+
+procedure unsigned(s)
+   local i
+   i := 0
+   every i := ord(!s) + i * 256
+   return i
+end
+
+procedure raw(s)
+   local i
+   i := 0
+   every i := ior(ord(!s),ishift(i,8))
+   return i
+end
+
+procedure rawstring(i,size)
+   local s
+   s := ""
+   every 1 to size do {
+      s := char(iand(i,16rFF)) || s
+      i := ishift(i,-8)
+      }
+   return s
+end

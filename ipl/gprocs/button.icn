@@ -1,0 +1,183 @@
+############################################################################
+#
+#	File:     button.icn
+#
+#	Subject:  Procedures for pushbutton sensors
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	These procedures implement pushbuttons using the "evmux" event
+#	multiplexor instead of the usual vidget library.
+#
+#	button(win, label, proc, arg, x, y, w, h)
+#					establishes a pushbutton.
+#
+#	buttonrow(win,x,y,w,h,dx,dy, label,proc,arg, label,proc,arg, ...)
+#					establishes a row of buttons.
+#
+#	buttonlabel(handle, label)	changes a button label.
+#
+############################################################################
+#
+#   It is assumed that buttons do not overlap, and that fg, bg, and font
+#   do not change beyond the initial call.  These restrictions can be
+#   accommodated if necessary by using a window clone.
+#
+#   button(win, label, proc, arg, x, y, w, h)
+#
+#	establishes a button of size (w,h) at (x,y) and returns a handle.
+#	"label" is displayed as the text of the button.
+#	When the button is pushed, proc(win, arg) is called.
+#
+#	If proc is null, the label is drawn with no surrounding box, and
+#	the button is not sensitive to mouse events.  This can be used to
+#	insert a label in a row of buttons.
+#
+#   buttonlabel(handle, label)
+#
+#	changes the label on a button.
+#
+#   buttonrow(win,x,y,w,h,dx,dy, label,proc,arg, label,proc,arg, ...)
+#
+#	establishes a row (or column) of buttons and returns a list of handles.
+#	Every button has size (w,h) and is offset from its predecessor by
+#	(dx,dy).
+#
+#	(x,y) give the "anchor point" for the button row, which is a corner
+#	of the first button.  x specifies the left edge of that button unless
+#	dx is negative, in which case it specifies the right edge.  Similarly,
+#	y is the top edge, or the bottom if dy is negative.
+#
+#	One button is created for each argument triple of label,proc,arg.
+#	An extra null argument is accepted to allow regularity in coding as
+#	shown in the example below.
+#
+#	If all three items of the triple are null, a half-button-sized
+#	gap is inserted instead of a button.
+#
+#   Example:
+#
+#	Draw a pushbutton at (x,y) of size (w,h);
+#	then change its label from "Slow" to "Reluctant"
+#	When the button is pushed, call setspeed (win, -3).
+#
+# 		b := button (win, "Slow", setspeed, -3, x, y, w, h)
+#   		buttonlabel (b, "Reluctant")
+#
+#	Make a set of buttons extending to the left from (490,10)
+#
+#		blist := buttonrow(win, 490, 10, 50, 20, -60, 0,
+#		    "fast", setspeed, +3,
+#		    "med", setspeed, 0,
+#		    "slow", setspeed, -3,
+#		    )
+#
+############################################################################
+#
+#  Links: evmux, graphics
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  See also:  evmux.icn
+#
+############################################################################
+
+
+link evmux
+link graphics
+
+$define BORDER 2	# border width
+
+record Button_Rec(win, label, proc, arg, x, y, w, h)
+
+procedure button(win, label, proc, arg, x, y, w, h)
+   local r
+
+   r := Button_Rec(win, label, proc, arg, x, y, w, h)
+   buttonlabel(r, label)
+   if \proc then {
+      BevelRectangle(win, x, y, w, h, BORDER)
+      sensor(win, &lpress, Exec_Button, r, x, y, w, h)
+      }
+   return r
+end
+
+procedure buttonrow(win, x, y, w, h, dx, dy, args[])
+   local hlist, label, proc, arg
+
+   if dx < 0 then x -:= w
+   if dy < 0 then y -:= h
+   hlist := []
+   repeat {
+      label := get(args) | break
+      proc := get(args) | break
+      arg := get(args) | break
+      if label === proc === arg === &null then {
+         x +:= dx / 2
+         y +:= dy / 2
+         }
+      else {
+         put(hlist, button(win, label, proc, arg, x, y, w, h))
+         x +:= dx
+         y +:= dy
+         }
+      }
+   return hlist
+end
+
+procedure buttonlabel(r, s)
+   r.label := s
+   if /r.proc then
+      EraseArea(r.win, r.x, r.y, r.w, r.h)	# borderless button
+   else
+      EraseArea(r.win, r.x+BORDER, r.y+BORDER, r.w-2*BORDER, r.h-2*BORDER)
+   CenterString(r.win, r.x + r.w/2, r.y + r.h/2, r.label)
+   return
+end
+
+procedure Exec_Button(win, r, x, y)
+   local e, b, t
+
+   WAttrib(win, "drawop=reverse")
+   FillRectangle(win, r.x + BORDER, r.y + BORDER, r.w - 2*BORDER, r.h -2*BORDER)
+   BevelRectangle(win, r.x, r.y, r.w, r.h, b := -BORDER)
+
+   while e := Event(win) do {
+      x := &x
+      y := &y
+      case e of {
+         &ldrag: {			# drag
+            t := (if ontarget(r, x, y) then -BORDER else BORDER)
+            if b ~===:= t then {
+               BevelRectangle(win, r.x, r.y, r.w, r.h, b)
+               FillRectangle(win,
+                  r.x + BORDER, r.y + BORDER, r.w - 2*BORDER, r.h - 2*BORDER)
+               }
+            }
+         &lrelease: {			# release leftbutton
+            if b < 0 then {
+               BevelRectangle(win, r.x, r.y, r.w, r.h, BORDER)
+               FillRectangle(win,
+                  r.x + BORDER, r.y + BORDER, r.w - 2*BORDER, r.h - 2*BORDER)
+               WAttrib(win, "drawop=copy")
+               r.proc(win, r.arg)
+               }
+            else
+               WAttrib(win, "drawop=copy")
+            return
+            }
+         }
+      }
+end

@@ -1,0 +1,222 @@
+############################################################################
+#
+#	File:     tieutils.icn
+#
+#	Subject:  Procedures related to weaving tie-ups
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 15, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#	imr2tie(imr)	converts g2 image record to tie-ip
+#
+#	pat2tie(pat)	converts bi-level pattern to tie-up string
+#
+#	pat2tier(pat)	converts bi-level pattern to tie-up record
+#
+#	showtie(s, size, fg, bg)
+#			produces a hidden window for the tie-up as a matrix
+#			with the specified foreground and background colors
+#
+#	testtie(s)	succeeds if s is a valid tie-up but fails otherwise
+#
+#	tie2imr(s)	converts tie-up to g2 image record
+#
+#	tie2pat(tie)	converts tie-up to bi-level pattern
+#
+#	tie2coltier(s)	creates a black/white color tieup-record for
+#			  tie-up s
+#
+#	tie2tier(s)	creates a 0/1 tie-up record for tie-up s
+#
+#	tier2rstring(r)	creates a tie-up string from a tie-up record
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  cells, wopen, patutils, imrutils
+#
+############################################################################
+
+link cells
+link wopen
+link patutils
+link imrutils
+
+record tie(shafts, treadles, matrix)
+
+procedure imr2tie(imr)			#: convert image record to tie-up
+
+   return imr.width || ";" || *imr.pixels / imr.width || ";" || imr.pixels
+
+end
+
+procedure pat2tie(pat)			#: convert pattern to tie-up string
+   local matrix, tieup, shafts, treadles
+
+   pat ? {		# OLD-STYLE BIT STRING TIE-UP
+      if shafts := tab(upto(',')) &
+      move(1) &
+      treadles := tab(upto(',')) &
+      move(1) then {
+         matrix := list(shafts)
+         while put(matrix, move(treadles))
+         }
+      else matrix := pat2rows(pat)
+      }
+
+   tieup := tie(*matrix[1], *matrix, matrix)
+
+   return tier2string(tieup)
+
+end
+
+procedure pat2tier(pat)			#: convert pattern to tie-up record
+   local matrix
+
+   matrix := pat2rows(pat)
+
+   return tie(*matrix[1], *matrix, matrix)
+
+end
+
+#  Set up empty palette grid
+
+procedure showtie(tieup, cellsize, fg, bg)	#: create image of tie-up
+   local x, y, panel, row, n, m, color
+
+   /cellsize := 10
+
+   tieup ?:= {
+      n := tab(upto(';')) &
+      move(1) &
+      m := tab(upto(';')) &
+      move(1) &
+      tab(0)
+      } | stop("*** invalid tieup")
+
+   panel := makepanel(n, m, cellsize, fg, bg)
+
+   tieup ? {
+      y := 1
+      while row := move(n) do {
+         every x := 1 to n do {
+            color := if row[x] == "1" then "black" else "white"
+            colorcell(panel, x, y, color)
+            }
+         y +:= 1
+         }
+      }
+
+   return panel
+ 
+end
+
+procedure testtie(s)			#: test validity of tie-up s
+   local n, m, bits
+
+   s ? {
+      n := (0 < integer(tab(upto(';')))) &
+      move(1) &
+      m := (0 < integer(tab(upto(';')))) &
+      move(1) &
+      bits := tab(0)
+      } | fail					# bad header
+
+   if *(cset(bits) -- '01') > 0 then fail	# illegal characters
+
+   if *bits ~= (n * m) then fail		# wrong length
+
+   return s
+
+end
+
+procedure tie2imr(tie)			#: convert tie-up to image record
+   local width
+
+   tie ? {
+      width := tab(upto(';'))
+      move(1)
+      tab(upto(';') + 1)
+      return imstoimr(width || ",g2," || tab(0))
+      }
+
+end
+
+procedure tie2pat(shafts, treadles, tie)	#: convert tie-up record to ims
+   local tieup, matrix
+
+   tieup := tie2tier(shafts, treadles, tie)
+   matrix := tieup.matrix
+   return rows2pat(matrix)
+
+end 
+
+procedure tie2tier(shafts, treadles, tieup)	#: create 0/1 tie-up record
+   local matrix
+
+   matrix := []
+
+   tieup ? {
+      every 1 to treadles do 
+         put(matrix, move(shafts))
+      }
+
+   return tie(shafts, treadles, matrix)
+
+end
+
+procedure tie2coltier(tieup)		#: create color tie-up record
+   local result, shafts, treadles, rec
+
+   result := []
+
+   if not upto(';', tieup) then		# old-style tie-up
+      tieup := "8;8;" || tieup
+
+   tieup ? {
+      (
+         shafts := tab(upto(';')) &
+         move(1) &
+         treadles := tab(upto(';')) &
+         move(1)
+         ) | stop("*** invalid tieup")
+      every 1 to shafts do 
+         put(result, tcolors(move(treadles)))
+      }
+
+   return tie(shafts, treadles, result)
+
+end
+
+procedure tcolors(s)
+   local i, result
+
+   result := []
+
+   every i := 1 to *s do
+      put(result, if s[i] == "0" then "black" else "white")
+
+   return result
+
+end
+
+procedure tier2string(rec)	#: convert tie-up record to string
+   local result
+
+   result := ""
+
+   every result ||:= !rec.matrix
+
+   return result
+
+end

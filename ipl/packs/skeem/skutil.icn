@@ -1,0 +1,206 @@
+############################################################################
+#
+#	Name:	skutil.icn
+#
+#	Title:	Scheme in Icon
+#
+#	Author: Bob Alexander
+#
+#	Date:	February 19, 1995
+#
+#	Description: see skeem.icn
+#
+############################################################################
+
+#
+# skeem -- Scheme in Icon
+#
+# Miscellaneous utility procedures
+#
+
+#
+# Eval()
+#
+procedure Eval(ex,env)
+   local saveEnv,result
+   if LLIsNull(ex) then return NIL
+   saveEnv := CurrentEnv
+   CurrentEnv := \env
+   result :=  Eval1(ex) | Failure
+   CurrentEnv := saveEnv
+   return Failure ~=== result
+end
+
+procedure Eval1(ex)
+   local fcn,arg
+   return {
+      if LLIsNotPair(ex) then {
+	 if SymbolP(ex) then
+	    GetVar(ex) | Error(ex,"unbound variable")
+	 else ex
+	 }
+      else {
+	 fcn := Eval(LLFirst(ex)) | fail
+	 arg := LLRest(ex)
+	 if type(fcn) == ("Function" | "Lambda") then
+	    arg := EvLList(arg) | fail
+	 Apply(fcn,arg)
+	 }
+      }
+end
+
+procedure Apply(fcn,arg)
+   local value,fName,traced,fProc,oldFName,argList
+   oldFName := FuncName
+   FuncName := fName := \fcn.name | "<anonymous function>"
+   if traced := \(FTrace | fcn.traced) then
+      write(repl(" ",&level),Print(LLPair(fName,arg)))
+   fProc := fcn.proc
+   (value := case type(fcn) of {
+      "Function" | "Syntax": {
+	 argList := LLToList(arg)
+	 CheckArgs(fcn,*argList) &
+	    fProc!argList
+	 }
+      "Lambda": {
+	 CheckArgs(fcn,LLLength(arg)) &
+	    DoLambda(fProc,arg,fcn.env)
+	 }
+      "Macro": {
+	 CheckArgs(fcn,LLLength(arg)) &
+	    Eval(DoLambda(fProc,arg,fcn.env))
+	 }
+      default: Error("Invoke",Print(fcn),": can't invoke as function")
+      }) | {/FailProc := fName; fail}
+   if \traced then
+      write(repl(" ",&level),fName," -> ",Print(value))
+   FuncName := oldFName
+   return value
+end
+
+#
+# DoLambda() - Invoke a lambda-defined function.
+#
+procedure DoLambda(def,actuals,env)
+   local result,arg,p,saveEnv,formals
+   formals := LLFirst(def)
+   saveEnv := CurrentEnv
+   CurrentEnv := \env
+   PushFrame()
+   if LLIsList(formals) then {
+      p := actuals
+      every DefVar(LLFirst(arg := LLPairs(formals)),LLFirst(p)) do
+	 p := LLRest(p)
+      DefVar(\LLRest(arg),p)
+      }
+   else DefVar(formals,actuals)
+   result := EvalSeq(LLRest(def)) | {CurrentEnv := saveEnv; fail}
+   CurrentEnv := saveEnv
+   return result
+end
+
+procedure CheckArgs(fcn,nbrArgs)
+   return if fcn.minArgs > nbrArgs then Error(fcn.name,"too few args")
+	 else if \fcn.maxArgs < nbrArgs then Error(fcn.name,"too many args")
+	 else nbrArgs
+end
+
+procedure EvalSeq(L)
+   local value,element
+   if /L then fail
+   every element := LLElements(L) do
+      value := Eval(element) | fail
+   return value
+end
+
+#
+# EvList() - Evaluate everything in a list, producing an Icon list.
+#
+procedure EvList(L)
+   local arglist,arg
+   arglist := []
+   every arg := LLElements(L) do
+      put(arglist,Eval(arg)) | fail
+   return arglist
+end
+
+#
+# EvLList() - Evaluate everything in a list, producing a LList.
+#
+procedure EvLList(L)
+   local arglist,arg
+   arglist := LLNull
+   every arg := LLElements(L) do
+      arglist := LLPair(Eval(arg),arglist) | fail
+   return LLInvert(arglist)
+end
+
+#
+# Retrieve a bound variable value, failing if none.
+#
+procedure GetVar(sym,env)
+   /env := CurrentEnv
+   return Unbound ~=== LLElements(env)[sym]
+end
+
+#
+# Set a currently bound variable, failing if none.
+#
+procedure SetVar(sym,value,env)
+   local frame
+   /env := CurrentEnv
+   return if Unbound ~=== (frame := LLElements(env))[sym] then
+      .(frame[sym] := value)
+end
+
+#
+# Define and set a variable in the specified environment (default current env).
+#
+procedure DefVar(sym,value,env)
+   /env := CurrentEnv
+   return .(LLFirst(env)[sym] := value)
+end
+
+procedure UndefVar(sym,env)
+   /env := CurrentEnv
+   delete(LLFirst(env),sym)
+   return
+end
+
+procedure PushFrame(env)
+   /env := table(Unbound)
+   return .(CurrentEnv := LLPair(env,CurrentEnv))
+end
+
+procedure PopFrame()
+   return 1(LLFirst(CurrentEnv),CurrentEnv := LLRest(CurrentEnv))
+end
+
+procedure DiscardFrame()
+   CurrentEnv := LLRest(CurrentEnv)
+   return
+end
+
+procedure Error(tag,s[])
+   if type(tag) == "procedure" then tag := ProcName(tag)
+   writes(&errout,"\n### Error: ")
+   writes(&errout,\tag," -- ")
+   every writes(&errout,!s)
+   write(&errout)
+end
+
+procedure SymbolP(x)
+   return (type(x) == "string",x)
+end
+
+procedure VectorP(x)
+   return (type(x) == "list",x)
+end
+
+procedure StringP(x)
+   return (type(x) == "String",x)
+end
+
+procedure CharP(x)
+   return (type(x) == "Char",x)
+end

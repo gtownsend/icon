@@ -1,0 +1,447 @@
+
+
+ICONT(1)            UNIX Programmer's Manual             ICONT(1)
+
+
+NAME
+     icont - process Icon programs
+
+SYNOPSIS
+     icont [ option ... ] file ... [ -x arg ... ]
+
+DESCRIPTION
+     The program icont is a command processor for running Version
+     8 Icon programs.  Used in its simplest form, it produces a
+     file suitable for interpretation by the Icon interpreter.
+     Processing consists of two phases: translation and linking.
+     During translation, each Icon source file is translated into
+     an intermediate language called ucode; during linking, the
+     one or more ucode files are combined and a single icode file
+     is produced.  Unless the -o option is specified, the name of
+     the resulting icode file is formed by deleting the suffix of
+     the first input file named on the command line.  If the -x
+     argument is used, the file is automatically executed by the
+     interpreter and any arguments following the -x are passed as
+     execution arguments to the Icon program itself.
+
+     Files whose names end in .icn are assumed to be Icon source
+     programs.  The .icn suffix may be omitted; it will be sup-
+     plied automatically.  These programs are translated, and the
+     intermediate code is left in two ucode files of the same
+     name with .u1 and .u2 substituted for .icn.  The ucode files
+     normally are deleted when icont completes.  Files whose
+     names end in .u1 are assumed to refer to ucode files from a
+     previous translation; these files and the corresponding .u2
+     files are included in the linking phase after any .icn files
+     have been translated.  The suffix .u can be used in place of
+     .u1; in this case the 1 is supplied automatically.  A .u1 or
+     .u2 file that is explicitly named is not deleted.  Icon
+     source programs may be read from standard input.  The argu-
+     ment - signifies the use of standard input as a source file.
+     In this case, the ucode files are named stdin.u1 and
+     stdin.u2 and the icode file is named stdin.
+
+     The following options are recognized by icont:
+
+     -c  Suppress the linking phase.  The ucode code files are
+         not deleted.
+
+     -m  Preprocess each .icn source file with the m4(1) macro
+         processor before translation.
+
+     -o output
+         Name the icode file output.
+
+     -s  Suppress informative messages from the translator and
+         linker.  Normally, both informative messages and error
+         messages are sent to standard error output.
+
+     -t  Arrange for &trace to have an initial value of -1 when
+
+
+Printed 12/29/89Icon Project - 1/1/1990 - IPD109                1
+
+
+
+
+
+
+ICONT(1)            UNIX Programmer's Manual             ICONT(1)
+
+
+         the program is executed.  Normally, &trace has an ini-
+         tial value of 0.
+
+     -u  Issue warning messages for undeclared identifiers in the
+         program.  The warnings are issued during the linking
+         phase.
+
+     Icon has several tables related to the translation and link-
+     ing of programs.  These tables are large enough for most
+     programs, but their sizes can be changed, if necessary, by
+     the -S option. This option has the form -S[cfgilnrstCFL]n,
+     where the letter following the S specifies the table and n
+     is the number of storage units to allocate for the table.
+     The tables and their default sizes are:
+
+          c   constant table             100
+          f   field table                100
+          g   global symbol table        200
+          i   identifier table           500
+          l   local symbol table         100
+          n   line number space         1000
+          r   field table for records    100
+          s   string space             20000
+          t   tree space               15000
+          C   code buffer              15000
+          F   file names                  10
+          L   labels                     500
+
+     The units depend on the table involved, but the default
+     values can be used as a general guide for appropriate set-
+     tings of -S options without knowing the units.
+
+     The environment variable IPATH controls the location of
+     files specified in link directives. The value of IPATH
+     should be a blank-separated string of the form p1 p2 ...  pn
+     where the pi name directories.  Each directory is searched
+     in turn to locate files named in link directives. The
+     default value for IPATH is . , that is, the current direc-
+     tory.  The current path is always searched first, regardless
+     of the value of IPATH.
+
+     The icode file produced by the Icon linker is executable.
+     For example, the command
+
+          icont hello.icn
+
+     produces a file named hello that can be run by the command
+
+          hello
+
+
+     Arguments can be passed to the Icon program by following the
+     program name with the arguments.  Any such arguments are
+     passed to the main procedure as a list of strings.
+
+
+Printed 12/29/89Icon Project - 1/1/1990 - IPD109                2
+
+
+
+
+
+
+ICONT(1)            UNIX Programmer's Manual             ICONT(1)
+
+
+     The location of iconx, the executor for icode files, is
+     built into an icode file when it is produced. This location
+     can be overridden by setting the environment variable ICONX
+     as described below.  If ICONX is not set and iconx is not
+     found on the built-in path, PATH is searched for it.
+
+     When an Icon program is executed, several environment vari-
+     ables are examined to determine certain execution parame-
+     ters.  Expect for ICONX, NOERRBUF, and ICONCORE, the values
+     assigned to these variables should be numbers.  The vari-
+     ables that affect execution and the interpretations of their
+     values follow. Numbers in parentheses are the default
+     values.
+
+     ICONX
+         If this environment variable is set, it specifies the
+         location of iconx to use to execute an icode file.
+
+     TRACE
+         Initialize the value of &trace.  If this variable has a
+         value, it overrides the translation-time -t option.
+
+     NOERRBUF
+         By default, &errout is buffered.  If this variable is
+         set, &errout is not buffered.
+
+     ICONCORE
+         If set, a core dump is produced for error termination.
+
+     STRSIZE (65000)
+         The initial size of the string space, in bytes.  The
+         string space grows if necessary, but it never shrinks.
+
+     HEAPSIZE (65000)
+         The initial size of the allocated block region, in
+         bytes.  The block region grows if necessary, but it
+         never shrinks.
+
+     COEXPSIZE (2000)
+         The size, in words, of each co-expression block.
+
+     MSTKSIZE (10000)
+         The size, in words, of the main interpreter stack.
+
+     STATSIZE (20480)
+         The size, in bytes, of the static region in which co-
+         expression blocks are allocated. If co-expressions are
+         not implemented, the default size is 1024.
+
+     STATINCR
+         The size of the increment used when the static region is
+         expanded.  The default increment is one-fourth of the
+         initial size of the static region.
+
+
+
+Printed 12/29/89Icon Project - 1/1/1990 - IPD109                3
+
+
+
+
+
+
+ICONT(1)            UNIX Programmer's Manual             ICONT(1)
+
+
+     QLSIZE (5000)
+         The size, in bytes, of the region used for pointers to
+         strings during garbage collection (fixed-regions imple-
+         mentations only).
+
+     MEMMON
+         The name of the output file for memory monitoring.
+
+FILES
+     icont     Icon command processor
+     iconx     Icon executor
+
+SEE ALSO
+     The Icon Programming Language, Ralph E. Griswold and Madge
+     T. Griswold, Prentice-Hall Inc., Englewood Cliffs, New Jer-
+     sey, 1983.
+
+     Version 8 of Icon, Ralph E. Griswold, TR 90-1, Department of
+     Computer Science, The University of Arizona, 1990.
+
+     m4(1), iconpi(1), iconvt(1)
+
+ICONT(1)            UNIX Programmer's Manual             ICONT(1)
+
+
+NAME
+     icont - process Icon programs
+
+SYNOPSIS
+     icont [ option ... ] file ... [ -x arg ... ]
+
+DESCRIPTION
+     The program icont is a command processor for running Version
+     8 Icon programs.  Used in its simplest form, it produces a
+     file suitable for interpretation by the Icon interpreter.
+     Processing consists of two phases: translation and linking.
+     During translation, each Icon source file is translated into
+     an intermediate language called ucode; during linking, the
+     one or more ucode files are combined and a single icode file
+     is produced.  Unless the -o option is specified, the name of
+     the resulting icode file is formed by deleting the suffix of
+     the first input file named on the command line.  If the -x
+     argument is used, the file is automatically executed by the
+     interpreter and any arguments following the -x are passed as
+     execution arguments to the Icon program itself.
+
+     Files whose names end in .icn are assumed to be Icon source
+     programs.  The .icn suffix may be omitted; it will be sup-
+     plied automatically.  These programs are translated, and the
+     intermediate code is left in two ucode files of the same
+     name with .u1 and .u2 substituted for .icn.  The ucode files
+     normally are deleted when icont completes.  Files whose
+     names end in .u1 are assumed to refer to ucode files from a
+     previous translation; these files and the corresponding .u2
+     files are included in the linking phase after any .icn files
+     have been translated.  The suffix .u can be used in place of
+     .u1; in this case the 1 is supplied automatically.  A .u1 or
+     .u2 file that is explicitly named is not deleted.  Icon
+     source programs may be read from standard input.  The argu-
+     ment - signifies the use of standard input as a source file.
+     In this case, the ucode files are named stdin.u1 and
+     stdin.u2 and the icode file is named stdin.
+
+     The following options are recognized by icont:
+
+     -c  Suppress the linking phase.  The ucode code files are
+         not deleted.
+
+     -m  Preprocess each .icn source file with the m4(1) macro
+         processor before translation.
+
+     -o output
+         Name the icode file output.
+
+     -s  Suppress informative messages from the translator and
+         linker.  Normally, both informative messages and error
+         messages are sent to standard error output.
+
+     -t  Arrange for &trace to have an initial value of -1 when
+
+
+Printed 12/29/89Icon Project - 1/1/1990 - IPD109                1
+
+
+
+
+
+
+ICONT(1)            UNIX Programmer's Manual             ICONT(1)
+
+
+         the program is executed.  Normally, &trace has an ini-
+         tial value of 0.
+
+     -u  Issue warning messages for undeclared identifiers in the
+         program.  The warnings are issued during the linking
+         phase.
+
+     Icon has several tables related to the translation and link-
+     ing of programs.  These tables are large enough for most
+     programs, but their sizes can be changed, if necessary, by
+     the -S option. This option has the form -S[cfgilnrstCFL]n,
+     where the letter following the S specifies the table and n
+     is the number of storage units to allocate for the table.
+     The tables and their default sizes are:
+
+          c   constant table             100
+          f   field table                100
+          g   global symbol table        200
+          i   identifier table           500
+          l   local symbol table         100
+          n   line number space         1000
+          r   field table for records    100
+          s   string space             20000
+          t   tree space               15000
+          C   code buffer              15000
+          F   file names                  10
+          L   labels                     500
+
+     The units depend on the table involved, but the default
+     values can be used as a general guide for appropriate set-
+     tings of -S options without knowing the units.
+
+     The environment variable IPATH controls the location of
+     files specified in link directives. The value of IPATH
+     should be a blank-separated string of the form p1 p2 ...  pn
+     where the pi name directories.  Each directory is searched
+     in turn to locate files named in link directives. The
+     default value for IPATH is . , that is, the current direc-
+     tory.  The current path is always searched first, regardless
+     of the value of IPATH.
+
+     The icode file produced by the Icon linker is executable.
+     For example, the command
+
+          icont hello.icn
+
+     produces a file named hello that can be run by the command
+
+          hello
+
+
+     Arguments can be passed to the Icon program by following the
+     program name with the arguments.  Any such arguments are
+     passed to the main procedure as a list of strings.
+
+
+Printed 12/29/89Icon Project - 1/1/1990 - IPD109                2
+
+
+
+
+
+
+ICONT(1)            UNIX Programmer's Manual             ICONT(1)
+
+
+     The location of iconx, the executor for icode files, is
+     built into an icode file when it is produced. This location
+     can be overridden by setting the environment variable ICONX
+     as described below.  If ICONX is not set and iconx is not
+     found on the built-in path, PATH is searched for it.
+
+     When an Icon program is executed, several environment vari-
+     ables are examined to determine certain execution parame-
+     ters.  Expect for ICONX, NOERRBUF, and ICONCORE, the values
+     assigned to these variables should be numbers.  The vari-
+     ables that affect execution and the interpretations of their
+     values follow. Numbers in parentheses are the default
+     values.
+
+     ICONX
+         If this environment variable is set, it specifies the
+         location of iconx to use to execute an icode file.
+
+     TRACE
+         Initialize the value of &trace.  If this variable has a
+         value, it overrides the translation-time -t option.
+
+     NOERRBUF
+         By default, &errout is buffered.  If this variable is
+         set, &errout is not buffered.
+
+     ICONCORE
+         If set, a core dump is produced for error termination.
+
+     STRSIZE (65000)
+         The initial size of the string space, in bytes.  The
+         string space grows if necessary, but it never shrinks.
+
+     HEAPSIZE (65000)
+         The initial size of the allocated block region, in
+         bytes.  The block region grows if necessary, but it
+         never shrinks.
+
+     COEXPSIZE (2000)
+         The size, in words, of each co-expression block.
+
+     MSTKSIZE (10000)
+         The size, in words, of the main interpreter stack.
+
+     STATSIZE (20480)
+         The size, in bytes, of the static region in which co-
+         expression blocks are allocated. If co-expressions are
+         not implemented, the default size is 1024.
+
+     STATINCR
+         The size of the increment used when the static region is
+         expanded.  The default increment is one-fourth of the
+         initial size of the static region.
+
+
+
+Printed 12/29/89Icon Project - 1/1/1990 - IPD109                3
+
+
+
+
+
+
+ICONT(1)            UNIX Programmer's Manual             ICONT(1)
+
+
+     QLSIZE (5000)
+         The size, in bytes, of the region used for pointers to
+         strings during garbage collection (fixed-regions imple-
+         mentations only).
+
+     MEMMON
+         The name of the output file for memory monitoring.
+
+FILES
+     icont     Icon command processor
+     iconx     Icon executor
+
+SEE ALSO
+     The Icon Programming Language, Ralph E. Griswold and Madge
+     T. Griswold, Prentice-Hall Inc., Englewood Cliffs, New Jer-
+     sey, 1983.
+
+     Version 8 of Icon, Ralph E. Griswold, TR 90-1, Department of
+     Computer Science, The University of Arizona, 1990.
+
+     m4(1), iconpi(1), iconvt(1)

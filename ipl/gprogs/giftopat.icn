@@ -1,0 +1,46 @@
+############################################################################
+#
+#	File:     giftopat.icn
+#
+#	Subject:  Program to convert GIF image to hex-form pattern
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 29, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program convert GIF images, whose names are given on the command
+#  line to bi-level patterns.  The GIFs are expected to be black and white.
+#  All non-white pixels are treated as black
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  imsutils, wopen
+#
+############################################################################
+
+link imsutils
+link wopen
+
+procedure main(args)
+   local file, win
+
+   while file := get(args) do {
+      win := WOpen("image=" || file, "canvas=hidden") | {
+         write(&errout, "cannot open ", file)
+         next
+         }
+      write(pix2pat(win, 0, 0, WAttrib("width"), WAttrib("height")))
+      WClose(win)
+      }
+
+end

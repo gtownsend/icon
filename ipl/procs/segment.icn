@@ -1,0 +1,60 @@
+############################################################################
+#
+#	File:     segment.icn
+#
+#	Subject:  Procedures to segment string
+#
+#	Author:   William H. Mitchell
+#
+#	Date:     June 10, 1988
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     These procedures segment a string s into consecutive substrings
+#  consisting of characters that respectively do/do not occur in c.
+#  segment(s,c) generates the substrings, while seglist produces a list
+#  of the segments.  For example,
+#  
+#          segment("Not a sentence.",&letters)
+#  
+#  generates
+#  
+#          "Not"
+#          " "
+#          "a"
+#          " "
+#          "sentence"
+#          "."
+#  while
+#          seglist("Not a sentence.",&letters)
+#
+#  produces
+#
+#          ["Not"," ","a","sentence","."]
+#
+############################################################################
+
+procedure segment(line,dlms)
+   local ndlms
+
+   dlms := (any(dlms,line[1]) & ~dlms)
+   ndlms := ~dlms
+   line ? repeat {
+      suspend tab(many(ndlms)) \ 1
+      suspend tab(many(dlms)) \ 1
+      pos(0) & break
+      }
+end
+
+procedure seglist(s,c)
+   local L
+
+   L := []
+   c := (any(c,s[1]) & ~c)
+   s ? while put(L,tab(many(c := ~c)))
+   return L
+end

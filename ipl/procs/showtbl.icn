@@ -1,0 +1,109 @@
+############################################################################
+#
+#	File:     showtbl.icn
+#
+#	Subject:  Procedure to show contents of a table
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 25, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#
+#  showtbl(title, tbl, sort_type, limit, sort_order, posit,
+#    w1, w2, gutter, f1, f2) displays tbl according to the arguments given.
+#
+#  The arguments are:
+#
+#  position	name		meaning			default/alternative
+#
+#     1		title		heading title		""
+#     2		tbl		table to be shown
+#     3		sort_type	type of sorting		"ref"/"val"
+#     4		limit		lines of table output	essentially infinite
+#     5		sort_order	increasing/decreasing	"incr"/"decr"
+#     6		posit		first column		"val"/"ref"
+#     7		w1		width of 1st column	10
+#     8		w2		width of 2nd column	10
+#     9		gutter		width between columns	3
+#    10		f1		function of 1st column	left
+#    11		f2		function of 2nd column	right
+#
+#  showtbl() returns a record with the first element being a count of
+#  the size of the table and the second element the number of lines
+#  written.
+#
+############################################################################
+#
+#  This procedure just grew.  It needs rewriting.
+#  And it has far too manmy arguments.
+#
+############################################################################
+#
+#  Deficiencies:  Several features are not yet implemented.  sort_order
+#                 and posit have no effect.  In the case of sort_type
+#                 "val", the sorting order is decreasing.
+#
+############################################################################
+
+procedure showtbl(title, tbl, sort_type,	#: show table contents
+   limit, sort_order, posit, w1, w2, gutter, f1, f2)
+      local count, lst, i, number
+
+   /title := ""
+   if type(tbl) ~== "table" then
+      stop("*** invalid table argument to showtbl()")
+   sort_type := case sort_type of {
+      "ref" | &null:  3
+      "val": 4
+      default:  stop("*** invalid sort type in showtbl()")
+      }
+   /limit := 2 ^ 30			# essentially infinite
+   sort_order := case sort_order of {
+      "incr" | &null:  "incr"
+      "decr":  "decr"
+      default:  stop("*** invalid sort order in showtbl()")
+      }
+   posit := case posit of {
+      "val" | &null:   "val"
+      "ref":  "ref"
+      default:  stop("*** invalid column position in showtbl()")
+      }
+   /w1 := 10
+   /w2 := 10
+   /gutter := repl(" ", 3)
+   /f1 := left
+   /f2 := right
+
+   number := 0
+
+   count := 0
+   every count +:= !tbl
+
+   write("\n", title, ":\n")
+
+   lst := sort(tbl, sort_type)
+
+   if sort_type = 3 then {
+      every i := 1 to *lst - 1 by 2 do {
+         number +:= 1
+         if number > limit then break
+         else  write(f1(lst[i], w1), gutter, trim(f2(lst[i + 1], w2)))
+         }
+      }
+   else {
+      every i := *lst to 1 by -2 do {
+         number +:= 1
+         if number > limit then break
+         else write(f1(lst[i - 1], w1), gutter, trim(f2(lst[i], w2)))
+         }
+      }
+
+   return [count, number]
+
+end

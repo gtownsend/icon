@@ -1,0 +1,69 @@
+############################################################################
+#
+#	File:     recordev.icn
+#
+#	Subject:  Program to record events
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 16, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program records events in a file.  Event information is stored
+#  by using image(), so some information may be lost.
+#
+#  This program is called as
+#
+#	recordev <options> tp args
+#
+#  The options supported are:
+#
+#	-o s	write event history to the file named s; default standard
+#		   output.
+#
+#	-c s	prefix the event history with a comment event whose value
+#		   is s.
+#
+#  Warning:  If -o is not given and tp also writes to standard output,
+#  the event history file will be corrupted.
+#
+#  If args contains options, use -- to prevent recordev from consuming them,
+#  as in
+#
+#	recordev -o history -- tp args
+#
+############################################################################
+#
+#  Requires:   Version 9.0 MT Icon with event monitoring
+#
+############################################################################
+#
+#  Links: evinit, options
+#
+############################################################################
+
+link evinit
+link options
+
+procedure main(args)
+   local file, output, opts
+
+   opts := options(args, "c:o:")
+   if file := \opts["o"] then {
+      output := open(file, "w") | stop("*** cannot open ", image(file))
+      }
+   else output := &output
+
+   write(output, image("#"), "\n", image(\opts["c"]))
+
+   EvInit(args) | stop("*** cannot load TP")
+
+   while EvGet() do 
+      write(output, image(&eventcode), "\n", image(&eventvalue))
+
+end

@@ -1,0 +1,30 @@
+############################################################################
+#
+#	File:     version.icn
+#
+#	Subject:  Procedures to produce Icon version number
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 2, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This procedure produces the version number of Icon on which a
+#  program is running.  It only works if the &version is in the
+#  standard form.
+#
+############################################################################
+
+procedure version()
+
+   &version ? {
+      tab(find("Version ") + 8) | fail
+      tab(many('0123456789.')) ? return tab(-1)
+      }
+
+end

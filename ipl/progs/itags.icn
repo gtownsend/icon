@@ -1,0 +1,128 @@
+############################################################################
+#
+#	File:     itags.icn
+#
+#	Subject:  Program to create tags file for Icon programs
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     September 7, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Program to create a tags file for an Icon program.  It has the
+#  options described in the Sun 3.5 man entry for ctags (except -u --
+#  update tags file):
+#
+#  Usage: itags [-aBFtvwx] [-f tagsfile] file...
+#
+#    -a   append output to an existing tags file.
+#
+#    -B   use backward searching patterns (?...?).
+#
+#    -F   use forward searching patterns (/.../) (default).
+#
+#    -x   produce a list of object names,  the  line  number  and
+#         file name on which each is defined, as well as the text
+#         of that line and prints this on  the  standard  output.
+#         This  is  a simple index which can be printed out as an
+#         off-line readable function index.
+#
+#    -t   create tags for records. 
+#
+#    -v   produce on the standard output an  index  of  the  form
+#         expected  by  vgrind(1).   This  listing  contains  the
+#         function name, file name, and page number (assuming  64
+#         line pages).  Since the output will be sorted into lex-
+#         icographic order, it may be desired to run  the  output
+#         through sort -f.  Sample use:
+#              itags -v files | sort -f > index
+#              vgrind -x index
+#
+#    -w   suppress warning diagnostics.
+#
+############################################################################
+#
+#  Links:  isort, io, options
+#
+############################################################################
+
+link isort, io, options
+
+global patChar
+
+record Tag(fn,line,linenbr,shortline)
+
+procedure main(arg)
+   local Write,f,fn,idChar,line,linenbr,noWarnings,opt,space,tag,tags,
+       tf,tfn,typedef,x
+   #
+   #  Handle command line options and initialization.
+   #
+   opt := options(arg,"aBFxtvwuf:")
+   if *arg = 0 then
+	 stop("usage: itags [-aBFtvwx] [-f tagsfile] file...")
+   if \opt["u"] then stop("update option (-u) not supported -- rebuild file")
+   patChar := if \opt["B"] & /opt["F"] then "?" else "/"
+   Write := (if \opt["v"] then VGrind
+      else if \opt["x"] then Index
+      else {
+	 tfn := \opt["f"] | "tags"
+	 tf := open(tfn,if \opt["a"] then "a" else "w") |
+	       stop("Can't open tags file \"",tfn,"\"")
+	 Tags
+	 })
+   typedef := opt["t"]
+   noWarnings := opt["w"]
+   idChar := &letters ++ &digits ++ "_"
+   space := ' \t\v\f\r'
+   tags := table()
+   #
+   #  Loop to read files.
+   #
+   every fn := !arg do {
+      if not find(".",fn) then fn ||:= ".icn"
+      f := open(fn) | write(&errout,"Couldn't open \"",fn,"\"")
+      linenbr := 0
+      while line := read(f) do line ? {
+	 linenbr +:= 1
+	 if (tab(many(space)) | &null) & =("procedure" | (\typedef,"record")) &
+	       tab(many(space)) then {
+	    tag := tab(many(idChar))
+	    if x := \tags[tag] then {
+	       if /noWarnings then
+		     write(&errout,"Duplicate entry in file ",fn,", line ",linenbr,
+		     ": ",tag,"\nSecond entry ignored")
+	       }
+	    else
+		  tags[tag] := Tag(fn,line,linenbr,line[1:&pos + 1])
+	    }
+	 }
+      close(f)
+      }
+   #
+   #  Do requested output.
+   #
+   every Write(!sort(tags),tf)
+end
+
+
+#
+#  Output procedures.
+#
+procedure Tags(x,f)
+   return write(f,x[1],"\t",x[2].fn,"\t",patChar,"^",x[2].shortline,patChar)
+end
+
+procedure Index(x)
+   return write(left(x[1],*x[1] < 16) | x[1],right(x[2].linenbr,4)," ",
+	 left(x[2].fn,17),x[2].line)
+end
+
+procedure VGrind(x)
+   return write(x[1]," ",x[2].fn," ",(x[2].linenbr - 1) / 64 + 1)
+end

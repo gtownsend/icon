@@ -1,0 +1,737 @@
+############################################################################
+#    
+#	File:     findre.icn
+#	
+#	Subject:  Procedure to find regular expression
+#	
+#	Author:   Richard L. Goerwitz
+#
+#	Date:	  March 3, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.17
+#
+############################################################################
+#
+#  DESCRIPTION:  findre() is like the Icon builtin function find(),
+#  except that it takes, as its first argument, a regular expression
+#  pretty much like the ones the Unix egrep command uses (the few
+#  minor differences are listed below).  Its syntax is the same as
+#  find's (i.e. findre(s1,s2,i,j)), with the exception that a no-
+#  argument invocation wipes out all static structures utilized by
+#  findre, and then forces a garbage collection.
+#
+############################################################################
+#
+#  (For those not familiar with regular expressions and the Unix egrep
+#  command: findre() offers a simple and compact wildcard-based search
+#  system.  If you do a lot of searches through text files, or write
+#  programs which do searches based on user input, then findre is a
+#  utility you might want to look over.)
+#
+#  IMPORTANT DIFFERENCES between find and findre:  As noted above,
+#  findre() is just a find() function that takes a regular expression
+#  as its first argument.  One major problem with this setup is that
+#  it leaves the user with no easy way to tab past a matched
+#  substring, as with
+# 
+#	s ? write(tab(find("hello")+5))
+#
+#  In order to remedy this intrinsic deficiency, findre() sets the
+#  global variable __endpoint to the first position after any given
+#  match occurs.  Use this variable with great care, preferably
+#  assigning its value to some other variable immediately after the
+#  match (for example, findre("hello [.?!]*",s) & tmp := __endpoint).
+#  Otherwise, you will certainly run into trouble.  (See the example
+#  below for an illustration of how __endpoint is used).
+#
+#  IMPORTANT DIFFERENCES between egrep and findre:  findre utilizes
+#  the same basic language as egrep.  The only big difference is that
+#  findre uses intrinsic Icon data structures and escaping conven-
+#  tions rather than those of any particular Unix variant.  Be care-
+#  ful!  If you put findre("\(hello\)",s) into your source file,
+#  findre will treat it just like findre("(hello)",s).  If, however,
+#  you enter '\(hello\)' at run-time (via, say, findre(!&input,s)),
+#  what Icon receives will depend on your operating system (most
+#  likely, a trace will show "\\(hello\\)").
+#
+############################################################################
+#
+#  BUGS:  Space has essentially been conserved at the expense of time
+#  in the automata produced by findre().  The algorithm, in other
+#  words, will produce the equivalent of a pushdown automaton under
+#  certain circumstances, rather than strive (at the expense of space)
+#  for full determinism.  I tried to make up a nfa -> dfa converter
+#  that would only create that portion of the dfa it needed to accept
+#  or reject a string, but the resulting automaton was actually quite
+#  slow (if anyone can think of a way to do this in Icon, and keep it
+#  small and fast, please let us all know about it).  Note that under
+#  version 8 of Icon, findre takes up negligible storage space, due to
+#  the much improved hashing algorithm.  I have not tested it under
+#  version 7, but I would expect it to use up quite a bit more space
+#  in that environment.
+#
+#  IMPORTANT NOTE:  Findre takes a shortest-possible-match approach
+#  to regular expressions.  In other words, if you look for "a*",
+#  findre will not even bother looking for an "a."  It will just match
+#  the empty string.  Without this feature, findre would perform a bit
+#  more slowly.  The problem with such an approach is that often the
+#  user will want to tab past the longest possible string of matched
+#  characters (say tab((findre("a*|b*"), __endpoint)).  In circumstan-
+#  ces like this, please just use something like:
+#
+#      s ? {
+#          tab(find("a")) &  # or use Arb() from the IPL (patterns.icn)
+#          tab(many('a'))
+#          tab(many('b'))
+#      }
+#
+#  or else use some combination of findre and the above.
+#    
+############################################################################
+#
+#  REGULAR EXPRESSION SYNTAX: Regular expression syntax is complex,
+#  and yet simple.  It is simple in the sense that most of its power
+#  is concentrated in about a dozen easy-to-learn symbols.  It is
+#  complex in the sense that, by combining these symbols with
+#  characters, you can represent very intricate patterns.
+#
+#  I make no pretense here of offering a full explanation of regular
+#  expressions, their usage, and the deeper nuances of their syntax.
+#  As noted above, this should be gleaned from a Unix manual.  For
+#  quick reference, however, I have included a brief summary of all
+#  the special symbols used, accompanied by an explanation of what
+#  they mean, and, in some cases, of how they are used (most of this
+#  is taken from the comments prepended to Jerry Nowlin's Icon-grep
+#  command, as posted a couple of years ago):
+#
+#     ^   -  matches if the following pattern is at the beginning
+#            of a line (i.e. ^# matches lines beginning with "#")
+#     $   -  matches if the preceding pattern is at the end of a line
+#     .   -  matches any single character
+#     +   -  matches from 1 to any number of occurrences of the
+#            previous expression (i.e. a character, or set of paren-
+#            thesized/bracketed characters)
+#     *   -  matches from 0 to any number of occurrences of the previous
+#            expression
+#     \   -  removes the special meaning of any special characters
+#            recognized by this program (i.e if you want to match lines
+#            beginning with a "[", write ^\[, and not ^[)
+#     |   -  matches either the pattern before it, or the one after
+#            it (i.e. abc|cde matches either abc or cde)
+#     []  -  matches any member of the enclosed character set, or,
+#            if ^ is the first character, any nonmember of the
+#            enclosed character set (i.e. [^ab] matches any character
+#	     _except_ a and b).
+#     ()  -  used for grouping (e.g. ^(abc|cde)$ matches lines consist-
+#            ing of either "abc" or "cde," while ^abc|cde$ matches
+#            lines either beginning with "abc" or ending in "cde")
+#
+############################################################################
+#
+#  EXAMPLE program:
+#
+#  procedure main(a)
+#      while line := !&input do {
+#          token_list := tokenize_line(line,a[1])
+#          every write(!token_list)
+#      }
+#  end
+#
+#  procedure tokenize_line(s,sep)
+#      tmp_lst := []
+#      s ? {
+#          while field := tab(findre(sep)|0) &
+#          mark := __endpoint
+#          do {
+#              put(tmp_lst,"" ~== field)
+#              if pos(0) then break
+#              else tab(mark)
+#          }
+#      }
+#      return tmp_lst
+#  end
+#
+#  The above program would be compiled with findre (e.g. "icont
+#  test_prg.icn findre.icn") to produce a single executable which
+#  tokenizes each line of input based on a user-specified delimiter.
+#  Note how __endpoint is set soon after findre() succeeds.  Note
+#  also how empty fields are excluded with "" ~==, etc.  Finally, note
+#  that the temporary list, tmp_lst, is not needed.  It is included
+#  here merely to illustrate one way in which tokens might be stored.
+#
+#  Tokenizing is, of course, only one of many uses one might put
+#  findre to.  It is very helpful in allowing the user to construct
+#  automata at run-time.  If, say, you want to write a program that
+#  searches text files for patterns given by the user, findre would be
+#  a perfect utility to use.  Findre in general permits more compact
+#  expression of patterns than one can obtain using intrinsic Icon
+#  scanning facilities.  Its near complete compatibility with the Unix
+#  regexp library, moreover, makes for greater ease of porting,
+#  especially in cases where Icon is being used to prototype C code.
+#
+############################################################################
+
+
+global state_table, parends_present, slash_present
+global biggest_nonmeta_str, __endpoint
+record o_a_s(op,arg,state)
+
+
+procedure findre(re, s, i, j)
+
+    local p, default_val, x, nonmeta_len, tokenized_re, tmp
+    static FSTN_table, STRING_table
+    initial {
+	FSTN_table := table()
+	STRING_table := table()
+    }
+
+    if /re then {
+	FSTN_table := table()
+	STRING_table := table()
+	collect()  # do it *now*
+	return
+    }
+
+    if /s := &subject
+    then default_val := &pos
+    else default_val := 1
+
+    if \i then {
+	if i < 1 then
+	    i := *s + (i+1)
+    }
+    else i := default_val
+	
+    if \j then {
+	if j < 1 then
+	    j := *s + (j+1)
+    }
+    else j := *s+1
+
+    if /FSTN_table[re] then {
+	# If we haven't seen this re before, then...
+	if \STRING_table[re] then {
+	    # ...if it's in the STRING_table, use plain find()
+	    every p := find(STRING_table[re],s,i,j)
+	    do { __endpoint := p + *STRING_table[re]; suspend p }
+	    fail
+	}
+	else {
+	    # However, if it's not in the string table, we have to
+	    # tokenize it and check for metacharacters.  If it has
+	    # metas, we create an FSTN, and put that into FSTN_table;
+	    # otherwise, we just put it into the STRING_table.
+	    tokenized_re := tokenize(re)
+	    if 0 > !tokenized_re then {
+		# if at least one element is < 0, re has metas
+		MakeFSTN(tokenized_re) | err_out(re,2)
+		# both biggest_nonmeta_str and state_table are global
+		/FSTN_table[re] := [.biggest_nonmeta_str, copy(state_table)]
+	    }
+	    else {
+		# re has no metas; put the input string into STRING_table
+		# for future reference, and execute find() at once
+		tmp := ""; every tmp ||:= char(!tokenized_re)
+		insert(STRING_table,re,tmp)
+		every p := find(STRING_table[re],s,i,j)
+		do { __endpoint := p + *STRING_table[re]; suspend p }
+		fail
+	    }
+	}
+    }
+
+
+    if nonmeta_len := (1 < *FSTN_table[re][1]) then {
+	# If the biggest non-meta string in the original re
+	# was more than 1, then put in a check for it...
+	s[1:j] ? {
+	    tab(x := i to j - nonmeta_len) &
+		(find(FSTN_table[re][1]) | fail) \ 1 &
+		(__endpoint := apply_FSTN(&null,FSTN_table[re][2])) &
+		(suspend x)
+	}
+    }
+    else {
+	#...otherwise it's not worth worrying about the biggest nonmeta str
+	s[1:j] ? {
+	    tab(x := i to j) &
+	    (__endpoint := apply_FSTN(&null,FSTN_table[re][2])) &
+	    (suspend x)
+	}
+    }
+
+end
+
+
+
+procedure apply_FSTN(ini,tbl)
+
+    local biggest_pos, POS, tmp, fin
+    static s_tbl
+
+    /ini := 1 & s_tbl := tbl & biggest_pos := 1
+    if ini = 0 then {
+	return &pos
+    }
+    POS := &pos
+    fin := 0
+
+    repeat {
+	if tmp := !s_tbl[ini] &
+	    tab(tmp.op(tmp.arg))
+	then {
+	    if tmp.state = fin
+	    then return &pos
+	    else ini := tmp.state
+	}
+	else (&pos := POS, fail)
+    }
+
+end
+    
+
+
+procedure tokenize(s)
+
+    local token_list, chr, tmp, b_loc, next_one, fixed_length_token_list, i
+
+    token_list := list()
+    s ? {
+	tab(many('*+?|'))
+	while chr := move(1) do {
+	    if chr == "\\"
+	    # it can't be a metacharacter; remove the \ and "put"
+	    # the integer value of the next chr into token_list
+	    then put(token_list,ord(move(1))) | err_out(s,2,chr)
+	    else if any('*+()|?.$^',chr)
+	    then {
+		# Yuck!  Egrep compatibility stuff.
+		case chr of {
+		    "*"    : {
+			tab(many('*+?'))
+			put(token_list,-ord("*"))
+		    }
+		    "+"    : {
+			tmp := tab(many('*?+')) | &null
+			if upto('*?',\tmp)
+			then put(token_list,-ord("*"))
+			else put(token_list,-ord("+"))
+		    }
+		    "?"    : {
+			tmp := tab(many('*?+')) | &null
+			if upto('*+',\tmp)
+			then put(token_list,-ord("*"))
+			else put(token_list,-ord("?"))
+		    }
+		    "("    : {
+			tab(many('*+?'))
+			put(token_list,-ord("("))
+		    }
+		    default: {
+			put(token_list,-ord(chr))
+		    }
+		}
+	    }
+	    else {
+		case chr of {
+		    # More egrep compatibility stuff.
+		    "["    : {
+			b_loc := find("[") | *&subject+1
+			every next_one := find("]",,,b_loc)
+			\next_one ~= &pos | err_out(s,2,chr)
+			put(token_list,-ord(chr))
+		    }
+                    "]"    : {
+			if &pos = (\next_one+1)
+			then put(token_list,-ord(chr)) &
+			     next_one := &null
+			else put(token_list,ord(chr))
+		    }
+		    default: put(token_list,ord(chr))
+		}
+	    }
+	}
+    }
+
+    token_list := UnMetaBrackets(token_list)
+
+    fixed_length_token_list := list(*token_list)
+    every i := 1 to *token_list
+    do fixed_length_token_list[i] := token_list[i]
+    return fixed_length_token_list
+
+end
+
+
+
+procedure UnMetaBrackets(l)
+
+    # Since brackets delineate a cset, it doesn't make
+    # any sense to have metacharacters inside of them.
+    # UnMetaBrackets makes sure there are no metacharac-
+    # ters inside of the braces.
+
+    local tmplst, i, Lb, Rb
+
+    tmplst := list(); i := 0
+    Lb := -ord("[")
+    Rb := -ord("]")
+
+    while (i +:= 1) <= *l do {
+	if l[i] = Lb then {
+	    put(tmplst,l[i])
+	    until l[i +:= 1] = Rb
+	    do put(tmplst,abs(l[i]))
+	    put(tmplst,l[i])
+	}
+	else put(tmplst,l[i])
+    }
+    return tmplst
+
+end
+
+
+
+procedure MakeFSTN(l,INI,FIN)
+
+    # MakeFSTN recursively descends through the tree structure
+    # implied by the tokenized string, l, recording in (global)
+    # fstn_table a list of operations to be performed, and the
+    # initial and final states which apply to them.
+
+    local i, inter, inter2, tmp, Op, Arg
+    static Lp, Rp, Sl, Lb, Rb, Caret_inside, Dot, Dollar, Caret_outside
+    # global biggest_nonmeta_str, slash_present, parends_present
+    initial {
+	Lp := -ord("("); Rp := -ord(")")
+	Sl := -ord("|")
+	Lb := -ord("["); Rb := -ord("]"); Caret_inside := ord("^")
+	Dot := -ord("."); Dollar := -ord("$"); Caret_outside := -ord("^")
+    }
+
+    /INI := 1 & state_table := table() &
+    NextState("new") & biggest_nonmeta_str := ""
+    /FIN := 0
+
+    # I haven't bothered to test for empty lists everywhere.
+    if *l = 0 then {
+	/state_table[INI] := []
+	put(state_table[INI],o_a_s(zSucceed,&null,FIN))
+	return
+    }
+
+    # HUNT DOWN THE SLASH (ALTERNATION OPERATOR)
+    every i := 1 to *l do {
+	if l[i] = Sl & tab_bal(l,Lp,Rp) = i then {
+	    if i = 1 then err_out(l,2,char(abs(l[i]))) else {
+		/slash_present := "yes"
+		inter := NextState()
+		inter2:= NextState()
+		MakeFSTN(l[1:i],inter2,FIN)
+		MakeFSTN(l[i+1:0],inter,FIN)
+		/state_table[INI] := []
+		put(state_table[INI],o_a_s(apply_FSTN,inter2,0))
+		put(state_table[INI],o_a_s(apply_FSTN,inter,0))
+		return
+	    }
+	}
+    }
+
+    # HUNT DOWN PARENTHESES
+    if l[1] = Lp then {
+	i := tab_bal(l,Lp,Rp) | err_out(l,2,"(")
+	inter := NextState()
+	if any('*+?',char(abs(0 > l[i+1]))) then {
+	    case l[i+1] of {
+		-ord("*")   : {
+		    /state_table[INI] := []
+		    put(state_table[INI],o_a_s(apply_FSTN,inter,0))
+		    MakeFSTN(l[2:i],INI,INI)
+		    MakeFSTN(l[i+2:0],inter,FIN)
+		    return
+		}
+		-ord("+")   : {
+		    inter2 := NextState()
+		    /state_table[inter2] := []
+		    MakeFSTN(l[2:i],INI,inter2)
+		    put(state_table[inter2],o_a_s(apply_FSTN,inter,0))
+		    MakeFSTN(l[2:i],inter2,inter2)
+		    MakeFSTN(l[i+2:0],inter,FIN)
+		    return
+		}
+		-ord("?")   : {
+		    /state_table[INI] := []
+		    put(state_table[INI],o_a_s(apply_FSTN,inter,0))
+		    MakeFSTN(l[2:i],INI,inter)
+		    MakeFSTN(l[i+2:0],inter,FIN)
+		    return
+		}
+	    }
+	}
+	else {
+	    MakeFSTN(l[2:i],INI,inter)
+	    MakeFSTN(l[i+1:0],inter,FIN)
+	    return
+	}
+    }
+    else {     # I.E. l[1] NOT = Lp (left parenthesis as -ord("("))
+	every i := 1 to *l do {
+	    case l[i] of {
+		Lp     : {
+		    inter := NextState()
+		    MakeFSTN(l[1:i],INI,inter)
+		    /parends_present := "yes"
+		    MakeFSTN(l[i:0],inter,FIN)
+		    return
+		}
+		Rp     : err_out(l,2,")")
+	    }
+	}
+    }
+
+    # NOW, HUNT DOWN BRACKETS
+    if l[1] = Lb then {
+	i := tab_bal(l,Lb,Rb) | err_out(l,2,"[")
+	inter := NextState()
+	tmp := ""; every tmp ||:= char(l[2 to i-1])
+	if Caret_inside = l[2]
+	then tmp := ~cset(Expand(tmp[2:0]))
+	else tmp :=  cset(Expand(tmp))
+	if any('*+?',char(abs(0 > l[i+1]))) then {
+	    case l[i+1] of {
+		-ord("*")   : {
+		    /state_table[INI] := []
+		    put(state_table[INI],o_a_s(apply_FSTN,inter,0))
+		    put(state_table[INI],o_a_s(any,tmp,INI))
+		    MakeFSTN(l[i+2:0],inter,FIN)
+		    return
+		}
+		-ord("+")   : {
+		    inter2 := NextState()
+		    /state_table[INI] := []
+		    put(state_table[INI],o_a_s(any,tmp,inter2))
+		    /state_table[inter2] := []
+		    put(state_table[inter2],o_a_s(apply_FSTN,inter,0))
+		    put(state_table[inter2],o_a_s(any,tmp,inter2))
+		    MakeFSTN(l[i+2:0],inter,FIN)
+		    return
+		}
+		-ord("?")   : {
+		    /state_table[INI] := []
+		    put(state_table[INI],o_a_s(apply_FSTN,inter,0))
+		    put(state_table[INI],o_a_s(any,tmp,inter))
+		    MakeFSTN(l[i+2:0],inter,FIN)
+		    return
+		}
+	    }
+	}
+	else {
+	    /state_table[INI] := []
+	    put(state_table[INI],o_a_s(any,tmp,inter))
+	    MakeFSTN(l[i+1:0],inter,FIN)
+	    return
+	}
+    }
+    else {           # I.E. l[1] not = Lb
+	every i := 1 to *l do {
+	    case l[i] of {
+		Lb     : {
+		    inter := NextState()
+		    MakeFSTN(l[1:i],INI,inter)
+		    MakeFSTN(l[i:0],inter,FIN)
+		    return
+		}
+		Rb     : err_out(l,2,"]")
+	    }
+	}
+    }
+
+    # FIND INITIAL SEQUENCES OF POSITIVE INTEGERS, CONCATENATE THEM
+    if i := match_positive_ints(l) then {
+	inter := NextState()
+	tmp := Ints2String(l[1:i])
+	# if a slash has been encountered already, forget optimizing
+        # in this way; if parends are present, too, then forget it,
+        # unless we are at the beginning or end of the input string
+	if  INI = 1 | FIN = 2 | /parends_present &
+	    /slash_present & *tmp > *biggest_nonmeta_str
+	then biggest_nonmeta_str := tmp
+	/state_table[INI] := []
+	put(state_table[INI],o_a_s(match,tmp,inter))
+	MakeFSTN(l[i:0],inter,FIN)
+	return
+    }
+
+    # OKAY, CLEAN UP ALL THE JUNK THAT'S LEFT
+    i := 0
+    while (i +:= 1) <= *l do {
+	case l[i] of {
+	    Dot          : { Op := any;   Arg := &cset }
+	    Dollar       : { Op := pos;   Arg := 0     }
+	    Caret_outside: { Op := pos;   Arg := 1     }
+	    default      : { Op := match; Arg := char(0 < l[i]) }
+	} | err_out(l,2,char(abs(l[i])))
+	inter := NextState()
+	if any('*+?',char(abs(0 > l[i+1]))) then {
+	    case l[i+1] of {
+		-ord("*")   : {
+		    /state_table[INI] := []
+		    put(state_table[INI],o_a_s(apply_FSTN,inter,0))
+		    put(state_table[INI],o_a_s(Op,Arg,INI))
+		    MakeFSTN(l[i+2:0],inter,FIN)
+		    return
+		}
+		-ord("+")   : {
+		    inter2 := NextState()
+		    /state_table[INI] := []
+		    put(state_table[INI],o_a_s(Op,Arg,inter2))
+		    /state_table[inter2] := []
+		    put(state_table[inter2],o_a_s(apply_FSTN,inter,0))
+		    put(state_table[inter2],o_a_s(Op,Arg,inter2))
+		    MakeFSTN(l[i+2:0],inter,FIN)
+		    return
+		}
+		-ord("?")   : {
+		    /state_table[INI] := []
+		    put(state_table[INI],o_a_s(apply_FSTN,inter,0))
+		    put(state_table[INI],o_a_s(Op,Arg,inter))
+		    MakeFSTN(l[i+2:0],inter,FIN)
+		    return
+		}
+	    }
+	}
+	else {
+	    /state_table[INI] := []
+	    put(state_table[INI],o_a_s(Op,Arg,inter))
+	    MakeFSTN(l[i+1:0],inter,FIN)
+	    return
+	}
+    }
+
+    # WE SHOULD NOW BE DONE INSERTING EVERYTHING INTO state_table
+    # IF WE GET TO HERE, WE'VE PARSED INCORRECTLY!
+    err_out(l,4)
+
+end
+
+
+
+procedure NextState(new)
+    static nextstate
+    if \new then nextstate := 1
+    else nextstate +:= 1
+    return nextstate
+end
+
+
+
+procedure err_out(x,i,elem)
+    writes(&errout,"Error number ",i," parsing ",image(x)," at ")
+    if \elem 
+    then write(&errout,image(elem),".")
+    else write(&errout,"(?).")
+    exit(i)
+end
+
+
+
+procedure zSucceed()
+    return .&pos
+end
+
+
+
+procedure Expand(s)
+
+    local s2, c1, c2
+
+    s2 := ""
+    s ? {
+	s2 ||:= ="^"
+	s2 ||:= ="-"
+	while s2 ||:= tab(find("-")-1) do {
+	    if (c1 := move(1), ="-",
+		c2 := move(1),
+		c1 << c2)
+	    then every s2 ||:= char(ord(c1) to ord(c2))
+	    else s2 ||:= 1(move(2), not(pos(0))) | err_out(s,2,"-")
+	}
+	s2 ||:= tab(0)
+    }
+    return s2
+
+end
+
+
+
+procedure tab_bal(l,i1,i2)
+
+    local i, i1_count, i2_count
+
+    i := 0
+    i1_count := 0; i2_count := 0
+    while (i +:= 1) <= *l do {
+	case l[i] of {
+	    i1  : i1_count +:= 1
+	    i2  : i2_count +:= 1
+	}
+	if i1_count = i2_count
+	then suspend i
+    }
+
+end
+
+
+procedure match_positive_ints(l)
+    
+    # Matches the longest sequence of positive integers in l,
+    # beginning at l[1], which neither contains, nor is fol-
+    # lowed by a negative integer.  Returns the first position
+    # after the match.  Hence, given [55, 55, 55, -42, 55],
+    # match_positive_ints will return 3.  [55, -42] will cause
+    # it to fail rather than return 1 (NOTE WELL!).
+
+    local i
+
+    every i := 1 to *l do {
+	if l[i] < 0
+	then return (3 < i) - 1 | fail
+    }
+    return *l + 1
+
+end
+
+
+procedure Ints2String(l)
+
+    local tmp
+
+    tmp := ""
+    every tmp ||:= char(!l)
+    return tmp
+
+end
+
+
+procedure StripChar(s,s2)
+
+    local tmp
+
+    if find(s2,s) then {
+	tmp := ""
+	s ? {
+	    while tmp ||:= tab(find("s2"))
+	    do tab(many(cset(s2)))
+	    tmp ||:= tab(0)
+	}
+    }
+    return \tmp | s
+
+end

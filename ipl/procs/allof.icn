@@ -1,0 +1,112 @@
+############################################################################
+#
+#	File:     allof.icn
+#
+#	Subject:  Procedure for conjunction control operation
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     April 28, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  allof{expr1,expr2} -- Control operation that performs iterative
+#                        conjunction.
+#
+#     Iterative conjunction permits a conjunction expression to be built
+#  at run time which supports full backtracking among the created terms
+#  of the expression.  The computed expression can be of arbitrary
+#  length, and is built via an iterative loop in which one term is
+#  appended to the expression (as if connected with a "&" operator) per
+#  iteration.
+#
+#     Expr1 works like the control expression of "every-do"; it controls
+#  iteration by being resumed to produce all of its possible results.
+#  The allof{} expression produces the outcome of conjunction of all of
+#  the resulting instances of expr2.
+#
+#     For example:
+#
+#       global c
+#       ...
+#       pattern := "ab*"
+#       "abcdef" ? {
+#          allof { c := !pattern ,
+#             if c == "*" then move(0 to *&subject - &pos + 1) else =c
+#             } & pos(0)
+#          }
+#
+#  This example will perform a wild card match on "abcdef" against
+#  pattern "ab*", where "*" in a pattern matches 0 or more characters.
+#  Since pos(0) will fail the first time it is evaluated, the allof{}
+#  expression will be resumed just as a conjunction expression would,
+#  and backtracking will propagate through all of the instances of
+#  expr2; the expression will ultimately succeed (as its conjunctive
+#  equivalent would).
+#
+#     Note that, due to the scope of variables in co-expressions,
+#  variables shared between expr1 and expr2 must have global scope,
+#  hence c in the above example must be global.
+#
+#     The allof{} procedure models Icon's expression evaluation
+#  mechanism in that it explicitly performs backtracking.  The author of
+#  this procedure knows of no way to invoke Icon's built-in goal
+#  directed evaluation to perform conjunction of a arbitrary number of
+#  computed expressions (suggestions welcome).
+#
+############################################################################
+#
+#  Requires:  co-expressions
+#
+############################################################################
+
+procedure allof(expr)
+   local elist,i,x,v
+   #
+   #  Initialize
+   #
+   elist := []          # expression list
+   i := 1               # expression list index
+   
+   #
+   #  Loop until backtracking over all expr[2]s has failed.
+   #
+   while i > 0 do {
+      if not (x := elist[i]) then
+         #
+         #  If we're at the end of the list of expressions, attempt an
+         #  iteration to produce another expression.
+         #
+         if @expr[1] then
+            put(elist,x := ^expr[2])
+         else {
+            #
+            #  If no further iterations, suspend a result.
+            #
+            suspend v
+            #
+            #  We've been backed into -- reset to last expr[2].
+            #
+            i -:= 1
+            }
+      #
+      #  Evaluate the expression.
+      #
+      if v := @\x then {
+         #
+         #  If success, move on to the refreshed next expression.
+         #
+         i +:= 1
+         elist[i] := ^elist[i]
+         }
+      else
+         #
+         #  If failure, back up.
+         #
+         i -:= 1
+      }
+end

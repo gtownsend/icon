@@ -1,0 +1,43 @@
+############################################################################
+#
+#	File:     wdiag.icn
+#
+#	Subject:  Procedure to write values with labels
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 15, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  widag(s1, s2, ...) writes the values of the global variables named s1, s2,
+#  ... with s1, s2, ... as identifying labels.
+#
+#  It writes a diagnostic message to standard error output if an
+#  argument is not the name of a global variable.
+#
+#  Note that this procedure only works for global variables; there is
+#  no way it can access the local variables of the procedur from which
+#  it is called.
+#
+############################################################################
+
+
+procedure wdiag(names__[])		#: write labeled global values
+   local wlist__, s__
+
+   wlist__ := []
+
+   every put(wlist__, " ", s__ := !names__, "=") do
+      put(wlist__, image(variable(s__))) |
+         write(&errout, image(s__), " is not a variable")
+
+   write ! wlist__
+
+   return
+
+end

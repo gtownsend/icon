@@ -1,0 +1,133 @@
+############################################################################
+#
+#	File:     parse.icn
+#
+#	Subject:  Program to parse simple statements
+#
+#	Author:   Kenneth Walker
+#
+#	Date:     February 18, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program parses simple statements.
+#
+#  It provides an interesting example of the use of co-expressions.
+#
+############################################################################
+
+global lex	# co-expression for lexical analyzer
+global next_tok	# next token from input
+
+record token(type, string)
+
+procedure main()
+   lex := create ((!&input ? get_tok()) | |token("eof", "eof"))
+   prog()
+end
+
+#
+# get_tok is the main body of lexical analyzer
+#
+procedure get_tok()
+   local tok
+   repeat {	# skip white space and comments
+      tab(many(' 	'))
+      if ="#" | pos(0) then fail
+
+      if any(&letters) then	# determine token type
+         tok := token("id", tab(many(&letters ++ '_')))
+      else if any(&digits) then
+         tok := token("integer", tab(many(&digits)))
+      else case move(1) of {
+         ";"	:	tok := token("semi", ";")
+         "("	:	tok := token("lparen", "(")
+         ")"	:	tok := token("rparen", ")")
+         ":"	:	if ="=" then tok := token("assign", ":=")
+            		   else tok := token("colon", ":")
+         "+"	:	tok := token("add_op", "+")
+         "-"	:	tok := token("add_op", "-")
+         "*"	:	tok := token("mult_op", "*")
+         "/"	:	tok := token("mult_op", "/")
+         default	:	err("invalid character in input")
+         }
+      suspend tok
+      }
+end
+
+#
+# The procedures that follow make up the parser
+#
+
+procedure prog()
+   next_tok := @lex
+   stmt()
+   while next_tok.type == "semi" do {
+      next_tok := @lex
+      stmt()
+      }
+   if next_tok.type ~== "eof" then
+      err("eof expected")
+end
+
+procedure stmt()
+   if next_tok.type ~== "id" then
+      err("id expected")
+   write(next_tok.string)
+   if (@lex).type ~== "assign" then
+      err(":= expected")
+   next_tok := @lex
+   expr()
+   write(":=")
+end
+
+procedure expr()
+   local op
+
+   term()
+   while next_tok.type == "add_op" do {
+      op := next_tok.string
+      next_tok := @lex
+      term()
+      write(op)
+      }
+end
+
+procedure term()
+   local op
+
+   factor()
+   while next_tok.type == "mult_op" do {
+      op := next_tok.string
+      next_tok := @lex
+      factor()
+      write(op)
+      }
+end
+
+procedure factor()
+   case next_tok.type of {
+      "id" | "integer": {
+         write(next_tok.string)
+         next_tok := @lex
+         }
+      "lparen": {
+         next_tok := @lex
+         expr()
+         if next_tok.type ~== "rparen" then
+            err(") expected")
+         else
+            next_tok := @lex
+         }
+      default:
+         err("id or integer expected")
+      }
+end
+
+procedure err(s)
+   stop(" ** error **  ", s)
+end

@@ -1,0 +1,446 @@
+############################################################################
+#
+#	File:     turtle.icn
+#
+#	Subject:  Procedures for turtle-graphics interface
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	These procedures provide a "turtle graphics" interface to Icon.
+#	With this approach, popularized by the Logo programming language,
+#	all drawing is done by a "turtle" that carries a pen over a drawing
+#	surface under program control.
+#
+#	TWindow(W)	sets the turtle window.
+#
+#	TDraw(n)	moves forward and draws.
+#
+#	TSkip(n)	skips forward without drawing.
+#
+#	TDrawto(x, y)	draws to the point (x,y).
+#
+#	TScale(n)	sets or queries current scaling factor.
+#
+#	TRight(d)	turns right d degrees.
+#
+#	TLeft(d)	turns left d degrees.
+#
+#	THeading(a)	sets or queries the heading.
+#
+#	TFace(x, y)	sets or queries the heading.
+#
+#	TX(x)		sets or queries the current x position.
+#
+#	TY(y)		sets or queries the current y position.
+#
+#	TGoto(x, y, a)	sets the location and optionally changes the heading.
+#
+#	THome()		moves to the window center and turns to face upward.
+#
+#	TReset()	clears the window and reinitializes.
+#
+#	TSave()		saves the turtle state.
+#
+#	TRestore()	restores the turtle state.
+#
+#	TRect(h, w)	draws a rectangle centered at the turtle.
+#
+#	TCircle(d)	draws a circle centered at the turtle.
+#
+#	TPoly(d, n)	draws a polygon centered at the turtle.
+#
+#	TFRect(h, w)	draws a filled rectangle centered at the turtle.
+#
+#	TFCircle(d)	draws a filled circle centered at the turtle.
+#
+#	TFPoly(d, n)	draws a filled polygon centered at the turtle.
+#
+############################################################################
+#
+#  In this package there is a single turtle which is itself invisible;
+#  it is known only by the marks it leaves on the window.  It remembers
+#  its location and heading between calls.
+#
+#  No explicit initialization is required.  The turtle begins at the
+#  center of the window with a heading of -90 degrees (that is, pointed
+#  towards the top of the window).
+#
+#  The turtle draws on &window unless a different window is specified by
+#  calling TWindow().  If no window is provided and &window is null,
+#  a 500x500 window is opened and assigned to &window.
+#
+#  Distances are measured in pixels and are always multiplied by a
+#  settable scaling factor, initially 1.  Angles are measured in degrees;
+#  absolute angles measure clockwise from the positive X axis.
+#
+############################################################################
+#
+#  The procedures are as follows:
+#
+#  TDraw(n) -- move forward and draw
+#  TSkip(n) -- skip forward without drawing
+#	The turtle moves forward n units.  n can be negative to move
+#	backwards.
+#	Default:  n = 1
+#
+#  TDrawto(x, y) -- draw to the point (x,y)
+#	The turtle turns and draws a line to the point (x,y).
+#	The heading is also set as a consequence of this movement.
+#	Default:  center of window
+#
+#  TScale(n) -- set or query current scaling factor.
+#	If n is supplied, the scaling factor applied to TDraw and TSkip
+#	arguments is *multiplied* (not replaced) by n.  The resulting
+#	(multiplied or unaltered) scaling factor is returned.
+#	The turtle's heading and location do not change.
+#
+#  TRight(d) -- turn right
+#  TLeft(d) -- turn left
+#	The turtle turns d degrees to the right or left of its current
+#	heading.  Its location does not change, and nothing is drawn.
+#	The resulting heading is returned.
+#	Default:  d = 90
+#
+#  THeading(a) -- set or query heading
+#	The turtle's heading (in degrees) is returned.  If a is supplied,
+#	the heading is first set to that value.  The location does not
+#	change.
+#
+#  TFace(x, y) -- set or query heading
+#	The turtle turns to face directly towards the point (x,y).
+#	If x and y are missing or the turtle is already at (x,y),
+#	the heading does not change.  The new heading is returned.
+#	Default: center of window
+#
+#  TX(x) -- set or query current x position
+#  TY(y) -- set or query current y position
+#	The unscaled x- or y-coordinate of the turtle's current location
+#	is returned.  If an argument is supplied, the coordinate value
+#	is first set, moving the turtle without drawing.  The turtle's
+#	heading does not change.
+#
+#  TGoto(x, y, a) -- set location and optionally change heading
+#	The turtle moves to the point (x,y) without drawing.
+#	The turtle's heading remains unaltered unless <a> is supplied,
+#	in which case the turtle then turns to a heading of <a>.
+#	Default:  center of window
+#
+#  THome() -- move to home (center of window) and point North
+#	The turtle moves to the center of the window without drawing
+#	and the heading is set to -90 degrees.  The scaling factor
+#	remains unaltered.
+#
+#  TReset() -- clear window and reinitialize
+#	The window is cleared, the turtle moves to the center of the
+#	window without drawing, the heading is set to -90 degrees, the
+#	scaling factor is reset to 1, and the TRestore() stack is
+#	cleared.  These actions restore the initial conditions.
+#
+#  TSave() -- save turtle state
+#  TRestore() -- restore turtle state
+#	TSave saves the current turtle window, location, heading, and
+#	scale on an internal stack.  TRestore pops the stack and sets
+#	those values, or fails if the stack is empty.
+#
+#  TRect(h, w) -- draw a rectangle centered at the turtle
+#  TCircle(d) -- draw a circle centered at the turtle
+#  TPoly(d, n) -- draw an n-sided regular polygon centered at the turtle
+#	These three procedures draw a figure centered at the turtle's
+#	current location.  The location and heading do not change.
+#	The base of the figure, if any, is directly behind the turtle.
+#
+#	TRect(h, w) draws a rectangle of height h and width w.
+#	"width" is the dimension perpendicular to the turtle's path.
+#	Default:  h = 1
+#		  w = h
+#
+#	TCircle(d) draws a circle of diameter d.
+#	Default:  d = 1
+#
+#	TPoly(d, n) draws an n-sided regular polygon whose circumscribed
+#	circle would have a diameter of d.
+#	Default:  d = 1
+#		  n = 3
+#
+#  TFRect(h, w) -- draw a filled rectangle centered at the turtle
+#  TFCircle(d) -- draw a filled circle centered at the turtle
+#  TFPoly(d, n) -- draw an n-sided filled polygon centered at the turtle
+#	These are like their counterparts above, but a solid figure is
+#	drawn instead of just an outline.
+#
+#  TWindow(win) -- set turtle window
+#	The turtle is moved to the given window, retaining its
+#	coordinates and heading.
+#	Default:   win = &window
+#
+#  These procedures do not attempt to provide a complete graphics interface;
+#  in particular, no control of color is provided.  Missing functions can
+#  be accomplished by calling the appropriate Icon routines.
+#
+#  Unlike most turtle graphics environments, there are no commands to
+#  lift and drop the pen.  Instead, use TSkip() to move without drawing,
+#  or set WAttrib("drawop=noop") if you really need a global "pen up"
+#  state.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+global T_x, T_y			# current location
+global T_deg			# current heading
+global T_scale			# current scaling
+global T_stack			# turtle state stack
+global T_win			# current window
+
+#  TWindow(win) -- set turtle window
+
+procedure TWindow(win)		#: set turtle window
+   /win := &window
+   if type(win) ~== "window" then
+      runerr(140, win)
+   T_win := win
+   return
+end
+
+#  TInit() -- initialize turtle system, opening window if needed
+
+procedure TInit()		#: initialize turtle system
+   TInit := 1			# suppress any subsequent calls
+   if /T_win then {
+      /&window := open("turtle", "g", "width=500", "height=500") |
+         stop("can't open window")
+      T_win := &window
+      }
+   T_stack := []
+   T_scale := 1.0
+   TGoto(, , -90.0)
+   return
+end
+
+#  TReset() -- clear window and stack, reset scaling, go to center, head -90
+
+procedure TReset()		#: reset turtle system
+   initial TInit()
+   T_stack := []
+   EraseArea(T_win, -WAttrib(T_win, "dx"), -WAttrib(T_win, "dy"))
+   T_scale := 1.0
+   return TGoto(, , -90.0)
+end
+
+#  THome() -- go to center and set heading to 90 degrees
+
+procedure THome()		#: return turtle to home
+   initial TInit()
+   return TGoto(, , -90.0)
+end
+
+#  TScale(n) -- set / return scaling
+
+procedure TScale(n)		#: turtle scaling
+   initial TInit()
+   if T_scale *:= (0.0 ~= \n) then
+      THeading(T_deg)
+   return T_scale
+end
+
+#  THeading(d), TLeft(d), TRight(d), TFace(x, y) -- set / return heading
+
+procedure THeading(d)		#: turtle heading
+   initial TInit()
+
+   T_deg := \d % 360		# set normalized heading
+   return T_deg
+end
+
+procedure TRight(d)		#: turn turtle right
+   initial TInit()
+   return THeading(T_deg + (\d | 90.0))
+end
+
+procedure TLeft(d)		#: turn turtle left
+   initial TInit()
+   return THeading(T_deg - (\d | 90.0))
+end
+
+procedure TFace(x, y)		#: face turtle
+   initial TInit()
+   /x := WAttrib(T_win, "width") / 2 + 0.5
+   /y := WAttrib(T_win, "height") / 2 + 0.5
+   if not (x = \T_x & y = \T_y) then
+      return THeading(rtod(atan(y - T_y, x - T_x)))
+   else
+      return THeading()
+end
+
+#  TX(x), TY(y) -- set or return current x / y location (unscaled).
+
+procedure TX(x)			#: turtle x coordinate
+   initial TInit()
+   return (T_x := \x) | T_x
+end
+
+procedure TY(y)			#: turtle y coordinate
+   initial TInit()
+   return (T_y := \y) | T_y
+end
+
+#  TDraw(n) -- move forward n units while drawing a line
+
+procedure TDraw(n)		#: draw with turtle
+   local rad
+   initial TInit()
+
+   /n := 1.0
+   rad := dtor(T_deg)
+   DrawLine(T_win, .T_x, .T_y,
+      T_x +:= T_scale * cos(rad) * n, T_y +:= T_scale * sin(rad) * n)
+   return
+end
+
+#  TSkip(n) -- move forward n units without drawing
+
+procedure TSkip(n)		#: skip with turtle
+   local rad
+   initial TInit()
+
+   /n := 1.0
+   rad := dtor(T_deg)
+   T_x +:= T_scale * cos(rad) * n
+   T_y +:= T_scale * sin(rad) * n
+   return
+end
+
+#  TGoto(x, y, a) -- move to (x,y) without drawing, and set heading if given
+
+procedure TGoto(x, y, a)	#: go to with turtle
+   initial TInit()
+   T_x := \x | WAttrib(T_win, "width") / 2 + 0.5
+   T_y := \y | WAttrib(T_win, "height") / 2 + 0.5
+   THeading(\a)
+   return
+end
+
+#  TDrawto(x, y, a) -- draw line to (x,y), and set heading if given
+
+procedure TDrawto(x, y, a)	#: draw to with turtle
+   initial TInit()
+   /x := WAttrib(T_win, "width") / 2 + 0.5
+   /y := WAttrib(T_win, "height") / 2 + 0.5
+   if /a then
+      TFace(x, y)
+   DrawLine(T_win, .T_x, .T_y, T_x := x, T_y := y)
+   THeading(\a)
+   return
+end
+
+#  TSave() -- save turtle state
+
+procedure TSave()		#: save turtle state
+   initial TInit()
+   push(T_stack, T_deg, T_y, T_x, T_scale, T_win)
+   return
+end
+
+#  TRestore() -- restore turtle state
+
+procedure TRestore()		#: restore turtle state
+   initial TInit()
+   T_win := pop(T_stack)
+   T_scale := pop(T_stack)
+   return TGoto(pop(T_stack), pop(T_stack), pop(T_stack))
+end
+
+
+############################################################################
+#
+#  Higher level routines.
+#  These do not depend on the internals of procs above.
+#
+############################################################################
+
+#  TRect(h, w) -- draw a rectangle centered at the turtle
+#  TFRect(h, w) -- draw a filled rectangle centered at the turtle
+
+procedure TRect(h, w)		#: draw rectangle centered at turtle
+   return T_rectangle(h, w, DrawLine)
+end
+
+procedure TFRect(h, w)		#: draw filled rectangle centered at turtle
+   return T_rectangle(h, w, FillPolygon)
+end
+
+procedure T_rectangle(h, w, xcall)
+   local l
+
+   /h := 1.0
+   /w := h
+   l := [T_win]
+   TSkip(h / 2.0);  TRight()
+   TSkip(w / 2.0);  put(l, TX(), TY());  TRight()
+   TSkip(h);        put(l, TX(), TY());  TRight()
+   TSkip(w);        put(l, TX(), TY());  TRight()
+   TSkip(h);        put(l, TX(), TY());  TRight()
+   TSkip(w / 2.0);  put(l, TX(), TY());  TLeft()
+   TSkip(-h / 2.0)
+   put(l, l[2], l[3])
+   xcall ! l
+   return
+end
+
+#  TCircle(d) -- draw a circle centered at the turtle
+#  TFCircle(d) -- draw a filled circle centered at the turtle
+
+procedure TCircle(d)		#: draw circle centered at turtle
+   local r
+   d := TScale() * (abs(\d) | 1.0)
+   r := d / 2.0
+   DrawArc(T_win, TX() - r, TY() - r, d, d)
+   return
+end
+
+procedure TFCircle(d)		#: draw filled circle centered at turtle
+   local r
+   d := TScale() * (abs(\d) | 1.0)
+   r := d / 2.0
+   FillArc(T_win, TX() - r, TY() - r, d, d)
+   return
+end
+
+#  TPoly(d, n) -- draw an n-sided regular polygon centered at the turtle
+#  TFPoly(d, n) -- draw an n-sided filled polygon centered at the turtle
+
+procedure TPoly(d, n)		#: draw polygon centered at turtle
+   return T_polygon(d, n, DrawLine)
+end
+
+procedure TFPoly(d, n)		#: draw filled rectangle centered at turtle
+   return T_polygon(d, n, FillPolygon)
+end
+
+procedure T_polygon(d, n, xcall)
+   local r, a, da, cx, cy, x, y, l
+   r := TScale() * ((\d / 3.0) | 1.0)
+   n := abs(integer(\n + 0.5)) | 3.0
+   n <:= 2.0
+   da := dtor(360.0 / n)
+   a := dtor(THeading() + 180.0) + da / 2.0
+   x := (cx := TX()) + r * cos(a)
+   y := (cy := TY()) + r * sin(a)
+   l := [T_win, x, y]
+   every 1 to n do {
+      put(l, x := cx + r * cos(a+:=da))
+      put(l, y := cy + r * sin(a))
+      }
+   xcall ! l
+   return
+end

@@ -1,0 +1,151 @@
+############################################################################
+#
+#       File:     polystuf.icn
+#
+#       Subject:  Procedures for manipulating polynomials
+#
+#       Author:   Erik Eid
+#
+#       Date:     May 23, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     These procedures are for creating and performing operations on single-
+# variable polynomials (like ax^2 + bx + c).
+#
+#     poly (c1, e1, c2, e2, ...)  - creates a polynomial from the parameters
+#                                   given as coefficient-exponent pairs:
+#                                   c1x^e1 + c2x^e2 + ...
+#     is_zero (n)                 - determines if n = 0
+#     is_zero_poly (p)            - determines if a given polynomial is 0x^0
+#     poly_add (p1, p2)           - returns the sum of two polynomials
+#     poly_sub (p1, p2)           - returns the difference of p1 - p2
+#     poly_mul (p1, p2)           - returns the product of two polynomials
+#     poly_eval (p, x)            - finds the value of polynomial p when
+#                                   evaluated at the given x.
+#     term2string (c, e)          - converts one coefficient-exponent pair
+#                                   into a string.
+#     poly_string (p)             - returns the string representation of an
+#                                   entire polynomial.
+#
+############################################################################
+
+procedure poly (terms[])
+local p, coef, expn
+  if *terms % 2 = 1 then fail              # Odd number of terms means the 
+                                           # list does not contain all
+                                           # coefficient-exponent pairs.
+  p := table()
+  while *terms > 0 do {                    # A polynomial is stored as a
+    coef := get(terms)                     # table in which the keys are
+    expn := get(terms)                     # exponents and the elements are
+                                           # coefficients.
+    if numeric(coef) then if numeric(expn)
+      then p[real(expn)] := coef           # If any part of pair is invalid,
+                                           # discard it.  Otherwise, save
+                                           # term with a real key (necessary
+                                           # for consistency in sorting).
+  }
+  return p
+end
+
+procedure is_zero (n)
+  if ((n = integer(n)) & (n = 0)) then return else fail
+end
+
+procedure is_zero_poly (p)
+  if ((*p = 1) & is_zero(p[real(0)])) then return else fail
+end
+
+procedure poly_add (p1, p2)
+local p3, z
+  p3 := copy(p1)                           # Make a copy to start with.
+  if is_zero_poly (p3) then delete (p3, real(0))
+                                           # If first is zero, don't include
+                                           # the 0x^0 term.
+  every z := key(p2) do {                  # For every term in the second
+    if member (p3, z) then p3[z] +:= p2[z] # polynomial, if one of its
+      else p3[z] := p2[z]                  # exponent is in the third,
+                                           # increment its coefficient.
+                                           # Otherwise, create a new term.
+    if is_zero(p3[z]) then delete (p3, z)       
+                                           # Remove any term with coefficient
+                                           # zero, since the term equals 0.
+  }
+  if *p3 = 0 then p3[real(0)] := 0         # Empty poly table indicates a
+                                           # zero polynomial.
+  return p3
+end
+
+procedure poly_sub (p1, p2)
+local p3, z
+  p3 := copy(p1)                           # Similar process to poly_add.
+  if is_zero_poly (p3) then delete (p3, real(0))
+  every z := key(p2) do {
+    if member (p3, z) then p3[z] -:= p2[z]
+      else p3[z] := -p2[z]
+    if is_zero(p3[z]) then delete (p3, z)
+  }
+  if *p3 = 0 then p3[real(0)] := 0
+  return p3
+end
+
+procedure poly_mul (p1, p2)
+local p3, c, e, y, z
+  p3 := table()
+  every y := key(p1) do                    # Multiply every term in p1 by
+    every z := key(p2) do {                # every term in p2 and add those
+      c := p1[y] * p2[z]                   # results into p3 as in poly_add.
+      e := y + z
+      if member (p3, e) then p3[e] +:= c
+        else p3[e] := c
+      if is_zero(p3[e]) then delete (p3, e)
+    }
+  if *p3 = 0 then p3[real(0)] := 0
+  return p3
+end
+
+procedure poly_eval (p, x)
+local e, sum
+  sum := 0
+  every e := key(p) do                     # Increase sum by coef * x ^ exp.
+    sum +:= p[e] * (x ^ e)                 # Note: this procedure does not
+                                           # check in advance if x^e will
+                                           # result in an error.
+  return sum
+end
+
+procedure term2string (c, e)
+local t
+  t := ""
+  if e = integer(e) then e := integer(e)   # Removes unnecessary ".0"
+  if c ~= 1 then {
+    if c = -1 then t ||:= "-" else t ||:= c
+  }                                        # Use "-x" or "x," not "-1x" or 
+                                           # "1x."
+    else if e = 0 then t ||:= c            # Make sure to include a 
+                                           # constant term.
+  if e ~= 0 then {
+    t ||:= "x"
+    if e ~= 1 then t ||:= ("^" || e)       # Use "x," not "x^1."
+  }
+  return t
+end
+
+procedure poly_string (p)
+local pstr, plist, c, e
+  pstr := ""
+  plist := sort(p, 3)                      # Sort table into key-value pairs.
+  while *plist > 0 do {
+    c := pull(plist)                       # Since sort is nondecreasing,
+    e := pull(plist)                       # take terms in reverse order.
+    pstr ||:= (term2string (c, e) || " + ")
+  }
+  pstr := pstr[1:-3]                       # Remove last " + " from end
+  return pstr
+end
+

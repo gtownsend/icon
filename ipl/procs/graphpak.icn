@@ -1,0 +1,110 @@
+############################################################################
+#
+#	File:     graphpak.icn
+#
+#	Subject:  Procedures for manipulating directed graphs
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 15, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  The procedures here use sets to represent directed graphs.  See
+#  The Icon Programming Language, second edition, pp. 195-198.
+#
+#  A value of type "graph" has two components: a list of nodes and
+#  a two-way lookup table.  The nodes in turn contain pointers to
+#  other nodes.  The two-way table maps a node to its name and
+#  vice-versa.
+#
+#  Graph specifications are give in files in which the first line
+#  is a white-space separated list of node names and subsequent lines
+#  give the arcs, as in
+#
+#	Tucson Phoenix Bisbee Douglas Flagstaff
+#	Tucson->Phoenix
+#	Tucson->Bisbee
+#	Bisbee->Bisbee
+#	Bisbee->Douglas
+#	Douglas->Phoenix
+#	Douglas->Tucson
+#
+############################################################################
+
+record graph(nodes, lookup)
+
+#  Construct a graph from the specification given in file f.  Error checking
+#  is minimal.
+
+procedure read_graph(f)		#: read graph
+
+   nodes := []				# list of the graph nodes
+   lookup := table()			# two-way table of names and nodes
+
+   node_list := read(f) | stop("*** empty specification file")
+
+   node_list ? {			# process list of node names
+      while name := tab(upto('\t ') | 0) do {
+         node := set()			# create a new node
+         put(nodes, node)		# add node to the list
+         lookup[name] := node		# name to node
+         lookup[node] := name		# node to name
+         tab(many(' \t')) | break
+         }
+      }
+
+   while arc := read(f) do {		# process arcs
+      arc ? {
+         from_name := tab(find("->")) | stop("*** bad arc specification")
+         move(2)
+         to_name := tab(0)
+         insert(\lookup[from_name], \lookup[to_name]) |
+            stop("*** non-existent node")
+         }
+      }
+         
+
+   return graph(nodes, lookup)		# now put the pieces together
+
+end
+
+#  Write graph g to file f.
+
+procedure write_graph(g, f)	#: write graph
+   local name_list
+
+   name_list := ""			# initialize
+
+   every node := !g.nodes do		# construct the list of names
+      name_list ||:= g.lookup[node] || " "
+
+   write(f, name_list[1:-1])
+   
+   every node := !g.nodes do		# write the arc specifications
+      every write(f, g.lookup[node], "->", g.lookup[!node])
+
+   return
+
+end
+
+#  Transitive closure of node.  Called as closure(node) without second argument
+
+procedure closure(node, close)	#: transitive closure of graph
+   local n
+
+   /close := set()			# initialize closure
+
+   insert(close, node)			# add the node itself
+
+   every n := !node do			# process all the arcs
+					# if not member, recurse
+      member(close, n) | closure(n, close)
+
+   return close
+
+end

@@ -1,0 +1,104 @@
+############################################################################
+#
+#	File:     rings.icn
+#
+#	Subject:  Program to draw tiles of rings and circles
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     July 13, 1994
+#
+############################################################################
+#
+#  This program produces seamless tiles with drawings of circles and
+#  rings.
+#
+#  It words from characters input to the window:
+#
+#	q	quit
+#	c	draw 10 random circles
+#	r	draw 5 random rings
+#	W	writes image to GIF file; files are named ring000.gif,
+#		   ring001.gif, ...
+#	E	erases the window
+#	F       fills the window
+#	R	reverses the colors
+#
+#  At present there are no options except those provided for
+#  opening the window.
+#
+#  Some modifications have been made by Ralph E. Griswold
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  xio, xutils
+#
+############################################################################
+
+$define W 128
+$define H 128
+
+link xio, xutils
+
+procedure main(args)
+   local count
+
+   count := -1
+   Window(args)
+   repeat case Event() of {
+      QuitEvents():  exit()
+      "c":  randrop(circle, 10)
+      "r":  randrop(ring, 5)
+      "W":  WriteImage("rings" || right(count +:= 1, 3, "0") || ".gif",
+         , , W, W)
+      "E":  EraseArea()
+      "F":  FillRectangle()
+      "R":  {WAttrib("drawop=reverse"); FillRectangle(); WAttrib("drawop=copy")}
+      }
+end
+
+procedure replicate()
+   CopyArea(0, 0, W, H, 0, H)
+   CopyArea(0, 0, W, 2 * H, W, 0)
+   CopyArea(0, 0, 2 * W, 2 * H, 2 * W, 0)
+   CopyArea(0, 0, 4 * W, 2 * H, 0, 2 * H)
+   DrawLine(W, 0, W, H, 0, H)
+   return
+end
+
+procedure randrop(p, n)
+   local x, y
+   every 1 to n do {
+      x := ?W - W / 2
+      y := ?H - H / 2
+      p(x, y)
+      p(x, y + H)
+      p(x + W, y)
+      p(x + W, y + W)
+      }
+   replicate()
+   return
+end
+
+procedure ring(x, y)
+   static outer, inner
+   initial {
+      outer := Clone("fg=black", "linewidth=5")
+      inner := Clone("fg=white", "linewidth=3")
+      }
+   DrawCircle(outer, x, y, 30)
+   DrawCircle(inner, x, y, 30)
+   return
+end
+
+procedure circle(x, y)
+   static white
+   initial white := Clone("fg=white")
+   FillCircle(white, x, y, 12)
+   DrawCircle(x, y, 12)				#  change to 10 for gaps
+   return
+end

@@ -1,0 +1,186 @@
+############################################################################
+#
+#	File:     ibrow.icn
+#
+#	Subject:  Program to browse Icon files for declarations
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     September 7, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Usage: ibrow [<Icon source file name>...]
+#
+#  If no source file names are provided on the command line, all *.icn
+#  files in the current directory are browsed.
+#
+#  The program facilitates browsing of Icon programs.  It was originally
+#  written to browse the Icon Program Library, for which purpose it
+#  serves quite well.  The user interface is self-explanatory -- just
+#  remember to use "?" for help if you're confused.
+#
+############################################################################
+#
+#  Links:  colmize
+#
+############################################################################
+#
+#  Requires:  UNIX
+#
+############################################################################
+
+link colmize
+
+procedure main(arg)
+   local p, proctab, doneNames, fn, f, foundNonEmptyLine, block, lineNbr
+   local line, keywd, startLine, proclist, w, i, x, proclines, cmd, b
+
+   if not (&features == "UNIX") then stop("Runs only under UNIX")
+   if *arg = 0 then {
+      p := open("ls *.icn","rp")
+      while put(arg,read(p))
+      close(p)
+      }
+   proctab := table()
+   #
+   #  Loop to scan all of the specified source files and save their
+   #  procedures and records.
+   #
+   doneNames := set()	# This set is used to prevent scanning twice if
+			# both a source and a suffixless icode file are
+			# passed as arguments (e.g. mydir/*).
+   write("Icon Browser -- scanning files:")
+   every fn := !arg do {
+      if not (fn[-4:0] == ".icn") then fn ||:= ".icn"
+      if member(doneNames,fn) then next
+      insert(doneNames,fn)
+      f := if fn == "-" then &input else open(fn) | next
+      write("  ",fn)
+      #
+      #  Loop to process lines of file (in string scanning mode).
+      #
+      foundNonEmptyLine := &null
+      block := []
+      lineNbr := 0
+      while line := read(f) do line ? {
+	 lineNbr +:= 1
+	 if not pos(0) then {
+	    foundNonEmptyLine := 1
+	    if (tab(many(' \t')) | "")\1 &
+		  (keywd := =("end" | "global" | "link")\1) |
+		  (keywd := =("procedure" | "record")\1 &
+		  tab(many(' \t')) & name := tab(upto(' \t('))\1) then {
+	       if keywd == ("procedure" | "record") then startLine := lineNbr
+	       if keywd == "record" then {
+		  until find(")",line) do {
+		     put(block,line)
+		     line := read(f) | break
+		     lineNbr +:= 1
+		     }
+		  }
+	       if proctab[name || case keywd of {"end": "()"; "record": "."}] :=
+		     [block,fn,startLine] then put(block,line)
+	       if keywd ~== "procedure" then {
+		  foundNonEmptyLine := &null
+		  block := []
+		  }
+	       }
+	    }
+	 if \foundNonEmptyLine then put(block,line)
+	 }
+      #
+      #  Close this file.
+      #
+      close(f)
+      }
+   doneNames := &null
+   #
+   #  Reorganize the data.
+   #
+   proctab := sort(proctab)
+   proclist := []
+   w := **proctab
+   i := 0
+   every x := !proctab do
+	 put(proclist,right(i +:= 1,w) || ". " || x[1])
+   proclines := []
+   every put(proclines,colmize(proclist))
+   proclist := []
+   every put(proclist,(!proctab)[2])
+   proctab := &null
+   #
+   #  Interact with the user to browse.
+   #
+   repeat {
+      write()
+      every write(!proclines)
+      write()
+      repeat {
+	 #
+	 #  Prompt for, read, and analyze the user's command.
+	 #
+	 writes("\nq,nn,nn[fmev],<return> (? for help): ")
+	 line := read() | exit()
+	 case line of {
+	   "q": exit()
+	   "?": help() & next
+	   "":  break
+	 }
+	 if integer(line) then line ||:= "f"
+	 if cmd := line[-1] & any('fmev',cmd) &
+	       block := proclist[0 < integer(line[1:-1])] then {
+	    case cmd of {
+	       "f": {
+		  #
+		  #  Write the file name containing the procedure and the
+		  #  first line of the procedure.
+		  #
+		  b := block[1]
+		  every line := b[1 to *b] do {
+		     line ? (if (tab(many(' \t')) | "")\1 &
+			   =("procedure" | "record") then break)
+		     }
+		  write(block[2],": ",line)
+		  }
+	       "m": {
+		  #
+		  #  List the procedure using "more".
+		  #
+		  write()
+		  p := open("more","pw") | stop("Can't popen")
+		  every write(p,!block[1])
+		  close(p)
+	          }
+	       "e" | "v": {
+		  #
+		  #  Invoke ex or vi positioned at the first line
+		  #  of procedure or record.
+		  #
+		  system((if cmd == "e" then "ex" else "vi") ||
+		        " +" || block[3] || " " || block[2])
+		  }
+	       }
+	    }
+	 }
+     }
+end
+
+procedure help()
+   write(
+"\nEnter:_
+\n    q                     Quit_
+\n    ?                     Display help message (this message)_
+\n    <return>              Redisplay the list of procedure and record names_
+\n    <number from list>[f] Display the file name and first line of_
+\n                          procedure or record_
+\n    <number from list>m   Display the procedure or record using \"more\"_
+\n    <number from list>e   Invoke \"ex\" positioned to procedure or record_
+\n    <number from list>v   Invoke \"vi\" positioned to procedure or record"
+   )
+   return
+end

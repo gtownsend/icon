@@ -1,0 +1,71 @@
+############################################################################
+#
+#	File:     iftrace.icn
+#
+#	Subject:  Procedures to trace Icon function calls
+#
+#	Author:   Stephen B. Wampler
+#
+#	Date:     July 14, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Contributor:  Ralph E. Griswold
+#
+############################################################################
+#
+#    These procedures provide tracing for Icon functions by using procedure
+#  wrappers to call the functions.
+#
+#     iftrace(fncs[]) sets tracing for a list of function names.
+#
+############################################################################
+#
+#    Note: The functions that can be traced and their procedure wrappers should
+#  be organized and coordinated to assure consistency and to allow for
+#  extended function repertoire.
+#
+############################################################################
+#
+#  Links:  ifncs
+#
+############################################################################
+
+invocable all
+
+link ifncs
+
+procedure iftrace(args[])		#: trace built-in functions
+   local nextarg, arg
+
+   every set_trace(!args)
+
+   return
+end
+
+procedure set_trace(vf)
+   local vp
+   static traceset, case1, case2
+
+   initial {
+      traceset := set()
+      every insert(traceset, function())
+      case1 := &lcase || &ucase
+      case2 := &ucase || &lcase
+      }
+    
+   if member(traceset,vf) then {
+      &trace := -1		# have to also trace all procedures!
+      vp := vf
+				# reverse case of first letter
+      vp[1] := map(vp[1], case1, case2)
+      variable(vp) :=: variable(vf)
+      return
+      }
+   else fail
+
+end

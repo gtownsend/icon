@@ -1,0 +1,57 @@
+############################################################################
+#
+#	File:     imgtolst.icn
+#
+#	Subject:  Program to convert image to list of pixel colors
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 22, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program converts images to lists of pixel values.  The
+#  first line of output gives the dimensions of the image.
+#
+#  The extension of the image file is replaced by .lst in the list
+#  file.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  basename, wattrib, wopen
+#
+############################################################################
+
+link basename
+link wattrib
+link wopen
+
+procedure main(args)
+   local file, name, output
+
+   every file := !args do {
+      name := basename(file, ".gif")
+      output := open(name || ".lst", "w") | {
+         write(&errout, "*** cannot open ", name, ".lst")
+         next
+         }
+      WOpen("canvas=hidden", "image=" || file) | {
+         write(&errout, "*** cannot open ", file)
+         next
+         }
+      write(output, "width=", Width(), " height=", Height())
+      every write(output, Pixel())
+      WClose()
+      &window := &null
+      close(output)
+      }
+
+end

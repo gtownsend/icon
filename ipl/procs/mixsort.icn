@@ -1,0 +1,61 @@
+############################################################################
+#
+#	File:     mixsort.icn
+#
+#	Subject:  Procedure to sort tables with case mixing
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 30, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure sorts tables like sort(T, i), except that the keys
+#  that are strings are sorted with case mixed.  That is, keys such
+#  as "Volvo" and "voluntary" come out sorted "voluntary" followed by
+#  "Volvo" as if it were "volvo" instead (assuming ASCII).
+#
+#  If a string appears in two case forms, as in "Volvo" and "volvo", one key
+#  is lost.
+#
+#  At present, this procedure applies only to keys (i = 1 or 3).  It could
+#  be extended to handle values (i = 2 or 3).
+#
+############################################################################
+
+procedure mixsort(T, i)		#: mixed-case string sorting
+   local xcase, x, y, temp, j
+
+   xcase := table()		# key-mapping table
+   temp := table()		# parallel table
+
+   if i = (2 | 4) then return sort(T, i)	# doesn't apply
+						# (could do values ...)
+
+   every x := key(T) do {	# map keys
+      if type(x) == "string" then y := map(x)	# only transform strings
+         else y := x
+      temp[y] := T[x]		# lowercase table
+      xcase[y] := x		# key mapping
+      }
+
+   temp := sort(temp, i)	# basic sort on lowercase table
+
+   if i = 3 then {
+      every j := 1 to *temp - 1 by 2 do
+         temp[j] := xcase[temp[j]]
+      }
+   else if i === (1 | &null) then {
+      every x := !temp do
+         x[1] := xcase[x[1]]
+      }
+
+   else return sort(T, i)	# error, but pass the buck
+
+   return temp
+
+end

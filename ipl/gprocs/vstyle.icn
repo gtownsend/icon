@@ -1,0 +1,363 @@
+############################################################################
+#
+#	File:     vstyle.icn
+#
+#	Subject:  Procedures for drawing buttons
+#
+#	Authors:  Jon Lipp and Gregg M. Townsend
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Utility procedures in this file:
+#	Vset_style()
+#
+############################################################################
+
+link imscolor
+
+procedure Vset_style (vid, style)
+
+   style := integer(style) | case style of {
+      &null:		V_RECT
+      "regular":	V_RECT
+      "regularno":	V_RECT_NO
+      "check":		V_CHECK
+      "checkno":	V_CHECK_NO
+      "circle":		V_CIRCLE
+      "circleno":	V_CIRCLE_NO
+      "diamond":	V_DIAMOND
+      "diamondno":	V_DIAMOND_NO
+      "xbox":		V_XBOX
+      "xboxno":		V_XBOX_NO
+      "image":		V_IMAGE
+      "imageno":	V_IMAGE_NO
+      default:		_Vbomb("invalid style parameter")
+      }
+
+   vid.style := style
+   case style of {
+      V_RECT :
+	 vid.D := Vstd_draw(draw_off_rect, draw_on_rect, init_rect)
+      V_CHECK :
+	 vid.D := Vstd_draw(draw_off_check, draw_on_check, init_check)
+      V_CIRCLE :
+	 vid.D := Vstd_draw(draw_off_circle, draw_on_circle, init_circle)
+      V_DIAMOND:
+	 vid.D := Vstd_draw(draw_off_diamond, draw_on_diamond, init_diamond)
+      V_XBOX :
+	 vid.D := Vstd_draw(draw_off_xbox, draw_on_xbox, init_xbox)
+      V_IMAGE :
+         vid.D := Vstd_draw(draw_off_image, draw_on_image, init_image)
+      V_RECT_NO : {
+         vid.D := Vstd_draw(draw_off_rect, draw_on_rect, init_rect)
+         vid.D.outline := 1
+         }
+      V_CHECK_NO : {
+         vid.D := Vstd_draw(draw_off_check, draw_on_check, init_check)
+         vid.D.outline := 1
+         }
+      V_CIRCLE_NO : {
+         vid.D := Vstd_draw(draw_off_circle, draw_on_circle, init_circle)
+         vid.D.outline := 1
+         }
+      V_DIAMOND_NO: {
+         vid.D := Vstd_draw(draw_off_diamond, draw_on_diamond, init_diamond)
+         vid.D.outline := 1
+         }
+      V_XBOX_NO : {
+	 vid.D := Vstd_draw(draw_off_xbox, draw_on_xbox, init_xbox)
+	 vid.D.outline := 1
+	 }
+      V_IMAGE_NO : {
+         vid.D := Vstd_draw(draw_off_image, draw_on_image, init_image)
+         vid.D.outline := 1  
+         }
+      default: _Vbomb("invalid style parameter")
+      }
+end
+
+
+procedure init_xbox(s)
+   # nothing to do
+end
+
+procedure draw_off_xbox(s)
+   if /s.D.outline then {
+      EraseArea(s.win, s.ax + 2, s.ay + 2, s.aw - 4, s.ah - 4)
+      BevelRectangle(s.win, s.ax, s.ay, s.aw, s.ah, 2)
+      }
+   else
+      EraseArea(s.win, s.ax, s.ay, s.aw, s.ah)
+end
+
+procedure draw_on_xbox(s)
+   WAttrib(s.win, "linewidth=2")
+   DrawSegment(s.win, s.ax + 4, s.ay + 4, s.ax + s.aw - 4, s.ay + s.ah - 4, 
+      s.ax + s.aw - 4, s.ay + 4, s.ax + 4, s.ay + s.ah - 4)
+   WAttrib(s.win, "linewidth=1")
+   if /s.D.outline then
+      BevelRectangle(s.win, s.ax, s.ay, s.aw, s.ah, -2)
+end
+
+
+procedure init_rect(s)
+   local TW, FH, ascent, descent
+
+   /s.s := ""
+   TW := TextWidth(s.win, s.s)
+   ascent := WAttrib(s.win, "ascent")
+   descent := WAttrib(s.win, "descent")
+   FH := ascent + descent
+   /s.aw := TW + 8
+   /s.ah := FH + 8
+
+   s.aw := 0 < s.aw | 1
+   s.ah := 0 < s.ah | 1
+
+   s.D.basex := (s.aw - TW - 1) / 2
+   s.D.basey := (s.ah - FH) / 2 + ascent
+end
+
+procedure draw_off_rect(s)
+   EraseArea(s.win, s.ax, s.ay, s.aw, s.ah)
+   GotoXY(s.win, s.ax+s.D.basex, s.ay+s.D.basey)
+   writes(s.win, s.s)
+   if /s.D.outline then
+      BevelRectangle(s.win, s.ax, s.ay, s.aw, s.ah, 2)
+end
+
+procedure draw_on_rect(s)
+   FillRectangle(s.win, s.ax, s.ay, s.aw, s.ah)
+   WAttrib(s.win, "reverse=on")
+   GotoXY(s.win, s.ax+s.D.basex, s.ay+s.D.basey)
+   writes(s.win, s.s)
+   WAttrib(s.win, "reverse=off")
+   if /s.D.outline then
+      BevelRectangle(s.win, s.ax, s.ay, s.aw, s.ah, -2)
+end
+
+
+procedure init_check(s)
+   local FH, ascent, descent
+
+   /s.s := ""
+   s.D.space := 4
+   ascent := WAttrib(s.win, "ascent")
+   descent := WAttrib(s.win, "descent")
+   FH := ascent + descent
+   /s.ah := FH + 8
+   /s.aw := TextWidth(s.win, s.s) + FH + 3*s.D.space
+
+   s.aw := 0 < s.aw | 1
+   s.ah := 0 < s.ah | 1
+
+   s.D.basex := FH + 2*s.D.space
+   s.D.basey := (s.ah - FH)/2 + ascent
+
+   s.D.CS := FH
+   s.D.CP := (s.ah-s.D.CS)/2
+end
+
+procedure draw_off_check(s)
+   local sp, cp, cs, ax, ay
+
+   sp := s.D.space; cp := s.D.CP; cs := s.D.CS
+   ax := s.ax; ay := s.ay
+
+   BevelRectangle(s.win, ax+sp, ay+cp, cs, cs, 2)
+   EraseArea(s.win, ax+sp+2, ay+cp+2, cs-4, cs-4)
+   GotoXY(s.win, ax+s.D.basex, ay+s.D.basey)
+   writes(s.win, s.s)
+   if /s.D.outline then
+      GrooveRectangle(s.win, s.ax, s.ay, s.aw, s.ah)
+end
+
+procedure draw_on_check(s)
+   local sp, cs, cp, ax, ay
+
+   sp := s.D.space; cp := s.D.CP; cs := s.D.CS
+   ax := s.ax; ay := s.ay
+
+   BevelRectangle(s.win, ax+sp, ay+cp, cs, cs, -2)
+   FillRectangle(s.win, ax+sp+2, ay+cp+2, cs-4, cs-4)
+   GotoXY(s.win, ax+s.D.basex, ay+s.D.basey)
+   writes(s.win, s.s)
+   if /s.D.outline then
+      GrooveRectangle(s.win, s.ax, s.ay, s.aw, s.ah)
+end
+
+
+procedure init_circle(s)
+   local FH, ascent, descent
+
+   /s.s := ""
+   s.D.space := 4
+   ascent := WAttrib(s.win, "ascent")
+   descent := WAttrib(s.win, "descent")
+   FH := ascent + descent
+   /s.ah := FH + 8
+   /s.aw := TextWidth(s.win, s.s) + FH + 3*s.D.space
+
+   s.aw := 0 < s.aw | 1
+   s.ah := 0 < s.ah | 1
+
+   s.D.basex := FH + 2*s.D.space
+   s.D.basey := (s.ah -FH)/2 + ascent
+
+   s.D.CS := FH + 1
+   s.D.CP := (s.ah-s.D.CS)/2
+end
+
+procedure draw_off_circle(s)
+   local da, ax, ay, r
+
+   da := s.D
+   r := da.CS / 2 - 1
+   ax := s.ax
+   ay := s.ay
+
+   EraseArea(s.win, ax+da.space, ay+da.CP, da.CS, da.CS)
+   BevelCircle(s.win, ax+da.space+r, ay+da.CP+r, r, 2)
+
+   GotoXY(s.win, ax+da.basex, ay+da.basey)
+   writes(s.win, s.s)
+   if /da.outline then
+      GrooveRectangle(s.win, s.ax, s.ay, s.aw, s.ah)
+end
+
+procedure draw_on_circle(s)
+   local da, ax, ay, r
+
+   da := s.D
+   da := s.D
+   r := da.CS / 2 - 1
+   ax := s.ax
+   ay := s.ay
+
+   FillCircle(s.win, ax+da.space+r, ay+da.CP+r, r - 1)
+   BevelCircle(s.win, ax+da.space+r, ay+da.CP+r, r, -2)
+
+   GotoXY(s.win, ax+da.basex, ay+da.basey)
+   writes(s.win, s.s)
+   if /da.outline then
+      GrooveRectangle(s.win, s.ax, s.ay, s.aw, s.ah)
+end
+
+
+procedure init_diamond(s)
+   local FH, ascent, descent
+
+   /s.s := ""
+   s.D.space := 4
+   ascent := WAttrib(s.win, "ascent")
+   descent := WAttrib(s.win, "descent")
+   FH := ascent + descent
+   /s.ah := FH + 8
+   /s.aw := TextWidth(s.win, s.s) + FH + 3*s.D.space
+
+   s.aw := 0 < s.aw | 1
+   s.ah := 0 < s.ah | 1
+
+   s.D.basex := FH + 2*s.D.space
+   s.D.basey := (s.ah - FH)/2 + ascent
+
+   s.D.CS := FH + 1
+   s.D.CP := (s.ah-s.D.CS)/2
+end
+
+procedure draw_off_diamond(s)
+   local sp, cp, cs, ax, ay, r
+
+   sp := s.D.space; cp := s.D.CP; cs := s.D.CS
+   ax := s.ax; ay := s.ay
+   r := cs / 2
+
+   EraseArea(s.win, ax+sp, ay+cp, cs, cs)
+   BevelDiamond(s.win, ax+sp+r, ay+cp+r, r, 2)
+   GotoXY(s.win, ax+s.D.basex, ay+s.D.basey)
+   writes(s.win, s.s)
+   if /s.D.outline then
+      GrooveRectangle(s.win, s.ax, s.ay, s.aw, s.ah)
+end
+
+procedure draw_on_diamond(s)
+   local sp, cs, cp, ax, ay, r
+
+   sp := s.D.space; cp := s.D.CP; cs := s.D.CS
+   ax := s.ax; ay := s.ay
+   r := cs / 2
+
+   BevelDiamond(s.win, ax+sp+r, ay+cp+r, r, -2)
+   FillDiamond(s.win, ax+sp+r, ay+cp+r, r - 2)
+   GotoXY(s.win, ax+s.D.basex, ay+s.D.basey)
+   writes(s.win, s.s)
+   if /s.D.outline then
+      GrooveRectangle(s.win, s.ax, s.ay, s.aw, s.ah)
+end
+
+
+#  undocumented image button code from Lorne Foss & Clint Jeffery, UTSA
+#
+#  If type = V_IMAGE | V_IMAGE_NO, button string is used as image source.
+#  If it contains a comma, it's a DrawImage string.
+#  If not, it's the name of a GIF file in the current directory.
+#  Size is determined by the GIF or DrawImage image.
+
+procedure init_image(s)
+   local imagefile
+ 
+   imagefile := s.s 
+   if string(s.s) then {
+      if not find(",", s.s) then {
+         s.s := WOpen("canvas=hidden","image="||imagefile) |
+            _Vbomb("can't initialize button image from file " || s.s)
+         s.aw := WAttrib(s.s,"width")
+         s.ah := WAttrib(s.s,"height")
+         }
+      else {
+         s.aw := imswidth(s.s)
+         s.ah := imsheight(s.s)
+	 if /s.aw | /s.ah then
+            _Vbomb("illegal DrawImage string for button")
+         }
+      if /s.D.outline then {
+         s.aw +:= 4
+         s.ah +:= 4
+         }
+      }
+end
+
+procedure draw_on_image(s)  
+   draw_image_helper(s, -2, FillRectangle)
+end
+
+procedure draw_off_image(s)
+   draw_image_helper(s, 2, EraseArea)
+end
+
+procedure draw_image_helper(s, bevel, bgproc)
+   local b
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if /s.D.outline then {
+      BevelRectangle(s.win, s.ax, s.ay, s.aw, s.ah, bevel)
+      b := abs(bevel)
+      }
+   else
+      b := 0
+
+   if type(s.s) == "window" then
+      CopyArea(s.s, s.win, 0, 0, s.aw, s.ah, s.ax + b, s.ay + b)
+   else {
+      bgproc(s.win, s.ax + b, s.ay + b, s.aw - 2 * b, s.ah - 2 * b)
+      DrawImage(s.win, s.ax + b, s.ay + b, s.s)
+      }
+end

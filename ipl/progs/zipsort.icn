@@ -1,0 +1,68 @@
+############################################################################
+#
+#	File:     zipsort.icn
+#
+#	Subject:  Program to sort mailing labels by ZIP code
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 17, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This program sorts labels produced by labels in ascending
+#  order of their postal zip codes.
+#  
+#  Option:
+#
+#     The option -d n sets the number of lines per label to n.
+#  The default is 9. This value must agree with the value used to
+#  format the labels.
+#  
+#  Zip Codes:
+#
+#     The zip code must be the last nonblank string at the
+#  end of the label.  It must consist of digits but may have an
+#  embedded dash for extended zip codes.  If a label does not end
+#  with a legal zip code, it is placed after all labels with legal
+#  zip codes.  In such a case, an error messages also is written to
+#  standard error output.
+#  
+############################################################################
+#
+#  Links: options
+#
+#  See also: labels.icn
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local t, a, label, zip, y, lsize, opts
+
+   opts := options(args,"d+")
+   lsize := (0 < integer(opts["d"])) | 9
+
+   t := table("")
+   repeat {
+      label := ""
+      every 1 to lsize do
+         label ||:= read() || "\n" | break break
+      label ? {
+         while tab(upto(' ')) do tab(many(' '))
+         zip := tab(upto('-') | 0)
+         zip := integer(zip) | write(&errout,"*** illegal zipcode:  ",label)
+         }
+      t[zip] ||:= label
+      }
+
+   a := sort(t,3)
+   while get(a) do
+      writes(get(a))
+
+end

@@ -1,0 +1,63 @@
+############################################################################
+#
+#	File:     design3.icn
+#
+#	Subject:  Program to draw square design
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 17, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program draws a design in which i points around a square are
+#  all connected to each other.  The number of points along a side
+#  (default 10) and the distance between them (default 40) are given as
+#  command-line arguments.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#   Links: gobject, joinpair, wopen
+#
+############################################################################
+
+link gobject
+link joinpair
+link wopen
+
+procedure main(argl)
+   local i, j, k, d, extent, points, x, y
+
+   i := integer(argl[1]) | 10
+   d := integer(argl[2]) | 40
+
+   extent := i * d
+
+   WOpen("label=mandala", "width=" || extent, "height=" || extent) |
+      stop("*** cannot open window")
+
+   points := []
+
+   every x := 0 to extent by d do {	# x direction, with corners
+      put(points, Point(x, 0))		# top
+      put(points, Point(x, extent))	# bottom
+      }
+
+   every y := d to extent - d by d do {	# y direction, without corners
+      put(points, Point(0, y))		# left side
+      put(points, Point(extent, y))	# right side
+      }
+
+   joinpair(points, points)
+
+   Event()
+
+end

@@ -1,0 +1,376 @@
+############################################################################
+#
+#	File:     tokgen.icn
+#
+#	Subject:  Procedures for token counting
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 23, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures are for use with code produced by a meta-translator.
+#  The result of linking these procedures with a program
+#  translated by standard the meta-translator and executing the
+#  result is a tabulation of the tokens in the program.
+#
+############################################################################
+#
+#  Bug:  The invocable declaration is not handled properly.  "invocable all"
+#        will get by, but some other forms produce syntax errors.  The
+#        problem is in the meta-translator itself, not in this
+#	 program.
+#
+############################################################################
+#
+#  Links:  showtbl
+#
+############################################################################
+
+link showtbl
+
+global binops, unops, vars, controls, procs, others, keys
+global clits, ilits, rlits, slits
+global summary, globals, locals, statics, declarations, fields, files, parms
+global fldref
+global all			# kludge -- invocable is not handled properly
+
+procedure main()
+   local names, tables, i, total, count
+
+   total := 0			# total number of tokens
+
+   #  Build a list of tables for the different types of tokens.  The order
+   #  of the tables determines the order of output.
+
+   tables := []
+   every put(tables, (unops | binops | others | controls | keys | clits |
+      ilits | rlits | slits | vars | fldref | declarations | globals |
+      locals | statics | parms | fields | files) := table(0))
+
+   #  Create a list of names for the different types of tokens.  The order
+   #  of the names must correspond to the order of the tables above.
+
+   names := ["Unary operators", "Binary operators", "Other operations", 
+      "Control structures", "Keywords", "Cset literals", "Integer literals",
+      "Real literals", "String literals", "Variable references",
+      "Field references", "Declarations", "Globals", "Locals", "Statics",
+      "Procedure parameters", "Record fields", "Included files"]
+
+   #  Call the procedure corresponding to the target program.
+   #  It adds the token counts to the tables.
+
+   Mp()
+
+   every i := 1 to *names do {
+      count := showtbl(names[i],tables[i])[1]
+      total +:= count
+      write("\n", right(count, 8), "   total")
+      }
+   write("\nTotal tokens: ", total)
+
+end
+
+procedure Alt(e1, e2)			# e1 | e2
+   controls["e1 | e2"] +:= 1
+   return
+end
+
+procedure Apply(e1, e2)		# e1 ! e2
+   binops["e1 ! e2"] +:= 1
+   return
+end
+
+procedure Arg(s)
+   return s
+end
+
+procedure Asgnop(op, e1, e2)		# e1 op e2
+   binops["e1 " || op || " e2"] +:= 1
+   return
+end
+
+procedure Augscan(e1, e2)		# e1 ?:= e2
+   controls["e1 ?:= e2"] +:= 1
+   return
+end
+
+procedure Bamper(e1, e2)		# e1 & e2
+   binops["e1 & e2"] +:= 1
+   return
+end
+
+procedure Binop(s)
+   binops["e1 " || s || " e2"] +:= 1
+   return
+end
+
+procedure Body(s[])			# procedure body
+   return
+end
+
+procedure Break(e)			# break e
+   controls["break e"] +:= 1
+   return
+end
+
+procedure Case(e, clist)		# case e of { caselist }
+   controls["case"] +:= 1
+   return
+end
+
+procedure Cclause(e1, e2)		# e1 : e2
+   controls["case selector"] +:= 1
+   return
+end
+
+procedure Clist(e1, e2)		# e1 ; e2 in case list
+   return
+end
+
+procedure Clit(s)
+   clits[image(s)] +:= 1
+   return
+end
+
+procedure Compound(es[])		# { e1; e2; ... }
+   every controls["{...}"] +:= 1
+   return
+end
+
+procedure Create(e)			# create e
+   controls["create e"] +:= 1
+   return
+end
+
+procedure Default(e)			# default: e
+   controls["default"] +:= 1
+   return
+end
+
+procedure End()			# end
+   return
+end
+
+procedure Every(e)			# every e
+   controls["every e"] +:= 1
+   return
+end
+
+procedure EveryDo(e1, e2)		# every e1 do e2
+   controls["every e1 do e2"] +:= 1
+   return
+end
+
+procedure Fail()			# fail
+   controls["fail"] +:= 1
+   return
+end
+
+procedure Field(e1, e2)		# e . f
+   binops["e1 . e2"] +:= 1
+   fldref[e2] +:= 1
+   return
+end
+
+procedure Global(vs[])			# global v1, v2, ...
+   every globals[!vs] +:= 1
+   declarations["global"] +:= *vs	# each name counts as a declaration
+   return
+end
+
+procedure If(e1, e2)			# if e1 then e2
+   controls["if e1 then e2"] +:= 1
+   return
+end
+
+procedure IfElse(e1, e2, e3)		# if e1 then e2 else e3
+   controls["if e1 then e2 else e3"] +:= 1
+   return
+end
+
+procedure Ilit(s)
+   ilits[s] +:= 1
+   return
+end
+
+procedure Initial(s)			# initial e
+   controls["initial"] +:= 1
+   return
+end
+
+procedure Invocable(es[])		# invocable ... (problem)
+   declarations["invocable"] +:= 1
+   return
+end
+
+procedure Invoke(e0, es[])		# e0(e1, e2, ...)
+   others["e(...)"] +:= 1
+   return
+end
+
+procedure Key(s)
+   keys["&" || s] +:= 1
+   return
+end
+
+procedure Limit(e1, e2)		# e1 \ e2
+   controls["e1 \\ e2"] +:= 1
+   return
+end
+
+procedure Link(vs[])			# link "v1, v2, ..."
+   every files[!vs] +:= 1
+   declarations["link"] +:= *vs		# each file counts as a declaration
+   return
+end
+
+procedure List(es[])			# [e1, e2, ... ]
+   others["[...]"] +:= 1
+   return
+end
+
+procedure Local(vs[])			# local v1, v2, ...
+   every locals[!vs] +:= 1
+   declarations["local"] +:= *vs	# each name counts as a declaration
+   return
+end
+
+procedure Next()			# next
+   controls["next"] +:= 1
+   return
+end
+
+procedure Not(e)			# not e
+   controls["not e"] +:= 1
+   return
+end
+
+procedure Null()			# &null
+   return
+end
+
+procedure Paren(es[])			# (e1, e2, ... )
+   if *es > 1 then others["(...)"] +:= 1
+   return
+end
+
+procedure Pdco(e0, es[])		# e0{e1, e2, ... }
+   others["e{...}"] +:= 1
+   return
+end
+
+procedure Proc(s, es[])		# procedure s(v1, v2, ...)
+   local p
+
+   every parms[\!es] +:= 1 do
+   declarations["procedure"] +:= 1
+   return
+end
+
+procedure Record(s, es[])		# record s(v1, v2, ...)
+    every fields[\!es] +:= 1
+    declarations["record"] +:= 1
+    return
+end
+
+procedure Repeat(e)			# repeat e
+   controls["repeat e"] +:= 1
+   return
+end
+
+procedure Return(e)			# return e
+   controls["return e"] +:= 1
+   return
+end
+
+procedure Rlit(s)
+   rlits[s] +:= 1
+   return
+end
+
+procedure Scan(e1, e2)			# e1 ? e2
+   controls["e1 ? e2"] +:= 1
+   return
+end
+
+procedure Section(op, e1, e2, e3)	# e1[e2 op  e3]
+   others["e1[e2" || op || "e3]"] +:= 1
+   return
+end
+
+procedure Slit(s)
+   slits[image(s)] +:= 1
+   return
+end
+
+procedure Static(ev[])			# static v1, v2, ..
+   every statics[!ev] +:= 1
+   declarations["static"] +:= *ev	# each name counts as a declaration
+   return
+end
+
+procedure Subscript(e1, e2)		# e1[e2]
+   binops["e1[e2]"] +:= 1
+   return
+end
+
+procedure Suspend(e)			# suspend e
+   controls["suspend e"] +:= 1
+   return
+end
+
+procedure SuspendDo(e1, e2)		# suspend e1 do e2
+   controls["suspend e1 do e2"] +:= 1
+   return
+end
+
+procedure To(e1, e2)			# e1 to e2
+   others["e1 to e2"] +:= 1
+   return
+end
+
+procedure ToBy(e1, e2, e3)		# e1 to e2 by e3
+   others["e1 to e2 by e3"] +:= 1
+   return
+end
+
+procedure Repalt(e)			# |e
+   controls["|e"] +:= 1
+   return
+end
+
+procedure Unop(s)			# op e (op may be compound)
+   every unops[!s || "e"] +:= 1
+   return
+end
+
+procedure Until(e)			# until e
+   controls["until e"] +:= 1
+   return
+end
+
+procedure UntilDo(e1, e2)		# until e1 do e2
+   controls["until e1 do e2"] +:= 1
+   return
+end
+
+procedure Var(s)
+   vars[s] +:= 1
+   return
+end
+
+procedure While(e)			# while e
+   controls["while e"] +:= 1
+   return
+end
+
+procedure WhileDo(e1, e2)		# while e1 do e2
+   controls["while e1 do e2"] +:= 1
+   return
+end

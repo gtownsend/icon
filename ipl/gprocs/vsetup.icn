@@ -1,0 +1,250 @@
+############################################################################
+#
+#	File:     vsetup.icn
+#
+#	Subject:  Procedures for vidget application setup
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     October 9, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  vsetup(win, cbk, wlist[]) initializes a set of widgets according to
+#  a list of specifications created by the interface editor VIB.
+#
+#  win can be an existing window, a list of command arguments to be
+#  passed to Window(), null, or omitted.  In the latter three cases
+#  a new window is opened if &window is null.
+#
+#  cbk is a default callback routine to be used when no callback is
+#  specified for a particular vidget.
+#
+#  wlist is a list of specifications; the first must be the Sizer and
+#  the last may be null.  Each specification is itself a list consisting
+#  of a specification string, a callback routine, and an optional list
+#  of additional specifications.  Specification strings vary by vidget
+#  type, but the general form is "ID:type:style:n:x,y,w,h:label".
+#
+#  vsetup returns a table of vidgets indexed by vidget ID.
+#  The root vidget is included with the ID of "root".
+#
+############################################################################
+#
+#  Links:  graphics,
+#          vidgets, vslider, vmenu, vscroll, vtext, vbuttons, vradio, vlist
+#
+############################################################################
+
+link graphics
+link vidgets
+link vslider
+link vmenu
+link vscroll
+link vtext
+link vbuttons
+link vradio
+link vlist
+
+record VS_rec(var, typ, sty, num, x, y, w, h, lbl, cbk, etc)
+
+
+## vsetup(win, cbk, wlist[]) -- set up vidgets and return table of handles
+#
+#  win is an existing window, or a list of command args for Window(), or &null.
+#  cbk is a callback routine to use when a vidget's callback is null.
+#  wlist is a list of vidget specs as constructed by vib (or uix).
+
+procedure vsetup(args[])
+   local r, wlbl, root, vtable, wspec, alist, win, winargs, cbk
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   case type(args[1]) of {		# check for window or arglist argument
+      "window":	win := get(args)
+      "list":	winargs := get(args)
+      "null":	get(args)
+      }
+   /win := &window
+
+   if type(args[1]) ~== "list" then	# check for callback argument
+      cbk := get(args)
+
+   wspec := get(args)			# first spec gives window size
+
+   if /win then {			# if we don't have a window
+      r := VS_crack(wspec) | _Vbomb("bad specification in vsetup")
+      wlbl := ("" ~== r.lbl) |
+         (&progname ? {while tab(upto('/')+1); tab(upto('.')|0)})
+      alist := []
+      put(alist, "width=" || (r.x + r.w))
+      put(alist, "height=" || (r.y + r.h))
+      put(alist, "label=" || wlbl)
+      put(alist, \winargs)
+      win := Window ! alist
+      }
+
+   VSetFont(win)			# set correct text font
+
+   vtable := table()			# make table of handles
+   vtable["root"] := root := Vroot_frame(win)	# insert root frame
+   every r := VS_crack(\!args, cbk) do
+      vtable[r.var] := VS_obj(win, root, r)	# insert other vidgets
+   VResize(root)			# configure and realize vidgets
+   root.id := "root"
+   return vtable			# return table
+end
+
+
+
+## VS_crack(wspec, cbk) -- extract elements of spec and put into record
+#
+#  cbk is a default callback to use if the spec doesn't supply one.
+
+procedure VS_crack(wspec, cbk)
+   local r, f
+
+   r := VS_rec()
+   (get(wspec) | fail) ? { 
+      r.var := tab(upto(':')) | fail;  move(1)
+      r.typ := tab(upto(':')) | fail;  move(1)
+      r.sty := tab(upto(':')) | fail;  move(1)
+      r.num := tab(upto(':')) | fail;  move(1)
+      r.x := tab(upto(',')) | fail;  move(1)
+      r.y := tab(upto(',')) | fail;  move(1)
+      r.w := tab(upto(',')) | fail;  move(1)
+      r.h := tab(upto(':')) | fail;  move(1)
+      r.lbl := tab(0)
+      }
+   r.cbk := \get(wspec) | cbk
+   r.etc := get(wspec)
+   return r
+end
+
+
+
+## VS_obj(win, root, r) -- create vidget depending on type
+
+procedure VS_obj(win, root, r)
+   local obj, gc, p, lo, hi, iv, args
+   static image
+
+   initial image := proc("image", 0)
+
+   case r.typ of {
+      "Label" | "Message": {
+         obj := Vmessage(win, r.lbl)
+         VInsert(root, obj, r.x, r.y, r.w, r.h)
+         obj.id := r.var
+         }
+      "Line": {
+         obj := Vline(win, r.x, r.y, r.w, r.h)
+         obj.id := r.var
+         VInsert(root, obj)
+         }
+      "Rect": {
+         if r.sty == "" then
+            if integer(r.num) > 0 then
+               r.sty := "grooved"
+            else
+               r.sty := "invisible"
+         obj := Vpane(win, r.cbk, r.var, r.sty)
+         VInsert(root, obj, r.x, r.y, r.w, r.h)
+         }
+      "Check": {
+         obj := Vcheckbox(win, r.cbk, r.var, r.w)
+         VInsert(root, obj, r.x, r.y, r.w, r.h)
+         }
+      "Button": {
+         if r.num == "1" then
+            p := Vtoggle
+         else
+            p := Vbutton
+         obj := p(win, r.lbl, r.cbk, r.var, r.sty, r.w, r.h)
+         VInsert(root, obj, r.x, r.y)
+         }
+      "Choice": {
+         obj := Vradio_buttons(win, r.etc, r.cbk, r.var, V_DIAMOND_NO)
+         VInsert(root, obj, r.x, r.y)
+         }
+      "Slider" | "Scrollbar" : {
+         r.lbl ? {
+            lo := numeric(tab(upto(',')))
+            move(1)
+            hi := numeric(tab(upto(',')))
+            move(1)
+            iv := numeric(tab(0))
+            }
+         if r.num == "" then
+            r.num := &null
+         obj := case (r.sty || r.typ) of {
+            "hSlider":
+               Vhoriz_slider(win, r.cbk, r.var, r.w, r.h, lo, hi, iv, r.num)
+            "vSlider":
+               Vvert_slider(win, r.cbk, r.var, r.h, r.w, hi, lo, iv, r.num)
+            "hScrollbar":
+               Vhoriz_scrollbar(win, r.cbk, r.var, r.w, r.h, lo, hi, , , r.num) 
+            "vScrollbar":
+               Vvert_scrollbar(win, r.cbk, r.var, r.h, r.w, hi, lo, , , r.num)
+            }
+         VSetState(obj, iv)			# needed for scrollbars
+         VInsert(root, obj, r.x, r.y)
+         }
+      "Text": {
+         obj := Vtext(win, r.lbl, r.cbk, r.var, r.num)
+         VInsert(root, obj, r.x, r.y)
+         }
+      "Menu": {
+         obj := Vmenu_bar(win, r.lbl, VS_submenu(win, r.etc, r.cbk))
+         obj.id := obj.lookup[1].id := r.var
+         VInsert(root, obj, r.x, r.y)
+         }
+      "List": {
+         if integer(r.num) > 0 then
+            r.num := 1
+         else
+            r.num := &null
+         obj := Vlist(win, r.cbk, r.var, [], r.num, r.w, r.h, r.sty)
+         VInsert(root, obj, r.x, r.y)
+         }
+      "List": {
+         if integer(r.num) > 0 then
+            r.num := 1
+         else
+            r.num := &null
+         obj := Vlist(win, r.cbk, r.var, [], r.num, r.w, r.h, r.sty)
+         VInsert(root, obj, r.x, r.y)
+         }
+      default: {
+         _Vbomb("unrecognized object in vsetup: " || image(r.typ))
+         fail
+         }
+   }
+   return obj
+end
+
+
+
+## VS_submenu(win, lst, cbk) -- create submenu vidget
+
+procedure VS_submenu(win, lst, cbk)
+   local a, c, lbl
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   a := [win]
+   while *lst > 0 do {
+      put(a, get(lst))
+      if type(lst[1]) == "list" then
+         put(a, VS_submenu(win, get(lst), cbk))
+      else
+         put(a, cbk)
+      }
+   return Vsub_menu ! a
+end

@@ -1,0 +1,50 @@
+############################################################################
+#
+#	File:     morse.icn
+#
+#	Subject:  Procedures to convert string to Morse code
+#
+#	Author:   Ralph E. Griswold, modified by Rich Morin
+#
+#	Date:     June 26, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This procedure converts the string s to its Morse code equivalent.
+#
+#     The version used is known both as International Morse Code and as
+#     Continental Code, and is used by radio amateurs (hams).
+#
+############################################################################
+
+procedure morse(s)
+   local i, c, t, x
+   static code, key1, key2
+
+   initial {
+      code := "....------.----..---.-.---...--.--._
+               -..--..-.--....-.-.-...-..-....."
+      key1 := "tmot09ttt1t8tt2gqtttjtz7t3nky(tcttt_
+               tdx/twptb64earttltvtiuftsh5"
+      key2 := "tttttttttt'tt,ttttttttt:tttttt)tttt_
+               t?tttttttt-ttt.;tttttt\"tttt"
+   }
+
+   x := ""
+   every c := !map(s) do
+      if i := upto(c, key1) then {
+         t := code[i+:6]
+         x ||:= t[ upto("-",t)+1 : 0 ] || " "
+      }
+      else if i := upto(c, key2) then
+         x ||:= code[i+:6] || " "
+      else if c == " " then
+         x ||:= "    "
+      else
+         x ||:= "<" || c || "> "
+   return x
+end

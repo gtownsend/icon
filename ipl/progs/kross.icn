@@ -1,0 +1,42 @@
+############################################################################
+#
+#	File:     kross.icn
+#
+#	Subject:  Program to show intersections of strings
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 9, 1989
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This program procedure accepts pairs of strings on successive lines.
+#  It diagrams all the intersections of the two strings in a common
+#  character.
+#
+############################################################################
+
+procedure main()
+   local line, j
+   while line := read() do {
+      kross(line,read())
+      }
+end
+
+procedure kross(s1,s2)
+   local j, k
+   every j := upto(s2,s1) do
+      every k := upto(s1[j],s2) do
+         xprint(s1,s2,j,k)
+end
+
+procedure xprint(s1,s2,j,k)
+   write()
+   every write(right(s2[1 to k-1],j))
+   write(s1)
+   every write(right(s2[k+1 to *s2],j))
+end

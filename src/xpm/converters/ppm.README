@@ -1,0 +1,69 @@
+PPM Stuff 
+Convert portable pixmap to X11 Pixmap format (version 3) and vice versa
+-----------------------------------------------------------------------
+
+The program ppmtoxpm is a modified version of one sent out by Mark Snitily
+(mark@zok.uucp) and upgraded to XPM version 2 by Paul Breslaw
+(paul@mecazh.uu.ch).
+
+It converts Jeff Poskanzer's (jef@well.sf.ca.us) portable pixmap format
+(PBMPlus) into the new X11 pixmap format: XPM version 3 distributed by Arnaud
+Le Hors (lehors@mirsa.inria.fr).
+
+It is built using the PBMPlus libraries in the same way as any of the
+ppm utilities in the PBMPlus package.
+
+Paul Breslaw - Thu Nov 22 09:55:31 MET 1990
+--
+Paul Breslaw, Mecasoft SA,          |  telephone :  41 1 362 2040
+Guggachstrasse 10, CH-8057 Zurich,  |  e-mail    :  paul@mecazh.uu.ch
+Switzerland.                        |               mcsun!chx400!mecazh!paul
+--
+
+The program xpmtoppm is a modified version of the one distributed in the
+PBMPlus package by Jeff Poskanzer's which converts XPM version 1 or 3 files
+into a portable pixmap format.
+
+Upgraded to XPM version 3 by
+  Arnaud LE HORS     BULL Research France -- Koala Project
+  lehors@sa.inria.fr  Phone:(33) 93 65 77 71  Fax:(33) 93 65 77 66
+  Inria Sophia Antipolis B.P.109 06561 Valbonne Cedex France
+
+
+Installation
+-----------
+You should copy The ppmtoxpm.c, ppmtoxpm.1 and xpmtoppm.c, xpmtoppm.1 into
+your .../pbmplus/ppm directory.
+
+
+Patches
+-------
+* Rainer Sinkwitz sinkwitz@ifi.unizh.ch - 21 Nov 91:
+
+xpmtoppm.c:
+  - Bug fix, no advance of read ptr, would not read 
+    colors like "ac c black" because it would find 
+    the "c" of "ac" and then had problems with "c"
+    as color.
+    
+  - Now understands multword X11 color names
+  
+  - Now reads multiple color keys. Takes the color
+    of the hightest available key. Lines no longer need
+    to begin with key 'c'.
+    
+  - expanded line buffer to from 500 to 2048 for bigger files
+    
+ppmtoxpm.c:
+  - Bug fix, should should malloc space for rgbn[j].name+1 in line 441
+    caused segmentation faults
+    
+  - lowercase conversion of RGB names def'ed out,
+    considered harmful.
+    
+Suggestions:
+  ppmtoxpm should read /usr/lib/X11/rgb.txt by default.
+  With the Imakefiles of pbmplus it even gets compiled 
+  with -DRGB_DB=\"/usr/lib/X11/rgb.txt\"
+
+

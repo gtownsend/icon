@@ -1,0 +1,57 @@
+############################################################################
+#
+#	File:     interpe.icn
+#
+#	Subject:  Program to interpret Icon expressions
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 30, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#    This program is a crude but effective interpreter for Icon expressions.
+#  Each line entered from standard input is presumed to be an Icon
+#  expression, is wrapped with a main procedure, and written to a pipe
+#  that compiles and executes the resulting program.
+#
+#    If the expression is a generator, all its results are produced.
+#  If the command-line option -e is given, the expression is echoed.
+#
+#    This technique is, of course, inefficient and may be painfully
+#  slow except on the fastest platforms. This technique is, however,
+#  completely general and as correct as Icon itself.
+#
+#    Note:  This programs creates files with the names stdin, stdin.u1,
+#  and stdin.u2. It removes them before terminating, but, of course,
+#  overwrites any pre-existing files by these names.
+#
+############################################################################
+#
+#  Requires: UNIX
+#
+#  See also:  interpp.icn
+#
+############################################################################
+
+procedure main(args)
+   local line, run, echo
+
+   if args[1] == "-e" then echo := 1
+
+   while line := read() do {
+      run := open("icont -s - -x","pw")
+      write(run,"procedure main()")
+      if \echo then write(run,"   write(",image(line),")")
+      write(run,"   every write(image(",line,"))")
+      write(run,"end")
+      close(run)
+      }
+
+   system("rm -f stdin stdin.u1 stdin.u2")
+
+end

@@ -1,0 +1,94 @@
+############################################################################
+#
+#       File:     flake.icn
+#
+#	Subject:  Program to draw a fractal snowflake
+#
+#	Author:   Stephen B. Wampler
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.0
+#
+############################################################################
+#
+#
+#   Comments: This program display a fractal snowflake of specified
+#       order.  Options exist to do colors, etc.
+#	See the procedure 'helpmsg' for command line options
+#
+#	An order 4 snowflake is particularly nice.
+#
+#	Waits for a window event before closing window
+#
+############################################################################
+#
+#	Links: glib, wopen
+#
+############################################################################
+#
+#	Requires:  Version 9 graphics and co-expressions (for glib.icn)
+#
+############################################################################
+
+link glib
+link wopen
+
+global win, mono, h, w
+global Window, XMAX, YMAX
+global nextcolor
+
+procedure main (args)
+    local nextarg, arg, n, doclip, docolor, Cpoly
+
+    XMAX := YMAX := 700                 # physical screen size
+    w := h := 1.0
+   
+    nextarg := create !args
+    while arg := @nextarg do {
+       if arg == ("-help"|"-h") then stop(helpmsg())
+       else if arg == "-n" then n := integer(@nextarg)
+       else if arg == "-clip" then doclip := "yes"
+       else if arg == "-color" then docolor := "yes"
+       }
+
+    /n := 3		# default order
+
+    if \doclip then {
+       Cpoly := [	# a simple convext polygon to clip against
+                 [0.3,0.4],[0.5,0.8],[0.7,0.4]
+                ]
+       }
+
+    win := WOpen("label=Fractal Snowflake", "width="||XMAX, "height="||YMAX)
+    mono := WAttrib (win, "depth") == "1"
+    Window := set_window(win, point(0,0), point(w,h),
+                  viewport(point(0,0), point(XMAX, YMAX), win))
+
+    if \docolor then
+       nextcolor := create vpara([0,0,65535], [65535,0,0], |((0 to 12)/12.0))
+
+    EraseArea(win)
+
+    Fg(win, "black")
+
+    fract_flake(Window, point(0.20,0.33), point(0.80,0.33), n, 1, Cpoly)
+
+    Event(win)
+    close(win)
+end
+
+procedure helpmsg()
+   write("Usage: Flake [-n order] [-clip] [-color]")
+   write("   where")
+   write("     -n order		-- Depth of recursion {3}")
+   write("     -clip		-- Clip to a convex polygon")
+   write("     -color		-- Color cycle while drawing")
+   return
+end

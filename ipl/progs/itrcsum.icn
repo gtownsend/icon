@@ -1,0 +1,110 @@
+############################################################################
+#
+#	File:     itrcsum.icn
+#
+#	Subject:  Program to give summary of trace output
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 14, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program provides a summary of Icon trace output.
+#
+############################################################################
+#
+#  Links: itrcline, numbers
+#
+############################################################################
+
+link itrcline
+link numbers
+
+$define CountWidth 10
+
+procedure main()
+   local line, file_tbl, call_tbl, return_tbl, fail_tbl, suspend_tbl
+   local resume_tbl, max, ave, count, file, bars, depth, keys, width
+
+   file_tbl := table(0)
+   call_tbl := table(0)
+   return_tbl := table(0)
+   suspend_tbl := table(0)
+   fail_tbl := table(0)
+   resume_tbl := table(0)
+
+   max := 0
+   ave := 0
+   count := 0
+
+   while line := itrcline(&input) do {
+      line ? {
+         file := move(13) | break		# line after trace output?
+         count +:= 1
+         if trim(file) == "" then file := "(none)       "
+         file_tbl[file] +:= 1
+         move(8)				# line number field
+         if bars := tab(many('| ')) then {	# depth bars
+            depth := *bars / 2			# recursion depth
+            max <:= depth			# maximum depth
+            ave +:= depth			# cumulative depth
+            }
+         name := tab(upto('( '))		# procedure name
+         tab(bal(' ') | 0)			# skip arguments (faulty)
+         if pos(0) then {
+            call_tbl[name] +:= 1
+            next
+            }
+         if =" returned" then return_tbl[name] +:= 1
+         else if =" failed" then fail_tbl[name] +:= 1
+         else if =" suspended" then suspend_tbl[name] +:= 1
+         else if =" resumed" then resume_tbl[name] +:= 1 
+         }
+      }
+
+   if count = 0 then {
+      write("no trace output")
+      exit()
+      }
+
+   write("maximum recursion depth = ", max)
+   write("average recursion depth = ", fix(ave, count, 5, 3))
+   write()
+   write("File references:\n")
+   file_tbl := sort(file_tbl, 3)
+   while write(get(file_tbl), right(get(file_tbl), 10))
+   write("\nprocedure activity:\n")
+
+   keys := []
+   every put(keys, key(call_tbl))
+
+   width := 0
+   every width <:= *!keys
+   width +:= 2
+
+   write(
+      left("name", width),
+      right("call", CountWidth),
+      right("return", CountWidth),
+      right("suspend", CountWidth),
+      right("fail", CountWidth),
+      right("resume", CountWidth),
+      "\n"
+      )
+
+   every name := !sort(keys) do
+      write(
+         left(name, width),
+         right(call_tbl[name], CountWidth),
+         right(return_tbl[name], CountWidth),
+         right(suspend_tbl[name], CountWidth),
+         right(fail_tbl[name], CountWidth),
+         right(resume_tbl[name], CountWidth)
+      )
+   
+end

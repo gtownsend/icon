@@ -1,0 +1,43 @@
+############################################################################
+#
+#	File:     empgsup.icn
+#
+#	Subject:  Procedure to support empg
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 30, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure is called by timing programs produced by empg.  It
+#  a "delta" timing value used to adjust timings.
+#
+############################################################################
+
+procedure _Initialize(limit)
+   local itime, t1, t3
+   
+   itime := &time
+
+   every 1 to limit do {
+      &null
+      }
+
+   t1 := (&time - itime)
+
+   itime := &time
+
+   every 1 to limit do {
+      &null & &null
+      }
+
+   t3 := (&time - itime)
+
+   return (t1 + t3) / 2
+
+end

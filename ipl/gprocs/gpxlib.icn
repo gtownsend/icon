@@ -1,0 +1,130 @@
+############################################################################
+#
+#	File:     gpxlib.icn
+#
+#	Subject:  Procedures for graphics tasks
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 21, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	This file contains a few eclectic graphics procedures.
+#
+#	ScratchCanvas(w, h, id)	  creates a temporary, hidden window.
+#
+#	PushWin(L)		  adds a default window to an argument list.
+#
+#	Distance(x1, y1, x2, y2)  computes the distance between two points.
+#
+#	InBounds(x, y, w, h)	  succeeds if (&x,&y) is within (x,y,w,h).
+#
+############################################################################
+#
+#   The following procedure allows an additional first argument
+#   specifying a window to use instead of &window:
+#
+#   ScratchCanvas(w, h, id) returns a hidden-canvas window for temporary
+#   use.  The same scratch window (per display) is returned by successive
+#   calls with the same ID, avoiding the cost of creation.  The size is
+#   guaranteed to be at least (w, h), which default to the size of the
+#   window.  The scratch window must not be closed by the caller, but an
+#   EraseArea can be done to reclaim any allocated colors.
+#
+############################################################################
+#
+#   The following procedures do not accept a window argument:
+#
+#   PushWin(L) pushes &window onto the front of list L if the first
+#   element of the list is not a window.  This aids in constructing
+#   variable-argument procedures with an optional window argument.
+#
+#   Distance(x1, y1, x2, y2) returns the distance between two points
+#   as a real number.
+#
+#   InBounds(x, y, w, h) checks whether &x and &y are within the given
+#   region:  it returns &null if x <= &x <= x+w and y <= &y <= y+h,
+#   and fails otherwise.
+#
+############################################################################
+#
+#  Links: wopen
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+link wopen
+
+
+#   PushWin(L) -- push &window on list if no window already there.
+
+procedure PushWin(a)
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if not (type(a[1]) == "window") then
+      push(a, &window)
+   return a
+end
+
+
+#   Distance(x1, y1, x2, y2) -- compute distance between two points.
+
+procedure Distance(x1, y1, x2, y2)		#: distance between two points
+   x1 -:= x2
+   y1 -:= y2
+   return sqrt(x1 * x1 + y1 * y1)
+end
+
+
+#   InBounds(x, y, w, h) -- succeed if (&x,&y) is in a rectangular area.
+
+procedure InBounds(x, y, w, h)			#: check point within rectangle
+   if w < 0 then
+      x -:= (w := -w)
+   if h < 0 then
+      y -:= (h := -h)
+   return (x <= &x <= x + w) & (y <= &y <= y + h) & &null
+end
+
+
+#  ScratchCanvas([win,] w, h, id) -- return hidden window for temporary use.
+
+procedure ScratchCanvas(win, w, h, id)		#: return scratch canvas
+   local d, s
+   static dpytab, type
+
+   initial {
+      dpytab := table()
+      type := proc("type", 0)	# protect attractive name
+      }
+
+   if type(win) ~== "window" then {
+      win :=: w :=: h :=: id
+      win := &window
+      }
+   /w := WAttrib(win, "width")
+   /h := WAttrib(win, "height")
+   w <:= 100				# if too teeny, can't open
+   h <:= 100
+
+   d := WAttrib(win, "display")
+   s := d || "," || image(id)
+   /dpytab[s] := WOpen("width=" || w, "height=" || h, "canvas=hidden",
+      "display=" || d)
+   win := dpytab[s]
+   if /win then
+      fail
+   if WAttrib(win, "width") < w | WAttrib(win, "height") < h then
+      WAttrib(win, "width=" || w, "height=" || h)
+   return win
+end

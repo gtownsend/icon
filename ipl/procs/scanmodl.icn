@@ -1,0 +1,49 @@
+############################################################################
+#
+#	File:     scanmodl.icn
+#
+#	Subject:  Procedures to model string scanning
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 30, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures model string scanning:
+#
+#	e1 ? e2 -> Escan(Bscan(e1, e2)
+#
+#  See Icon Analyst 6, pp. 1-2.
+#
+############################################################################
+
+record ScanEnvir(subject, pos)
+
+procedure Bscan(e1)
+   local OuterEnvir
+   OuterEnvir := ScanEnvir(&subject, &pos)
+   &subject := e1
+   &pos := 1
+   suspend OuterEnvir
+   &subject := OuterEnvir.subject
+   &pos := OuterEnvir.pos
+   fail
+end
+
+procedure Escan(OuterEnvir, e2)
+   local InnerEnvir
+   InnerEnvir := ScanEnvir(&subject, &pos)
+   &subject := OuterEnvir.subject
+   &pos := OuterEnvir.pos
+   suspend e2
+   OuterEnvir.subject := &subject
+   OuterEnvir.pos := &pos
+   &subject := InnerEnvir.subject
+   &pos := InnerEnvir.pos
+   fail
+end

@@ -1,0 +1,33 @@
+############################################################################
+#
+#	File:     list2tab.icn
+#
+#	Subject:  Procedure to write list as tab-separated string
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 21, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure writes a list as a tab-separated string.
+#  Carriage returns in files are converted to vertical tabs.
+#
+############################################################################
+#
+#  See also: tab2list.icn, tab2rec.icn, rec2tab.icn
+#
+############################################################################
+
+procedure list2tab(L)
+
+   every writes(map(L[1 to *L - 1], "\n", "\v"),"\t")
+   write(map(L[-1], "\n", "\v"))
+
+   return
+
+end

@@ -1,0 +1,46 @@
+############################################################################
+#
+#	File:     normalize.icn
+#
+#	Subject:  Program to normalize numeric channel
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 21, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program reads numbers, one per line, from standard input and
+#  writes them out normalized so that the largest is 1.0.
+#
+############################################################################
+#
+#  Links:  numbers
+#
+############################################################################
+
+link numbers
+
+procedure main()
+   local numbers, colors, line, i, largest
+
+   numbers := []
+
+   colors := []
+   while line := read() do {
+      line ? {
+         put(numbers, i := tab(upto(' \t') | 0))
+         put(colors, tab(0))
+         }
+      }
+
+   largest := real(max ! numbers)
+
+   every i := 1 to *numbers do
+      write(numbers[i] / largest, colors[i])
+
+end

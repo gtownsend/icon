@@ -1,0 +1,62 @@
+############################################################################
+#
+#	File:     rolypoly.icn
+#
+#	Subject:  Program to draw ``abstract'' art
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 28, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program makes a simple random abstract sketch.  It supports these
+#  options:
+#
+#	-p i	number of points (default 10)
+#	-s i	size of (square) window (default 300)
+#	-r	randomize seed
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  random, options, gobject, randfigs, wopen
+#
+############################################################################
+
+link random
+link options
+link gobject
+link randfigs
+link wopen
+
+procedure main(argl)
+   local opts, n, size, points, p
+
+   opts := options(argl, "p+s+r")
+
+   n := \opts["p"] | 10
+   size := \opts["s"] | 300
+   if \opts["r"] then randomize()
+
+   WOpen("label=rolypoly", "size=" || size || "," || size) |
+      stop("*** cannot open window")
+   
+   points := []			# list of x,y coordinates
+
+   every p := random_points(size, size) \ n do
+      every put(points, \!p)	# z coordinate is null
+
+				# here's the fun
+   every (FillPolygon | DrawCurve) ! points
+
+   Event()			# hold window open for an event
+
+end

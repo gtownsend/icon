@@ -1,0 +1,54 @@
+############################################################################
+#
+#	File:     splitlit.icn
+#
+#	Subject:  Program to create string literal
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 15, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  The idea is to create a string literal with continuations in case
+#  it's too long.
+#
+#  The options are:
+#
+#	-w i	width of piece on line, default 50
+#	-i i	indent, default 3
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local width, line, chunk, opts, prefix, indent
+
+   opts := options(args, "w+i+")
+
+   width := \opts["w"] | 50
+   indent := \opts["i"] | 3
+
+   prefix := repl(" ", indent)
+
+   while line := read() do {
+      line ? {
+         writes(prefix, "\"")
+         while chunk := move(50) do {
+            write(image(chunk)[2:-1], "_")
+            writes(prefix)
+            }
+         write(image(tab(0))[2:-1], "\"")
+         }
+     }
+
+end

@@ -1,0 +1,1265 @@
+global fin,fout,fName,fLine,alpha,alphadot,white,nonwhite,nonalpha
+global classes,comp,exec,strict,links,imports,loud,compiles,compatible,ct
+procedure gencode()
+#line 11 "idol.iol"
+  if \loud then write("Class import/export:")
+
+
+
+  every cl := (__self1 := classes).__methods.foreach_t(__self1.__state) do (__self2 := cl).__methods.writespec(__self2.__state)
+
+
+
+  repeat {
+    added := 0
+    every super:= ((__self2 := ((__self1 := classes).__methods.foreach_t(__self1.__state))).__methods.foreachsuper(__self2.__state) | !imports) do{
+      if /(__self1 := classes).__methods.lookup(__self1.__state,super) then {
+	added := 1
+	fname := filename(super)
+	readinput(envpath(fname),2)
+	if /(__self1 := classes).__methods.lookup(__self1.__state,super) then halt("can't import class '",super,"'")
+	writesublink(fname)
+      }
+    }
+    if added = 0 then break
+  }
+
+
+
+  every (__self2 := ((__self1 := classes).__methods.foreach_t(__self1.__state))).__methods.transitive_closure(__self2.__state)
+
+
+
+  if \loud then write("Generating code:")
+  writesublink("i_object")
+  every s := !links do writelink(s)
+  write(fout)
+  every out := (__self1 := classes).__methods.foreach(__self1.__state) do { 
+    name := filename((__self1 := out).__methods.name(__self1.__state))
+    (__self1 := out).__methods.write(__self1.__state)
+    put(compiles,name)
+    writesublink(name)
+  }
+  if *compiles>0 then return cdicont(compiles)
+  else return
+end
+procedure readinput(name,phase,ct2)
+#line 686 "idol.iol"
+    if \loud then write("\t",name)
+    fName := name
+    fLine := 0
+    fin   := sysopen(name,"r")
+    ct    := \ct2 | constant()
+    while line := readln("wrap") do {
+	line ? {
+	    tab(many(white))
+	    if ="class" then {
+		decl := class()
+		(__self1 := decl).__methods.read(__self1.__state,line,phase)
+		if phase=1 then {
+		    (__self1 := decl).__methods.writemethods(__self1.__state)
+		    (__self1 := classes).__methods.insert(__self1.__state,decl,(__self2 := decl).__methods.name(__self2.__state))
+		} else (__self1 := classes).__methods.insert_t(__self1.__state,decl,(__self2 := decl).__methods.name(__self2.__state))
+	    }
+	    else if ="procedure" then {
+		if comp = 0 then comp := 1
+		decl := method("")
+		(__self1 := decl).__methods.read(__self1.__state,line,phase)
+		(__self1 := decl).__methods.write(__self1.__state,fout,"")
+		}
+	    else if ="record" then {
+		if comp = 0 then comp := 1
+		decl := declaration(line)
+		(__self1 := decl).__methods.write(__self1.__state,fout,"")
+		}
+	    else if ="global" then {
+		if comp = 0 then comp := 1
+		decl := vardecl(line)
+		(__self1 := decl).__methods.write(__self1.__state,fout,"")
+		}
+	    else if ="const" then {
+		(__self1 := ct).__methods.append(__self1.__state,constdcl(line) )
+	        }
+	    else if ="method" then {
+		halt("readinput: method outside class")
+	        }
+	    else if ="#include" then {
+		savedFName := fName
+		savedFLine := fLine
+		savedFIn   := fin
+		tab(many(white))
+		readinput(tab(if ="\"" then find("\"") else many(nonwhite)),
+			  phase,ct)
+		fName := savedFName
+		fLine := savedFLine
+		fin   := savedFIn
+	        }
+	}
+    }
+    close(fin)
+end
+procedure readln(wrap)
+#line 745 "idol.iol"
+  count := 0
+  prefix := ""
+  while /finished do {
+
+    if not (line := read(fin)) then fail
+    fLine +:= 1
+    if match("#include",line) then return line
+    line[ 1(x<-find("#",line),notquote(line[1:x])) : 0] := ""
+    line := trim(line,white)
+
+    x := 1
+    while ((x := find("$",line,x)) & notquote(line[1:x])) do {
+      z := line[x+1:0] ||" "
+      case line[x+1] of {
+
+
+
+        "(": line[x+:2] := "{"
+        ")": line[x+:2] := "}"
+        "<": line[x+:2] := "["
+        ">": line[x+:2] := "]"
+
+
+
+        "!"|"*"|"@"|"?": {
+          z ? {
+	    move(1)
+	    tab(many(white))
+	    if not (id := tab(many(alphadot))) then {
+	      if not match("(") then halt("readln can't parse ",line)
+	      if not (id := tab(&pos<bal())) then
+		  halt("readln: cant bal ",&subject)
+	    }
+	    Op := case line[x+1] of {
+		"@": "activate"
+		"*": "size"
+		"!": "foreach"
+		"?": "random"
+	    }
+	    count +:= 1
+	    line[x:0] :=
+		"(__self"||count||" := "||id||").__methods."||
+		Op||"(__self"||count||".__state)"||tab(0)
+	  }
+        }
+
+
+
+	"[": {
+	    z ? {
+		if not (middle := tab((&pos<bal(&cset,'[',']'))-1)[2:0]) then
+		    halt("readln: can't bal([) ",&subject)
+		tail := tab(0)|""
+		line := line[1:x]||"$index("||middle||")"||(tab(0)|"")
+	    }
+	}
+        default: {
+
+
+
+	    reverse(line[1:x])||" " ? {
+		tab(many(white))
+		if not (id := reverse(tab(many(alphadot)))) then {
+		    if not match(")") then halt("readln: can't parse")
+		    if not (id := reverse(tab(&pos<bal(&cset,')','('))))
+		    then halt("readln: can't bal ",&subject)
+		}
+		objlen := &pos-1
+	    }
+	    count +:= 1
+	    front := "(__self"||count||" := "||id||").__methods."
+	    back := "__self"||count||".__state"
+
+
+
+
+	    z ? {
+		="$"
+		tab(many(white))
+		if not (methodname := tab(many(alphadot))) then
+		    halt("readln: expected a method name after $")
+		tab(many(white))
+		methodname ||:= "("
+		if ="(" then {
+		    tab(many(white))
+		    afterlp := &subject[&pos]
+		}
+		else {
+		    afterlp := ")"
+		    back ||:= ")"
+		}
+		methlen := &pos-1
+	    }
+	    if line[x+1] == "$" then {
+		c := if afterlp[1] ~== ")" then "" else "[]"
+		methodname[-1] := "!("
+		back := "["||back||"]|||"
+	    } else {
+		c := if (\afterlp)[1] == ")" then "" else ","
+	    }
+	    line[x-objlen : (((*line>=(x+methlen+1))|0)\1)] :=
+		front || methodname || back || c
+	}
+      }
+    }
+    if /wrap | (prefix==line=="") then finished := line
+    else {
+	prefix ||:= line || " "
+	prefix ? {
+
+
+	    if ((*prefix = bal()) & (not find(",",prefix[-2]))) then
+		finished := prefix[1:-1]
+	}
+    }
+  }
+  return (__self1 := ct).__methods.expand(__self1.__state,finished)
+end
+record idol_object(__state,__methods)
+
+procedure declaration_read(self,decl)
+#line 63 "idol.iol"
+    decl ? (
+      (tab(many(white)) | "") ,
+
+      (self.tag := =("procedure"|"class"|"method"|"record")) ,
+      (tab(many(white)) | "") ,
+
+      (self.name := tab(many(alpha))) ,
+
+      (tab(find("(")+1)),
+      (tab(many(white)) | "") ,
+      ((__self1 := (self.fields := classFields())).__methods.parse(__self1.__state,tab(find(")"))))
+    ) | halt("declaration/read can't parse decl ",decl)
+  end
+procedure declaration_write(self,f)
+#line 81 "idol.iol"
+     write(f,(__self1 := self).__methods.String(__self1.__state))
+  end
+procedure declaration_String(self)
+#line 87 "idol.iol"
+    return self.tag || " " || self.name || "(" || (__self1 := self.fields).__methods.String(__self1.__state) || ")"
+  end
+record declaration__state(__state,__methods,name,fields,tag)
+record declaration__methods(read,write,String,name)
+global declaration__oprec
+procedure declaration(name,fields,tag)
+local self,clone
+initial {
+  if /declaration__oprec then declarationinitialize()
+  }
+  self := declaration__state(&null,declaration__oprec,name,fields,tag)
+  self.__state := self
+  declarationinitially(self)
+  return idol_object(self,declaration__oprec)
+end
+
+procedure declarationinitialize()
+  initial declaration__oprec := declaration__methods(declaration_read,declaration_write,declaration_String,declaration_name)
+end
+procedure declarationinitially(self)
+#line 90 "idol.iol"
+  if \self.name then (__self1 := self).__methods.read(__self1.__state,self.name)
+end
+procedure declaration_name(self)
+  return .(self.name)
+end
+
+procedure vardecl_write(self,f)
+#line 98 "idol.iol"
+    write(f,self.s)
+  end
+record vardecl__state(__state,__methods,s)
+record vardecl__methods(write)
+global vardecl__oprec
+procedure vardecl(s)
+local self,clone
+initial {
+  if /vardecl__oprec then vardeclinitialize()
+  }
+  self := vardecl__state(&null,vardecl__oprec,s)
+  self.__state := self
+  return idol_object(self,vardecl__oprec)
+end
+
+procedure vardeclinitialize()
+  initial vardecl__oprec := vardecl__methods(vardecl_write)
+end
+procedure constant_expand(self,s)
+#line 107 "idol.iol"
+    i := 1
+
+
+
+
+    while ((i <- find(k <- (__self1 := self).__methods.foreach(__self1.__state),s,i)) & ((i=1) | any(nonalpha,s[i-1])) & 
+	  ((*s = i+*k-1) | any(nonalpha,s[i+*k])) &
+          notquote(s[1:i])) do {
+	val := \ (self.t[k]) | stop("internal error in expand")
+	s[i +: *k] := val
+
+    }
+    return s
+  end
+procedure constant_foreach(self)
+#line 122 "idol.iol"
+    suspend key(self.t)
+  end
+procedure constant_eval(self,s)
+#line 125 "idol.iol"
+    if s2 := \ self.t[s] then return s2
+  end
+procedure constant_parse(self,s)
+#line 128 "idol.iol"
+    s ? {
+	k := trim(tab(find(":="))) | fail
+	move(2)
+	tab(many(white))
+	val := tab(0) | fail
+	(*val > 0) | fail
+	self.t [ k ] := val
+    }
+    return
+  end
+procedure constant_append(self,cd)
+#line 139 "idol.iol"
+    every s := (__self1 := cd).__methods.parse(__self1.__state)do (__self2 := self).__methods.parse(__self2.__state,s)
+  end
+record constant__state(__state,__methods,t)
+record constant__methods(expand,foreach,eval,parse,append)
+global constant__oprec
+procedure constant(t)
+local self,clone
+initial {
+  if /constant__oprec then constantinitialize()
+  }
+  self := constant__state(&null,constant__oprec,t)
+  self.__state := self
+  constantinitially(self)
+  return idol_object(self,constant__oprec)
+end
+
+procedure constantinitialize()
+  initial constant__oprec := constant__methods(constant_expand,constant_foreach,constant_eval,constant_parse,constant_append)
+end
+procedure constantinitially(self)
+#line 142 "idol.iol"
+  self.t := table()
+end
+procedure constdcl_parse(self)
+#line 151 "idol.iol"
+    self.s ? {
+	tab(find("const")+6)
+	tab(many(white))
+	while s2 := trim(tab(find(","))) do {
+	    suspend s2
+	    move(1)
+	    tab(many(white))
+	}
+	suspend trim(tab(0))
+    }
+  end
+record constdcl__state(__state,__methods,s)
+record constdcl__methods(parse,write,vardecl)
+global constdcl__oprec, vardecl__oprec
+procedure constdcl(s)
+local self,clone
+initial {
+  if /constdcl__oprec then constdclinitialize()
+  if /vardecl__oprec then vardeclinitialize()
+  constdcl__oprec.vardecl := vardecl__oprec
+  }
+  self := constdcl__state(&null,constdcl__oprec,s)
+  self.__state := self
+  return idol_object(self,constdcl__oprec)
+end
+
+procedure constdclinitialize()
+  initial constdcl__oprec := constdcl__methods(constdcl_parse,vardecl_write)
+end
+procedure body_read(self)
+#line 170 "idol.iol"
+    self.fn    := fName
+    self.ln    := fLine
+    self.text  := []
+    while line := readln() do {
+      put(self.text, line)
+      line ? {
+	  tab(many(white))
+	  if ="end" & &pos > *line then return
+	  else if =("local"|"static"|"initial") & any(nonalpha) then {
+	      self.ln +:= 1
+	      pull(self.text)
+	      / (self.vars) := []
+	      put(self.vars, line)
+	  }
+      }
+    }
+    halt("body/read: eof inside a procedure/method definition")
+  end
+procedure body_write(self,f)
+#line 189 "idol.iol"
+    if \self.vars then every write(f,!self.vars)
+    if \compatible then write(f,"  \\self := self.__state")
+    if \self.ln then
+	write(f,"#line ",self.ln + ((*\self.vars)|0)," \"",self.fn,"\"")
+    every write(f,(__self1 := self).__methods.foreach(__self1.__state)) 
+  end
+procedure body_delete(self)
+#line 196 "idol.iol"
+    return pull(self.text)
+  end
+procedure body_size(self)
+#line 199 "idol.iol"
+    return (*\ (self.text)) | 0
+  end
+procedure body_foreach(self)
+#line 202 "idol.iol"
+    if t := \self.text then suspend !self.text
+  end
+record body__state(__state,__methods,fn,ln,vars,text)
+record body__methods(read,write,delete,size,foreach)
+global body__oprec
+procedure body(fn,ln,vars,text)
+local self,clone
+initial {
+  if /body__oprec then bodyinitialize()
+  }
+  self := body__state(&null,body__oprec,fn,ln,vars,text)
+  self.__state := self
+  return idol_object(self,body__oprec)
+end
+
+procedure bodyinitialize()
+  initial body__oprec := body__methods(body_read,body_write,body_delete,body_size,body_foreach)
+end
+procedure class_read(self,line,phase)
+#line 214 "idol.iol"
+    (__self1 := self).__methods.declaration.read(__self1.__state,line)
+    self.supers := idTaque(":")
+    (__self1 := self.supers).__methods.parse(__self1.__state,line[find(":",line)+1:find("(",line)] | "")
+    self.methods:= taque()
+    self.text   := body()
+    while line  := readln("wrap") do {
+      line ? {
+	tab(many(white))
+	if ="initially" then {
+	    (__self1 := self.text).__methods.read(__self1.__state)
+	    if phase=2 then return
+	    (__self1 := self.text).__methods.delete(__self1.__state)
+
+	    return
+	} else if ="method" then {
+	    decl := method(self.name)
+	    (__self1 := decl).__methods.read(__self1.__state,line,phase)
+	    (__self1 := self.methods).__methods.insert(__self1.__state,decl,(__self2 := decl).__methods.name(__self2.__state))
+	} else if ="end" then {
+
+	    return
+	} else if ="procedure" then {
+	    decl := method("")
+	    (__self1 := decl).__methods.read(__self1.__state,line,phase)
+	    /self.glob := []
+	    put(self.glob,decl)
+	} else if ="global" then {
+	    /self.glob := []
+	    put(self.glob,vardecl(line))
+	} else if ="record" then {
+	    /self.glob := []
+	    put(self.glob,declaration(line))
+	} else if upto(nonwhite) then {
+	    halt("class/read expected declaration on: ",line)
+	}
+      }
+    }
+    halt("class/read syntax error: eof inside a class definition")
+  end
+procedure class_has_initially(self)
+#line 258 "idol.iol"
+    return (__self1 := self.text).__methods.size(__self1.__state) > 0 
+  end
+procedure class_ispublic(self,fieldname)
+#line 261 "idol.iol"
+    if (__self1 := self.fields).__methods.ispublic(__self1.__state,fieldname) then return fieldname
+  end
+procedure class_foreachmethod(self)
+#line 264 "idol.iol"
+    suspend (__self1 := self.methods).__methods.foreach(__self1.__state) 
+  end
+procedure class_foreachsuper(self)
+#line 267 "idol.iol"
+    suspend (__self1 := self.supers).__methods.foreach(__self1.__state) 
+  end
+procedure class_foreachfield(self)
+#line 270 "idol.iol"
+    suspend (__self1 := self.fields).__methods.foreach(__self1.__state) 
+  end
+procedure class_isvarg(self,s)
+#line 273 "idol.iol"
+    if (__self1 := self.fields).__methods.isvarg(__self1.__state,s) then return s
+  end
+procedure class_transitive_closure(self)
+#line 276 "idol.iol"
+    count := (__self1 := self.supers).__methods.size(__self1.__state) 
+    while count > 0 do {
+	added := taque()
+	every sc := (__self1 := self.supers).__methods.foreach(__self1.__state) do { 
+	  if /(super := (__self1 := classes).__methods.lookup(__self1.__state,sc)) then
+	    halt("class/transitive_closure: couldn't find superclass ",sc)
+	  every supersuper := (__self1 := super).__methods.foreachsuper(__self1.__state) do {
+	    if / (__self1 := self.supers).__methods.lookup(__self1.__state,supersuper) &
+		 /(__self1 := added).__methods.lookup(__self1.__state,supersuper) then {
+	      (__self1 := added).__methods.insert(__self1.__state,supersuper)
+	    }
+	  }
+	}
+	count := (__self1 := added).__methods.size(__self1.__state) 
+	every (__self1 := self.supers).__methods.insert(__self1.__state,(__self2 := added).__methods.foreach(__self2.__state)) 
+    }
+  end
+procedure class_writedecl(self,f,s)
+#line 298 "idol.iol"
+    writes(f, s," ",self.name)
+    if s=="class" & ( *(supers := (__self1 := self.supers).__methods.String(__self1.__state)) > 0 ) then
+	    writes(f," : ",supers)
+    writes(f,"(")
+    rv := (__self1 := self.fields).__methods.String(__self1.__state,s)
+    if *rv > 0 then rv ||:= ","
+    if s~=="class" & *(\self.ifields)>0 then	{
+      every l := !self.ifields do rv ||:= l.ident || ","
+      if /(superclass := (__self1 := classes).__methods.lookup(__self1.__state,l.class)) then
+	  halt("class/resolve: couldn't find superclass ",sc)
+      if (__self1 := superclass).__methods.isvarg(__self1.__state,l.ident) then rv := rv[1:-1]||"[],"
+    }
+    writes(f,rv[1:-1])
+    write(f,,")")
+  end
+procedure class_writespec(self,f)
+#line 314 "idol.iol"
+    f := envopen(filename(self.name),"w")
+    (__self1 := self).__methods.writedecl(__self1.__state,f,"class")
+    every (__self2 := ((__self1 := self.methods).__methods.foreach(__self1.__state))).__methods.writedecl(__self2.__state,f,"method") 
+    if (__self1 := self).__methods.has_initially(__self1.__state) then write(f,"initially")
+    write(f,"end")
+    close(f)
+  end
+procedure class_writemethods(self)
+#line 327 "idol.iol"
+    f:= envopen(filename(self.name,".icn"),"w")
+    every (__self2 := ((__self1 := self.methods).__methods.foreach(__self1.__state))).__methods.write(__self2.__state,f,self.name) 
+
+    if \self.glob & *self.glob>0 then {
+	write(f,"#\n# globals declared within the class\n#")
+	every i := 1 to *self.glob do (__self1 := (self.glob[i])).__methods.write(__self1.__state,f,"")
+    }
+    close(f)
+  end
+procedure class_write(self)
+#line 341 "idol.iol"
+    f:= envopen(filename(self.name,".icn"),"a")
+
+
+
+    if /self.ifields then (__self1 := self).__methods.resolve(__self1.__state)
+
+
+
+
+    writes(f,"record ",self.name,"__state(__state,__methods")
+    rv := ","
+    rv ||:= (__self1 := self.fields).__methods.idTaque.String(__self1.__state)
+    if rv[-1] ~== "," then rv ||:= ","
+    every s := (!self.ifields).ident do rv ||:= s || ","
+    write(f,rv[1:-1],")")
+
+
+
+
+    writes(f,"record ",self.name,"__methods(")
+    rv := ""
+
+    every s := (((__self2 := ((__self1 := self.methods).__methods.foreach(__self1.__state))).__methods.name(__self2.__state))	| 
+		(__self1 := self.fields).__methods.foreachpublic(__self1.__state)	|
+		(!self.imethods).ident		|
+		(__self1 := self.supers).__methods.foreach(__self1.__state)) 
+	do rv ||:= s || ","
+
+    if *rv>0 then rv[-1] := ""
+    write(f,rv,")")
+
+
+
+
+
+    writes(f,"global ",self.name,"__oprec")
+    every writes(f,", ", (__self1 := self.supers).__methods.foreach(__self1.__state),"__oprec") 
+    write(f)
+
+
+
+
+
+    (__self1 := self).__methods.writedecl(__self1.__state,f,"procedure")
+    write(f,"local self,clone")
+
+
+
+
+    write(f,"initial {\n",
+	    "  if /",self.name,"__oprec then ",self.name,"initialize()")
+    if (__self1 := self.supers).__methods.size(__self1.__state) > 0 then 
+	every (super <- (__self1 := self.supers).__methods.foreach(__self1.__state)) ~== self.name do 
+	    write(f,"  if /",super,"__oprec then ",super,"initialize()\n",
+		    "  ",self.name,"__oprec.",super," := ", super,"__oprec")
+    write(f,"  }")
+
+
+
+
+    writes(f,"  self := ",self.name,"__state(&null,",self.name,"__oprec")
+    every writes(f,",",(__self1 := self.fields).__methods.foreach(__self1.__state)) 
+    if \self.ifields then every writes(f,",",(!self.ifields).ident)
+    write(f,")\n  self.__state := self")
+
+
+
+
+    if (__self1 := self.text).__methods.size(__self1.__state) > 0 then write(f,"  ",self.name,"initially(self)") 
+
+
+
+
+    if (__self1 := self.supers).__methods.size(__self1.__state) > 0 then { 
+	every (super <- (__self1 := self.supers).__methods.foreach(__self1.__state)) ~== self.name do { 
+	    if (__self2 := ((__self1 := classes).__methods.lookup(__self1.__state,super))).__methods.has_initially(__self2.__state) then {
+		if /madeclone := 1 then {
+		    write(f,"  clone := ",self.name,"__state()\n",
+			"  clone.__state := clone\n",
+			"  clone.__methods := ",self.name,"__oprec")
+		}
+		write(f,"  # inherited initialization from class ",super)
+		write(f,"    every i := 2 to *self do clone[i] := self[i]\n",
+			"    ",super,"initially(clone)")
+		every l := !self.ifields do {
+		    if l.class == super then
+			write(f,"    self.",l.ident," := clone.",l.ident)
+		}
+	    }
+	}
+    }
+
+
+
+
+
+
+    write(f,"  return idol_object(self,",self.name,"__oprec)\n",
+	    "end\n")
+
+
+
+
+    write(f,"procedure ",self.name,"initialize()")
+    writes(f,"  initial ",self.name,"__oprec := ",self.name,"__methods")
+    rv := "("
+    every s := (__self2 := ((__self1 := self.methods).__methods.foreach(__self1.__state))).__methods.name(__self2.__state) do { 
+      if *rv>1 then rv ||:= ","
+      rv ||:= self.name||"_"||s
+    }
+    every me := (__self1 := self.fields).__methods.foreachpublic(__self1.__state) do {
+      if *rv>1 then rv ||:= ","
+      rv ||:= self.name||"_"||me
+    }
+    every l := !self.imethods do {
+      if *rv>1 then rv ||:= ","
+      rv ||:= l.class||"_"||l.ident
+    }
+    write(f,rv,")\n","end")
+
+
+
+    if (__self1 := self).__methods.has_initially(__self1.__state) then {
+	write(f,"procedure ",self.name,"initially(self)")
+	(__self1 := self.text).__methods.write(__self1.__state,f)
+	write(f,"end")
+    }
+
+
+
+
+    every me := (__self1 := self.fields).__methods.foreachpublic(__self1.__state) do {
+      write(f,"procedure ",self.name,"_",me,"(self)")
+      if \strict then {
+	write(f,"  if type(self.",me,") == ",
+		"(\"list\"|\"table\"|\"set\"|\"record\") then\n",
+		"    runerr(501,\"idol: scalar type expected\")")
+	}
+      write(f,"  return .(self.",me,")")
+      write(f,"end")
+      write(f)
+    }
+
+    close(f)
+
+  end
+procedure class_resolve(self)
+#line 492 "idol.iol"
+
+
+
+    self.imethods := []
+    self.ifields := []
+    ipublics := []
+    addedfields := table()
+    addedmethods := table()
+    every sc := (__self1 := self.supers).__methods.foreach(__self1.__state) do { 
+	if /(superclass := (__self1 := classes).__methods.lookup(__self1.__state,sc)) then
+	    halt("class/resolve: couldn't find superclass ",sc)
+	every superclassfield := (__self1 := superclass).__methods.foreachfield(__self1.__state) do {
+	    if /(__self1 := self.fields).__methods.lookup(__self1.__state,superclassfield) &
+	       /addedfields[superclassfield] then {
+		addedfields[superclassfield] := superclassfield
+		put ( self.ifields , classident(sc,superclassfield) )
+		if (__self1 := superclass).__methods.ispublic(__self1.__state,superclassfield) then
+		    put( ipublics, classident(sc,superclassfield) )
+	    } else if \strict then {
+		warn("class/resolve: '",sc,"' field '",superclassfield,
+		     "' is redeclared in subclass ",self.name)
+	    }
+	}
+	every superclassmethod := (__self2 := ((__self1 := superclass).__methods.foreachmethod(__self1.__state))).__methods.name(__self2.__state) do {
+	    if /(__self1 := self.methods).__methods.lookup(__self1.__state,superclassmethod) &
+	       /addedmethods[superclassmethod] then {
+		addedmethods[superclassmethod] := superclassmethod
+		put ( self.imethods, classident(sc,superclassmethod) )
+	    }
+	}
+	every public := (!ipublics) do {
+	    if public.class == sc then
+		put (self.imethods, classident(sc,public.ident))
+	}
+    }
+  end
+#
+# globals declared within the class
+#
+record classident(class,ident)
+record class__state(__state,__methods,supers,methods,text,imethods,ifields,glob,name,fields,tag)
+record class__methods(read,has_initially,ispublic,foreachmethod,foreachsuper,foreachfield,isvarg,transitive_closure,writedecl,writespec,writemethods,write,resolve,String,name,declaration)
+global class__oprec, declaration__oprec
+procedure class(supers,methods,text,imethods,ifields,glob,name,fields,tag)
+local self,clone
+initial {
+  if /class__oprec then classinitialize()
+  if /declaration__oprec then declarationinitialize()
+  class__oprec.declaration := declaration__oprec
+  }
+  self := class__state(&null,class__oprec,supers,methods,text,imethods,ifields,glob,name,fields,tag)
+  self.__state := self
+  clone := class__state()
+  clone.__state := clone
+  clone.__methods := class__oprec
+  # inherited initialization from class declaration
+    every i := 2 to *self do clone[i] := self[i]
+    declarationinitially(clone)
+    self.name := clone.name
+    self.fields := clone.fields
+    self.tag := clone.tag
+  return idol_object(self,class__oprec)
+end
+
+procedure classinitialize()
+  initial class__oprec := class__methods(class_read,class_has_initially,class_ispublic,class_foreachmethod,class_foreachsuper,class_foreachfield,class_isvarg,class_transitive_closure,class_writedecl,class_writespec,class_writemethods,class_write,class_resolve,declaration_String,declaration_name)
+end
+procedure method_read(self,line,phase)
+#line 535 "idol.iol"
+    (__self1 := self).__methods.declaration.read(__self1.__state,line)
+    self.text := body()
+    if phase = 1 then
+      (__self1 := self.text).__methods.read(__self1.__state)
+  end
+procedure method_writedecl(self,f,s)
+#line 541 "idol.iol"
+    decl := (__self1 := self).__methods.String(__self1.__state)
+    if s == "method" then decl[1:upto(white,decl)] := "method"
+    else {
+	decl[1:upto(white,decl)] := "procedure"
+	if *(self.class)>0 then {
+	    decl[upto(white,decl)] ||:= self.class||"_"
+	    i := find("(",decl)
+	    decl[i] ||:= "self" || (((decl[i+1] ~== ")"), ",") | "")
+	}
+    }
+    write(f,decl)
+  end
+procedure method_write(self,f)
+#line 554 "idol.iol"
+    if self.name ~== "initially" then
+	(__self1 := self).__methods.writedecl(__self1.__state,f,"procedure")
+    (__self1 := self.text).__methods.write(__self1.__state,f)
+    self.text := &null
+  end
+record method__state(__state,__methods,class,text,name,fields,tag)
+record method__methods(read,writedecl,write,String,name,declaration)
+global method__oprec, declaration__oprec
+procedure method(class,text,name,fields,tag)
+local self,clone
+initial {
+  if /method__oprec then methodinitialize()
+  if /declaration__oprec then declarationinitialize()
+  method__oprec.declaration := declaration__oprec
+  }
+  self := method__state(&null,method__oprec,class,text,name,fields,tag)
+  self.__state := self
+  clone := method__state()
+  clone.__state := clone
+  clone.__methods := method__oprec
+  # inherited initialization from class declaration
+    every i := 2 to *self do clone[i] := self[i]
+    declarationinitially(clone)
+    self.name := clone.name
+    self.fields := clone.fields
+    self.tag := clone.tag
+  return idol_object(self,method__oprec)
+end
+
+procedure methodinitialize()
+  initial method__oprec := method__methods(method_read,method_writedecl,method_write,declaration_String,declaration_name)
+end
+procedure Table_size(self)
+#line 566 "idol.iol"
+    return (* \ self.t) | 0
+  end
+procedure Table_insert(self,x,key)
+#line 569 "idol.iol"
+    /self.t := table()
+    /key := x
+    if / (self.t[key]) := x then return
+  end
+procedure Table_lookup(self,key)
+#line 574 "idol.iol"
+    if t := \self.t then return t[key]
+    return
+  end
+procedure Table_foreach(self)
+#line 578 "idol.iol"
+    if t := \self.t then every suspend !self.t
+  end
+record Table__state(__state,__methods,t)
+record Table__methods(size,insert,lookup,foreach)
+global Table__oprec
+procedure Table(t)
+local self,clone
+initial {
+  if /Table__oprec then Tableinitialize()
+  }
+  self := Table__state(&null,Table__oprec,t)
+  self.__state := self
+  return idol_object(self,Table__oprec)
+end
+
+procedure Tableinitialize()
+  initial Table__oprec := Table__methods(Table_size,Table_insert,Table_lookup,Table_foreach)
+end
+procedure taque_insert(self,x,key)
+#line 589 "idol.iol"
+    /self.l := []
+    if (__self1 := self).__methods.Table.insert(__self1.__state,x,key) then put(self.l,x)
+  end
+procedure taque_foreach(self)
+#line 593 "idol.iol"
+    if l := \self.l then every suspend !self.l
+  end
+procedure taque_insert_t(self,x,key)
+#line 596 "idol.iol"
+    (__self1 := self).__methods.Table.insert(__self1.__state,x,key)
+  end
+procedure taque_foreach_t(self)
+#line 599 "idol.iol"
+    suspend (__self1 := self).__methods.Table.foreach(__self1.__state)
+  end
+record taque__state(__state,__methods,l,t)
+record taque__methods(insert,foreach,insert_t,foreach_t,size,lookup,Table)
+global taque__oprec, Table__oprec
+procedure taque(l,t)
+local self,clone
+initial {
+  if /taque__oprec then taqueinitialize()
+  if /Table__oprec then Tableinitialize()
+  taque__oprec.Table := Table__oprec
+  }
+  self := taque__state(&null,taque__oprec,l,t)
+  self.__state := self
+  return idol_object(self,taque__oprec)
+end
+
+procedure taqueinitialize()
+  initial taque__oprec := taque__methods(taque_insert,taque_foreach,taque_insert_t,taque_foreach_t,Table_size,Table_lookup)
+end
+procedure idTaque_parse(self,s)
+#line 609 "idol.iol"
+    s ? {
+      tab(many(white))
+      while name := tab(find(self.punc)) do {
+	(__self1 := self).__methods.insert(__self1.__state,trim(name))
+	move(1)
+	tab(many(white))
+      }
+      if any(nonwhite) then (__self1 := self).__methods.insert(__self1.__state,trim(tab(0)))
+    }
+    return
+  end
+procedure idTaque_String(self)
+#line 621 "idol.iol"
+    if /self.l then return ""
+    out := ""
+    every id := !self.l do out ||:= id||self.punc
+    return out[1:-1]
+  end
+record idTaque__state(__state,__methods,punc,l,t)
+record idTaque__methods(parse,String,insert,foreach,insert_t,foreach_t,size,lookup,taque,Table)
+global idTaque__oprec, taque__oprec, Table__oprec
+procedure idTaque(punc,l,t)
+local self,clone
+initial {
+  if /idTaque__oprec then idTaqueinitialize()
+  if /taque__oprec then taqueinitialize()
+  idTaque__oprec.taque := taque__oprec
+  if /Table__oprec then Tableinitialize()
+  idTaque__oprec.Table := Table__oprec
+  }
+  self := idTaque__state(&null,idTaque__oprec,punc,l,t)
+  self.__state := self
+  return idol_object(self,idTaque__oprec)
+end
+
+procedure idTaqueinitialize()
+  initial idTaque__oprec := idTaque__methods(idTaque_parse,idTaque_String,taque_insert,taque_foreach,taque_insert_t,taque_foreach_t,Table_size,Table_lookup)
+end
+procedure argList_insert(self,s)
+#line 633 "idol.iol"
+    if \self.varg then halt("variable arg must be final")
+    if i := find("[",s) then {
+      if not (j := find("]",s)) then halt("variable arg expected ]")
+      s[i : j+1] := ""
+      self.varg := s := trim(s)
+    }
+    (__self1 := self).__methods.idTaque.insert(__self1.__state,s)
+  end
+procedure argList_isvarg(self,s)
+#line 642 "idol.iol"
+    if s == \self.varg then return s
+  end
+procedure argList_String(self)
+#line 645 "idol.iol"
+    return (__self1 := self).__methods.idTaque.String(__self1.__state) || ((\self.varg & "[]") | "")
+  end
+record argList__state(__state,__methods,varg,punc,l,t)
+record argList__methods(insert,isvarg,String,varg,parse,foreach,insert_t,foreach_t,size,lookup,idTaque,taque,Table)
+global argList__oprec, idTaque__oprec, taque__oprec, Table__oprec
+procedure argList(varg,punc,l,t)
+local self,clone
+initial {
+  if /argList__oprec then argListinitialize()
+  if /idTaque__oprec then idTaqueinitialize()
+  argList__oprec.idTaque := idTaque__oprec
+  if /taque__oprec then taqueinitialize()
+  argList__oprec.taque := taque__oprec
+  if /Table__oprec then Tableinitialize()
+  argList__oprec.Table := Table__oprec
+  }
+  self := argList__state(&null,argList__oprec,varg,punc,l,t)
+  self.__state := self
+  argListinitially(self)
+  return idol_object(self,argList__oprec)
+end
+
+procedure argListinitialize()
+  initial argList__oprec := argList__methods(argList_insert,argList_isvarg,argList_String,argList_varg,idTaque_parse,taque_foreach,taque_insert_t,taque_foreach_t,Table_size,Table_lookup)
+end
+procedure argListinitially(self)
+#line 648 "idol.iol"
+  self.punc := ","
+end
+procedure argList_varg(self)
+  return .(self.varg)
+end
+
+procedure classFields_String(self,s)
+#line 656 "idol.iol"
+    if *(rv := (__self1 := self).__methods.argList.String(__self1.__state)) = 0 then return ""
+    if /s | (s ~== "class") then return rv
+    if (__self1 := self).__methods.ispublic(__self1.__state,self.l[1]) then rv := "public "||rv
+    every field:=(__self1 := self).__methods.foreachpublic(__self1.__state) do rv[find(","||field,rv)] ||:= "public "
+    return rv
+  end
+procedure classFields_foreachpublic(self)
+#line 663 "idol.iol"
+    if \self.publics then every suspend !self.publics
+  end
+procedure classFields_ispublic(self,s)
+#line 666 "idol.iol"
+    if \self.publics then every suspend !self.publics == s
+  end
+procedure classFields_insert(self,s)
+#line 669 "idol.iol"
+    s ? {
+      if ="public" & tab(many(white)) then {
+	s := tab(0)
+	/self.publics := []
+	put(self.publics,s)
+      }
+    }
+    (__self1 := self).__methods.argList.insert(__self1.__state,s)
+  end
+record classFields__state(__state,__methods,publics,varg,punc,l,t)
+record classFields__methods(String,foreachpublic,ispublic,insert,isvarg,varg,parse,foreach,insert_t,foreach_t,size,lookup,argList,idTaque,taque,Table)
+global classFields__oprec, argList__oprec, idTaque__oprec, taque__oprec, Table__oprec
+procedure classFields(publics,varg,punc,l,t)
+local self,clone
+initial {
+  if /classFields__oprec then classFieldsinitialize()
+  if /argList__oprec then argListinitialize()
+  classFields__oprec.argList := argList__oprec
+  if /idTaque__oprec then idTaqueinitialize()
+  classFields__oprec.idTaque := idTaque__oprec
+  if /taque__oprec then taqueinitialize()
+  classFields__oprec.taque := taque__oprec
+  if /Table__oprec then Tableinitialize()
+  classFields__oprec.Table := Table__oprec
+  }
+  self := classFields__state(&null,classFields__oprec,publics,varg,punc,l,t)
+  self.__state := self
+  classFieldsinitially(self)
+  clone := classFields__state()
+  clone.__state := clone
+  clone.__methods := classFields__oprec
+  # inherited initialization from class argList
+    every i := 2 to *self do clone[i] := self[i]
+    argListinitially(clone)
+    self.varg := clone.varg
+  return idol_object(self,classFields__oprec)
+end
+
+procedure classFieldsinitialize()
+  initial classFields__oprec := classFields__methods(classFields_String,classFields_foreachpublic,classFields_ispublic,classFields_insert,argList_isvarg,argList_varg,idTaque_parse,taque_foreach,taque_insert_t,taque_foreach_t,Table_size,Table_lookup)
+end
+procedure classFieldsinitially(self)
+#line 679 "idol.iol"
+  self.punc := ","
+end
+#
+# Idol: Icon-derived object language, version 8.0
+#
+# SYNOPSIS:
+#
+#   idol -install
+#   idol prog[.iol] ... [-x args ]
+#   prog
+#
+# FILES:
+#
+#   ./prog.iol	                   : source file
+#   ./prog.icn                     : Icon code for non-classes in prog.iol
+#   ./idolcode.env/i_object.*      : Icon code for the universal object type
+#   ./idolcode.env/classname.icn   : Icon files are generated for each class
+#   ./idolcode.env/classname.u[12] : translated class files
+#   ./idolcode.env/classname       : class specification/interface
+#
+# SEE ALSO:
+#
+#   "Programming in Idol: An Object Primer"
+#   (U of Arizona Dept of CS Technical Report #90-10)
+#   serves as user's guide and reference manual for Idol
+#
+### Global variables
+#
+# FILES  : fin = input (.iol) file, fout = output (.icn) file
+# CSETS  : alpha = identifier characters, nonalpha = everything else
+#          alphadot = identifiers + '.'
+#          white = whitespace, nonwhite = everything else
+# TAQUES : classes in this module
+# FLAGS  : comp if we should try to make an executable from args[1]
+#          strict if we should generate paranoic encapsulation protection
+#          loud if Idol should generate extra console messages
+#          exec if we should run the result after translation
+# LISTS  : links = names of external icon code to link to
+#          imports = names of external classes to import
+#          compiles = names of classes which need to be compiled
+#
+global fin,fout,fName,fLine,alpha,alphadot,white,nonwhite,nonalpha
+global classes,comp,exec,strict,links,imports,loud,compiles,compatible,ct
+global icontopt,tempenv
+
+#
+# initialize global variables
+#
+procedure initialize()
+  loud     := 1
+  comp     := 0
+  alpha    := &ucase ++ &lcase ++ '_' ++ &digits
+  nonalpha := &cset -- alpha
+  alphadot := alpha ++ '.'
+  white    := ' \t\f'
+  nonwhite := &cset -- white
+  classes  := taque()
+  links    := []
+  imports  := []
+  compiles := []
+  sysinitialize()
+end
+
+procedure main(args)
+    initialize()
+    if *args = 0 then write("usage: idol files...")
+    else {
+      if (!args ~== "-version") &
+	  not tryenvopen(filename("i_object",".u1")) then { 
+	      tempenv := 0
+	      install(args)
+	  }
+      every i := 1 to *args do {
+	if \exec then next            # after -x, args are for execution
+	if args[i][1] == "-" then {
+	  case map(args[i]) of {
+	    "-c"   : {
+		sysok := &null
+		if comp = 0 then comp := -1        # don't make exe
+	    }
+	    "-ic"     : compatible := 1
+	    "-quiet"  : loud := &null
+	    "-strict" : strict := 1
+	    "-s"      : sysok := &null
+	    "-t"      : comp := -2                      # don't translate
+	    "-version": return write("Idol version 8.0 of 10/6/90") & 0
+	    "-x"      : exec := i
+	    default   : icontopt ||:= args[i] || " "
+	  }
+        }
+        else {
+	  \tempenv +:= 1
+	  if args[i] := fileroot(args[i],".cl") then {
+	      push(imports,args[i])
+	  }
+	  else if args[i] := fileroot(args[i],".icn") then {
+	      push(links,args[i])
+	      icont(" -c "||args[i])
+	  }
+	  else if args[i] := fileroot(args[i],".u1") then {
+	      push(links,args[i])
+	  }
+	  else if (args[i] := fileroot(args[i],".iol")) |
+	      tryopen(filename(args[i],".iol"),"r") then {
+		  /exe := i
+		  args[i] := fileroot(args[i],".iol")
+		  /fout := sysopen(filename(args[i],".icn"),"w")
+		  readinput(filename(args[i],".iol"),1)
+	      } else {
+                  #
+	          # look for an appropriate .icn, .u1 or class file
+	          #
+		  if tryopen(filename(args[i],".icn"),"r") then {
+		      push(links,args[i])
+		      icont(" -c "||args[i])
+		  }
+		  else if tryopen(filename(args[i],".u1")) then {
+		      push(links,args[i])
+		  }
+		  else if tryenvopen(args[i]) then {
+		      push(imports,args[i])
+		  }
+	      }
+	  }
+      }
+      if gencode() then {
+	  close(\fout)
+	  if comp = 1 & (not makeexe(args,exe)) then
+	      stop("Idol exits after errors creating executable")
+      } else {
+	  close(\fout)
+	  stop("Idol exits after errors translating")
+      }
+    }
+    #
+    # if we built an executable without separate compilation AND
+    # there's no IDOLENV class environment AND
+    # we had to install an environment then remove the environment
+    #
+    if (comp = 1) & (\tempenv < 2) & not getenv("IDOLENV") then uninstall()
+end
+
+#
+# tell whether the character following s is within a quote or not
+#
+procedure notquote(s)
+  outs := ""
+  #
+  # eliminate escaped quotes.
+  # this is a bug for people who write code like \"hello"...
+  s ? {
+    while outs ||:= tab(find("\\")+1) do move(1)
+    outs ||:= tab(0)
+  }
+  # see if every quote has a matching endquote
+  outs ? {
+    while s := tab(find("\""|"'")+1) do {
+	if not tab(find(s[-1])+1) then fail
+    }
+  }
+  return
+end
+
+#
+# A contemplated addition: shorthand $.foo for self.foo ?
+#
+#procedure selfdot(line)
+#  i := 1
+#  while ((i := find("$.",line,i)) & notquote(line[1:i])) do line[i]:="self"
+#end
+
+#
+# error/warning/message handling
+#
+procedure halt(args[])
+  errsrc()
+  every writes(&errout,!args)
+  stop()
+end
+
+procedure warn(args[])
+  errsrc()
+  every writes(&errout,!args)
+  write(&errout)
+end
+
+procedure errsrc()
+  writes(&errout,"\"",\fName,"\", line ",\fLine,": Idol/")
+end
+#
+# System-independent, but system related routines
+#
+procedure tryopen(file,mode)
+  if f := open(file,mode) then return close(f)
+end
+procedure tryenvopen(file,mode)
+  return tryopen(envpath(file),mode)
+end
+procedure sysopen(file,mode)
+  if not (f := open(file,mode)) then
+      halt("Couldn't open file ",file," for mode ",mode)
+  return f
+end
+procedure envopen(file,mode)
+  return sysopen(envpath(file),mode)
+end
+procedure writelink(s)
+  write(fout,"link \"",s,"\"")
+end
+procedure icont(argstr,prefix)
+static s
+initial { s := (getenv("ICONT")|"icont") }
+  return mysystem((\prefix|"") ||s||icontopt||argstr)
+end

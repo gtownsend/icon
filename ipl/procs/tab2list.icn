@@ -1,0 +1,42 @@
+############################################################################
+#
+#	File:     tab2list.icn
+#
+#	Subject:  Procedure to put tab-separated strings in list
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 3, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This procedure to takes tab-separated strings and inserts them
+#  into a list.
+#
+#  Vertical tabs in strings are converted to carriage returns.
+#
+#  (Works for lists too.)
+#
+############################################################################
+#
+#  See also: list2tab.icn, tab2rec.icn, rec2tab.icn
+#
+############################################################################
+
+procedure tab2list(s)
+   local L
+
+   L := []
+
+   s ? {
+      while put(L, map(tab(upto('\t') | 0), "\v", "\n")) do
+         move(1) | break
+      }
+
+   return L
+
+end

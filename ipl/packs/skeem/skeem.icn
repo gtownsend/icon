@@ -1,0 +1,152 @@
+############################################################################
+#
+#	Name:	skeem.icn
+#
+#	Title:	Scheme in Icon
+#
+#	Author: Bob Alexander
+#
+#	Date:	February 19, 1995
+#
+#	Description: R4RS Scheme, with the exception that continuations
+#		are escape procedures only (i.e. do no have unlimited
+#		extent)
+#
+############################################################################
+
+#
+# skeem -- Scheme in Icon
+#
+# Main program, initialization, and read/eval/print procedure
+#
+
+link llist,escapesq,options
+link skfun,skbasic,skcontrl,skio,sklist,skmisc,sknumber,skstring,skextra
+link skutil,skin,skout
+#link skdebug
+#link ximage
+
+global	GlobalEnv,UserEnv,CurrentEnv,  # environments
+	T,F,NIL,Unbound,Failure,       # universal constants
+	InputPortStack,
+	OutputPortStack,
+	EscapeData,FailProc,Resume,BreakLevel,FuncName,
+	EOFObject,
+	Space
+
+global	TraceSet,		       # set of currently traced functions
+	FTrace			       # flag for tracing all functions
+
+global	TraceReader,EchoReader,NoError
+
+record String(value)		       # used for string datatyepe
+record Char(value)		       # used for character datatyepe
+record Port(file,option)	       # used for port datatyepe
+record Symbol(string,value)
+record Promise(proc,ready,result)
+record UniqueObject(name)
+record Value(value)
+
+record Function(proc,name,minArgs,maxArgs,traced)
+record Lambda(proc,name,minArgs,maxArgs,env,traced)
+record Macro(proc,name,minArgs,maxArgs,env,traced)
+record Syntax(proc,name,minArgs,maxArgs,traced)
+
+#
+# main() -- Analyzes the arguments and invokes the read/eval/print loop.
+#
+procedure main(arg)
+   local fn,f
+   Initialize(arg)
+   if *arg = 0 then arg := ["-"]
+   if \TraceReader then &trace := -1
+   every fn := !arg do {
+      f := if fn == "-" then &input else open(fn) | stop("Can't open ",fn)
+      ReadEvalPrint(f,,"top")
+      }
+end
+
+#
+# Initialize() - Set up global values
+#
+procedure Initialize(arg)
+   Options(arg)
+   Space := ' \t\n\r\l\v\f'
+   T := UniqueObject("#t")
+   F := UniqueObject("#f")
+   Unbound := UniqueObject("unbound")
+   Failure := UniqueObject("failure")
+   EOFObject := UniqueObject("EOF object")
+   NIL := &null
+   BreakLevel := 0
+   InputPortStack := [Port(&input,"r")]
+   OutputPortStack := [Port(&output,"w")]
+   TraceSet := set()
+   GlobalEnv := PushFrame()
+   InitFunctions()
+   UserEnv := PushFrame()
+#########
+##    every x := !sort(LLFirst(GlobalEnv)) do {
+##	 y := x[2]
+##	 sname := if ProcName(y.proc) == y.name then "" else " " || y.name
+##	 write(right(y.minArgs,2),right(\y.maxArgs,2) | " -"," ",image(y.proc)[11:0],sname)
+##	 }
+#########
+   return
+end
+
+procedure Options(arg)
+   local opt
+   opt := options(arg,"tre")
+   TraceReader := opt["t"]
+   EchoReader := opt["r"]
+   NoError := opt["e"]
+   return opt
+end
+
+#
+# ReadEvalPrint() -- The R/E/P loop.
+#
+procedure ReadEvalPrint(f,quiet,top)
+   local sexpr,value,saveEnv
+   every sexpr := ReadAllExprs(f) do {
+      if \EchoReader then write("Read: ",Print(sexpr))
+      saveEnv := CurrentEnv
+      EscapeData := Resume := &null
+      if /NoError then &error := 1
+      if value := Eval(sexpr) then (if /quiet then write(Print(value)))
+      else {
+	 #
+	 # The expression failed -- why?
+	 #
+	 if \Resume then {
+	    if /top then {
+	       if Resume === "top" then fail		 # (top)
+	       return 1(.Resume.value,Resume := &null)	 # (resume x)
+	       }
+	    if Resume ~=== "top" then {
+	       Error("READ-EVAL-PRINT","Can't resume from top level")
+	       Resume := &null
+	       }
+	    }
+	 else {
+	    EscapeCheck()	 # escape that doesn't exist (any more)
+	    ErrorCheck()	 # run-time error
+	    }
+	 CurrentEnv := saveEnv
+	 }
+      }
+   return value
+end
+
+procedure ErrorCheck()
+   if &errornumber then {
+      Error(FailProc,"Icon run-time error: ",&errortext,
+	 ("\n   offending value:_
+	   \n      skeem representation:  " || Print(&errorvalue) || "_
+	   \n      Icon  representation:  " || image(&errorvalue) | "")\1)
+      FailProc := &null
+      errorclear()
+      }
+   else return
+end

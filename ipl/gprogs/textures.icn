@@ -1,0 +1,86 @@
+############################################################################
+#
+#	File:     textures.icn
+#
+#	Subject:  Program to show various 4x4 patterns
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     May 31, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     textures illustrates many different patterns that can be
+#  created by tiling a 4x4 pixel cell.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: graphics
+#
+############################################################################
+
+link graphics
+
+global win
+
+procedure main(args)
+   local cols, rows, xsiz, ysiz, gutter, w, h, pats, i, x, y, s
+
+   pats := [
+      "#0000 #0010 #8010 #0820 #0420 #1040",
+      "#8050 #0124 #0424 #0260 #0142 #0610 #0224 #0601 #2208",
+      "#A050 #0161 #1414 #0660 #1284 #4221 #0168 #1144 #0505 _
+             #0258 #0158 #8421 #4510 #0306",
+      "#A052 #8641 #8443 #1922 #0272 #0525 #0515 #0433 #281C",
+      "#A452 #0356 #2C34 #2A54 #1C32 #8711 #88E1 #0555 #0707 #070D #5451",
+      "#A552 #8356 #2F22 #2555 #0787 #5A1A #124F #121F #9887",
+      "#6666 #5555 #5AA5 #A5A5 #9696 #0F0F #0FF0"]
+
+   cols := 2 * *pats - 1
+   rows := 16
+   xsiz := 36
+   ysiz := 30
+   gutter := 6
+
+   w := cols * xsiz + (cols + 1) * gutter - 1
+   h := rows * ysiz + (rows + 1) * gutter - 1
+   win := open("textures", "g", "width="||w, "height="||h)
+
+   Shade(win, "gray")
+   FillRectangle(win, 0, 0, w, h)
+   Fg(win, "black")
+
+   WAttrib(win, "fillstyle=textured")
+
+   every i := 1 to *pats do {
+      y := gutter
+      x := gutter + 2 * (xsiz + gutter) * (i - 1)
+      pats[i] ? {
+         while tab(upto('#')) do {
+            s := move(5)
+            rect(x, y, xsiz, ysiz, s)
+            rect(x + xsiz + gutter, y, xsiz, ysiz,
+               map(s, "0123456789ABCDEF", "FEDCBA9876543210"))
+            y +:= ysiz + gutter
+            }
+         }
+      }
+   WDone(win)
+end
+
+procedure rect(x, y, w, h, s)
+   Pattern(win, "1,1")
+   DrawLine(win, x + w, y - 1, x + w, y + h, x - 1, y + h)
+   Pattern(win, "1,0")
+   DrawLine(win, x - 1, y + h, x - 1, y - 1, x + w, y - 1)
+   Pattern(win, "4," || s)
+   FillRectangle(win, x, y, w, h)
+end

@@ -1,0 +1,139 @@
+############################################################################
+#
+#	File:     mmm.icn
+#
+#	Subject:  Program to show allocation as a miniature "MemMon"
+#
+#	Author:   Clinton Jeffery
+#
+#	Date:     August 12, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Displays a tiny rendition of internal heap allocation.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:   evinit, options, optwindw, typebind, colormap, wipe, xcompat
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+$include "evdefs.icn"
+
+link evinit
+link options
+link optwindw
+link typebind
+link colormap
+link wipe
+link xcompat
+
+global Visualization, contexts
+global t, sum, threesixty, wid, hei
+
+procedure main(av)
+   local c_string, lines, mymask, allocstr, blockall, sum1, sum2, row1, row2,
+	Regions, c, start, sum2div4, verbose
+   if *av>0 then
+      EvInit(av) | stop("EvInit() can't load ",av[1])
+   else
+      EvInit() | stop("can't EvInit()")
+
+   threesixty := 360 * 64
+   t := options(av)
+   /t["W"] := 650
+   /t["H"] := 50
+   &window := optwindow(t) | stop("no window")
+   Visualization := &window
+   contexts := itypebind(&window)
+   c_string := contexts[E_String] | stop("eh?")
+   / contexts[E_Tvsubs] := c_string
+
+   wid := WAttrib("width")
+   hei := WAttrib("height")
+   lines := WAttrib("lines")
+
+   mymask := AllocMask ++ cset("\360"||E_Collect||E_BlkDeAlc||E_StrDeAlc)
+   allocstr := string(AllocMask)
+   blockall := 0
+
+   sum1 := 0
+   sum2 := 0
+   row1 := 0
+   row2 := hei/2+1
+
+   Regions := []
+   every put(Regions,keyword("regions",EventSource))
+   pop(Regions)
+
+   while EvGet(mymask) do {
+      if &eventcode === E_Lelem then &eventcode := E_List
+      if &eventcode === (E_Telem|E_Tvtbl|E_Slots) then &eventcode := E_Table
+      if &eventcode === E_Selem then &eventcode := E_Set
+      if &eventcode === E_Refresh then &eventcode := E_Coexpr
+      case &eventcode of {
+	 E_Collect: {
+	    wipe(&window)
+	    sum1 := sum2 := 0
+	    row1 := 0
+	    row2 := hei/2+1
+	    }
+	 E_EndCollect: {
+	    }
+	 E_String: {
+	    DrawLine(c_string,sum1/4,row1,(sum1+&eventvalue)/4,row1)
+	    sum1 +:= &eventvalue
+	    while sum1/4 >= wid do {
+	       sum1 -:= wid * 4
+	       row1 +:= 1
+	       if row1 > hei/2 then {
+		  EraseArea(0,0,wid,hei/2)
+		  row1 := 0
+		  }
+	       DrawLine(c_string,0,row1,sum1/4,row1)
+	       }
+	    }
+	 !.allocstr: {
+	    c := \contexts[&eventcode] | stop("what is ",&eventcode)
+	    start := sum2/4
+	    sum2 +:= &eventvalue
+	    sum2div4 := sum2/4
+	    DrawLine(c,start,row2,sum2div4,row2)
+	    while sum2div4 >= wid do {
+	       sum2 -:= wid * 4
+	       sum2div4 := sum2/4
+	       row2 +:= 1
+	       DrawLine(c,0,row2,sum2div4,row2)
+	       }
+	    }
+	 default: {
+	    if \verbose then write("unknown event code ",&eventcode)
+	    }
+	 }
+      }
+
+end
+
+procedure itypebind(z)
+  static t
+  initial {
+      t := table()
+  }
+  /(t[z]):=typebind(z,E_Integer||E_Real||E_Record||E_Set||E_String||E_Cset||
+		    E_File||E_List||E_Null||E_Proc||E_Table,table())
+#  if type(t[z][E_Proc])=="file" then close(t[z][E_Proc])
+  t[z][E_Proc] := XBind(z,"fg=#999")
+  return t[z]
+end

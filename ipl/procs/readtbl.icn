@@ -1,0 +1,87 @@
+############################################################################
+#
+#	File:     readtbl.icn
+#
+#	Subject:  Procedures to read user-created stripsgml table
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     April 30, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.1
+#
+############################################################################
+#  
+#  This file is part of the strpsgml package.  It does the job of read-
+#  ing option user-created mapping information from a file.  The purpose
+#  of this file is to specify how each code in a given input text should
+#  be translated.  Each line has the form:
+#
+#      SGML-designator	start_code	end_code
+#
+#  where the SGML designator is something like "quote" (without the quota-
+#  tion marks), and the start and end codes are the way in which you want
+#  the beginning and end of a <quote>...<\quote> sequence to be transla-
+#  ted.  Presumably, in this instance, your codes would indicate some set
+#  level of indentation, and perhaps a font change.  If you don't have an
+#  end code for a particular SGML designator, just leave it blank.
+#
+############################################################################
+#
+#  Links: stripunb.icn
+#
+############################################################################
+
+link stripunb
+
+procedure readtbl(f)
+
+    local t, line, k, on_sequence, off_sequence
+
+    /f & stop("readtbl:  Arg must be a valid open file.")
+
+    t := table()
+
+    every line := trim(!f,'\t ') do {
+	line ? {
+	    k := tabslashupto('\t:') &
+	    tab(many('\t:')) &
+	    on_sequence := tabslashupto('\t:') | tab(0)
+	    tab(many('\t:'))
+	    off_sequence := tab(0)
+	} | stop("readtbl:  Bad map file format.")
+	insert(t, k, outstr(on_sequence, off_sequence))
+    }
+
+    return t
+
+end
+
+
+
+procedure tabslashupto(c,s)
+
+    POS := &pos
+
+    while tab(upto('\\' ++ c)) do {
+	if ="\\" then {
+	    move(1)
+	    next
+	}
+	else {
+	    if any(c) then {
+		suspend &subject[POS:.&pos]
+	    }
+	}
+    }
+
+    &pos := POS
+    fail
+
+end

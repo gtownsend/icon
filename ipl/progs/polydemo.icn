@@ -1,0 +1,272 @@
+############################################################################
+#
+#       File:     polydemo.icn
+#
+#       Subject:  Program to demonstrate polynomial library
+#
+#       Author:   Erik Eid
+#                         
+#       Date:     May 23, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This program is an example for the use of the polystuf library.  The
+# user is given a number of options that allow the creation, output,
+# deletion, or operations on up to 26 polynomials, indexed by letter.
+#
+# Available commands:
+#     (R)ead      - allows input of a polynomial by giving pairs of
+#                   coefficients and exponents.  For example, entering
+#                   5, 6, 2, and 3 will create 5x^6 + 2x^3.  This polynomial
+#                   will be stored by an index which is a lower-case letter.
+#     (W)rite     - outputs to the screen a chosen polynomial.
+#     (A)dd       - adds two polynomials and defines the sum as a third
+#     (S)ubtract  - subtracts two polynomials and defines the difference as
+#                   a third.
+#     (M)ultiply  - multiplies two polynomials and defines the product as a
+#                   third.
+#     (E)valuate  - gives the result of setting x in a polynomial to a value
+#     (C)lear     - deletes one polynomial
+#     (H)elp      - lists all commands
+#     (Q)uit      - end the demonstration
+#
+############################################################################
+#
+#  Links: polystuf
+#
+############################################################################
+
+link polystuf
+
+global filled, undefined, poly_table
+
+procedure main()
+local option
+  poly_table := table()                    # Set up a table that will hold
+                                           # all of the polynomials (which
+                                           # are tables themselves).
+  filled := "That slot is already filled!"
+  undefined := "That has not been defined!"
+  SetUpDisplay()
+  repeat {
+    ShowInUse()
+    writes ("RWASMECHQ> ")
+    option := choice(read())               # Get first letter of entry in
+                                           # lower-case format.
+    case option of {
+      "r": PRead()
+      "w": PWrite()
+      "a": PCalc ("+")
+      "s": PCalc ("-")
+      "m": PCalc ("*")
+      "e": PEval()
+      "c": PClear()
+      "h": ShowHelp()
+      "q": break
+      default: write ("Invalid command!")
+    }
+    write()
+  }
+end
+
+procedure SetUpDisplay()
+  write (center ("Icon v8.10 Polynomial Demo", 80))
+  write()
+  ShowHelp()
+  write (repl("-", 80))
+  return
+end
+
+procedure ShowHelp()
+  write (repl(" ", 10), "(R)ead      (W)rite     (A)dd       (S)ubtract")
+  write (repl(" ", 10), "(M)ultiply  (E)valuate  (C)lear     _
+    (H)elp      (Q)uit")
+  return
+end
+
+procedure ShowInUse()
+local keylist
+  keylist := list()
+  writes ("In Use:")
+  every push (keylist, key(poly_table))    # Construct a list of the keys in
+                                           # poly_table, corresponding to
+                                           # which slots are being used.
+  keylist := sort (keylist)
+  every writes (" ", !keylist)
+  write()
+  return
+end
+
+procedure is_lower(c)
+  if /c then fail
+  if c == "" then fail
+  return (c >>= "a") & (c <<= "z")         # Succeeds only if c is a lower-
+end                                        # case letter.
+
+procedure choice(s)
+  return map(s[1], &ucase, &lcase)         # Returns the first character of
+                                           # the given string converted to
+                                           # lower-case.
+end
+
+procedure PRead()
+local slot, terms, c, e
+  repeat {
+    writes ("Which slot to read into? ")
+    slot := choice(read())
+    if is_lower(slot) then break
+  }
+  if member (poly_table, slot) then {      # Disallow reading into an
+    write (filled)                         # already occupied slot.
+    fail
+  }
+  write ("Input terms as coefficient-exponent pairs.  Enter 0 for")
+  write ("coefficient to stop.  Entries must be numerics.")
+  terms := list()
+  repeat {
+    write()
+    repeat {
+      writes ("Coefficient> ")     
+      c := read()
+      if numeric(c) then break
+    }
+    if c = 0 then break
+    repeat {
+      writes ("   Exponent> ")     
+      e := read()
+      if numeric(e) then break
+    }
+    put (terms, c)                         # This makes a list compatible
+    put (terms, e)                         # with the format needed by
+                                           # procedure poly of polystuf.
+  }
+  if *terms = 0 then terms := [0, 0]       # No terms = zero polynomial.
+  poly_table[slot] := poly ! terms         # Send the elements of terms as
+                                           # parameters to poly and store
+                                           # the resulting polynomial in the
+                                           # proper slot.
+  return
+end
+
+procedure PWrite ()
+local slot
+  repeat {
+    writes ("Which polynomial to display? ")
+    slot := choice(read())
+    if is_lower(slot) then break
+  }
+  if member (poly_table, slot) then {      # Make sure there is a polynomial
+    write (poly_string(poly_table[slot]))  # to write!
+    return
+  }
+  else {
+    write (undefined)
+    fail
+  }
+end
+
+procedure PCalc (op)
+local slot1, slot2, slot_ans, res
+  writes ("Which two polynomials to ")
+  case op of {
+    "+": write ("add? ")                   # Note that this procedure is
+    "-": write ("subtract? ")              # used for all three operations
+    "*": write ("multiply? ")              # since similar tasks, such as
+  }                                        # checking on the status of slots,
+                                           # are needed for all of them.
+  repeat {
+    writes ("First: ")     
+    slot1 := choice(read())
+    if is_lower(slot1) then break
+  }
+  if member (poly_table, slot1) then {
+    repeat {
+      writes ("Second: ")     
+      slot2 := choice(read())
+      if is_lower(slot2) then break
+    }
+    if member (poly_table, slot2) then {
+      repeat {
+        writes ("Slot for answer: ")     
+        slot_ans := choice(read())
+        if is_lower(slot_ans) then break
+      }
+      if member (poly_table, slot_ans) then {
+        write (filled)     
+        fail
+      }
+      else {
+        case op of {
+          "+": {
+            res := poly_add(poly_table[slot1], poly_table[slot2])
+            writes ("Sum ")
+          }
+          "-": {
+            res := poly_sub(poly_table[slot1], poly_table[slot2])
+            writes ("Difference ")
+          }
+          "*": {
+            res := poly_mul(poly_table[slot1], poly_table[slot2])
+            writes ("Product ")
+          }
+        }
+        write ("has been defined as polynomial \"", slot_ans, "\"")
+        poly_table[slot_ans] := res
+      }
+    }
+    else {
+      write (undefined)     
+      fail
+    }
+  }
+  else {
+    write (undefined)     
+    fail
+  }
+  return
+end
+
+procedure PEval ()
+local slot, x, answer
+  repeat {
+    writes ("Which polynomial to evaluate? ")
+    slot := choice(read())
+    if is_lower(slot) then break
+  }
+  if member (poly_table, slot) then {
+    repeat {
+      writes ("What positive x to evaluate at? ")
+      x := read()
+      if numeric(x) then if x > 0 then break
+    }
+    answer := poly_eval (poly_table[slot], x)
+    write ("The result is ", answer)
+    return
+  }
+  else {
+    write (undefined)     
+    fail
+  }
+end
+
+procedure PClear ()
+local slot
+  repeat {
+    writes ("Which polynomial to clear? ")
+    slot := choice(read())
+    if is_lower(slot) then break
+  }
+  if member (poly_table, slot) then {
+    delete (poly_table, slot)
+    return
+  }
+  else {
+    write (undefined)     
+    fail
+  }
+end
+

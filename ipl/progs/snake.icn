@@ -1,0 +1,245 @@
+############################################################################
+#
+#	File:     snake.icn
+#
+#	Subject:  Program to play the snake game
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     December 30, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.9
+#
+############################################################################
+#  
+#      While away the idle moments watching the snake eat blank squares
+#  on your screen.  Snake has only one (optional) argument -
+#
+#      usage:  snake [character]
+#
+#  where "character" represents a single character to be used in drawing
+#  the snake.  The default is an "o."  In order to run snake, your ter-
+#  minal must have cursor movement capability, and must be able to do re-
+#  verse video.
+#
+#      I wrote this program to test itlib.icn, iscreen.icn, and some
+#  miscellaneous utilities I wrote.  It clears the screen, moves the cur-
+#  sor to arbitrary squares on the screen, changes video mode, and in
+#  general exercizes the terminal capability database on the target ma-
+#  chine.
+#
+############################################################################
+#
+#  Bugs:  Most magic cookie terminals just won't work.  Terminal really
+#  needs reverse video (it will work without, but won't look as cute).
+#
+############################################################################
+#
+#  Links: itlib.icn (or iolib.icn), iscreen.icn, random
+#
+#  Requires:  UNIX (MS-DOS is okay, if you replace itlib with itlibdos.icn)
+#
+############################################################################
+
+link itlib, iscreen
+link random
+
+global max_l, max_w, snake_char
+
+record wholething(poop,body)
+
+procedure main(a)
+
+    local snake, limit, sl, sw, CM, x, r, leftbehind
+
+    randomize()
+
+    if not (getval("so"),  CM := getval("cm"))
+    then stop("snake:  Your terminal is too stupid to run me.  Sorry.")
+    clear(); Kludge() # if your term likes it, use emphasize(); clear()
+    # Decide how much space we have to operate in.
+    max_l := getval("li")-2             # global
+    max_w := getval("co")-1             # global
+    # Determine the character that will be used to represent the snake.
+    snake_char := (\a[1])[1] | "o"
+
+    # Make the head.
+    snake := []; put(snake,[?(max_l-1)+1, ?(max_w-1)+1])
+    # Make the body, displaying it as it grows.
+    every x := 2 to 25 do {
+	display(,snake)
+	put(snake,findnext(snake[x-1],snake))
+    }
+
+    # Begin "eating" all the standout mode spaces on the screen.
+    repeat {
+	r := makenew(snake)
+	leftbehind := r.poop
+	snake := r.body
+	display(leftbehind,snake) | break
+    }
+
+    # Shrink the snake down to nothing, displaying successively smaller bits.
+    while leftbehind := get(snake)
+    do display(leftbehind,snake)
+
+    iputs(igoto(getval("cm"), 1, getval("li")-1))
+    normal()
+    
+end 
+
+
+
+procedure findnext(L, snake)
+
+    local i, j, k, op, l
+    static sub_lists
+    initial {
+	sub_lists := [[1,2,3], [1,3,2], [3,2,1], [3,1,2], [2,1,3], [2,3,1]]
+    }
+    # global max_l, max_w
+
+    i := L[1]; j := L[2]	# for clarity, use i, j (not l[i|j])
+
+    # L is the last snake segment; find k and l, such that k and l are
+    # valid line and column numbers differing from l[1] and l[2] by no
+    # more than 1, respectively.  Put simply:  Create a new segment
+    # [k, l] adjacent to the last one (L).
+
+    op := (different | Null) &
+    (k := max_l+1 > [i,i+1,i-1][!sub_lists[?6]]) > 1 &
+	(l := max_w+1 > [j,j+1,j-1][!sub_lists[?6]]) > 1 &
+	op([k, l], snake)
+
+    return [k, l]
+
+end
+
+
+
+procedure different(l,snake)
+
+    local bit
+    (l[1] = (bit := !\snake)[1], l[2] = bit[2]) & fail
+    return
+
+end
+
+
+
+procedure Null(a[])
+    return
+end
+
+
+
+procedure display(lb,snake)
+
+    local last_segment, character
+    static CM
+    initial CM := getval("cm")
+
+    # Change the mode of the square just "vacated" by the moving snake.
+    if *snake = 0 | different(\lb,snake) then {
+	iputs(igoto(CM, lb[2], lb[1]))
+	normal()
+	writes(" ")
+    }
+
+    if last_segment := (0 ~= *snake) then {
+	# Write the last segment (which turns out to be the snakes head!).
+	iputs(igoto(CM, snake[last_segment][2], snake[last_segment][1]))
+	emphasize(); writes(snake_char)  # snake_char is global
+    }
+
+    # Check to see whether we've eaten every edible square on the screen.
+    if done_yet(lb)
+    then fail
+    else return
+
+end
+
+
+
+procedure makenew(snake)
+    local leftbehind, i
+
+    # Move each constituent list up one position in snake, discard
+    # the first element, and tack a new one onto the end.
+
+    every i := 1 to *snake - 1 do
+	snake[i] :=: snake[i+1]
+    leftbehind := copy(snake[i+1])
+    snake[i+1] := findnext(snake[i],snake)
+    return wholething(leftbehind,snake)
+    
+end
+
+
+
+procedure the_same(l1, l2)
+
+    if l1[1] = l2[1] & l1[2] = l2[2]
+    then return else fail
+
+end
+
+
+
+procedure done_yet(l)
+    local i, j
+
+    # Check to see if we've eaten every edible square on the screen.
+    # It's easy for snake to screw up on this one, since somewhere
+    # along the line most terminal/driver/line combinations will con-
+    # spire to drop a character somewhere along the line.
+
+    static square_set
+    initial {
+
+	square_set := set()
+	every i := 2 to max_l do {
+	    every j := 2 to max_w do {
+		insert(square_set, i*j)
+	    }
+	}
+    }
+
+    /l & fail
+    delete(square_set, l[1]*l[2])
+    if *square_set = 0 then return
+    else fail
+
+end
+
+
+
+procedure Kludge()
+    local i
+
+    # Horrible way of clearing the screen to all reverse-video, but
+    # the only apparent way we can do it "portably" using the termcap
+    # capability database.
+
+    iputs(igoto(getval("cm"),1,1))
+    if getval("am") then {
+	emphasize()
+        every 1 to (getval("li")-1) * getval("co") do
+	    writes(" ")
+    }
+    else {
+	every i := 1 to getval("li")-1 do {
+	    iputs(igoto(getval("cm"), 1, i))
+	    emphasize()
+	    writes(repl(" ",getval("co")))
+	}
+    }
+    iputs(igoto(getval("cm"),1,1))
+
+end

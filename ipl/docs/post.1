@@ -1,0 +1,61 @@
+.\" post.man version 1.5
+.TH POST LOCAL "2 Oct 1991"
+.SH NAME
+post \- news poster
+.SH SYNOPSIS
+.B post
+[
+.BI \-n\  newsgroups
+] [
+.BI \-s\  subject
+] [
+.BI \-d\  distribution
+] [
+.BI \-f\  followup-to
+] [
+.BI \-p\  quote-prefix
+] [
+.B \- 
+|
+.I news-article
+] 
+.SH DESCRIPTION
+.I Post 
+posts a news article to Usenet via inews, uux, or mail.  Given an
+optional argument of the name of a file containing a news article, or
+an argument of `\-' and a news article via stdin,
+.I post
+creates a follow-up article, with an attribution and quoted text.
+.I Post
+can be invoked as a filter from a newsreader:
+.RB ` "|post \-" '
+would create a followup article to the current article in the
+newsreader.  The newsgroups, subject, distribution, follow-up, and
+quote-prefix (the default is ` > ') can be specified on the command
+line.
+.PP
+.I Post
+is compatible with C-News, B-news, and bsnews (Bootstrap News).  On
+systems with inews, the newsgroups and distribution are validated in
+the appropriate news system files.
+.SH ENVIRONMENT
+The environment variable
+.SM EDITOR 
+overrides the default editor.
+.SM ORGANIZATION
+overrides the file /usr/lib/news/organization to specify an optional
+Organization header.  On non-Unix\u\s-3TM\s0\d systems, the
+environment variable
+.SM HOST
+may be used to override the Icon keyword
+.I &host
+as the sitename.
+.SH BUGS
+The code to validate newsgroups assumes the file
+/usr/lib/news/active
+is sorted.
+.SH AUTHOR
+Ronald Florence (ron\s-2@\s0mlfarm.com).  The code to generate a
+temporary file name is from Richard Goerwitz
+(goer\s-2@\s0sophist.uchicago.edu).  Options.icn is from the Icon
+Program Library.

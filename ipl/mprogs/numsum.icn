@@ -1,0 +1,103 @@
+############################################################################
+#
+#	File:     numsum.icn
+#
+#	Subject:  Program to tabulate numerical computation
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 20, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This tool tabulates numerical-computation activity.  It is called as
+#
+#	numsum prog
+#
+#  where prog is a program compiled under MT Icon whose events are to
+#  be tabulated.
+#	
+#  The options supported are:
+#
+#	-o s	write output to file s; default &output.
+#
+#	-t	record time spent in monitoring.
+#
+############################################################################
+#
+#  Requires:  MT Icon and event monitoring.
+#
+############################################################################
+#
+#  Links:  evinit, options, procname
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+link evinit
+link options
+link procname
+
+$include "evdefs.icn"
+
+procedure main(args)
+   local opts, itime, output, inttbl, reltbl, cmask, rmask, numlist, op
+   local pos, neg, plus, minus, mpy, div, pwr, mod, count
+
+   opts := options(args, "o:t")
+
+   output := open(\opts["o"], "w") | &output
+
+   if \opts["t"] then itime := &time
+
+   EvInit(args) | stop("*** cannot load program")	# initialize interface
+
+   inttbl := table(0)
+   reltbl := table(0)
+
+   cmask := E_Fcall ++ E_Ocall
+   rmask := E_Fret ++ E_Oret ++ E_Ffail ++ E_Ofail
+
+   pos := proc("+", 1)
+   neg := proc("-", 1)
+   plus := proc("+", 2)
+   minus := proc("-", 2)
+   mpy := proc("*", 2)
+   div := proc("/", 2)
+   mod := proc("%", 2)
+   pwr := proc("^", 2)
+
+   while EvGet(cmask) do {
+      if (op := &eventvalue) === (
+         plus | minus | mpy | div | neg | pwr | mod |
+         iand | ior | ixor | icom | ishift | pos
+         )  then {
+            EvGet(rmask)
+            if &eventcode === (E_Ofail | E_Ffail) then next
+            case type(&eventvalue) of {
+               "integer":  inttbl[op] +:= 1
+               "real":     reltbl[op] +:= 1
+               }
+            }
+      }
+
+   write(output, "\nInteger computation:\n")
+   numlist := sort(inttbl, 4)
+   while count := pull(numlist) do
+      write(output, left(procname(pull(numlist)), 6), right(count, 9))
+
+   write(output, "\nReal computation:\n")
+   numlist := sort(reltbl, 4)
+   while count := pull(numlist) do
+      while write(output, left(procname(pull(numlist)), 6), right(count, 9))
+
+   write(output, "\nelapsed time: ", &time - \itime, "ms")
+
+end

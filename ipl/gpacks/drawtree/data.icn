@@ -1,0 +1,365 @@
+global gen_table
+
+
+# set the default for Children_R
+procedure children_default()
+
+   return Children_R(50, 3, table(), table())
+
+end
+
+# generates children
+procedure children_generation(children)
+
+   local parent_id
+   local delete_id
+   local max
+   local id
+   local child
+   local parents
+   local num
+
+   # set up the first child
+   max := ?children.max_children
+   children.all[0] := Child_Node_R(0, set(), &null, 0, 2 * &pi)
+
+   # give child(ren) to the first node
+   every insert(children.all[0].children_id, 1 to max)   
+
+   # add the new children to the children list and set the children 
+   # to be ready as parents
+   parents := set()
+   every insert(parents, id := !children.all[0].children_id) do
+      children.all[id] := Child_Node_R(0, set())
+     
+   # generate children for each child created, some children may not have children
+
+   every id := max+1 to children.num_children do
+   {
+      num := 0;
+
+      # get a parent and give it a child
+      parent_id := ?parents
+      children.all[id] := Child_Node_R(parent_id, set())
+      insert(children.all[parent_id].children_id, id)
+      insert(parents, id)
+
+      # delete the parent from the parents set of has max number of children
+      if *children.all[parent_id].children_id >= children.max_children then 
+         delete(parents, parent_id)
+
+      # randomly delete a parent
+      delete_id := ?[1, &null]
+      if \delete_id & *parents ~== 0 then 
+      {
+         until *children.all[id := ?parents].children_id ~== 0 do
+              if (num +:= 1) > (2 * *parents) then break; 
+         delete(parents, id)
+      }
+    }
+
+    count_children( children, 0 )
+    # get the base and the bound for each child
+    assign_base_and_bound( children )
+    # find the generation for each child
+    count_gen( children, 0, 0 )
+    # print out children
+    # print_out(children)
+    # count number of children per generation
+    num_children_per_generation(children)
+    get_gen_id(children, 0)
+
+end
+
+
+# for inputted data
+procedure parse_text()
+
+   local parent_id, text, intext, id, input_file, text_list
+   local text_info, part_child, left_b, child, children_new
+
+   if Dialog(["Data File:"], [""], 
+             [], [20]) == "Okay" then input_file := get(dialog_value)
+   else return fail
+
+   children_new := Children_R(0, 0, table(), table())
+   id := 1
+   parent_id := 0
+
+   intext := open(input_file) | return fail
+   text := ""
+   while text ||:= read(intext) 
+   text_list := [[text, 0]]
+   close(intext)
+
+   # start the root
+   children_new.all[0] := Child_Node_R(0, set(), &null, 0, 2 * &pi, 0, 0)
+
+   # build the tree
+   while text_info := get(text_list) do {
+
+      text := text_info[1]
+      parent_id := text_info[2]
+
+      text ? {
+         tab(upto('[') + 1) | return fail
+         part_child := ""
+         left_b := 0
+         while child := tab(upto('[]') + 1) do {
+
+              find("[", child) & part_child ||:= child & left_b +:= 1 & next
+              find("]", child) & part_child ||:= child & left_b -:= 1 & left_b > 0  & next
+
+              child := part_child
+              if not find("[", child) then break
+
+              # set up the new child
+              children_new.all[id] := Child_Node_R(parent_id, set())
+              insert(children_new.all[parent_id].children_id, id)
+
+              # check if the new child is also a parent
+              if child[-2:0] ~== "[]" then put(text_list, [child,id])
+              id +:= 1  
+
+              part_child := ""
+              left_b := 0
+              child := ""
+         }
+      }
+   }
+
+   children_new.num_children := id - 1;
+   
+   children_new.max_children := 0
+   every id := 0 to children_new.num_children  do
+      if *children_new.all[id].children_id > children_new.max_children then 
+          children_new.max_children := *children_new.all[id].children_id
+      
+   count_children( children_new, 0 )
+   # get the base and the bound  for each child
+   assign_base_and_bound( children_new )
+   # find the generation for each child
+   count_gen(children_new, 0, 0 )
+   # count number of children per generation
+   num_children_per_generation(children_new)
+   get_gen_id(children_new, 0)
+
+   return(children_new)
+
+end
+
+         
+
+# for directory data
+procedure children_directory()
+
+   local dir_string
+   local children, text, intext
+
+   children := Children_R(0, 0, table(), table())
+   dir_string := begin_root()
+   system("ls -p " || dir_string || " > file") 
+   intext := open("file")
+   text := read(intext) 
+   if find("No such file or directory", text) then return fail
+   close(intext)
+   system("rm file")
+
+   /dir_string & return fail
+   set_up_children_directory(children, dir_string)
+
+   return children
+
+end
+
+
+
+# 
+procedure set_up_children_directory(children, dir_string)
+
+   local parent_id
+   local count
+   local directory_table
+   local dir_list
+   local new_dir
+
+   parent_id := count := 0
+   directory_table := table()
+
+   # set up the root (dir_string)
+   children.all[count] := Child_Node_R(0, set(), &null, 0, 2 * &pi)
+   directory_table[count] := [dir_string, 0]
+   count +:= 1
+   dir_list := get_directory_list(dir_string)
+   if /dir_list then return;
+   children.max_children := *dir_list;
+
+   # assign id number for each new child and record
+   while new_dir := get(dir_list) do {
+      directory_table[count] := [new_dir, parent_id]
+      insert(children.all[parent_id].children_id, count)
+      count +:= 1
+   }
+   parent_id +:= 1;
+
+   # initailize each new child
+   until parent_id = count do {
+
+      # set up the new parent and get the children
+      children.all[parent_id] := Child_Node_R(directory_table[parent_id][2],
+                                              set())
+      dir_list := get_directory_list(directory_table[parent_id][1])
+      if *dir_list > children.max_children then 
+         children.max_children := *dir_list
+
+      # assign id number for each new child and record
+      while new_dir := get(dir_list) do {
+         directory_table[count] := [new_dir, parent_id]
+         insert(children.all[parent_id].children_id, count)
+         count +:= 1
+      }
+
+      parent_id +:= 1;
+
+   }
+
+   children.num_children := count - 1  
+
+   count_children( children, 0 )
+   # get the bas and the bound  for each child
+   assign_base_and_bound( children )
+   # find the generation for each child
+   count_gen(children, 0, 0 )
+   # count number of children per generation
+   num_children_per_generation(children)
+   get_gen_id(children, 0)
+
+end
+
+
+# get all the directory names that live in a certain directory
+procedure get_directory_list(dir_string)
+   
+   local intext
+   local text
+   local dir_list
+
+   dir_list := list()
+
+   system("ls -p " || dir_string || " > file")
+   intext := open("file")
+
+   while text := read(intext) do {
+      if find("/", text) then {
+         text ? {
+            push(dir_list, dir_string || "/" || tab(upto('/'))) }
+      }
+   }
+
+   close(intext)
+   system("rm file")
+   return dir_list
+
+end
+
+
+procedure begin_root()
+
+   if Dialog(["Enter a directory:"], [""], 
+             [], [20]) == "Okay" then  return get(dialog_value)
+   else return fail
+
+end
+
+
+# count the number of children 
+procedure count_children( children, id )
+
+   children.all[id].children_num := *children.all[id].children_id
+   every children.all[id].children_num +:= count_children(children, !children.all[id].children_id)
+
+   return children.all[id].children_num
+
+end
+
+
+# find the generation for each child
+procedure count_gen( children, id, generation )
+
+   children.all[id].generation := generation
+   every count_gen(children, !children.all[id].children_id, generation + 1)
+
+   return
+
+end
+
+
+# get the base and the bound for each child
+procedure assign_base_and_bound(children)
+
+   local id, range, base,  bound, num, child, base_s, bound_s
+
+   # get the base and the bound
+   every id := 0 to children.num_children do
+   {
+      # get the base and the bound of its parent
+      bound_s := bound := children.all[id].bound
+      base_s := base  := children.all[id].base 
+
+      # find the range and calulate its own base and bound
+      range := bound - base 
+      every child := !children.all[id].children_id do
+      {
+         num := (children.all[child].children_num + 1)* range / children.all[id].children_num 
+         bound_s := num + base_s
+         children.all[child].base  := base_s
+         children.all[child].bound := bound_s
+         base_s := bound_s
+      }
+    }
+
+end
+         
+
+# find the number of children per generation
+procedure num_children_per_generation(children)
+
+   local id, num_of_children
+
+   children.num_gen := table()
+
+   every id := 0 to children.num_children do
+      children.num_gen[id] := 0
+
+   every id := 0 to children.num_children do {
+      num_of_children := *children.all[id].children_id      
+      children.num_gen[children.all[id].generation + 1] +:= num_of_children
+   }
+  children.num_gen[0] := 1
+
+end
+
+
+# get the id number for each child for its generation starting at 1
+procedure get_gen_id(children, child)
+
+   gen_table := table()
+   every gen_table[0 to children.num_children] := 1
+   N_get_gen_id(children, child)
+
+end
+ 
+
+procedure N_get_gen_id(children, child)
+
+   local gen, new_child
+
+   gen := children.all[child].generation
+   children.all[child].gen_id := gen_table[gen]
+   gen_table[gen] +:= 1
+   every new_child := !children.all[child].children_id do
+       N_get_gen_id(children, new_child)
+   
+end
+
+

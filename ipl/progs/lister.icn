@@ -1,0 +1,432 @@
+############################################################################
+#
+#	File:     lister.icn
+#
+#	Subject:  Program to list filess
+#
+#	Author:   Beppe Pavoletti
+#
+#	Date:     December 28, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program lists files.  Note that the language is in Italian.
+#
+############################################################################
+#
+# PROGRAMMA LIST visualizzazione e stampa file
+#
+# Autore: Beppe Pavoletti
+#         Via Trieste 12 I-15011
+#         ACQUI TERME AL
+#
+# Tel. 0144.320218
+#
+# Versione 2.0   26.12.1993
+
+##############################################################################
+
+procedure main()
+
+local tasto
+
+repeat {
+   righe(26)
+   write("±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±")
+   write()
+   write("       LIST V 2.0 -- Visualizzazione/elaborazione file  -- 26.12.1993")
+   write()
+   write("          di Beppe Pavoletti  Via Trieste 12  I-15011 ACQUI TERME AL ")
+   write()
+   write("                  ≤±∞  "||&dateline||" ∞∞∞∞∞±±±±≤≤≤")
+   write()
+   write()
+   write("            A - Visualizzazione file            ")
+   write("            B - Stampa su file o stampante      ")
+   write("            C - Elaborazione file               ")
+   write("            D - Ricerca di stringhe             ")
+   write("            E - Cambia la directory corrente    ")
+   write()
+   write("              X - Torna al DOS                  ")
+   write()
+   writes("               SCELTA >> ")
+   repeat
+      { tasto:=getch()
+        if find(tasto,"aAbBcCdDeExX") then
+            break }
+   write()
+   write()
+   case tasto of {
+      "a"|"A": faivedere(dainome())
+      "b"|"B": stampa()
+      "c"|"C": trasforma() 
+      "d"|"D": cerca()
+      "e"|"E": cambiadir()
+      "x"|"X": exit(0) }                     # fine del case
+   }                                         # fine del repeat
+end
+##############################################################################
+                                
+                                
+##############################################################################
+procedure righe(quante)                              # produce righe vuote
+
+local contarighe
+
+contarighe:=1
+until contarighe = quante do
+      { write()
+        contarighe+:=1 }
+end
+##############################################################################
+                                        
+
+##############################################################################
+procedure dainome()
+
+local quale
+
+   quale:=""
+   writes("Introdurre un nome di file valido: ")
+   while quale == "" do
+      quale:=read()
+   return quale
+end
+##############################################################################
+
+
+##############################################################################
+procedure lpag()
+
+local valore
+
+write()
+writes("Lunghezza di pagina (0 = nessun salto pagina) ")
+if numeric(valore:=read()) then
+    return valore
+else
+    return 0
+end
+##############################################################################
+
+
+##############################################################################
+procedure margs()
+
+local margine
+
+write()
+writes("Scostamento dal margine sinistro ")
+if numeric(margine:=read()) then
+    return repl(" ",margine)
+else
+    return ""
+end
+##############################################################################
+
+
+##############################################################################
+procedure numriga()
+
+local risp                                    # risposta
+
+write()
+writes("Stampa numeri di riga ? (S/N) ")
+repeat
+   { risp:=getch()
+     if find(risp,"sSnN") then
+         break }
+return risp
+end
+##############################################################################
+
+
+##############################################################################
+procedure compresso()
+
+local risp                                    # risposta
+
+write()
+writes("Attiva la stampa compressa con il carattere ASCII 15 ? (S/N) ")
+repeat
+   { risp:=getch()
+     if find(risp,"sSnN") then
+         break }
+return risp
+end
+##############################################################################
+
+
+
+##############################################################################
+procedure trasforma()                    # elabora file
+
+local tasto
+
+repeat
+	{ write()
+      write("  QUALE ELABORAZIONE VUOI EFFETTUARE ?")
+      write()
+      write("       A - Copia file")
+      write("       B - Elimina i fine riga (LF/CR)")
+      write("       C - Sostituzione carattere a scelta")
+      write("       D - Sostituisce le tabulazioni con spazi")
+      write("       E - Elimina i caratteri speciali (ASCII 0-31)")
+      write("       F - Elimina i caratteri ASCII estesi (> 126)")
+      write("       G - Elimina i caratteri speciali ed estesi")
+      write("       H - Elimina i caratteri spec. tranne segni diacritici")
+      write("       I - Elimina i caratteri speciali tranne LF/CR")
+      write()
+      write("          X - Menu principale")
+      write()
+      writes("       Scelta -->  ")
+      repeat
+        { tasto:=getch()
+          if find(tasto,"aAbBcCdDeEfFgGhHiIxX") then
+             break }
+      righe(3)
+      case tasto of {
+        "a"|"A": copiafile(1)
+        "b"|"B": copiafile(2)
+        "c"|"C": copiafile(3)
+        "d"|"D": copiafile(4)
+        "e"|"E": copiafile(5)
+        "f"|"F": copiafile(6)
+        "g"|"G": copiafile(7)
+        "h"|"H": copiafile(8)        
+        "i"|"I": copiafile(9)
+        "x"|"X": break } }                    # fine del repeat
+end
+##############################################################################
+
+
+##############################################################################
+procedure sceglinumero(messaggio)             # introduzione di un numero
+
+local quale
+
+write()
+writes(messaggio||"  ")
+repeat
+     { quale:=read()
+       if numeric(quale) then
+          if (quale > 0) then
+               break }
+write()
+return quale
+end
+##############################################################################
+
+
+##############################################################################
+procedure cambiadir()
+
+local nomedir
+
+write()
+writes("Passare alla directory ")
+if not chdir(nomedir:=read()) then
+      write(char(7)||"DIRECTORY NON ESISTENTE O NOME NON VALIDO")
+end
+##############################################################################
+
+
+##############################################################################
+procedure copiafile(switch)
+
+local origine,dest,nome1,nome2,dati,dati2,car,x,vecchio,nuovo,quantispazi,acc
+
+acc:='ïÖóäçÅÇÑÉÜàâãåéèêìîñòôö†°¢£§•·'            # set dei caratteri accentati
+write()
+write("SCELTA FILE O DEVICE DI ORIGINE ")
+nome1:=dainome()
+write()
+write("SCELTA FILE O DEVICE DI DESTINAZIONE")
+nome2:=dainome()
+write()
+if (origine:=open(nome1,"ru")) & (dest:=open(nome2,"wu")) then     # apre i file   { while dati:=reads(origine,1000) do
+   { case switch of {
+     3: { vecchio:=sceglinumero("CODICE ASCII DEL CARATTERE DA SOSTITUIRE: ")
+          nuovo:=sceglinumero("CODICE ASCII DEL NUOVO CARATTERE") }
+     4: { quantispazi:=sceglinumero("QUANTI SPAZI PER UNA TABULAZIONE ? ") } }
+     while dati:=reads(origine,40000) do
+     { case switch of {
+         2:  every x:=(dati ? find(char(10)|char(13))) do
+                   dati[x]:=" "
+         3: { every x:=(dati ? find(char(vecchio))) do
+                   dati[x]:=char(nuovo) }
+         4: { dati2:=""
+              dati ? { while car:=move(1) do
+                         { if (car == "\t") then
+                              car:=repl(" ",quantispazi)
+                           dati2:=dati2||car } }
+              dati:=dati2 }
+         5: { dati2:=""
+              dati ? { while car:=move(1) do
+                         { if (ord(car) < 32) then
+                              car:=""
+                           dati2:=dati2||car } }
+              dati:=dati2 }
+         6: { dati2:=""
+              dati ? { while car:=move(1) do
+                         { if (ord(car) > 126) then
+                              car:=""
+                           dati2:=dati2||car } }
+              dati:=dati2 }
+         7: { dati2:=""
+              dati ? { while car:=move(1) do
+                         { if ((ord(car) > 126)|(ord(car) < 32)) then
+                              car:=""
+                           dati2:=dati2||car } }
+              dati:=dati2 }
+         8: { dati2:=""
+              dati ? { while car:=move(1) do
+                         { if ((ord(car) > 126) & (not find(car,acc))) then
+                              car:=""
+                           dati2:=dati2||car } }
+              dati:=dati2 }
+         9: { dati2:=""                                                
+              dati ? { while car:=move(1) do
+                         { if (ord(car) < 32) & ((ord(car) ~= 10) & (ord(car) ~= 13)) then
+                              car:=""
+                           dati2:=dati2||car } }
+              dati:=dati2 } }
+     writes(dest,dati) }                             # while dati:=
+     close(origine)
+     close(dest) }
+else
+   { write()
+     write(char(7)||"IMPOSSIBILE APRIRE I FILE DI INPUT E/O OUTPUT") }
+end
+##############################################################################
+
+
+##############################################################################
+procedure stampa()                               # stampa o duplica il file
+
+local origine,dest,nome1,nome2,riga,contarighe,lungh,marg,nriga,comp
+
+write("SCELTA FILE O DEVICE DI ORIGINE ")
+nome1:=dainome()
+write()
+write("SCELTA FILE O DEVICE DI DESTINAZIONE")
+nome2:=dainome()
+write()
+if (origine:=open(nome1,"r")) & (dest:=open(nome2,"w")) then     # apre i file
+      { lungh:=lpag()                         # sceglie la lunghezza pagina
+        nriga:=numriga()                      # stampa numeri di riga
+        if (not find(nriga,"sS")) then
+            marg:=margs()                     # scostamento dal margine
+	comp:=compresso()                            # stampa compressa
+	if find(comp,"sS") then                      
+   { write(dest,char(27)||char(120)||"0")     # imposta il draft
+     write(dest,char(27)||char(77))           # imposta l'elite
+	    write(dest,char(15)) }                   # imposta il compresso
+     contarighe:=1
+        while riga:=read(origine) do
+          { if nriga == ("s"|"S") then
+               marg:=contarighe||" "
+            write(dest,marg||riga)
+            if (lungh ~= 0) & ((contarighe % lungh) = 0) then
+               write(dest,char(12))           # manda un salto pagina
+            contarighe+:=1 }                  # while riga
+        write(dest,char(12))                  # salto pagina alla file
+	write(dest,char(18))                  # annulla il compresso
+        close(origine)
+        close(dest)
+        write()
+        write("SCRITTE "||contarighe||" righe di "||nome1||" su "||nome2)
+        writes(" Invio per continuare ...")
+        read() }                              # if dest ...
+else
+   { write()
+     write("IMPOSSIBILE APRIRE I FILE DI INPUT E/O OUTPUT") }
+end
+##############################################################################
+
+
+##############################################################################
+procedure dimmelo()
+
+local quale
+
+   quale:=""
+   writes("Stringa da cercare  >>  ")
+   while quale == "" do
+      quale:=read()
+   return quale
+end
+##############################################################################
+
+
+##############################################################################
+procedure cerca()                               # ricerca di testo
+
+local origine,dest,nome1,nome2,riga,posizione,contatrova,testo
+
+write("SCELTA FILE O DEVICE DI ORIGINE ")
+nome1:=dainome()
+write()
+write("SCELTA FILE O DEVICE DI DESTINAZIONE")
+nome2:=dainome()
+write()                                                       
+testo:=dimmelo()                                  # testo da cercare
+contatrova:=0
+righe(25)
+if (origine:=open(nome1,"r")) & (dest:=open(nome2,"w")) then     # apre i file
+    { while riga:=reads(origine,40000) do
+      { every posizione:=(riga ? find(testo,riga)) do
+        { contatrova+:=1       
+          write(char(7)||riga[posizione-38:posizione+38])
+          write(dest,"Occorrenza "||string(contatrova)||" di "||testo)
+          write(dest,riga[posizione-38|1:posizione+38|(*riga-posizione)])
+          write(dest,"------------------------------------------")
+          write(dest)                                } }   #scrive                          
+      close(origine)
+      close(dest)
+      righe(4)                                                        
+      write("Ricerca di "||testo||" nel file "||nome1)
+      write("Trovate "||string(contatrova)||" occorrenze")
+      write() 
+      writes(" Invio per continuare ...")
+      read() }                              # if dest ...
+else
+   { righe(2)
+     write("IMPOSSIBILE APRIRE I FILE DI INPUT E/O OUTPUT") }
+end
+##############################################################################
+
+
+##############################################################################
+procedure faivedere(nfile)                     # fa vedere il file
+
+local testo,riga,conta,x, count
+
+if testo:=open(nfile,"r") then              # apre il file per la lettura
+  { count:=0
+     while riga:=read(testo) do                # ciclo lettura file
+      { write(riga)
+        count+:=1
+        if (count % 21) = 0 then               # fine pagina
+           { write()
+             write("±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±")
+             writes("   >> UN TASTO PER CONTINUARE   X PER USCIRE  ")
+             x:=getch()
+             if find(x,"xX") then
+	        break  } }
+     close(testo)
+     write()
+     write()
+     write("   >>> RIGHE SCRITTE "||count)
+     writes("  Invio per continuare ...  ")
+     read() }
+   else                                       # l'apertura fallisce
+      { write()
+        write("IMPOSSIBILE APRIRE IL FILE !!") }
+   write()
+end
+#############################################################################

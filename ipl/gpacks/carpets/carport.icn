@@ -1,0 +1,1156 @@
+#############################################################################
+#
+#	File:     carport.icn
+#
+#	Subject:  Program to create numerical carpets
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 17, 1998
+#
+############################################################################
+#
+#  This is a program for specifying "numerical carpets".  It writes a $include
+#  file and compiles and executes carplay.icn to produce the actual carpet.
+#
+############################################################################
+#
+#  For the basic idea that motivated this program, see "Carpets and Rugs: An
+#  Exercise in Numbers", Dann E. Passoja and Akhlesh Lakhtakia, in The
+#  Visual Mind:  Art and Mathematics, Michele Emmer, ed., The MIT Press,
+#  1993, pp. 121-123.
+#
+#  The concepts and general operation of this application are described in
+#  Issue 45 of The Icon Analyst (December, 1997).  For on-line documentation
+#  on using this program, see
+#
+#	http://www.cs.arizona.edu/icon/analyst/iasub/ia45/programs/doc.htm
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics, system(), and carplay.icn.
+#
+############################################################################
+#
+#  Links:  carputil, interact, io, tables, vsetup, xcode
+#
+############################################################################
+
+link carputil
+link carprec
+link interact
+link io
+link tables
+link vsetup
+link xcode
+
+global db_entries			# list of specifications in database
+global db_file				# name of database file
+global spec				# current carpet specification
+global database				# database of specifications
+global def_entries			# list of definitions
+global dopt_list			# list of display options
+global dset_list			# list of display option states
+global fopt_list			# list of generation options
+global fset_list			# list of generation option states
+global touched				# database changed switch
+global vidgets				# table of interface tools
+
+$define NameDefault	  "default"
+$define TopDefault	  "1"
+$define LeftDefault	  "Top"
+$define WidthDefault	  "128"
+$define HeightDefault	  "Width"
+$define ModulusDefault	  "5"
+$define NeighborsDefault  "n + nw + w"
+$define LinksDefault	  ["seqfncs"]
+$define ColorsDefault	  image("c2")
+
+$define	SymWidth	  15		# width of definition name field
+$define DefWidth	  80		# width of definition field
+$define ExprWidth	  80		# width of expression field
+$define NameWidth	  40		# width of name field
+
+procedure main()
+
+   carprec
+   
+   init()
+
+   GetEvents(vidgets["root"], , shortcuts)
+
+end
+
+#  Add (or overwrite) definition.
+
+procedure add_def()
+
+   if TextDialog("Add definition:", ["name", "definition"], , 
+      [SymWidth, ExprWidth]) == "Cancel" then fail
+
+   spec.Defns[dialog_value[1]] :=  dialog_value[2]
+   refresh_defs()
+
+   return
+
+end
+
+#  Add link
+
+procedure add_link()
+
+   if OpenDialog("Add link:", , , , 20) == "Cancel" then fail
+
+   put(spec.Links, dialog_value)
+   refresh_links()
+
+   return
+
+end
+
+#  Clear the database of specifications (a default one is then added).
+
+procedure clear_db()
+
+   case TextDialog("Are you sure you want to clear the current database?",
+      , , , ["Yes", "No"]) of {
+         "No" :  fail
+         "Yes":  {
+            database := table()
+            new_spec()
+            database[spec.Name] := spec
+            refresh_db()
+            return
+            }
+         }
+
+end
+
+#  Clear the table of definitions.
+
+procedure clear_defs()
+
+   if TextDialog("Do you really want to clear the definition table?") ==
+      "Cancel" then fail
+
+   spec.Defns := table()
+   refresh_defs()
+
+   return
+
+end
+
+#  Clear all the links.
+
+procedure clear_links()
+
+   if TextDialog("Do you really want to clear all links?") ==
+      "Cancel" then fail
+
+   spec.Links := []
+   refresh_links()
+
+   return
+
+end
+
+#  Edit specification comments.
+
+procedure comments()
+
+   repeat {
+      case TextDialog("Comments:", , spec.Comments, ExprWidth,
+         ["Default", "Okay", "Cancel"], 2) of {
+            "Cancel" :  fail
+            "Default":  {
+               spec.Comments := &dateline		# default comments
+               next
+               }
+            "Okay"   :  {
+               spec.Comments := dialog_value[1]
+               break
+               }
+            }
+      }
+
+   return
+
+end
+
+#  Create a carpet from the current specification.
+
+procedure create_cb()
+   local path, output, i
+
+   WAttrib("pointer=watch")
+
+   output := open("carpincl.icn", "w") | {
+      Notice("Cannot open include file for writing.")
+      fail
+      }
+
+   every i := 1 to *dopt_list do
+      if \dset_list[i] then
+         write(output, "$define ", map(dopt_list[i][1], &lcase, &ucase),
+            map(dopt_list[i][2:0], " ", "_"))
+
+   every i := 1 to *fopt_list do
+      if \fset_list[i] then
+         write(output, "$define ", map(fopt_list[i][1], &lcase, &ucase),
+            fopt_list[i][2:0])
+
+   close(output)
+
+   write_spec("carpincl.icn", spec) | {
+      Notice("Cannot open include file for writing.")
+      fail
+      }
+
+   path := dpath("carplay.icn") | {
+      Notice("Fatal error; cannot find carpet generation program.")
+      exit()
+      }
+
+   system("icont -s " || path || "  -x")
+
+   WAttrib("pointer=arrow")
+
+   return
+
+end
+
+#  Items for Database menu.
+
+procedure database_cb(vidget, value)
+
+   case value[1] of {
+      "load     ^@L":  load_db()
+      "merge    ^@M":  load_db(1)	# argument indicates merger
+      "revert   ^@R":  load_db(2)	# argument indicates reversion
+      "save     ^@S":  save_db()
+      "save as  ^@T":  save_as_db()
+      "clear    ^@Z":  clear_db()
+      }
+
+end
+
+#  Callback for item selected from database list.
+
+procedure db_cb(vidget, value)
+   local state
+   static db, sw
+
+   initial db := vidgets["db"]
+
+   if /value then return		# deselected item
+
+   if \sw then {			# prevent loop from internal call
+      sw := &null
+      return
+      }
+
+   state := VGetState(db)		# save state to restore position
+
+   repeat {
+      case TextDialog("Specification " || value, , , ,
+         ["Delete", "Display", "Okay", "Cancel"], 3) of {
+            "Cancel":  fail
+            "Okay"  :  {
+               spec.Name := value
+               spec := database[spec.Name]
+               refresh_defs()
+               refresh_db()
+               sw := 1
+               VSetState(db, state)
+               refresh_links()
+               return
+               }
+            "Delete":  {
+               if value == spec.Name then {
+                  Notice("You cannot delete the current specification.")
+                  next
+                  }
+               delete(database, value)
+               refresh_db()
+               return
+               } 
+            "Display":  {
+               display_spec(database[value])
+               next
+               }
+            }
+      }
+
+end
+
+#  Make the expression in the current dialog into a definition.
+
+procedure define(s)
+
+   if TextDialog("Add definition:", ["name", "definition"], [, s],
+      [SymWidth, ExprWidth]) == "Cancel" then fail
+
+   spec.Defns[dialog_value[1]] :=  dialog_value[2]
+   refresh_defs()
+
+   return
+
+end
+
+#  Items for the Definitions menu.
+
+procedure definitions_cb(vidget, value)
+
+   case value[1] of {
+      "add       @A":  add_def()
+      "clear     @Z":  clear_defs()
+      "load      @F":  load_defs()
+      "merge     @J":  load_defs(1)	# nonnull argument indicates merger
+      "save      @S":  save_defs()
+      }
+
+   return
+
+end
+
+#  Callback for selection from the definitions text-list.
+
+procedure defs_cb(vidget, value)
+
+   if /value then fail
+
+   case TextDialog("Name: " || value, "definition", spec.Defns[value],
+      ExprWidth , ["Remove", "Okay", "Cancel"], 2) of {
+         "Remove":  {
+            delete(spec.Defns, value)
+            refresh_defs()
+            }
+         "Okay"  :  spec.Defns[value] := dialog_value[1]
+         "Cancel":  fail
+         }
+
+   return
+
+end
+
+#  Display all the current definitions.
+
+procedure display_defs()
+   local definition, lines, i
+
+   if *def_entries = 0 then {
+      Notice("The definition table is empty.")
+      fail
+      }
+
+   lines := []
+
+   every definition := !def_entries do
+      put(lines, left(definition, 12) ||
+         left(spec.Defns[definition], ExprWidth))
+
+   push(lines, "", "name             definition ")
+
+   Notice ! lines
+
+   return
+
+end
+
+#  Display a carpet specification.
+
+$define FieldWidth (SymWidth + 1)
+
+procedure display_spec(dspec)
+   local lines, s, lst
+
+   /dspec := spec
+
+   lines := [
+      "Specifications:",
+      "",
+      left("Name", FieldWidth) || dspec.Name,
+      left("Modulus", FieldWidth) || dspec.Modulus,
+      left("Width", FieldWidth) || dspec.Width,
+      left("Height", FieldWidth) || dspec.Height,
+      left("Top Row", FieldWidth) || dspec.Top,
+      left("Left Column", FieldWidth) || dspec.Left,
+      left("Neighbors", FieldWidth) || dspec.Neighbors,
+      left("Colors", FieldWidth) || dspec.Colors,
+      left("Comments", FieldWidth) || (\dspec.Comments | "")
+      ]
+
+   if *dspec.Defns > 0 then {
+      put(lines, "", "Definitions:", "")
+      every put(lines, left(s := !keylist(dspec.Defns), FieldWidth) ||
+         (\dspec.Defns[s] | "") \ 1)
+      }
+
+   if *dspec.Links > 0 then {
+      put(lines, "",  "Links:", "")
+      every put(lines, !dspec.Links)
+      }
+
+   Notice ! lines
+
+   return
+
+end
+
+#  Write all specifications in include form
+
+procedure dump_all()
+   local spec
+   static dump_file
+
+   repeat {
+      case OpenDialog("Save database as text:", dump_file) of {
+         "Okay" :  {
+            every spec := database[!db_entries] do
+               write_spec(dialog_value, spec)
+            dump_file := dialog_value
+            return
+            }
+         "Cancel":  fail
+         }
+      }
+
+end
+
+#  Duplicate the current specification and make it current.
+
+procedure dupl_spec()
+
+   spec := copy(spec)
+   spec.Defns := copy(spec.Defns)
+   refresh_defs()
+   name_spec(1)			# nonnull means don't delete the old one
+   refresh_db()
+
+   return
+
+end
+
+#  Items for the File menu.
+
+procedure file_cb(vidgets, value)
+
+   case value[1] of {
+      "generate  @G":  create_cb()
+      "display   @D":  doptions()
+      "options   @O":  foptions()
+      "quit      @Q":  quit()
+      }
+
+   return
+
+end
+
+#  Display options.
+
+procedure doptions()
+
+   if ToggleDialog("Specify display options:", dopt_list, dset_list) ==
+      "Cancel" then fail
+   else {
+      dset_list := dialog_value
+      return
+      }
+
+end
+
+#  Display options.
+
+procedure foptions()
+
+   if ToggleDialog("Specify generation options:", fopt_list, fset_list) ==
+      "Cancel" then fail
+   else {
+      fset_list := dialog_value
+      return
+      }
+
+end
+
+#  Set the carpet height.
+
+procedure height()
+
+   repeat {
+      case TextDialog("Height:", , spec.Height, NameWidth,
+         ["Default", "Okay", "Cancel"], 2) of {
+            "Cancel" :  fail
+            "Default":  {
+               spec.Height := HeightDefault
+               next
+               }
+            "Okay"   :  {
+               spec.Height := dialog_value[1]
+               break
+               }
+            }
+      }
+
+   return
+
+end
+
+#  Initialize the application.
+
+procedure init()
+   local atts
+
+   atts := ui_atts()
+   push(atts, "posx=10", "posy=10")
+
+   (WOpen ! atts) | ExitNotice("Cannot open interface window.")
+
+   vidgets := ui()
+
+   database := table()
+   new_spec()
+
+   db_file := &null
+   touched := &null
+
+   dopt_list := [		# list of display options
+      "mirror",			# show mirror image
+      "hidden",			# hide images
+      "save carpet",		# save carpet image automatically
+      "save mirror",		# save mirror image automatically
+      "dialogs",		# provide dialogs
+      "background"		# run in background
+      ]
+   dset_list := list(*dopt_list)	# choices
+   dset_list[1] := 1		# initially only enable mirroring
+
+   fopt_list := [		# list of generation options
+      "wrap",			# wrap edges
+      "randomize",		# randomize
+      "two pass"		# two-pass generation
+      ]
+   fset_list := list(*fopt_list)	# choices
+
+   return
+
+end
+
+#  Edit the left-side expression.
+
+procedure left_expr()
+
+   repeat {
+      case TextDialog("Left:", , spec.Left, ExprWidth,
+         ["Define", "Default", "Okay", "Cancel"], 3) of {
+            "Define" :  {
+               define(dialog_value[1])
+               break
+               }
+            "Cancel" :  fail
+            "Default":  {
+               spec.Left := LeftDefault
+               next
+               }
+            "Okay"   :  {
+               spec.Left := dialog_value[1]
+               break
+               }
+            }
+      }
+
+   return
+
+end
+
+#  Items for the Link menu.
+
+procedure link_cb(vidget, value)
+
+   case value[1] of {
+      "add      ^@A":  add_link()
+      "clear    ^@C":  clear_links()
+      }
+
+   return
+
+end
+
+#  Callback for selection of an item from the links text-list.
+
+procedure links_cb(vidget, value)
+   local i, j, tmp
+
+   if /value then return		# deselected item
+
+   case TextDialog("Link: " || value, , , , ["Remove", "Cancel"], 1) of {
+         "Remove":  {
+            i := VGetState(vidgets["links"])[2]	# second element is line number
+            tmp := []
+            every (j := 1 to i - 1) | (j := i + 1 to *spec.Links) do
+               put(tmp, spec.Links[j])
+            spec.Links := tmp
+            refresh_links()
+            }
+         "Cancel":  fail
+         }
+
+   return
+
+end
+
+#  Load a carpet database.  If sw is null, it replaces the current database.
+#  If sw is one, it is merged with the current database.  If sw is 2, the
+#  database reverts to the last one loaded.
+
+procedure load_db(sw)
+   local input, tbl, caption
+
+   caption := if sw === 2 then {
+      if \touched & \db_file then "Revert to last saved database?"
+      else {
+         Notice("Revert not possible or not necessary.")
+         fail
+         }
+      }
+   else "Load database:"
+
+   repeat {
+      if OpenDialog(caption, db_file) == "Cancel" then fail
+      input := open(dialog_value) | {
+         Notice("Cannot open database.")
+         next
+         }
+      tbl := xdecode(input) | {
+         Notice("Cannot decode carpet database.")
+         next
+         }
+      db_file := dialog_value
+      close(input)
+      database := if sw === 1 then tblunion(database, tbl) else tbl
+      refresh_db(1)
+      spec := database[db_entries[1]]
+      return
+      }
+
+end
+
+#  Load definitions file.
+
+procedure load_defs(sw)
+   local input, tbl
+
+   repeat {
+      if OpenDialog("Specify definition file:") == "Cancel" then fail
+      input := open(dialog_value) | {
+         Notice("Cannot open definitions file.")
+         next
+         }
+      tbl := xdecode(input) | {
+         Notice("Cannot decode definitions.")
+         next
+         }
+      spec.Defns := if /sw then tbl else tblunion(spec.Defns, tbl)
+      close(input)
+      refresh_defs()
+      return
+      }
+
+end
+
+#  Edit the modulus.
+
+procedure modulus()
+
+   repeat {
+      case TextDialog("Modulus:", , spec.Modulus, NameWidth,
+         ["Default", "Okay", "Cancel"], 2) of {
+            "Cancel" :  fail
+            "Default":  {
+               spec.Modulus := ModulusDefault
+               next
+               }
+            "Okay"   :  {
+               spec.Modulus := dialog_value[1]
+               break
+               }
+            }
+      }
+
+   return
+
+end
+
+procedure colors()
+
+   repeat {
+      case TextDialog("Colors:", , spec.Colors, ExprWidth,
+         ["Default", "Okay", "Cancel"], 2) of {
+            "Cancel" :  fail
+            "Default":  {
+               spec.Colors := ColorsDefault
+               next
+               }
+            "Okay"   :  {
+               spec.Colors := dialog_value[1]
+               break
+               }
+            }
+      }
+
+   return
+
+end
+
+#  Edit the specification name.
+
+procedure name_spec(sw)
+   local old_name
+
+   old_name := spec.Name
+
+   if OpenDialog("Name:", spec.Name) == "Cancel" then fail
+   else {
+       spec.Name := dialog_value
+       database[dialog_value] := spec
+       if /sw then delete(database, old_name)
+       refresh_db()
+       }
+
+   return
+
+end
+
+#  Edit the neighbors expression.
+
+procedure neighbors()
+
+   repeat {
+      case TextDialog("Neighborhood:", , spec.Neighbors, ExprWidth,
+         ["Define", "Default", "Okay", "Cancel"], 3) of {
+            "Define" :  {
+               define(dialog_value[1])
+               break
+               }
+            "Cancel" :  fail
+            "Default":  {
+               spec.Neighbors := NeighborsDefault
+               next
+               }
+            "Okay"   :  {
+               spec.Neighbors := dialog_value[1]
+               break
+               }
+            }
+      }
+
+   return
+
+end
+
+#  Create a fresh, empty definitions table.
+
+procedure new_defs()
+
+   spec.Defns := table()
+   refresh_defs()
+
+   return
+
+end
+
+#  Create a fresh, empty links list.  ??? what about clear_links()?
+
+procedure new_links()
+
+   spec.Links := LinksDefault
+   refresh_links()
+
+   return
+
+end
+
+#  Create a new carpet specification from the default.
+
+procedure new_spec()
+
+   spec := carpet()
+   spec.Name := NameDefault
+   spec.Width := WidthDefault
+   spec.Height := HeightDefault
+   spec.Modulus := ModulusDefault
+   spec.Top := TopDefault
+   spec.Left := LeftDefault
+   spec.Neighbors := NeighborsDefault
+   spec.Colors := ColorsDefault
+   spec.Comments := &dateline
+
+   new_defs()
+   new_links()
+
+   database[spec.Name] := spec
+   refresh_db()
+
+   return
+
+end
+
+#  Items for the Parameters menu.
+
+procedure edit_cb(vidget, value)
+
+   case value[1] of {
+      "modulus   @M":  modulus()  
+      "width     @W":  width()
+      "height    @H":  height()
+      "top       @T":  top_expr()
+      "left      @L":  left_expr()
+      "neighbors @N":  neighbors()
+      "colors    @C":  colors()
+      "name      @I":  name_spec()
+      "comments  @K":  comments()
+      }
+
+   return
+
+end
+
+#  Quit the application.
+
+procedure quit()
+
+   if /touched then exit()
+
+   case SaveDialog("Save database?", db_file) of {
+      "Cancel":  fail
+      "No"    :  exit()
+      "Yes"   :  {
+         save_db()
+         exit()
+         }
+      }
+
+   return
+
+end
+
+#  Refresh the carpet database.
+
+procedure refresh_db(sw)
+
+   VSetItems(vidgets["db"], db_entries := keylist(database))
+
+   if sw === 1 then spec := database[db_entries[1]]
+
+   update()
+
+   if /sw then touched := 1
+
+   return
+
+end
+
+#  Refresh the table of definitions.
+
+procedure refresh_defs()
+
+   VSetItems(vidgets["defs"], def_entries := keylist(spec.Defns))
+
+   touched := 1
+
+   return
+
+end
+
+#  Refresh the list of links.
+
+procedure refresh_links()
+
+   VSetItems(vidgets["links"], sort(spec.Links))
+
+   touched := 1
+
+   return
+
+end
+
+#  Save the current database to a specified file.
+
+procedure save_as_db()
+   local output, file
+
+   repeat {
+      if OpenDialog("Save database:", db_file) == "Cancel" then fail
+      file := dialog_value
+      if exists(file) then {
+         if TextDialog("Overwrite existing file?") == "Cancel" then next
+         }
+      output := open(file, "w") | {
+         Notice("Cannot open database file for writing.")
+         next
+         }
+      db_file := file
+      xencode(database, output)
+      close(output)
+      touched := &null
+      return
+      }
+
+end
+
+#  Save the current database
+
+procedure save_db()
+   local output
+
+   if /db_file then return save_as_db()
+
+   output := open(db_file, "w") | {
+      Notice("Cannot write database file.")
+      fail
+      }
+
+   xencode(database, output)
+
+   close(output)
+
+   touched := &null
+
+   return
+
+end
+
+#  Save the current table of definitions to a file.
+
+procedure save_defs()
+   local output, file
+
+   repeat {
+      if OpenDialog("Defns file:") == "Cancel" then fail
+      file := dialog_value
+      if exists(file) then {
+         if TextDialog("Overwrite existing file?") == "Cancel" then next
+         }
+      output := open(file, "w") | {
+         Notice("Cannot open definitions file for writing.")
+         next
+         }
+      xencode(spec.Defns, output)
+      close(output)
+      return
+      }
+
+end
+
+#  Save the current specification as an include file.
+
+procedure save_spec()
+   static file
+
+   initial file := "untitled.cpt"
+
+   repeat {
+      if TextDialog("Save specifications:", ["name", "comments", "file"],
+         [spec.Name, spec.Comments, file], NameWidth) == "Cancel" then fail
+      spec.Name := dialog_value[1]
+      spec.Comments := dialog_value[2]
+      write_spec(dialog_value[3], spec) | {
+         Notice("Cannot write specification.")
+         next
+         }
+      file := dialog_value[3]
+      return
+      }
+
+end
+
+#  Keyboard shortcuts.
+
+procedure shortcuts(e)
+
+   if e === "\r" then create_cb()	# quick generation initiation
+   else if &meta then case map(e, &lcase, &ucase) of {
+      "A"  :  add_def()
+      "C"  :  colors()
+      "D"  :  doptions()
+      "F"  :  load_defs()
+      "G"  :  create_cb()
+      "H"  :  height()
+      "I"  :  name_spec()
+      "J"  :  load_defs(1)
+      "K"  :  comments()
+      "L"  :  left_expr()
+      "M"  :  modulus()
+      "N"  :  neighbors()
+      "O"  :  foptions()
+      "Q"  :  quit()
+      "R"  :  show_colors()
+      "S"  :  save_defs()
+      "T"  :  top_expr()
+      "W"  :  width()
+      "X"  :  create_cb()
+      "Y"  :  display_defs()
+      "Z"  :  clear_defs()
+      "\^A":  add_link()
+      "\^C":  clear_links()
+      "\^D":  dupl_spec()
+      "\^L":  load_db()
+      "\^M":  load_db(1)
+      "\^N":  new_spec()
+      "\^R":  load_db(2)
+      "\^S":  save_db()
+      "\^T":  save_as_db()
+      "\^W":  save_spec()
+      "\^X":  dump_all()
+      "\^Y":  display_spec()
+      "\^Z":  clear_db()
+      }
+
+   return
+
+end
+
+procedure show_colors()
+   local colors
+
+   colors := draw_colors(carpcolr(spec.Colors)) | {
+      Notice("Invalid color specification.")
+      fail
+      }
+
+   WAttrib(colors, "label=" || spec.Colors)
+
+   Event(colors)
+
+   WClose(colors)
+
+   Raise()
+
+   return
+
+end
+
+#  Items for the Specification menu.
+
+procedure specification_cb(vidget, value)
+
+   case value[1] of {
+      "new      ^@N":  new_spec()
+      "copy     ^@D":  dupl_spec()
+      "display  ^@Y":  display_spec()
+      "write    ^@W":  save_spec()
+      }
+
+   return
+
+end
+
+#  Edit the top-row specification.
+
+procedure top_expr()
+
+   repeat {
+      case TextDialog("Top:", , spec.Top, ExprWidth,
+         ["Define", "Default", "Okay", "Cancel"], 3) of {
+            "Define" :  {
+               define(dialog_value[1])
+               break
+               }
+            "Cancel" :  fail
+            "Default":  {
+               spec.Top := TopDefault
+               next
+               }
+            "Okay"   :  {
+               spec.Top := dialog_value[1]
+               break
+               }
+            }
+     }
+
+   return
+
+end
+
+#  Update the name of the current specification on the interface.
+
+procedure update()
+   static previous_name, sx, sy
+
+   initial {
+      sx := vidgets["placeholder"].ax
+      sy := vidgets["placeholder"].ay
+      }
+
+   #  Update selection information on interface.
+
+   WAttrib("drawop=reverse")
+
+   DrawString(sx, sy, \previous_name)
+   DrawString(sx, sy, spec.Name)
+
+   WAttrib("drawop=copy")
+
+   previous_name := spec.Name
+
+   return
+
+end
+
+#  Edit the width of the carpet.
+
+procedure width()
+
+   repeat {
+      case TextDialog("Width:", , spec.Width, NameWidth,
+         ["Default", "Okay", "Cancel"], 2) of {
+            "Cancel" :  fail
+            "Default":  {
+               spec.Width := WidthDefault
+               next
+               }
+            "Okay"   :  {
+               spec.Width := dialog_value[1]
+               break
+               }
+            }
+      }
+
+   return
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=457,276", "bg=gray-white", "label=carpets"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,457,276:carpets",],
+   ["current label:Label:::15,253,161,13:current specification: ",],
+   ["database:Menu:pull::35,0,64,21:Database",database_cb,
+      ["load     ^@L","merge    ^@J","save     ^@S","save as  ^@T","clear    ^@Z",
+      "revert   ^@R"]],
+   ["db:List:w::15,41,125,160:",db_cb],
+   ["definitions:Menu:pull::234,0,85,21:Definitions",definitions_cb,
+      ["add       @A","load      @F","merge     @J","save      @S","clear     @Z"]],
+   ["definitions:Label:::166,209,98,13: definitions  ",],
+   ["defs:List:w::160,41,125,160:",defs_cb],
+   ["edit:Menu:pull::99,0,36,21:Edit",edit_cb,
+      ["modulus   @M","width     @W","height    @H","top       @T","left      @L",
+      "neighbors @N","colors    @C","name      @I","comments  @K"]],
+   ["file:Menu:pull::0,0,36,21:File",file_cb,
+      ["generate  @G","display   @D","options   @O","quit      @Q"]],
+   ["line1:Line:::0,21,457,21:",],
+   ["line2:Line:::0,238,458,238:",],
+   ["link:Menu:pull::320,0,43,21:Links",link_cb,
+      ["add      ^@A","clear    ^@C"]],
+   ["link:Label:::313,209,98,13:     links    ",],
+   ["links:List:w::308,41,125,160:",links_cb],
+   ["placeholder:Label:::180,264,35,13:     ",],
+   ["specification:Menu:pull::135,0,99,21:Specification",specification_cb,
+      ["new      ^@N","copy     ^@D","display  ^@Y","write    ^@W"]],
+   ["specifications:Label:::21,209,98,13:specifications",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

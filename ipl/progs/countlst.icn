@@ -1,0 +1,69 @@
+############################################################################
+#
+#	File:     countlst.icn
+#
+#	Subject:  Program to count items in a list
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 30, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This program counts the number times each line of input occurs and
+#  writes a summary.
+#
+#     With no option, the output is sorted first by decreasing count and within
+#  each count, alphabetically. With the option -a, the output is sorted
+#  alphabetically.
+#
+#  The option -t prints a total at the end.
+#
+############################################################################
+#
+#  Links: adlutils, options
+#
+############################################################################
+
+link adlutils, options
+
+procedure main(args)
+   local line_count, counter, lines, opts, sort_method, line, total, count
+
+   line_count := table(0)		# counts for each line
+   counter := table()			# lists of lines for each count
+   total := 0				# total number of lines
+
+   opts := options(args,"at")
+   sort_method := opts["a"]
+
+   while line_count[read()] +:= 1 do
+      total +:= 1
+       
+   if \sort_method then {		# alphabetical sort
+      line_count := sort(line_count,3)
+      while write(get(line_count),"\t",get(line_count))
+      }
+   else { 				# numerical sort, then alpha
+      line_count := sort(line_count,4)
+   
+      while count := pull(line_count) do {
+         /counter[count] := []
+         put(counter[count],pull(line_count))
+         }
+   
+      counter := sort(counter,3)
+   
+      while lines := sort(pull(counter)) do {
+         count := pull(counter)
+         every write(!lines,"\t",count)
+         }
+     }
+
+   if \opts["t"] then write("\ntotal\t",total)
+
+end

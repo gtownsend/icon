@@ -1,0 +1,48 @@
+############################################################################
+#
+#	File:     colrspec.icn
+#
+#	Subject:  Procedure to produce VRML color specifications
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 3, 1997
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  wopen
+#
+############################################################################
+
+link wopen
+
+procedure colrspec(s)
+   local color
+   static max, win
+
+   initial {
+      max := real(2 ^ 16 - 1)
+      WOpen("canvas=hidden")
+      }
+
+   color := ""
+
+   ColorValue(s) ? {
+      every 1 to 3 do {
+         color ||:= (tab(upto(",") | 0) / max) || " "
+         move(1)
+         }
+      return color
+      }
+
+   fail
+
+end

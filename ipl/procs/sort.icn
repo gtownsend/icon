@@ -1,0 +1,170 @@
+###########################################################################
+#
+#	File:     sort.icn
+#
+#	Subject:  Procedures for sorting
+#
+#	Authors:  Bob Alexander, Richard L. Goerwitz, and Ralph E. Griswold
+#
+#	Date:     September 10, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	isort(x, p)
+#		customized sort in which procedure p is used for
+#		comparison.
+#
+#	sortff(L, fields[])
+#		like sortf(), except takes an unlimited number of field
+#		arguments.
+#
+#	sortgen(T, m)
+#		generates sorted output in a manner specified by m:
+#
+#			"k+"	sort by key in ascending order
+#			"k-"	sort by key in descending order
+#			"v+"	sort by value in ascending order
+#			"v-"	sort by value in descending order
+#
+#	sortt(T, i)
+#		like sort(T, i) but produces a list of two-element records
+#		instead of a list of two-element lists.
+#
+############################################################################
+#
+#  Customizable sort procedure for inclusion in Icon programs.
+#
+#       isort(x,keyproc,y)
+#
+#  Argument x can be any Icon data type that is divisible into elements
+#  by the unary element generation (!) operator.  The result is a list
+#  of the objects in sorted order.
+#
+#  The default is to sort elements in their natural, Icon-defined order.
+#  However, an optional parameter (keyproc) allows a sort key to be
+#  derived from each element, rather than the default of using the
+#  element itself as the key.  Keyproc can be a procedure provided by
+#  the caller, in which case the first argument to the key procedure is
+#  the item for which the key is to be computed, and the second argument
+#  is isort's argument y, passed unchanged.  The keyproc must produce
+#  the extracted key.  Alternatively, the keyproc argument can be an
+#  integer, in which case it specifies a subscript to be applied to each
+#  item to produce a key.  Keyproc will be called once for each element
+#  of structure x.
+#
+############################################################################
+
+procedure isort(x,keyproc,y)
+   local items,item,key,result
+   if y := integer(keyproc) then
+	 keyproc := proc("[]",2)
+   else /keyproc := 1
+   items := table()
+   every item := !x do {
+      key := keyproc(item,y)
+      (/items[key] := [item]) | put(items[key],item)
+      }
+   items := sort(items,3)
+   result := []
+   while get(items) do every put(result,!get(items))
+   return result
+end
+
+#
+# sortff:  structure [x integer [x integer...]] -> structure
+#          (L, fields...) -> new_L
+#
+#     Where L is any subscriptable structure, and fields are any
+#     number of integer subscripts in any desired order.  Returns
+#     a copy of structure L with its elements sorted on fields[1],
+#     and, for those elements having an identical fields[1], sub-
+#     sorted on field[2], etc.
+#
+
+procedure sortff(L, fields[])		#: sort on multiple fields
+    *L <= 1 & { return copy(L) }
+    return sortff_1(L, fields, 1, [])
+end
+
+procedure sortff_1(L, fields, k, uniqueObject)
+
+    local sortField, cachedKeyValue, i, startOfRun, thisKey
+
+    sortField := fields[k]
+    L := sortf(L, sortField)	# initial sort using fields[k]
+    #
+    #  If more than one sort field is given, use each field successively
+    #  as the current key, and, where members in L have the same value for
+    #  this key, do a subsort using fields[k+1].
+    #
+    if fields[k +:= 1] then {
+        #
+        #  Set the equal-key-run pointer to the start of the list and
+        #  save the value of the first key in the run.
+        #
+	startOfRun := 1
+	cachedKeyValue := L[startOfRun][sortField] | uniqueObject
+	every i := 2 to *L do {
+	    thisKey := L[i][sortField] | uniqueObject
+	    if not (thisKey === cachedKeyValue) then {
+	        #
+	        # We have an element with a sort key different from the
+	        # previous.  If there's a run of more than one equal keys,
+	        # sort the sublist.
+	        #
+		if i - startOfRun > 1 then {
+		    L := L[1:startOfRun] |||
+			 sortff_1(L[startOfRun:i], fields, k, uniqueObject) |||
+			 L[i:0]
+		}
+	        # Reset the equal-key-run pointer to this key and cache.
+		startOfRun := i
+		cachedKeyValue := L[startOfRun][sortField] | uniqueObject
+            }
+	}
+	#
+	#  Sort a final run if it exists.
+	#
+	if i - startOfRun > 1 then {
+	    L := L[1:startOfRun] |||
+		 sortff_1(L[startOfRun:0], fields, k, uniqueObject)
+	}
+    }
+
+    return L
+
+end
+
+procedure sortgen(T, m)		#: generate by different sorting orders
+   local L
+
+   L := sort(T, case m of {
+      "k+" | "k-":  1
+      "v+" | "v-":  2
+      })
+
+   case m of {
+      "k+" | "v+":  suspend !L
+      "k-" | "v-":  suspend L[*L to 1 by -1]
+      }
+
+end
+
+record element(key, value)
+
+procedure sortt(T, i)		#: sort to produce list of records
+   local result, k
+
+   if not(integer(i) = (1 | 2)) then runerr(205, i)
+
+   result := []
+
+   every put(result, element(k := key(T), T[k]))
+
+   return sortf(result, i)
+
+end

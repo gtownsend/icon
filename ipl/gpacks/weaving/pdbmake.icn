@@ -1,0 +1,60 @@
+############################################################################
+#
+#	File:     paletier.icn
+#
+#	Subject:  Program to build programmer-defined palettes
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 4, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program builds palette database (PDBs) from color lists.
+#
+############################################################################
+#
+#  Requires:   Version 9 graphics
+#
+############################################################################
+#
+#  Links: palettes, xcode
+#
+############################################################################
+
+link palettes
+link xcode
+
+record pdb(table)
+
+procedure main(args)
+   local file, input, clist, key_letters, line
+
+    every file := !args do {
+       input := open(file) | {
+          write(&errout, "*** cannot open ", file)
+          next
+          }
+       clist := []
+       every line := read(input) do {
+          line ?:= tab(upto('\t'))
+          put(clist, line)
+          }
+       close(input)
+       if *clist = 0 then {
+          write(&errout, "*** empty color list")
+          next
+          }
+       if *clist > 36 then key_letters := &cset
+       else key_letters := &digits || &letters
+       CreatePalette(file, key_letters[1:*clist + 1], clist) |
+          write(&errout, "*** CreatePalette() failed")
+       }
+
+    xencode(pdb(palette_names), &output)
+       
+end

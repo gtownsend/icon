@@ -1,0 +1,190 @@
+#############################################################################
+#
+#       File:     filexref.icn
+#
+#       Subject:  Program to cross-reference files by components
+#
+#       Author:   David Gamey
+#
+#       Date:     July 7, 1994
+#
+#############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  History:
+#
+#  11Jul94 - D.Gamey -  Reorganized to eliminate empty columns
+#  13Jul94 - D.Gamey -  Added dateline & total number of files
+#  29Jul94 - D.Gamey -  Page numbers in headers
+#   6Jan95 - D.Gamey -  Allow DOS wild cards to select within directories
+#  
+############################################################################
+#
+#  Usage:
+#  
+#              dir dir1 /b /a:d > dirlist
+#              filexref < dirlist
+#
+#  Note:
+#
+#              Dir does not preface its results with the parent directory
+#              - take care!
+#
+#  Options:
+#
+#     -D       Produce an ascii delimited file
+#     -h       Exclude hidden files
+#     -n       Page Length ... must be integer >= 25 
+#
+#############################################################################
+#
+#  Requires:  MS-DOS compatible operating system
+#
+############################################################################
+#
+#  Links:  io, options
+#
+############################################################################
+
+link io
+link options
+
+procedure main(arglist)
+
+local opt, diropts, dir, paths , fn, ext 
+local tempfn, tempf, file, line
+local b10, tens, header, _pl, _ppage, _fnw
+local _asciid, _exchidden 
+local _star, _dot, _sepr, _q
+local pagenum, linenum
+local N, E, D, DET, t
+
+opt   := options(arglist,"D!h!n+")              # parse command line options
+
+_asciid := opt["D"]                          # ascii delimited
+_exchidden := opt["-h"]                      # exclude hidden files
+_pl := ( 25 <= integer(\opt["n"])) | 55      # page length
+_fnw  := 10                                  # width for file name field
+_ppage := [73,4]                             # position & width of page number
+
+
+if \_asciid then 
+{
+   _star := ",\"@\""
+   _dot  := ",\" \""
+   _sepr := ","
+   _q    := "\"" 
+}
+else 
+{
+   _star := "@"
+   _dot  := "."
+   _sepr := " "
+   _q    := ""
+}
+
+if \_exchidden then 
+   diropts := " /b /a:-d-h >> "
+else
+   diropts := " /b /a:-d   >> "
+
+N := set()                                   # file names
+E := set()                                   # file extensions
+D := set()                                   # directory list
+DET := table()                               # directory - extension table
+
+if not close(open(tempfn := tempname(),"w")) then
+   stop(&errout,"Unable to create temporary file, e.g. ",tempfn)
+
+diropts ||:= tempfn
+
+while dir := read() do 
+{
+   dir := trim( dir ? tab(upto('#')) )       # strip icon style comments
+   if *dir > 0 then
+      system( "dir " || dir || diropts )
+}
+
+if not ( tempf := open(tempfn,"r") ) then
+   stop(&errout,"Unable to open(read) temporary file ",tempfn)
+
+while line := map(trim(read(tempf))) do
+{
+   file := DOS_FileParts(line)
+   /DET[file.devpath] := table()
+   /DET[file.devpath][file.extension] := set()
+   insert( DET[file.devpath][file.extension],  file.name )
+   insert( D, file.devpath )
+   insert( E, file.extension )
+   insert( N, file.name )
+}
+
+close(tempf)
+D := sort( D )
+E := sort( E )
+N := sort( N )
+
+write( _q, "File Inventory Cross-Reference Report -- ", 
+           &dateline, _q, "\r\n" )
+write( _q, "Directories Searched (cross-reference number and path):", _q )
+
+paths := 0
+every dir := !D & ext := !E do 
+   if \DET[dir][ext] then
+      write( right(paths +:= 1, 4), _sepr, _q, dir, " [", ext, "]", _q )
+
+if \_asciid then 
+{
+   write( "\r\n", _q, "Files by Directory:", _q )
+   write()
+   writes( _q,_q,_sepr, _q,_q )
+   every writes( _sepr, 1 to paths )
+   write()
+}
+else 
+{
+   header := []
+   tens := ""
+   b10 := repl(" ",10)
+   every tens ||:= (b10 || (1 to (paths / 10)))[-10:0]
+   put( header, "Files by Directory:" )
+   header[1] ||:= right("Page ",_ppage[1] - *header[1]) || repl("X",_ppage[2])
+   put( header, left("",_fnw + *_sepr) || tens )
+   put( header, 
+        left("",_fnw + *_sepr) || 
+        repl( "1234567890", (paths / 10) + 1)[1:paths+1] )
+   put( header, 
+        left("",_fnw + *_sepr) || 
+        repl( "----+----|", (paths / 10) + 1)[1:paths+1] )
+}
+
+linenum := pagenum := 0
+every fn := !N do 
+{
+   if \header & ( ( ( linenum +:= 1 ) % _pl ) = 1 ) then 
+   {
+      pagenum +:= 1 
+      writes( "\f" )
+      header[1][-_ppage[2]:0] := right(pagenum,_ppage[2])
+      every write( !header ) do linenum +:= 1
+   }
+   writes( _q,_q,_sepr, _q,left( fn, _fnw),_q )
+   every ( dir := !D ) & ( ext := !E ) do 
+   {
+      if ( t := \DET[dir][ext] ) then
+         if member( t, fn ) then
+            writes( _star )
+         else
+            writes( _dot  )
+   }
+   write()
+}
+
+write()
+write( _q, "Total files in inventory is ", _q, _sepr, *N )
+
+exit(0)
+end

@@ -1,0 +1,109 @@
+############################################################################
+#
+#	Name:	concord.icn
+#
+#	Title:	Produce concordance
+#
+#	Author:	Ralph E. Griswold
+#
+#	Date:	December 22, 1989
+#
+############################################################################
+#
+#     This program produces a simple concordance from standard input to standard
+#  output. Words less than three characters long are ignored.
+#
+#     There are two options:
+#
+#	-l n	set maximum line length to n (default 72), starts new line
+#	-w n	set maximum width for word to n (default 15), truncates
+#
+#     There are lots of possibilities for improving this program and adding
+#  functionality to it. For example, a list of words to be ignored could be
+#  provided.  The formatting could be made more flexible, and so on.
+#
+############################################################################
+#
+#     Note that the program is organized to make it easy (via item()) to
+#  handle other kinds of tabulations.
+#
+############################################################################
+#
+#  Links: options, post
+#
+############################################################################
+
+link options, post
+
+global uses, colmax, namewidth, lineno
+
+procedure main(args)
+   local opts, uselist, name, line
+
+   Init__("concord")
+
+   opts := options(args, "l+w+")		# process options
+   colmax := \opts["l"] | 72
+   namewidth := \opts["w"] | 15
+   uses := table("")
+   lineno := 0
+   every tabulate(item(), lineno)		# tabulate all the citations
+   uselist := sort(uses, 3)			# sort by uses
+   while name := get(uselist) do
+      format(left(name, namewidth) || get(uselist))
+
+   Term__()
+end
+
+#  Add line number to citations for name. If it already has been cited, 
+#  add (or increment) the number of citations.
+#
+procedure tabulate(name, lineno)
+   local new, count, number
+   lineno := string(lineno)
+   new := ""
+   uses[name] ? {
+      while new ||:= tab(upto(&digits)) do {
+         number := tab(many(&digits))
+         new ||:= number
+         }
+      if /number | (number ~== lineno)
+         then uses[name] ||:= lineno || ", "		# new line number
+      else {
+         if ="(" then count := tab(upto(')')) else count := 1
+         uses[name] := new || "(" || count + 1 || "), "
+         }
+      }
+end
+
+#  Format the output, breaking long lines as necessary.
+#
+procedure format(line)
+   local i
+   while *line > colmax + 2 do {
+      i := colmax + 2
+      until line[i -:= 1] == " "				# back off to break point
+      write(line[1:i])
+      line := repl(" ", namewidth) || line[i + 1:0]
+      }
+   write(line[1:-2])
+end
+
+#  Get an item. Different kinds of concordances can be obtained by
+#  modifying this procedure.
+#
+procedure item()
+   local i, word, line
+   while line := read() do {
+      lineno +:= 1
+      write(right(lineno, 6), "  ", line)
+      line := map(line)				# fold to lowercase
+      i := 1
+      line ? {
+         while tab(upto(&letters)) do {
+            word := tab(many(&letters))
+            if *word >= 3 then suspend word		# skip short words
+            }
+         }
+      }
+end

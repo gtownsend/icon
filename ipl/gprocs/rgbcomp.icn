@@ -1,0 +1,98 @@
+############################################################################
+#
+#	File:     rgbcomp.icn
+#
+#	Subject:  Procedures to perform computations on RGB values
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 14, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  rgbsum(s1, s2) returns a color whose RGB components are the sums of the
+#  components for s1 and s2.
+#
+#  rgbdif(s1, s2) returns a color whose RGB components are the differences of
+#  the components for s1 and s2. 
+#
+#  rgbavg(s1, s2) returns a color whose RGB components are the averages of
+#  the components for s1 and s2.
+#
+#  rsgcomp(s) returns the color that is the complement of s.
+#
+#  The results may not be what's expected in some cases.
+#
+############################################################################
+#
+#  Requires:   Version 9 graphics
+#
+############################################################################
+#
+#  Links:  numbers, rgbrec
+#
+############################################################################
+
+link numbers
+link rgbrec
+
+$define MaxIntensity (2 ^ 16 - 1)
+
+procedure rgbsum(s1, s2)
+   local rgb1, rgb2
+
+    rgb1 := rgbrec(s1) | fail
+    rgb2 := rgbrec(s2) | fail
+
+   return rgbrec(
+      max(rgb1.r + rgb2.r, MaxIntensity),
+      max(rgb1.g + rgb2.g, MaxIntensity),
+      max(rgb1.b + rgb2.b, MaxIntensity)
+      )
+
+end
+
+procedure rgbdif(s1, s2)
+   local rgb1, rgb2
+
+    rgb1 := rgbrec(s1) | fail
+    rgb2 := rgbrec(s2) | fail
+
+   return rgbrec(
+      min(rgb1.r - rgb2.r, 0),
+      min(rgb1.g - rgb2.g, 0),
+      min(rgb1.b - rgb2.b)
+      )
+
+end
+
+procedure rgbavg(s1, s2)
+   local rgb1, rgb2
+
+    rgb1 := rgbrec(s1) | fail
+    rgb2 := rgbrec(s2) | fail
+
+   return rgbrec(
+      (rgb1.r + rgb2.r) / 2,
+      (rgb1.g + rgb2.g) / 2,
+      (rgb1.b + rgb2.b) / 2
+      )
+
+end
+
+procedure rgbcomp(s)
+   local rgb
+
+    rgb := rgbrec(s) | fail
+
+   return rgbrec(
+      MaxIntensity - rgb.r,
+      MaxIntensity - rgb.g,
+      MaxIntensity - rgb.b
+      )
+
+end

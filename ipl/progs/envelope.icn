@@ -1,0 +1,191 @@
+############################################################################
+#
+#	File:     envelope.icn
+#
+#	Subject:  Program to address envelopes
+#
+#	Author:   Ronald Florence
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.1
+#
+############################################################################
+#  
+#  This program addresses envelopes on a Postscript or HP-LJ printer,
+#  including barcodes for the zip code.  A line beginning with `#' or
+#  an optional alternate separator can be used to separate multiple
+#  addresses.  The parser will strip the formatting commands from an
+#  address in a troff or LaTeX letter.
+#
+#  usage: envelope [options] < address(es)
+#  
+#  Typically, envelope is used from inside an editor.  In emacs, mark
+#  the region of the address and do
+#	M-| envelope 
+#  In vi, put the cursor on the first line of the address and do
+#	:,+N w !envelope 
+#  where N = number-of-lines-in-address.  
+#
+#  The barcode algorithm is adapted from a perl script by Todd Merriman
+#  <todd@toolz.uucp>, Dave Buck <dave@dlb.uucp>, and Andy Rabagliati
+#  <andyr@wizzy.com>.
+#
+############################################################################
+#
+#  Links: options
+#
+############################################################################
+
+link options
+global Printertype
+
+procedure main(arg)
+  local opts, lp, separator, printerinit, printerclear, 
+	hpinit, hppos, xorigin, yorigin, rotate, font, 
+	prn, addr, psprefix, preface, optstr, usage, goodline
+
+  usage := ["usage: envelope [options] < address(es)",
+	    "\t-p | -postscript",
+	    "\t-h | -hplj",
+	    "\t-l | -printer spooler-program",
+	    "\t-s | -separator string",
+	    "\t-i | -init  printer-init",
+	    "\t-c | -clear printer-clear",
+	    "\t-f | -font fontname    [Postscript only]",
+	    "\t-x | -xorigin xorigin  [Postscript only]",
+	    "\t-y | -yorigin yorigin  [Postscript only]",
+	    "\t-r | -rotate rotation  [Postscript only]",
+	    "\t-hpinit string  [hplj only]",
+	    "\t-hppos  string  [hplj only]" ]
+  psprefix := ["%! Postscript",
+               "/adline { 10 y moveto show /y y 13 sub def } def",
+               "/barcode {",
+               "  /y y 13 sub 0.72 div def",
+               "  0.72 dup scale 2 setlinewidth",
+               "  /x 100 def",
+               "  /next { x y moveto /x x 5 add def } def",
+               "  /S { next 0 5 rlineto stroke } def",
+               "  /L { next 0 12 rlineto stroke } def } def",
+               "/newenvelope {",
+               "  /y 80 def" ]
+  optstr := "hpl:f:r+i:c:x+y+s:?"
+  optstr ||:= "-help!-printer:-hpinit:-hppos:-postscript!:-font:-hplj!"
+  optstr ||:= "-rotate+-xorigin+-yorigin+-init:-clear:-separator:"
+  opts := options(arg, optstr)
+  \opts["?"|"help"] | arg[1] == "?" & { 
+    every write (!usage)
+    exit (-1)
+  }
+					# change defaults below as needed
+  Printertype := 				"hplj"
+  lp := \opts["l"|"printer"] |			"lpr"
+  separator := \opts["s"|"separator"] |		"#"
+  printerinit := \opts["i"|"init"] |	      	""
+  printerclear := \opts["c"|"clear"] |		""
+					# the next four are Postscript-only
+  xorigin := \opts["x"|"xorigin"] |		200	       
+  yorigin := \opts["y"|"yorigin"] |		400
+  rotate := \opts["r"|"rotate"] |		90
+  font := \opts["f"|"font"] |			"Palatino-Bold"
+					# these two are hplj-only
+					# comm. env., manual feed, landscape
+  hpinit := \opts["hpinit"] |			"\33&k2G\33&l81a3h1O"
+  hppos := \opts["hppos"] |			"\33&a40L\33*p550Y"
+
+  \opts["h"|"hplj"] & Printertype := "hplj"
+  \opts["p"|"postscript"] & Printertype := "postscript"
+  if "pipes" == &features then prn := open(lp, "pw")
+  else if "MS-DOS" == &features then prn := open ("PRN", "w")
+  else stop ("envelope: please configure printer")
+  writes(prn, printerinit)
+
+  if map(Printertype) == "postscript" then {
+    every write(prn, !psprefix)
+    write(prn, "  ", xorigin, " ", yorigin, " translate ", rotate, " rotate")
+    write(prn, "  /", font, " findfont 12 scalefont setfont } def")
+    preface := "newenvelope\n"
+  }
+  else preface := hpinit || hppos
+  addr := []
+  every !&input ? {
+				# filter troff junk
+    =(".DE" | ".fi") & break
+    if =(".DS" | ".nf") then tab(0)
+				# multiple addresses with separators
+    if =separator then {
+      (*addr > 0) & address(addr, prn, preface) 
+      addr := []
+      tab(0)
+    }
+				# filter LaTeX junk
+    else {
+      if ="\\begin" then { 
+	every tab(upto('{')+1) \2
+	goodline := clean(tab(0), '\\')
+      }
+      else goodline := clean(tab(0), '\\')
+      put(addr, trim(goodline, ' }'))
+    }
+  }
+  (*addr > 0) & address(addr, prn, preface)
+  writes(prn, printerclear)
+end
+
+
+procedure address(addr, prn, preface)
+  local zip, zline
+
+  zip := ""
+  writes(prn, preface)
+  every !addr ? 
+    if map(Printertype) == "postscript" then 
+      write(prn, "(", tab(0), ") adline")
+    else write(prn, tab(0))
+				# scan for zipcode
+  while *(zline := trim(pull(addr))) = 0
+  reverse(zline) ? if many(&digits++'-') = (6|11) then
+      while tab(upto(&digits)) do zip ||:= tab(many(&digits))
+  (*zip = (5|9)) & barcode(reverse(zip), prn)
+  if map(Printertype) == "postscript" then write(prn, "showpage")
+  else writes(prn, "\33E")
+end
+
+
+procedure barcode(zip, prn)
+  local z, zipstring, cksum, bar
+
+  cksum := 0
+  every cksum +:= !zip
+  zip := zip || (100 - cksum) % 10
+  bar := ["LLSSS", "SSSLL", "SSLSL", "SSLLS", "SLSSL", 
+	  "SLSLS", "SLLSS", "LSSSL", "LSSLS", "LSLSS" ]
+				# The barcode is wrapped in long marks
+  zipstring := "L"
+				# Icon lists are indexed from 1
+  every z := !zip do zipstring ||:= bar[z + 1]
+  zipstring ||:= "L"
+  if map(Printertype) == "postscript" then write(prn, "barcode")
+  else writes(prn, "\33*p990y1575X\33*c6A")	
+  every !zipstring ? 
+    if map(Printertype) == "postscript" then write(prn, tab(0))
+    else {
+      if =("S") then writes(prn, "\33*p+21Y\33*c15b0P\33*p-21Y")
+      else writes(prn, "\33*c36b0P")
+      writes(prn, "\33*p+15X")
+    }
+end
+
+
+procedure clean(s, c)
+  local i
+
+  while i := upto(c, s) do s[i:many(c,s,i)] := ""
+  return s
+end

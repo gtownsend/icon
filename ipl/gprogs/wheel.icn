@@ -1,0 +1,62 @@
+############################################################################
+#
+#	File:     wheel.icn
+#
+#	Subject:  Program to show wheel of colors
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     November 14, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     wheel displays a disk made of randomly colored sectors.  In addition
+#  to the usual window options, the number of sectors may be given.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: graphics, random
+#
+############################################################################
+
+link graphics
+link random
+
+$define BevelWidth 2
+$define WindowMargin 10
+
+procedure main(args)
+   local win, gc, w, h, m, a, da, n, ov, i, t
+
+   win := Window("size=400,400", args)
+   n := integer(args[1]) | 18
+
+   m := WindowMargin
+   w := WAttrib("width") - 2 * m
+   h := WAttrib("height") - 2 * m
+   randomize()
+
+   gc := []
+   every 1 to n do
+      put(gc, Shade(Clone(win), ?65535 || "," || ?65535 || "," || ?65535))
+   if *gc = 0 then
+      stop("can't allocate any colors")
+   if n >:= *gc then
+      write(&errout, "using only ", n, " colors")
+
+   da := 2 * &pi / n			# change in angle
+   a := -&pi / 2 - da			# current angle
+   ov := &pi / 1000			# small overlap
+
+   every i := 1 to n do
+      FillArc(gc[i], m, m, w, h, a +:= da, da + ov)
+   WDone(win)
+end

@@ -1,0 +1,146 @@
+############################################################################
+#
+#	File:     hexlib.icn
+#
+#	Subject:  Procedures for hexagons
+#
+#	Author:   Clinton Jeffery
+#
+#	Date:     August 12, 1994
+#
+#########################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This file is used by algae but is not finished or supported.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+global scale,scale2,scale4,scale5,numrows,numcols,drawsegs,drawlefts,drawrights
+global drawesegs, q, qq, wHexOutline
+
+procedure starthex(w)
+   /scale   := 10
+   /numrows := 10
+   /numcols := 10
+   scale2 := 2*scale
+   scale4 := 4*scale
+   scale5 := 5*scale
+   if (numcols % 2) = 0 then numcols +:= 1
+   every col := 0 to numcols-1 by 2 do oddcol(w,col*scale4)
+   every col := 1 to numcols-1 by 2 do evencol(w,col*scale4)
+#   DrawSegment ! drawsegs
+end
+
+procedure oddcol(w,x)
+   initial {
+      i := numrows+1
+      i6 := i * 6
+      drawlefts := list(i6+1)
+      drawrights := list(i6+1)
+      drawsegs := list(i*8+1)
+      drawlefts[1] := drawrights[1] := drawsegs[1] := w
+      q := qq := 2
+      every i := 0 to numrows do hex(x,i*scale4)
+      DrawLine ! drawlefts
+      DrawLine ! drawrights
+      DrawSegment ! drawsegs
+      return
+   }
+   q := 2
+   qq := 2
+   every i := 0 to numrows do rehex(x,i*scale4)
+   DrawLine ! drawlefts
+   DrawLine ! drawrights
+   DrawSegment ! drawsegs
+end
+
+procedure evencol(w,x)
+   initial {
+      drawesegs := list(numrows*8+1)
+      drawesegs[1] := w
+      q := 2
+      every i := 0 to numrows-1 do parthex(x,i*scale4+scale2)
+      DrawSegment ! drawesegs
+      return
+   }
+   q := 2
+   every i := 0 to numrows-1 do reparthex(x,i*scale4+scale2)
+   DrawSegment ! drawesegs
+end
+
+procedure parthex(x,y)
+   y4 := y + scale4
+   drawesegs[q+1] := y4
+   drawesegs[q+3] := y4
+   drawesegs[q+5] := y
+   drawesegs[q+7] := y
+   reparthex(x,y)
+end
+procedure reparthex(x,y)
+   x1 := x + scale
+   x4 := x + scale4
+   drawesegs[q  ] := x1
+   drawesegs[q+2] := x4
+   drawesegs[q+4] := x1
+   drawesegs[q+6] := x4
+   q +:= 8
+end
+procedure hex(x,y)
+   y2 := y + scale2
+   y4 := y + scale4
+   drawlefts[qq+1] := y
+   drawlefts[qq+3] := y2
+   drawlefts[qq+5] := y4
+   drawrights[qq+1] := y
+   drawrights[qq+3] := y2
+   drawrights[qq+5] := y4
+   drawsegs[q+1] := y4
+   drawsegs[q+3] := y4
+   drawsegs[q+5] := y
+   drawsegs[q+7] := y
+  rehex(x,y)
+end
+procedure rehex(x,y)
+   x1 := x + scale
+   x4 := x + scale4
+   drawlefts[qq] := x1
+   drawlefts[qq+2] := x
+   drawlefts[qq+4] := x1
+   drawrights[qq] := x4
+   drawrights[qq+2] := x+scale5
+   drawrights[qq+4] := x4
+   drawsegs[q] := x1
+   drawsegs[q+2] := x4
+   drawsegs[q+4] := x1
+   drawsegs[q+6] := x4
+   q +:= 8
+   qq +:= 6
+end
+
+procedure hex_spot(w, row, col)
+   x := (col-1)*scale4
+   y := (row-1)*scale4
+   if col % 2 = 0 then y +:= scale2
+   x1 := x + scale
+   x4 := x + scale4
+   x5 := x + scale5
+   y2 := y + scale2
+   y4 := y + scale4
+   FillPolygon(w, x1, y, x, y2, x1, y4, x4, y4, x5, y2, x4, y)
+   DrawLine(wHexOutline, x1, y, x, y2, x1, y4, x4, y4, x5, y2, x4, y, x1, y)
+end
+
+procedure hex_mouse(y,x)
+  if x % scale4 = 0 then fail
+  col := x / scale4 + 1
+  if col % 2 = 0 then row := (y - scale2) / scale4 + 1
+  else row := y / scale4 + 1
+  return ishift(col, 16) + row
+end

@@ -1,0 +1,67 @@
+############################################################################
+#
+#  vibdefn.icn -- manifest constants
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+
+$define PAL_H 36				# height of palette entry
+$define PAL_W 48				# width of palette entry
+
+$define SZDIM 9					# sizer dimensions
+
+$define DEFAULT_BUTTON_STYLE "regular"		# default button style
+$define MIN_W 10				# minimum object width
+$define MIN_H 10				# minimum object height
+
+$define TEXTCHARS 40				# size of hand-built text field
+$define TEXTWIDTH (20 + 7 * TEXTCHARS)		# space used for same
+$define LONGTEXT 50				# size of long text fields
+
+
+# file names and commands for prototyping
+
+$ifdef _UNIX
+$define EXECPROTO ("./" || PROTOEXE || " && rm -f " || PROTOEXE || " &")
+$endif
+
+$ifdef _VMS
+$error this configuration has not yet been tested
+$define PROTOEXE "vibproto.icx"
+$define EXECPROTO ("iconx " || PROTOEXE || " ; delete " || PROTOEXE || ";*")
+$endif
+
+$ifdef _MS_WINDOWS
+$error this configuration has not yet been tested
+$define PROTOEXE "vibproto.bat"
+$endif
+
+$ifdef _MSDOS
+$error this configuration has not yet been tested
+$define PROTOEXE "vibproto.exe"
+$endif
+
+# defaults used if not set above
+
+$ifndef PROTOFILE				# prototype file name
+$define PROTOFILE "vibproto.icn"
+$endif
+
+$ifndef PROTOEXE				# executable file name
+$define PROTOEXE "vibproto"
+$endif
+
+$ifndef BUILDPROTO				# build command
+   $ifdef _JAVA
+      $define BUILDPROTO ("jcont -s -o" || PROTOEXE || " " || PROTOFILE)
+   $else  # _JAVA
+      $define BUILDPROTO ("icont -s -o" || PROTOEXE || " " || PROTOFILE)
+   $endif  # _JAVA
+$endif
+
+$ifndef EXECPROTO				# execute command
+$define EXECPROTO PROTOEXE
+$endif

@@ -1,0 +1,59 @@
+############################################################################
+#
+#	File:     pixelmap.icn
+#
+#	Subject:  Procedure to create image from pixel list
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 23, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  pixelmap(name, p, args[]) reads the pixel list in file name and
+#  constructs an image, applying p ! args to each pixel.  If p is
+#  omitted or null, the pixels are used as-is.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  wopen
+#
+############################################################################
+
+link wopen
+
+procedure pixelmap(name, p, args[])
+   local input, width, height, x, y, win
+
+   /p := 1
+   push(args)			# place holder
+
+   input := open(name) | stop("*** cannot open pixel list")
+
+   read(input) ? {
+      ="width=" &
+      width := tab(many(&digits)) &
+      =" height=" &
+      height := tab(many(&digits))
+      } | stop("*** invalid pixel list header")
+
+   win := WOpen("width=" || width, "height=" || height)
+
+   every y := 0 to height - 1 do
+      every x := 0 to width - 1 do {
+         args[1] := read(input) | stop("*** short data in pixel list")
+         Fg(win, p ! args)
+         DrawPoint(x, y)
+         }
+
+   return win
+
+end

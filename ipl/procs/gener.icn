@@ -1,0 +1,80 @@
+############################################################################
+#
+#	File:     gener.icn
+#
+#	Subject:  Procedures to generate miscellaneous sequences
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 1, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#  These procedures generate sequences of results.
+#  
+#	days()		days of the week.
+#
+#       hex()		sequence of hexadecimal codes for numbers
+#			from 0 to 255
+#  
+#       label(s,i)	sequence of labels with prefix s starting at i
+#
+#	multii(i, j)	seqeuence of i * j i's
+#
+#	months()	months of the year
+#
+#	octal()		sequence of octal codes for numbers from 0 to 255
+#  
+#	star(s)		sequence consisting of the closure of s
+#			starting with the empty string and continuing
+#			in lexical order as given in s
+#  
+############################################################################
+
+procedure days()
+
+   suspend "Sunday" | "Monday" | "Tuesday" | "Wednesday" | "Thursday" |
+      "Friday" | "Saturday"
+
+end
+
+procedure hex()
+
+   suspend !"0123456789abcdef" || !"0123456789abcdef"
+
+end
+
+procedure label(s,i)
+
+   suspend s || (i | (i +:= |1))
+
+end
+
+procedure multii(i, j)
+
+   suspend (i to i * j) & i
+
+end
+
+procedure months()
+
+   suspend "January" | "February" | "March" | "April" | "May" | "June" |
+      "July" | "August" | "September" | "October" | "November" | "December"
+
+end
+
+procedure octal()
+
+   suspend (0 to 3) || (0 to 7) || (0 to 7)
+
+end
+
+procedure star(s)
+
+   suspend "" | (star(s) || !s)
+
+end

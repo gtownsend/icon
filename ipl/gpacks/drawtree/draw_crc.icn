@@ -1,0 +1,204 @@
+$include  "info.icn"
+
+$define Win_Size   1500
+
+# set the default for DrawTree_Circle_R
+procedure drawtree_circle_default(fg, bg)
+
+   local draw_record
+
+   draw_record                   := DrawTree_Circle_R()
+
+   draw_record.window_size       := Win_Size
+   if /fg then draw_record.fg    := FG else draw_record.fg := fg
+   if /bg then draw_record.bg    := BG else draw_record.bg := bg
+   draw_record.color_list        := COLOR_LIST
+   draw_record.color_list_u      := COLOR_LIST_U
+   draw_record.num_color         := 4     # take this out
+   draw_record.win               := WOpen("canvas=hidden", "size=" || Win_Size || "," || Win_Size,
+                                           "bg=" || draw_record.bg, "fg=" || draw_record.fg) 
+   draw_record.radius            := 20
+   draw_record.space             := 18
+   draw_record.linewidth         := 2
+   draw_record.gap               := 2
+   draw_record.generation        := 0
+   draw_record.num_children_code := &null
+   draw_record.tree              := &null
+   draw_record.color_children    := &null
+
+   draw_record.menu := ["background", format_circle_cb, "color list", 
+                         format_circle_cb, "radius", format_circle_cb, 
+                         "space", format_circle_cb, "tree", format_circle_cb,
+                         "gap", format_circle_cb, "generation", format_circle_cb,
+                         "color format", format_circle_cb, "# of children", format_circle_cb,
+                         "snapshot", format_circle_cb]
+
+   return draw_record
+
+end
+
+
+
+# draw the tree in a circle gapd with line between each node
+procedure drawtree_circle(draw_record, children)
+
+   local win, id, radius, angle, num
+
+   win := Clone(draw_record.win)
+   EraseArea(win)
+
+   \draw_record.num_children_code & num := children.num_children / *draw_record.color_list
+
+   # draw all the children
+   every id := 0 to children.num_children do
+   {
+      /num & Fg(win, draw_record.color_list_u[(draw_record.color_list[(children.all[id].generation) % 
+              draw_record.num_color + 1])])
+      \num & Fg(win, draw_record.color_list_u[draw_record.color_list[
+                     integer((children.all[id].children_num / num) + 1)]]) |
+             Fg(win, draw_record.color_list_u[draw_record.color_list[
+                     integer((children.all[id].children_num / num))]]) 
+      \draw_record.color_children & draw_record.color_children == *children.all[id].children_id &
+             Fg(win, "gray")
+      radius := children.all[id].generation * draw_record.radius
+      angle  := children.all[id].bound - children.all[id].base
+      every DrawCircle(win, draw_record.window_size/2, 
+                       draw_record.window_size/2, 
+                       radius to radius + draw_record.space, 
+                       children.all[id].base, angle)
+   }
+
+   if draw_record.gap ~== 0 then {
+      WAttrib(win, "dx=" || (draw_record.window_size/2), 
+                "dy=" || (draw_record.window_size/2))
+      WAttrib(win, "linewidth=" || draw_record.gap)
+      Fg(win, draw_record.bg)
+
+      # gap the children
+      every id := 1 to children.num_children do
+      {   
+         radius := children.all[id].generation * draw_record.radius
+         DrawLine(win, (cos(children.all[id].base)*radius), 
+                     (sin(children.all[id].base)*radius), 
+                     (cos(children.all[id].base)*(radius+draw_record.space)),
+                     (sin(children.all[id].base)*(radius+draw_record.space)))
+      }
+   }
+
+  if draw_record.generation > 0 then drawtree_circle_radius_find(draw_record, children)
+  \draw_record.tree & drawtree_circle_line(draw_record, children, 0)
+
+  return
+
+end
+
+
+# map the tree with lines
+procedure  drawtree_circle_line(draw_record, children, id)
+
+   local win, new_id, radius, new_radius, new_x, new_y, x, y
+
+   win := Clone(draw_record.win)
+   WAttrib(win, "dx=" || (draw_record.window_size/2), 
+                "dy=" || (draw_record.window_size/2))
+   WAttrib(win, "linewidth=1")
+   Fg("black")
+
+   every new_id := !children.all[id].children_id do {
+
+      radius := children.all[id].generation * draw_record.radius
+      new_radius := children.all[new_id].generation * draw_record.radius
+    
+      x := cos((children.all[id].base + children.all[id].bound)/2)*radius
+      y := sin((children.all[id].base + children.all[id].bound)/2)*radius
+      new_x := cos((children.all[new_id].base + children.all[new_id].bound)/2)*new_radius
+      new_y := sin((children.all[new_id].base + children.all[new_id].bound)/2)*new_radius
+
+      DrawLine(win, x, y, new_x, new_y)
+      FillCircle(win, x, y, 2)
+      FillCircle(win, new_x, new_y, 2)
+
+      drawtree_circle_line(draw_record, children, new_id)
+
+   }
+
+   return
+
+end
+
+
+# color code the node by the number of children
+procedure drawtree_circle_radius_find(draw_record, children)
+
+   local num, id, color_n, first, second, third, gen
+
+   gen := draw_record.generation
+   num := 0
+   every id := 0 to children.num_children do
+   {
+      if children.all[id].generation == gen then
+         num +:= 1
+   }
+
+   num := MAX_COL / num
+   color_n := BLUE
+
+   every id := 0 to children.num_children do
+   {
+      if children.all[id].generation == gen then {
+         drawtree_circle_radius(draw_record, children, id, color_n)
+         color_n ? {
+            first := tab(upto(",")); move(1)
+            second := tab(upto(",")); move(1)
+            third :=  tab(0)
+         }
+         second := integer(second) + num
+         third := integer(third) - num
+         color_n := string(first) || "," || string(second) || "," || string(third)
+     }            
+   }
+
+   return
+
+end
+      
+
+# draw the tree 
+procedure drawtree_circle_radius(draw_record, children, id, color_n)
+
+   local win, radius, angle, new_id
+
+   win := Clone(draw_record.win)
+
+   # draw all the children
+   every new_id := !children.all[id].children_id do 
+   {
+      Fg(win, color_n)
+      radius := children.all[new_id].generation * draw_record.radius
+      angle  := children.all[new_id].bound - children.all[new_id].base
+      every DrawCircle(win, draw_record.window_size/2, 
+                       draw_record.window_size/2, 
+                       radius to radius + draw_record.space, 
+                       children.all[new_id].base, angle)
+      drawtree_circle_radius(draw_record, children, new_id, color_n)
+   }
+
+   if draw_record.gap ~== 0 then {
+      WAttrib(win, "dx=" || (draw_record.window_size/2), 
+                "dy=" || (draw_record.window_size/2))
+      WAttrib(win, "linewidth=" || draw_record.gap)
+      Fg(win, draw_record.bg)
+
+      # gap the children
+      every new_id := !children.all[id].children_id do 
+      {   
+         radius := children.all[new_id].generation * draw_record.radius
+         DrawLine(win, (cos(children.all[new_id].base)*radius), 
+                     (sin(children.all[new_id].base)*radius), 
+                     (cos(children.all[new_id].base)*(radius+draw_record.space)),
+                     (sin(children.all[new_id].base)*(radius+draw_record.space)))
+      }
+   }
+
+end
+

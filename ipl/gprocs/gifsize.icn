@@ -1,0 +1,51 @@
+############################################################################
+#
+#	File:     gifsize.icn
+#
+#	Subject:  Procedure to return size of GIF file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     October 16, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure returns the size of a GIF file in the form
+#  width,height.  It fails if the file does not exist or is
+#  not a valid GIF file.
+#
+############################################################################
+#
+#  Links:  bincvt.icn
+#
+############################################################################
+
+link bincvt
+
+procedure gifsize(name)			#: size of GIF file
+   local gif, width, height
+
+   gif := open(name) | fail
+
+   repeat {			# only to provide a loop to break out of ...
+      read(gif) ? {
+         =("GIF87a" | "GIF89a") | break
+         width := move(1)
+         width := move(1) || width
+         width := unsigned(width) | break
+         height := move(1)
+         height := move(1) || height
+         height := unsigned(height) | break
+         close(gif)
+         return width || "," || height
+         } | break
+      }
+
+   close(gif)
+   fail
+
+end

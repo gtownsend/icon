@@ -1,0 +1,35 @@
+############################################################################
+#
+#	File:     paginate.icn
+#
+#	Subject:  Program to insert formfeeds
+#
+#	Author:   Paul Abrahams
+#
+#	Date:     September 28, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program processes a document text file, inserting formfeeds
+#  at appropriate places.
+#
+############################################################################
+
+procedure main()
+   local j, k, line, eof
+ 
+   while /eof do {
+      line := list(66, "")
+      every k := 1 to 66 do
+         (line[k] := read()) | (eof := 0)
+      every k := 66 to 0 by -1 do
+         if k = 0 | *trim(line[k]) > 0 then break
+      every write(line[j := 1 to k])
+      if k > 0 then
+         write("\f")
+      }
+end

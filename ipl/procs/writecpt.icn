@@ -1,0 +1,40 @@
+############################################################################
+#
+#	File:     writecpt.icn
+#
+#	Subject:  Procedure to write a "carpet" file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 7, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  write_cpt(output, carpet) writes the carpet with heading information to
+#  the specified file.
+#
+############################################################################
+#
+#  Links:  matrix
+#
+############################################################################
+
+link matrix
+
+procedure write_cpt(output, carpet)	#: convert matrix to numerical carpet
+   local min, max, i, j, width, height
+
+   width := matrix_width(carpet)
+   height := matrix_height(carpet)
+
+   write(output, "width=", width, " height=", height)
+
+   write_matrix(output, carpet)
+
+   return
+
+end

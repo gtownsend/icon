@@ -1,0 +1,421 @@
+############################################################################
+#
+#	File:     xcode.icn
+#
+#	Subject:  Procedures to save and restore Icon data
+#
+#	Author:   Bob Alexander
+#
+#	Date:     January 1, 1996
+#
+############################################################################
+#
+#	Contributor:  Ralph E. Griswold
+#
+############################################################################
+#
+#  Description
+#  -----------
+#
+#     These procedures provide a way of storing Icon values in files
+#  and retrieving them.  The procedure xencode(x,f) stores x in file f
+#  such that it can be converted back to x by xdecode(f).  These
+#  procedures handle several kinds of values, including structures of
+#  arbitrary complexity and even loops.  The following sequence will
+#  output x and recreate it as y:
+#
+#	f := open("xstore","w")
+#	xencode(x,f)
+#	close(f)
+#	f := open("xstore")
+#	y := xdecode(f)
+#	close(f)
+#
+#  For "scalar" types -- null, integer, real, cset, and string, the
+#  above sequence will result in the relationship
+#
+#	x === y
+#
+#     For structured types -- list, set, table, and record types --
+#  y is, for course, not identical to x, but it has the same "shape" and
+#  its elements bear the same relation to the original as if they were
+#  encoded and decoded individually.
+#
+#     Files, co-expressions, and windows cannot generally be restored in any
+#  way that makes much sense.  These objects are restored as empty lists so
+#  that (1) they will be unique objects and (2) will likely generate
+#  run-time errors if they are (probably erroneously) used in
+#  computation.  However, the special files &input, &output, and &errout are
+#  restored.
+#
+#     Not much can be done with functions and procedures, except to preserve
+#  type and identification.
+#
+#     The encoding of strings and csets handles all characters in a way
+#  that it is safe to write the encoding to a file and read it back.
+#
+#     xdecode() fails if given a file that is not in xcode format or it
+#  the encoded file contains a record for which there is no declaration
+#  in the program in which the decoding is done.  Of course, if a record
+#  is declared differently in the encoding and decoding programs, the
+#  decoding may be bogus.
+#
+#     xencoden() and xdecoden() perform the same operations, except
+#  xencoden() and xdecoden() take the name of a file, not a file.
+#
+############################################################################
+#
+#  Complete calling sequences
+#  --------------------------
+#
+#	xencode(x, f, p) # returns f
+#
+#	where
+#
+#		x is the object to encode
+#
+#		f is the file to write (default &output)
+#
+#		p is a procedure that writes a line on f using the
+#		  same interface as write() (the first parameter is
+#		  always a the value passed as "file") (default: write)
+#
+#
+#	xencode(f, p) # returns the restored object
+#
+#	where
+#
+#		f is the file to read (default &input)
+#
+#		p is a procedure that reads a line from f using the
+#		  same interface as read() (the parameter is
+#		  always a the value passed as "file") (default: read)
+#
+#
+#  The "p" parameter is not normally used for storage in text files, but
+#  it provides the flexibility to store the data in other ways, such as
+#  a string in memory.  If "p" is provided, then "f" can be any
+#  arbitrary data object -- it need not be a file.
+#
+#  For example, to "write" x to an Icon string:
+#
+#	record StringFile(s)
+#
+#	procedure main()
+#	   ...
+#	   encodeString := xencode(x,StringFile(""),WriteString).s
+#	   ...
+#	end
+#
+#	procedure WriteString(f,s[])
+#	  every f.s ||:= !s
+#	  f.s ||:= "\n"
+#	  return
+#	end
+#
+############################################################################
+#
+#  Notes on the encoding
+#  ---------------------
+#
+#     Values are encoded as a sequence of one or more lines written to
+#  a plain text file.  The first or only line of a value begins with a
+#  single character that unambiguously indicates its type.  The
+#  remainder of the line, for some types, contains additional value
+#  information.  Then, for some types, additional lines follow
+#  consisting of additional object encodings that further specify the
+#  object.  The null value is a special case consisting of an empty
+#  line.
+#
+#     Each object other than &null is assigned an integer tag as it is
+#  encoded.  The tag is not, however, written to the output file.  On
+#  input, tags are assigned in the same order as objects are decoded, so
+#  each restored object is associated with the same integer tag as it
+#  was when being written.  In encoding, any recurrence of an object is
+#  represented by the original object's tag.  Tag references are
+#  represented as integers, and are easily recognized since no object's
+#  representation begins with a digit.
+#
+#     Where a structure contains elements, the encodings of the
+#  elements follow the structure's specification on following lines.
+#  Note that the form of the encoding contains the information needed to
+#  separate consecutive elements.
+#
+#     Here are some examples of values and their encodings:
+#
+#       x                     encode(x)
+#  -------------------------------------------------------
+#
+#       1                     N1
+#       2.0                   N2.0
+#       &null                 
+#       "\377"                "\377"
+#       '\376\377'            '\376\377'
+#       procedure main        p
+#                             "main"
+#       co-expression #1 (0)  C
+#       []                    L
+#                             N0
+#       set()                 "S"
+#                             N0
+#       table("a")            T
+#                             N0
+#                             "a"
+#       ["hi","there"]        L
+#                             N2
+#                             "hi"
+#                             "there"
+#
+#  A loop is illustrated by
+#
+#       L2 := []
+#       put(L2,L2)
+#
+#  for which
+#
+#       x                     encode(x)
+#  -------------------------------------------------------
+#
+#       L2                    L
+#                             N1
+#                             2
+#
+#  The "2" on the third line is a tag referring to the list L2.  The tag
+#  ordering specifies that an object is tagged *after* its describing
+#  objects, thus the list L2 has the tag 2 (the integer 1 has tag 1).
+#
+#     Of course, you don't have to know all this to use xencode and
+#  xdecode.
+#
+############################################################################
+#
+#  Links:  escape
+#
+############################################################################
+#
+#  See also:  object.icn, codeobj.icn
+#
+############################################################################
+
+invocable all
+
+link escape
+
+record xcode_rec(file,ioProc,done,nextTag)
+
+procedure xencode(x,file,writeProc)	#: write structure to file
+
+   /file := &output
+   return xencode_1(
+      xcode_rec(
+	 file,
+	 (\writeProc | write) \ 1,
+	 table(),
+	 0),
+      x)
+end
+
+procedure xencode_1(data,x)
+   local tp,wr,f,im
+   wr := data.ioProc
+   f := data.file
+   #
+   #  Special case for &null.
+   #
+   if /x then {
+      wr(f)
+      return f
+      }
+   #
+   #  If this object has already been output, just write its tag.
+   #
+   if tp := \data.done[\x] then {
+      wr(f,tp)
+      return f
+      }
+   #
+   #  Check to see if it's a "distinguished" that is represented by
+   #  a keyword (special files and csets).  If so, just use the keyword
+   #  in the output.
+   #
+   im := image(x)
+   if match("integer(", im) then im := string(x)
+   else if match("&",im) then {
+      wr(f,im)
+      data.done[x] := data.nextTag +:= 1
+      return f
+      }
+   #
+   #  Determine the type and handle accordingly.
+   #
+   tp := case type(x) of {
+     "cset" | "string": ""
+     "file" | "window": "f"
+     "integer" | "real": "N"
+     "co-expression": "C"
+     "procedure": "p"
+     "external": "E"
+     "list": "L"
+     "set": "S"
+     "table": "T"
+     default: "R"
+   }
+   case tp of {
+      #
+      #  String, cset, or numeric outputs its string followed by its
+      #  image.
+      #
+      "" | "N": wr(f,tp,im)
+      #
+      #  Procedure writes "p" followed (on subsequent line) by its name
+      #  as a string object.
+      #
+      "p": {
+	 wr(f,tp)
+	 im ? {
+	    while tab(find(" ") + 1)
+	    xencode_1(data,tab(0))
+	    }
+	 }
+      #
+      #  Co-expression, file, or external just outputs its letter.
+      #
+      !"CEf": wr(f,tp)
+      #
+      #  Structured type outputs its letter followed (on subsequent
+      #  lines) by additional data.  A record writes its type as a
+      #  string object; other type writes its size as an integer object.
+      #  Structure elements follow on subsequent lines (alternating keys
+      #  and values for tables).
+      #
+      default: {
+	 wr(f,tp)
+	 case tp of {
+	    !"LST": {
+	       im ? {
+		  tab(find("(") + 1)
+		  xencode_1(data,integer(tab(-1)))
+		  }
+	       if tp == "T" then xencode_1(data,x[[]])
+	       }
+	    default: xencode_1(data,type(x))
+	    }
+	 #
+	 #  Create the tag.  It's important that the tag is assigned
+	 #  *after* other other objects that describe this object (e.g.
+	 #  the length of a list) are output (and tagged), but *before*
+	 #  the structure elements; otherwise decoding would be
+	 #  difficult.
+	 #
+	 data.done[x] := data.nextTag +:= 1
+	 #
+	 #  Output the elements of the structure.
+	 #
+	 every xencode_1(data,
+	       !case tp of {"S": sort(x); "T": sort(x,3); default: x})
+	 }
+      }
+   #
+   #  Tag the object if it's not already tagged.
+   #
+   /data.done[x] := data.nextTag +:= 1
+   return f
+end
+
+procedure xdecode(file,readProc)	#: read structure from file
+
+   /file := &input
+
+   return xdecode_1(
+      xcode_rec(
+	 file,
+	 (\readProc | read) \ 1,
+	 []))
+end
+
+#  This procedure fails if it encounters bad data
+
+procedure xdecode_1(data)
+   local x,tp,sz, i
+   data.ioProc(data.file) ? {
+      if any(&digits) then {
+	 #
+	 #  It's a tag -- return its value from the object table.
+	 #
+	 return data.done[tab(0)]
+	 }
+      if tp := move(1) then {
+	 x := case tp of {
+	    "N": numeric(tab(0))
+	    "\"": escape(tab(-1))
+	    "'": cset(escape(tab(-1)))
+	    "p": proc(xdecode_1(data)) | fail
+	    "L": list(xdecode_1(data)) | fail
+	    "S": {sz := xdecode_1(data) | fail; set()}
+	    "T": {sz := xdecode_1(data) | fail; table(xdecode_1(data)) | fail}
+	    "R": proc(xdecode_1(data))() | fail
+	    "&": case tab(0) of {
+	       #
+	       #  Special csets.
+	       #
+	       "cset":		&cset
+	       "ascii":		&ascii
+	       "digits":	&digits
+	       "letters":	&letters
+	       "lcase":		&lcase
+	       "ucase":		&ucase
+	       #
+	       #  Special files.
+	       #
+	       "input":		&input
+	       "output":	&output
+	       "errout":	&errout
+	       default:		[] # so it won't crash if new keywords arise
+	       }
+            "f" | "C": []	# unique object for things that can't
+				# be restored.
+	    default: fail
+	    }
+	 put(data.done,x)
+	 case tp of {
+	    !"LR": every i := 1 to *x do
+              x[i] := xdecode_1(data) | fail
+	    "T": every 1 to sz do
+               insert(x,xdecode_1(data),xdecode_1(data)) | fail
+	    "S": every 1 to sz do
+               insert(x,xdecode_1(data)) | fail
+	    }
+	 return x
+	 }
+      else return
+      }
+
+end
+
+procedure xencoden(x, name, opt)
+   local output
+
+   /opt := "w"
+
+   output := open(name, opt) | stop("*** xencoden(): cannot open ", name)
+   xencode(x, output)
+   close(output)
+
+   return
+
+end
+
+procedure xdecoden(name)
+   local input, x
+
+   input := open(name) | stop("*** xdecoden(): cannot open ", name)
+   if x := xdecode(input) then {
+      close(input)
+      return x
+      }
+   else {
+      close(input)
+      fail
+      }
+
+end

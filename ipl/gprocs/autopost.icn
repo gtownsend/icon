@@ -1,0 +1,71 @@
+############################################################################
+#
+#	File:     autopost.icn
+#
+#	Subject:  Procedures to activate PostScript recorder
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     October 11, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#   These procedures, when linked with an unsuspecting Icon program,
+#   cause psrecord (q.v) to begin recording PostScript commands when
+#   an X window is opened.  This is done by overloading the built-in
+#   "open" function.
+#
+#   The results of this may or may not be usable depending on how the
+#   original program is coded.  Psrecord cannot emulate all the X calls
+#   and works best with programs designed for it.
+#
+#   "stop" and "exit" are also overloaded to try and terminate the
+#   PostScript file properly.  Other program exit paths, notably a
+#   return from the main procedure, are not caught.
+#
+############################################################################
+#
+#  Links:  psrecord
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+link psrecord
+
+invocable "open", "stop", "exit"
+
+procedure open(args[])
+   local f
+   static realfunc
+   initial realfunc := proc("open", 0)
+
+   f := (realfunc ! args) | fail
+   if args[2] ? upto('gx') then
+      PSEnable(f)
+   return f
+end
+
+procedure stop(args[])
+   local f
+   static realfunc
+   initial realfunc := proc("stop", 0)
+
+   PSDone()
+   return realfunc ! args
+end
+
+procedure exit(args[])
+   local f
+   static realfunc
+   initial realfunc := proc("exit", 0)
+
+   PSDone()
+   return realfunc ! args
+end

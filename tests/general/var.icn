@@ -1,0 +1,28 @@
+procedure main(a)
+   local x
+   static y
+   variable("a") := 1
+   variable("x") := 2
+   variable("y") := 3
+   if variable("z") then write("oops")
+   main2()
+end
+
+record complex(r,i)
+
+procedure main2(a)
+   static s
+   every write(image(name(main | T | L | s | a)))
+   T := table()
+   L := list(200)
+   L1 := []
+   every 1 to 200 do push(L1,1)
+   write(image(L[10]))
+   write(image(name(&error)))
+   write(image(name(T["abc"])))
+   T["abc"] := 1
+   write(image(name(T["abc"])))
+   every write(image(name(L[1 | 2 | 3 | -1 | -10])))
+   every write(image(name(L1[1 | 2 | 3 | -1 | -10])))
+   write(image(name(complex().r)))
+end

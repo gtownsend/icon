@@ -1,0 +1,73 @@
+############################################################################
+#
+#	File:     recrfncs.icn
+#
+#	Subject:  Procedures for recursive functions
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 5, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures implement commonly referenced ``text-book''
+#  recursively defined functions.
+#
+#	acker(i, j)	Ackermann's function
+#	fib(i)	  	Fibonacci sequence
+#	g(k, i)		generalized Hofstader nested recurrence
+#	q(i)		chaotic sequence
+#
+############################################################################
+#
+#  See also:  fastfncs.icn, iterfncs.icn, and memrfncs.icn
+#
+############################################################################
+#
+#  Links:  numbers
+#
+############################################################################
+
+link numbers
+procedure acker(i, j)
+
+   if i = 0 then return j + 1
+   if j = 0 then  return acker(i - 1, 1)
+   else return acker(i - 1, acker(i, j - 1))
+
+end
+
+procedure fib(i)
+
+   if i = (1 | 2) then return 1
+
+   else return fib(i - 1) + fib(i - 2)
+
+end
+
+procedure g(k, n)
+   local value
+   static psi
+
+   initial psi := 1.0 / &phi
+
+   if n = 0 then return 0
+
+   value := 0
+
+   value +:= floor(psi * floor((seq(0) \ k + n) / real(k)) + psi)
+
+   return value
+
+end 
+
+procedure q(i)
+
+   if i = (1 | 2) then return 1
+   else return q(i - q(i - 1)) + q(i - q(i - 2))
+
+end

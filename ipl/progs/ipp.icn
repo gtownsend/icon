@@ -1,0 +1,1178 @@
+############################################################################
+#
+#	File:     ipp.icn
+#
+#	Subject:  Program to preprocess Icon programs
+#
+#	Author:   Robert C. Wieland, revised by Frank J. Lhota
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     Ipp is a preprocessor for the Icon language.  Ipp has many operations and
+#  features that are unique to the Icon environment and should not be used as
+#  a generic preprocessor (such as m4).  Ipp produces output which when written
+#  to a file is designed to be the source for icont, the command processor for
+#  Icon programs.
+#
+############################################################################
+#  
+#  Ipp may be invoked from the command line as:
+#
+#    ipp [option  ...] [ifile [ofile]]
+#  
+#     Two file names may be specified as arguments.  'ifile' and 'ofile' are 
+#  respectively the input and output files for the preprocessor.  By default
+#  these are standard input and standard output.  If the output file is to be
+#  specified while the input file should remain standard input a dash ('-')
+#  should be given as 'ifile'.  For example, 'ipp - test' makes test the output
+#  file while retaining standard input as the input file.
+#  
+#     The following special names are predefined by ipp and may not be
+#  redefined #  or undefined.  The name _LINE_ is defined as the line number
+#  (as an integer) of the line of the source file currently processed.  The
+#  name _FILE_ is defined as the name of the current source file
+#  (as a string).  If the source is standard input then it has the value
+#  'stdin'.
+#
+#     Ipp will also set _LINE_ and _FILE_ from the "#line" directives it
+#  encounters, and will insert line directives to indicate source origins.
+#  
+#     Also predefined are names corresponding to the features supported by the
+#  implementation of Icon at the location the preprocessor is run.  This allows
+#  conditional translations using the 'if' commands, depending on what features
+#  are available.  Given below is a list of the features on a 4.nbsd UNIX 
+#  implementation and the corresponding predefined names:
+#  
+#  	Feature				Name
+#  	-----------------------------------------------------
+#  	UNIX				UNIX
+#  	co-expressions			co_expressions
+#  	overflow checking		overflow_checking
+#  	direct execution		direct_execution
+#  	environment variables		environment_variables
+#  	error traceback			error_traceback
+#  	executable images		executable_images
+#  	string invocation		string_invocation
+#  	expandable regions		expandable_regions
+#  
+#  
+#  Command-Line Options:
+#  ---------------------
+#  
+#    The following options to ipp are recognized:
+#  
+#   -C		By default ipp strips Icon-style comments.  If this option
+# 		is specified all comments are passed along except those
+# 		found on ipp command lines (lines starting with  a '$' 
+# 		command).
+# 
+#   -D name	
+#   -D name=def	Allows the user to define a name on the command line instead
+# 		of using a $define command in a source file.  In the first
+# 		form the name is defined as '1'.  In the second form name is
+# 		defined as the text following the equal sign.  This is less
+# 		powerful than the $define command line since def can not
+# 		contain any white space (spaces or tabs).
+# 
+#   -d depth	By default ipp allows include files to be nested to a depth
+# 		of ten.  This allows the preprocessor to detect infinitely
+# 		recursive include sequences.  If a different limit for the
+# 		nesting depth is needed it may changed by using this option
+# 		with an integer argument greater than zero. Also, if a file
+# 		is found to already be in a nested include sequence an
+# 		error message is written regardless of the limit.
+# 
+#   -I dir	The following algorithm is normally used in searching for
+# 		$include files.  On a UNIX system names enclosed in "" are
+# 		searched for by trying in order the directories specified by the
+# 		PATH environment variable, and names enclosed in <> are always
+# 		expected to be in the /usr/icon/src directory.  On other systems
+# 		names enclosed in <> are seacrhed for by trying in order the
+# 		directories specified by the IPATH environment variable; names
+# 		in "" are serched for in a similar fashion, except that the
+# 		current directory is tried first.  If the -I option is given the
+# 		directory specified is searched before the 'standard'
+#  		directories.  If this option is specified more than once the
+#  		directories specified are tried in the order that they appear on
+#  		the command line, then followed by the 'standard' directories.
+#  
+#  Preprocessor commands:
+#  ----------------------
+#  
+#     All ipp commands start with a line that has '$' as its first non-space
+#  chararcher.  The name of the command must follow the '$'.  White space
+#  (any number of spaces or tabs) may be used to separate the '$' and the
+#  command name.  Any line beginning with a '$' and not followed by a valid
+#  name will cause an error message to be sent to standard error and
+#  termination of the preprocessor.  If the command requires an argument then
+#  it must be separated from the command name by white space otherwise the
+#  argument will be considered part of the name and the result will likely
+#  produce an error.  In processing the $ commands ipp responds to exceptional
+#  conditions in one of two ways.  It may produce a warning and continue
+#  processing or produce an error message and terminate.  In both cases the
+#  message is sent to standard error.  With the exception of error conditions
+#  encountered during the processing of the command line, the messages normally
+#  include the name and line number of the source file at the point the
+#  condition was encountered.  Ipp was designed so that most exception
+#  conditions encountered will produce errors and terminate.  This protects the
+#  user since warnings could simply be overlooked or misinterpreted.
+#
+#     Many ipp command require names as arguments.  Names must begin with a
+#  letter or an underscore, which may be followed by any number of letters,
+#  underscores, and digits.  Icon-style comments may appear on ipp command
+#  lines, however they must be separated from the normal end of the command by
+#  white_space.  If any extraneous characters appear on a command line a
+#  warning is issued.  This occurs when characters other than white-space or a
+#  comment follow the normal end of a command.
+#  
+#     The following commands are implemented:
+#  
+#    $define:  This command may be used in one of two forms.  The first form
+#   	    only allows simple textual substitution.  It would be invoked as
+#  	    '$define name text'.  Subsequent occurrences of name are replaced 
+#  	    with text.  Name and text must be separated by one white space
+#  	    character which is not considered to be part of the replacement
+#  	    text.  Normally the replacement text ends at the end of the line.
+#  	    The text however may be continued on the next line if the backslash
+#  	    character '\' is the last character on the line.  If name occurs
+#  	    in the replacement text an error message (recursive textual substi-
+#  	    tution) is written.
+#  
+#  	    The second form is '$define name(arg,...,arg) text' which defines
+#  	    a macro with arguments.  There may be no white space between the 
+#  	    name and the '('.  Each occurrenceg of arg in the replacement text
+#  	    is replaced by the formal arg specified when the macro is 
+#  	    encountered.   When a macro with arguments is expanded the arguments
+#  	    are placed into the expanded replacement text unchanged.  After the
+#  	    entire replacement text is expanded, ipp restarts its scan for names
+#  	    to expand at the beginning of the newly formed replacement text.  
+#  	    As with the first form above, the replacement text may be continued
+#  	    on following lines.  The replacement text starts immediately after
+#  	    the ')'. 
+#  	    The names of arguments must comply with the convention for regular 
+#  	    names.  See the section below on Macro processing for more 
+#  	    information on the replacement process.
+#  
+#    $undef:   Invoked as '$undef name'.   Removes the definition of name.  If
+#  	    name is not a valid name or if name is one of the reserved names
+#  	    _FILE_ or _LINE_ a message is issued.
+#  
+#    $include: Invoked as '$include <filename>' or '$include "filename"'.  This
+#  	    causes the preprocessor to make filename the new source until
+#  	    end of file is reached upon which input is again taken from the
+#  	    original source.  See the -I option above for more detail.
+#  
+#    $dump:    This command, which has no arguments, causes the preprocessor to 
+#  	    write to standard error all names which are currently defined.
+#  	    See '$ifdef' below for a definition of 'defined'.
+#  
+#    $warning:
+#	       This command issues a warning, with the text coming from the
+#	    argument field of the command.
+#  
+#    $error:   This command issues a error, with the text coming from the
+#	    argument field of the command.  As with all errors, processing
+#	    is terminated.
+#  
+#    $ifdef:   Invoked as 'ifdef name'.  The lines following this command appear
+#  	    in the output only if the name given is defined.  'Defined' means
+#  	      1.  The name is a predefined name and was not undefined using
+#  		  $undef, or
+#  	      2.  The name was defined using $define and has not been undefined
+#  		  by an intervening $undef.
+#  
+#    $ifndef:  Invoked as 'ifndef name'.  The lines following this command do 
+#           not appear in the ouput if the name is not defined.
+#  
+#    $if:      Invoked as 'if constant-expression'.  Lines following this
+#           command are processed only if the constant-expression produces a
+#           result. The following arithmetic operators may be applied to
+#           integer arguments: + - * / % ^
+#
+#  	    If an argument to one of the above operators is not an integer an
+#  	    error is produced.
+#  
+#  	       The following functions are provided: def(name), ndef(name)
+#  	    This allows the utility of $ifdef and $ifndef in a $if command.
+#  	    def produces a result if name is defined and ndef produces a
+#  	    result if name is not defined.  
+#  	    
+#  	       The following comparision operators may be used on integer
+#           operands:
+#
+#  	    > >= = < <= ~=
+#
+#              Also provided are alternation (|), conjunction (&), and
+#           negation (not).  The following table lists all operators with
+#           regard to decreasing precedence:
+#  
+#		not + - (unary)
+#  		^ (associates right to left)
+#  		* / %
+#  		+ - (binary)
+#               > >= = < <= ~=
+#  		|
+#  		&
+#  
+#  	    The precedence of '|' and '&' are the same as the corresponding
+#  	    Icon counterparts.  Parentheses may be used for grouping.
+#  	    Backtracking is performed, so that the expression
+#
+#  		FOO = (1|2)
+#
+#  	    will produce a result precisely when FOO is either 1 or 2.
+#
+#    $elif:    Invoked as 'elif constant-expression'.  If the lines preceding
+#  	    this command were processed, this command and the lines following
+#           it up to the matching $endif command are ignored.  Otherwise,
+#           the constant-expression is evaluated, and the lines following this
+#  	    command are processed only if it produces a result.
+#  
+#    $else:    This command has no arguments and reverses the notion of the
+#           test command which matches this directive.  If the lines preceding
+#           this command where ignored the lines following are processed, and
+#           vice versa.
+#  
+#    $endif:   This command has no arguments and ends the section of lines
+#           begun by a test command ($ifdef, $ifndef, or $if).  Each test
+#           command must have a matching $endif.
+#  
+#  Macro Processing and Textual Substitution
+#  -----------------------------------------
+#     No substitution is performed on text inside single quotes (cset literals)
+#  and double quotes (strings) when a line is processed.   The preprocessor
+#  will #  detect unclosed cset literals or strings on a line and issue an
+#  error message unless the underscore character is the last character on the
+#  line.  The output from 
+#  
+#  	$define foo bar
+#  	write("foo")
+#  
+#  is
+#
+#       write("foo")
+#  
+#     Unless the -C option is specified comments are stripped from the source.
+#  Even if the option is given the text after the '#' is never expanded.
+#  
+#     Macro formal parameters are recognized in $define bodies even inside cset 
+#  constants and strings.  The output from
+#  
+#  	$define test(a)		"a"
+#  	test(processed)
+#  
+#  is the following sequence of characters: "processed".
+#  
+#     Macros are not expanded while processing a $define or $undef.  Thus:
+#  
+#  	$define off invalid
+#  	$define bar off
+#  	$undef off
+#  	bar
+#  
+#  produces off.  The name argument to $ifdef or $ifndef is also not expanded.
+#  
+#     Mismatches between the number of formal and actual parameters in a macro
+#  call are caught by ipp.  If the number of actual parameters is greater than
+#  the number of formal parameters is error is produced.  If the number of
+#  actual parameters is less than the number of formal parameters a warning is
+#  issued and the missing actual parameters are turned into null strings.
+#  
+############################################################################
+#
+#    The records and global variables used by ipp are described below:
+#
+#  Src_desc:		Record which holds the 'file descriptor' and name
+#			of the corresponding file.  Used in a stack to keep
+#	        	track of the source files when $includes are used.
+#  Opt_rec 		Record returned by the get_args() routine which returns
+#			the options and arguments on the command line.  options
+#			is a cset containing options that have no arguments.
+#			pairs is a list of [option,  argument] pairs. ifile and
+#			ofile are set if the input or output files have been
+#			specified.
+#  Defs_rec		Record stored in a table keyed by names.  Holds the
+#			names of formal arguments, if any, and the replacement
+#			text for that name.
+#  Expr_node		Node of a parse tree for $if / $elif expressions.
+#			Holds the operator, or a string representing the
+#			control strcture.  Also, holds a list of the args for
+#			the operation / control structure, which are either
+#			scalars or other Expr_node records.
+#  Chars		Cset of all characters that may appear in the input.
+#  Defs			The table holding the definition data for each name.
+#  Depth		The maximum depth of the input source stack.
+#  Ifile		Descriptor for the input file.
+#  Ifile_name		Name of the input file.
+#  Init_name_char 	Cset of valid initial characters for names.
+#  Line_no		The current line number.
+#  Name_char		Cset of valid characters for names.
+#  Non_name_char	The complement of the above cset.
+#  Ofile		The descriptor of the output file.
+#  Options		Cset of no-argument options specified on the command
+#			line.
+#  Path_list		List of directories to search in for "" include files.
+#  Src_stack		The stack of input source records.
+#  Std_include_paths	List of directories to search in for <> include files.
+#  White_space		Cset for white-space characters.
+#  TRUE			Defined as 1.
+#
+############################################################################
+
+record Src_desc(fd, fname, line)
+record Opt_rec(options, pairs, ifile, ofile)
+record Defs_rec(arg_list, text)
+record Expr_node(op, arg)
+
+global Chars, Defs, Depth, Ifile, Ifile_name, Init_name_char, 
+  Line_no, Name_char, Non_name_char, Ofile, Options, Path_list, 
+  Src_stack, Std_include_paths, White_space, TRUE, DIR_SEP
+
+procedure main(arg_list)
+  local line, source
+
+  init(arg_list)
+
+  repeat {
+    while line := get_line(Ifile) do
+      line ? process_cmd(get_cmd())
+
+    # Get new source
+    close(Ifile)
+    if source := pop(Src_stack) then {
+      Ifile := source.fd
+      Ifile_name := source.fname
+      Line_no := source.line
+      }
+    else  break
+  }
+end
+
+procedure conditional(expr)
+
+  return if eval(expr) then
+      true_cond()
+    else
+      false_cond()
+end
+
+#
+# In order to simplify the parsing the four operators that are longer
+# than one character (<= ~= >= not) are replaced by one character
+# 'aliases'.  Also, all white space is removed.
+#
+
+procedure const_expr(expr)
+  local new
+
+  static White_space_plus
+
+  initial White_space_plus := White_space ++ '<>~n'
+
+  new := ""
+  expr ? {
+    while new ||:= tab(upto(White_space_plus)) ||
+      if any(White_space) then {
+        tab(many(White_space))
+ 	""
+	}
+      else if =">=" then "\x01"
+      else if ="<=" then "\x02"
+      else if ="~=" then "\x03"
+      else if not any(Name_char, ,&pos - 1) &
+              ="not" &
+              not any(Name_char) then "\x04"
+      else move (1)
+    new ||:= tab(0)
+    }
+  #
+  # Now recursively parse the transformed string.
+  #
+  return parse(new)
+
+end
+
+procedure decoded(op)
+  return case op of {
+    "\x01": 	">="
+    "\x02": 	"<="
+    "\x03": 	"~="
+    "\x04": 	"not"
+    default: 	op
+    }
+end
+
+procedure def_opt(s)
+  local name, text
+
+  s ? {
+    name := tab(find("=")) | tab(0)
+    text := (move(1) & tab(0)) | "1"
+    }
+  if name == ("_LINE_" | "_FILE_") then
+    error(name, " is a reserved name and can not be redefined by the -D option")
+  if not name ? (get_name() & pos(0)) then
+    error(name, " :  Illegal name argument to -D option")
+  if member(Defs, name) then
+    warning(name, " : redefined by -D option")
+  insert(Defs, name, Defs_rec(, text))
+end
+
+procedure define()
+  local args, name, text
+
+  get_opt_ws()
+  if name := get_name() & (any(White_space ++ '(') | pos(0)) then {
+    if name == ("_LINE_" | "_FILE_") then
+      error(name, " is a reserved name and can not be redefined")
+
+    if match("(") then	 		# A macro
+      args := get_formals()
+    text := get_text(args)
+
+    if member(Defs,name) then
+      warning(name, " redefined")
+    insert(Defs, name, Defs_rec(args, text))
+    }  
+  else
+    error("Illegal or missing name in define")
+end
+
+procedure dump()
+  if not pos(0) then
+    warning("Extraneous characters after dump command")
+  every write(&errout, (!sort(Defs))[1])
+end
+
+procedure error(s1, s2)
+  s1 ||:= \s2
+  stop(Ifile_name, ":  ", Line_no, ":  ", "Error  ", s1)
+end
+
+procedure eval(node)
+  suspend case type(node) of {
+    "Expr_node": {
+      case node.op of {
+	"|"     : eval(node.arg[1]) | eval(node.arg[2])
+	"&"     : eval(node.arg[1]) & eval(node.arg[2])
+	"not"   : not eval(node.arg[1])
+	"def"   : member(Defs, node.arg[1])
+	"ndef"  : not member(Defs, node.arg[1])
+	default :
+	  case *node.arg of {
+	    1 : node.op(eval(node.arg[1]))
+	    2 : node.op(eval(node.arg[1]), eval(node.arg[2]))
+	    }
+	 }
+       }
+    default: node
+    }       
+end
+
+procedure false_cond()
+  local cmd, line
+
+  # Skip to next $else / $elif branch, or $endif
+  cmd := skip_to("elif", "else", "endif")
+  case cmd of {
+    "elif" : return if_cond(cmd)
+    "else" : {
+       while line := get_line(Ifile) do
+	  line ? {
+	    cmd := get_cmd()
+	    case cmd of {
+	      "elif"  :
+		error("'elif' encountered after 'else'")
+	      "else"  :
+		error("multiple 'else' sections")
+	      "endif" : return
+	      default : process_cmd(cmd)
+	      }
+	    }
+       error("'endif' not encountered before end of file")
+       }
+    "endif": return
+    }
+end
+	
+procedure find_file(fname, path_list)
+  local ifile, ifname, path 
+
+  every path := !path_list do {
+    ifname :=
+      if path == ("" | ".") then
+	fname
+      else
+	path || DIR_SEP || fname
+
+
+    if ifile := open(ifname) then {
+      if *Src_stack >= Depth then {
+	close(ifile)
+	error("Possibly infinitely recursive file inclusion")
+	}
+      if ifname == (Ifile_name | (!Src_stack).fname) then
+	error("Infinitely recursive file inclusion")
+      push(Src_stack, Src_desc(Ifile, Ifile_name, Line_no))
+      Ifile := ifile
+      Ifile_name := ifname
+      Line_no := 0
+      return
+      }
+    }
+  error("Can not open include file ", fname)
+end
+
+procedure func(expr)
+  local op, arg
+
+  expr ? {
+    if op  := tab(find("(")) & move(1) &
+       arg := get_name() & =")" & pos(0) then {
+      if op == ("def" | "ndef") then
+	return Expr_node(op, [arg])
+      else	
+        error("Invalid function name") 
+      }
+    }
+end
+
+procedure get_args(arg_list, simple_opts, arg_opts)
+  local arg, ch, get_ofile, i, opts, queue
+  opts := Opt_rec('', [])
+  queue := []
+
+  every arg := arg_list[i := 1 to *arg_list] do
+    if arg == "-" then 		# Next argument should be output file
+      get_ofile := (i = *arg_list - 1) | 
+	stop("Invalid position of '-' argument")
+    else if arg[1] == "-" then 	# Get options
+      every ch := !arg[2: 0] do
+	if any(simple_opts, ch) then
+	  opts.options ++:= ch
+	else if any(arg_opts, ch) then
+	  put(queue, ch)
+	else
+	  stop("Invalid option - ", ch)
+    else if ch := pop(queue) then	 # Get argument for option
+      push(opts.pairs, [ch, arg])
+    else if \get_ofile then { 	# Get output file
+      opts.ofile := arg
+      get_ofile := &null
+      }
+    else {			# Get input file
+      opts.ifile := arg
+      get_ofile := (i < *arg_list)
+      }
+
+  if \get_ofile | *queue ~= 0 then
+    stop("Invalid number of arguments")
+
+  return opts
+end
+
+procedure get_cmd()
+  local cmd
+  static  no_arg_cmds
+  initial no_arg_cmds := set(["dump", "else", "endif"])
+
+  if ="#" & cmd := ="line" then
+    get_opt_ws()
+  else if (get_opt_ws()) & ="$" then {
+    get_opt_ws()
+    (cmd := tab(many(Chars))) | error("Missing command")
+    get_opt_ws()
+    if not pos(0) & member(no_arg_cmds, cmd) then
+      warning("Extraneous characters after argument to '" || cmd || "'")
+    }
+  else
+    tab (1)
+  return cmd
+end
+
+procedure get_formals()
+  local formal, arglist, ch
+
+  arglist := []
+  ="("
+  get_opt_ws()
+  if not =")" then 
+    repeat {
+      if (formal := get_name()) & get_opt_ws() & any(',)') then
+	put(arglist, formal)
+      else	
+	error("Invalid formal argument in macro definition")
+      if =")" then break
+      =","
+      get_opt_ws()
+      }
+  get_opt_ws()
+  return arglist
+end
+
+procedure get_line(Ifile)
+  return 1(read(Ifile), Line_no +:= 1)
+end
+
+procedure get_name()
+  return tab(any(Init_name_char)) || (tab(many(Name_char)) | "")
+end
+
+procedure get_opt_ws()
+  return (tab(many(White_space)) | "") || (="#" || tab(0) | "")
+end
+
+procedure get_text(is_macro)
+  local text
+
+  if \is_macro then
+    text := tab(0)
+  else
+    text := (tab(any(White_space)) & tab(0)) | ""
+  while (text[-1] == "\\") do
+    (text := text[1:-1] || get_line(Ifile)) |
+      error("Continuation line not found before end of file")
+  return text
+end
+
+# if_cond is the procedure for $if or $elif.  
+#
+# Procedure true_cond is invoked if the evaluation of a previous $if, $ifdef, or
+# $ifndef causes subsequent lines to be processed.  Lines will be processed
+# upto an $elif, $else, or $endif.  If $elif or $else is encountered, lines
+# are skipped until the matching $endif is encountered.
+#
+# Procedure false_cond is invoked if the evaluation of a previous $if, $ifdef, 
+# or $ifndef causes subsequent lines to be skipped.  Lines will be skipped 
+# upto an $elif, $else, or, $endif.  If $else is encountered, lines are
+# processed until the $endif matching the $else is encountered.
+
+procedure if_cond(cmd)
+  if pos(0) then
+    error("Constant expression argument to '" || cmd || "' missing")
+  else
+    return conditional(const_expr(tab(0)))
+end
+
+procedure ifdef()
+  local name
+
+  if name := get_name() then
+    {
+    get_opt_ws()
+    if not pos(0) then
+      warning("Extraneous characters after argument to 'ifdef'")
+    return conditional(Expr_node("def", [name]))
+    }
+  else
+    error("Argument to 'ifdef' is not a valid name")
+end
+  
+procedure ifndef()
+  local name
+
+  if name := get_name() then {
+    get_opt_ws()
+    if not pos(0) then
+      warning("Extraneous characters after argument to 'ifndef'")
+    return conditional(Expr_node("ndef", [name]))
+    }
+  else
+    error("Argument to 'ifndef' is not a valid name")
+end
+
+procedure in_text(name, text)
+  return text ? 
+    tab(find(name)) &
+    (if move(-1) then tab(any(Non_name_char)) else "") &
+    move(*name) &
+    (tab(any(Non_name_char)) | pos(0))
+end
+
+procedure include()
+  local ch, fname 
+  static fname_chars, stopper
+
+  initial {
+    fname_chars := Chars -- '<>"'
+    stopper := table()
+    insert(stopper, "\"", "\"")
+    insert(stopper, "<",  ">")
+    }
+
+  if (ch    := tab(any('"<'))) &
+     (fname := tab(many(fname_chars))) &
+      =stopper[ch] then {
+    get_opt_ws()
+    if not pos(0) then
+      warning("Extraneous characters after include file name")
+    find_file(fname,
+      case ch of {
+	"\"" : Path_list
+	"<"  : Std_include_paths
+	}
+      )
+    }
+  else
+    error("Missing or invalid include file name")
+end
+
+procedure init(arg_list)
+  local s
+
+  TRUE := 1
+  Defs := table()
+  Init_name_char := &letters ++ '_'
+  Name_char := Init_name_char ++ &digits
+  Non_name_char := ~Name_char
+  White_space := ' \t\b'
+  Chars := &ascii -- White_space
+  Line_no := 0
+  Depth := 10
+
+  # Predefine features
+  every s := &features do {
+    s := map(s, " -/", "___")
+    insert(Defs, s, Defs_rec(, "1"))
+    }
+
+  # Set path list for $include files given in "", <>
+  if member(Defs, "UNIX") then {
+    Path_list := []
+    getenv("PATH") ? while put(Path_list, 1(tab(find(":")), move(1)))
+    Std_include_paths := ["/usr/icon/src"]
+    }
+  else {
+    Std_include_paths := []
+    (getenv("IPATH") || " ") ?
+       while put(Std_include_paths, tab(find(" "))) do move(1)
+    Path_list := [""] ||| Std_include_paths
+    }
+
+  process_options(arg_list)
+end
+
+procedure lassoc(expr, op)
+  local j, arg1, arg2
+
+  expr ? {
+    every j := bal(op)
+    # Succeeds if op found.
+    if arg1 := tab(\j) & op := decoded(move(1)) & arg2 := tab(0) then {
+      op := proc(op, 2)		# Fails for control structures
+      return Expr_node(op, [parse(arg1), parse(arg2)])
+      }
+    }
+end
+
+#
+# Programmer's note: Ifile_name and Line_no should not be assigned new
+# values until the very end, so that if there is an error, the error
+# message will include the file/line no of the current line directive,
+# instead of the file/line of the text that follows the directive.
+#
+procedure line()
+  local new_line, new_file
+
+  new_line := tab(many(&digits)) | error("No line number in line directive")
+  get_opt_ws()
+  if ="\"" then {
+    new_file := ""
+    #
+    # Get escaped chars.  We assume that the only escaped chars
+    # appearing in a file name would be \\ or \", where the actual
+    # character to be used is simply the character following the slash.
+    # In the unlikely event that other escape sequences are encountered,
+    # this section would have to revised.
+    #
+    while new_file ||:= tab(find("\\")) || (move(1) & move(1))
+    new_file ||:= tab(find("\"")) |
+      error("Invalid file name in line directive")
+    }
+
+  Line_no    := integer(new_line)
+  Ifile_name := \new_file
+  return
+end
+
+procedure macro_call(entry, args)
+  local i, value, result, token
+
+  value := table()
+  every i := 1 to *entry.arg_list do
+    insert(value, entry.arg_list[i], args[i] | "")
+
+  entry.text ? {
+    result := tab(upto(Name_char) | 0)
+    while token := tab(many(Name_char)) do {
+      result ||:= \value[token] | token
+      result ||:= tab(many(Non_name_char))
+      }
+    }
+  return result
+end
+
+procedure no_endif_error()
+  error("'endif' not encountered before end of file")
+end
+
+procedure parse(expr)
+  # strip surrounding parens.
+  while expr ?:= 2(="(", tab(bal (')')), pos(-1))
+
+  return lassoc(expr, '&' | '|') |
+    lassoc(expr, '<=>\x01\x02\x03' | '+-' | '*/%') |
+    rassoc(expr, '^') | 
+    unary(expr, '+-\x04') |
+    func(expr) |
+    integer(process_text(expr)) |
+    error(expr, " :  Integer expected")
+end
+
+procedure process_cmd(cmd)
+  static last_cmd
+  initial last_cmd := ""
+
+  case cmd of {
+    "dump"    : dump()
+    "define"  : define()
+    "undef"   : undefine()
+    "include" :	include()
+    "line"    : line()
+    "error"   :	error(tab(0))
+    "warning" :	warning(tab(0))
+    "if"      : if_cond( last_cmd := cmd )
+    "ifdef"   : ifdef(   last_cmd := cmd )
+    "ifndef"  : ifndef(  last_cmd := cmd )
+    "elif"   |
+    "else"   |
+    "endif"   :	error("No previous 'if' expression")
+    &null     : {
+      if \last_cmd then
+	put_linedir(Ofile, Line_no, Ifile_name)
+      write(Ofile, process_text(tab(0)))
+      }
+    default   :	error("Undefined command")
+    }
+  last_cmd := cmd
+  return
+end
+
+procedure process_macro(name, entry, s)
+  local arg, args, new_entry, news, token
+
+  s ? {
+    args := []
+    if ="(" then {
+      #
+      # Get args if list is not empty.
+      #
+      get_opt_ws ()
+      if not =")" then
+	repeat {
+	  arg := get_opt_ws()
+	  if token := tab(many(Chars -- '(,)')) then {
+	    if /(new_entry := Defs[token]) then
+	      arg ||:= token
+	    else if /new_entry.arg_list then
+	      arg ||:= new_entry.text
+	    else {  # Macro with arguments
+	      if news := tab(bal(White_space ++ ',)')) then
+		arg ||:= process_macro(token, new_entry, news)
+	      else
+		error(token, ":  Error in arguments to macro call")
+	      } # if
+	    } # if
+	  else if not any(',)') then
+	    error(name, ":  Incomplete macro call")
+	  arg ||:= tab(many(White_space))
+	  put(args, arg)
+	  if match(")") then
+	    break
+	  move(1)
+	} # repeat 
+      if *args > *entry.arg_list then
+	error(name, ":  Too many arguments in macro call")
+      else if *args < *entry.arg_list then
+	warning(name, ":  Missing arguments in macro call")
+      return macro_call(entry, args)
+      } # if
+    }
+end
+
+procedure process_options(arg_list)
+  local args, arg_opts, pair, simple_opts, tmp_list, value
+
+  simple_opts := 'C'
+  arg_opts := 'dDI'
+  Src_stack := []
+
+  args := get_args(arg_list, simple_opts, arg_opts)
+  if \args.ifile then {
+    (Ifile := open(args.ifile)) | stop("Can not open input file ", args.ifile)
+    Ifile_name := args.ifile
+    }
+  else {
+    Ifile := &input
+    Ifile_name := "stdin"
+    }
+  if \args.ofile then 
+    (Ofile := open(args.ofile, "w")) | stop("Can not open output file",
+      args.ofile)
+  else 
+    Ofile := &output
+
+  Options := args.options 
+  tmp_list := []
+  every pair := !args.pairs do
+    case pair[1] of {
+      "D":	def_opt(pair[2])
+      "d":	if (value := integer(pair[2])) > 0 then
+		  Depth := value
+		else
+		  stop("Invalid argument for depth")
+      "I":	push(tmp_list, pair[2])
+    }
+  Path_list := tmp_list ||| Path_list
+end
+
+procedure process_text(line)
+  local add, entry, new, position, s, token
+  static in_string, in_cset
+
+  new :=  ""
+  while *line > 0 do {
+    add := ""
+    line ?:= {
+      if \in_string then {
+	# Ignore escaped chars
+	while new ||:= tab(find("\\")) || move(2)
+	if new ||:= tab(find("\"")) || move(1) then
+	  in_string := &null
+	else {
+	  new ||:= tab(0)
+	  if line[-1] ~== "_" then {
+	    in_string := &null
+	    warning("Unclosed double quote")
+	    }
+	  }
+	}	    
+      else if \in_cset then {
+	# Ignore escaped chars.
+	while new ||:= tab(find("\\")) || move(2)
+	if new ||:= (tab(find("'")) || move(1)) then
+	  in_cset := &null
+	else {
+	  new ||:= tab(0)
+	  if line[-1] ~== "_" then {
+	    in_cset := &null
+	    warning("Unclosed single quote")
+	    }
+	  }
+	}   
+
+      new ||:= tab(many(White_space))
+      case token := tab(many(Name_char) | any(Non_name_char)) of {
+	"\"": {
+	  new ||:= "\""
+	  if \in_string then 
+	    in_string := &null
+	  else if not pos(0) then {
+	    in_string := TRUE 
+	    }
+	  else {
+	    warning("Unclosed double quote")
+	    }
+	  add ||:= tab(0)
+	    }
+	"'": {
+	  new ||:= "'"
+	  if \in_cset then 
+	    in_cset := &null
+	  else if not pos(0) then {
+	    in_cset := TRUE 
+	    }
+	  else {
+	    warning("Unclosed double quote")
+	    }
+	  add ||:= tab(0)
+	    }
+	"#": {
+	    new ||:= if any(Options, 'C') then token || tab(0)
+		else tab(0) & token ? tab(find("#"))
+	    }
+	"__LINE__":
+	  new ||:= Line_no
+	"__FILE__":
+	  new ||:= Ifile_name
+	default: {
+	  if /(entry := Defs[token]) then
+	    new ||:= token
+	  else if /entry.arg_list then
+	    if in_text(token, entry.text) then
+		error("Recursive textual substitution")
+	    else
+		add := entry.text
+	  else {  # Macro with arguments
+	    s := tab(bal(White_space) | 0)
+	    if not any('(', s) then
+		error(token, ":  Incomplete macro call")
+	    add := process_macro(token, entry, s)
+	    }
+	  } # default
+	} # case
+      add || tab(0)
+      } # ?:=
+    } # while
+  return new
+end
+
+procedure put_linedir(Ofile, Line_no, Ifile_name)
+  static last_filename
+  initial last_filename := ""
+
+  writes(Ofile, "#line ", Line_no - 1)
+  #
+  # Output file name part only if the
+  # filename differs from the last one used.
+  #
+  if last_filename ~==:= Ifile_name then
+    writes(Ofile, " ", image(last_filename))
+  write(Ofile)
+  return
+end
+
+procedure rassoc(expr, op)
+  local arg1, arg2
+
+
+  # Succeeds if op found.
+  expr ? if arg1 := tab(bal(op)) & op := move(1) & arg2 := tab(0) then {
+      op := decoded(op)
+      op := proc(op, 2)		# Fails for control structures
+      return Expr_node(op, [parse(arg1), parse(arg2)])
+      }
+end
+
+#
+# skip_to is used to skip over parts of the an '$if' structure. targets
+# are the $if - related commands to skip to, and should always include
+# "endif".
+#
+# We do not, of course, wish to skip to a command in an $if structure
+# that is embedded in the current one; also, we want to make sure that
+# embedded $if structures, even in skipped lines, are well formed.  We
+# therefore maintain a stack, if_sects, of the currently applicable $if
+# structure commands encountered in the skipped lines.  For example, if
+# we have skipped over the commands
+#
+#    $ifdef ...
+#       $if ...
+#       $elif ...
+#           $if ...
+#           $else
+#
+# if_sect would be ["else", "elif", "ifdef"].
+#
+procedure skip_to(targets[])
+  local cmd, if_sects, line, argpos
+
+  if_sects := []
+  while line := get_line(Ifile) | no_endif_error () do
+    line ? {
+      cmd := get_cmd()
+      if *if_sects = 0 & \cmd == !targets then {
+	argpos := &pos
+	break
+	}
+
+      case cmd of {
+	"if"    |
+	"ifdef" |
+	"ifndef" : {
+	  if pos(0) then
+	    error("Argument to '" || cmd || "' missing")
+	  push(if_sects, cmd)
+	  }
+	"elif"   : {
+	  if pos(0) then
+	    error("Argument to '" || cmd || "' missing")
+	  if if_sects[1] == "else" then
+	    error("'elif' encountered after 'else'")
+	  else
+	    if_sects[1] := cmd
+	  }
+	"else"   : {
+	  if if_sects[1] == "else" then
+	    error("multiple 'else' sections")
+	  else
+	    if_sects[1] := cmd
+	  }
+	"endif"  : pop(if_sects)
+	}
+      }
+
+  #
+  # Now reset the &subject to the current line, and &pos to the argument
+  # field of the current line, so that if we skipped to a line which will
+  # require further processing (such as $elif), the scanning functions can
+  # be used.
+  #
+  &subject := line
+  &pos     := argpos
+  return cmd
+
+end
+
+procedure true_cond()
+  local cmd, line
+
+  while line := get_line(Ifile) | no_endif_error () do
+    line ? {
+      case cmd := get_cmd() of {
+	"elif" |
+	"else"  : return skip_to("endif")
+	"endif" : return cmd
+	default : process_cmd(cmd)
+	}
+      }
+     
+end
+
+procedure unary(expr, op)
+  local arg1
+
+
+  # Succeeds if op found.
+  expr ?
+    if op := decoded(tab(any(op))) & arg1 := tab(0) then {
+      op := proc(op, 1)		# fails for control structures
+      return Expr_node(op, [parse(arg1)])
+      }
+end
+
+procedure undefine()
+  local name
+
+  if name := get_name() then {
+    get_opt_ws()
+    if not pos(0) then
+      warning("Extraneous characters after argument to undef")
+    if name == ("_LINE_" | "_FILE_") then
+      error(name, " is a reserved name that can not be undefined")
+    delete(Defs, name)
+    }
+  else
+    error("Name missing in undefine")
+end
+
+procedure warning(s1, s2)
+  s1 ||:= \s2
+  write(&errout, Ifile_name, ":  ", Line_no, ":  ", "Warning  " || s1)
+end

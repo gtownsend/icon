@@ -1,0 +1,117 @@
+############################################################################
+#
+#	File:     cnvsum.icn
+#
+#	Subject:  Program to tabulate type-conversion activity
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 13, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This tool tabulates type-conversion activity.  It is called as
+#
+#	cnvsum prog
+#
+#  where prog is a program compiled under MT Icon whose events are to
+#  be tabulated.
+#	
+#  The options supported are:
+#
+#	-o s	write output to file s; default &output.
+#
+#	-t	record time spent in monitoring.
+#
+############################################################################
+#
+#  Requires:  MT Icon and event monitoring.
+#
+############################################################################
+#
+#  Links:  evinit, options, procname, typecode
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+link evinit
+link options
+link procname
+link typecode
+
+$include "evdefs.icn"
+
+procedure main(args)
+   local opts, itime, cnvlist, esucctbl, efailtbl, isucctbl, ifailtbl, output
+   local mmask, cmask, in, pair, name
+
+   opts := options(args, "o:t")
+
+   output := open(\opts["o"], "w") | &output
+
+   if \opts["t"] then itime := &time
+
+   EvInit(args) | stop("*** cannot load program")	# initialize interface
+
+   esucctbl := table(0)
+   efailtbl := table(0)
+   isucctbl := table(0)
+   ifailtbl := table(0)
+
+   mmask := E_Fcall ++ E_Aconv
+   cmask := E_Fconv ++ E_Sconv ++ E_Nconv
+
+   while EvGet(mmask) do {
+      case &eventcode of {
+         E_Fcall: {
+            if (name := procname(&eventvalue)) ==
+               ("integer" | "string" | "cset" | "real") then {
+                  in := name[1]
+                  EvGet(E_Tconv)
+                  pair := in || typecode(&eventvalue)
+                  EvGet(cmask)
+                  case &eventcode of {
+                     E_Sconv:   esucctbl[pair] +:= 1
+                     E_Fconv:   efailtbl[pair] +:= 1
+                     }
+                  }
+               }
+         E_Aconv: {
+            in := typecode(&eventvalue)
+            EvGet(E_Tconv)
+            pair := in || typecode(&eventvalue)
+            EvGet(cmask)
+            case &eventcode of {
+               E_Sconv:   isucctbl[pair] +:= 1
+               E_Fconv:   ifailtbl[pair] +:= 1
+               }
+            }
+         }
+      }
+
+   cnvlist := sort(esucctbl, 3)
+   write(output, "\nExplicit successful conversions:\n")
+   while write(output, get(cnvlist), right(get(cnvlist), 7))
+
+   cnvlist := sort(efailtbl, 3)
+   write(output, "\nExplicit failed conversions:\n")
+   while write(output, get(cnvlist), right(get(cnvlist), 7))
+
+   cnvlist := sort(isucctbl, 3)
+   write(output, "\nImplicit successful conversions:\n")
+   while write(output, get(cnvlist), right(get(cnvlist), 7))
+
+   cnvlist := sort(ifailtbl, 3)
+   write(output, "\nImplicit failed conversions:\n")
+   while write(output, get(cnvlist), right(get(cnvlist), 7))
+
+   write(output, "\nelapsed time: ", &time - \itime, "ms")
+
+end

@@ -1,0 +1,340 @@
+############################################################################
+#
+# File  :   htetris.icn
+# Author:   Henrik Sandin
+# Date  :   May 3, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# This file contains procedure for displaying the help texts in the
+# htetris application and the brick editor.
+#
+############################################################################
+
+procedure game_menu()
+
+    button_pressed :=
+	TextDialog( htetris_window,
+		    ["The Game menu.",
+		     "",
+		     "   New game:",
+		     "   Starts a new game regardless of whether a game is already",
+		     "   in progress or not. This can also be acheived by the",
+		     "   keyboard shortcut meta-n or by pressing the New game button",
+		     "   on the interface. If a game is in progress, a possible",
+		     "   highscore is lost.",
+		     "",
+		     "   Stop game:",
+		     "   Stops a game in progress. This can also be acheived by the",
+		     "   keyboard shortcut meta-s or by pressing the Stop game",
+		     "   button on the interface. A possible highscore is lost.",
+		     "",
+		     "   Pause:",
+		     "   Pauses a game in progress. This can also be acheived by the",
+		     "   keyboard shortcut meta-p or by pressing the Pause button on",
+		     "   the interface. The game is resumed by repeating this action.",
+		     "",
+		     "   Speed factor:",
+		     "   This option lets the user specify a number between -10 and",
+		     "   10 which makes the application run faster or slower.",
+		     "   A negative number makes the application slow down and a",
+		     "   positive number makes the application go faster.",
+		     "   This can be used if the current hardware is too fast or too slow.",
+		     "   This option is not availible when a game is in progress.",
+		     "",
+		     "   Pick level:",
+		     "   This option lets the user specify a difficulty level between",
+		     "   one and fifteen at which the next game is to be started.",
+		     "   This option is not availible when a game is in progress.",
+		     "",
+		     "   Quit:",
+		     "   This exits the htetris application. This can also be",
+		     "   acheived by the keyboard shortcut meta-q or by pressing the",
+		     "   Quit button on the interface. If a game is in progress, a",
+		     "   possible highscore is lost."],
+		    [],
+		    [],
+		    [],
+		    ["Previous", "Next", "Exit"],
+		    0)
+
+    case button_pressed of {
+	"Previous" : htetris_help_menu()
+	"Next"     : controls_menu()
+    }
+    return
+end
+
+procedure controls_menu()
+
+    button_pressed :=
+	TextDialog( htetris_window,
+		    ["The Controls menu.",
+		     "",
+		     "   Set keys:",
+		     "   This option lets the user specify which keys to use for game",
+		     "   control. Valid keys are: Any character or any special key",
+		     "   which synonym is displayed in the separate popup window.",
+		     "   Any of these synonyms can be specified.",
+		     "",
+		     "   Current keys:",
+		     "   This option shows which keys are currently used for game",
+		     "   control."],
+		    [],
+		    [],
+		    [],
+		    ["Previous", "Next", "Exit"],
+		    0)
+
+    case button_pressed of {
+	"Previous" : game_menu()
+	"Next"     : bricks_menu()
+    }
+    return
+end
+
+procedure bricks_menu()
+
+    button_pressed :=
+	TextDialog( htetris_window,
+		    ["The Bricks menu.",
+		     "",
+		     "   Add brick:",
+		     "   This option lets the user add a user defined brick to the",
+		     "   game by loading it from a file created with the editor which",
+		     "   is described in Brick editor. This can also be acheived by",
+		     "   the keyboard shortcut meta-a. If the brick is added",
+		     "   successfully, the user is given an id for the brick which",
+		     "   should be used if the brick is going to be removed from the",
+		     "   game again. The added brick will appear in every game from",
+		     "   here on until it is removed or the application is closed.",
+		     "",
+		     "   Remove brick:",
+		     "   If any user defined bricks are currently in the game, this",
+		     "   option lets the user remove such bricks. This means that",
+		     "   they are not going to appear in any game from here on unless",
+		     "   they are added again by selecting Add brick.",
+		     "   This can also be acheived by the keyboard shortcut meta-r.",
+		     "",
+		     "   Bricks in use:",
+		     "   This option lets the user display user defined bricks in",
+		     "   play if there are any. The user is prompted to enter one of",
+		     "   the listed brick id's and in doing so, that brick is",
+		     "   displayed in a popup window. The dialog reappears until",
+		     "   Cancel is pressed. Thus, several user bricks can be viewed",
+		     "   simultanously.",
+		     "",
+		     "   Brick editor:",
+		     "   This starts up the brick editor in which a user can create",
+		     "   his/hers own bricks to use in the game. This can also be",
+		     "   acheived by the keyboard shortcut meta-e. The editor is",
+		     "   described in detail in Brick editor."],
+		    [],
+		    [],
+		    [],
+		    ["Previous", "Next", "Exit"],
+		    0)
+
+    case button_pressed of {
+	"Previous" : controls_menu()
+	"Next"     : htetris_help_menu()
+    }
+    return
+end
+
+procedure htetris_help_menu()
+
+    button_pressed :=
+	TextDialog( htetris_window,
+		    ["The Help menu.",
+		     "",
+		     "   How to play:",
+		     "   This option displays information about how to play htetris.",
+		     "",
+		     "   Menus:",
+		     "   This option displays the current information.",
+		     "",
+		     "   About:",
+		     "   This option displays information about the application and",
+		     "   the author."],
+		    [],
+		    [],
+		    [],
+		    ["Previous", "Next", "Exit"],
+		    0)
+
+    case button_pressed of {
+	"Previous" : bricks_menu()
+	"Next"     : game_menu()
+    }
+    return
+end
+
+procedure how_to_play()
+
+    Notice( htetris_window,
+	    "The game is a single player game and is played by moving differently",
+	    "shaped bricks into positions so that they form an area as compact as",
+	    "possible.",
+	    "The bricks are falling down and can be moved left or right, rotated",
+	    "counter clockwise and put directly into place in the current hori-",
+	    "zontal position without waiting for them to fall all the way down.",
+	    "The goal of the game is to acheive as many points as possible.",
+	    "Points are gained by completing rows. That is, to place the bricks",
+	    "so that rows without \"gaps\" are created. Twenty points are earned",
+	    "for each completed row. If more than one row is completed by placing",
+	    "a single brick, five poits extra per additional row are obtained.",
+	    "A filled row disappears and everything built above it is shifted",
+	    "down one row. The game is lost when the top of the building pane is",
+	    "reached in such a way that the next upcoming brick can not be placed",
+	    "in its initial position.",
+	    "To help the player a little bit, the next upcoming brick is always",
+	    "shown during a game in progress.",
+	    "There is also a notion of difficulty levels which ranges from 1 to 15.",
+	    "The higher the level number, the faster the bricks fall. The game",
+	    "starts by default at level one and increases the level after twenty",
+	    "rows have been completed.",
+	    "A game can at any time be stopped, paused or restarted. If the current",
+	    "score happens to be higher than the highscore, the highscore is not",
+	    "updated. Also, the application can be closed at any time during a game.")
+    return
+end
+
+procedure about_htetris()
+
+    Notice( htetris_window,
+	    "htetris v1.0 Copyright © 1999 Henrik Sandin, all rights reserved.",
+	    "",
+	    "This is the first version of htetris, a variant of the game Tetris.",
+	    "It can be freely distributed without any kind of licence or",
+	    "agreement with the author.")
+    Return
+end
+
+procedure file_menu()
+
+    button_pressed :=
+	TextDialog( htetris_window,
+		    ["The File menu.",
+		     "",
+		     "   New:",
+		     "   Lets the user start editing a new brick of the chosen size",
+		     "   and color. A brick must be at least one by one and at most",
+		     "   ten by ten in size. Valid colors are: yellow, red, blue,",
+		     "   green, orange, magenta, cyan and brown.",
+		     "   When the user clicks Okay in the dialog box, an empty grid",
+		     "   of the given size shows up on the edit pane.",
+		     "",
+		     "   Open:",
+		     "   If Open is selected, a dialog appears which prompts the user",
+		     "   for the filename of a previously saved brick. Brick files",
+		     "   always have the extension \".brk\" but this is not necessary",
+		     "   to include, although it is perfectly alright to do so.",
+		     "   If the file is valid and could be opened successfully, the",
+		     "   editor resets itself to the measurements and color of the",
+		     "   loaded brick and the brick appears with the grid on",
+		     "",
+		     "   Save:",
+		     "   The user enters a filename in the shown dialog box and the",
+		     "   brick is saved under that name. If the extension .brk is not",
+		     "   added to the name, the editor automaticly adds it before",
+		     "   saving. If the user enter a name with characters after",
+		     "   \".brk\", those are discarded. Saving can not be performed",
+		     "   if there are no filled squares. If not all rows and columns",
+		     "   are used for the brick to be saved, the brick is stripped of",
+		     "   such empty rows and columns before it is saved. This does",
+		     "   not apply to empty rows and columns between filled squares,",
+		     "   only \"edge\" rows and columns are stripped off.",
+		     "",
+		     "   Quit:",
+		     "   This closes the brick editor and returns focus to the",
+		     "   htetris application."],
+		    [],
+		    [],
+		    [],
+		    ["Previous", "Next", "Exit"],
+		    0)
+
+    case button_pressed of {
+	"Previous" : editor_help_menu()
+	"Next"     : brick_menu()
+    }
+    return
+end
+
+procedure brick_menu()
+
+    button_pressed :=
+	TextDialog( htetris_window,
+		    ["The Brick menu.",
+		     "",
+		     "   Change color:",
+		     "   This changes the color of the currently edited brick in",
+		     "   place. From now on, this color is used to fill squares",
+		     "   unless color is changed again, a brick is loaded from file",
+		     "   or a new brick is started.",
+		     "   The same colors as mentioned above under New are valid."],
+		    [],
+		    [],
+		    [],
+		    ["Previous", "Next", "Exit"],
+		    0)
+
+    case button_pressed of {
+	"Previous" : file_menu()
+	"Next"     : editor_help_menu()
+    }
+    return
+end
+
+procedure editor_help_menu()
+
+    button_pressed :=
+	TextDialog( htetris_window,
+		    ["The Help menu.",
+		     "",
+		     "   How to edit:",
+		     "   This option displays information on how to use the editor.",
+		     "",
+		     "   Menus:",
+		     "   This option displays the current information."],
+		    [],
+		    [],
+		    [],
+		    ["Previous", "Next", "Exit"],
+		    0)
+
+    case button_pressed of {
+	"Previous" : brick_menu()
+	"Next"     : file_menu()
+    }
+    return
+end
+
+procedure how_to_edit()
+
+    Notice( htetris_window,
+	    "htetris includes a brick editor where the user can create his/hers",
+	    "own bricks and include them when playing the game. A brick consists",
+	    "of squares, or tiles, which is the basic unit of measurement for a",
+	    "brick. A brick must be at least one square and at mostten by ten",
+	    "squares in size. Any rectangular format in between is allowed.",
+	    "To fill a square on the edit pane, the user points the mouse at that",
+	    "square and clicks the left mouse button. The right mouse button is used",
+	    "to erase a filled square. Only one color per brick can be used.",
+	    "The upper left corner of the currently edited brick resides in the upper",
+	    "left corner of the edit pane. It is not possible to fill a square",
+	    "outside the bounds of the current brick.",
+	    "There is a grid which shows the bounds when it is shown. The grid can",
+	    "be switched on and off by pressing the Toggle grid button on the",
+	    "interface. The Clear button clears whatever filled squares there are,",
+	    "but does not affect the grid. A brick can take on any shape, even",
+	    "unconnected regions in the same brick.",
+	    "A brick can be saved to file and previously saved bricks can be opened",
+	    "and re-edited.")
+    return
+end

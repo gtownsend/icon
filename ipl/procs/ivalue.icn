@@ -1,0 +1,138 @@
+############################################################################
+#
+#	File:     ivalue.icn
+#
+#	Subject:  Procedures to convert string to Icon value
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     October 12, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure turns a string from image() into the corresponding Icon
+#  value.  It can handle integers, real numbers, strings, csets, keywords,
+#  structures, and procedures.  For the image of a structure, it produces a
+#  result of the correct type and size, but any values in the structure
+#  are not likely to be correct, since they are not encoded in the image.
+#  For procedures, the procedure must be present in the environment in
+#  which ivalue() is evaluated.  This generally is true for built-in
+#  procedures (functions).
+#
+#  All keywords are supported even if image() does not produce a string
+#  of the form "&name" for them.  The values produced for non-constant
+#  keywords are, of course, the values they have in the environment in
+#  which ivalue() is evaluated.
+#
+#  ivalue() also can handle non-local variables (image() does not produce
+#  these), but they must be present in the environment in which ivalue()
+#  is evaluated.
+#
+############################################################################
+
+link escape
+
+procedure ivalue(___s___)			#: convert string to Icon value
+   static ___k___
+
+   initial {
+      ___k___ := table()
+      ___k___["&allocated"] := &allocated
+      ___k___["&ascii"] := &ascii
+      ___k___["&clock"] := &clock
+      ___k___["&collections"] := &collections
+      ___k___["&cset"] := &cset
+      ___k___["&current"] := &current
+      ___k___["&date"] := &date
+      ___k___["&dateline"] := &dateline
+      ___k___["&digits"] := &digits
+      ___k___["&e"] := &e
+      ___k___["&errornumber"] := &errornumber
+      ___k___["&errortext"] := &errortext
+      ___k___["&errorvalue"] := &errorvalue
+      ___k___["&errout"] := &errout
+      ___k___["&features"] := &features
+      ___k___["&file"] := &file
+      ___k___["&host"] := &host
+      ___k___["&input"] := &input
+      ___k___["&lcase"] := &lcase
+      ___k___["&letters"] := &letters
+      ___k___["&level"] := &level
+      ___k___["&line"] := &line
+      ___k___["&main"] := &main
+      ___k___["&null"] := &null
+      ___k___["&output"] := &output
+      ___k___["&phi"] := &phi
+      ___k___["&pi"] := &pi
+      ___k___["&regions"] := &regions
+      ___k___["&source"] := &source
+      ___k___["&storage"] := &storage
+      ___k___["&time"] := &time
+      ___k___["&ucase"] := &ucase
+      ___k___["&version"] := &version
+      }
+
+   return {
+      numeric(___s___) | {				# integer or real
+      ___s___ ? {
+         2(="\"", escape(tab(-1)), ="\"") |		# string literal
+         2(="'", cset(escape(tab(-1))), ="'")	# cset literal
+         }
+      } |
+      ((*___s___ = 0) & &null) |			# empty string = &null
+      \___k___[___s___] |				# non-variable keyword
+      variable(___s___) |				# variable
+      struct___(___s___) | {				# structure
+      ___s___ ? {					# procedure
+         if =("function " | "procedure " | "record contructor ") & tab(0)
+         then proc(___s___, 2 | 1 | 3) else fail
+         }
+      }
+      }
+
+end
+
+procedure struct___(s)
+   local type_, size, name, x
+
+   s ? {
+      if {
+         type_ := tab(upto('_')) &			# type name
+         move(1) &
+         tab(many(&digits)) &				# serial number
+         ="(" &
+         size := tab(many(&digits)) &
+         =")" &
+         pos(0)
+         }
+      then {
+         type_ ? {
+            if {
+               ="record " &
+               name := tab(0) &
+               image(proc(name)) ? ="record constructor"
+               }
+            then return name()
+            }
+         case type_ of {
+            "list":   return list(size)
+            "set":    {
+               x := set()
+               every insert(x, 1 to size)
+               return x
+               }
+            "table":  {
+              x := table()
+              every x[1 to size] := 1
+              return x
+              }
+            default:  fail  
+            }
+         }
+      }
+
+end

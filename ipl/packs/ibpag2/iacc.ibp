@@ -1,0 +1,495 @@
+############################################################################
+#
+#	Name:	 iacc.ibp
+#
+#	Title:	 YACC-like front-end for Ibpag2 (experimental)
+#
+#	Author:	 Richard L. Goerwitz
+#
+#	Version: 1.6
+#
+############################################################################
+#
+#  Summary:
+#
+#      Iacc is a YACC-like Ibpag2 preprocessor (very experimental).
+#  Iacc simply reads &input (assumed to be a YACC file, but with Icon
+#  code in the action fields), and writes an Ibpag2 file to &output.
+#
+############################################################################
+#
+#  Installation:
+#
+#      This file is not an Icon file, but rather an Ibpag2 file.  You
+#  must have Ibpag2 installed in order to run it.  To create the iacc
+#  executable, first create iacc.icn by typing "ibpag2 -f iacc.ibp -o
+#  iacc.icn," then compile iacc.icn as you would any other Icon file
+#  to create iacc (or on systems without direct execution, iacc.icx).
+#  Put more simply, iacc.ibp not only outputs Ibpag2 files, but is
+#  itself generated using Ibpag2 + icon{t,c}.
+#
+############################################################################
+#
+#  Implementation notes:
+#
+#      Iacc uses an YACC grammar that is actually LR(2), and not
+#  LR(1), as Ipbag2 would normally require in standard mode.  Iacc
+#  obtains the additional token lookahead via the lexical analyzer.
+#  The place it uses that lookahead is when it sees an identifier.  If
+#  the next token is a colon, then it is the LHS of a rule (C_IDENT
+#  below); otherwise it's an IDENT in the RHS of some rule.  Crafting
+#  the lexical analyzer in this fashion makes semicolons totally
+#  superfluous (good riddance!), but it makes it necessary for the
+#  lexical analyzer to suspend some dummy tokens whose only purpose is
+#  to make sure that it doesn't eat up C or Icon action code while
+#  trying to satisfy the grammar's two-token lookahead requirements
+#  (see how RCURL and '}' are used below in the cdef and act
+#  productions).
+#
+#      Iacc does its work by making six basic changes to the input
+#  stream: 1) puts commas between tokens and symbols in rules, 2)
+#  removes superfluous union and type declarations/tags, 3) inserts
+#  "epsilon" into the RHS of empty rules, 4) turns "$$ = x" into
+#  "return x", 5) rewrites rules so that all actions appear at the end
+#  of a production, and 6) strips all comments.
+#
+#      Although Iacc is really meant for grammars with Icon action
+#  code, Iacc can, in fact, accept straight YACC files, with C action
+#  code.  There isn't much point to using it this way, though, since
+#  its output is not meant to be human readable.  Rather, it is to be
+#  passed directly to Ibpag2 for processing.  Iacc is simply a YACCish
+#  front end.  Its output can be piped directly to Ibpag2 in most
+#  cases:  iacc < infile.iac | ibpag2 > infile.icn.
+#
+############################################################################
+#
+#  Links: longstr, strings
+#  See also: ibpag2
+#
+############################################################################
+
+%{
+
+link strings, longstr
+global newrules, lval, symbol_no
+
+%}
+
+# basic entities
+%token C_IDENT, IDENT    # identifiers and literals
+%token NUMBER            # [0-9]+
+
+# reserved words:  %type -> TYPE, %left -> LEFT, etc.
+%token LEFT, RIGHT, NONASSOC, TOKEN, PREC, TYPE, START, UNION
+
+# miscellaneous
+%token MARK   # %%
+%token LCURL  # %{
+%token RCURL  # dummy token used to start processing of C code
+
+%start yaccf
+
+%%
+
+yaccf	: front, back
+front	: defs, MARK		{ write(arg2) }
+back	: rules, tail		{
+				  every write(!\newrules)
+				  if write(\arg2) then
+				      every write(!&input)
+				}
+tail	: epsilon		{ return &null }
+	| MARK			{ return arg1 }
+
+defs	: epsilon
+	| defs, def		{ write(\arg2) }
+	| defs, cdef		{ write(\arg2) }
+
+def	: START, IDENT		{ return arg1 || " " || arg2 }
+	| rword, tag, nlist	{
+				  if arg1 == "%type"
+				  then return &null
+				  else return arg1 || " " || arg3
+				}
+cdef	: stuff, RCURL, RCURL	{ return arg1 }
+stuff	: UNION			{ get_icon_code("%}"); return &null }
+	| LCURL			{ return "%{ " || get_icon_code("%}") }
+
+rword	: TOKEN	| LEFT | RIGHT | NONASSOC | TYPE
+
+tag	: epsilon		{ return &null }
+	| '<', IDENT, '>'	{ return "<" || arg2 || ">" }
+
+nlist	: nmno			{ return arg1 }
+	| nlist, nmno		{ return arg1 || ", " || arg2 }
+	| nlist, ',', nmno	{ return arg1 || ", " || arg3 }
+
+nmno	: IDENT			{ return arg1 }
+	| IDENT, NUMBER		{ return arg1 }
+	
+rules	: LHS, ':', RHS		{ write(arg1, "\t: ", arg3) }
+	| rules, rule		{ write(arg2) }
+
+RHS	: rbody, prec		{ return arg1 || " " || arg2 }
+
+rule	: LHS, '|', RHS		{ return "\t| " || arg3 }
+	| LHS, ':', RHS		{ return arg1 || "\t: " || arg3 }
+
+LHS	: C_IDENT		{ symbol_no := 0 ; return arg1 }
+	| epsilon		{ symbol_no := 0 }
+
+rbody	: IDENT			{ symbol_no +:= 1; return arg1 }
+	| act			{ return "epsilon " || arg1 }
+	| middle, IDENT		{ return arg1 || ", " || arg2 }
+	| middle, act		{ return arg1 || " "  || arg2 }
+	| middle, ',', IDENT	{ return arg1 || ", " || arg3 }
+	| epsilon		{ return "epsilon" }
+
+middle	: IDENT			{ symbol_no +:= 1; return arg1 }
+	| act			{ symbol_no +:= 1; return arg1 }
+	| middle, IDENT		{ symbol_no +:= 1; return arg1 || ", "||arg2 }
+	| middle, ',', IDENT	{ symbol_no +:= 1; return arg1 || ", "||arg3 }
+	| middle, act		{
+				  local i, l1, l2
+				  static actno
+				  initial { actno := 0; newrules := [] }
+				  actno +:= 1
+				  l1 := []; l2 := []
+				  every i := 1 to symbol_no do {
+				      every put(l1, ("arg"|"$") || i)
+				      if symbol_no-i = 0 then i := "0"
+				      else i := "-" || symbol_no - i
+				      every put(l2, ("$"|"$") || i)
+				  }
+				  put(newrules, "ACT_"|| actno ||
+					"\t: epsilon "|| mapargs(arg2, l1, l2))
+				  symbol_no +:= 1
+				  return arg1 || ", " || "ACT_" || actno
+				}
+
+act	: '{', cstuff, '}', '}'	{ return "{" || arg2 }
+cstuff	: epsilon		{ return get_icon_code("}") }
+
+prec	: epsilon		{ return "" }
+	| PREC, IDENT		{ return arg1 || arg2 }
+	| PREC, IDENT, act	{ return arg1 || arg2 || arg3 }
+
+
+%%
+
+
+procedure iilex()
+
+    local t
+    static last_token, last_lval, colon
+    initial colon := ord(":")
+
+    every t := next_token() do {
+	iilval := last_lval
+	if \last_token then {
+	    if t = colon then {
+		if last_token = IDENT
+		then suspend C_IDENT
+		else suspend last_token
+	    } else
+		suspend last_token
+	}
+	last_token := t
+	last_lval := lval
+    }
+    iilval := last_lval
+    suspend \last_token
+
+end
+
+
+procedure next_token()
+
+    local reserveds, UNreserveds, c, idchars, marks
+
+    reserveds := ["break","by","case","create","default","do",
+		  "else","end","every","fail","global","if",
+		  "initial","invocable","link","local","next",
+		  "not","of","procedure","record","repeat",
+		  "return","static","suspend","then","to","until",
+		  "while"]
+
+    UNreserveds := ["break_","by_","case_","create_","default_","do_",
+		    "else_","end_","every_","fail_","global_","if_",
+		    "initial_","invocable_","link_","local_","next_",
+		    "not_","of_","procedure_","record_","repeat_",
+		    "return_","static_","suspend_","then_","to_",
+		    "until_","while_"]
+
+    idchars := &letters ++ '._'
+    marks := 0
+
+    c := reads()
+    repeat {
+	lval := &null
+	case c of {
+	    "#" : { do_icon_comment(); c := reads() | break }
+	    "<" : { suspend ord(c); c := reads() | break }
+	    ">" : { suspend ord(c); c := reads() | break }
+	    ":" : { suspend ord(c); c := reads() | break }
+	    "|" : { suspend ord(c); c := reads() | break }
+	    "," : { suspend ord(c); c := reads() | break }
+	    "{" : { suspend ord(c | "}" | "}"); c := reads() }
+	    "/" : {
+		reads() == "*" | stop("unknown YACC operator, \"/\"")
+		do_c_comment()
+		c := reads() | break
+	    }
+	    "'" : {
+		lval := "'"
+		while lval ||:= (c := reads()) do {
+		    if c == "\\"
+		    then lval ||:= reads()
+		    else if c == "'" then {
+			suspend IDENT
+			break
+		    }
+		}
+		c := reads() | break
+	    }
+	    "%" : {
+		lval := "%"
+		while any(&letters, c := reads()) do 
+		    lval ||:= c
+		if *lval = 1 then {
+		    if c == "%" then {
+			lval := "%%"
+			suspend MARK
+			if (marks +:= 1) > 1 then
+			    fail
+		    } else {
+			if c == "{" then {
+			    lval := "%{"
+			    suspend LCURL | RCURL | RCURL
+			}
+			else stop("malformed %declaration")
+		    }
+		    c := reads() | break
+		} else {
+		    case lval of {
+			"%prec"     : suspend PREC
+			"%left"     : suspend LEFT
+			"%token"    : suspend TOKEN
+			"%right"    : suspend RIGHT
+			"%type"     : suspend TYPE
+			"%start"    : suspend START
+			"%union"    : suspend UNION | RCURL | RCURL
+			"%nonassoc" : suspend NONASSOC
+			default    : stop("unknown % code in def section")
+		    }
+		}
+	    }
+	    default : {
+		if any(&digits, c) then {
+		    lval := c
+		    while any(&digits, c := reads()) do
+			lval ||:= c
+		    suspend NUMBER
+		}    
+		else {
+		    if any(idchars, c) then {
+			lval := c
+			while any(&digits ++ idchars, c := reads()) do
+			    lval ||:= c
+			lval := mapargs(lval, reserveds, UNreserveds)
+			suspend IDENT
+		    }
+		    else {
+			# whitespace
+			c := reads() | break
+		    }
+		}
+	    }
+	}
+    }
+
+
+end
+
+
+procedure get_icon_code(endmark, comment)
+
+    local yaccwords, ibpagwords, count, c, c2, s
+
+    yaccwords := ["YYDEBUG", "YYACCEPT", "YYERROR", "yyclearin", "yyerrok"]
+    ibpagwords := ["IIDEBUG", "IIACCEPT", "IIERROR", "iiclearin", "iierrok"]
+
+    s := ""
+    count := 1
+    c := reads()
+
+    repeat {
+	case c of {
+	    "\""    :  s ||:= c || do_string()
+	    "'"     :  s ||:= c || do_charlit()
+	    "$"     :  {
+		c2 := reads() | break
+		if c2 == "$" then {
+		    until (c := reads()) == "="
+		    s ||:= "return "
+		} else {
+		    s ||:= c
+		    c := c2
+		    next
+		}
+	    }
+	    "#"     :  {
+		if s[-1] == "\n"
+		then s[-1] := ""
+		do_icon_comment()
+	    }
+	    "/" : {
+		c := reads() | break
+		if c == "*" then
+		    do_c_comment()
+		else {
+		    s ||:= c
+		    next
+		}
+	    }
+	    "{"     :  {
+		s ||:= c
+		if endmark == "}" then
+		    count +:= 1
+	    }
+	    "}"     :  {
+		s ||:= c
+		if endmark == "}" then {
+		    count -:= 1
+		    count = 0 & (return mapargs(s, yaccwords, ibpagwords))
+		}
+	    }
+	    "%"     :  {
+		s ||:= c
+		if endmark == "%}" then {
+		    if (c := reads()) == "}"
+		    then return mapargs(s || c, yaccwords, ibpagwords)
+		    else next
+		}
+	    }
+	    default : s ||:= c
+	}
+	c := reads() | break
+    }
+
+    # if there is no endmark, just go to EOF
+    if \endmark
+    then stop("input file has mis-braced { code }")
+    else return mapargs(s, yaccwords, ibpagwords)
+
+end
+
+
+procedure do_string()
+
+    local c, s
+
+    s := ""
+    while c := reads() do {
+	case c of {
+	    "\\"    : s ||:= c || reads()
+	    "\""    : return s || c || reads()
+	    default : s ||:= c
+	}
+    }
+
+    stop("malformed string literal")
+
+end
+
+
+procedure do_charlit()
+
+    local c, s
+
+    s := ""
+    while c := reads() do {
+	case c of {
+	    "\\"    : s ||:= c || reads()
+	    "'"     : return s || c || reads()
+	    default : s ||:= c
+	}
+    }
+
+    stop("malformed character literal")
+
+end
+
+
+procedure do_c_comment()
+
+    local c, s
+
+    s := c := reads() |
+	stop("malformed C-style /* comment */")
+
+    repeat {
+	if c == "*" then {
+	    s ||:= (c := reads() | break)
+	    if c == "/" then
+		return s
+	}
+	else s ||:= (c := reads() | break)
+    }
+
+    return s			# EOF okay
+
+end
+
+
+procedure do_icon_comment()
+
+    local c, s
+
+    s := ""
+    while c := reads() do {
+	case c of {
+	    "\\"    : s ||:= c || (reads() | break)
+	    "\n"    : return s
+	    default : s ||:= c
+	}
+    }
+
+    return s			# EOF okay
+
+end
+
+
+procedure mapargs(s, l1, l2)
+
+    local i, s2
+    static cs, tbl, last_l1, last_l2
+
+    if /l1 | *l1 = 0 then return s
+
+    if not (last_l1 === l1, last_l2 === l2) then {
+	cs := ''
+	every cs ++:= (!l1)[1]
+	tbl := table()
+	every i := 1 to *l1 do
+	    insert(tbl, l1[i], (\l2)[i] | "")
+    }
+
+    s2 := ""
+    s ? {
+	while s2 ||:= tab(upto(cs)) do {
+	    (s2 <- (s2 || tbl[tab(longstr(l1))]),
+	        not any(&letters++&digits++'_')) |
+		    (s2 ||:= move(1))
+	}
+	s2 ||:= tab(0)
+    }
+
+    return s2
+
+end
+
+
+procedure main()
+    iiparse()
+end

@@ -1,0 +1,327 @@
+############################################################################
+#
+#	File:     vcoupler.icn
+#
+#	Subject:  Procedures for coupler variables
+#
+#	Author:   Jon Lipp
+#
+#	Date:     April 1, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Vidgets defined in this file:
+#
+#	Vcoupler
+#	Vrange_coupler
+#	Vstrset_coupler
+#	Vbool_coupler
+#	Vtable_coupler
+#	Vmenu_coupler
+#
+#  Utility procedures in this file:
+#
+#	add_clients_Vinit()
+#
+############################################################################
+#
+#  Links:  vidgets
+#
+############################################################################
+
+link vidgets
+
+record Vcoupler_rec(value, callers, clients, id, curr_id, old_id, 
+                    allowed, locked, uid, V)
+
+############################################################################
+# Vcoupler
+############################################################################
+
+procedure Vcoupler(params[])
+   local self
+   static procs
+
+   initial procs := Vstd_coupler(set_Vcoupler, add_client_Vcoupler,
+			init_Vcoupler, null_proc, null_proc,
+                        null_proc)
+
+   self := Vcoupler_rec ! params
+   self.uid := Vget_uid()
+   self.V := procs
+   self.V.init(self)
+   return self
+end
+
+
+procedure call_clients_Vcoupler(s, caller, val)
+   local i, c
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   every i := 1 to *s.clients do {
+      c := s.clients[i]
+      if type(c) == "procedure" then c(s.callers[i], val)
+      else if type(c) ? find("coupler") then c.V.set(c, caller, val)
+      else if type(c) == !Vrecset then {
+         # don't call yourself
+         if (type(\caller) == type(c) & \caller["uid"] === c["uid"]) then
+            next
+         c.V.couplerset(c, caller, val)
+         }
+      }
+end
+
+procedure set_Vcoupler(s, caller, val, call_clients)
+   if \s.locked then fail
+   s.value := val
+   if /call_clients then
+      call_clients_Vcoupler(s, caller, val)
+   return val
+end
+
+#
+#  Client is the client of course; caller is the vidget record to be passed
+#  to this client if type(client) == "procedure".
+#
+procedure add_client_Vcoupler(s, client, caller)
+local pl
+static image
+
+   initial image := proc("image", 0)		# protect attractive name
+
+   image(client) ? { if ="function" then
+      _Vbomb("Icon function" || tab(0) || "() not allowed as callback")
+   }
+   put (s.clients, client)
+   put (s.callers, caller)
+end
+
+procedure init_Vcoupler(s)
+  /s.clients := []
+  /s.callers := []
+  s.id := V_COUPLER
+end
+
+############################################################################
+# Vrange_coupler
+# Range couplers are Vcouplers whose values are limited to a
+# particular range of legal values.  Presently they must be numeric.
+# The default increment is 0.1.
+############################################################################
+record Vrange_coupler_rec(min, max, value, inc, callers, clients, real, id, 
+   locked, uid, V)
+
+procedure Vrange_coupler(params[])
+   local self
+   static procs
+
+   initial procs := Vstd_coupler(set_Vrange_coupler,
+			add_client_Vcoupler,
+			init_Vrange_coupler, null_proc,
+                        null_proc, null_proc)
+
+   self := Vrange_coupler_rec ! params
+   self.uid := Vget_uid()
+   self.V := procs
+   self.V.init(self)
+   return self
+end
+
+#
+#  If the value passed is out of range, change caller
+procedure set_Vrange_coupler(s, caller, val, call_clients)
+   local theMax
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if \s.locked then fail
+   theMax := numeric(s.max) | (type(s.max) == !Vcoupler_recset, s.max.value) |
+     _Vbomb("illegal value in Vrange_coupler set")
+   val := (s.min > val, s.min) | (theMax < val, theMax)
+   s.value := val
+   if /s.real then val := integer(val)
+   if /call_clients then
+      call_clients_Vcoupler(s, caller, val)
+   return val
+end
+
+procedure init_Vrange_coupler(s)
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   /s.min := 0; /s.max := 1.0
+   if \s.value < s.min | \s.value > s.max then s.value := s.min
+
+   /s.value := \ s.min
+   s.real := (type(s.min|s.max) == "real", 1)
+  
+   /s.inc := 0.1*(s.max-s.min) 
+   if /s.real then s.inc := integer(s.inc)
+   init_Vcoupler(s)
+end
+
+############################################################################
+# strset_coupler
+############################################################################
+
+procedure Vstrset_coupler(params[])
+   local self
+   static procs
+
+   initial procs := Vstd_coupler(set_Vstrset_coupler, 
+			add_client_Vcoupler,
+			init_Vstrset_coupler, null_proc,
+                        null_proc, null_proc)
+
+   self := Vcoupler_rec ! params
+   self.uid := Vget_uid()
+   self.V := procs
+   self.V.init(self)
+   return self
+end
+
+procedure set_Vstrset_coupler(s, id, val)
+   if \s.locked then fail
+   if !s.allowed === val then 
+      return set_Vcoupler(s, id, val)
+end
+
+procedure init_Vstrset_coupler(s)
+  /s.allowed := []
+  init_Vcoupler(s)
+end
+
+############################################################################
+# Vbool_coupler
+############################################################################
+
+procedure Vbool_coupler(params[])
+   local self
+   static procs
+
+   initial procs := Vstd_coupler(set_Vbool_coupler, 
+			add_client_Vcoupler,
+			init_Vcoupler, unset_Vbool_coupler,
+			toggle_Vbool_coupler, eval_Vbool_coupler)
+
+   self := Vcoupler_rec ! params
+   self.uid := Vget_uid()
+   self.V := procs
+   self.V.init(self)
+   return self
+end
+
+procedure eval_Vbool_coupler(s)
+   return \s.value
+end
+
+procedure set_Vbool_coupler(s, caller)
+   if \s.locked then fail
+   s.value := 1
+   call_clients_Vcoupler(s, caller, 1)
+   return s.value
+end
+
+procedure unset_Vbool_coupler(s, caller)
+   s.value := &null
+   call_clients_Vcoupler(s, caller, &null)
+   return s.value
+end
+
+procedure toggle_Vbool_coupler(s, caller)
+   local newstate
+
+   newstate := (/s.value, 1)
+   return set_Vcoupler(s, caller, newstate)
+end
+
+############################################################################
+# Vtable_coupler
+############################################################################
+
+procedure Vtable_coupler(params[])
+   local self
+   static procs
+
+   initial procs := Vstd_coupler(set_Vtable_coupler, 
+			add_client_Vcoupler,
+			init_Vtable_coupler, null_proc,
+                        null_proc, null_proc)
+
+   self := Vcoupler_rec ! params
+   self.uid := Vget_uid()
+   self.V := procs
+   self.V.init(self)
+   return self
+end
+
+procedure set_Vtable_coupler(s, id, key, val)
+   s.value[key] := val
+   call_clients_Vcoupler(s, id, val)
+end
+
+procedure init_Vtable_coupler(s) 
+  s.value := table()
+  init_Vcoupler(s)
+end
+
+############################################################################
+# Vmenu_coupler
+############################################################################
+
+procedure Vmenu_coupler(params[])
+   local self
+   static procs
+
+   initial procs := Vstd_coupler(set_Vmenu_coupler, 
+			null_proc,
+			null_proc, null_proc,
+                        null_proc, null_proc)
+
+   self := Vcoupler_rec ! params
+   self.uid := Vget_uid()
+   self.V := procs
+   self.V.init(self)
+   return self
+end
+
+
+procedure set_Vmenu_coupler(s, id, val)
+   if \s.locked then fail
+   s.old_id := s.curr_id
+   s.curr_id := id
+   s.value := val
+   (\s.old_id).V.couplerset(s.old_id, , val)
+   return val
+end
+ 
+
+############################################################################
+# Utilities 
+############################################################################
+
+#
+#  Takes the callback parameter passed in upon creation of a vidget and
+#  adds them to the client list of the coupler variable, checking if it
+#  is a list or not.
+#
+procedure add_clients_Vinit(cv, callbacks, vid)
+   local cb
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if type(\callbacks) == "list" then
+      every cb := !callbacks do cv.V.add_client(cv, \cb, vid)
+   else
+      cv.V.add_client(cv, \callbacks, vid)
+end
+

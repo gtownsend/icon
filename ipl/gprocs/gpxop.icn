@@ -1,0 +1,314 @@
+############################################################################
+#
+#	File:     gpxop.icn
+#
+#	Subject:  Procedures for graphics operations
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     May 26, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	This file contains some graphics procedures.
+#
+#	LeftString(x, y, s)	  draws a string left-aligned at (x, y).
+#
+#	CenterString(x, y, s)	  draws a string centered at (x, y).
+#
+#	RightString(x, y, s)	  draws a string right-aligned at (x, y).
+#
+#	ClearOutline(x, y, w, h)  draws a rectangle, erasing its interior.
+#
+#	Translate(dx, dy, w, h)	  moves the window origin and optionally
+#				  sets the clipping region.
+#
+#	Zoom(x1, y1, w1, h1, x2, y2, w2, h2)
+#				  copies and distorts a rectangle.
+#
+#	Capture(p, x, y, w, h)	  converts a window area to an image string.
+#
+#	Sweep()			  lets the user select a rectangular area.
+#
+############################################################################
+#
+#  LeftString(x, y, s), CenterString(x, y, s), and RightString(x, y, s)
+#  draw a string centered vertically about y and left-justified,
+#  centered, or right-justified about x.
+#
+#  ClearOutline(x, y, w, h) draws a rectangle in the foreground color
+#  and fills it with the background color.
+#
+#  Translate(dx, dy, w, h) adjusts a window's dx and dy attributes by
+#  the values given.  Note that the resulting attribute values are the
+#  sums of the existing values with the parameters, so that successive
+#  translations accumulate.  If w and h are supplied, the clipping
+#  region is set to a rectangle of size (w, h) at the new origin.
+#
+#  Zoom(x1, y1, w1, h1, x2, y2, w2, h2) is a distorting variation of
+#  CopyArea that can be used to shrink or enlarge a rectangular area.
+#  Zero, one, or two window arguments can be supplied.  Rectangle 1 is
+#  copied to fill rectangle 2 using simple pixel sampling and replication.
+#  The rectangles can overlap.  The usual defaults apply for both rectangles.
+#
+#  Sweep() lets the user select a rectangular area using the mouse.
+#  Called when a mouse button is pressed, Sweep handles all subsequent
+#  events until a mouse button is released.  As the mouse moves, a
+#  reverse-mode outline rectangle indicates the selected area.  The
+#  pixels underneath the rectangle outline are considered part of this
+#  rectangle, implying a minimum width/height of 1, and the rectangle
+#  is clipped to the window  boundary.  Sweep returns a list of four
+#  integers [x,y,w,h] giving the rectangle bounds in canonical form
+#  (w and h always positive).  Note that w and h give the width as
+#  measured in FillRectangle terms (number of pixels included) rather
+#  than DrawRectangle terms (coordinate difference).
+#
+#  Capture(palette, x, y, w, h) converts a window region into an
+#  image string using the specified palette, and returns the string.
+#
+#  These procedures all accept an optional initial window argument.
+#
+############################################################################
+#
+#  Links: gpxlib
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+link gpxlib
+
+
+#   LeftString(x, y, s) -- draw string left-justified at (x,y).
+
+procedure LeftString(win, x, y, s)		#: draw left-justified string
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+   if type(win) ~== "window" then {
+      win :=: x :=: y :=: s
+      win := &window
+      }
+   y +:= (WAttrib(win, "ascent") - WAttrib(win, "descent")) / 2 + 1
+   return DrawString(win, x, y, s)
+end
+
+
+#   CenterString(x, y, s) -- draw string centered about (x,y).
+
+procedure CenterString(win, x, y, s)		#: draw centered string
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+   if type(win) ~== "window" then {
+      win :=: x :=: y :=: s
+      win := &window
+      }
+   x -:= TextWidth(win, s) / 2
+   y +:= (WAttrib(win, "ascent") - WAttrib(win, "descent")) / 2 + 1
+   return DrawString(win, x, y, s)
+end
+
+
+#   RightString(x, y, s) -- draw string right-justified at (x,y).
+
+procedure RightString(win, x, y, s)		#: draw right-justified string
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+   if type(win) ~== "window" then {
+      win :=: x :=: y :=: s
+      win := &window
+      }
+   x -:= TextWidth(win, s)
+   y +:= (WAttrib(win, "ascent") - WAttrib(win, "descent")) / 2 + 1
+   return DrawString(win, x, y, s)
+end
+
+
+#   ClearOutline(x, y, w, h) -- draw rectangle and fill background.
+
+procedure ClearOutline(win, x, y, w, h)		#: draw and clear rectangle
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+   if type(win) ~== "window" then {
+      win :=: x :=: y :=: w :=: h
+      win := &window
+      }
+
+   /x := -WAttrib(win, "dx")
+   /y := -WAttrib(win, "dy")
+   /w := WAttrib(win, "width") - (x + WAttrib(win, "dx"))
+   /h := WAttrib(win, "height") - (y + WAttrib(win, "dy"))
+
+   if w < 0 then
+      x -:= (w := -w)
+   if h < 0 then
+      y -:= (h := -h)
+
+   DrawRectangle(win, x, y, w, h)
+   EraseArea(win, x+1, y+1, w-1, h-1)
+   return win
+end
+
+
+#   Translate(dx, dy, w, h) -- add translation and possibly clipping.
+
+procedure Translate(win, dx, dy, w, h)		#: add translation
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+   if type(win) ~== "window" then {
+      win :=: dx :=: dy :=: w :=: h
+      win := &window
+      }
+   WAttrib(win, "dx=" || WAttrib(win,"dx")+dx, "dy=" || WAttrib(win,"dy")+dy)
+   Clip(win, 0, 0, \w, \h)
+   return win
+end
+
+
+#  Sweep() -- sweep out area with mouse, return bounds
+
+procedure Sweep(win)				#: sweep area with mouse
+   local x, y, w, h, wmin, wmax, hmin, hmax
+
+   /win := &window
+   win := Clone(win, "drawop=reverse")
+
+   x := &x					# set initial rect bounds
+   y := &y
+   w := h := 0
+
+   wmin := -WAttrib(win, "dx") - x		# calc coordinate limits
+   hmin := -WAttrib(win, "dy") - y
+   wmax := wmin + WAttrib(win, "width") - 1
+   hmax := hmin + WAttrib(win, "height") - 1
+
+   DrawRectangle(win, x, y, w, h)		# draw initial bounding rect
+   until Event(win) === (&lrelease | &mrelease | &rrelease) do {
+      DrawRectangle(win, x, y, w, h)		# erase old bounds
+      w := &x - x				# calc new width & height
+      h := &y - y
+      w <:= wmin				# clip to stay on window
+      w >:= wmax
+      h <:= hmin
+      h >:= hmax
+      DrawRectangle(win, x, y, w, h)		# draw new bounds
+      }
+   DrawRectangle(win, x, y, w, h)		# erase bounding rectangle
+
+   if w < 0 then x -:= (w := -w)		# ensure nonnegative sizes
+   if h < 0 then y -:= (h := -h)
+
+   Uncouple(win)
+   return [x, y, w + 1, h + 1]			# return FillRectangle bounds
+end
+
+
+#  Zoom(win1, win2, x1, y1, w1, h1, x2, y2, w2, h2) -- copy and distort.
+
+procedure Zoom(args[])				#: zoom image
+   local win1, x1, y1, w1, h1
+   local win2, x2, y2, w2, h2
+   local x, y, scr
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if type(args[1]) == "window" then
+      win1 := get(args)
+   else
+      win1 := \&window | runerr(140, &window)
+   if type(args[1]) == "window" then
+      win2 := get(args)
+   else
+      win2 := win1
+
+   x1 := \get(args) | -WAttrib(win1, "dx")
+   y1 := \get(args) | -WAttrib(win1, "dy")
+   w1 := \get(args) | WAttrib(win1, "width") - (x1 + WAttrib(win1, "dx"))
+   h1 := \get(args) | WAttrib(win1, "height") - (y1 + WAttrib(win1, "dy"))
+   if w1 < 0 then
+      x1 -:= (w1 := -w1)
+   if h1 < 0 then
+      y1 -:= (h1 := -h1)
+
+   x2 := \get(args) | -WAttrib(win2, "dx")
+   y2 := \get(args) | -WAttrib(win2, "dy")
+   w2 := \get(args) | WAttrib(win2, "width") - (x2 + WAttrib(win2, "dx"))
+   h2 := \get(args) | WAttrib(win2, "height") - (y2 + WAttrib(win2, "dy"))
+   if w2 < 0 then
+      x2 -:= (w2 := -w2)
+   if h2 < 0 then
+      y2 -:= (h2 := -h2)
+
+   if w1 = 0 | w2 = 0 | h1 = 0 | h2 = 0 then
+      return
+
+   scr := ScratchCanvas(win2, w2, h1, "__Zoom__") | fail
+   every x := 0 to w2 - 1 do
+      CopyArea(win1, scr, x1 + w1 * ((x + 0.5) / w2), y1, 1, h1, x, 0)
+   every y := 0 to h2 - 1 do
+      CopyArea(scr, win2, 0, h1 * ((y + 0.5) / h2), w2, 1, x2, y2 + y)
+
+   EraseArea(scr)		# release colors
+   return win1
+end
+
+
+#  Capture(win, pal, x, y, w, h) -- capture screen region as image string
+
+$define CaptureChunk 100
+
+procedure Capture(win, pal, x, y, w, h)		#: capture image as string
+   local a, c, k, s, t, cmap
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if type(win) ~== "window" then {
+      win :=: pal :=: x :=: y :=: w :=: h
+      win := \&window | runerr(140, &window)
+      }
+
+   /pal := "c1"
+
+   /x := -WAttrib(win, "dx")
+   /y := -WAttrib(win, "dy")
+   /w := WAttrib(win, "width") - (x + WAttrib(win, "dx"))
+   /h := WAttrib(win, "height") - (y + WAttrib(win, "dy"))
+
+   if w < 0 then
+      x -:= (w := -w)
+   if h < 0 then
+      y -:= (h := -h)
+
+   PaletteChars(win, pal) | runerr(205, pal)
+
+   cmap := table()
+
+   # accumulate the image in chunks and then concatenate
+   # (much faster than concatenating single chars on a very long string)
+   s := ""
+   a := []
+   every k := Pixel(win, x, y, w, h) do {
+      c := \cmap[k] | (cmap[k] := PaletteKey(win, pal, k))
+      if *(s ||:= c) >= CaptureChunk then {
+         put(a, s)
+         s := ""
+         }
+      }
+   put(a, s)
+
+   s := w || "," || pal || ","
+   while s ||:= get(a)
+   return s
+end

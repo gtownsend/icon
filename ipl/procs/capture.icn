@@ -1,0 +1,202 @@
+#############################################################################
+#
+#	File:     capture.icn
+#
+#	Subject:  Procedures to echo output to a second file
+#
+#	Author:   David A. Gamey
+#
+#	Date:     August 14, 1996
+#
+#############################################################################
+#
+#   This file is in the public domain.
+#
+#############################################################################
+#
+#       Version:  1.0
+#
+#############################################################################
+#
+#  Capture is initially called by the user with one argument, the open file 
+#  to contain the echoed output. Then it places itself and several shadow 
+#  procedures between all calls to write, writes & stop.  The user never
+#  need call capture again.
+#
+#  Subsequently, during calls to write, writes, and stop, the approprate 
+#  shadow procedure gains control and calls capture internally.  Capture 
+#  then constructs a list of only those elements that direct output to 
+#  &output and calls the original builtin function via the saved name.  
+#  Upon return the shadow routine calls the the original builtin function 
+#  with the full list.   
+#
+#  A series of uncaptured output functions have been added to allow output
+#  to be directed only to &output.  These are handy for placing progress 
+#  messages and other comforting information on the screen.
+#  
+#  Example:
+#
+#     otherfile := open(...,"w")
+#
+#     capfile :=  capture(open(filename,"w"))
+#
+#     write("Hello there.",var1,var2," - this should be echoed",
+#        otherfile,"This should appear once in the other file only")
+#
+#     uncaptured_writes("This will appear once only.")
+#
+#     every i := 1 to 10000 do
+#        if ( i % 100 ) = 0 then
+#
+#           uncaptured_writes("Progress is ",i,"\r")
+#
+#     close(capfile)
+#     close(otherfile)
+#
+#############################################################################
+#
+#  Notes: 
+#
+#  1.    stop must be handled specially in its shadow function
+#  2.    capture is not designed to be turned off
+#  3.    This may be most useful in systems other than Unix 
+#        (i.e. that don't have a "tee" command)
+#  4.    Display has not been captured because
+#        a) display is usually a debugging aid, and capture was 
+#           originally intended to capture screen output to a file
+#           where a record or audit trail might be required
+#        b) the display output would be 'down a level' showing the 
+#           locals at the display_capture_ level, although the depth
+#           argument could easily be incremented to adjust for this
+#        c) write, writes, and stop handle arguments the same way
+#  5.    An alternative to having two calls would be to have capture
+#        call the desired procedure with : 
+#           push(&output,x) ; return p!(y ||| x )
+#        While this would remove the complexity with stop it would
+#        probably be slower
+#
+#############################################################################
+#
+#  History:
+#
+#  10Jun94  -  D.Gamey  -  added uncaptured i/o routines
+#  05Oct94  -  D.Gamey  -  temporarily suspend tracing
+#  20Oct94  -  D.Gamey  -  fix no output for f(&null)
+#                       -  eliminated global variable and select procedure
+#  
+#############################################################################
+
+procedure capture(p,x)
+
+local  keepxi                    # used in list copy to keep/discard arguments
+local  xi                        # equivalent to x[i]
+local  y                         # list to hold what needs be echoed
+
+static f                         # alternate file to echo to
+
+case type(p) of 
+{
+   "procedure" : 
+   {
+      #  Internal use, support for (write|writes|stop)_capture_ procedures
+      
+      runerr(/f & 500)                    # ensure capture(f) called first
+
+      keepxi := 1                         # default is to keep elements
+      y := []                             # list for captured elements
+
+      every xi := !x do 
+      {      
+         if xi === &output then
+            keepxi := 1                   # copying arguments after &output
+         else 
+            if type(xi) == "file" then
+               keepxi := &null            # ignore arguments after non-&output
+            else 
+               if \keepxi then            # if copying ...
+                  put(y,xi)               # append data element from x to y
+      }
+      
+      if ( *y > 0 ) | ( *x = 0 ) then
+      {
+         push(y,f)                        # target output to second file
+         return 1( p!y, y := &null )      # write it & trash list
+      }
+   }
+
+   "null"   :
+   {
+      #  Internal use, succeeds if capture is active, fails otherwise
+
+      if /f then
+         fail
+      else
+         return
+
+   }
+
+   "file" : 
+   {
+      #  This case is called externally to establish the capture
+      #  and switch places with the regular routines.
+      #  Normally this is called only once, however
+      #  it can be called subsequently to switch the capture file
+
+      if /f then                          # swap procedures first time only
+      {
+         write  :=: write_capture_
+         writes :=: writes_capture_
+         stop   :=: stop_capture_
+      }
+      return f := p                       # save file for future use
+   }
+}
+end
+#subtitle Support procedures to intercept write, writes, and stop
+# these procedures get capture to echo text destined for &output
+# then call the original routine.
+
+procedure write_capture_(x[])
+local tr
+
+tr := &trace ; &trace := 0                   # suspend tracing
+capture(write_capture_,x)
+return 1( write_capture_!x, &trace := tr )
+end
+
+procedure writes_capture_(x[])
+local tr
+
+tr := &trace ; &trace := 0                   # suspend tracing
+capture(writes_capture_,x)
+return 1( writes_capture_!x, &trace := tr )
+end
+
+procedure stop_capture_(x[])
+local tr
+
+tr := &trace ; &trace := 0                   # suspend tracing
+capture(write_capture_,x)                    # write, otherwise we stop too soon
+return 1( stop_capture_!x, &trace := tr )    # restore trace just in case 'stop' is changed
+end
+#subtitle Support procedures to provide uncaptured output
+procedure uncaptured_write(x[])
+local tr
+
+tr := &trace ; &trace := 0                   # suspend tracing
+return 1( ((capture() & write_capture_) | write)!x, &trace := tr )
+end
+
+procedure uncaptured_writes(x[])
+local tr
+
+tr := &trace ; &trace := 0                   # suspend tracing
+return 1( ((capture() & writes_capture_) | writes)!x, &trace := tr )
+end
+
+procedure uncaptured_stop(x[])
+local tr
+
+tr := &trace ; &trace := 0                   # suspend tracing
+return 1( ((capture() & stop_capture_) | stop)!x, &trace := tr )   # j.i.c.
+end

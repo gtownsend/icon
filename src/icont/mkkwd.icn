@@ -1,0 +1,52 @@
+#  mkkwd.icn
+#
+#  reads:   standard input  (typically ../runtime/keywords.r) 
+#
+#  writes:  keyword.c
+#	    keyword.h
+#	    kdefs.h
+
+procedure main()
+   local kywds, klist, line, f, k, i
+ 
+   # load keywords
+   kywds := set()
+   while line := read() do {
+      line ? {
+ 	if ="keyword" then {
+ 	   tab(find("}")+1)
+ 	   tab(many(' \t'))
+ 	   insert(kywds,tab(0))
+ 	}
+      }
+   }
+   klist := sort(kywds)
+
+   # write defined constants to keyword.h
+   hfile := wopen("keyword.h", "Keyword manifest constants")
+   lfile := wopen("../h/kdefs.h", "Keyword list")
+   i := 0
+   every k := !klist do {
+      kname := "K_" || map(k,&lcase,&ucase)
+      write(hfile, "#define ", left(kname,13), right(i+:=1,3))
+      write(lfile, "KDef(", k, ",", kname, ")")
+      }
+end
+
+
+#  wopen(fname,comment) -- open file for writing
+#
+#  opens and returns file; writes header comment; writes message to stdout
+
+procedure wopen(fname,comment)
+   local f
+   f := open(fname, "w") | stop ("can't open ", fname, " for writing")
+   write(f, "/*")
+   write(f, " * ", fname, " -- ", comment, ".")
+   write(f, " *")
+   write(f, " * Created mechanically by mkkwd.icn -- DO NOT EDIT.")
+   write(f, " */")
+   write(f)
+   write("  writing ", fname)
+   return f
+end

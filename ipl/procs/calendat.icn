@@ -1,0 +1,56 @@
+############################################################################
+#
+#	File:     calendat.icn
+#
+#	Subject:  Procedure to get date from Julian Day Number
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 6, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  calendat(j) return a record with the month, day, and year corresponding
+#  to the Julian Date Number j.
+#
+############################################################################
+#
+#  Acknowledgement:  This procedure is based on an algorithm given in
+#  "Numerical Recipes; The Art of Scientific Computing"; William H. Press,
+#  Brian P. Flannery, Saul A. Teukolsky. and William T. Vetterling;
+#  Cambrdayge University Press, 1986.
+#
+############################################################################
+
+record date1(month, day, year)
+
+procedure calendat(julian)
+   local ja, jalpha, jb, jc, jd, je, gregorian
+   local month, day, year
+
+   gregorian := 2299161
+
+   if julian >= gregorian then {
+      jalpha := integer(((julian - 1867216) - 0.25) / 36524.25)
+      ja := julian + 1 + jalpha - integer(0.25 * jalpha)
+      }
+   else ja := julian
+
+   jb := ja + 1524
+   jc := integer(6680.0 + ((jb - 2439870) - 122.1) / 365.25)
+   jd := 365 * jc + integer(0.25 * jc)
+   je := integer((jb - jd) / 30.6001)
+   day := jb - jd - integer(30.6001 * je)
+   month := je - 1
+   if month > 12 then month -:= 12
+   year := jc - 4715
+   if month > 2 then year -:= 1
+   if year <= 0 then year -:= 1
+
+   return date1(month, day, year)
+
+end

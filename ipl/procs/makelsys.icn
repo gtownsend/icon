@@ -1,0 +1,78 @@
+############################################################################
+#
+#	File:     makelsys.icn
+#
+#	Subject:  Procedures to convert L-Systems to records
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 23, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures coverts a list corresponding to an L-System into an
+#  L-System record.
+#
+#  See lindsys.icn for documentation about format.
+#
+#  See linden.dat for an example of input data.
+#
+#  See also linden.icn for a graphics version.
+#
+############################################################################
+
+record Lsys(name, axiom, gener, angle, comment, productions)
+
+procedure makelsys(lst)			#: make L-system from list
+   local line, i, s, c, symbol, rewrite
+   local allchars, rhs, value, spec, result
+
+   result := Lsys()
+
+   rewrite := table()
+   allchars := ''			# cset of all rhs characters
+ 
+   while line := get(lst) do {
+      line ? {
+         if symbol := move(1) & ="->" then {
+            rhs := tab(0)
+            rewrite[symbol] := rhs
+            allchars ++:= rhs	# keep track of all characters
+            }
+         else if spec := tab(upto(':')) then {
+            move(1)
+            value := tab(0)
+            if spec == "axiom" then allchars ++:= value
+            else if spec == "end" then break
+            /result[spec] := value
+            }
+         }
+      }
+
+#  At this point, we have the table to map characters, but it may lack
+#  mappings for characters that "go into themselves" by default.  For
+#  efficiency in rewriting, these mappings are added.
+
+   every c := !allchars do
+     /rewrite[c] := c
+
+   result.productions := rewrite
+
+   return result
+
+end
+
+procedure readlsys(input)		#: make L-system from a file
+   local result
+
+   result := []
+
+   while put(result, read(input))
+
+   return makelsys(result)
+
+end

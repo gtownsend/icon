@@ -1,0 +1,337 @@
+############################################################################
+#
+#	File:     kaleido.icn
+#
+#	Subject:  Program to produce kaleidoscopic display
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 16, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program displays kaleidoscopic images.  The controls on the
+#  user interface are relatively intuitive -- trying them will give
+#  a better idea of what's possible than a prose description here.
+#
+#  This program is based on an earlier one by Steve Wampler, which in
+#  turn was based on a C program by Lorraine Callahan.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  interact, random, vsetup
+#
+############################################################################
+
+link interact
+link random
+link vsetup
+
+#  Interface globals
+
+global vidgets				# table of vidgets
+global root				# root vidget
+global pause				# pause vidget
+global size				# size of view area (width & height)
+global half				# half size of view area
+global pane				# graphics context for viewing
+global colors				# list of colors
+
+#  Parameters that can be set from the interface
+
+global delay				# delay between drawing circles
+global density				# number of circles in steady state
+global draw_proc			# drawing procedure
+global max_off				# maximum offset of circle
+global min_off				# minimum offset of circle
+global max_radius			# maximum radius of circle
+global min_radius			# minimum radius of circle
+global scale_radius			# radius scale factor
+
+#  State information
+
+global draw_list			# list of pending drawing parameters
+global reset				# nonnull when view area needs resetting
+
+#  Record for circle data
+
+record circle(off1, off2, radius, color)
+
+$define DelayFactor	200
+$define DensityMax	100
+
+$define SliderMax	10.0		# shared knowledge
+$define SliderMin	1.0
+
+procedure main()
+
+   init()
+
+   kaleidoscope()
+
+end
+
+procedure init()
+   local s
+
+   randomize()
+
+   vidgets := ui()
+
+   root := vidgets["root"]
+   size := vidgets["region"].uw
+   if vidgets["region"].uh ~= size then stop("*** improper interface layout")
+
+   delay := 0.5
+   density := DensityMax / 2.0
+   max_radius := SliderMax			# scaled later
+   min_radius := SliderMin
+   scale_radius := (size / 4) / SliderMax
+
+   draw_proc := FillCircle
+
+   colors := []
+   s := PaletteChars("c3") -- PaletteGrays("c3")
+   every put(colors, PaletteColor("c3", !s))
+
+   pause := vidgets["pause"]
+
+   VSetState(pause, 1)
+   VSetState(vidgets["density"], (density / DensityMax) * SliderMax)
+   VSetState(vidgets["delay"], delay)
+   VSetState(vidgets["min_radius"], min_radius * 2)
+   VSetState(vidgets["max_radius"], max_radius / 2)
+   VSetState(vidgets["shape"], "discs")
+
+#  Get graphics context for drawing.
+
+   half := size / 2
+
+   pane := Clone("bg=black", "dx=" || (vidgets["region"].ux + half),
+      "dy=" || (vidgets["region"].uy + half), "drawop=reverse")
+   Clip(pane, -half, -half, size, size)
+
+   return
+
+end
+
+procedure kaleidoscope()
+
+   #  Each time through this loop, the display is cleared and a
+   #  new drawing is started.
+
+   repeat {
+
+      EraseArea(pane, -half, -half, size, size)	# clear display
+      draw_list := []				# new drawing list
+      reset := &null
+
+      #  In this loop a new circle is drawn and an old one erased, once the
+      #  specified density has been reached.  This maintains a steady state.
+
+      repeat {
+         while (*Pending() > 0) | \VGetState(pause) do {
+            ProcessEvent(root, , shortcuts)
+            if \reset then break break next
+            }
+         putcircle()
+         WDelay(delay)
+
+         #  Don't start clearing circles until the specified density has
+         #  reached. (The drawing list has four elements for each circle.)
+
+         if *draw_list > density then clrcircle()
+         }
+      }
+
+end
+
+procedure putcircle()
+   local off1, off2, radius, color
+
+   # get a random center point and radius
+
+   off1 := ?size % half
+   off2 := ?size % half
+   radius := ((max_radius - min_radius) * ?0 + min_radius) * scale_radius
+   radius <:= 1			# don't let them vanish
+
+   color := ?colors
+   
+   put(draw_list, circle(off1, off2, radius, color))
+
+   outcircle(off1, off2, radius, color)
+
+   return
+
+end
+
+procedure clrcircle()
+   local circle
+
+   circle := get(draw_list)
+
+   outcircle(
+     circle.off1,
+     circle.off2,
+     circle.radius,
+     circle.color
+     )
+
+   return
+
+end
+
+procedure outcircle(off1, off2, radius, color)
+
+   Fg(pane, color)
+
+   # Draw in symmetric positions.
+
+   draw_proc(pane, off1, off2, radius)
+   draw_proc(pane, off1, -off2, radius)
+   draw_proc(pane, -off1, off2, radius)
+   draw_proc(pane, -off1,-off2, radius)
+   draw_proc(pane, off2, off1, radius)
+   draw_proc(pane, off2, -off1, radius)
+   draw_proc(pane, -off2, off1, radius)
+   draw_proc(pane, -off2,-off1, radius)
+
+   return
+
+end
+
+procedure density_cb(vidget, value)
+
+   density := (value / SliderMax) * DensityMax
+   density <:= 1
+
+   reset := 1
+
+end
+
+procedure delay_cb(vidget, value)
+
+   delay := value * DelayFactor
+
+   return
+
+end
+
+procedure file_cb(vidget, value)
+
+   case value[1] of {
+      "snapshot @S":  snapshot(pane, -half, -half, size, size)
+      "quit     @Q":  exit()
+      }
+
+   return
+
+end
+
+procedure max_radius_cb(vidget, value)
+
+   max_radius := value
+
+   if max_radius < min_radius then {	# if max < min lower min
+      min_radius := max_radius
+      VSetState(vidgets["min_radius"], min_radius)
+      }
+
+   reset := 1
+
+   return
+
+end
+
+procedure min_radius_cb(vidget, value)
+
+   min_radius := value
+
+   if min_radius > max_radius then {	# if min > max raise max
+      max_radius := min_radius
+      VSetState(vidgets["max_radius"], max_radius)
+      }
+
+   reset := 1
+
+   return
+
+end
+
+procedure reset_cb(vidget, value)
+
+   reset := 1
+
+   return
+
+end
+
+procedure shape_cb(vidget, value)
+
+   draw_proc := case value of {
+     "discs":  FillCircle
+     "rings":  DrawCircle
+     }
+
+   reset := 1
+
+   return
+
+end
+
+procedure shortcuts(e)
+
+   if &meta then
+      case map(e) of {			# fold case
+         "q":	exit()
+         "s":	snapshot(pane, -half, -half, size, size)
+         }
+
+   return
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=600,455", "bg=pale gray", "label=kaleido"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,600,455:kaleido",],
+   ["delay:Slider:h:1:42,120,100,15:1.0,0.0,0.5",delay_cb],
+   ["density:Slider:h:1:42,180,100,15:0.0,10.0,10.0",density_cb],
+   ["file:Menu:pull::3,1,36,21:File",file_cb,
+      ["snapshot @S","quit     @Q"]],
+   ["label01:Label:::13,180,21,13:min",],
+   ["label02:Label:::152,180,21,13:max",],
+   ["label03:Label:::13,240,21,13:min",],
+   ["label04:Label:::152,240,21,13:max",],
+   ["label05:Label:::13,300,21,13:min",],
+   ["label06:Label:::152,300,21,13:max",],
+   ["label07:Label:::7,120,28,13:slow",],
+   ["label08:Label:::151,120,28,13:fast",],
+   ["lbl_density:Label:::67,160,49,13:density",],
+   ["lbl_max_radius:Label:::43,280,98,13:maximum radius",],
+   ["lbl_min_radius:Label:::44,220,98,13:minimum radius",],
+   ["lbl_speed:Label:::74,100,35,13:speed",],
+   ["line:Line:::0,22,600,22:",],
+   ["max_radius:Slider:h:1:42,300,100,15:0.0,10.0,10.0",max_radius_cb],
+   ["min_radius:Slider:h:1:42,240,100,15:0.0,10.0,1.0",min_radius_cb],
+   ["pause:Button:regular:1:33,55,45,20:pause",],
+   ["reset:Button:regular::111,55,45,20:reset",reset_cb],
+   ["shape:Choice::2:66,359,64,42:",shape_cb,
+      ["discs","rings"]],
+   ["region:Rect:raised::187,40,400,400:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

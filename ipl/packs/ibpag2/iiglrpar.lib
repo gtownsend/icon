@@ -1,0 +1,946 @@
+############################################################################
+#
+#	Name:	 iiglrpar.lib
+#
+#	Title:	 Quasi-GLR parser code
+#
+#	Author:	 Richard L. Goerwitz
+#
+#	Version: 1.20
+#
+############################################################################
+#
+#  This file contains quasi-GLR parser code for use by Ibpag2's
+#  output.  See below on what I mean by "quasi-GLR."  Entry point is
+#  iiparse(infile, fail_on_error).  Infile is the stream from which
+#  input is to be taken.  Infile is passed as argument 1 to the
+#  user-supplied lexical analyzer, iilex_module() (where _module is
+#  the string supplied with the -m option to Ibpag2).  If
+#  fail_on_error is nonnull, the parser, iiparse, will fail on errors,
+#  rather than abort.  Iiparse() returns the top element on its value
+#  stack on a successful parse (which can be handy).
+#
+#  Iilex_module() must suspend integers for tokens and may also set
+#  iilval_module to the actual string values.  Tokens -2, -1, and 0
+#  are reserved.  -2 is epsilon, and -1 is error.  0 is EOF, and is
+#  automatically appended to the token stream when iilex_module, the
+#  tokenizer, fails.  These values should not normally be returned by
+#  the analyzer.  In general, it is a good idea to $include
+#  iilex_module from your Ibpag2 source files, so that it can use the
+#  symbolic %token names declared in the original Ibpag2 source file.
+#  As implied above ("suspend"), iilex_module must be a generator,
+#  failing on EOF.
+#
+#  If desired, you may include your own error-handling routine.  It
+#  must be called iiparse_module (where _module is once again the
+#  module name supplied to ibpag2 via the -m option).  The global
+#  variable line_number_module is automatically defined below, so a
+#  typical arrangement would be for the lexical analyzer to initialize
+#  line_number_module to 0, and increment by 1 for each line read.
+#  The error handler, iierror_module() can then display this variable.
+#  Note that the error handler should accept a single string argument
+#  (set by iiparse to describe the token on the input stream when the
+#  error was encountered).
+#
+#  I label this parser "GLR" because it does support multiple parallel
+#  parsers (like GLR parsers are supposed to).  I use the qualifier
+#  "quasi," though, because it does not use a graph-structured stack.
+#  Instead it copies both value and state stacks (in fact, the whole
+#  parser environment) when creating new automata to handle
+#  alternative parse paths.  Slower, yes.  But it enables the user to
+#  use almost precisely the action and input format that is used for
+#  the standard parser.
+#
+#  Note that iiparse(), as implemented here, may suspend multiple
+#  results.  So be sure to call it in some context where multiple
+#  results can be used (e.g. every parse := iiparse(&input, 1), or the
+#  like).  Note also that when new parser "edges" get created, a
+#  rather cumbersome recursive copy routine is used.  Sorry, but it's
+#  necessary to prevent unintended side-effects.
+#
+############################################################################
+#
+#  The algorithm:
+#
+#      A = list of active parsers needing action lookup
+#      S = list of parsers to be shifted
+#      R = list of parsers to be reduced
+#      B = list of parsers that "choked"
+#
+#      for every token on the input stream
+#      begin
+#        until length of R = 0 and length of A = 0
+#        begin
+#          - pop successive parsers off of A, and placing them in S,
+#            R, or B, depending on parse table directives; suspend a 
+#            result for each parser that has reached an accepting
+#            state
+#         -  pop successive parsers off of R, reducing them, and
+#            placing them back in A; perform the action code
+#            associated with each reduction
+#        end
+#        - pop successive parsers off of S, shifting them, and placing
+#          them back in A; mark recovering parsers as recovered when
+#          they have successfully shifted three tokens
+#        if length of A = 0 and token not = EOF
+#        then
+#          - initiate error recovery on the parsers in B, i.e. for
+#            each parser in B that is not already recovering, pop its
+#            stack until error (-1) can legally be shifted, then shift
+#            error, mark the parser as recovering from an error, and
+#            place it back in A; if the parser is already recovering,
+#            discard the current token
+#        else
+#          - clobber the parsers in B
+#        end
+#      end
+#
+#  Note that when a given active parser in A is being classified
+#  as needing a reduction, shift, suspension, or entry into the error
+#  list (B), more than one action may apply due to ambiguity in the
+#  grammar.  At such points, the parser environment is duplicated,
+#  once for each alternative pathway, and each of the new parsers is
+#  then entered into the appropriate list (R or S; if accept is an
+#  alternative, the classification routine suspends).
+#
+#  Note also that when performing the action code associated with
+#  reductions, parsers may be reclassified as erroneous, accepting,
+#  etc. via "semantic" directives like IIERROR and IIACCEPT.  See the
+#  README file.  Multiple-result action code will cause new parser
+#  threads to be created, just as ambiguities in the grammar do within
+#  the classification routine above.
+#
+#############################################################################
+#
+#  See also: ibpag2.icn, iiparse.icn
+#
+############################################################################
+
+$$line 119 "iiglrpar.lib"
+
+$$ifndef IIDEBUG
+    $$define $iidebug	1
+    $$define show_new_forest	1
+$$endif				# not IIDEBUG
+
+# These defines are output by Ibpag2 ahead of time (with the module
+# name appended, if need be):
+#
+# IIERROR
+# IIACCEPT
+# iiprune     - GLR mode only
+# iiisolate   - GLR mode only
+# iierrok
+# iiclearin
+
+# Parser environment + lookahead and pending action field.
+#
+record $ib_pe(state_stack, value_stack, action, errors,
+	      recover_shifts, discards, clearin)
+
+# Warning!  If you change the name of the value stack, change it also
+# in ibreader.icn, procedure write_action_as_procedure().
+#
+global $iilval, $line_number, $state_stack, $value_stack,
+    $iidirective, $ttbl, $errors, $discard_token
+
+#
+# iiparse: file x   anything        -> ?s (a generator)
+#          (stream, fail_on_error)  -> ?
+#
+#     Where stream is an open file, where fail_on_error is a switch
+#     that (if nonnull) tells the iiparse to fail, rather than abort,
+#     on error, and where ?s represent the user-defined results of a
+#     completed parse of file, from the current location up to the
+#     point where the parser executes an "accept" action.  Note that
+#     iiparse, as implemented here, is a generator.
+#
+procedure $iiparse(stream, fail_on_error)
+
+    local token, next_token, actives, reducers, shifters, barfers
+    #global ttbl, errors
+    static atbl
+    initial {
+	$iidirective := ""
+	atbl  := $atbl_insertion_point
+	$ttbl := $ttbl_insertion_point
+    $$line 166 "iiglrpar.lib"
+	\$iilex | stop("no iilex tokenizer defined")
+    }
+
+    actives  := [ $ib_pe([1], [], &null, 0) ]
+    $state_stack := actives[1].state_stack
+    $value_stack := actives[1].value_stack
+    $errors := actives[1].errors
+    reducers := list()
+    shifters := list()
+    # I get tired of bland error code.  We'll call the list of
+    # parsers in an error state "barfers" :-).
+    barfers  := list()
+
+    next_token := create $iilex(stream, fail_on_error) | 0
+
+    token := @next_token
+    #
+    # After this ^, new tokens are read in near the end of the repeat
+    # loop.  None is read in on an error, since then we will try again
+    # on the token that caused the error.
+    #
+    repeat {
+	until *actives = *reducers = 0
+	do {
+
+	    # Prune out parsers that are doing the same thing as some
+	    # other parser.
+	    #
+	    $$ifdef AUTO_PRUNE
+	    auto_prune(actives)
+	    $$endif
+
+	    # Suspends $value_stack[1] on accept actions.  Otherwise,
+	    # puts parsers that need shifting into the shifters list,
+	    # parsers that need reducing into the reducers list, and
+	    # error-state parsers into the barfers list.  Creates new
+	    # parser environments as needed.
+	    #
+	    suspend $ib_action(atbl, token, actives, shifters,
+			       reducers, barfers)
+
+	    # Perform reductions.  If instructed via the iiaccept
+	    # macro, simulate an accept action, and suspend with a
+	    # result.
+	    #
+	    suspend $perform_reductions(token, actives, shifters,
+					reducers, barfers)
+	}
+
+	# Shift token for every parser in the shifters list.  This
+        # will create a bunch of new active parsers.
+	#
+	$perform_shifts(token, actives, shifters)
+	#
+	# If we get to here and have no actives, and we're not at the
+	# end of the input stream, then we are at an error impasse.
+	# Do formal error recovery.
+	#
+	if *actives = 0 & token ~=== 0 then {
+	    suspend $perform_barfs(atbl, token, actives, barfers,fail_on_error)
+	    #
+	    # Perform_barfs sets discard_token if recovery was
+	    # unsuccessful on the last token, and it needs discarding.
+	    #
+	    if \$discard_token := &null then
+		token := @next_token | break
+	    #
+	    # If there *still* aren't any active parsers, we've
+	    # reached an impasse (or there are no error productions).
+	    # Abort.
+	    #
+	    if *actives = 0 then {
+		if \fail_on_error then fail
+		else stop()
+	    }
+	}
+	else {
+	    #
+	    # Parsers in an error state should be weeded out, since if
+	    # we get to here, we have some valid parsers still going.
+	    # I.e. only use them if there are *no* actives (see above).
+	    #
+	$$ifdef IIDEBUG
+	    write(&errout, "+++ pruning ", *barfers, " erroneous parsers")
+	    while parser := pop(barfers)
+	    do $iidebug("p", token, &null, parser)
+	$$else
+	    while pop(barfers)
+	$$endif	#IIDEBUG
+	    #
+	    # Get the next token.  Only do this if we have active
+	    # parsers not recovering from an error, i.e., if we're here.
+	    #
+	    token := @next_token | break
+        }
+    }
+
+end
+
+
+#
+# ib_action
+#
+procedure $ib_action(atbl, token, actives, shifters, reducers,
+		     barfers)
+
+    local a, act, num, parser, new_parser
+
+    # While there is an active parser, take it off the actives list,
+    # and...
+    while parser := pop(actives) do {
+
+	# ...check for a valid action (if none, then there is an
+	# error; put it into the barfers list).
+	#
+	if a := \ (\atbl[token])[parser.state_stack[1]]
+	then {
+	    a ? {
+		# Keep track of how many actions we've seen.
+		num := 0
+
+		# Snip off successive actions.  If there's no
+		# ambiguity, there will be only one action, & no
+		# additional parser environments will be created.
+		#
+		while {
+		$$ifdef COMPRESSED_TABLES
+		    # "\x80" is the accept action; uncompress_action
+		    # does its own move()ing
+		    act := $uncompress_action()
+		$$else
+		    act := ="a" | {
+			tab(any('sr')) || tab(upto('.<')) ||
+			    ((="<" || tab(find(">")+1)) | =".") ||
+			    tab(many(&digits))
+		    }
+		$$endif	#COMPRESSED TABLES
+		}
+		do {
+		    # New parser environment only needed for num > 1.
+		    #
+		    if (num +:= 1) > 1 then {
+			new_parser := $fullcopy(parser)
+			show_new_forest("=== table conflict; new parser",
+			    actives, shifters, reducers, barfers, new_parser)
+		    }
+		    else new_parser := parser
+		    new_parser.action := act
+
+		    # Classify the action as s, r, or a, and place i
+		    # the appropriate list (or suspend a result if a).
+		    #
+		    case act[1] of {
+			"s"  : put(shifters, new_parser)
+			"r"  : put(reducers, new_parser)
+			"a"  : {
+			    $iidebug("a", token, ruleno, parser)
+			    suspend parser.value_stack[1]
+			}
+		    }
+		}
+	    }
+	}
+	else {
+	    #
+	    # Error.  Parser will get garbage collected before another
+	    # token is read from iilex, unless the parsers all fail -
+	    # in which case, error recovery will be tried.
+	    #
+	    $iidebug("e", token, &null, parser)
+	    put(barfers, parser)
+	}
+    }
+
+end
+
+
+#
+# perform_reductions
+#
+procedure $perform_reductions(token, actives, shifters, reducers, barfers)
+
+    local parser, ruleno, newsym, rhsize, arglist, result, num,
+	new_parser, tmp, p
+    static gtbl
+    initial {
+	gtbl := $gtbl_insertion_point
+    $$line 336 "iiglrpar.lib"
+    }
+
+    while parser := get(reducers)
+    do {
+
+	# Set up global state and value stacks, so that the action
+	# code can access them.
+	#
+	$state_stack := parser.state_stack
+	$value_stack := parser.value_stack
+	$errors := parser.errors
+
+	# Finally, perform the given action:
+	#
+	parser.action ? {
+	    #
+	    # Reduce action format, e.g. r1<S>2 = reduce by rule 1
+	    # (LHS = S, RHS length = 2).
+	    #
+	    move(1)
+	    ruleno := integer(1(tab(find("<")), move(1)))
+	    newsym := 1(tab(find(">")), move(1))
+	    rhsize := integer(tab(many(&digits)))
+	    arglist := []
+	    every 1 to rhsize do {
+		pop($state_stack)
+		push(arglist, pop($value_stack))
+	    }
+	    # Gtbl is "backwards," i.e. token first, state second.
+	    # The value produced is the "goto" state.
+	    #
+	    push($state_stack, gtbl[newsym][$state_stack[1]])
+	    #
+	    # The actions are in procedures having the same name as
+	    # the number of their rule, bracketed by underscores, &
+	    # followed by the current module name.  If there is such a
+	    # procedure associated with the current reduce action,
+	    # call it.
+	    #
+	    if func := proc("_" || ruleno || "_" || $module)
+	    then {
+		num := 0
+		#
+		# For every valid result from the action code for the
+		# current reduction, create a new parser if need be
+		# (i.e. if num > 1), and check iidirective.  Push the
+		# result onto the stack of the new parser & put the
+		# new parser into the actives list.
+		#
+		every result := func!arglist do {
+		    # For all but the first result, create a new parser.
+		    if (num +:= 1) > 1 then {
+			new_parser := $fullcopy(parser)
+			pop(new_parser.value_stack) # take off pushed result
+			show_new_forest("=== multi-result action; new parser",
+			    actives, shifters, reducers, barfers, new_parser)
+		    }
+		    else new_parser := parser
+		    #
+		    # IIERROR, IIACCEPT, iierrok, iiisolate, and iiprune
+		    # are all implemented using a search through a global
+		    # iidirective variable; see the $defines described
+		    # above.
+		    #
+		    tmp := $iidirective
+		    $iidirective := ""
+		    if *tmp > 0 then {
+			if find("clearin", tmp) then {
+			    # see perform_shifts() below
+			    new_parser.clearin := 1
+			}
+			if find("error", tmp) then {
+			    $iidebug("e", token, ruleno, new_parser)
+			    put(barfers, new_parser)
+			    next
+			}
+			if find("errok", tmp) then {
+			    new_parser.recover_shifts := &null
+			    new_parser.discards := 0
+			}
+			if find("prune", tmp) then {
+			    # Garden path.
+			    $iidebug("p", token, ruleno, new_parser)
+			    break next
+			}
+			if find("isolate", tmp) then {
+			    # Prune all but the current parser.
+			$$ifdef IIDEBUG
+			    write(&errout, "+++ isolating by pruning")
+			    while p := pop(actives) do
+				$iidebug("p", token, ruleno, p)
+			    while p := pop(reducers) do
+				$iidebug("p", token, ruleno, p)
+			    while p := pop(shifters) do
+				$iidebug("p", token, ruleno, p)
+			    while p := pop(barfers) do
+				$iidebug("p", token, ruleno, p)
+			$$else
+			    while pop(actives)
+			    while pop(reducers)
+			    while pop(shifters)
+			    while pop(barfers)
+			$$endif	#IIDEBUG
+			    push(new_parser.value_stack, result)
+			    $iidebug("r", token, ruleno, new_parser)
+			    put(actives, new_parser)
+			    break next
+			}
+			if find("accept", tmp) then {
+			    $iidebug("a", token, ruleno, new_parser)
+			    suspend result
+			    next
+			}
+		    }
+		    #
+		    # Push result onto the new parser thread's value
+		    # stack.
+		    #
+		    push(new_parser.value_stack, result)
+		    $iidebug("r", token, ruleno, new_parser)
+		    put(actives, new_parser)
+		    #
+		    # Action code must have the stack in its original
+		    # form.  So restore the stack's old form before
+		    # going back to the action code.
+		    #
+		    if num = 1 then
+			$value_stack := parser.value_stack[2:0]
+	        }
+		#
+		# If the action code for this rule failed, push &null.
+		# But first check $iidirective.
+		#
+		if num = 0 then {
+		    #
+		    # Same $iidirective code as above repeated
+		    # (inelegantly) because it accesses too many
+		    # variables to be easily isolated.
+		    #
+		    tmp := $iidirective
+		    $iidirective := ""
+		    if *tmp > 0 then {
+			if find("clearin", tmp) then {
+			    # see perform_shifts() below
+			    parser.clearin := 1
+			}
+			if find("error", tmp) then {
+			    $iidebug("e", token, ruleno, parser)
+			    put(barfers, parser)
+			    next
+			}
+			if find("errok", tmp) then {
+			    parser.recover_shifts := &null
+			    parser.discards := 0
+			}
+			if find("prune", tmp) then {
+			    # Garden path.
+			    $iidebug("p", token, ruleno, parser)
+			    next # go back to enclosing while pop...
+			}
+			if find("isolate", tmp) then {
+			    # Prune all but the current parser.
+			$$ifdef IIDEBUG
+			    write(&errout, "+++ isolating by pruning")
+			    while p := pop(actives) do
+				$iidebug("p", token, ruleno, p)
+			    while p := pop(reducers) do
+				$iidebug("p", token, ruleno, p)
+			    while p := pop(shifters) do
+				$iidebug("p", token, ruleno, p)
+			    while p := pop(barfers) do
+				$iidebug("p", token, ruleno, p)
+			$$else
+			    while pop(actives)
+			    while pop(reducers)
+			    while pop(shifters)
+			    while pop(barfers)
+			$$endif	#IIDEBUG
+			}
+			if find("accept", tmp) then {
+			    $iidebug("a", token, ruleno, parser)
+			    suspend arglist[-1] | &null
+			    next
+			}
+		    }
+		    # Finally, push the result!
+		    result := arglist[-1] | &null
+		    push(parser.value_stack, result)
+		    $iidebug("r", token, ruleno, parser)
+		    put(actives, parser)
+		}
+	    }
+	    # If there is no action code for this rule...
+	    else {
+		# ...push the value of the last RHS arg.
+		# For 0-length e-productions, push &null.
+		result := arglist[-1] | &null
+		push(parser.value_stack, result)
+		$iidebug("r", token, ruleno, parser)
+		put(actives, parser)
+	    }
+	}
+    }
+
+end
+
+
+#
+# perform_shifts
+#
+procedure $perform_shifts(token, actives, shifters)
+    
+    local parser, ruleno
+
+    *shifters = 0 & fail
+
+    while parser := pop(shifters) do {
+	#
+	# One of the iidirectives is iiclearin, i.e. clear the input
+	# token and try again on the next token.
+	#
+	\parser.clearin := &null & {
+	    put(actives, parser)
+	    next
+	}
+	parser.action ? {
+	    #
+            # Shift action format, e.g. s2.1 = shift and go to state 2
+	    # by rule 1.
+            #
+	    move(1)
+	    push(parser.state_stack, integer(tab(find("."))))
+	    push(parser.value_stack, $iilval)
+	    ="."; ruleno := integer(tab(many(&digits)))
+	    pos(0) | stop("malformed action:  ", act)
+	    #
+	    # If, while recovering, we can manage to shift 3 tokens,
+	    # then we consider ourselves resynchronized.  Don't count
+	    # the error token (-1).
+	    #
+	    if token ~= -1 then {
+		if \parser.recover_shifts +:= 1 then {
+		    # 3 shifts make a successful recovery
+		    if parser.recover_shifts > 4 then {
+			parser.recover_shifts := &null
+			parser.discards := 0
+		    }
+		}
+	    }
+	    $iidebug("s", token, ruleno, parser)
+	}
+	put(actives, parser)
+    }
+
+    return
+    
+end
+
+
+#
+# perform_barfs
+#
+procedure $perform_barfs(atbl, token, actives, barfers, fail_on_error)
+
+    #
+    # Note how this procedure has its own local reducers and shifters
+    # list.  These are *not* passed from the parent environment!
+    #
+    local parser, count, reducers, shifters, recoverers
+
+    # To hold the list of parsers that need to shift error (-1).
+    recoverers := list()
+
+    count := 0
+    while parser := pop(barfers) do {
+	count +:= 1
+	if \parser.recover_shifts := 0 then {
+	    #
+	    # If we're already in an error state, discard the
+	    # current token, and increment the number of discards
+	    # we have made.  500 is too many; abort.
+	    #
+	    if (parser.discards +:= 1) > 500 then {
+		if proc($iierror)
+		then $iierror("fatal error: can't resynchronize")
+		else write(&errout, "fatal error: can't resynchronize")
+		if \fail_on_error then fail
+		else stop()
+	    }
+	    # try again on this one with the next token
+	    put(actives, parser)
+	} else {
+	    parser.errors +:= 1 # error count for this parser
+	    parser.discards := parser.recover_shifts := 0
+	    # If this is our first erroneous parser, print a message.
+	    if count = 1 then {
+		if proc($iierror)
+		then $iierror(image(\$ttbl[token]) | image(token))
+		else write(&errout, "parse error")
+	    }
+	    #
+	    # If error appears in a RHS, pop states until we get to a
+	    # spot where error (-1) is a valid lookahead token:
+	    #
+	    if \$ttbl[-1] then {
+		until *parser.state_stack = 0 do {
+		    if \atbl[-1][parser.state_stack[1]] then {
+			put(recoverers, parser)
+			break next
+		    } else pop(parser.state_stack) & pop(parser.value_stack)
+		}
+	    }
+	    # If we get past here, the stack is now empty or there
+	    # are no error productions.  Abandon this parser.
+	    $iidebug("p", token, &null, parser)
+	}
+    }
+
+    # Parsers still recovering are in the actives list; those that
+    # need to shift error (-1) are in the recoverers list.  The
+    # following turns recoverers into actives:
+    #
+    if *recoverers > 0 then {
+	reducers := list()	# a scratch list
+	shifters := list()	# ditto
+	until *recoverers = *reducers = 0 do {
+	    $$ifdef AUTO_PRUNE
+	    auto_prune(actives)
+	    $$endif
+	    suspend $ib_action(atbl, -1, recoverers, shifters,
+			       reducers, barfers)
+	    suspend $perform_reductions(-1, recoverers, shifters,
+					reducers, barfers)
+	}
+	$perform_shifts(-1, recoverers, shifters)
+	every put(actives, !recoverers)
+    }
+    #
+    # If there were no recoverers, we've already shifted the error
+    # token, and are discarding tokens from the input stream.  Note
+    # that if one parser was recovering, they *all* should be
+    # recovering, since if one was not recovering, it the erroneous
+    # parsers should all have been discarded by the calling proc.
+    #
+    else
+	$discard_token := 1
+
+end
+
+
+$$ifdef IIDEBUG
+
+record production(LHS, RHS, POS, LOOK, no, prec, assoc)
+#
+# iidebug
+#
+procedure $iidebug(action, token, ruleno, parser)
+
+    local p, t, state
+    static rule_list
+    initial {
+	rule_list := $rule_list_insertion_point
+    $$line 693 "iiglrpar.lib"
+    }
+
+    write(&errout, "---  In parser ", image(parser), ":")
+    case action of {
+	"a"     : writes(&errout, "accepting ")    &
+	    state := parser.state_stack[1]
+	"e"     : writes(&errout, "***ERROR***\n") &
+		  write(&errout, "recover shifts = ",
+			 parser.recover_shifts) &
+		  write(&errout, "discarded tokens = ",
+			 parser.discards) &
+	          writes(&errout, "error action ") &
+	    state := parser.state_stack[1]
+	"p"     : writes(&errout, "***PRUNING***\n") &
+	          writes(&errout, "prune action ") &
+	    state := parser.state_stack[1]
+	"r"     : writes(&errout, "reducing ")     &
+	    state := parser.state_stack[2]
+	"s"     : writes(&errout, "shifting ")     &
+	    state := parser.state_stack[2]
+	default : stop("malformed action argument to iidebug")
+    }
+
+    t := image(token) || (" (" || (\$ttbl[token] | "unknown") || ")")
+    writes(&errout, "on lookahead ", t, ", in state ", state)
+    if \ruleno then {
+	(p := !rule_list).no === ruleno &
+	    write(&errout, "; rule ", $production_2_string(p, $ttbl))
+    }
+    # for errors, ruleno is null
+    else write(&errout)
+
+    write(&errout, "    state stack now: ")
+    every write(&errout, "\t", image(!parser.state_stack))
+    write(&errout, "    value stack now: ")
+    if *parser.value_stack > 0
+    then every write(&errout, "\t", image(!parser.value_stack))
+    else write(&errout, "\t(empty)")
+
+    return
+
+end
+
+
+#
+# production_2_string:  production record -> string
+#                       p                 -> s
+#
+#     Stringizes an image of the LHS and RHS of production p in
+#     human-readable form.
+#
+procedure $production_2_string(p, ibtoktbl)
+
+    local s, m, t
+
+    s := image(p.LHS) || " -> "
+    every m := !p.RHS do {
+	if t := \ (\ibtoktbl)[m]
+	then s ||:= t || " "
+	else s ||:= image(m) || " "
+    }
+    # if the POS field is nonnull, print it
+    s ||:= "(POS = " || image(\p.POS) || ") "
+    # if the LOOK field is nonnull, print it, too
+    s ||:= "lookahead = " || image(\p.LOOK)
+
+    return trim(s)
+
+end
+
+#
+# show_new_forest
+#
+procedure show_new_forest(msg, actives, shifters, reducers, barfers, parser)
+    write(&errout, msg)
+    write(&errout, "    List of active parsers:")
+    every write(&errout, "\t", image(!actives))
+    every write(&errout, "\t", image(!shifters))
+    every write(&errout, "\t", image(!reducers))
+    every write(&errout, "\t", image(!barfers), " (error)")
+    write(&errout, "\tnew -> ", image(parser))
+end
+$$endif				# IIDEBUG
+
+
+$$ifdef COMPRESSED_TABLES
+
+#
+# uncompress_action
+#
+procedure $uncompress_action()
+
+    local next_chunk, full_action
+
+    next_chunk := create ord(!&subject[&pos:0])
+    case $in_ib_bits(next_chunk, 2) of {
+	0: {
+	    full_action := "s"
+	    full_action ||:= $in_ib_bits(next_chunk, 11)
+	    full_action ||:= "."
+	    full_action ||:= $in_ib_bits(next_chunk, 11)
+	    move(3)
+	}
+	1: {
+	    full_action := "r"
+	    full_action ||:= $in_ib_bits(next_chunk, 11)
+	    full_action ||:= "<"
+	    full_action ||:= $in_ib_bits(next_chunk, 11)
+	    full_action ||:= ">"
+	    full_action ||:= $in_ib_bits(next_chunk, 8)
+	    move(4)
+	}
+        2: {
+	    full_action := "a"
+	    move(1)
+	}
+    } | fail
+
+    return full_action
+
+end
+
+
+#
+# in_ib_bits:  like inbits (IPL), but with coexpression for file
+#
+procedure $in_ib_bits(next_chunk, len)
+
+    local i, byte, old_byte_mask
+    static old_byte, old_len, byte_length
+    initial {
+	old_byte := old_len := 0
+	byte_length := 8
+    }
+
+    old_byte_mask := (0 < 2^old_len - 1) | 0
+    old_byte := iand(old_byte, old_byte_mask)
+    i := ishift(old_byte, len-old_len)
+
+    len -:= (len > old_len) | {
+	old_len -:= len
+	return i
+    }
+    
+    while byte := @next_chunk do {
+	i := ior(i, ishift(byte, len-byte_length))
+	len -:= (len > byte_length) | {
+	    old_len := byte_length-len
+	    old_byte := byte
+	    return i
+	}
+    }
+
+end
+
+$$endif				# COMPRESSED_TABLES
+
+#
+# fullcopy:  make full recursive copy of object obj
+#
+procedure $fullcopy(obj)
+
+    local retval, i, k
+
+    case type(obj) of {
+        "co-expression"  : return obj
+        "cset"           : return obj
+        "file"           : return obj
+        "integer"        : return obj
+        "list"           : {
+            retval := list(*obj)
+            every i := 1 to *obj do
+                retval[i] := $fullcopy(obj[i])
+            return retval
+        }
+        "null"           :  return &null
+        "procedure"      :  return obj
+        "real"           :  return obj
+        "set"            :  {
+            retval := set()
+            every insert(retval, $fullcopy(!obj))
+            return retval
+        }
+        "string"         :  return obj
+        "table"          :  {
+            retval := table(obj[[]])
+            every k := key(obj) do
+                insert(retval, $fullcopy(k), $fullcopy(obj[k]))
+            return retval
+        }
+        # probably a record; if not, we're dealing with a new
+        # version of Icon or a nonstandard implementation, and
+	# we're screwed
+        default          :  {
+            retval := copy(obj)
+            every i := 1 to *obj do
+                retval[i] := $fullcopy(obj[i])
+            return retval
+        }
+    }
+
+end
+
+
+$$ifdef AUTO_PRUNE
+procedure auto_prune(actives)
+
+    new_actives := []
+    while parser1 := pop(actives) do {
+	every parser2 := actives[j := 1 to *actives] do {
+	    parser1.state_stack[1] = parser2.state_stack[1] | next
+	    *parser1.value_stack   = *parser2.value_stack   | next
+	    every i := 1 to *parser1.value_stack do {
+		parser1.value_stack[i] === parser2.value_stack[i] | 
+		    break next
+	    }
+	    if parser1.errors < parser2.errors then
+		actives[j] := parser1
+	    break next
+	}
+	put(new_actives, parser1)
+    }
+
+    every put(actives, !new_actives)
+    return &null
+
+end
+$$endif				# AUTO_PRUNE

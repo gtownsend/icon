@@ -1,0 +1,50 @@
+############################################################################
+#
+#	File:     modlines.icn
+#
+#	Subject:  Procedure to produce trace of modular lines
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 19, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  For a description of the method used here, see
+#
+#	Geometric and Artistic Graphics; Design Generation with
+#	Microcomputers, Jean-Paul Delahaye, Macmillan, 1987, pp. 90-95.
+#	
+############################################################################
+#
+#  Links:  calls, gobject
+#
+############################################################################
+
+link calls
+link gobject
+
+#  modlines produces a trace of lines between points selected modulo n,
+#  where n is the number of points on a supporting curve.  k is an
+#  offset factor.  A trace of the supporting curve is produced by call.
+#
+procedure modlines(call, m, k, limit)
+   local points, n, i
+
+   /limit := 500			# maximum number of points allowed
+
+   points := point_list(call, limit)
+
+   n := *points				# number of points on supporting curve
+
+   every i := 0 to m do {
+#     i1 := i % n + 1
+#     i2 := (i * k) % n + 1
+      suspend points[(i % n + 1) | ((i * k) % n + 1)]
+      }
+
+end

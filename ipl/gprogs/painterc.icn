@@ -1,0 +1,73 @@
+############################################################################
+#
+#	File:     painterc.icn
+#
+#	Subject:  Program to convert Painter color sets to Icon colors
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 6, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program converts color sets from Painter 3 to lists of Icon
+#  colors.
+#
+#  The lists are saved in files with the base name of the color set and
+#  the suffix ".clr".
+#
+############################################################################
+#
+#  Links:  basename
+#
+############################################################################
+
+link basename
+
+procedure main(args)
+   local line, file, name, input, output
+
+   every file := !args do {
+      input := open(file) | {
+         write(&errout, "*** cannot open ", file)
+         next
+         }
+      name := basename(file, ".txt")
+      output := open(name || ".clr", "w") | {
+         write(&errout, "*** cannot open ", name, ".clr")
+         close(input)
+         next
+         }
+      while line := map(read(input)) do {
+         line ? {
+            ="r:" | next
+            tab(upto(&digits))
+            writes(output, 256 * tab(many(&digits)), ",")
+            tab(find("g:") + 2) | {
+               write(&errout, "*** invalid data in ", file)
+               write(&errout, line)
+               next
+               }
+            tab(upto(&digits))
+            writes(output, 256 * tab(many(&digits)), ",")
+            tab(find("b:") + 2) | {
+               write(&errout, "*** invalid data in ", file)
+               write(&errout, line)
+               next
+               }
+            tab(upto(&digits))
+            writes(output, 256 * tab(many(&digits)))
+            tab(many(' \t'))
+            if not pos(0) then write(output, "\t", tab(0))
+            else write(output)
+            }
+         }
+     close(input)
+     close(output)
+     }
+
+end

@@ -1,0 +1,51 @@
+############################################################################
+#
+#	File:     evrecord.icn
+#
+#	Subject:  Procedure to record window events
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 25, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure writes a file of graphics events.  The file can be
+#  converted to "pseudo events" by evplay.icn.
+#
+#  When used with a vidget interface, evrecord can be passed as an
+#  argument to, say, GetEvents(), as in
+#
+#	GetEvents(root, , evrecord)
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  enqueue
+#
+############################################################################
+
+link enqueue
+
+procedure evrecord(event)
+   local modkeys
+
+   modkeys := ""
+   modkeys ||:= (&shift & "s")
+   modkeys ||:= (&meta & "m")
+   modkeys ||:= (&control & "c")
+
+   write(image(event))
+   write(ior(pack_modkeys(modkeys), iand(&x, 16rFFFF)))
+   write(ior(pack_intrvl(&interval), iand(&y, 16rFFFF)))
+
+   return
+
+end

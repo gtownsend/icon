@@ -1,0 +1,33 @@
+############################################################################
+#
+#	File:     asciinam.icn
+#
+#	Subject:  Procedure for ASCII name of unprintable character
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  asciiname(s) returns the mnemonic name of the single unprintable
+#  ASCII character s.
+#
+############################################################################
+
+procedure asciiname(s)
+   local o
+   static names
+   initial {
+      names := ["NUL","SOH","STX","ETX","EOT","ENQ","ACK","BEL",
+		"BS" ,"HT" ,"NL" ,"VT" ,"NP" ,"CR" ,"SO" ,"SI" ,
+		"DLE","DC1","DC2","DC3","DC4","NAK","SYN","ETB",
+		"CAN","EM" ,"SUB","ESC","FS" ,"GS" ,"RS" ,"US" ]
+      }
+   o := ord(s)
+   return names[o + 1] | (if o = 127 then "DEL")
+end

@@ -1,0 +1,48 @@
+############################################################################
+#
+#	File:     hetero.icn
+#
+#	Subject:  Procedures to test structure typing
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 19, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#
+#
+############################################################################
+
+procedure stypes(X, ref)		#: types of structure elements
+   local op, types, t, k
+
+   op := proc("!", 1)
+   t := type(X)
+   op := if (t == "table") & (ref === 1) then "key" 
+
+   if (t == "table") & (ref === 2) then {
+      types := set()
+      every k := key(X) do
+         insert(types, type(k) || ":" ||  type(X[k]))
+      return sort(types)
+      }
+
+   else if t == ("list" | "record" | "table" | "set") then {
+      types := set()
+      every insert(types, type(op(X)))
+      return sort(types)
+      }
+   else stop("*** invalid type to stypes()")
+
+end
+
+procedure homogeneous(X, ref)
+
+   if *stypes(X, ref) = 1 then return else fail
+
+end

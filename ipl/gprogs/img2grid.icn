@@ -1,0 +1,65 @@
+############################################################################
+#
+#	File:     img2grid.icn
+#
+#	Subject:  Program to convert images to grids
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 29, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program converts an image to a grid of cells.
+#
+#  The options supported are:
+#
+#	-s i	size of grid cell; default 4
+#	-p s	save image of grid with file prefix s; default "img2grid"
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  cells, options, wopen
+#
+############################################################################
+
+link cells
+link options
+link wopen
+
+procedure main(args)
+   local x, y, width, height, c, panel, opts, cellsize, prefix
+
+   opts := options(args, "s+p:")
+
+   cellsize := \opts["s"] | 4
+   prefix := \opts["p"] | "img2grid"
+
+   WOpen("image=" || args[1], "canvas=hidden") | stop("*** cannot open image")
+
+   width := WAttrib("width")
+   height := WAttrib("height")
+
+   panel := makepanel(width, height, cellsize)
+
+   WAttrib(panel.window, "canvas=normal")
+
+   every y := 0 to height - 1 do {
+      x := 0
+      every c := Pixel(0, y, width, 1) do {
+         colorcell(panel, x + 1, y + 1, c)
+         x +:= 1
+         }
+      }
+
+   WriteImage(panel.window, prefix || ".gif")
+
+end

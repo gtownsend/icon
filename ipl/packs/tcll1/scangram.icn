@@ -1,0 +1,85 @@
+# Scanner for the input language used by TCLL1,
+# an LL(1) parser generator).
+#	(written by Dr. Thomas W. Christopher)
+#
+global inputFile
+global inputLine,inputLineNumber,inputColumn,eoiToken
+global tokenTypes
+
+procedure initScanner(filename)
+inputFile := open(filename,"r") | fail
+return
+end
+
+procedure scan()
+local t,c,b
+static whiteSpace,initIdChars,idChars
+initial {
+	/inputFile:=&input
+	inputLineNumber:=0
+	inputColumn:=1
+	inputLine:=""
+	eoiToken:=&null
+	whiteSpace:=&ascii[1:34] #control ++ blank
+	initIdChars := &letters ++ '_'
+	idChars := &letters ++ &digits ++ '_'
+	tokenTypes := table()
+	t := [	".","DOT",
+		":","COLON",
+		"=","EQ",
+		"|","BAR",
+		"(","LPAR",
+		")","RPAR",
+		"[","LBRACK",
+		"]","RBRACK",
+		"{","LBRACE",
+		"}","RBRACE",
+		"!","BANG"]
+	while tokenTypes[get(t)] := get(t)
+}
+if \eoiToken then return eoiToken
+repeat inputLine ? {
+	tab(inputColumn)
+	tab(many(whiteSpace))
+	c := &pos
+	if any(initIdChars) then {
+		t := Token("ID",tab(many(idChars)),
+			inputLineNumber,c)
+		inputColumn := &pos
+		return t
+	} else
+	if b := tab(any('.:=()[]{}|!')) then {
+		inputColumn := &pos
+		return Token(tokenTypes[b],b,inputLineNumber,c)
+	} else
+	if ="#" | pos(0) then {
+		inputColumn := 1
+		inputLineNumber +:= 1
+		if not (inputLine := read(inputFile)) then {
+			eoiToken := Token("EOI","EOI",
+					inputLineNumber,1)
+			return eoiToken
+		}
+	} else
+	if ="\"" then {
+		if t := Token("ID",tab(find("\"")),
+				inputLineNumber,c) then {
+			move(1)
+		} else {
+			write("unterminated quote at ",
+				inputLineNumber," ",c)
+			t:=Token("ID",tab(many(~whiteSpace)),
+				inputLineNumber,c)
+		}
+		inputColumn := &pos
+		return t
+	} else
+		{
+		write("unexpected character: ",move(1),
+			" at ",inputLineNumber," ",c)
+		inputColumn := &pos
+	}
+}
+end
+
+

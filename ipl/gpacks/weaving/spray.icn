@@ -1,0 +1,36 @@
+############################################################################
+#
+#	File:     spray.icn
+#
+#	Subject:  Program to manipulate bibliographical records
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 25, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  AD HOC
+#
+############################################################################
+
+procedure main()
+
+   while line := read() do {
+      rec := []
+         line ? {
+         while field := tab(upto('\t')) do {
+            put(rec, field)
+            move(1)
+            }
+         if not pos(0) then put(rec, tab(0))
+         }
+      every write(!rec)
+      write()
+      }
+
+end

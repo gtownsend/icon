@@ -1,0 +1,110 @@
+############################################################################
+#
+#	File:     tryfont.icn
+#
+#	Subject:  Program to demonstrate X font rankings
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     July 18, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     tryfont repeatedly reads a font specification from standard input
+#  and displays, with their scores, a windowfull of available fonts that
+#  best match that specification.  The window can be resized when tryfont
+#  is paused at a prompt; the new size is used for the next list.
+#
+#     Note that tryfont uses the library procedure BestFont() for ranking;
+#  this can differ from the rankings used by the Icon runtime system's
+#  font selection logic.
+#
+#     tryfont can also be run in ASCII mode, without using X windows, by
+#  passing a file name as a command argument.  The file should contain
+#  a list of X fonts, such as from the xlsfonts program.  The number of
+#  fonts printed on standard output can be specified as a second argument.
+#
+#     For details of font specifications, see BestFont().
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: options, optwindw, xbfont, graphics
+#
+############################################################################
+
+
+link options
+link optwindw
+link xbfont
+link graphics
+
+
+procedure main(args)
+   if *args > 0 & args[1][1] ~== "-" then
+      filemode(args)
+   else
+      windowmode(args)
+end
+
+
+procedure filemode(args)
+   local fname, limit, f, fontlist, request, a
+
+   fname := args[1]
+   limit := integer(args[2]) | 20
+   f := open(fname) | stop("can't open ", fname)
+   every put(fontlist := [], !f)
+   repeat {
+      writes("> ")
+      request := trim(read()) | return
+      if *request = 0 then
+         next
+      every a := RankFonts(fontlist, request) \ limit do
+         write(right(a.val, 5), "\t", a.str)
+      write()
+      }
+end
+
+
+procedure windowmode(args)
+   local opts, win, fwin, request, a, h, y
+
+   opts := options(args, winoptions())
+   /opts["W"] := 900
+   /opts["H"] := 300
+   /opts["M"] := -1
+   win := optwindow(opts, "cursor=off", "echo=off")
+   fwin := Clone(win)
+
+   &error := 1
+   WAttrib(win, "resize=on")
+   &error := 0
+
+   repeat {
+      writes("> ")
+      request := trim(read()) | return
+      if *request = 0 then
+         next
+      h := WAttrib(win, "height")
+      y := 0
+      EraseArea(win)
+      every a := RankFonts(win, request) do {
+         Font(fwin, a.str)
+         y +:= WAttrib(fwin, "fheight") - WAttrib(fwin, "descent")
+         GotoXY(win, 10, y)
+         writes(win, right(a.val, 4), "  ")
+         writes(fwin, a.str)
+         y +:= WAttrib(fwin, "descent")
+         if y >= h then
+            break
+         }
+      }
+end

@@ -1,0 +1,92 @@
+############################################################################
+#
+#	File:     cspace.icn
+#
+#	Subject:  Program to demonstrate a cellular automata
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     May 24, 1996
+#
+############################################################################
+#
+#  Usage:  cspace [-W width] [-H height]
+#
+#  This program demonstrates a two-dimensional cellular automata designed
+#  by David Griffeath of the University of Wisconsin.  A. K. Dewdney
+#  calls this "Cyclic Space".
+#
+#  The window is seeded randomly and successive generations are displayed.
+#  Press the space bar to single step, G to run free, R to reseed, or
+#  Q to quit.
+#
+#  See A.K.Dewdney, Computer Recreations, Scientific American, Aug. 1989.
+#  (Reprinted in Dewdney, The Magic Machine, W.H.Freeman, 1990.)
+#
+############################################################################
+
+
+$include "libnames.icn"
+
+$define SIZE "size=160,100"		# default window size
+
+$define PALETTE "c1"			# color palette to use
+$define CYCLE "MAOBPCQDSFUHIVYL"	# colors (and cycle length)
+
+#some other possibilities:
+#light	$define CYCLE "aBPCcdefgh<ijklm"
+#dark	$define CYCLE "aBPCQRSTUuVJWXYZ"
+#bright	$define CYCLE "NAOBPCQDSFUHVIYL"
+
+link graphics, random
+
+
+procedure main(args)
+   local w, h, u, g
+   local stopped, cspgen
+
+   # Load the C code that ages the automata.
+   cspgen := loadfunc(FUNCLIB, "cspgen")
+
+   # Open the window.  Don't use the last row:  If the entire window
+   # is redrawn, the color map is cleared and reloaded, causing delays.
+   Window(SIZE, args)
+   w := WAttrib("width")
+   h := WAttrib("height") - 1
+
+   # Initialize the first generation randomly.
+   randomize()
+   u := seed(w, h)
+
+   # Process events and display generations.
+   g := 0
+   repeat {
+      while (*Pending() > 0) | \stopped do case Event() of {
+         " ":		{ stopped := 1; break }
+         !"\n\rgG":	{ stopped := &null; break }
+	 !"rR":		{ u := seed(w, h); break }
+         QuitEvents():	{ log(w, h, g); exit() }
+	 &resize:	{ w:=WAttrib("width"); h:=WAttrib("height")-1; break }
+         }
+      DrawImage(,,u)			# display current generation
+      u := cspgen(u, CYCLE)		# create next generation
+      g +:= 1
+      if g % 100 = 0 then log(w, h, g)	# log statistics every 100th gen
+      }
+end
+
+procedure log(w, h, g)
+   write(w, " x ", h, ":", right(g, 6), " generations in ",
+      &time / 1000.0, " seconds")
+   return
+end
+
+procedure seed(w, h)
+   local u, n
+
+   u := w || "," || PALETTE || ","
+   n := w * h
+   every 1 to n do
+      u ||:= ?CYCLE
+   return u
+end

@@ -1,0 +1,143 @@
+############################################################################
+#
+#	File:     scat.icn
+#
+#	Subject:  Program to produce call/result scatterplot
+#
+#	Author:   Clinton Jeffery
+#
+#	Date:     November 11, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# Press the left mouse button atop any plotted point to see the list of
+#  procedures at that point.  Execution (and point motion) is suspended
+#  until the mouse button is released.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:   eemutils, vinit
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+$include "evdefs.icn"
+
+link emutils
+link evinit
+
+global	at,	# table of counts of procedures at a given point
+	call,	# table of call counts
+	rslt	# table of result counts
+
+record activation (p, parent, children)
+
+procedure main(av)
+   local mask, maxmax, maxmatch, current_proc, L, max, i, k, child, e
+
+   EvInit(av) | stop("*** cannot load SP")
+
+   kill_output()
+
+   &window := open("scat","x","geometry=150x180") | stop("can't open window")
+   current_proc := activation(,activation(,,,,[]),[])
+   call := table(0)
+   rslt := table(0)
+   at := table(0)
+   mask := ProcMask ++ E_MXevent
+   maxmax := 0
+   maxmatch := 0
+
+   while EvGet(mask) do {
+	case &eventcode of {
+  	   E_Pcall: {
+	    move(&eventvalue, 1, 0)
+    	      current_proc := activation(&eventvalue, current_proc, [])
+    	      put(current_proc.parent.children, current_proc)
+    	      }
+  	   E_Psusp: {
+	    move(current_proc.p, 0, 1)
+    	      current_proc := current_proc.parent
+    	      }
+  	   E_Presum: {
+    	      current_proc := current_proc.children[-1]
+    	      }
+  	   E_Pret: {
+	    move(current_proc.p, 0, 1)
+    	      pull(current_proc.parent.children)
+    	      current_proc := current_proc.parent
+    	      }
+  	   E_Pfail: {
+    	      pull(current_proc.parent.children)
+    	      current_proc := current_proc.parent
+    	      }
+  	   E_Prem: {
+    	      child := pull(current_proc.children)
+    	      current_proc.children |||:= child.children
+    	      }
+	 E_MXevent: {
+	    case &eventvalue of {
+		 "q" | "\033": stop("terminated")
+		 &lpress | &ldrag : {
+		  repeat {
+		     L := []
+		     every k := key(call) do {
+			if -3 < 2*log(call[k]+2,1.25)+2 - &x < 3 &
+			   -3 < 2*log(rslt[k]+2,1.25)+2 - &y < 3 then {
+			   put(L, procedure_name(k))
+			   }
+			}
+		     if max := * (L[1]) then {
+			every max <:= *( !L )
+			maxmax <:= max
+			}
+		     maxmatch <:= *L
+		     &col := WAttrib("columns") - maxmax
+		     &row := WAttrib("lines") - maxmatch - 1
+		     EraseArea(&x,&y)
+		     if *L > 0 then {
+			every i := 1 to *L do {
+			   GotoRC(WAttrib("lines")-*L+i,WAttrib("columns")-max)
+			   writes(&window,L[i])
+			   }
+			e := Event()
+			every i := 1 to *L do {
+			   GotoRC(WAttrib("lines")-*L+i,WAttrib("columns")-max)
+			   writes(&window,L[i])
+			   }
+			}
+		     else e := Event()
+			
+		     if e === &lrelease then break
+		     }
+		  }
+		 }
+	    }
+	 }
+	}
+
+end
+
+procedure procedure_name(p)
+  return image(p) ? { ="procedure "; tab(0) }
+end
+
+procedure move(who, iscall, isrslt)
+   if (at[integer(2*log(call[who]+2,1.25)) || "," || integer(2*log(rslt[who]+2,1.25))] -:= 1) = 0 then
+      EraseArea(2*log(call[who]+2,1.25) + 2, 2*log(rslt[who]+2,1.25) + 2, 2, 2)
+   call[who] +:= iscall
+   rslt[who] +:= isrslt
+   if (at[integer(2*log(call[who]+2,1.25)) || "," || integer(2*log(rslt[who]+2,1.25))] +:= 1) = 1 then
+      FillRectangle(2*log(call[who]+2,1.25) + 2, 2*log(rslt[who]+2,1.25) + 2, 2, 2)
+end

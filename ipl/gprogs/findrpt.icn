@@ -1,0 +1,100 @@
+############################################################################
+#
+#	File:     findrpt.icn
+#
+#	Subject:  Program to find smallest repeat in a repeat pattern.
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 5, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program produces the smallest motif in an image that will tile
+#  to the image.
+#
+#  The image to be processed must be a "true" repeat -- pixel for pixel.
+#
+#  The options supported are:
+#
+#	-n s	suffix for output image, default _t.  The suffix is
+#  		appended to the basename of the input image, as in
+#		foo.gif -> foo_t.gif.
+#
+#	-s	show size; default produce image
+#
+#  Warning:  This program is *very* slow.
+#
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  numbers, options, repetit, wopen
+#
+############################################################################
+
+link numbers
+link options
+link repetit
+link wopen
+
+procedure main(args)
+   local width, height, x, y, row, col, rows, cols, w, h, suffix, file
+   local basename, opts
+
+   opts := options(args, "n:s")
+   suffix := \opts["s"] | "_t"
+
+   every file := !args do {
+      WOpen("canvas=hidden", "image=" || file) | {
+         write(&errout, "*** cannot open ", file)
+         next
+         }
+      file ? {
+         basename := 1(tab(find(".gif")), move(0)) | "unname"
+         }
+      width := WAttrib("width")
+      height := WAttrib("height")
+   
+      rows := []
+      every y := 0 to height - 1 do {
+         row := []
+         every put(row,Pixel(0, y, width, 1))
+         put(rows, repetit(row))
+         }
+      h := lcml ! rows
+      h >:= height
+   
+      cols := []
+      every x := 0 to width - 1 do {
+         col := []
+         every put(col, Pixel(x, 0, 1, height))
+         put(cols, repetit(col))
+         }
+      w := lcml ! cols
+      w >:= width
+
+      if w = width & h = height then {
+         write(&errout, file, " has no subrepeat")
+         next
+         }
+   
+      if \opts["s"] then
+         write(file, ": ", w, "x", h)
+      else
+         WriteImage(basename || suffix || ".gif", 0, 0, w, h) | {
+         write(&errout, "*** cannot write image for ", file)
+         write(&errout, "w=", w, " h=", h)
+         }
+      WClose(&window)
+      &window := &null
+      }
+
+end

@@ -1,0 +1,508 @@
+############################################################################
+#
+#	File:     scan.icn
+#
+#	Subject:  Procedures related to scanning
+#
+#	Author:   Richard L. Goerwitz, David A. Gamey, and Ralph E. Griswold
+#
+#	Date:     September 23, 1996
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#	Contributors:  Randal L. Schwartz and Cheyenne Wills
+#
+############################################################################
+#
+#  This module contains procedures related to string scanning:
+#
+#	balq(c1, c2, c3, c4, c5, s, i1, i2)
+#		like bal() with quoting from characters in c5.
+#
+#       balqc(c1, c2, c3, c4, c5, s1, s2, s3, i1, i2)
+#		like balq() with the addition that balanced characters within 
+#       	"comments", as delimited by the strings s1 and s2, are also 
+#        	excluded from balancing.  In addition, if s1 is given and s2 
+#
+#       limatch(L, c)
+#		matches items in list L delimited by characters in c
+#
+#	slashbal(c1, c2, c3, s, i, j)
+#		like bal() with escape processing
+#
+#	slashupto(c, s, i, j)
+#		like upto() with escape processing
+#
+#	slshupto()
+#		synonym for slashupto()
+#
+#	snapshot(title, len)
+#		snapshot of string scanning with optional title and
+#		maximum length.
+#
+#  More extensive documentation proceeds each procedure.
+#
+############################################################################
+#
+#  Richard L. Goerwitz:
+#
+#  I am often frustrated at bal()'s inability to deal elegantly with
+#  the common \backslash escaping convention (a way of telling Unix
+#  Bourne and C shells, for instance, not to interpret a given
+#  character as a "metacharacter").  I recognize that bal()'s generic
+#  behavior is a must, and so I wrote slashbal() to fill the gap.
+#
+#  Slashbal behaves like bal, except that it ignores, for purposes of
+#  balancing, any c2/c3 char which is preceded by a backslash.  Note
+#  that we are talking about internally represented backslashes, and
+#  not necessarily the backslashes used in Icon string literals.  If
+#  you have "\(" in your source code, the string produced will have no
+#  backslash.  To get this effect, you would need to write "\\(."
+#
+#  BUGS:  Note that, like bal() (v8), slashbal() cannot correctly
+#  handle cases where c2 and c3 intersect.  Note also that older ver-
+#  sions of this routine counted from the beginning of the string,
+#  instead of from i.  This feature came to be regarded as a bug when
+#  put into actual use (especially when I realized that bal() doesn't
+#  work this way).
+#
+############################################################################
+
+procedure slashbal(c1, c2, c3, s, i, j)	#: bal() with escapes
+
+    local twocs, allcs, default_val, POS, chr, chr2, count
+
+    /c1 := &cset
+    /c2 := '('
+    /c3 := ')'
+    twocs := c2 ++ c3
+    allcs := c1 ++ c2 ++ c3 ++ '\\'
+
+    if /s := &subject
+    then default_val := &pos
+    else default_val := 1
+
+    if \i then {
+	if i < 1 then
+	    i := *s + (i+1)
+    }
+    else i := default_val
+    if \j then {
+	if j < 1 then
+	    j := *s + (j+1)
+    }
+    else j := *s + 1
+
+    count := 0; POS := i - 1
+    s[i:j] ? {
+	while tab(upto(allcs)) do {
+	    chr := move(1)
+	    if chr == "\\" & any(twocs) then {
+		chr2 := move(1)
+		if any(c1, chr) & count = 0 then
+		    suspend POS + .&pos - 2
+		if any(c1, chr2) & count = 0 then
+		    suspend POS + .&pos - 1
+	    }
+	    else {
+		if any(c1, chr) & count = 0 then
+		    suspend POS + .&pos - 1
+		if any(c2, chr) then
+		    count +:= 1
+		else if any(c3, chr) & count > 0 then
+		    count -:= 1
+	    }
+	}
+    }
+
+end
+
+############################################################################
+#
+#  Richard L. Goerwitz:
+#
+#  Slshupto works just like upto, except that it ignores backslash
+#  escaped characters.  I can't even begin to express how often I've
+#  run into problems applying Icon's string scanning facilities to
+#  to input that uses backslash escaping.  Normally, I tokenize first,
+#  and then work with lists.  With slshupto() I can now postpone or
+#  even eliminate the traditional tokenizing step, and let Icon's
+#  string scanning facilities to more of the work.
+#
+#  If you're confused:
+#
+#  Typically UNIX utilities (and probably others) use backslashes to
+#  "escape" (i.e. remove the special meaning of) metacharacters.  For
+#  instance, UNIX shells normally accept "*" as a shorthand for "any
+#  series of zero or more characters.  You can make the "*" a literal
+#  "*," with no special meaning, by prepending a backslash.  The rou-
+#  tine slshupto() understands these backslashing conventions.  You
+#  can use it to find the "*" and other special characters because it
+#  will ignore "escaped" characters.
+#
+############################################################################
+
+# for compatibility with the original name
+#
+procedure slashupto(c, s, i, j)		#: upto() with escapes
+    suspend slshupto(c, s, i, j)
+end
+
+#
+# slshupto:  cset x string x integer x integer -> integers
+#             (c, s, i, j) -> Is (a generator)
+#    where Is are the integer positions in s[i:j] before characters
+#    in c that is not preceded by a backslash escape
+#
+procedure slshupto(c, s, i, j)		#: upto() with escapes
+
+    local c2
+
+    if /s := &subject
+    then /i := &pos
+    else /i := 1
+    /j := *s + 1
+    
+    /c := &cset
+    c2 := '\\' ++ c
+    s[1:j] ? {
+        tab(i)
+        while tab(upto(c2)) do {
+            if ="\\" then {
+		move(1) | {
+		    if find("\\", c)
+		    then return &pos - 1
+		}
+		next
+	    }
+            suspend .&pos
+            move(1)
+        }
+    }
+
+end
+
+############################################################################
+#
+#     The procedure snapshot(title,len) writes a snapshot of the state
+#  of string scanning, showing the value of &subject and &pos, an
+#  optional title, and (again optionally) wrapping the display
+#  for len widht.
+#
+#  For example,
+#
+#     "((a+b)-delta)/(c*d))" ? {
+#	 tab(bal('+-/*'))
+#	 snapshot("example")
+#	 }
+#
+#  produces
+#
+#	---example---------------------------
+#	|				    |
+#	|				    |
+#	| &subject = "((a+b)-delta)/(c*d))" |
+#	|			   |	    |
+#	|			    	    |
+#	-------------------------------------
+#
+#     Note that the bar showing the &pos is positioned under the &posth
+#  character (actual positions are between characters).  If &pos is
+#  at the end of &subject, the bar is positioned under the quotation
+#  mark delimiting the subject. For example,
+#
+#     "abcdefgh" ? (tab(0) & snapshot())
+#
+#  produces
+#
+#	-------------------------
+#	|			|
+#	|			|
+#	| &subject = "abcdefgh" |
+#	|		      | |
+#	|			|
+#	-------------------------
+#
+#     Escape sequences are handled properly. For example,
+#
+#     "abc\tdef\nghi" ? (tab(upto('\n')) & snapshot())
+#
+#  produces
+#
+#	------------------------------
+#	|			     |
+#	|			     |
+#	| &subject = "abc\tdef\nghi" |
+#	|		      |      |
+#	|			     |
+#	------------------------------
+#
+#  The title argument places a title into the top bar, as in
+#
+#	"abc\tdef\nghi" ? (tab(upto('\n')) & snapshot("upto('\n')")
+#
+#  which produces
+#
+#      --upto('\n')-------------------
+#      |                             |
+#      |                             |
+#      | &subject = "abc\tdef\nghi"  |
+#      |                     |       |
+#      |                             |
+#      -------------------------------
+#
+#  The len argument rewraps the display for a screen of len width.
+#
+############################################################################
+
+
+procedure snapshot(title,len)		#: snapshot of string scanning
+
+   local bar1, bar2, bar3, is, is0, prefix, titlel, placement, POS
+
+   /title := ""			# no meaningful default
+   \len <:= 20			# any less is really not useful
+   prefix := "&subject = "
+   is := image(&subject)
+   is0 := *image(&subject[1:&pos]) | fail
+
+   #
+   # Set up top and bottom bars (not exceeding len width, if
+   # len is nonnull).  Fit title into top bar (bar1).
+   #
+   bar1 := bar3 := repl("-", *is + *prefix + 4)[1:\len-4|0]
+   # in *is + *prefix + 4, the 4 is for two vbars/two spaces
+   titlel := (*title > *bar3-4) | *title[1:\len-4|0]
+   bar1 ?:= move(3) || (tab(4+titlel), title) || tab(0)
+
+   #
+   # Write bar1, then spacers (bar2).  Then write out len-size chunks
+   # of &subject, with the | pointer-line, where appropriate. Finally,
+   # write out bar3 (like bar1, but with no title).
+   #
+   write(bar1)
+   bar2 := "|" || repl(" ", *bar3 - 2) || "|"
+   write(bar2, "\n", bar2)
+   placement := *prefix + is0
+   (prefix || is) ? {
+       until pos(0) do {
+	   POS := &pos - 1
+	   write("| ", move(*bar3-4) | left(tab(0), *bar3-4), " |")
+	   if POS < placement < &pos then {
+	       writes("| ")
+	       writes(left(repl(" ", placement - POS - 1) || "|", *bar3-4))
+	       write(" |\n", bar2)
+	   }
+	   else write(bar2, "\n", bar2)
+       }
+   }
+   write(bar3)
+   return			# nothing useful to return
+
+end
+
+############################################################################
+#
+#  David A. Gamey:
+#
+#     balq( c1, c2, c3, c4, c5, s, i1, i2 ) : i3
+#
+#        generates the sequence of integer positions in s preceeding a 
+#        character of c1 in s[i1:i2] that is (a) balanced with respect to
+#        characters in c2 and c3 and (b) not "quoted" by characters in c4 
+#        with "escape" sequences as defined in c5, but 
+#        fails if there is no such position.
+#
+#        defaults:   same as for bal,
+#                    c4  the single and double quote characters ' and "
+#                    c5  the backwards slash \
+#        errors:     same as for bal,
+#                    c4 & c5 not csets
+#
+#     balqc( c1, c2, c3, c4, c5, s1, s2, s3, i1, i2 ) : i3
+#
+#        like balq with the addition that balanced characters within 
+#        "comments", as delimited by the strings s1 and s2, are also 
+#        excluded from balancing.  In addition, if s1 is given and s2 
+#        is null then the comment terminates at the end of string.
+#
+#        defaults:   same as for balq,
+#                    s3 is the subject string
+#                    s1 "/*" 
+#                    s2 "*/" if s1 defaults, null otherwise
+#        errors:     same as for balq,
+#                    s1 is not a string
+#                    s2 is not a string (if s1 defaults or is specified) 
+#
+#############################################################################
+
+procedure balq(				#: bal() with quote escaping.
+   cstop, copen, cclose, cquote, cescape, s, i1, i2)
+
+local quote, pcount, spos
+local ca, c, sp
+
+if /s := &subject then /i1 := &pos
+/i1 := 1
+/i2 := 0
+/cstop   := &cset                                     # stopping characters
+/copen   := '('                                       # open characters
+/cclose  := ')'                                       # close characters
+/cquote  := '\'\"'                                    # quote characters
+/cescape := '\\'                                      # escape characters
+
+
+pcount := 0                                           # "parenthesis" counter
+spos   := i1                                          # scanning position
+
+ca := cstop ++ copen ++ cclose ++ cquote ++ cescape   # characters to check
+
+while sp := s[ spos := upto( ca, s, spos, i2 ) ] do { 
+      
+      if /quote & ( pcount = 0 ) & any( cstop, sp) then suspend spos
+      
+      if any( c := ( copen | cclose | cquote | cescape ), sp ) then
+         
+         case c of {
+            
+            copen  : if /quote then 
+                        pcount +:= 1
+            
+            cclose : if /quote then 
+                        if ( pcount -:= 1 ) < 0 then
+                           fail
+            
+            cquote : if /quote then 
+                        quote := sp 
+                     else 
+                        if quote == sp then quote := &null
+            
+            cescape: if \quote then
+                        spos +:= 1
+            }
+      
+      spos +:= 1
+      
+      }
+
+end
+
+procedure balqc(			#: balq() with comment escaping
+   cstop, copen, cclose, cquote, cescape, scm, ecm, s, i1, i2)
+
+local quote, pcount, spos
+local ca, c, sp
+local ccom, comnt
+
+if /s := &subject then /i1 := &pos
+/i1 := 1
+/i2 := 0
+/cstop   := &cset                                     # stopping characters
+/copen   := '('                                       # open characters
+/cclose  := ')'                                       # close characters
+/cquote  := '\'\"'                                    # quote characters
+/cescape := '\\'                                      # escape characters
+
+if /scm & /ecm then {
+   scm := "/*"                                        # start of comment
+   ecm := "*/"                                        # end of comment
+   }
+else 
+   if \scm & /ecm then 
+      ecm := &null                                    # icon style comment
+
+ccom := ''
+ccom ++:= cset(\scm[1])
+ccom ++:= cset(\ecm[1])
+
+pcount := 0                                           # "parenthesis" counter
+spos   := i1                                          # scanning position
+
+ca := cstop ++ copen ++ cclose ++ cquote ++ cescape ++ ccom # chars to check
+
+while sp := s[ spos := upto( ca, s, spos, i2 ) ] do { 
+      
+      if /quote & ( pcount = 0 ) & /comnt & any( cstop, sp) then 
+         suspend spos
+      
+      if any( c := ( copen | cclose | cquote | cescape | ccom ), sp ) then
+         
+         case c of {
+            
+            copen  : if /quote & /comnt then 
+                        pcount +:= 1
+            
+            cclose : if /quote & /comnt then 
+                        if ( pcount -:= 1 ) < 0 then
+                           fail
+            
+            cquote : if /comnt then
+                        if /quote then 
+                           quote := sp 
+                        else 
+                           if quote == sp then quote := &null
+            
+            cescape: if \quote then 
+                        spos +:= 1
+
+            ccom   : if /quote then 
+                        if /comnt then {
+                           if comnt := ( s[ spos +: *scm ] == scm ) then
+                              spos +:= *scm - 1
+                           }
+                        else
+                           if \ecm == s[ spos +: *ecm ] then {
+                              spos +:= *ecm - 1
+                              comnt := &null
+                              }
+                              
+            }
+      
+      spos +:= 1
+      
+      }
+
+end
+
+#############################################################################
+#
+#  This matching function illustrates how every can be 
+#  used in string scanning.   
+#
+#                 1. Each element of the list argument is matched in 
+#                    succession. 
+#                 2. Leading characters in the subject are skipped over
+#                    to match the first element.
+#                 3. The strings listed may be seperated by other characters
+#                    provided they are specified in a cset of characters to 
+#                    be ignored.
+#
+#                 It could be used to find things in text that have varying
+#                 representations, for example: "i.e.", "e.g.", "P.O.", etc.
+#
+#  limatch(l,i)
+#  
+#        l  list of strings to be found
+#        i  cset containing characters to be ignored between each string
+#
+#        returns the last cursor position scanned to, or fails
+#
+#############################################################################
+
+procedure limatch(l,i)			#: matching items in list
+
+local s, f, p
+
+p := &pos
+every ( s := !l ) | ( return p ) do
+{
+   if /f := 1 then tab(find(s))        #  startup - position at first string
+   tab(match(s)) | fail                #  fail if not matched
+   tab(many(i) | &pos)                 #  skip ignore chars. if any
+   p := &pos                           #  remember last position
+}
+end

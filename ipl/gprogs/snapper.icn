@@ -1,0 +1,63 @@
+############################################################################
+#
+#	File:     snapper.icn
+#
+#	Subject:  Program to display images
+#
+#	Authors:  Ralph E. Griswold and Clinton L. Jeffery
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This is just a simple program to display black-and-white versions of screen
+#  dumps.
+#
+#  Type the name of an XBM or XPM file on the prompt in the input window.
+#  Get rid of an image by click in the image window.  Exit the program
+#  by clickng in the input window.
+#
+#  As an exercise, you might want to make this program more versatile --
+#  and perhaps write a program to do slide shows.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  wopen
+#
+############################################################################
+
+link wopen
+
+procedure main(av)
+   local name, window, winput
+
+   if *av > 0 then {
+      every name := !av do {
+         (window := WOpen("label=" || name, "image=" || name,"pos=400,200")) | 
+            write(&errout,"cannot open image ",name)
+	 }
+      Active()
+   } else {
+      winput := WOpen("label=snapper! (click mouse in this window to exit)") |
+	 stop("** can't open window")
+
+      repeat {
+	 close(\window)
+	 writes(winput, "next image: ")
+	 name := read(winput)
+	 (window := WOpen("label=" || name, "image=" || name,"pos=400,200")) | 
+	    write(winput,"cannot open image")
+         if Event(winput) === (&lpress | &mpress | &rpress) then
+            exit()
+      }
+   }
+   
+end

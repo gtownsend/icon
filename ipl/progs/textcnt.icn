@@ -1,0 +1,51 @@
+############################################################################
+#
+#	File:     textcnt.icn
+#
+#	Subject:  Program to tabulate properties of text file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 27, 1989
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This program tabulates the number of characters, "words", and
+#  lines in standard input and gives the maxium and minimum line length.
+#  
+############################################################################
+
+procedure main()
+   local chars, words, lines, name, infile, max, min, line
+
+   chars := words := lines := 0
+   max := 0
+   min := 2 ^ 30			# larger than possible line length
+   
+     while line := read(infile) do {
+        max <:= *line
+        min >:= *line
+        lines +:= 1
+        chars +:= *line + 1
+        line ? while tab(upto(&letters)) do {
+           words +:= 1
+           tab(many(&letters))
+           }
+        }
+   
+     if min = 2 ^ 30 then
+        write("empty file")
+     else {
+        write("number of lines:     ",right(lines,8))
+        write("number of words:     ",right(words,8))
+        write("number of characters:",right(chars,8))
+        write()
+        write("longest line:        ",right(max,8))
+        write("shortest line:       ",right(min,8))
+        }
+
+end

@@ -1,0 +1,68 @@
+############################################################################
+#
+#	File:     knapsack.icn
+#
+#	Subject:  Program to fill a container
+#
+#	Author:   Anthony V. Hewitt
+#
+#	Date:     August 8, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.1
+#
+############################################################################
+#                                                            
+# This filter solves a knapsack problem - how to fill a container to
+# capacity by inserting items of various volumes. 
+#
+#  input:       a string of newline-separated volumes
+#
+#  argument:    the capacity to be filled exactly
+#
+#  output:      a single solution
+#
+# It is derived from fillup.icn, which has a bewildering array of
+# options to make it applicable to real-world problems.  In 
+# contrast, knapsack is merely a demonstration of the underlying 
+# algorithm.
+#
+# The return statement in trynext() greatly improves the efficiency
+# by restricting the search to fruitful branches of the search tree.
+# While the use of multiple returns may be considered poor style,
+# such a structure is often more readable than the alternatives.  In
+# this case, it also seems to be faster.
+#
+#  Knapsack may be tested conveniently by piping to it the output
+#  of randi, a trivial program, like this:
+#   
+#  iconx randi 100 10 | iconx knapsack 250
+#  
+#  You may pick a different capacity, of course; this one just
+#  happens to produce a result quite quickly, as you might expect.
+#
+############################################################################
+ 
+global vols,chosen,capacity
+ 
+procedure main(args)
+    capacity := integer(args[1]) | stop("usage: knapsack capacity")
+    vols := []; every put(vols,0 < integer(!&input))
+    chosen := list(*vols,0)
+    # assert the requirement and write a solution
+    trynext(0,1) = capacity
+    every write(0 < !chosen)
+    end
+ 
+#   trynext - recursively try to insert vols[n], incrementing n each
+#   time, while the knapsack is not full and the reference is within
+#   bounds
+procedure trynext(totvol,n)
+    (capacity <= totvol) & return totvol    # prune the tree for efficiency
+    suspend trynext(totvol + (chosen[n] := (vols[n] | 0)), n+1)
+    end

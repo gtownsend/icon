@@ -1,0 +1,129 @@
+############################################################################
+#
+#	File:     rexx.icn
+#
+#	Subject:  Procedures to communicate between Icon and Rexx
+#
+#	Author:   Alan Beale
+#
+#	Date:     April 8, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This package can also be used on MVS to communicate with the TSO CLIST
+#  languages, but some messages may not be appropriate.  The functions
+#  rexxvar, rexxset, rexxdrop and rexxnext must be installed in the extcall
+#  module of iconx for these procedures to do anything useful.
+#
+#     These procedures provide an interface between Icon and Rexx:
+#
+#     RexxActive()    fails if no Rexx (or EXEC2) EXEC is active, else
+#                     returns &null.
+#
+#     RexxVar(var)    returns the value of a Rexx variable, or fails if
+#                     the variable is not defined.  Any other errors
+#                     detected by the Rexx interface cause run-time
+#                     error 500, and print an error message if errors
+#                     are not trapped.  If errors are not trapped, the
+#                     message is in &errorvalue.
+#
+#     RexxSet(var, val) stores a new value in a Rexx variable (or
+#                     creates the variable if it does not exist).
+#                     Returns &null if successful.  Errors are handled
+#                     as by RexxVar.
+#
+#     RexxDrop(var)   drop a Rexx variable.  Returns &null if
+#                     successful.  If the variable does not exist,
+#                     no action is taken, and &null is returned.
+#                     Errors are handled as by RexxVar.
+#
+#     RexxAll()       returns a Rexx table whose keys are all the
+#                     currently defined Rexx variables, and whose
+#                     elements are their values.  Errors are handled
+#                     as by RexxVar.
+#
+############################################################################
+#
+#  Requires:  CMS or MVT
+#
+############################################################################
+
+procedure RexxActive()     # return whether an EXEC is active
+   if callout("rexxvar", "a") == "Rexx error: No EXEC is active" then
+      fail
+   else return &null
+#
+#   Ask for the value of any old variable.  Unless it fails because
+#   Rexx is not active, Rexx is up.
+#
+end
+
+procedure RexxVar(var)     # return the value of a Rexx variable
+   local result
+
+   if not (result := callout("rexxvar", var)) then fail
+   if result[1] == "=" then return result[2:0]
+#
+#   Note: ispcopy returns either "=value", if the variable was found,
+#         or "msg" if a Rexx error occurred other than "variable not
+#         defined" (which is a failure condition).
+#
+   if result[1+:4] ~== "Rexx" then result := "Rexx error: "||result
+   if &error = 0 then write(&errout, result)
+   runerr(500, result)
+end
+
+procedure RexxSet(var,value)   # assign to a Rexx variable
+   local result
+
+   result := callout("rexxset", var, value)
+   if type(result) == "string" then {
+      if result[1+:4] ~== "Rexx" then result := "Rexx error: "||result
+      if &error = 0 then write(&errout, result)
+      runerr(500, result)
+   }
+   else return result
+end
+
+procedure RexxDrop(var,value)  # drop a Rexx variable
+   local result
+
+   result := callout("rexxdrop", var, value)
+   if type(result) == "string" then {
+      if result[1+:4] ~== "Rexx" then result := "Rexx error: "||result
+      if &error = 0 then write(&errout, result)
+      runerr(500, result)
+   }
+   else return result
+end
+
+procedure RexxAll()           # return a table of all Rexx variables
+   local result, allofthem, nextvar
+#
+# Note:  You might suppose that RexxAll would be better designed as a
+#        generator, rather than returning a table.  Unfortunately,
+#        the Rexx interfaces used provide a snapshot of a moment in
+#        time, and do not restart "correctly" after some other Rexx
+#        interface is used.  If RexxAll were a generator, it could be
+#        suspended indefinitely in a co-expression, and reasonable
+#        behavior could hardly be expected, if other parts of the
+#        program did anything at all with Rexx.
+#
+   allofthem := table()
+   while nextvar := callout("rexxnext") do {
+      if nextvar[1] ~== "=" then {
+         if nextvar[1+:4] ~== "Rexx" then
+            result := "Rexx error: "||nextvar
+         if &error = 0 then write(&errout, result)
+         runerr(500, result)
+         fail
+      }
+      nextvar := nextvar[2:0]
+      allofthem[nextvar] := RexxVar(nextvar)
+   }
+   return allofthem
+end

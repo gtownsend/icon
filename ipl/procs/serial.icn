@@ -1,0 +1,28 @@
+############################################################################
+#
+#	File:     serial.icn
+#
+#	Subject:  Procedure to return serial number of structure
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 19, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Procedure to return the serial number of a structure.
+#
+############################################################################
+
+procedure serial(x)		#: structure serial number
+
+   return image(x) ? {		# fails on non-structure or bogus kind
+      tab(upto('_') + 1) | fail
+      return integer(tab(many(&digits)))
+      }
+
+end

@@ -1,0 +1,73 @@
+############################################################################
+#
+#	File:     draw2gmr.icn
+#
+#	Subject:  Program to create drawdown grammar
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 15, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  Program to convert an image astring for a drawdown to a grammar for the
+#  drawdown.
+#
+#  The name of a file containing an image string drawdown is given on the
+#  command line, as in
+#
+#	draw2gmr shadow.ims
+#
+#  The file is expected to carry the suffix ".ims".  If it does not,
+#  the name for the grammar may not be as expected.
+#
+############################################################################
+#
+#  Links:  basename, imrutils, weavutil
+#
+############################################################################
+
+link basename
+link imrutils
+link weavutil
+
+$define Different 2		# Since the only color labels are 0 and 1
+
+procedure main(args)
+   local imr, rows, row, count, unique, axiom
+
+   imr := imstoimr(read(open(args[1]))) | stop("*** invalid input")
+
+   if imr.palette ~== "g2" then stop("*** invalid palette for drawdown")
+
+   count := 0
+   unique := table()
+
+   rows := []
+
+   imr.pixels ? {
+      while row := move(imr.width) do {
+         if /unique[row] then unique[row] := (count +:= 1)
+         put(rows, unique[row])
+         }
+      }
+
+   axiom := ""
+   every axiom ||:= possym(!rows + Different)
+
+   write("name:", basename(args[1], ".ims"))
+   write("comment:drawdown")
+   write("axiom:2")
+   write("gener:1")
+   write("2->", axiom)
+
+   unique := sort(unique, 4)
+
+   while row := get(unique) do
+      write(possym(get(unique) + Different), "->", row)
+   
+end

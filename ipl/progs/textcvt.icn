@@ -1,0 +1,131 @@
+############################################################################
+#
+#	File:     textcvt.icn
+#
+#	Subject:  Program to convert text file formats
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     November 21, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#
+#  Program to convert text file(s) among various platforms' formats.
+#
+#  The supported text file types are UNIX, MS-DOS, and Macintosh.  A
+#  universal input text reading algorithm is used, so only the output
+#  file format must be specified.
+#
+#  The files are either converted in-place by converting to a temporary
+#  file and copying the result back to the original, or are copied to a
+#  separate new file, depending on the command line options.  If the
+#  conversion is interrupted, the temporary file might still remain as
+#  <original name>.temp (or, for MS-DOS, <original name root>.tmp.
+#
+############################################################################
+#
+#  Links:  io, options
+#
+############################################################################
+
+link io
+link options
+
+procedure Usage(s)
+  write(&errout,\s)
+  stop("Usage: textcvt [-options] -<output format> textfile..._
+       \n  options:_
+       \n    f <file name>  output file name if different from input_
+       \n    o <dir name>   output filename prefix (e.g. directory)_
+       \n    c              copy first file to second file_
+       \n  <output format>:_
+       \n    u: UNIX_
+       \n    d: MS-DOS_
+       \n    m: Macintosh")
+end
+
+procedure Options(arg)
+  local opt
+  opt := options(arg,"udmo:f:c",Usage)
+  OutEnder :=
+      if \opt["u"] then "\x0a"
+      else if \opt["d"] then "\x0d\x0a"
+      else if \opt["m"] then "\x0d"
+      else Usage()
+  OutDir := opt["o"]
+  if OutFile := \opt["f"] then {
+    if *arg > 1 then Usage("Only one input file allowed with -f")
+  }
+  else if \opt["c"] then {
+    if *arg ~= 2 then Usage("Exactly two files required for -c")
+    OutFile := pull(arg)
+  }
+  return opt
+end
+
+
+global OutEnder,OutDir,OutFile
+
+procedure main(arg)
+  local oldName,old,newName,tmp,notInPlace,tmpName
+  Options(arg)
+  notInPlace := \(OutFile | OutDir)
+  every oldName := !arg do {
+    old := open(oldName,"ru") | {
+      write(&errout,"Can't open ",oldName)
+      next
+    }
+    if \notInPlace then {
+      tmpName := (\OutDir | "") || (\OutFile | tail(oldName)[2])
+      tmp := open(tmpName,"wu") | {
+        write(&errout,"Can't open output file ",tmpName)
+    close(old)
+    next
+      }
+      writes(&errout,"Converting ",oldName," -> ",tmpName," -- ")
+    }
+    else {
+      tmpName := if match("MS_DOS",&host) then suffix(oldName)[1] || ".tmp"
+          else oldName || ".temp"
+      tmp := open(tmpName,"wu") | {
+        write(&errout,"Can't open work file ",tmpName)
+    close(old)
+    next
+      }
+      writes(&errout,"Converting ",oldName," -- ")
+    }
+    flush(&errout)
+    ConvertText(old,tmp)
+    close(tmp)
+    close(old)
+    if \notInPlace then {
+      write(&errout,"done.")
+    }
+    else {
+      (fcopy(tmpName,oldName) & write(&errout,"done.")) |
+          write(&errout,"done.")
+      remove(tmpName)
+    }
+  }
+end
+
+procedure ConvertText(old,new)
+  local buf,c,trail
+  while buf := reads(old,2000) do {
+    if buf[-1] == "\x0d" then buf ||:= reads(old)
+    buf ? {
+      while writes(new,tab(upto('\x0a\x0d')),OutEnder) do {
+        c := move(1)
+    if c == "\x0d" then ="\x0a"
+      }
+      writes(new,trail := tab(0))
+    }
+  }
+  if *\trail > 0 then writes(new,OutEnder)
+  return
+end

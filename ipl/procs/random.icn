@@ -1,0 +1,154 @@
+############################################################################
+#
+#	File:     random.icn
+#
+#	Subject:  Procedures related to random numbers
+#
+#	Authors:  Ralph E. Griswold and Gregg M. Townsend
+#
+#	Date:     July 10, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This file contains procedures related to pseudo-random numbers.
+#
+#	rand_num()	is a linear congruential pseudo-random number
+#			generator.  Each time it is called, it produces
+#			another number in the sequence and also assigns it
+#			to the global variable random.  With no arguments,
+#			rand_num() produces the same sequence(s) as Icon's
+#			built-in random-number generator.  Arguments can be
+#			used to get different sequences.
+#
+#			The global variable random serves the same role that
+#			&random does for Icon's built-in random number
+#			generator.
+#
+#	rand_int(i)	produces a randomly selected integer in the range 1
+#			to i.  It models ?i for positive i.
+#
+#	randomize()	sets &random to a "random" value, based on the time
+#			of day and the date.
+#
+#	randrange(min, max)
+#			produces random number in the range min <= i <= max.
+#
+#	randrangeseq(i, j)
+#			generates the integers from i to j in random order.
+#
+#
+#	randseq(seed)	generates the values of &random, starting at seed,
+#			that occur as the result of using ?x.
+#
+#	shuffle(x)	shuffles the elements of x
+#
+#
+############################################################################
+#
+#  Links:  factors
+#
+############################################################################
+
+link factors
+
+global random
+
+procedure rand_num(a_, c_, m_)		#: random number generator
+   static random_last, a, c, m
+
+   initial {
+      /random := 0
+      a := \a_ | 1103515245
+      c := \c_ | 453816694
+      m := (\m_ | 2 ^ 31)
+      }
+
+    return random := (a * random + c) % m
+     
+end
+
+procedure rand_int(i)			#: model ?i
+   static scale
+	
+   initial scale := 1.0 / (2 ^ 31 - 1)
+
+   (i := (0 < integer(i))) | runerr(205, i)
+
+   return integer(i * rand_num() * scale) + 1
+
+end
+
+procedure randomize()			#: randomize
+   static ncalls
+
+   initial ncalls := 0
+
+   ncalls +:= 1
+
+   &random := map("sSmMhH", "Hh:Mm:Ss", &clock) +
+      map("YyXxMmDd", "YyXx/Mm/Dd", &date) + &time + 1009 * ncalls
+
+   return
+
+end
+
+procedure randrange(min, max)		#: random number in range
+
+   return min - 1 + ?(max - min + 1)
+
+end
+
+procedure randrangeseq(i, j)		#: random sequence in range
+   local x, m, a, c, n
+
+   n := j - i + 1
+
+   if n < 0 then fail
+
+   x := 1
+   m := nxtprime(n)
+   a := m + 1
+   c := nxtprime(m)
+
+   every 1 to m do {
+      x := (a * x + c) % m
+      if x < n then {		# discard out-of-range values
+         suspend x + i
+         }
+      }
+
+end
+
+procedure randseq(seed)			#: generate &random
+
+   suspend &random := seed
+   suspend |?1 & &random
+
+end
+
+#     The procedure shuffle(x) shuffles a string, list, or record.
+#  In the case that x is a string, a corresponding string with the
+#  characters randomly rearranged is produced. In the case that x is
+#  list or records the elements are randomly rearranged.
+   
+procedure shuffle(x)			#: shuffle
+   local i
+
+   x := string(x)		# may fail
+   every i := *x to 2 by -1 do
+      x[?i] :=: x[i]
+   return x
+end
+
+#  Note:  the following procedure is simpler, but does not produce
+#  as good a shuffle:
+#
+#procedure shuffle(x)
+#   x := string(x)
+#   every !x :=: ?x
+#   return x
+#end

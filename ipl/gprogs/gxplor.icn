@@ -1,0 +1,380 @@
+############################################################################
+#
+#	File:     gxplor.icn
+#
+#	Subject:  Program to explore graphics facilities
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     July 20, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#   Usage:  gxplor [-s] [window options]
+#
+#      gxplor is an interactive explorer for experimenting with Icon's
+#   graphics facilities.  Commands read from standard input set window
+#   attributes or invoke procedures.  Result values are reported on
+#   standard output.  Errors are caught when possible.
+#
+#      Here's an example, with commentary at the side,  that illustrates
+#   some of the possibilities:
+#
+#	% gxplor			start program; a window appears
+#	> fg				query value of "fg" attribute
+#	black
+#	> fg blue			set "fg" attribute
+#	blue
+#	> linewidth 7			set "linewidth" attribute
+#	7
+#	> drawline 12 20 55 73		a fat blue line appears
+#	> erasearea			clear window
+#	> fillarea
+#	[unrecognized]			oops -- wrong name
+#	> fillrectangle
+#	> pattern			query "pattern" attribute
+#	[failed]
+#	> pattern grid			set it
+#	grid
+#	> fillstyle
+#	solid
+#	> fillstyle opaque
+#	error 205: invalid value
+#	> fillstyle textured		set fillstyle
+#	textured
+#	> clip 50 50 400 200		set clipping
+#	> fillrectangle			fill clipped area with pattern
+#	> zoom 40 40 100 100 300 50 200 200
+#					zoom a region
+#	> &storage			query memory usage
+#	0
+#	274
+#	12184
+#	> exit				exit the program
+#	%
+#
+#      Input consists of blank-separated words, as shown.  If the first
+#   word is recognized as the name of an attribute, a WAttrib() call is
+#   made.  If it is an Icon keyword, the keyword value is printed.
+#   Otherwise, the word is treated as a procedure name.  Any built-in
+#   function or linked procedure can be invoked, and procedure names are
+#   treated as case-insensitive for ease of entry.
+#
+#      If a line begins with an integer, the remainder of the line is
+#   interpreted as a command to be repeated that number of times.
+#   Afterwards, the elapsed CPU and wall-clock time is reported;
+#   these figures include loop and call overhead.
+#
+#      The -s option selects "script" mode:  input is echoed on standard
+#   output, and at EOF the program pauses in WDone().
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: many
+#
+############################################################################
+
+link graphics 
+link options
+link datetime
+link random
+
+link barchart, bitplane, drawcard, decay, imscolor
+link psrecord, putpixel, strpchrt, turtle, vsetup
+
+invocable all
+
+$define MaxErrors 100
+
+
+#  main procedure
+
+procedure main(args)
+   local line, words, n, tm, ck, verb, p, s, w, r, atts, keywds, opts
+
+   atts := attnames()
+   keywds := kwnames()
+   Window(args)
+   opts := options(args, "s")
+
+   repeat {
+
+      # read next line
+      writes("> ")
+      line := read() | break
+      if \opts["s"] then
+         write(line)
+      words := crack(line)
+
+      # set up for timing, if wanted
+      if n := integer(words[1]) then {
+         get(words)
+         tm := &time
+         ck := &clock
+         }
+      else {
+         n := 1
+         tm := ck := &null
+         }
+
+      verb := get(words) | next
+      &error := MaxErrors
+
+      if member(atts, verb) then {
+
+	 # attribute name
+         s := verb || "="
+         every w := !words do
+            s ||:= (\w | "") || " "
+         s := trim(s, ' =')
+         every 2 to n do
+            WAttrib(s)
+         r := image(WAttrib(s)) | "[failed]"
+         }
+
+      else if member(keywds, verb) then {
+
+	 # keyword name
+	 every kwval(verb, n - 1)
+	 s := &null
+         every write(s := image(kwval(verb, 1)))
+	 if /s then write("[failed]")
+	 r := "window"	# inhibit later result printing
+         }
+
+      else if p := getproc(verb) then {
+
+	 # procedure call
+         dialog_value := &null
+         every 2 to n do
+            p ! words
+         r := image(p ! words) | "[failed]"
+         r ||:= "    (dialog_value = " || image(\dialog_value) || ")"
+         }
+
+      else {
+
+         r := "[unrecognized]"
+         tm := ck := &null
+         }
+
+      # calculate elapsed time
+      if \tm then {
+         WSync()
+         tm := &time - tm
+         ck := clkdiff(&clock, ck)
+         }
+
+      # report result or error
+      if &error = MaxErrors then {
+         # no error occurred
+         if not (r ? ="window") then
+            write(r)
+         }
+      else if &error = MaxErrors - 1 then {
+         # an error occurred
+         write("error ", &errornumber, ": ", &errortext)
+         write("offending value: ", &errorvalue)
+         }
+      else {
+         # error conversion led to a second error;
+         # original information has been lost
+         write("error (details lost)")
+         }
+
+      # write timing results
+      write("n=", n, " time=", \tm / 1000.0, " clock=", \ck)
+
+      &error := 0
+      }
+
+   # at EOF, if called with -s option, wait for "Q" in window
+   if \opts["s"] then {
+      write("EOF")
+      WDone()
+      }
+end
+
+
+
+#  crack(s) -- parse line, returning list of words
+
+procedure crack(s)
+   local words
+
+   words := []
+   s ? {
+      tab(many(' \t'))
+      while not pos(0) do {
+	 put(words, tab(upto(' \t') | 0))
+         tab(many(' \t'))
+         }
+      }
+   return words
+end
+
+
+
+#  getproc(s) -- get procedure named s, case insensitive
+
+procedure getproc(s)
+   local p, f, line, tname
+   static proctab
+
+   initial {
+      # put every builtin function in the table
+      proctab := table()
+      every p := function() do
+         proctab[map(p)] := proc(p)
+
+      # open a temporary file to get procedure names
+      randomize()
+      tname := "gxp" || right(?99999, 5, "0") || ".tmp"
+$ifdef _UNIX
+      tname := "/tmp/" || tname
+$endif
+      f := open(tname, "crw") | stop("can't open ", tname)
+
+      # put every linked procedure in the table
+      display(0, f)
+      seek(f, 1)
+      while line := read(f) do line ? {
+         tab(upto('=')) | next
+         tab(many('= '))
+         ="procedure" | next
+         tab(many(' '))
+         p := trim(tab(0))
+         proctab[map(p)] := proc(p)
+         }
+      close(f)
+      remove(tname)
+   }
+
+   return \proctab[map(s)]
+end
+
+
+
+#  attnames() -- return set of known attribute names
+
+procedure attnames()
+   return set([
+      "ascent", "bg", "canvas", "ceol", "cliph", "clipw", "clipx", "clipy",
+      "col", "columns", "cursor", "depth", "descent", "display",
+      "displayheight", "displaywidth", "drawop", "dx", "dy", "echo", "fg",
+      "fheight", "fillstyle", "font", "fwidth", "gamma", "geometry", "height",
+      "iconic", "iconimage", "iconlabel", "iconpos", "image", "label",
+      "leading", "lines", "linestyle", "linewidth", "pattern", "pointer",
+      "pointercol", "pointerrow", "pointerx", "pointery", "pos", "posx",
+      "posy", "resize", "reverse", "row", "rows", "size", "visual", "width",
+      "windowlabel", "x", "y"])
+end
+
+
+
+#  kwnames() -- return set of known keyword names
+
+procedure kwnames()
+   return set([
+      "&allocated", "&ascii", "&clock", "&col", "&collections",
+      "&control", "&cset", "&current", "&date", "&dateline", "&digits",
+      "&dump", "&e", "&error", "&errornumber", "&errortext", "&errorvalue",
+      "&errout", "&fail",
+      "&features", "&file", "&host", "&input", "&interval", "&lcase", "&ldrag",
+      "&letters", "&level", "&line", "&lpress", "&lrelease", "&main", "&mdrag",
+      "&meta", "&mpress", "&mrelease", "&null", "&output", "&phi", "&pi",
+      "&pos", "&progname", "&random", "&rdrag", "&regions", "&resize", "&row",
+      "&rpress", "&rrelease", "&shift", "&source", "&storage", "&subject",
+      "&time", "&trace", "&ucase", "&version", "&window", "&x", "&y"])
+end
+
+
+
+#  kwval(name, n) -- generate values of a keyword n times
+
+procedure kwval(name, n)
+   case name of {
+      "&allocated":	every 1 to n do suspend &allocated
+      "&ascii":		every 1 to n do suspend &ascii
+      "&clock":		every 1 to n do suspend &clock
+      "&col":		every 1 to n do suspend &col
+      "&collections":	every 1 to n do suspend &collections
+      "&control":	every 1 to n do suspend &control
+      "&cset":		every 1 to n do suspend &cset
+      "&current":	every 1 to n do suspend &current
+      "&date":		every 1 to n do suspend &date
+      "&dateline":	every 1 to n do suspend &dateline
+      "&digits":	every 1 to n do suspend &digits
+      "&dump":		every 1 to n do suspend &dump
+      "&e":		every 1 to n do suspend &e
+      "&error":		every 1 to n do suspend &error
+      "&errornumber":	every 1 to n do suspend &errornumber
+      "&errortext":	every 1 to n do suspend &errortext
+      "&errorvalue":	every 1 to n do suspend &errorvalue
+      "&errout":	every 1 to n do suspend &errout
+      "&fail":		every 1 to n do suspend &fail
+      "&features":	every 1 to n do suspend &features
+      "&file":		every 1 to n do suspend &file
+      "&host":		every 1 to n do suspend &host
+      "&input":		every 1 to n do suspend &input
+      "&interval":	every 1 to n do suspend &interval
+      "&lcase":		every 1 to n do suspend &lcase
+      "&ldrag":		every 1 to n do suspend &ldrag
+      "&letters":	every 1 to n do suspend &letters
+      "&level":		every 1 to n do suspend &level
+      "&line":		every 1 to n do suspend &line
+      "&lpress":	every 1 to n do suspend &lpress
+      "&lrelease":	every 1 to n do suspend &lrelease
+      "&main":		every 1 to n do suspend &main
+      "&mdrag":		every 1 to n do suspend &mdrag
+      "&meta":		every 1 to n do suspend &meta
+      "&mpress":	every 1 to n do suspend &mpress
+      "&mrelease":	every 1 to n do suspend &mrelease
+      "&null":		every 1 to n do suspend &null
+      "&output":	every 1 to n do suspend &output
+      "&phi":		every 1 to n do suspend &phi
+      "&pi":		every 1 to n do suspend &pi
+      "&pos":		every 1 to n do suspend &pos
+      "&progname":	every 1 to n do suspend &progname
+      "&random":	every 1 to n do suspend &random
+      "&rdrag":		every 1 to n do suspend &rdrag
+      "&regions":	every 1 to n do suspend &regions
+      "&resize":	every 1 to n do suspend &resize
+      "&row":		every 1 to n do suspend &row
+      "&rpress":	every 1 to n do suspend &rpress
+      "&rrelease":	every 1 to n do suspend &rrelease
+      "&shift":		every 1 to n do suspend &shift
+      "&source":	every 1 to n do suspend &source
+      "&storage":	every 1 to n do suspend &storage
+      "&subject":	every 1 to n do suspend &subject
+      "&time":		every 1 to n do suspend &time
+      "&trace":		every 1 to n do suspend &trace
+      "&ucase":		every 1 to n do suspend &ucase
+      "&version":	every 1 to n do suspend &version
+      "&window":	every 1 to n do suspend &window
+      "&x":		every 1 to n do suspend &x
+      "&y":		every 1 to n do suspend &y
+   }
+end
+
+
+
+#  clkdiff(a, b) -- return difference in seconds between two &clock values
+#
+#  If a < b, the time is assumed to have wrapped past midnight.
+
+procedure clkdiff(a, b)
+   local t
+   t := ClockToSec(a) - ClockToSec(b)
+   if t < 0 then
+      t +:= ClockToSec("24:00:00")
+   return t
+end

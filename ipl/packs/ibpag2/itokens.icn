@@ -1,0 +1,925 @@
+############################################################################
+#
+#	Name:	 itokens.icn
+#
+#	Title:	 itokens (Icon source-file tokenizer)
+#
+#	Author:	 Richard L. Goerwitz
+#
+#	Version: 1.11
+#
+############################################################################
+#
+#  This file contains itokens() - a utility for breaking Icon source
+#  files up into individual tokens.  This is the sort of routine one
+#  needs to have around when implementing things like pretty printers,
+#  preprocessors, code obfuscators, etc.  It would also be useful for
+#  implementing cut-down implementations of Icon written in Icon - the
+#  sort of thing one might use in an interactive tutorial.
+#
+#  Itokens(f, x) takes, as its first argument, f, an open file, and
+#  suspends successive TOK records.  TOK records contain two fields.
+#  The first field, sym, contains a string that represents the name of
+#  the next token (e.g. "CSET", "STRING", etc.).  The second field,
+#  str, gives that token's literal value.  E.g. the TOK for a literal
+#  semicolon is TOK("SEMICOL", ";").  For a mandatory newline, itokens
+#  would suspend TOK("SEMICOL", "\n").
+#
+#  Unlike Icon's own tokenizer, itokens() does not return an EOFX
+#  token on end-of-file, but rather simply fails.  It also can be
+#  instructed to return syntactically meaningless newlines by passing
+#  it a nonnull second argument (e.g. itokens(infile, 1)).  These
+#  meaningless newlines are returned as TOK records with a null sym
+#  field (i.e. TOK(&null, "\n")).
+#
+#  NOTE WELL: If new reserved words or operators are added to a given
+#  implementation, the tables below will have to be altered.  Note
+#  also that &keywords should be implemented on the syntactic level -
+#  not on the lexical one.  As a result, a keyword like &features will
+#  be suspended as TOK("CONJUNC", "&") and TOK("IDENT", "features").
+#
+############################################################################
+#
+#  Links: slshupto
+#
+#  Requires: coexpressions
+#
+############################################################################
+
+#link ximage, slshupto
+link slshupto #make sure you have version 1.2 or above
+
+global next_c, line_number
+record TOK(sym, str)
+
+#
+# main:  an Icon source code uglifier
+#
+#     Stub main for testing; uncomment & compile.  The resulting
+#     executable will act as an Icon file compressor, taking the
+#     standard input and outputting Icon code stripped of all
+#     unnecessary whitespace.  Guaranteed to make the code a visual
+#     mess :-).
+#
+#procedure main()
+#
+#    local separator, T
+#    separator := ""
+#    every T := itokens(&input) do {
+#	if any(&digits ++ &letters ++ '_.', \T.str, 1, 2) & \T.sym ~== "DOT"
+#	then writes(separator)
+#	if T.sym == "SEMICOL" then writes(";") else writes(T.str)
+#	if any(&digits ++ &letters ++ '_.', \T.str, -1, 0) & \T.sym ~== "DOT"
+#	then separator := " " else separator := ""
+#    }
+#
+#end
+
+
+#
+# itokens:  file x anything    -> TOK records (a generator)
+#           (stream, nostrip)  -> Rs
+#
+#     Where stream is an open file, anything is any object (it only
+#     matters whether it is null or not), and Rs are TOK records.
+#     Note that itokens strips out useless newlines.  If the second
+#     argument is nonnull, itokens does not strip out superfluous
+#     newlines.  It may be useful to keep them when the original line
+#     structure of the input file must be maintained.
+#
+procedure itokens(stream, nostrip)
+
+    local T, last_token
+
+    # initialize to some meaningless value
+    last_token := TOK()
+
+    every T := \iparse_tokens(stream) do {
+	if \T.sym then {
+	    if T.sym == "EOFX" then fail
+	    else {
+		#
+		# If the last token was a semicolon, then interpret
+		# all ambiguously unary/binary sequences like "**" as
+		# beginners (** could be two unary stars or the [c]set
+		# intersection operator).
+		#
+		if \last_token.sym == "SEMICOL"
+		then suspend last_token := expand_fake_beginner(T)
+		else suspend last_token := T
+	    }
+	} else {
+	    if \nostrip
+	    then suspend last_token := T
+	}
+    }
+
+end
+
+
+#
+# expand_fake_beginner: TOK record -> TOK records
+#
+#     Some "beginner" tokens aren't really beginners.  They are token
+#     sequences that could be either a single binary operator or a
+#     series of unary operators.  The tokenizer's job is just to snap
+#     up as many characters as could logically constitute an operator.
+#     Here is where we decide whether to break the sequence up into
+#     more than one op or not.
+#
+procedure expand_fake_beginner(next_token)
+
+    static exptbl
+    initial {
+	exptbl := table()
+	insert(exptbl, "CONCAT",  [TOK("BAR", "|"),   TOK("BAR", "|")])
+	insert(exptbl, "DIFF",    [TOK("MINUS", "-"), TOK("MINUS", "-")])
+ 	insert(exptbl, "EQUIV",   [TOK("NUMEQ", "="), TOK("NUMEQ", "="),
+				   TOK("NUMEQ", "=")])
+	insert(exptbl, "INTER",   [TOK("STAR", "*"),  TOK("STAR", "*")])
+	insert(exptbl, "LCONCAT", [TOK("BAR", "|"),   TOK("BAR", "|"),
+				   TOK("BAR", "|")])
+	insert(exptbl, "LEXEQ",   [TOK("NUMEQ", "="), TOK("NUMEQ", "=")])
+	insert(exptbl, "LEXNE",   [TOK("TILDE", "~"), TOK("NUMEQ", "="),
+				   TOK("NUMEQ", "=")])
+	insert(exptbl, "NOTEQUIV",[TOK("TILDE", "~"), TOK("NUMEQ","="),
+				   TOK("NUMEQ", "="), TOK("NUMEQ", "=")])
+	insert(exptbl, "NUMNE",   [TOK("TILDE", "~"), TOK("NUMEQ","=")])
+	insert(exptbl, "UNION",   [TOK("PLUS", "+"),  TOK("PLUS", "+")])
+    }
+
+    if \exptbl[next_token.sym]
+    then suspend !exptbl[next_token.sym]
+    else return next_token
+
+end
+
+
+#
+# iparse_tokens:  file     -> TOK records (a generator)
+#                 (stream) -> tokens
+#
+#     Where file is an open input stream, and tokens are TOK records
+#     holding both the token type and actual token text.
+#
+#     TOK records contain two parts, a preterminal symbol (the first
+#     "sym" field), and the actual text of the token ("str").  The
+#     parser only pays attention to the sym field, although the
+#     strings themselves get pushed onto the value stack.
+#
+#     Note the following kludge:  Unlike real Icon tokenizers, this
+#     procedure returns syntactially meaningless newlines as TOK
+#     records with a null sym field.  Normally they would be ignored.
+#     I wanted to return them so they could be printed on the output
+#     stream, thus preserving the line structure of the original
+#     file, and making later diagnostic messages more usable.
+#
+procedure iparse_tokens(stream, getchar)
+
+    local elem, whitespace, token, last_token, primitives, reserveds
+    static be_tbl, reserved_tbl, operators
+    initial {
+
+	#  Primitive Tokens
+	#
+	primitives := [
+		       ["identifier",      "IDENT",     "be"],
+		       ["integer-literal", "INTLIT",    "be"],
+		       ["real-literal",    "REALLIT",   "be"],
+		       ["string-literal",  "STRINGLIT", "be"],
+		       ["cset-literal",    "CSETLIT",   "be"],
+		       ["end-of-file",     "EOFX",      "" ]]
+
+	# Reserved Words
+	#
+	reserveds  := [
+		       ["break",           "BREAK",     "be"],
+		       ["by",              "BY",        ""  ],
+		       ["case",            "CASE",      "b" ],
+		       ["create",          "CREATE",    "b" ],
+		       ["default",         "DEFAULT",   "b" ],
+		       ["do",              "DO",        ""  ],
+                       ["else",            "ELSE",      ""  ],
+		       ["end",             "END",       "b" ],
+		       ["every",           "EVERY",     "b" ],
+		       ["fail",            "FAIL",      "be"],
+		       ["global",          "GLOBAL",    ""  ],
+		       ["if",              "IF",        "b" ],
+		       ["initial",         "INITIAL",   "b" ],
+		       ["invocable",       "INVOCABLE", ""  ],
+		       ["link",            "LINK",      ""  ],
+		       ["local",           "LOCAL",     "b" ],
+		       ["next",            "NEXT",      "be"],
+		       ["not",             "NOT",       "b" ],
+		       ["of",              "OF",        ""  ],
+		       ["procedure",       "PROCEDURE", ""  ],
+		       ["record",          "RECORD",    ""  ],
+		       ["repeat",          "REPEAT",    "b" ],
+		       ["return",          "RETURN",    "be"],
+		       ["static",          "STATIC",    "b" ],
+		       ["suspend",         "SUSPEND",   "be"],
+		       ["then",            "THEN",      ""  ],
+		       ["to",              "TO",        ""  ],
+		       ["until",           "UNTIL",     "b" ],
+		       ["while",           "WHILE",     "b" ]]
+
+	# Operators
+	#
+	operators  := [
+		       [":=",              "ASSIGN",    ""  ],
+		       ["@",               "AT",        "b" ],
+		       ["@:=",             "AUGACT",    ""  ],
+		       ["&:=",             "AUGAND",    ""  ],
+		       ["=:=",             "AUGEQ",     ""  ],
+		       ["===:=",           "AUGEQV",    ""  ],
+		       [">=:=",            "AUGGE",     ""  ],
+		       [">:=",             "AUGGT",     ""  ],
+		       ["<=:=",            "AUGLE",     ""  ],
+		       ["<:=",             "AUGLT",     ""  ],
+		       ["~=:=",            "AUGNE",     ""  ],
+		       ["~===:=",          "AUGNEQV",   ""  ],
+		       ["==:=",            "AUGSEQ",    ""  ],
+		       [">>=:=",           "AUGSGE",    ""  ],
+		       [">>:=",            "AUGSGT",    ""  ],
+		       ["<<=:=",           "AUGSLE",    ""  ],
+		       ["<<:=",            "AUGSLT",    ""  ],
+		       ["~==:=",           "AUGSNE",    ""  ],
+		       ["\\",              "BACKSLASH", "b" ],
+		       ["!",               "BANG",      "b" ],
+		       ["|",               "BAR",       "b" ],
+		       ["^",               "CARET",     "b" ],
+		       ["^:=",             "CARETASGN", "b" ],
+		       [":",               "COLON",     ""  ],
+		       [",",               "COMMA",     ""  ],
+		       ["||",              "CONCAT",    "b" ],
+                       ["||:=",            "CONCATASGN",""  ],
+		       ["&",               "CONJUNC",   "b" ],
+		       [".",               "DOT",       "b" ],
+		       ["--",              "DIFF",      "b" ],
+		       ["--:=",            "DIFFASGN",  ""  ],
+		       ["===",             "EQUIV",     "b" ],
+		       ["**",              "INTER",     "b" ],
+		       ["**:=",            "INTERASGN", ""  ],
+		       ["{",               "LBRACE",    "b" ],
+		       ["[",               "LBRACK",    "b" ],
+		       ["|||",             "LCONCAT",   "b" ],
+		       ["|||:=",           "LCONCATASGN","" ],
+		       ["==",              "LEXEQ",     "b" ],
+		       [">>=",             "LEXGE",     ""  ],
+		       [">>",              "LEXGT",     ""  ],
+		       ["<<=",             "LEXLE",     ""  ],
+		       ["<<",              "LEXLT",     ""  ],
+		       ["~==",             "LEXNE",     "b" ],
+		       ["(",               "LPAREN",    "b" ],
+		       ["-:",              "MCOLON",    ""  ],
+		       ["-",               "MINUS",     "b" ],
+		       ["-:=",             "MINUSASGN", ""  ],
+		       ["%",               "MOD",       ""  ],
+		       ["%:=",             "MODASGN",   ""  ],
+		       ["~===",            "NOTEQUIV",  "b" ],
+		       ["=",               "NUMEQ",     "b" ],
+		       [">=",              "NUMGE",     ""  ],
+		       [">",               "NUMGT",     ""  ],
+		       ["<=",              "NUMLE",     ""  ],
+		       ["<",               "NUMLT",     ""  ],
+		       ["~=",              "NUMNE",     "b" ],
+		       ["+:",              "PCOLON",    ""  ],
+		       ["+",               "PLUS",      "b" ],
+		       ["+:=",             "PLUSASGN",  ""  ],
+		       ["?",               "QMARK",     "b" ],
+		       ["<-",              "REVASSIGN", ""  ],
+		       ["<->",             "REVSWAP",   ""  ],
+		       ["}",               "RBRACE",    "e" ],
+		       ["]",               "RBRACK",    "e" ],
+		       [")",               "RPAREN",    "e" ],
+		       [";",               "SEMICOL",   ""  ],
+		       ["?:=",             "SCANASGN",  ""  ],
+		       ["/",               "SLASH",     "b" ],
+		       ["/:=",             "SLASHASGN", ""  ],
+		       ["*",               "STAR",      "b" ],
+		       ["*:=",             "STARASGN",  ""  ],
+		       [":=:",             "SWAP",      ""  ],
+		       ["~",               "TILDE",     "b" ],
+		       ["++",              "UNION",     "b" ],
+		       ["++:=",            "UNIONASGN", ""  ],
+		       ["$(",              "LBRACE",    "b" ],
+		       ["$)",              "RBRACE",    "e" ],
+		       ["$<",              "LBRACK",    "b" ],
+		       ["$>",              "RBRACK",    "e" ],
+		       ["$",               "RHSARG",    "b" ],
+		       ["%$(",             "BEGGLOB",   "b" ],
+		       ["%$)",             "ENDGLOB",   "e" ],
+		       ["%{",              "BEGGLOB",   "b" ],
+		       ["%}",              "ENDGLOB",   "e" ],
+		       ["%%",              "NEWSECT",   "be"]]
+
+	# static be_tbl, reserved_tbl
+	reserved_tbl := table()
+	every elem := !reserveds do
+	    insert(reserved_tbl, elem[1], elem[2])
+	be_tbl := table()
+	every elem := !primitives | !reserveds | !operators do {
+	    insert(be_tbl, elem[2], elem[3])
+	}
+    }
+
+    /getchar   := create {
+	line_number := 0
+	! ( 1(!stream, line_number +:=1) || "\n" )
+    }
+    whitespace := ' \t'
+    /next_c    := @getchar | {
+	if \stream then
+	    return TOK("EOFX")
+	else fail
+    }
+
+    repeat {
+	case next_c of {
+
+	    "."      : {
+		# Could be a real literal *or* a dot operator.  Check
+		# following character to see if it's a digit.  If so,
+		# it's a real literal.  We can only get away with
+		# doing the dot here because it is not a substring of
+		# any longer identifier.  If this gets changed, we'll
+		# have to move this code into do_operator().
+		#
+		last_token := do_dot(getchar)
+		suspend last_token
+#		write(&errout, "next_c == ", image(next_c))
+		next
+	    }
+
+	    "\n"     : {
+		# If do_newline fails, it means we're at the end of
+		# the input stream, and we should break out of the
+		# repeat loop.
+		#
+		every last_token := do_newline(getchar, last_token, be_tbl)
+		do suspend last_token
+		if next_c === &null then break
+		next
+	    }
+
+	    "\#"     : {
+		# Just a comment.  Strip it by reading every character
+		# up to the next newline.  The global var next_c
+		# should *always* == "\n" when this is done.
+		#
+		do_number_sign(getchar)
+#		write(&errout, "next_c == ", image(next_c))
+		next
+	    }
+
+	    "\""    : {
+		# Suspend as STRINGLIT everything from here up to the
+		# next non-backslashed quotation mark, inclusive
+		# (accounting for the _ line-continuation convention).
+		#
+		last_token := do_quotation_mark(getchar)
+		suspend last_token
+#		write(&errout, "next_c == ", image(next_c))
+		next
+	    }
+
+	    "'"     : {
+		# Suspend as CSETLIT everything from here up to the
+		# next non-backslashed apostrophe, inclusive.
+		#
+		last_token := do_apostrophe(getchar)
+		suspend last_token
+#		write(&errout, "next_c == ", image(next_c))
+		next
+	    }
+
+	    &null   : stop("iparse_tokens (lexer):  unexpected EOF")
+
+	    default : {
+		# If we get to here, we have either whitespace, an
+		# integer or real literal, an identifier or reserved
+		# word (both get handled by do_identifier), or an
+		# operator.  The question of which we have can be
+		# determined by checking the first character.
+		#
+		if any(whitespace, next_c) then {
+		    # Like all of the TOK forming procedures,
+		    # do_whitespace resets next_c.
+		    do_whitespace(getchar, whitespace)
+		    # don't suspend any tokens
+		    next
+		}
+		if any(&digits, next_c) then {
+		    last_token := do_digits(getchar)
+		    suspend last_token
+		    next
+		}
+		if any(&letters ++ '_', next_c) then {
+		    last_token := do_identifier(getchar, reserved_tbl)
+		    suspend last_token
+		    next
+		}
+#		write(&errout, "it's an operator")
+		last_token := do_operator(getchar, operators)
+		suspend last_token
+		next
+	    }
+	}
+    }
+
+    # If stream argument is nonnull, then we are in the top-level
+    # iparse_tokens().  If not, then we are in a recursive call, and
+    # we should not emit all this end-of-file crap.
+    #
+    if \stream then {
+	return TOK("EOFX")
+    }
+    else fail
+
+end
+
+
+#
+#  do_dot:  coexpression -> TOK record
+#           getchar      -> t
+#
+#      Where getchar is the coexpression that produces the next
+#      character from the input stream and t is a token record whose
+#      sym field contains either "REALLIT" or "DOT".  Essentially,
+#      do_dot checks the next char on the input stream to see if it's
+#      an integer.  Since the preceding char was a dot, an integer
+#      tips us off that we have a real literal.  Otherwise, it's just
+#      a dot operator.  Note that do_dot resets next_c for the next
+#      cycle through the main case loop in the calling procedure.
+#
+procedure do_dot(getchar)
+
+    local token
+    # global next_c
+
+#    write(&errout, "it's a dot")
+
+    # If dot's followed by a digit, then we have a real literal.
+    #
+    if any(&digits, next_c := @getchar) then {
+#	write(&errout, "dot -> it's a real literal")
+	token := "." || next_c
+	while any(&digits, next_c := @getchar) do
+	    token ||:= next_c
+	if token ||:= (next_c == ("e"|"E")) then {
+	    while (next_c := @getchar) == "0"
+	    while any(&digits, next_c) do {
+		token ||:= next_c
+		next_c = @getchar
+	    }
+	}
+	return TOK("REALLIT", token)
+    }
+
+    # Dot not followed by an integer; so we just have a dot operator,
+    # and not a real literal.
+    #
+#    write(&errout, "dot -> just a plain dot")
+    return TOK("DOT", ".")
+    
+end
+
+
+#
+#  do_newline:  coexpression x TOK record x table -> TOK records
+#               (getchar, last_token, be_tbl)     -> Ts (a generator)
+#
+#      Where getchar is the coexpression that returns the next
+#      character from the input stream, last_token is the last TOK
+#      record suspended by the calling procedure, be_tbl is a table of
+#      tokens and their "beginner/ender" status, and Ts are TOK
+#      records.  Note that do_newline resets next_c.  Do_newline is a
+#      mess.  What it does is check the last token suspended by the
+#      calling procedure to see if it was a beginner or ender.  It
+#      then gets the next token by calling iparse_tokens again.  If
+#      the next token is a beginner and the last token is an ender,
+#      then we have to suspend a SEMICOL token.  In either event, both
+#      the last and next token are suspended.
+#
+procedure do_newline(getchar, last_token, be_tbl)
+
+    local next_token
+    # global next_c
+
+#    write(&errout, "it's a newline")
+
+    # Go past any additional newlines.
+    #
+    while next_c == "\n" do {
+        # NL can be the last char in the getchar stream; if it *is*,
+	# then signal that it's time to break out of the repeat loop
+	# in the calling procedure.
+	#
+	next_c := @getchar | {
+	    next_c := &null
+	    fail
+	}
+	suspend TOK(&null, next_c == "\n")
+    }
+
+    # If there was a last token (i.e. if a newline wasn't the first
+    # character of significance in the input stream), then check to
+    # see if it was an ender.  If so, then check to see if the next
+    # token is a beginner.  If so, then suspend a TOK("SEMICOL")
+    # record before suspending the next token.
+    #
+    if find("e", be_tbl[(\last_token).sym]) then {
+#	write(&errout, "calling iparse_tokens via do_newline")
+#	&trace := -1
+	# First arg to iparse_tokens can be null here.
+	\ (next_token := iparse_tokens(&null, getchar)).sym
+	if \next_token then {
+#	    write(&errout, "call of iparse_tokens via do_newline yields ",
+#		  ximage(next_token))
+	    if find("b", be_tbl[next_token.sym])
+	    then suspend TOK("SEMICOL", "\n")
+	    #
+	    # See below.  If this were like the real Icon parser,
+	    # the following line would be commented out.
+	    #
+	    else suspend TOK(&null, "\n")
+	    return next_token
+	}
+	else {
+	    #
+	    # If this were a *real* Icon tokenizer, it would not emit
+	    # any record here, but would simply fail.  Instead, we'll
+	    # emit a dummy record with a null sym field.
+	    #
+	    return TOK(&null, "\n")
+#           &trace := 0
+#	    fail
+	}
+    }
+
+    # See above.  Again, if this were like Icon's own tokenizer, we
+    # would just fail here, and not return any TOK record.
+    #
+#   &trace := 0
+    return TOK(&null, "\n")
+#   fail
+
+end
+
+
+#
+#  do_number_sign:  coexpression -> &null
+#                   getchar      -> 
+#
+#      Where getchar is the coexpression that pops characters off the
+#      main input stream.  Sets the global variable next_c.  This
+#      procedure simply reads characters until it gets a newline, then
+#      returns with next_c == "\n".  Since the starting character was
+#      a number sign, this has the effect of stripping comments.
+#
+procedure do_number_sign(getchar)
+
+    # global next_c
+
+#    write(&errout, "it's a number sign")
+    while next_c ~== "\n" do {
+	next_c := @getchar
+    }
+
+    # Return to calling procedure to cycle around again with the new
+    # next_c already set.  Next_c should always be "\n" at this point.
+    return
+
+end
+
+
+#
+#  do_quotation_mark:  coexpression -> TOK record
+#                      getchar      -> t
+#
+#      Where getchar is the coexpression that yields another character
+#      from the input stream, and t is a TOK record with "STRINGLIT"
+#      as its sym field.  Puts everything upto and including the next
+#      non-backslashed quotation mark into the str field.  Handles the
+#      underscore continuation convention.
+#
+procedure do_quotation_mark(getchar)
+
+    local token
+    # global next_c
+
+    # write(&errout, "it's a string literal")
+    token := "\""
+    next_c := @getchar
+    repeat {
+	if next_c == "\n" & token[-1] == "_" then {
+	    token := token[1:-1]
+	    while any('\t ', next_c := @getchar)
+	    next
+	} else {
+	    if slshupto('"', token ||:= next_c, 2)
+	    then {
+		next_c := @getchar
+		# resume outermost (repeat) loop in calling procedure,
+		# with the new (here explicitly set) next_c
+		return TOK("STRINGLIT", token)
+	    }
+	    next_c := @getchar
+	}
+    }
+
+end
+
+
+#
+#  do_apostrophe:  coexpression -> TOK record
+#                  getchar      -> t
+#
+#      Where getchar is the coexpression that yields another character
+#      from the input stream, and t is a TOK record with "CSETLIT"
+#      as its sym field.  Puts everything upto and including the next
+#      non-backslashed apostrope into the str field.
+#
+procedure do_apostrophe(getchar)
+
+    local token
+    # global next_c
+
+#   write(&errout, "it's a cset literal")
+    token := "'"
+    next_c := @getchar
+    repeat {
+	if next_c == "\n" & token[-1] == "_" then {
+	    token := token[1:-1]
+	    while any('\t ', next_c := @getchar)
+	    next
+	} else {
+	    if slshupto("'", token ||:= next_c, 2)
+	    then {
+		next_c := @getchar
+		# Return & resume outermost containing loop in calling
+		# procedure w/ new next_c.
+		return TOK("CSETLIT", token)
+	    }
+	    next_c := @getchar
+	}
+    }
+
+end
+
+
+#
+#  do_digits:  coexpression -> TOK record
+#              getchar      -> t
+#
+#      Where getchar is the coexpression that produces the next char
+#      on the input stream, and where t is a TOK record containing
+#      either "REALLIT" or "INTLIT" in its sym field, and the text of
+#      the numeric literal in its str field.
+#
+procedure do_digits(getchar)
+
+    local token, tok_record, extras, digits, over
+    # global next_c
+
+    # For bases > 16
+    extras := "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"
+    # Assume integer literal until proven otherwise....
+    tok_record := TOK("INTLIT")
+
+#   write(&errout, "it's an integer or real literal")
+    token := ("0" ~== next_c) | ""
+    while any(&digits, next_c := @getchar) do
+	token ||:= next_c
+    if token ||:= (next_c == ("R"|"r")) then {
+	digits := &digits
+	if over := ((10 < token[1:-1]) - 10) * 2 then
+	    digits ++:= extras[1:over+1] | extras
+	next_c := @getchar
+	if next_c == "-" then {
+	    token ||:= next_c
+	    next_c := @getchar
+	}
+	while any(digits, next_c) do {
+	    token ||:= next_c
+	    next_c := @getchar
+	}
+    } else {
+	if token ||:= (next_c == ".") then {
+	    while any(&digits, next_c := @getchar) do
+		token ||:= next_c
+	    tok_record := TOK("REALLIT")
+	}
+	if token ||:= (next_c == ("e"|"E")) then {
+	    next_c := @getchar
+	    if next_c == "-" then {
+		token ||:= next_c
+		next_c := @getchar
+	    }
+	    while any(&digits, next_c) do {
+		token ||:= next_c
+		next_c := @getchar
+	    }
+	    tok_record := TOK("REALLIT")
+	}
+    }
+    tok_record.str := ("" ~== token) | "0"
+    return tok_record
+    
+end
+
+
+#
+#  do_whitespace:  coexpression x cset  -> &null
+#                  getchar x whitespace -> &null
+#
+#      Where getchar is the coexpression producing the next char on
+#      the input stream.  Do_whitespace just repeats until it finds a
+#      non-whitespace character, whitespace being defined as
+#      membership of a given character in the whitespace argument (a
+#      cset). 
+#
+procedure do_whitespace(getchar, whitespace)
+
+#   write(&errout, "it's junk")
+    while any(whitespace, next_c) do
+	next_c := @getchar
+    return
+
+end
+
+
+#
+#  do_identifier:  coexpression x table    -> TOK record
+#                  (getchar, reserved_tbl) -> t
+#
+#      Where getchar is the coexpression that pops off characters from
+#      the input stream, reserved_tbl is a table of reserved words
+#      (keys = the string values, values = the names qua symbols in
+#      the grammar), and t is a TOK record containing all subsequent
+#      letters, digits, or underscores after next_c (which must be a
+#      letter or underscore).  Note that next_c is global and gets
+#      reset by do_identifier.
+#
+procedure do_identifier(getchar, reserved_tbl)
+
+    local token
+    # global next_c
+
+#   write(&errout, "it's an indentifier")
+    token := next_c
+    while any(&letters ++ &digits ++ '_', next_c := @getchar)
+    do token ||:= next_c
+    return TOK(\reserved_tbl[token], token) | TOK("IDENT", token)
+    
+end
+
+
+#
+#  do_operator:  coexpression x list  -> TOK record
+#                (getchar, operators) -> t
+#
+#     Where getchar is the coexpression that produces the next
+#     character on the input stream, operators is the operator list,
+#     and where t is a TOK record describing the operator just
+#     scanned.  Calls recognop, which creates a DFSA to recognize
+#     valid Icon operators.  Arg2 (operators) is the list of lists
+#     containing valid Icon operator string values and names (see
+#     above).
+#
+procedure do_operator(getchar, operators)
+
+    local token, elem
+
+    token := next_c
+
+    # Go until recognop fails.
+    while elem := recognop(operators, token, 1) do
+	token ||:= (next_c := @getchar)
+#   write(&errout, ximage(elem))
+    if *\elem = 1 then
+	return TOK(elem[1][2], elem[1][1])
+    else fail
+
+end
+
+
+record dfstn_state(b, e, tbl)
+record start_state(b, e, tbl, master_list)
+#
+#  recognop: list x string x integer -> list
+#            (l, s, i)               -> l2
+#
+#     Where l is the list of lists created by the calling procedure
+#     (each element contains a token string value, name, and
+#     beginner/ender string), where s is a string possibly
+#     corresponding to a token in the list, where i is the position in
+#     the elements of l where the operator string values are recorded,
+#     and where l2 is a list of elements from l that contain operators
+#     for which string s is an exact match.  Fails if there are no
+#     operators that s is a prefix of, but returns an empty list if
+#     there just aren't any that happen to match exactly.
+#
+#      What this does is let the calling procedure just keep adding
+#      characters to s until recognop fails, then check the last list
+#      it returned to see if it is of length 1.  If it is, then it
+#      contains list with the vital stats for the operator last
+#      recognized.  If it is of length 0, then string s did not
+#      contain any recognizable operator.
+#
+procedure recognop(l, s, i)
+
+    local   current_state, master_list, c, result, j
+    static  dfstn_table
+    initial dfstn_table := table()
+
+    /i := 1
+    # See if we've created an automaton for l already.
+    /dfstn_table[l] := start_state(1, *l, &null, &null) & {
+	dfstn_table[l].master_list := sortf(l, i)
+    }
+
+    current_state := dfstn_table[l]
+    # Save master_list, as current_state will change later on.
+    master_list   := current_state.master_list
+
+    s ? {
+	while c := move(1) do {
+
+	    # Null means that this part of the automaton isn't
+	    # complete.
+	    #
+	    if /current_state.tbl then
+		create_arcs(master_list, i, current_state, &pos)
+
+	    # If the table has been clobbered, then there are no arcs
+	    # leading out of the current state.  Fail.
+	    #
+	    if current_state.tbl === 0 then
+		fail
+	    
+#	    write(&errout, "c = ", image(c))
+#	    write(&errout, "table for current state = ", 
+#		  ximage(current_state.tbl))
+
+	    # If we get to here, the current state has arcs leading
+	    # out of it.  See if c is one of them.  If so, make the
+	    # node to which arc c is connected the current state.
+	    # Otherwise fail.
+	    #
+	    current_state := \current_state.tbl[c] | fail
+	}
+    }
+
+    # Return possible completions.
+    #
+    result := list()
+    every j := current_state.b to current_state.e do {
+	if *master_list[j][i] = *s then
+	    put(result, master_list[j])
+    }
+    # return empty list if nothing the right length is found
+    return result
+
+end
+
+
+#
+#  create_arcs:  fill out a table of arcs leading out of the current
+#                state, and place that table in the tbl field for
+#                current_state
+#
+procedure create_arcs(master_list, field, current_state, POS)
+
+    local elem, i, first_char, old_first_char
+
+    current_state.tbl := table()
+    old_first_char := ""
+    
+    every elem := master_list[i := current_state.b to current_state.e][field]
+    do {
+	
+	# Get the first character for the current position (note that
+	# we're one character behind the calling routine; hence
+	# POS-1).
+	#
+	first_char := elem[POS-1] | next
+	
+	# If we have a new first character, create a new arc out of
+	# the current state.
+	#
+	if first_char ~== old_first_char then {
+	    # Store the start position for the current character.
+	    current_state.tbl[first_char] := dfstn_state(i)
+	    # Store the end position for the old character.
+	    (\current_state.tbl[old_first_char]).e := i-1
+	    old_first_char := first_char
+	}
+    }
+    (\current_state.tbl[old_first_char]).e := i
+
+    # Clobber table with 0 if no arcs were added.
+    current_state.tbl := (*current_state.tbl = 0)
+    return current_state
+
+end

@@ -1,0 +1,39 @@
+############################################################################
+#
+#	File:     gener.icn
+#
+#	Subject:  Program to generate sequence from Icon expression
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 21, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program takes an Icon expression is given on the command line, and
+#  writes its results to standard output.  Watch for syntactic problems.
+#
+############################################################################
+#
+#  Requires:  system(), pipes
+#
+############################################################################
+#
+#  Links:  exprfile
+#
+############################################################################
+
+link exprfile
+
+procedure main(args)
+   local input
+
+   input := exprfile(args[1], "seqfncs")
+
+   while write(read(input))
+
+end

@@ -1,0 +1,99 @@
+PT
+
+
+NAME
+     pt - canonical LR(1) parse (action and goto) table generator.
+		  The input grammar productions with added enumerations,
+			needed as part of the reduction in the action
+			table, is also part of the output.
+		  (Various optional outputs are possible:-
+			terminal sets
+			nonterminal sets
+			first sets for nonterminals
+			items in each state)
+
+SYNOPSIS
+     pt [ option | option | ... ]
+ 
+DESCRIPTION
+     Pt reads the grammar from the file called grammar, if one exists,
+     else it will read from standard input.  The grammar MUST conform
+     to the following:-
+
+	1.  It must be a context-free grammar, augmented or unaugmented.
+        2.  Each production is of the form:-
+
+ 			  	A -> B ; C a 
+
+		The arrow separates the left side of the production
+		    from the right side.
+		The left side of the production consists of only one
+		    nonterminal.
+		The right side of the production consists of a sequence
+		    of symbols (terminals, nonterminals) with one or 
+		    more white spaces (blanks and tabs) separating them.
+		A symbol is thus either a terminal or a nonterminal but
+		    not both.
+		
+	3.  One production per line; no alternation allowed.  Thus, 
+	    represent the following 2 productions:-
+
+ 			  	A -> B ; C a   |   b
+	    by:-
+ 			  	A -> B ; C a 
+				A -> b
+	
+	4.  Newline character, tab and blank cannot be a grammar token
+	    (terminal or nonterminal).
+
+	5.  The left hand side symbol of the very first production
+	    represents the starting symbol of the grammar.
+ 
+	6.  The following are "reserved" words:-
+
+				START
+				EOI
+
+	    and cannot be used as a terminal or nonterminal.
+
+	7.  EPSILON is considered another "reserved" word and can be
+		used to represent an empty production, viz.
+				
+				H -> EPSILON
+
+	No error messages will be issued if the input grammar does not
+     	conform to the above specifications.
+
+     The options, which can appear in any order, are:-
+
+	-t	Print the list of terminals in the grammar.
+
+	-nt	Print the list of nonterminals in the grammar.
+
+	-f	Print the list of first sets of the nonterminals 
+		in the grammar.
+
+	-e	Print the list of items (i.e. closure) in each state.
+
+
+FILES
+     grammar	  	grammar file with format specified above.
+
+SEE ALSO
+     yacc
+     Aho A.V., Sethi, R. and Ullman, J.D., Compilers: Principles,
+	Techniques, and Tools.  Addison-Wesley, 1986.
+
+DIAGNOSTICS
+     All shift/reduce conflicts will be reported (to errout).  In the 
+        table form, only shift will be shown.
+     To avoid reduce/reduce conflict the grammar should be unambiguous 
+	with left-factoring performed if necessary.
+     Unrecognized options or arguments in the command line will be
+        ignored.
+
+BUGS
+     No known bugs!
+
+AUTHOR
+     Deeporn H. Beardsley

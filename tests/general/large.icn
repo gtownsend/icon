@@ -1,0 +1,37 @@
+invocable "+", "-", "*", "/", "%", "iand", "ior", "ixor", "<", "=" , "^"
+invocable "ishift"
+
+procedure main ()
+   if not(&features == "large integers") then
+      stop("large integers not supported")
+
+   big :=  111111111111111111111
+   med1 := "2222222222"
+   med2 := "3333333333"
+   small := 4
+
+   every optest ("+" | "-" | "*" | "/" | "%" |"iand"|"ior"|"ixor"|"<"|"=",
+	  big | -big | small | -small, 
+	  big | -big | small | -small)
+   every optest ("+" | "-" | "*" | "/" | "%" |"iand"|"ior"|"ixor"|"<"|"=",
+	  big | med1 | -med1,
+	  med1 | med2 | -med2)
+
+   every optest ("^", big | -big | small | -small, 2 | 5)
+   every optest ("^", 2 | 3, 10 | 30 )
+   every optest ("ishift", big |-big | med1 | -med1 | small, 1 | 8 | -1 | -39)
+
+   &trace := -1
+   every i := 10 | 30 | 70 | 100 do {
+      write(2 ^ i)
+      write(2 ^ i || ":" || image(2 ^ i))
+      foo(2 ^ i)
+      }
+end
+
+procedure optest (op, a, b)
+    write (a, " ", op, " ", b, " = ", op(a,b)|"none")
+end
+
+procedure foo(x)
+end

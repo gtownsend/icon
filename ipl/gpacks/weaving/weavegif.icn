@@ -1,0 +1,94 @@
+############################################################################
+#
+#	File:     weavegif.icn
+#
+#	Subject:  Procedure to produce a woven image from a draft
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 13, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure produces a woven image from a pattern-form draft, which
+#  is passed to it as it's first argument.  Window attributes may be
+#  passed as a list in the second argument
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics  
+#
+############################################################################
+#
+#  Links:  interact
+#
+############################################################################
+
+link interact
+
+procedure weavegif(weave, attribs)	#: create GIF from PDF
+   local x, y, color, treadle, i, j, treadle_list, shafts, k, treadles
+   local win, palette, colors, width, height, warp_colors, weft_colors
+   local threading, treadling, matrix
+
+   /attribs := []
+
+   threading := weave.threading
+   treadling := weave.treadling
+   warp_colors := weave.warp_colors
+   weft_colors := weave.weft_colors
+   palette := weave.palette
+   colors := weave.colors
+   treadles := weave.treadles
+   shafts := weave.shafts
+   matrix := (pat2tier(weave.tieup)).matrix
+
+   put(attribs, "label=" || weave.name, "size=" || *threading || "," ||
+      *treadling)
+
+   win := (WOpen ! attribs) | {
+      Notice("Cannot open window for woven image.")
+      fail
+      }
+
+   #  Draw warp threads as "background".
+
+   every i := 0 to *threading - 1 do {
+      Fg(win, PaletteColor(palette,
+         colors[sympos(warp_colors[i + 1])]))
+      DrawLine(win, i, 0, i, *treadling - 1)
+      }
+
+   #  Precompute points at which weft threads are on top.
+
+   treadle_list := list(treadles)
+   every !treadle_list := [win]
+
+   every i := 1 to treadles do
+      every j := 1 to shafts do
+         if matrix[i, j] == "0" then
+            every k := 1 to *threading do
+               if sympos(threading[k]) == j then
+                  put(treadle_list[i], k - 1, 0)
+
+   #  "Overlay" weft threads.
+
+   every y := 1 to *treadling do {
+      treadle := sympos(treadling[y]) |
+         stop(&errout, "*** treadling bogon")
+      Fg(win, PaletteColor(palette,
+         weave.colors[sympos(weft_colors[y])]) |
+            stop("bad weft color specification: ",
+               weave.colors[sympos(weft_colors[y])]))
+      WAttrib(win, "dy=" || (y - 1))
+      if *treadle_list[treadle] = 1 then next	# blank pick
+      DrawPoint ! treadle_list[treadle]
+      }
+
+   return win
+
+end

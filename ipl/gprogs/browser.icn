@@ -1,0 +1,141 @@
+############################################################################
+#
+#	File:     browser.icn
+#
+#	Subject:  Program to demonstrate file-navigation "dialog"
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 8, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  navitrix, vsetup
+#
+############################################################################
+
+link navitrix
+link vsetup
+
+global pat_window
+global vidgets
+
+$define LineLength  75
+$define FileLength 500
+
+procedure main()
+   local root, root_cur
+
+   nav_init()
+   vidgets := ui()
+   pat_window := &window
+
+   root := vidgets["root"]
+
+   repeat {
+      root_cur := case Active() of {
+         pat_window   :  root
+         nav_window   :  nav_root
+         }
+      ProcessEvent(root_cur, , shortcuts)
+      case nav_state of {
+         &null   :  next
+         "Okay"  :  process_file()
+         }
+      nav_state := &null
+      }
+
+end
+
+procedure process_file()
+   local input, file_list
+   static list_vidget
+
+   initial list_vidget := vidgets["list"]
+
+$ifdef _UNIX
+   if nav_file[-1] == "/" then {	# directory
+$else
+   Deliberate Syntax Error
+$endif
+      chdir(nav_file)
+      nav_refresh()
+      }
+
+   else {				# "plain" file
+      input := open(nav_file) | {
+         Notice("Cannot open " || image(nav_file) || ".")
+         fail
+         }
+      file_list := []
+      every put(file_list, left(entab(!input), LineLength)) \ FileLength
+      VSetItems(list_vidget, file_list)
+      close(input)
+      WAttrib(nav_window, "canvas=hidden")
+      }
+
+   return
+
+end
+
+procedure file_cb(vidget, value)
+
+   case value[1] of {
+      "find  @F"  :  find_file()
+      "quit  @Q"  :  exit()
+      }
+
+   return
+
+end
+
+procedure list_cb(vidget, value)
+
+   if /value then return		# deselection; no action
+
+   return
+
+end
+
+procedure find_file()
+
+   WAttrib(nav_window, "canvas=normal")
+
+   return
+
+end
+
+procedure shortcuts(e)
+
+   if &meta then case map(e) of {
+      "f"  :  find_file()
+      "q"  :  exit()
+      }
+
+   return
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=587,402", "bg=pale gray", "label=Browser"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,587,402:Browser",],
+   ["file:Menu:pull::0,3,36,21:File",file_cb,
+      ["find  @F","quit  @Q"]],
+   ["list:List:r::17,44,557,343:",list_cb],
+   ["menubar:Line:::0,26,585,26:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

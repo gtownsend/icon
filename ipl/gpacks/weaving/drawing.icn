@@ -1,0 +1,463 @@
+############################################################################
+#
+#	File:     drawing.icn
+#
+#	Subject:  Program to create weaving drafts
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 27, 1999
+#
+############################################################################
+#
+#  This program creates weaving drafts.  This is a version of weaver
+#  to output the warp/weft drawdown.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: cells, expander, interact, tieutils, vsetup, weaving, weavutil
+#
+############################################################################
+
+link cells
+link expander
+link interact
+link tieutils
+link vsetup
+link weaving
+link weavutil
+
+$include "weavdefs.icn"
+
+global drawdown
+global mutant
+global titleheight
+global framewidth
+global interface
+global posx
+global posy
+global root
+global threading
+global tieup
+global treadling
+global vidgets
+global weaving			# current weaving draft
+global tieup_cells
+global tieup_pane
+global tieup_panel
+global drawdown_cells
+global drawdown_pane
+global drawdown_panel
+global threading_cells
+global threading_pane
+global threading_panel
+global treadling_cells
+global treadling_pane
+global treadling_panel
+
+$define CellSize 8
+$define TieupSize 16
+$define ThreadingSize 100
+
+procedure main()
+   local atts
+
+   atts := ui_atts()
+
+   put(atts, "posx=0", "posy=0")
+
+   interface := (WOpen ! atts) | stop("can't open window")
+
+   framewidth := WAttrib(interface, "posx")
+   titleheight := WAttrib(interface, "posy")
+
+   posx := "posx=" || (3 * framewidth) + WAttrib(interface, "width")
+   posy := "posy=" || WAttrib(interface, "posy")
+
+   vidgets := ui()				# set up vidgets
+   root := vidgets["root"]
+
+   init()
+
+   repeat {
+      case Active() of {
+         interface       :  ProcessEvent(root, , shortcuts)
+         drawdown_pane   :  process_drawdown()
+         tieup_pane      :  process_tieup()
+         threading_pane  :  process_threading()
+         treadling_pane  :  process_treadling()
+         }
+      Raise(interface)
+      }
+
+end
+
+procedure process_drawdown()
+   local coord
+
+  if not(Event(drawdown_pane) === (&lpress | &rpress | &mpress)) then
+     fail
+
+   coord := cell(drawdown_panel, &x, &y) | fail
+
+   return
+
+end
+
+procedure process_tieup()
+   local coord
+
+  if not(Event(tieup_pane) === (&lpress | &rpress | &mpress)) then
+     fail
+
+   coord := cell(tieup_panel, &x, &y) | fail
+
+   return
+
+end
+
+procedure process_threading()
+   local coord
+
+  if not(Event(threading_pane) === (&lpress | &rpress | &mpress)) then
+     fail
+
+   coord := cell(threading_panel, &x, &y) | fail
+
+   return
+
+end
+
+procedure process_treadling()
+   local coord
+
+  if not(Event(treadling_pane) === (&lpress | &rpress | &mpress)) then
+     fail
+
+   coord := cell(treadling_panel, &x, &y) | fail
+
+   return
+
+end
+
+procedure init()
+
+   threading := vidgets["threading"]
+   treadling := vidgets["treadling"]
+   tieup := vidgets["tie-up"]
+   drawdown := vidgets["drawdown"]
+
+   #  Note:  The additional rows and columns are for the threading and
+   #  treadling colors.
+
+   tieup_cells := makepanel(TieupSize + 1, TieupSize + 1, CellSize, ,
+      "white" , "black")
+   threading_cells := makepanel(ThreadingSize, TieupSize + 1, CellSize, , 
+      "white" , "black")
+   treadling_cells := makepanel(TieupSize + 1, ThreadingSize, CellSize, ,
+      "white" , "black")
+   drawdown_cells := makepanel(ThreadingSize, ThreadingSize, CellSize, ,
+      "white" , "black")
+
+   tieup_pane := WOpen(
+      "label=tie-up",
+      "width=" || WAttrib(tieup_cells.window, "width"),
+      "height=" || WAttrib(tieup_cells.window, "height"),
+      posx,
+      posy
+      ) | bad_window(1)
+   tieup_panel := copy(tieup_cells)
+   tieup_panel.window := tieup_pane
+
+   treadling_pane := WOpen(
+      "label=treadling",
+      "width=" || WAttrib(treadling_cells.window, "width"),
+      "height=" || WAttrib(treadling_cells.window, "height"),
+      posx,
+      "posy=" || (WAttrib(tieup_pane, "posy") +
+         WAttrib(tieup_pane, "height") + titleheight + framewidth)
+      ) | bad_window(2)
+   treadling_panel := copy(treadling_cells)
+   treadling_panel.window := treadling_pane
+
+   threading_pane := WOpen(
+      "label=threading",
+      "width=" || WAttrib(threading_cells.window, "width"),
+      "height=" || WAttrib(threading_cells.window, "height"),
+      posy,
+      "posx=" || (WAttrib(tieup_pane, "posx") +
+         WAttrib(tieup_pane, "width") + 2 * framewidth)
+      ) | bad_window(3)
+   threading_panel := copy(threading_cells)
+   threading_panel.window := threading_pane
+
+   drawdown_pane := WOpen(
+      "label=drawdown",
+      "width=" || WAttrib(drawdown_cells.window, "width"),
+      "height=" || WAttrib(drawdown_cells.window, "height"),
+      "posx=" || WAttrib(threading_pane, "posx"),
+      "posy=" || WAttrib(treadling_pane, "posy")
+      ) | bad_window(4)
+   drawdown_panel := copy(drawdown_cells)
+   drawdown_panel.window := drawdown_pane
+
+   clear_panes()
+
+   Raise(interface)
+
+   return
+
+end
+
+procedure bad_window(i)
+
+   Notice("Cannot open window" || i || ".")
+
+   exit()
+
+end
+
+procedure clear_panes()
+
+   CopyArea(tieup_cells.window, tieup_pane, 0, 0, , , 0, 0)
+   CopyArea(threading_cells.window, threading_pane, 0, 0, , , 0, 0)
+   CopyArea(treadling_cells.window, treadling_pane, 0, 0, , , 0, 0)
+   CopyArea(drawdown_cells.window, drawdown_pane, 0, 0, , , 0, 0)
+
+   return
+
+end
+
+procedure drawdown_cb(vidget, value)
+
+   case value[1] of {
+      "warp/weft @B"  :  draw_down(weaving)
+      "color     @C"  :  draw_weave(weaving)
+      }
+
+   return
+
+end
+
+procedure file_cb(vidget, value)
+
+   case value[1] of {
+      "open  @O"  :  open_weave()
+      "quit  @Q"  :  quit()
+      "image @I"  :  draw_image()
+      "save  @S"  :  save_weave()
+      }
+
+   return
+
+end
+
+procedure quit()
+
+   exit()
+
+end
+
+procedure open_weave()
+   local i
+
+   repeat {
+      if load_file() == "Cancel" then fail
+      weaving := draft()
+      every i := 1 to 7 do
+         weaving[i] := pfl2str(read(dialog_value)) | {
+            Notice("Short file.")
+            close(dialog_value)
+            break next
+            }
+      close(dialog_value)
+      break
+      }
+
+   if *weaving.threading > ThreadingSize then
+      weaving.threading := left(weaving.threading, ThreadingSize)
+   if *weaving.treadling > ThreadingSize then
+      weaving.treadling := left(weaving.treadling, ThreadingSize)
+   weaving.warp_colors := Extend(weaving.warp_colors, *weaving.threading)
+   weaving.weft_colors := Extend(weaving.weft_colors, *weaving.treadling)
+
+   weaving.warp_colors := map(weaving.warp_colors, C1In, C1Ex)
+   weaving.weft_colors := map(weaving.weft_colors, C1In, C1Ex)
+
+   weaving.tieup := tie2coltier(weaving.tieup)
+
+   mutant := &null
+
+   clear_panes()
+
+   draw_down(weaving)
+
+end
+
+procedure draw_down(weaving)
+#  local bw			# RETHINK THIS
+
+#  bw := copy(\weaving) | {
+#     Notice("No weaving.")
+#     fail
+#     }
+
+#  bw.warp_colors := repl("0", *bw.threading)
+#  bw.weft_colors := repl("1", *bw.treadling)
+#  bw.palette := "g2"
+
+   draw_weave(weaving)
+
+   return
+
+end
+
+procedure draw_image()
+
+   return
+
+end
+
+procedure draw_weave(weaving, kind)
+   local i, treadle, j, x, y, k, shafts, treadles, color, treadle_list
+   local weft_colors, labels, c
+   static mask
+
+   if /weaving then {
+      Notice("No weaving.")
+      fail
+      }
+
+   mask := Mask
+
+   if /mutant then {
+      mutant := table()
+      labels := weaving.warp_colors ++ weaving.weft_colors ++
+         PaletteKey(weaving.palette, "white") ++ PaletteKey(weaving.palette,
+            "black")
+      every c := !labels do {
+         if /mutant[c] then
+            mutant[c] := NewColor(PaletteColor(weaving.palette, c)) | {
+               Notice("Ran out of colors.")
+               fail
+               }
+         }
+      }
+
+   colorcells(tieup_panel, weaving.tieup.matrix)
+
+   every i := 1 to *weaving.threading do
+      colorcell(threading_panel, i, weaving.threading[i], "black")
+
+   every i := 1 to *weaving.treadling do
+      colorcell(treadling_panel, weaving.treadling[i], i, "black")
+
+   every i := 1 to *weaving.threading do
+      colorcell(threading_panel, i, TieupSize + 1,
+         mutant[weaving.warp_colors[i]])
+
+   every i := 1 to *weaving.treadling do
+      colorcell(treadling_panel, TieupSize + 1, i,
+         mutant[weaving.warp_colors[i]])
+
+   x := 1
+
+   if \kind then {			# RETHINK THIS
+      Fg(drawdown_pane, "black")
+      FillRectangle(drawdown_pane)
+      }
+   else {
+      every color := !weaving.warp_colors \ *weaving.threading do {
+         color := mutant[color] | {
+            Notice("Bad warp color specification: " || color|| ".")
+            fail
+            }
+         every y := 1 to *weaving.threading do {
+            colorcell(drawdown_panel, x, y, color)
+            }
+         x +:= 1
+         }
+      }
+
+   treadles := weaving.tieup.treadles
+   shafts := weaving.tieup.shafts
+
+   treadle_list := list(treadles)
+   every !treadle_list := []
+
+   every i := 1 to treadles do
+      every j := 1 to shafts do
+         if weaving.tieup.matrix[i, j] == "black" then
+            every k := 1 to *weaving.threading do
+               if upto(weaving.threading[k], mask) == j then
+                  put(treadle_list[i], k, 0)
+
+   every y := 1 to *weaving.treadling do {
+      treadle := upto(weaving.treadling[y], mask) |
+         stop(&errout, "*** treadling bogon")
+      color := mutant[weaving.weft_colors[y]] |
+#     color := PaletteColor(weaving.palette, weaving.weft_colors[y]) |
+         Notice("Bad weft color specification: " || weaving.weft_colors[y] || ".")
+      if *treadle_list[treadle] = 0 then next	# blank pick
+      every i := 1 to *treadle_list[treadle] - 1 by 2 do
+         colorcell(drawdown_panel, treadle_list[treadle][i],
+            treadle_list[treadle][i + 1] + y, color)
+      }
+
+   return
+
+end
+
+procedure save_weave()
+
+   if save_file() ~== "Yes" then fail
+
+   every write(dialog_value, weaving[1 to 5])
+
+   write(dialog_value, tier2string(weaving.tieup))
+
+   write(dialog_value, weaving[7])
+
+   close(dialog_value)
+
+   return
+
+end
+
+procedure shortcuts(e)
+
+   if &meta then case map(e) of {
+      "b"  :  draw_down(weaving)
+      "c"  :  draw_weave(weaving)
+      "i"  :  draw_image()
+      "o"  :  open_weave()
+      "q"  :  quit()
+      "s"  :  save_weave()
+      }
+
+   return
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=180,136", "bg=pale gray", "label=Weaver"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,180,136:Weaver",],
+   ["colors:Menu:pull::101,1,50,21:Colors",colors_cb,
+      ["palette @P","warp","weft"]],
+   ["drawdown:Menu:pull::36,2,64,21:Drawdown",drawdown_cb,
+      ["warp/weft @B","color     @C"]],
+   ["file:Menu:pull::0,2,36,21:File",file_cb,
+      ["open  @O","save  @S","image @I","quit  @Q"]],
+   ["line1:Line:::0,24,180,24:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

@@ -1,0 +1,125 @@
+############################################################################
+#
+#	File:     banner.icn
+#
+#	Subject:  Program to display banner
+#
+#	Author:   Chris Tenaglia
+#
+#	Date:     September 21, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     Here is a a handy little code fragment called banner. I
+#  know icon is mostly in the unix world and unix already has a banner
+#  command. But I'm mostly in the DOS and VMS world so I offer this little
+#  banner code. It outputs enlarged letters (5x6 matrix) portraite. With a
+#  little diddling you can change the scale or font since this is the source.
+#  Maybe it can be made to take an input file as a font, and maybe even from
+#  xwindows. But this is a simple one. I include a main() procedure that
+#  calls it so you can test it and build from there. Enjoy!
+#  
+############################################################################
+
+procedure main(param)
+
+   if &features == ("MS-DOS" | "MS-DOS/386" | "NT") then system("cls")
+   else if &features == "UNIX" then system("clear")
+
+   every write(!banner(param[1]))
+   end
+
+#
+#    a      bbbb      cccc    dddd   eeeee  fffff   gggg   h   h  iii   jjj   k  k   l      m   m
+#   a a     b   b    c        d   d  e      f      g       h   h   i     j    k k    l      mm mm
+#  a   a    bbbb     c        d   d  eee    fff    g       hhhhh   i     j    kk     l      m m m
+#  aaaaa    b   b    c        d   d  e      f      g  gg   h   h   i     j    k  k   l      m   m
+#  a   a    b   b    c        d   d  e      f      g   g   h   h   i  j  j    k   k  l      m   m
+#  a   a    bbbb      cccc    dddd   eeeee  f       gggg   h   h  iii  jj     k    k lllll  m   m
+#
+#  n   n   ooo   pppp    qqq    rrrr     ssss   ttttt  u   u  v   v  w   w x   x y   y zzzzz
+#  nn  n  o   o  p   p  q   q   r   r   s         t    u   u  v   v  w   w  x x   y y     z
+#  n n n  o   o  pppp   q   q   rrrr     sss      t    u   u  v   v  w w w   x     y     z
+#  n  nn  o   o  p      q q q   r r         s     t    u   u  v   v  ww ww  x x    y    z
+#  n   n  o   o  p      q  qq   r  r        s     t    u   u   v v   w   w x   x   y   z
+#  n   n   ooo   p       qqqq   r   r   ssss      t     uuu     v    w   w x   x   y   zzzzz
+#
+#
+#               1     222    3333   4  4   55555    666   77777    888    999    00000
+#              11    2   2       3  4  4   5       6          7   8   8  9   9   0   0
+#               1        2   3333   44444  5555    6666       7    888    9999   0  00
+#               1       2        3     4       5   6   6      7   8   8      9   0 0 0
+#               1      2         3     4       5   6   6      7   8   8      9   00  0
+#              111   22222   3333      4   5555     666       7    888    999    00000
+#
+#
+#
+#    ???    !!    :::
+#   ?   ?   !!    :::            /
+#      ?    !!                  //       -----
+#     ?     !!                 //        -----
+#                 :::   ...   //
+#     ?     !!    :::   ...  //
+#
+#
+  procedure banner(str)
+   local bline, byte, raster, i
+  static  alphabet
+  initial {
+          alphabet := table("")
+          alphabet["a"] := ["  A    "," A A   ","A   A  ","AAAAA  ","A   A  ","A   A  "]
+          alphabet["b"] := ["BBBB   ","B   B  ","BBBB   ","B   B  ","B   B  ","BBBB   "]
+          alphabet["c"] := [" CCCC  ","C      ","C      ","C      ","C      "," CCCC  "]
+          alphabet["d"] := ["DDDD   ","D   D  ","D   D  ","D   D  ","D   D  ","DDDD   "]
+          alphabet["e"] := ["EEEEE  ","E      ","EEE    ","E      ","E      ","EEEEE  "]
+          alphabet["f"] := ["FFFFF  ","F      ","FFF    ","F      ","F      ","F      "]
+          alphabet["g"] := [" GGGG  ","G      ","G      ","G  GG  ","G   G  "," GGGG  "]
+          alphabet["h"] := ["H   H  ","H   H  ","HHHHH  ","H   H  ","H   H  ","H   H  "]
+          alphabet["i"] := [" III   ","  I    ","  I    ","  I    ","  I    "," III   "]
+          alphabet["j"] := ["  JJJ  ","   J   ","   J   ","   J   ","J  J   "," JJ    "]
+          alphabet["k"] := ["K  K   ","K k    ","KK     ","K  K   ","K   K  ","K   K  "]
+          alphabet["l"] := ["L      ","L      ","L      ","L      ","L      ","LLLLL  "]
+          alphabet["m"] := ["M   M  ","MM MM  ","M M M  ","M   M  ","M   M  ","M   M  "]
+          alphabet["n"] := ["N   N  ","NN  N  ","N N N  ","N  NN  ","N   N  ","N   N  "]
+          alphabet["o"] := [" OOO   ","O   O  ","O   O  ","O   O  ","O   O  "," OOO   "]
+          alphabet["p"] := ["PPPP   ","P   P  ","PPPP   ","P      ","P      ","P      "]
+          alphabet["q"] := [" QQQ   ","Q   Q  ","Q   Q  ","Q Q Q  ","Q  QQ  "," QQQQ  "]
+          alphabet["r"] := ["RRRR   ","R   R  ","RRRR   ","R R    ","R  R   ","R   R  "]
+          alphabet["s"] := [" SSSS  ","s      "," SSS   ","    S  ","    S  ","SSSS   "]
+          alphabet["t"] := ["TTTTT  ","  T    ","  T    ","  T    ","  T    ","  T    "]
+          alphabet["u"] := ["U   U  ","U   U  ","U   U  ","U   U  ","U   U  "," UUU   "]
+          alphabet["v"] := ["V   V  ","V   V  ","V   V  ","V   V  "," V V   ","  V    "]
+          alphabet["w"] := ["W   W  ","W   W  ","W W W  ","WW WW  ","W   W  ","W   W  "]
+          alphabet["x"] := ["X   X  "," X X   ","  X    "," X X   ","X   X  ","X   X  "]
+          alphabet["y"] := ["Y   Y  "," Y Y   ","  Y    ","  Y    ","  Y    ","  Y    "]
+          alphabet["z"] := ["ZZZZZ  ","   Z   ","  Z    "," Z     ","Z      ","ZZZZZ  "]
+          alphabet[" "] := ["       ","       ","       ","       ","       ","       "]
+          alphabet["1"] := ["  1    "," 11    ","  1    ","  1    ","  1    "," 111   "]
+          alphabet["2"] := [" 222   ","2   2  ","    2  ","   2   ","  2    ","22222  "]
+          alphabet["3"] := ["3333   ","    3  ","3333   ","    3  ","    3  ","3333   "]
+          alphabet["4"] := ["4  4   ","4  4   ","44444  ","   4   ","   4   ","   4   "]
+          alphabet["5"] := ["55555  ","5      ","5555   ","    5  ","    5  ","5555   "]
+          alphabet["6"] := ["  666  ","6      ","6666   ","6   6  ","6   6  "," 666   "]
+          alphabet["7"] := ["77777  ","    7  ","    7  ","    7  ","    7  ","    7  "]
+          alphabet["8"] := [" 888   ","8   8  "," 888   ","8   8  ","8   8  "," 888   "]
+          alphabet["9"] := [" 999   ","9   9  "," 9999  ","    9  ","    9  "," 999   "]
+          alphabet["0"] := ["00000  ","0   0  ","0  00  ","0 0 0  ","00  0  ","00000  "]
+          alphabet[":"] := [" :::   "," :::   ","       ","       "," :::   "," :::   "]
+          alphabet["!"] := [" !!    "," !!    "," !!    "," !!    ","       "," !!    "]
+          alphabet["."] := ["       ","       ","       ","       "," ...   "," ...   "]
+          alphabet["?"] := [" ???   ","?   ?  ","   ?   ","  ?    ","       ","   ?   "]
+          alphabet["/"] := ["       ","    /  ","   //  ","  //   "," //    ","//     "]
+          alphabet["-"] := ["       ","       ","-----  ","-----  ","       ","       "]
+        }
+  bline := ["","","","","",""]
+  every byte := !str do
+    {
+    raster := alphabet[map(byte)]
+    every i := 1 to 6 do bline[i] ||:= raster[i]
+    }
+  return bline
+  end

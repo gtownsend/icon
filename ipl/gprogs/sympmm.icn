@@ -1,0 +1,62 @@
+############################################################################
+#
+#	File:     sympmm.icn
+#
+#	Subject:  Program to produce pmm symmetry composite images.
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 4, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program reflects and concatenates images in the horizontal and
+#  vertical directions to produce composite images with the pmm ("prickly
+#  pear") plane symmetry.  The resulting images tile seamlessly.
+#
+#  The composite images are given the base name of the input images with
+#  "_pmm" appended.
+#
+#  Warning:  This program is slow.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  basename, wopen, xformimg
+#
+############################################################################
+
+link basename
+link xformimg
+link wopen
+
+procedure main(args)
+   local name, base, win1, win2, win3, win4, win5
+
+   every name := !args do {
+      base := basename(name, ".gif")
+      win1 := WOpen("canvas=hidden", "image=" || name) | {
+         write(&errout, "*** cannot open ", name)
+         next
+         }
+      win2 := wreflect(win1, "v")
+      win3 := wcatenate(win1, win2, "h")
+      WClose(win1)
+      WClose(win2)
+      win4 := wreflect(win3, "h")
+      win5 := wcatenate(win3, win4, "v")
+      WClose(win3)
+      WClose(win4)
+      WriteImage(win5, base || "_pmm.gif")
+      WClose(win5)
+      }
+
+end
+

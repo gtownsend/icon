@@ -1,0 +1,93 @@
+############################################################################
+#
+#	File:     escape.icn
+#
+#	Subject:  Procedures to interpret Icon literal escapes
+#
+#	Authors:  William H. Mitchell; modified by Ralph E. Griswold and
+#	          Alan Beale
+#
+#	Date:     April 16, 1993
+#
+############################################################################
+#
+#  The procedure escape(s) produces a string in which Icon quoted
+#  literal escape conventions in s are replaced by the corresponding
+#  characters.  For example, escape("\\143\\141\\164") produces the
+#  string "cat".
+#
+############################################################################
+#
+#  Links: ebcdic
+#
+############################################################################
+
+link ebcdic
+
+procedure escape(s)
+   local ns, c
+
+   ns := ""
+   s ? {
+      while ns ||:= tab(upto('\\')) do {
+         move(1)
+         ns ||:= case map(c := move(1)) | fail of {	# trailing \ illegal
+            "b":  "\b"
+            "d":  "\d"
+            "e":  "\e"
+            "f":  "\f"
+            "l":  "\n"
+            "n":  "\n"
+            "r":  "\r"
+            "t":  "\t"
+            "v":  "\v"
+            "x":  hexcode()
+            "^":  ctrlcode()
+            !"01234567":  octcode()
+            default:  c				# takes care of ", ', and \
+            }
+         }
+      return ns || tab(0)
+      }
+
+end
+
+procedure hexcode()
+   local i, s
+
+   s := tab(many('0123456789ABCDEFabcdef')) | ""	# get hex digits
+
+   if (i := *s) > 2 then {		# if too many digits, back off
+      s := s[1:3]
+      move(*s - i)
+      }
+   
+   return char("16r" || s)
+
+end
+
+procedure octcode()
+   local i, s
+
+   move(-1)				# put back first octal digit
+   s := tab(many('01234567')) | ""	# get octal digits
+
+   i := *s
+   if (i := *s) > 3 then {		# back off if too large
+      s := s[1:4]
+      move(*s - i)
+      }
+   if s > 377 then {			# still could be too large
+      s := s[1:3]
+      move(-1)
+      }
+
+   return char("8r" || s)
+
+end
+
+procedure ctrlcode(s)
+
+   return Control(move(1))
+
+end

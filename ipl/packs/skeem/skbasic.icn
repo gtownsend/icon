@@ -1,0 +1,350 @@
+############################################################################
+#
+#	Name:	skbasic.icn
+#
+#	Title:	Scheme in Icon
+#
+#	Author: Bob Alexander
+#
+#	Date:	March 23, 1995
+#
+#	Description: see skeem.icn
+#
+############################################################################
+
+#
+# skeem -- Scheme in Icon
+#
+# Miscellaneous basic syntaxes and procedures:
+#
+#     Literal expressions
+#     Lambda expressions
+#     Conditionals
+#     Assignments
+#     Derived expression types
+#     Binding constructs
+#     Sequencing
+#     Iteration
+#     Delayed evaluation
+#     Quasiquotation
+#     Definitions
+#
+
+#
+# Initialize
+#
+# List entries are described in skfun.icn.
+#
+procedure InitBasic()
+   DefSyntax([
+      AND,&null,
+      BEGIN,"oneOrMore",
+      CASE,"twoOrMore",
+      COND,1,&null,
+      DEFINE,"twoOrMore",
+      DELAY,
+      DO,"twoOrMore",
+      IF,2,3,
+      LAMBDA,"oneOrMore",
+      LET,"twoOrMore",
+      LETREC,"twoOrMore",
+      LET_STAR_,"twoOrMore","LET*",
+      OR,&null,
+      QUASIQUOTE,
+      QUOTE,
+      SET_BANG,2])
+   return
+end
+
+
+#
+# Literal expressions
+#
+
+procedure QUOTE(value)
+   return value
+end
+
+
+#
+# Lambda expressions
+#
+
+procedure LAMBDA(argList,body[])
+   local argListMin,argListMax
+   if LLIsList(argList) then {
+      argListMin := LLLength(argList)
+      argListMax := if LLIsNull(LLRest(LLLastPair(argList))) then argListMin
+      }
+   else argListMin := 0
+   return Lambda(LList!push(body,argList),,argListMin,argListMax,CurrentEnv)
+end
+
+
+#
+# Conditionals
+#
+
+procedure IF(test,clause[])
+   test := Eval(test) | fail
+   return Eval(
+      if F ~=== test then clause[1]
+      else (clause[2] | (return F))\1)
+end
+
+
+#
+# Assignments
+#
+
+procedure SET_BANG(var,value)
+   return SetVar(var,Eval(value))
+end
+
+
+#
+# Derived expression types
+#
+
+procedure COND(body[])
+   local clause,test,second
+   every clause := !body do {
+      second := LLSecond(clause) | return Error(COND,"ill-formed clause")
+      test := LLFirst(clause)
+      if test === "ELSE" | (test := F ~=== (Eval(test) | fail)\1) then {
+	 return {
+	    if second === "=>" then
+	       Eval(LList(LLThird(clause),LList("QUOTE",test)))
+	    else
+	       EvalSeq(LLRest(clause))
+	    }
+	 }
+      }
+   return F
+end
+
+procedure CASE(key,body[])
+   local clause,dataList,exprs
+   key := Eval(key) | fail
+   every clause := !body do {
+      \(exprs := LLRest(clause)) | return Error(CASE,"ill-formed clause")
+      dataList := LLFirst(clause)
+      if dataList === "ELSE" | Eqv(key,LLElements(dataList)) then
+	 return EvalSeq(exprs)
+      }
+   return F
+end
+
+procedure AND(arg[])
+   local result,element
+   result := T
+   every element := !arg do {
+      result := Eval(element) | fail
+      if result === F then break
+      }
+   return result
+end
+
+procedure OR(arg[])
+   local result,element
+   result := F
+   every element := !arg do {
+      result := Eval(element) | fail
+      if result ~=== F then break
+      }
+   return result
+end
+
+
+#
+# Binding constructs
+#
+
+procedure LET(arg[])
+   local result
+   result := EvalSeq(Let1(arg)) | fail
+   DiscardFrame()
+   return result
+end
+
+procedure Let1(arg)
+   local assignList,init,var,argList,loop,body
+   assignList := []
+   if SymbolP(arg[1]) then {
+      var := get(arg)
+      argList := LLNull
+      every argList := LLPair(LLFirst(LLElements(arg[1])),argList)
+      }
+   every init := LLElements(get(arg)) do
+      put(assignList,LLFirst(init),Eval(LLSecond(init))) | fail
+   PushFrame()
+   body := LList!arg
+   if \var then {
+      loop := LAMBDA!push(arg,LLInvert(argList)) | fail
+      loop.name := var
+      DefVar(var,loop)
+      }
+   while DefVar(get(assignList),get(assignList))
+   return body
+end
+
+procedure LET_STAR_(inits,body[])
+   local init,result
+   PushFrame()
+   every init := LLElements(inits) do
+      DefVar(LLFirst(init),Eval(LLSecond(init))) | {DiscardFrame(); fail}
+   result := EvalSeq(LList!body) | {DiscardFrame(); fail}
+   DiscardFrame()
+   return result
+end
+
+procedure LETREC(inits,body[])
+   local init,result
+   PushFrame()
+   every init := LLElements(inits) do
+      DefVar(LLFirst(init),F)
+   every init := LLElements(inits) do
+      SetVar(LLFirst(init),Eval(LLSecond(init))) | {DiscardFrame(); fail}
+   result := EvalSeq(LList!body) | {DiscardFrame(); fail}
+   DiscardFrame()
+   return result
+end
+
+
+
+#
+# Sequencing
+#
+
+procedure BEGIN(sequence[])
+   return EvalSeq(LList!sequence)
+end
+
+
+#
+# Iteration
+#
+
+procedure DO(inits,test,body[])
+   local testExpr,init,update,result,initList,initEnv,commandEnv
+   testExpr := LLFirst(test) | return Error(DO,"missing test")
+   initList := []
+   every init := LLElements(inits) do
+      put(initList,LLFirst(init),Eval(LLSecond(init))) | fail
+   PushFrame()
+   while DefVar(get(initList),get(initList))
+   body := LList!body
+   while F === (Eval(testExpr) | {DiscardFrame(); fail})\1 do {
+      if \body then EvalSeq(body) | {DiscardFrame(); fail}
+      every init := LLElements(inits) do
+	 if update := LLThird(init) then
+	    put(initList,LLFirst(init),Eval(update)) | {DiscardFrame(); fail}
+      while SetVar(get(initList),get(initList))
+      }
+   result := EvalSeq(LLRest(test)) | {DiscardFrame(); fail}
+   DiscardFrame()
+   return result
+end
+
+
+#
+# Delayed evaluation
+#
+
+procedure DELAY(expr)
+   return Promise(Lambda(LList(LLNull,expr),,0,0,CurrentEnv))
+end
+
+
+#
+# Quasiquotation
+#
+
+procedure QUASIQUOTE(L)
+   return QuasiQuote(L,0)
+end
+
+invocable "!":1,"|||":2
+
+procedure QuasiQuote(x,nest)
+   static vecElementGen,vecElementConcat
+   initial {
+      vecElementGen := proc("!",1)
+      vecElementConcat := proc("|||",2)
+      }
+   return {
+      if LLIsList(x) then
+	 QQExpand(x,nest,LLNull,LLPairs,LLPut,LLAppend,1,LLFirst,LLRest)
+      else if VectorP(x) then
+	 QQExpand(x,nest,[],vecElementGen,put,vecElementConcat,LLToList,1,Fail)
+      else
+	 x
+      }
+end
+
+procedure Fail()
+end
+
+procedure QQExpand(lst,nest,result,elementGen,elementPut,elementConcat,
+      createFromLList,getElement,getDot)
+   local elt,thunk,dot
+   every thunk := elementGen(lst) do {
+      elt := getElement(thunk)
+      result := {
+	 if LLIsPair(elt) then case LLFirst(elt) of {
+	    "UNQUOTE":
+	       elementPut(result,
+		  if nest = 0 then
+		     Eval(LLSecond(elt)) | fail
+		  else
+		     LList("UNQUOTE",QuasiQuote(LLSecond(elt),nest - 1)))
+	    "UNQUOTE-SPLICING":
+	       if nest = 0 then
+		  elementConcat(result,
+			createFromLList(Eval(LLSecond(elt)))) | fail
+	       else
+		  elementPut(result,
+			LLPair("UNQUOTE-SPLICING",
+			QuasiQuote(LLSecond(elt),nest - 1)))
+	    "QUASIQUOTE":
+	       elementPut(result,LList("QUASIQUOTE",
+		     QuasiQuote(LLSecond(elt),nest + 1)))
+	    default:
+	       elementPut(result,QuasiQuote(elt,nest))
+	    }
+	 else if VectorP(elt) & elt[1] === "QUASIQUOTE" then
+	    elementPut(result,["QUASIQUOTE",QuasiQuote(elt[2],nest + 1)])
+	 else if elt === "UNQUOTE" then {
+	    (LLRest(LLLastPair(result)) | result)\1 :=
+	       if nest = 0 then
+		  Eval(LLFirst(LLRest(thunk))) | fail
+	       else
+		  LList("UNQUOTE",QuasiQuote(LLFirst(LLRest(thunk)),nest - 1))
+	    return result
+	    }
+	 else elementPut(result,QuasiQuote(elt,nest))
+	 }
+      }
+   if dot := \getDot(thunk) then
+      LLRest(result) := QuasiQuote(dot,nest)
+   return result
+end
+
+
+#
+# Definitions
+#
+
+procedure DEFINE(sym,body[])
+   local value
+   if LLIsPair(sym) then {
+      # (define (f x) ...) -> (define f (lambda (x) ...))
+      value := LAMBDA!push(body,LLRest(sym)) | fail
+      sym := LLFirst(sym)
+      }
+   else value := Eval(body[1]) | fail
+   if type(value) == ("Lambda" | "Macro") then
+      /value.name := sym
+   DefVar(sym,value)
+   return sym
+end

@@ -1,0 +1,413 @@
+############################################################################
+#
+#	File:     interact.icn
+#
+#	Subject:  Procedures to support interactive applications
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 21, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	edit_file(s)	launches an editor, default vi, for the file named
+#			s.
+#
+#	edit_list(L)	provides edit dialog for the strings in the list L.
+#
+#	error_notice(i, x, s)
+#			produces a notice dialog noting a run-time
+#			error.  It can be used to handle procedure
+#			errors by runerr := error_notice.
+#
+#	execute()	provides a dialog for specifying a command.
+#
+#	expose(win)	attempt to make win the active window for the
+#			window manager.
+#
+#	load_file(s, n)	presents a standard open dialog with the caption s.
+#			and suggest name n.
+#
+#			If the user specifies a file that can be opened,
+#			dialog_value is set to it.  Otherwise, the dialog
+#			is presented again.  The name of the selected
+#			button is returned.
+#
+#	open_image(s)	presents a standard open dialog with the caption s.
+#			If the user specifies a file that can be opened as
+#			an image in a window, the window is opened.  Otherwise
+#			the dialog is presented again.
+#
+#	ExitNotice(s[])	Notice() that exits.
+#
+#	FailNotice(s[])	Notice() that fails.
+#
+#	save_as(s, n)	presents a standard save dialog with the caption s
+#			and suggested name n.  If the user specifies a file
+#			that can be written, the file is assigned to
+#			dialog_value.  Otherwise the dialog is presented
+#			again.  save_as() fails if the user cancels.
+#
+#	save_file(s, n)	presents a standard save dialog with the caption s
+#			and suggested name n.  If the user specifies a file
+#			that can be written, the file is returned.
+#			Otherwise, save_as() is called.  The name of
+#			the selected button is returned.
+#
+#	save_list(s, L)	provides dialog for saving list items in a file.
+#
+#	select_dialog(s, L, d)	
+#			provides a dialog for selecting from a list of
+#			item.  d is the default selection.
+#
+#	snapshot(win, x, y, w, h, n)
+#			writes an image file for the specified portion of
+#			the window.  The name for the file is requested from
+#			the user via a dialog box.  If there already is a
+#			file by the specified name, the user is given the
+#			option of overwriting it or selecting another name.
+#			The procedure fails if the user cancels.  n sets
+#			the width of the text-entry field.
+#
+#	unsupported()	provides Notice() for unsupported feature.
+#
+############################################################################
+#
+#  Links:  dsetup, exists, lists, strings
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+link dsetup
+link io
+link lists
+
+procedure edit_file(name)			#: editor launch
+   local editor
+
+   TextDialog("Edit:", , name, 30) == "Okay" | fail
+
+   editor := getenv("EDITOR") | "vi"
+
+   return system(editor || " " || dialog_value[1])
+
+end
+
+procedure edit_list(lines)			#: edit lines dialog
+   local insert, number, location, bounds, n
+   static add_tbl, labels, buttons
+
+   initial {
+      add_tbl := table("")
+      add_tbl["number"] := 1
+      add_tbl["position"] := "after"
+
+      labels := []
+      every put(labels, right(1 to 50, 2))
+
+      buttons := ["Okay", "Cancel", "Add", "Delete"]
+      }
+
+   repeat {
+      case TextDialog("", labels[1 +: *lines], lines, 60, buttons) of {
+         "Cancel":   fail
+         "Okay":     return dialog_value
+         "Delete":   {
+            repeat {
+               case TextDialog("Delete lines:", , , 60) of {
+                  "Cancel":   break next
+                  "Okay":     {
+                     lines := ldelete(lines, dialog_value[1])
+                     if *lines = 0 then {
+                        Notice("List empty; creating one line")
+                        lines := list(1)
+                        }
+                     break next
+                     }
+                  }
+               }
+            }
+         "Add":      {
+            repeat {
+               add_tbl["location"] :=
+                  if add_tbl["position"] == "after" then *lines else 0
+               case add_dialog(add_tbl) of {
+                  "Cancel":   break next
+                  "Okay":     {
+                     bounds := (if add_tbl["position"] == "after" then 0 else 1)
+                     (0 <= (n := integer(add_tbl["location"] - bounds)) <=
+                        (*lines)) | {
+                           Notice("Invalid location")
+                           add_tbl["location"] := if add_tbl["position"] ==
+                              "after" then *lines else 0
+                           next
+                           }
+                     (number := (0 <= integer(add_tbl["number"]))) | {
+                           Notice("Invalid number")
+                           add_tbl["number"] := 1
+                           next
+                           }
+                     insert := list(number, add_tbl["value"])
+                     if n = 0 then lines := insert ||| lines
+                     else if n = *lines then lines |||:= insert
+                     else lines := lines[1:n] ||| insert ||| lines[n:0]
+                     break next
+                     }
+                  }
+               }
+            }
+         }
+      }
+
+end
+
+procedure error_notice(i, x, s)			#: error alert
+
+   return Notice("Error " || i || " " || s,
+      "Offending value: " || image(x))
+
+end
+
+procedure execute()				#: command-line launch
+   local pipe, win, olist
+
+   OpenDialog("Command line:") == "Okay"  | fail
+
+   olist := []
+   pipe := open(dialog_value, "p")
+
+   every put(olist, !pipe)
+
+   close(pipe)
+
+   win := list_win(olist, "command") | fail
+
+   Event(win)
+
+   WClose(win)
+
+   return
+
+end
+
+procedure list_win(lst, label)			#: window for list of strings
+   local win
+
+   win := WOpen("canvas=hidden", "label=" || label, "lines=" || *lst + 2,
+      "columns=" || maxlen(lst) + 2) | fail
+
+   WWrite(win)
+   every WWrite(win, " ", !lst)
+   WAttrib(win, "canvas=normal")
+
+   return win
+
+end
+
+procedure expose(win)				#: expose window
+
+#  For some window managers, this can be use to make a window active
+
+#  WAttrib(\win, "canvas=hidden") | fail
+#  WAttrib(win, "canvas=normal")
+
+#  However, this should work without the fidgets:
+
+   Raise(win)
+
+   return
+
+end
+
+procedure load_file(caption, n)			#: load dialog
+   local button
+
+   repeat {
+      (button := OpenDialog(caption, n)) == "Okay" | return button
+      dialog_value := open(dialog_value) | {
+         Notice("Can't open " || dialog_value)
+         next
+         }
+      return button
+      }
+
+end
+
+procedure open_image(caption, atts[])		#: open image
+   local button, win
+
+   repeat {
+      (button := OpenDialog(caption)) == "Okay" | return button
+      put(atts, "image=" || dialog_value)
+      win := (WOpen ! atts) | {
+         Notice("Can't open " || dialog_value)
+         get(atts)
+         next
+         }
+      return win
+      }
+
+end
+
+procedure ExitNotice(s[])			#: notice dialog that fails
+
+   Notice ! s
+
+   exit()
+
+end
+
+procedure FailNotice(s[])			#: notice dialog that fails
+
+   Notice ! s
+
+   fail
+
+end
+
+procedure save_as(caption, name, n)		#: save-as dialog
+   local button, file
+
+   repeat {
+      if (button :=  SaveDialog(caption, name, n)) == "Yes" then {
+         file := dialog_value
+         if exists(file) then {
+            if TextDialog("Overwrite existing file?") == "Cancel" then next
+            }
+         dialog_value := open(file, "w") | {
+            Notice("Can't write " || dialog_value)
+            next
+            }
+         }
+      return button
+      }
+
+end
+
+procedure save_file(caption, name, n)		#: save dialog
+   local button
+
+   (button := SaveDialog(caption, name, n)) == "Yes" | return button
+   dialog_value := open(dialog_value, "w") | {
+      Notice("Can't write file")
+      return save_as("Save:", dialog_value, n)
+      }
+
+   return button
+
+end
+
+procedure save_list(caption, lst)		#: save list dialog
+   local output
+
+   OpenDialog(caption, , 30) == "Okay" | fail
+   if dialog_value == "-" then output := &output	# "-" means &output
+   else output := open(dialog_value, "w") |
+      return FailNotice("Cannot open " || dialog_value)
+
+   every write(output, !lst)
+
+   close(output)
+
+   return
+
+end
+
+#  This procedure handles selection from long lists by producing
+#  a succession of dialogs to the user's choice of "More".
+
+$define Choices 30		# maximum choices per dialog
+
+procedure select_dialog(caption, lst, dflt)	#: select dialog for many items
+   static buttons
+
+   initial buttons := ["Okay", "More", "Cancel"]
+
+   if *lst = 0 then {
+      Notice("No selections available")
+      fail
+      }
+   until *lst <= Choices do {
+      case SelectDialog(caption, lst[1+:Choices], dflt, buttons) of {
+            "Cancel":  fail
+            "Okay":    return
+            "More":    lst := lst[Choices + 1:0]
+            }
+      }
+
+   if *lst > 0 then {
+      SelectDialog(caption, lst, dflt) == "Okay" | fail
+      return dialog_value
+      }
+
+   else fail
+
+end
+
+procedure snapshot(win, x, y, w, h, n)		#: snapshot dialog
+   local name, fg, bg
+
+   if type(win) ~== "window" then {
+      win :=: x :=: y :=: w :=: h
+      win := &window
+      }
+
+   fg := Fg()
+   bg := Bg()
+   Fg("black")
+   Bg("light gray")
+
+   repeat {
+      if OpenDialog("Image file name", , n) == "Okay" then {
+         name := dialog_value
+         if exists(dialog_value) then {
+            if TextDialog("Overwrite existing file?") == "Cancel"
+            then next
+            }
+         WriteImage(win, name, x, y, w, h) | {
+            Notice("Cannot write image")
+            next
+            }
+         Fg(fg)
+         Bg(bg)
+         return
+         }
+      else {
+         Fg(fg)
+         Bg(bg)
+         fail
+         }
+      }
+      
+end
+
+procedure unsupported()				#: unsupported feature alert
+
+   return FailNotice("Unsupported feature")
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure add_dialog(win, deftbl)
+static dstate
+initial dstate := dsetup(win,
+   ["add_dialog:Sizer::1:0,0,531,182:add",],
+   ["add:Label:::12,14,70,13:Add lines:",],
+   ["cancel:Button:regular::76,150,49,20:Cancel",],
+   ["location:Text::2:12,43,87,19:location:\\=",],
+   ["number:Text::2:12,72,87,19:number:  \\=",],
+   ["okay:Button:regular:-1:12,150,49,20:Okay",],
+   ["position:Choice::2:117,50,71,42:",,
+      ["after","before"]],
+   ["value:Text::60:12,103,493,19:value:   \\=",],
+   )
+return dpopup(win, deftbl, dstate)
+end
+#===<<vib:end>>===	end of section maintained by vib

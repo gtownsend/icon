@@ -1,0 +1,196 @@
+############################################################################
+#
+#	File:     datefns.icn
+#
+#	Subject:  Procedure for dates
+#
+#	Author:   Charles Hethcoat
+#
+#	Date:     August 14, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# datefns.icn - a collection of date functions
+#
+# Adaptor:  Charles L Hethcoat III
+# June 12, 1995
+# Taken from various sources as attributed below.
+# 
+# All date and calendar functions use the "date_rec" structure defined
+# below.
+#
+# Note:  I adapted the procedures "julian" and "unjulian" sometime in 1994
+# from "Numerical Recipes in C."  Some time later I discovered them
+# (under slightly different names) in Version 9 of the Icon Library
+# (Ralph Griswold, author).  I am including mine for what they are worth.
+# That'll teach me to wait!
+#
+############################################################################
+
+record date_rec(year, month, day, yearday, monthname, dayname)
+
+global monthlist  # Maps month numbers into month names
+global monthtbl   # Maps month names into numbers 1-12
+global dow        # Maps 1-7 into Sunday-Saturday
+global cum_days   # Cum. day counts for month end, leap & non-leap yrs.
+
+# initdate - call to initialize the global data before using other fns.
+# See "The C Programming Language," by Kernighan and Richie (Wylie,
+# 1978)
+
+procedure initdate()
+   monthlist :=
+      ["January", "February", "March", "April",
+       "May", "June", "July", "August",
+       "September", "October", "November", "December"]
+   
+      monthtbl := table()
+      monthtbl["January"]   := 1
+      monthtbl["February"]  := 2
+      monthtbl["March"]     := 3
+      monthtbl["April"]     := 4
+      monthtbl["May"]       := 5
+      monthtbl["June"]      := 6
+      monthtbl["July"]      := 7
+      monthtbl["August"]    := 8
+      monthtbl["September"] := 9
+      monthtbl["October"]   := 10
+      monthtbl["November"]  := 11
+      monthtbl["December"]  := 12
+
+   dow := 
+      ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday",
+       "Friday", "Saturday"]
+   cum_days := [
+      [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365],
+      [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]
+   ]
+   return
+end
+
+# today - obtain computationally-useful values for today's date
+procedure today()
+   local junk, datestruct
+   
+   datestruct := date_rec()
+   &dateline ? {  # &dateline is in a fixed format:
+      junk := tab(upto(&letters))
+      datestruct.dayname := tab(many(&letters))
+      junk := tab(upto(&letters))
+      datestruct.monthname := tab(many(&letters))
+      junk := tab(upto(&digits))
+      datestruct.day := tab(many(&digits))
+      junk := tab(upto(&digits))
+      datestruct.year := tab(many(&digits))
+   }
+   
+   datestruct.month := monthtbl[datestruct.monthname]
+   datestruct.yearday := doy(datestruct.year, datestruct.month, datestruct.day)
+   return datestruct
+end
+
+# The next two routines have been adapted from "Numerical Recipes in C,"
+# by Press, Flannery, Teukolsky, and Vetterling (Cambridge, 1988).  The
+# following quote is from page 10:
+
+#   Astronomers number each 24-hour period, starting and ending at noon,
+#   with a unique integer, the Julian Day Number.  Julian Day Zero was
+#   a very long time ago; a convenient reference point is that Julian
+#   Day 2440000 began at noon of May 23, 1968.  If you know the Julian
+#   Day Number that began at noon of a given calendar date, then the day
+#   of the week of that date is obtained by adding 1 and taking the result
+#   modulo base 7; a zero answer corresponds to Sunday, 1 to Monday, ...,
+#   6 to Saturday.
+
+# The C code presented in that book heavily uses the automatic conversion
+# of real (floating point) numbers to integers by truncation.  Since Icon
+# doesn't do this, explicit type conversions are required.
+
+# julian - convert a date_rec to a Julian day number
+procedure julian(date)
+   
+   local jul
+   local ja, jy, jm, z1, z2
+   
+   if date.year = 0 then
+      fail
+   if date.year < 0 then
+      date.year +:= 1
+   if date.month > 2 then {
+      jy := date.year
+      jm := date.month + 1
+   } else {
+      jy := date.year - 1
+      jm := date.month + 13
+   }
+   
+   z1 := real(integer(365.25*jy))
+   z2 := real(integer(30.6001*jm))
+   jul := integer(z1 + z2 + date.day + 1720995)
+   if date.day + 31*(date.month + 12*date.year) >= 588829 then {
+      ja := integer(0.01*jy)
+      jul +:= 2 - ja + integer(0.25*ja)
+   }
+   return jul
+
+end
+
+# unjulian - produce a date from the Julian day number
+procedure unjulian(julianday)
+
+   local ja, jalpha, jb, jc, jd, je  # integers all
+   local datestruct
+   
+   datestruct := date_rec()
+   if julianday >= 2299161 then {
+      jalpha := integer((real(julianday - 1867216) - 0.25)/36524.25)
+      ja := julianday + 1 + jalpha - integer(0.25*jalpha)
+   } else
+      ja := julianday
+   jb := ja + 1524
+   jc := integer(6680.0 + (real(jb - 2439870) - 122.1)/365.25)
+   jd := 365*jc + integer(0.25*jc)
+   je := integer((jb - jd)/30.6001)
+   datestruct.day := jb - jd - integer(30.6001*je)
+   datestruct.month := je - 1
+   if datestruct.month > 12 then
+      datestruct.month -:= 12
+   datestruct.year := jc - 4715
+   if datestruct.month > 2 then
+      datestruct.year -:= 1
+   if datestruct.year <= 0 then
+      datestruct.year -:= 1
+   # Get the day number in the year:
+   datestruct.yearday := doy(datestruct.year, datestruct.month, datestruct.day)
+   # Get the name of the month:
+   datestruct.monthname := monthlist[datestruct.month]
+   # Calculate the day of the week:
+   datestruct.dayname := dow[(julianday + 1) % 7 + 1]
+   return datestruct
+   
+end
+
+# doy - return day-of-year from (year, month, day)
+# Adapted from K&R
+procedure doy(year, month, day)
+   local leap, y, m, d
+   y := integer(year)
+   m := integer(month)
+   d := integer(day)
+   leap :=
+      if (y % 4 = 0 & y % 100 ~= 0) | y % 400 = 0 then
+         2  # leap year
+      else
+         1  # non-leap year
+   return cum_days[leap][m] + d
+end
+
+# wrdate - write out a basic date string with a leadin string
+procedure wrdate(leadin, date)
+   write(leadin, " ", date.year, " ", date.monthname, " ", date.day)
+end
+

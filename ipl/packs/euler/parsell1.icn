@@ -1,0 +1,73 @@
+
+record Token(type,body,line,column)
+
+link readll1
+
+procedure parseLL1(ll1)
+local predictionStack
+local x,y,z,top,cur
+ predictionStack:=[ll1.start,ll1.eoi]
+ cur := scan()
+repeat {
+	if not(top := pop(predictionStack)) then return
+	if top == cur.type then {
+		outToken(cur)
+		if top == ll1.eoi then break
+		cur := scan()
+	} else if member(ll1.actions,top) then {
+		outAction(top)
+	} else if x:=\ll1.sel[top] & y:=\x[cur.type] then {
+		every z:=y[*y to 1 by -1] do push(predictionStack,z)
+	} else if y:=\ll1.deflt[top] then {
+		every z:=y[*y to 1 by -1] do push(predictionStack,z)
+	} else {
+		#panic mode error recovery
+		reportParseError(cur)
+		push(predictionStack,top)
+		repeat {
+		   while not member(ll1.fiducials,cur.type) & 
+		   		cur.type~==ll1.eoi do {
+			 #write("scanning past ",cur.body)
+		   	cur := scan()
+		   }
+		   if x:=!predictionStack &
+		   	(x==cur.type) | 
+			   member(\ll1.firstFiducials[x], cur.type)
+		   then break
+		   else cur := scan()
+		}
+		repeat {
+		   top := pop(predictionStack) | 
+		   	stop("system error in panic mode")
+		    #write("pruning stack ",top)
+		   if top==cur.type then {
+			push(predictionStack,top)
+			break
+		   }
+		   if member(ll1.actions,top) then {
+		   	outAction(top)
+		   } else if member(ll1.terminals,top) then {
+		   	outError(top)
+		   } else if member(\ll1.firstFiducials[top],cur.type)
+		   		then {
+		   	push(predictionStack,top)
+			break
+		   } else {
+		   	predictionStack := ll1.minLengRHS[top] |||
+						predictionStack
+		   }
+		}
+	}
+}
+return
+end
+# 
+#  Copyright (C) 1994,  T.W. Christopher and G.K. Thiruvathukal.
+#  All rights reserved. The use of TLC is governed by conditions
+#  similar to GNU Copyleft. Please consult the files distributed
+#  with TLC for more information: COPYLEFT, WARRANTY, and README.
+#  If the aforementioned files are missing, you can obtain them
+#  from {tc,gkt}@iitmax.acc.iit.edu.
+# 
+# 
+

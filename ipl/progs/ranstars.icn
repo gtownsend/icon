@@ -1,0 +1,92 @@
+############################################################################
+#
+#	File:     ranstars.icn
+#
+#	Subject:  Program to display star field
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 2, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This program display a random field of "stars" on an ANSI terminal.
+#  It displays stars at randomly chosen positions on the screen until
+#  the specified maximum number is reached. It then extinguishes existing
+#  stars and creates new ones for the specified steady-state time, after
+#  which the stars are extinguished, one by one.
+#
+#     The programming technique is worth noting. It is originally due to
+#  Steve Wampler.
+#
+#     The options are:
+#
+#	-m n	maximum number of stars, default 10.
+#
+#	-t n	length of steady-state time before stars are extinguished,
+#		  default 50.
+#
+#	-s c	the character to be used for "stars", default *. If
+#		  more than one character is given, only the first is
+#		  used.
+#
+############################################################################
+#
+#  Requires:  co-expressions, ANSI terminal
+#
+############################################################################
+#
+#  Links:  ansi, options, random
+#
+############################################################################
+
+link ansi
+link options
+link random
+
+procedure main(args)
+   local length, steady, star, opts, r, ran1, ran2
+
+   randomize()
+
+   opts := options(args,"m+t+s:")
+   length := \opts["m"] | 10
+   steady := \opts["t"] | 50
+   star := \opts["s"] | "*"
+   star := star[1]
+   r := 0
+
+   ran1 := create 2(&random :=: r, |?(24 | 80), &random <-> r)
+   ran2 := ^ran1
+   clear()				# clear the screen
+   every 1 to length do			# start up the universe
+      place(ran1,star)
+   every 1 to steady do {		# steady state condition
+      place(ran2," ")			# clean up the beginning
+      place(ran1,star)			# create more
+      }
+   every 1 to length do			# and the universe dies
+      place(ran2," ")			# clean up the end
+   clear()				# clear the screen
+   home()				# home the cursor
+end
+
+procedure clear()
+   ED()
+   return
+end
+
+procedure home()
+   CUP(1,1)
+   return
+end
+
+procedure place(e,s)
+   CUP(@e,@e)
+   writes(s)
+   return
+end

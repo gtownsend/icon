@@ -1,0 +1,60 @@
+1.0 Introduction
+----------------
+     This is a short walkthrough of the polydemo program, with examples of
+the use of all of the available commands.  I am assuming that you have
+already looked at the header of the source code of polydemo, which describes
+the options available in the polydemo.
+     When a series of commands or entries must be given, they will be listed
+here separated by commas.  Each entry in such a list should be followed by
+pressing Return or Enter.  Single-letter commands must always be followed
+with Enter as well.  The case of any letter is ignored.
+
+2.0 Preparing the polydemo program
+----------------------------------
+     Polydemo requires the library polystuf, also included on this disk.  To
+set up polydemo for running, first translate polystuf into ucode files with
+          ICONT -c polystuf
+and then translate polydemo with
+          ICONT polydemo
+after which you can run polydemo in whatever manner your system allows.
+
+3.0 A sample run
+----------------
+     Let's say we had to perform the following: find the result of evaluating
+        4     3.1         0.7        5       4 
+     (9x  + 6x    + 5 - 3x   ) - (12x  - 4.2x  + x) at x = 2.2.
+     Start the polydemo program.  A menu of options will be displayed, as
+will the slots that are filled (none yet) and a prompt containing valid
+characters corresponding to the options.  Enter R to read in a polynomial from
+the keyboard, then give A as the slot of the first polynomial.  Enter these
+numbers: 9, 4, 6, 3.1, 5, 0, -3, 0.7, 0.  Now, the first polynomial will be
+stored in slot "a."  Note that the 0 is necessary after the 5 to use a
+constant term, and that the 0 at the end is for stopping data entry.
+     A similar process can be used for the second polynomial.  Inputting
+R, B, 12, 5, -4.2, 4, 1, 1, 0 will place that polynomial in slot "b."
+     Now, check to make sure you've entered the polynomials correctly.  Type
+W for "write" and A for slot "a," to display the first polynomial on the
+screen.  It should appear as 9x^4 + 6x^3.1 + -3x^0.7 + 5.  Do the same for
+the second polynomial (replacing the A with a B).  The output should be
+12x^5 + -4.2x^4 + x.
+     To find their difference, enter S for subtract, then A, B to indicate
+those two polynomials, then C as a slot for the answer.  Note that the result
+isn't immediately displayed; you must use W, C for that.  The answer should
+be -12x^5 + 13.2x^4 + 6x^3.1 + -x + -3x^0.7 + 5.
+     Finally, to evaluate this polynomial at x = 2.2, type E for evaluate,
+C for the slot in which that polynomial is held, then 2.2 for the x-value.
+You should receive the message "The result is -242.498468213815," or something
+similar, depending on the precision of real numbers in your implementation of
+Icon.
+     The Add and Multiply commands are invoked similarly to the Subtract
+command.  The Clear option allows you to empty a slot, making room for a new
+polynomial.  This is necessary because you cannot overwrite an existing
+polynomial.  Asking for Help displays the list of options and the letters
+needed to access them.  Lastly, using Quit exits the program.
+     It would be good to test operations in which one or both polynomials
+are zero.  A zero polynomial is made when, during entry, a 0 is the first and
+only coefficient given, or when it is the result of an operation.  Also, to
+make sure no "1x", "-1x" or "x^1" appears in a written polynomial (these
+should be "x", "-x", and "x," respectively), try working with polynomials that
+have these terms.
+

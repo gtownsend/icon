@@ -1,0 +1,36 @@
+############################################################################
+#
+#	File:     upper.icn
+#
+#	Subject:  Program to map file names to uppercase
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 10, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program maps the names of all files in the current directory to
+#  uppercase.
+#
+############################################################################
+#
+#  Requires:   UNIX 
+#
+############################################################################
+
+procedure main()
+   local input, old, new
+
+   input := open("ls", "p")
+
+   while old := read(input) do {
+      new := map(old, &lcase, &ucase)
+      if new ~== old then rename(old, new)
+      }
+
+end

@@ -1,0 +1,203 @@
+############################################################################
+#
+#	File:     gtrace.icn
+#
+#	Subject:  Procedures to process graphic traces
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 19, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  As used here, the term "trace" refers to a sequence of points that
+#  generally consists of locations on a curve or other geometrical object.
+#  These procedures process such traces in various ways.
+#
+############################################################################
+#
+#  See also:  gtraces.doc
+#
+############################################################################
+#
+#  Links:  calls, numbers, gobject
+#
+############################################################################
+
+link calls
+link numbers
+link gobject
+
+#  list_coords(call) lists the coordinates of the trace produced by
+#  invoke(call)
+
+procedure list_coords(call, p, w)
+   local point
+
+   /p := 6
+   /w := 20
+
+   every point := invoke(call) do
+      write(decipos(point.x, p, w), decipos(point.y, p, w))
+
+end
+
+#
+#  point_list(call, i) returns a list of the points in the trace produced
+#  by invoke(call).  If i is nonnull, the list is limited to i points.
+
+procedure point_list(call, i)
+   local plist
+
+   plist := []
+
+   if \i then {
+      every put(plist, invoke(call)) \ i
+      }
+   else {
+      every put(plist, invoke(call))
+      }
+
+   return plist
+
+end
+
+#
+#  coord_list(call, i) returns a list of the x,y coordinates in the trace
+#  produced by invoke(call).  If i is nonnull, the list is limited
+#  to i points.
+
+procedure coord_list(call, limit)
+   local clist
+
+   clist := []
+
+   if \limit then {
+      every put(clist, !(invoke(call))) \ (limit * 2)
+      }
+   else {
+      every put(clist, !(invoke(call)))
+      }
+
+   return clist
+
+end
+
+#  read_trace(f) produces a trace from the coordinate file f
+
+procedure read_trace(f)
+   local line
+   static schar
+
+   initial schar := &digits ++ '.'
+
+   while line := read(f) do
+      line ? {
+         suspend Point(
+            tab(upto(schar)) & tab(many(schar)),
+            tab(upto(schar)) & tab(many(schar))
+            )
+         }
+
+end
+
+#  write_trace(header, call) writes a trace file from the trace of call.
+
+procedure write_trace(header, call)
+   local point
+
+   write(header, ":")
+
+   every point := invoke(call) do
+      write(point.x, " ", point.y)
+
+end
+
+#  compose_trace(call_1, call_2) composes the trace for call_1 with the
+#  trace for call_2; that is, the trace for call_1 is passed through
+#  call_2.  For example, if call_1 traces a circle and call_2 draws a
+#  star, the result is a star on each point of the circle.
+#
+#  The procedure assumes that the first two arguments to call_2 are
+#  the x and y coordinates of the point in which it is interested
+#  (standard trace format).
+
+procedure compose_trace(trace, call_1, call_2)
+   local point
+
+   every point := invoke(call_1) do {
+      call_2.args[1] := point.x		# set the origin for call_2
+      call_2.args[2] := point.y
+      suspend invoke(call_2)
+      }
+
+end
+
+#  tcompress(call, i) discards all but the ith points on the trace
+#  produced by call.  The first point of the trace is the first
+#  point of the trace produced by calls.
+
+procedure tcompress(call, i)
+   local j, point
+
+   j := 0
+
+   every point := invoke(call) do {
+      if j % i = 0 then suspend point
+      i +:= 1
+      }
+
+end
+
+#  interp_call(call) inserts a point midway on a line between every two points
+#  on the trace produced by call.
+
+procedure interp_trace(call)
+   local point, last_point
+
+   every point := invoke(call) do {
+      if \last_point then {
+         suspend last_point
+         suspend Point(
+            (point.x - last_point.x) / 2,
+            (point.y - last_point.y) / 2
+            )
+         }
+      last_point := point
+      }
+
+   suspend last_point
+
+end
+
+#  coord2point(cl) creates a list of points from a list of coordinates.
+#  It destroys cl.
+
+procedure coord2point(cl)
+   local pl
+
+   pl := []
+
+   while put(pl, Point(get(cl), get(cl)))
+
+   return pl
+
+end
+
+#  point2coord(pl) creates a list of coordinates from a list of points.
+#  It does not destroy pl.
+
+procedure point2coord(pl)
+   local cl
+
+   cl := []
+
+   every put(cl, !!pl)
+
+   return cl
+
+end

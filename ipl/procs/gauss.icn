@@ -1,0 +1,44 @@
+############################################################################
+#
+#	File:     gauss.icn
+#
+#	Subject:  Procedures to compute Gaussian distributions
+#
+#	Author:   Stephen B. Wampler
+#
+#	Date:     September 19, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#   gauss_random(x, f) produces a Gaussian distribution about the value x.
+#   The value of f can be used to alter the shape of the Gaussian
+#   distribution (larger values flatten the curve...)
+#
+############################################################################
+
+procedure gauss_random(x, f)
+
+   /f := 1.0		# if f not passed in, default to 1.0
+
+   return gauss() * f + x
+
+end
+
+#   Produce a random value within a Gaussian distribution
+#   about 0.0.  (Sum 12 random numbers between 0 and 1,
+#   (expected mean is 6.0) and subtract 6 to center on 0.0
+
+procedure gauss()
+   local v
+
+   v := 0.0
+
+   every 1 to 12 do v +:= ?0
+
+   return v - 6.0
+
+end

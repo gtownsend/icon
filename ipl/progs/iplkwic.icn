@@ -1,0 +1,138 @@
+############################################################################
+#
+#	File:     iplkwic.icn
+#
+#	Subject:  Program to produce keywords in context for IPL
+#
+#	Author:   Stephen B. Wampler, modified by Ralph E. Griswold
+#
+#	Date:     June 15, 1995
+#
+###########################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#
+#     NOTE:  This is a specialized version used for producing kwic listings
+#  for the Icon program library.
+#
+#     This is a simple keyword-in-context (KWIC) program. It reads from
+#  standard input and writes to standard output. The "key" words are
+#  aligned at a specified column, with the text shifted as necessary. Text
+#  shifted left is truncated at the left. Tabs and other characters whose
+#  "print width" is less than one may not be handled properly.
+#
+#  The following options are supported:
+#
+#	-c i	column at which keywords are aligned, default 30
+#	-h i	width of identifying colunn at left, default 20
+#
+#     Some noise words are omitted (see "exceptions" in the program text).
+#  If a file named except.wrd is open and readable in the current directory,
+#  the words in it are used instead.
+#
+#     This program is pretty simple.  Possible extensions include ways
+#  of specifying words to be omitted, more flexible output formatting, and
+#  so on.  Another "embellisher's delight".
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+global line, loc, exceptions, width, tag, head
+
+record pair(new, old)
+
+procedure main(args)
+   local exceptfile, opts
+
+   opts := options(args, "c+h+")
+   width := \opts["c"] | 30
+   head := \opts["h"] | 20
+
+   if exceptfile := open("except.wrd") then {
+      exceptions := set()
+      every insert(exceptions, lcword(exceptfile))
+      close(exceptfile)
+      }
+   else
+      exceptions := set(["and", "for", "into", "all", "from", "get", "put",
+         "compute", "perform", "apply", "model", "value", "model", "operator",
+         "out", "problem", "produce", "such", "use", "operation"])
+
+   every write(filter(kwic(&input)))
+
+end
+
+procedure kwic(file)
+   local index, word
+
+#  Each word, in lowercase form, is a key in the table "index".
+#  The corresponding values are lists of the positioned lines
+#  for that word.  This method may use an impractically large
+#  amount of space for large input files.
+
+   index := table()
+   every word := lcword(file) do {
+      if not member(exceptions,word) then {
+         /index[word] := []
+         index[word] := put(index[word],position())
+         }
+      }
+
+#  Before the new sort options, it was done this way -- the code preserved
+#  as an example of "generators in action".
+
+#  suspend !((!sort(index,1))[2])
+
+   index := sort(index,3)
+   while get(index) do
+      suspend !get(index)
+end
+
+procedure lcword(file)
+   local name, word
+   static chars
+
+   initial {
+      chars := &letters ++ &digits ++ '\''
+      tag := table()
+      }
+
+   every line := !file do {
+      line ?:= {
+         name := tab(find(": "))	# program name
+         move(2)			# skip trash
+         tab(0)				# rest is now line
+         }
+      tag[line] := name			# name for the line
+      line ? {
+         while tab(loc := upto(chars)) do {
+            word := map(tab(many(chars)))
+            if *word > 2 & not(any('(')) then suspend word
+            }
+          }
+      }
+end
+
+procedure position()
+   local offset
+
+#  Note that "line" and "loc" are global.
+
+   offset := width - loc
+   if offset >= 0 then return pair(repl(" ",offset) || line, line)
+   else return pair(line[-offset + 1:0], line)
+end
+
+procedure filter(result)
+
+   return left(tag[result.old], head) || result.new
+
+end

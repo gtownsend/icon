@@ -1,0 +1,220 @@
+############################################################################
+#
+#	File:     gamma.icn
+#
+#	Subject:  Program to perform gamma correction on images
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 5, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program allows changing the gamma correction for images.  It can
+#  be used, for example, to desaturate images for use as backgrounds.
+#  Note:  Fully saturated nd fully unsaturated colors are not affected by
+#  gamma correction.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  interact, vfilter, vsetup
+#
+############################################################################
+
+link interact
+link vfilter
+link vsetup
+
+global continuous_vidget	# continuous update toggle
+global gamma			# current gamma value
+global gamma_vidget		# gamma vidget
+global default_gamma		# original gamma value
+global name			# name of current image file
+global pane			# window for current image
+global vidgets			# table of vidgets
+
+
+
+procedure main()
+
+   vidgets := ui()
+
+   continuous_vidget := vidgets["continuous"]
+   gamma_vidget := vidgets["gamma"]
+
+   VSetState(continuous_vidget, "1")
+
+   default_gamma := WAttrib("gamma")
+
+   set_gamma(default_gamma)
+
+   GetEvents(vidgets["root"], , shortcuts)
+
+end
+
+procedure continuous_cb(vidget, value)
+
+   if \value then VSetFilter(gamma_vidget, &null) else
+      VSetFilter(gamma_vidget, "1")
+
+   return
+
+end
+
+procedure file_cb(vidget, value)
+
+   case value[1] of {
+      "load @L" :  load_image()
+      "quit @Q" :  exit()
+      "save @S" :  save_image()
+      }
+
+   return
+
+end
+
+procedure gamma_cb(vidget, value)
+
+   set_gamma(10.0 ^ value)
+
+   return
+
+end
+
+procedure load_image()
+
+   WClose(\pane)
+
+   repeat {
+      if OpenDialog("Load image file:") == "Cancel" then fail
+      pane := WOpen("label=" || dialog_value, "image=" || dialog_value,
+         "gamma=" || gamma) | {
+            Notice("Cannot open image file.")
+            next
+            }
+      name := dialog_value
+      Raise()
+      return
+      }
+
+end
+
+procedure reset_cb()
+
+   set_gamma(default_gamma)
+
+end
+
+procedure save_image()
+
+   WAttrib(\pane, "gamma=" || default_gamma) | {
+      Notice("No image loaded.")
+      fail
+      }
+   snapshot(pane)
+   WAttrib(pane, "gamma=" || gamma)
+
+   return
+
+end
+
+procedure set_cb()
+
+   repeat {
+      if OpenDialog("Set gamma value:", gamma, 10) == "Cancel" then fail
+      if 0.0 <= numeric(dialog_value) <= 100.0 then {
+         set_gamma(dialog_value)
+         return
+         }
+      else {
+         Notice("Invalid gamma value.")
+         next
+         }
+      }
+
+end
+
+procedure set_gamma(value)
+
+   gamma := value
+
+   WAttrib(\pane, "gamma=" || gamma)
+   VSetState(gamma_vidget, log(value, 10))
+   show_gamma()
+   ReadImage(\pane, name)
+   Raise()
+
+   return
+
+end
+
+procedure shortcuts(value)
+
+   if &meta then case map(value) of {
+      "l" :  load_image()
+      "q" :  exit()
+      "r" :  set_gamma(default_gamma)
+      "s" :  save_image()
+      }
+
+   return
+
+end
+
+procedure show_gamma()
+   static old_gamma, x, y
+
+   initial {
+      old_gamma := ""
+      x := vidgets["show_gamma"].ax
+      y := vidgets["show_gamma"].ay
+      }
+
+   WAttrib("drawop=reverse")
+   DrawString(x, y, old_gamma)
+   DrawString(x, y, gamma)
+   WAttrib("drawop=copy")
+
+   old_gamma := gamma
+
+   return
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=337,210", "bg=pale gray"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,337,210:",],
+   ["10:Label:::109,97,21,13:1.0",],
+   ["20:Label:::193,97,28,13:10.0",],
+   ["3:Label:::23,97,21,13:0.1",],
+   ["continuous:Button:regular:1:12,120,126,20:continuous update",continuous_cb],
+   ["file:Menu:pull::0,2,36,21:File",file_cb,
+      ["load @L","save @S","quit @Q"]],
+   ["gamma:Scrollbar:h::12,62,305,16:-1.0,2.0,2.0",gamma_cb],
+   ["glabel:Label:::102,37,112,13:gamma correction",],
+   ["label1:Label:::276,97,35,13:100.0",],
+   ["label2:Label:::117,162,56,13:gamma = ",],
+   ["line1:Line:::0,23,336,23:",],
+   ["line2:Line:::34,80,34,90:",],
+   ["line3:Line:::209,80,209,90:",],
+   ["line4:Line:::121,80,121,90:",],
+   ["line5:Line:::295,80,295,90:",],
+   ["reset:Button:regular::57,159,42,20:reset",reset_cb],
+   ["set:Button:regular::12,159,35,20:set",set_cb],
+   ["show_gamma:Button:regularno::179,174,35,20:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

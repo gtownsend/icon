@@ -1,0 +1,342 @@
+############################################################################
+#
+# File  :   brickio.icn
+# Author:   Henrik Sandin
+# Date  :   May 3, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# This file contains procedures for reading and writing bricks to disk.
+# The file format for a brick is as follows:
+#
+# *.brk*
+# <color>
+# <matrix string corresponding to imagestring1>
+# <matrix string corresponding to imagestring2>
+# <matrix string corresponding to imagestring3>
+# <matrix string corresponding to imagestring4>
+# <imagestring1>
+# <imagestring2>
+# <imagestring3>
+# <imagestring4>
+#
+############################################################################
+
+############################################################################
+#
+# Procedure: wait_message
+# Arguments: parent_window - Parent window of this message window.
+#            message       - Message to display.
+# Returns  : wait_window   - The new message window.
+#
+# This procedure creates and returns a window containig the given message.
+# Its position is set relative to its parent window.
+#
+############################################################################
+
+procedure wait_message( parent_window, message)
+
+    if wait_window :=
+	WOpen( "label=" || WAttrib( parent_window, "label"), "size=350,160",
+	       "posx=" || WAttrib( parent_window, "posx")-60,
+	       "posy=" || WAttrib( parent_window, "posy")+60,
+	       "bg=gray-white") then {
+
+	Font( wait_window, Font( parent_window))
+	CenterString( wait_window,
+		      WAttrib( wait_window, "width")/2, 30,
+		      message)
+	DrawRectangle( wait_window, 75, 60, 200, 30)
+	CenterString( wait_window,
+		      WAttrib( wait_window, "width")/2, 130,
+		      "0% done.")
+    }
+    else write( "Could not open wait-message window.")
+    return wait_window
+end
+
+############################################################################
+#
+# Procedure: work_done
+# Arguments: wait_window - An io  waiting window.
+#            percentage  - An integer between 0 and 100.
+# Returns  : Nothing.
+#
+# This procedure updates an io waiting windows percentage display to
+# the given percentage.
+#
+############################################################################
+
+procedure work_done( wait_window, percentage)
+
+    FillRectangle( wait_window, 75, 60, (percentage/100.0)*200, 30)
+    EraseArea( wait_window, 140, 120, 70, 20)
+    CenterString( wait_window,
+		  WAttrib( wait_window, "width")/2, 130,
+		  string( percentage) || "% done.")
+    return
+end
+
+############################################################################
+#
+# Procedure: save_prompt
+# Arguments: parent_window - The window of the calling application..
+# Returns  : Nothing.
+#
+# This procedure shows a dialog box with buttons "Yes" and "No", asking the
+# user if he/she wants to save the current brick.
+# If "Yes" is pressed, the brick is saved.
+#
+############################################################################
+
+procedure save_prompt( parent_window)
+
+    button_pressed :=
+	TextDialog( parent_window,
+		   ["Save current brick first?"],
+		   [],
+		   [],
+		   [],
+		   ["Yes", "No"])
+    
+    case button_pressed of {
+	"Yes" : {
+	    save_brick( parent_window)
+	}
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: scan_filename
+# Arguments: name     - A filename.
+# Returns  : filename - The same filename possibly altered.
+#
+# This procedure checks if the given filename contains the substring ".brk"
+# and in that case discards the characters following ".brk".
+# If it does not contain ".brk", that is appended to the end of the name
+# string.
+#
+############################################################################
+
+procedure scan_filename( name)
+
+    name ? {
+	if position := find( ".brk") then
+	    filename := tab( position) || ".brk"
+	else
+	    filename := dialog_value || ".brk"
+    }
+    return filename
+end
+
+############################################################################
+#
+# Procedure: load
+# Arguments: request_window - The window of the calling application.
+#            filename       - A filename.
+# Returns  : A 'brick' record containing the data of the loaded brick file.
+#
+# This procedure opens a file with the given filename if it can be opened
+# and reads its contents into varibles stored in a record of type 'brick'
+# which is returned. If the file is not on the expected format, an error
+# message is displayed and the load is aborted.
+#
+############################################################################
+
+procedure load( request_window, filename)
+    
+    brickfile := open( filename) | {
+	Notice( request_window, "Could not open '" || filename || "'.")
+	return
+    }
+
+    header := read( brickfile) | {
+	Notice( request_window, "File format not recognized.")
+	return 
+    }
+    if header ~== "*.brk*" then {
+	Notice( request_window, "File format not recognized.")
+	return
+    }
+
+    color := read( brickfile) | {
+	Notice( request_window, "File format not recognized.")
+	return
+    }
+    if invalid( color) then {
+	Notice( request_window, "File format not recognized.")
+	return
+    }
+
+    matrix_string := read( brickfile) | {
+	Notice( request_window, "File format not recognized.")
+	return
+    }
+    matrix1 := stom( matrix_string)
+    matrix_string := read( brickfile) | {
+	Notice( request_window, "File format not recognized.")
+	return
+    }
+    matrix2 := stom( matrix_string)
+    matrix_string := read( brickfile) | {
+	Notice( request_window, "File format not recognized.")
+	return
+    }
+    matrix3 := stom( matrix_string)
+    matrix_string := read( brickfile) | {
+	Notice( request_window, "File format not recognized.")
+	return
+    }
+    matrix4 := stom( matrix_string)
+
+    image1 := read( brickfile) | {
+	Notice( request_window, "File format not recognized.")
+	return
+    }
+    image2 := read( brickfile) | {
+	Notice( request_window, "File format not recognized.")
+	return
+    }
+    image3 := read( brickfile) | {
+	Notice( request_window, "File format not recognized.")
+	return
+    }
+    image4 := read( brickfile) | {
+	Notice( request_window, "File format not recognized.")
+	return
+    }
+    close( brickfile)
+    return brick( color,
+		  &null,
+		  [matrix1, matrix2, matrix3, matrix4],
+		  [image1, image2, image3, image4])
+end
+
+############################################################################
+#
+# Procedure: open_brick
+# Arguments: request_window - The window of the calling application.
+# Returns  : brick_data - A record of type brick.
+#
+# This procedure shows an open dialog box with buttons "Ok" and "Cancel",
+# where the user is asked to enter the name of a brick to open from a file.
+# The filename is scanned and possibly have ".brk" appended to it, then
+# checked if it was empty. If there was no filename, the open dialog re-
+# appears until the user enters a filename or cancel is pressed. The same
+# thing happens if the brick data could not be loaded correctly due to a
+# file on the wrong format.
+# If the brick data was successfully loaded, they are returned as a record
+# of type 'brick'.
+#
+############################################################################
+
+procedure open_brick( request_window)
+
+    button_pressed := OpenDialog( request_window, "Open brick. Enter filename:")
+    case button_pressed of {
+	"Okay" : {
+	    filename := scan_filename( dialog_value)
+
+	    if filename == ".brk" then {
+		Notice( request_window, "File must have a name.")
+		return open_brick( request_window)
+	    }
+	    if /(brick_data := load( request_window, filename)) then 
+		return open_brick( request_window)
+	}
+    }
+    return brick_data
+end
+
+############################################################################
+#
+# Procedure: save
+# Arguments: request_window - The window of the calling application.
+#            filename       - A filename.
+#            brick_data     - A record of type 'brick'.
+# Returns  : Nothing.
+#
+# This procedure opens a file with the given filename if it can be opened
+# and writes the contents of the 'brick' record to the file.
+# It fails if the file could not be opened.
+#
+############################################################################
+
+procedure save( request_window, filename, brick_data)
+
+    brickfile := open( filename, "ct") | {
+	Notice( request_window, "Could not open or create '" || filename || "'.")
+	fail
+    }
+    write( brickfile, "*.brk*")
+    write( brickfile, brick_data.color)
+    write( brickfile, mtos( brick_data.matrices[1]))
+    write( brickfile, mtos( brick_data.matrices[2]))
+    write( brickfile, mtos( brick_data.matrices[3]))
+    write( brickfile, mtos( brick_data.matrices[4]))
+    write( brickfile, brick_data.images[1])
+    write( brickfile, brick_data.images[2])
+    write( brickfile, brick_data.images[3])
+    write( brickfile, brick_data.images[4])
+    close( brickfile)    
+    return
+end
+
+############################################################################
+#
+# Procedure: save_brick
+# Arguments: request_window - The window of the calling application.
+# Returns  : Nothing.
+#
+# This procedure shows a save dialog box with buttons "Yes", "No" and
+# "Cancel", where the user is asked to enter the name of the brick to be
+# saved to a file.
+# The filename is scanned and possibly have ".brk" appended to it, then
+# checked if it was empty. If there was no filename, the open dialog re-
+# appears until the user enters a filename or cancel is pressed. The same
+# thing happens if the brick data could not be saved correctly due to a
+# file opening error.
+# If the brick data was successfully saved, 'saved' is set to 'YES'.
+# A waiting message is displayed during the saving.
+#
+############################################################################
+
+procedure save_brick( request_window)
+
+    button_pressed := SaveDialog( request_window, "Save brick. Enter filename:")
+    case button_pressed of {
+	"Yes" : {
+	    filename := scan_filename( dialog_value)
+	    
+	    if filename == ".brk" then {
+		Notice( request_window, "File must have a name.")
+		save_brick( request_window)
+		return		    
+	    }
+	    wait_window := wait_message( request_window,
+					 "Saving brick, please wait.")
+
+	    old_pointer := WAttrib( wait_window, "pointer")
+	    if old_pointer == "left ptr" then
+		WAttrib( wait_window, "pointer=watch")
+	    else
+		WAttrib( wait_window, "pointer=wait")
+	
+	    brick_data := assemble_data( wait_window)
+	    if not save( request_window, filename, brick_data) then {
+		save_brick( request_window)
+		return
+	    }
+	    work_done( wait_window, 100)
+	    WAttrib( wait_window, "pointer=" || old_pointer)
+	    if \wait_window then WClose( wait_window)
+	}
+    }
+    return
+end

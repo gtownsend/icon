@@ -1,0 +1,316 @@
+############################################################################
+#
+#	File:     ttt.icn
+#
+#	Subject:  Program to play tic-tac-toe
+#
+#	Author:   Chris Tenaglia
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program plays the game of tic-tac-toe.
+#
+############################################################################
+#
+#  Links:  random
+#
+############################################################################
+
+link random
+
+global me,you,true,false,draw,pointer,wins,pass,taken,winner
+global mark,row,routes,route
+
+procedure main()
+  local again, index, path, play, square, tmp, victory, your_last_move
+
+  init()
+  play := true
+  while play == true do
+    {
+    me      := set()      # computer is me
+    you     := set()      # player   is you
+    victory := ""         # nobodys' won yet
+    winner  := ""         # winner flag
+    pass    := 0          # start flag
+    taken   := table(false)    # taken position table (rather than set?)
+    display()
+#
+# computer makes first move
+#
+    insert(me,1)
+    taken[1] := true
+    display()
+#
+# player follows
+#
+    insert(you,(tmp := integer(get_your_move())))
+    taken[integer(tmp)] := true
+    display()
+    path := routes[tmp]              # players' move determines strategy
+    index := 2                       # points at 2nd move just happened
+
+#
+# computers' next move determined from strategy list
+#
+    insert(me,(tmp := integer(path[(index+:=1)])))
+    taken[tmp] := true
+    display()
+#
+# player follows
+#
+    insert(you,(tmp := integer(get_your_move())))
+    taken[integer(tmp)] := true
+    your_last_move := tmp
+    display()
+#
+# if didn't take position dictated, loss ensues
+#
+    if your_last_move ~= (tmp := integer(path[(index+:=1)])) then
+      {
+      winner := "me"
+      insert(me,tmp)
+      taken[tmp] := true
+      display()
+      done_yet()
+      write(at(1,22),chop(&host)," Wins, You Loose!")
+      every square := !row do writes(pointer[square],mark)
+      again := map(input(at(1,23) || "Another game? Y/N :"))[1]
+      if again=="y" then next
+      stop(at(1,23),"Game Over.",chop())
+      }
+
+#
+# user made a good move, continue (computer plays now)
+#
+    insert(me,(tmp := integer(path[(index+:=1)])))
+    taken[tmp] := true
+    display()
+#
+# player follows
+#
+    insert(you,(tmp := integer(get_your_move())))
+    taken[integer(tmp)] := true
+    your_last_move := tmp
+    display()
+
+#
+# if didn't take position dictated, loss ensues
+#
+    if your_last_move ~= (tmp := integer(path[(index+:=1)])) then
+      {
+      winner := "me"
+      insert(me,tmp)
+      taken[tmp] := true
+      display()
+      done_yet()
+      write(at(1,22),chop(&host)," Wins, You Loose!")
+      every square := !row do writes(pointer[square],mark)
+      again := map(input(at(1,23) || "Another game? Y/N :"))[1]
+      if again=="y" then next
+      stop(at(1,23),"Game Over.",chop())
+      }
+#
+# if players first move wasn't 5, they lose now too
+#
+    if integer(path[2]) ~= 5 then
+      {
+      tmp := integer(path[(index+:=1)])
+      winner := "me"
+      insert(me,tmp)
+      taken[tmp] := true
+      display()
+      done_yet()
+      write(at(1,22),chop(&host)," Wins, You Loose!")
+      every square := !row do writes(pointer[square],mark)
+      again := map(input(at(1,23) || "Another game? Y/N :"))[1]
+      if again=="y" then next
+      stop(at(1,23),"Game Over.",chop())
+      }
+
+#
+# user made a good move, continue (computer plays now)
+#
+    insert(me,(tmp := integer(path[(index+:=1)])))
+    taken[tmp] := true
+    display()
+    write(at(1,22),chop(),"Game was a draw.")
+    again := map(input(at(1,23) || "Another game? Y/N :"))[1]
+    if again=="y" then next
+    stop(at(1,23),"Game Over.",chop())
+    }
+  end
+#
+# procedure to display the current tictactoe grid and plays
+#               
+procedure display()
+  local line, x, y
+
+  if (pass +:= 1) = 1 then
+    {
+    write(cls(),uhalf(),"          T I C - T A C - T O E")
+    write(lhalf(),"          T I C - T A C - T O E")
+    write(trim(center("Computer is 'O' and you are 'X'",80)))
+    line := repl("q",60) ; line[21] := "n" ; line[41] := "n"
+    every y := 5 to 20 do writes(at(30,y),graf("x"))
+    every y := 5 to 20 do writes(at(50,y),graf("x"))
+    writes(at(10,10),graf(line))
+    writes(at(10,15),graf(line))
+    every x := 1 to 9  do writes(pointer[x],dim(x))
+    }
+  every writes(pointer[!me],high("O"))
+  every writes(pointer[!you],under("X"))
+  end
+                
+#
+# procedure to obtain a move choice from the player
+#
+procedure get_your_move()
+  local yours,all_moves
+  repeat {
+  writes(at(5,22))
+  yours := input("Enter block # (1-9) :")
+  writes(at(5,23),chop())
+  if not(integer(yours)) then
+    {
+    writes(at(5,23),beep(),"Invalid Input! Choose 1-9.")
+    next
+    }
+  if (1 > yours) | (yours > 9) then
+    {
+    writes(at(5,23),beep(),"Value out of range! Choose 1-9.")
+    next
+    }
+  if taken[integer(yours)] == true then
+    {
+    writes(at(5,23),beep(),"That position is already taken! Try again.")
+    next
+    }
+  break }
+  return integer(yours)
+  end
+
+#
+# procedure to test if computer has won, or the game is a draw
+#
+procedure done_yet()
+  local outcome, test, part
+
+  every outcome := !wins do
+    {
+    test := 0
+    every part := !outcome do
+      if member(you,part) then test +:= 1
+    if test = 3 then
+      {
+      winner := "you"
+      row    := outcome
+      mark   := high(blink("X"))
+      return true
+      }
+    }
+  every outcome := !wins do
+    {
+    test := 0
+    every part := !outcome do
+      if member(me,part) then test +:= 1
+    if test = 3 then
+      {
+      winner := "me"
+      row    := outcome
+      mark   := high(blink("O"))
+      return true
+      }             
+    }
+  if *me + *you > 8 then
+    {
+    winner := draw
+    return draw
+    }
+  return "not done yet"
+  end
+#
+# prompts for an input from the user
+#
+procedure input(prompt)
+  writes(prompt)
+  return read()
+  end
+#
+# procedures to output ansi graphics and attributes
+#
+procedure at(x,y)
+  return "\e[" || y || ";" || x || "f"
+  end
+  
+procedure graf(str)
+  return "\e(0" || str || "\e(B"
+  end
+
+procedure uhalf(str)
+  /str := ""
+  return "\e#3" || str
+  end
+
+procedure lhalf(str)
+  /str := ""
+  return "\e#4" || str
+  end
+
+procedure high(str)
+  return "\e[1m" || str || "\e[0m"
+  end
+
+procedure normal(str)
+  return "\e[0m" || str
+  end
+
+procedure dim(str)
+  return "\e[2m" || str || "\e[0m"
+  end
+  
+procedure under(str)
+  return "\e[4m" || str || "\e[0m"
+  end
+
+procedure blink(str)
+  return "\e[5m" || str || "\e[0m"
+  end
+
+procedure cls(str)
+  /str := ""
+  return "\e[2J\e[H" || str
+  end
+
+procedure chop(str)
+  /str := ""
+  return "\e[J" || str
+  end
+
+procedure beep()
+  return "\7"
+  end
+#
+# procedure to init useful global variables for later use
+#
+procedure init()
+  true    := "y"
+  false   := "n"
+  draw    := "?"
+  randomize()
+  routes  := ["-","1274958","1374958","1432956","1547328",
+                  "1632745","1732956","1874352","1974352"]
+  wins    := [set([1,5,9]),set([3,5,7]),set([1,2,3]),set([4,5,6]),
+              set([7,8,9]),set([1,4,7]),set([2,5,8]),set([3,6,9])]
+  pointer := [at(17,7), at(37,7), at(57,7),
+              at(17,12),at(37,12),at(57,12),
+              at(17,17),at(37,17),at(57,17)]
+  end
+  
+

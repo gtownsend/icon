@@ -1,0 +1,64 @@
+############################################################################
+#
+#	File:     seqimage.icn
+#
+#	Subject:  Procedures to produce string image of Icon result sequence
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 20, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     The procedure Seqimage{e,i,j} produces a string image of the
+#  result sequence for the expression e. The first i results are
+#  printed. If i is omitted, there is no limit. If there are more
+#  than i results for e, ellipses are provided in the image after
+#  the first i.  If j is specified, at most j results from the end
+#  of the sequence are printed after the ellipses.  If j is omitted,
+#  only the first i results are produced.
+#  
+#     For example, the expressions
+#  
+#     Seqimage{1 to 12}
+#     Seqimage{1 to 12,10}
+#     Seqimage{1 to 12,6,3}
+#  
+#  produce, respectively,
+#  
+#     {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
+#     {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, ...}
+#     {1, 2, 3, 4, 5, 6, ..., 10, 11, 12}
+#  
+#  
+#  Warning: If j is not omitted and e has an infinite result sequence,
+#  Seqimage{} does not terminate.
+#  
+############################################################################
+
+procedure Seqimage(L)
+   local seq, result, i, j, resid
+
+   seq := ""
+   i := @L[2]
+   j := @L[3]
+   while result := image(@L[1]) do
+      if *L[1] > \i then {
+         if /j then {
+            seq ||:= ", ..."
+            break
+            }
+         else {
+            resid := [", " || result]
+            every put(resid,", " || image(|@L[1]))
+            if *resid > j then seq ||:= ", ..."
+            every seq ||:= resid[*resid -j + 1 to *resid]
+            }
+         }
+      else seq ||:= ", " || result
+   return "{" || seq[3:0] || "}" | "{}"
+end

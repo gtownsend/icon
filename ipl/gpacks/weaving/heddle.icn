@@ -1,0 +1,426 @@
+############################################################################
+#
+#	File:     heddle.icn
+#
+#	Subject:  Program to find thread colors for weaving
+#
+#	Author:   Will Evans
+#
+#	Date:     April 19, 1999
+#
+############################################################################
+#
+#	Contributor:  Gregg Townsend
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Heddle solves a coloring problem inspired by weaving.  Given a
+#	multicolored rectangular pattern, assign colors to warp and weft
+#	threads that will allow the pattern to be woven on a loom.
+#	We ignore questions of structural integrity and insist only
+#	that each cell's color be matched by either the corresponding
+#	warp thread (column color) or weft thread (row color).
+#
+############################################################################
+#
+#	Usage:  heddle filename
+#
+#	Input is an image file (GIF, XBM) to be mapped to the c1 palette,
+#	or an image string acceptable to readims().  The maximum size is
+#	256 x 256.
+#
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: graphics, imscolor, imsutils
+#
+############################################################################
+
+
+link graphics
+link imscolor
+link imsutils
+
+global opts		# command options
+global fname		# input file name
+global imstring		# image string from input file
+global nrows		# number of rows in input image
+global ncols		# number of columns in input image
+global palette		# palette type (e.g. "c1")
+global data		# image data
+
+##############################  MAIN  ##############################
+
+procedure main(args)
+    local g
+
+    *args >= 1 | stop("usage: ", &progname, " imsfile <imsfile>*")
+
+    every (fname := !args) do {
+	if not readWeaving(fname) then {
+	    write(&errout,fname," : Can't load file")
+	} else {
+	    g := implicationGraph()
+#	    writeGraph(g)
+
+	    scc(g)
+#	    writes("finishOrder ")
+#	    writeList(finishOrder)
+#	    writes("visited ")
+#	    writeForest(visited)
+
+	    if not assignColors() then {
+		write(&errout,fname," : Can't assign colors")
+#		writeForest(visited)
+	    } else {
+		dpygrid(fname)
+	    }
+	}
+    }
+    return
+end
+
+
+
+##############################  INPUT  ##############################
+
+#  readWeaving(fname) -- load image from file, convert to imstring
+#                        if necessary
+
+procedure readWeaving(fname)
+    local f, s
+
+    if f := WOpen("canvas=hidden", "image=" || fname) then {
+	if WAttrib(f, "width" | "height") > 256 then
+	    write("image exceeds 256 x 256") & fail
+	imstring := Capture(f, "c1") |
+	    (write("can't init captured image") & fail)
+	WClose(f)
+    } else {
+	f := open(fname) | fail
+	imstring := readims(f) | fail
+	close(f)
+    }
+    ncols := imswidth(imstring) | fail
+    nrows := imsheight(imstring) | fail
+    palette := imspalette(imstring) | fail
+    data := (imstring ? 3(tab(upto(',')+1), tab(upto(',')+1), tab(0))) | fail
+    if *data ~= nrows * ncols then
+	write("malformed image string: wrong data length") & fail
+    if nrows > 256 || ncols > 256 then
+	write("pattern exceeds 256 x 256") & fail
+    return
+end
+
+
+
+#########################  Graph Structure  ###########################
+#
+# Consists of a table of lists of strings.
+# The strings are vertex names.
+# The table is indexed by vertex names.
+# T["x1==c"] is a list of neighbors of vertex "x1==c"
+# The naming convention of vertices used in loom is:
+#
+#      <x|y><==|~=><color character>
+#
+# "x1==c" is a vertex that says "the first warp thread is color c"
+# "y3~=c" means the third weft thread is NOT color c"
+#
+#######################################################################
+
+
+#########################  Depth First Search  ########################
+
+global visited				# keep track of visited vtcs
+global finishOrder			# vertex list: rev. finish order
+global treeNumber			# DFS tree number
+
+$define RECURSIVE_DFS
+$ifdef RECURSIVE_DFS
+
+procedure dfs(g,visitOrder)
+    local v
+
+    finishOrder := []			# vertex list: rev. finish order
+    visited := table()			# table of visited vtcs (holds their
+    treeNumber := 1			# DFS tree number)
+
+    if /visitOrder then {
+	visitOrder := []
+	every put(visitOrder,key(g))
+    }
+    every /visited[v := !visitOrder] do {	# loop over unvisited vertices
+	dfsFrom(g,v)
+	treeNumber +:= 1
+    }
+    return
+end
+
+procedure dfsFrom(g,v)
+    local w
+
+    visited[v] := treeNumber		# mark vertex with its DFStree number
+    every /visited[w := !g[v]] do {	# loop over unvisited nbrs
+	dfsFrom(g,w)			# push dfs from nbr onto tree
+    }
+    push(finishOrder,v)		# store as finished
+    return
+end
+
+$else
+
+procedure dfs(g,visitOrder)
+    local v, w, stack
+
+    stack := []				# stack for DFS
+    finishOrder := []			# vertex list: rev. finish order
+    visited := table()			# table of visited vtcs (holds their
+    treeNumber := 0			# DFS tree number)
+
+    if /visitOrder then {		# arbitrary visitOrder if not given
+	visitOrder := []
+	every put(visitOrder,key(g))
+    }
+    every /visited[v := !visitOrder] do {	# loop over unvisited vertices
+	treeNumber +:= 1
+	visited[v] := treeNumber	# assign treeNumber
+	put(g[v],"*")			# add mark to end of adj list
+	push(stack,v)			# push vertex onto stack
+	while (v := stack[1]) do {
+	    w := get(g[v])		# get next nbr of v
+	    if w == "*" then {		# exhausted nbrs so pop v
+		push(finishOrder,pop(stack))
+	    } else {
+		put(g[v],w)		# put nbr at end of v's adj list
+		if /visited[w] then {	# if w not visited then visit...
+		    visited[w] := treeNumber
+		    put(g[w],"*")
+		    push(stack,w)	# ...and stack
+		}
+	    }
+	}
+    }
+end
+
+$endif
+
+#########################  Strongly Connected Components  #############
+# Sets "visited" to be SCC number of vertices in g:
+# If visited[v] = visited[w] then v and w in same SCC.
+# Sets "finishOrder" to be SCC-topoorder of vertices:
+# If (v,w) \in g then v and w in same SCC or v after w
+# in "finishOrder".
+
+procedure scc(g)
+    dfs(g)
+    dfs(transpose(g),copy(finishOrder))
+    return
+end
+
+
+#########################  Transpose  #################################
+
+procedure transpose(g)
+    local h, v, w
+
+    h := table()			# table of lists
+    every v := key(g) do {
+	/h[v] := []			# create empty adj list if needed
+	every w := !g[v] do {
+	    /h[w] := []
+	    put(h[w],v)
+	}
+    }
+    return h
+end
+
+
+#########################  Graph from Image  ##########################
+
+procedure implicationGraph()
+    local colors, i, j, c, d, g, x, y, notx, noty
+
+    colors := set()			# set of colors in image
+
+# Form an implication graph from the given data
+    g := table()				# graph = table of lists
+
+# Put in edges caused by the color matrix
+    data ? {
+	every j := 1 to nrows do {
+	    every i := 1 to ncols do {
+		c := move(1)
+		notx := "x"||i||"~="||c
+		noty := "y"||j||"~="||c
+		x := "x"||i||"=="||c
+		y := "y"||j||"=="||c
+		/g[notx] := []		# create empty adj lists if needed
+		/g[noty] := []
+		/g[x] := []
+		/g[y] := []
+		put(g[notx],y)		# xi~=c --> yj==c
+		put(g[noty],x)		# yj~=c --> xi==c
+		insert(colors,c)	# add color to set of seen colors
+	    }
+	}
+    }
+
+# Put in edges that say color for a thread must be unique
+    every c := !colors do {
+	every i := 1 to ncols do {
+	    every d := (c ~== !colors) do {
+		x := "x"||i||"=="||c
+		notx := "x"||i||"~="||d
+		/g[x] := []		# create empty adj lists if needed
+		/g[notx] := []
+		put(g[x],notx)		# xi==c --> xi~=d
+	    }
+	}
+	every i := 1 to nrows do {
+	    every d := (c ~== !colors) do {
+		y := "y"||i||"=="||c
+		noty := "y"||i||"~="||d
+		/g[y] := []		# create empty adj lists if needed
+		/g[noty] := []
+		put(g[y],noty)		# yi==c --> yi~=d
+	    }
+	}
+    }
+    return g
+end
+
+#########################  Assign Colors  #############################
+# If "xi==c" and "xi~=c" (or "yj==c" and "yj~=c") both occur in the same
+# strongly connected component, for some character c and 1<=i<=nrows
+# (1<=j<=nrows), then there is no solution.
+#
+# If "xi==c" is first occurrence of "xi==*" (or "yi==c" is first of "yi==*")
+# in SCC-topoorder then the warp thread i (weft thread i) can be colored c.
+
+global colColor
+global rowColor
+
+procedure assignColors()
+    local v, xy, i, op, c
+
+    colColor := list(ncols)
+    rowColor := list(nrows)
+    every v := !finishOrder do {
+	v ? {				# parse vertex name
+	    xy := move(1)
+	    i := tab(many(&digits))
+	    op := move(2)
+	    c := move(1)
+	}
+	if (op == "==") then {
+	    if (xy == "x") & (/colColor[i]) then {
+		if (visited[v] == visited[xy||i||"~="||c]) then fail
+		colColor[i] := c
+	    } else if (xy == "y") & (/rowColor[i]) then {
+		if (visited[v] == visited[xy||i||"~="||c]) then fail
+		rowColor[i] := c
+	    }
+	}
+    }
+    return
+end
+
+
+#########################  OUTPUT  #############################
+
+#  dpygrid(label) -- display grid in window
+
+$define BACKGROUND "pale-weak-yellow"
+$define PREFSZ 800	# preferred size after scaling
+$define MAXMAG 10	# maximum magnification
+
+$define STRIPE 6	# space for thread color(s)
+$define GAP 1		# margin around image
+
+procedure dpygrid(label)
+    local s, x, y, c
+    static w, h, z, p, v
+
+    p := imspalette(imstring)
+    w := STRIPE + GAP + ncols + GAP + STRIPE
+    h := STRIPE + GAP + nrows + GAP + STRIPE
+    z := PREFSZ / w
+    z >:= PREFSZ / h
+    z <:= 1
+    z >:= MAXMAG
+    WOpen("width=" || (z * w), "height=" || (z * h), "bg=" || BACKGROUND) |
+	(write("can't open window") & fail)
+
+    EraseArea()
+    DrawImage(STRIPE + GAP, STRIPE + GAP, imstring)
+    y := 0
+    every c := !rowColor do {
+	Fg(PaletteColor(palette,c))
+	DrawPoint(STRIPE - 1, STRIPE + GAP + y)
+	DrawPoint(w - STRIPE, STRIPE + GAP + y)
+	y +:= 1
+    }
+    x := 0
+    every c := !colColor do {
+	Fg(PaletteColor(palette,c))
+	DrawPoint(STRIPE + GAP + x, STRIPE - 1)
+	DrawPoint(STRIPE + GAP + x, h - STRIPE)
+	x +:= 1
+    }
+
+    Zoom(0, 0, w, h, 0, 0, z * w, z * h)
+
+    if nrows <= z * STRIPE & ncols <= z * STRIPE then
+	every DrawImage(1 | z * w - ncols - 1, 1 | z * h - nrows - 1, imstring)
+
+    WAttrib("label=" || fname || ": " || label)
+    until Event() === QuitEvents()
+    WClose()
+    return
+end
+
+##############################  DEBUG  #############################
+
+procedure writeGraph(g)
+    local v
+    every v := key(g) do {
+	writes(v,":")
+	writeList(g[v])
+    }
+    return
+end
+
+procedure writeList(L)
+    writes("[")
+    every writes(!L,",")
+    write("]")
+    return
+end
+
+procedure writeForest(F)
+    local pair, index
+    
+    index := 0
+    every pair := !sort(F,2) do {
+	if (index ~== pair[2]) then {
+	    write()
+	    writes(index +:= 1,": ")
+	}
+	writes(pair[1]," ")
+    }
+    write()
+    return
+end    
+
+
+
+

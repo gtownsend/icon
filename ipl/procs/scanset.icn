@@ -1,0 +1,68 @@
+############################################################################
+#
+#	File:     scanset.icn
+#
+#	Subject:  Procedures setup for string scanning procedures
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     June 4, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Procedure to set up for user-written string-scanning procedures that
+#  are in the spirit of Icon's built-ins.
+#
+#  The values passed are the s, i1, i2 parameters which are the last
+#  three arguments to all Icon scanning functions (such as
+#  upto(c,s,i1,i2)).  scan_setup() supplies any appropriate defaults and
+#  returns needed values.
+# 
+#  The value returned is a "scan_setup_result" record consisting of two
+#  values:
+#
+#	1.  The substring of s to be scanned (ss).
+#	2.  The size of the substring of s that precedes the
+#	    substring to be scanned (offset).
+#
+#  scan_setup() fails if i1 or i2 is out of range with respect to s.
+#
+#  The user-written procedure can then match in the string ss to compute
+#  the position within ss appropriate to the scan (p).  The value
+#  returned (or suspended) to the caller is p + offset (the position
+#  within the original string, s).
+#
+#  For example, the following function finds two words separated by
+#  spaces:
+#
+#	procedure two_words(s,i1,i2)
+#	   local x,p
+#	   x := scan_setup(s,i1,i2) | fail	# fail if out of range
+#	   x.ss ? suspend {
+#	      tab(upto(&letters)) &
+#	      pos(1) | (move(-1) & tab(any(~&letters))) &
+#	      p := &pos &		# remember starting position
+#	      tab(many(&letters)) &
+#	      tab(many(' ')) &
+#	      tab(many(&letters)) &
+#	      p + x.offset		# return position in original s
+#	      }
+#	end
+#
+
+record scan_setup_result(
+   ss,		# substring to be scanned
+   offset)	# length of substring preceding ss
+
+procedure scan_setup(s,i1,i2)
+   if /s := &subject then
+      /i1 := &pos
+   else
+      /i1 := 1
+   /i2 := 0
+   return scan_setup_result(s[i1:i2],match("",s,i1,i2) - 1)
+end

@@ -1,0 +1,179 @@
+############################################################################
+#
+#	File:     printf.icn
+#
+#	Subject:  Procedures for printf-style formatting
+#
+#	Author:   William H. Mitchell
+#
+#	Date:     September 2, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Contributors:   Cheyenne Wills and Phillip Lee Thomas
+#
+############################################################################
+#
+#     This procedure behaves somewhat like the standard printf.
+#  Supports d, s, o, and x formats like printf.  An "r" format
+#  prints real numbers in a manner similar to that of printf's "f",
+#  but will produce a result in an exponential format if the number
+#  is larger than the largest integer plus one.
+#
+#     Left or right justification and field width control are pro-
+#  vided as in printf.   %s and %r handle precision specifications.
+#
+#     The %r format is quite a bit of a hack, but it meets the
+#  author's requirements for accuracy and speed.  Code contributions
+#  for %f, %e, and %g formats that work like printf are welcome.
+#
+#     Possible new formats:
+#
+#	   %t -- print a real number as a time in hh:mm
+#	   %R -- roman numerals
+#	   %w -- integers in english
+#	   %b -- binary
+#
+############################################################################
+
+procedure sprintf(format, args[])
+	return _doprnt(format, args)
+end
+
+procedure fprintf(file, format, args[])
+	writes(file, _doprnt(format, args))
+	return
+end
+
+procedure printf(format, args[])
+	writes(&output, _doprnt(format, args))
+	return
+end
+
+procedure _doprnt(format, args)
+   local out, v, just, width, conv, prec, pad
+
+	out := ""
+	format ? repeat {
+		(out ||:= tab(upto('%'))) | (out ||:= tab(0) & break)
+		v := get(args)
+		move(1)
+		just := right
+		width := conv := prec := pad := &null
+		="-" & just := left
+		width := tab(many(&digits))
+		(\width)[1] == "0" & pad := "0"
+		="." & prec := tab(many(&digits))
+		conv := move(1)
+
+		##write("just: ",image(just),", width: ", width, ", prec: ",
+		## prec, ", conv: ", conv)
+		case conv of {
+		    "d": {
+			v := string(integer(v))
+			}
+		    "s": {
+			v := string(v[1:(\prec+1)|0])
+			}
+		    "x": v := hexstr(v)
+		    "o": v := octstr(v)
+		    "i": v := image(v)
+		    "r": v := fixnum(v,prec)
+		    default: {
+			push(args, v)
+			v := conv
+			}
+		    }
+		if \width & *v < width then {
+			v := just(v, width, pad)
+			}
+		out ||:= v
+		}
+
+	return out
+end
+
+procedure hexstr(n)
+   local h, neg
+   static BigNeg, hexdigs, hexfix
+
+	initial {
+		BigNeg := -2147483647-1
+		hexdigs := "0123456789abcdef"
+		hexfix := "89abcdef"
+		}
+
+	n := integer(n)
+	if n = BigNeg then
+		return "80000000"
+	h := ""
+	if n < 0 then {
+		n := -(BigNeg - n)
+		neg := 1
+		}
+	repeat {
+		h := hexdigs[n%16+1]||h
+		if (n /:= 16) = 0 then
+			break
+		}
+	if \neg then {
+		h := right(h,8,"0")
+		h[1] := hexfix[h[1]+1]
+		}
+	return h
+end
+procedure octstr(n)
+   local h, neg
+   static BigNeg, octdigs, octfix
+
+	initial {
+		BigNeg := -2147483647-1
+		octdigs := "01234567"
+		octfix := "23"
+		}
+
+	n := integer(n)
+	if n = BigNeg then
+		return "20000000000"
+	h := ""
+	if n < 0 then {
+		n := -(BigNeg - n)
+		neg := 1
+		}
+	repeat {
+		h := octdigs[n%8+1]||h
+		if (n /:= 8) = 0 then
+			break
+		}
+	if \neg then {
+		h := right(h,11,"0")
+		h[1] := octfix[h[1]+1]
+		}
+	return h
+end
+
+procedure fixnum(x, prec)
+   local int, frac, f1, f2, p10
+
+	/prec := 6
+	int := integer(x) | return image(x)
+	frac := image(x - int)
+	if find("e", frac) then {
+		frac ?:= {
+			f1 := tab(upto('.')) &
+			move(1) &
+			f2 := tab(upto('e')) &
+			move(1) &
+			p10 := -integer(tab(0)) &
+			repl("0",p10-1) || f1 || f2
+			}
+		}
+	else
+		frac ?:= (tab(upto('.')) & move(1) & tab(0))
+	frac := left(frac, prec, "0")
+	return int || "." || frac
+end

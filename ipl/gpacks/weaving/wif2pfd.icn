@@ -1,0 +1,85 @@
+############################################################################
+#
+#	File:     wif2pfd.icn
+#
+#	Subject:  Program to convert WIFs to PFDs
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 13, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  The following options are supported:
+#
+#	-p s	palette; default "c1"
+#	-n s	name; default "untitled"
+#
+#  Note:  The output is a pattern-form draft with the following lines:
+#
+#	name
+#	threading sequence
+#	treadling sequence
+#	warp color sequence
+#	weft color sequence
+#	shafts
+#	treadles
+#	palette
+#	colors
+#	tieup
+#	liftplan
+#
+#  There is a problem where there is treadling with multiple treadles
+#  and no liftplan.  *Presumably* that treadling can be used like a
+#  liftplan, but without, necessarily, a direct tie-up.  This problem
+#  problem has not been addressed yet.
+#
+#  If there is a liftplan, then a direct tie-up is implied by the
+#  wording in the WIF documentation.  However, that's in the interpretation
+#  of the draft.  The tie-up produced here is the one given in the
+#
+#  If there is a liftplan and a treadling with multiple treadles,
+#  the treadling is ignored.
+#
+#  Also not handled is the possibility of multiple shafts per thread.
+#  This could be dealt with as for the liftplan.  The idea is that
+#  instead of a threading corresponding to a single shaft, there are
+#  some number of different shaft patterns, like there are liftplan
+#  patterns.
+#
+#  The liftplan is represented as concatenated rows of shaft patterns in the
+#  irder they first appear.  Thus, the symbols used for them can be
+#  reconstructed with the PFD is processed.
+#
+#  This program does not attempt to detect or correct errors in WIFs,
+#  but it does try to work around some common problems.
+#
+############################################################################
+#
+#  Links:  options, wifcvt
+#
+############################################################################
+
+link options
+link wifcvt
+
+global data_default
+global data_entries
+global sections
+global wif
+
+procedure main(args)
+   local opts, title, palette
+
+   opts := options(args, "n:p:")
+
+   title := \opts["n"] | "untitled"
+   palette := \opts["p"] | "c1"
+
+   writepfd(&output, wif2pfd(&input, title, palette))
+
+end

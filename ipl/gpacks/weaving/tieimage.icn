@@ -1,0 +1,65 @@
+############################################################################
+#
+#	File:     tieimage.icn
+#
+#	Subject:  Program to create images for tie-ups
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 6, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program produces GIF images for tie-ups given in a file named
+#  on the command line.
+#
+#  The following options are supported:
+#
+#	-b s	background, default "white"
+#	-f s	foreground, default "black"
+#	-s i	Cell size; default 10.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics  
+#
+############################################################################
+#
+#  Links:  options, tieutils, wopen
+#
+############################################################################
+
+link options
+link tieutils
+link wopen
+
+procedure main(args)
+   local tie, panel, count, input, prefix, opts, size, fg, bg
+
+   opts := options(args, "b:f:s+")
+
+   bg := \opts["b"] | "white"
+   fg := \opts["f"] | "black"
+   size := \opts["s"] | 10
+
+   input := open(args[1]) | stop("*** cannot open file")
+
+   args[1] ? {
+      prefix := tab(upto('.')) | "tie"
+      }
+
+   prefix ||:= "_"
+
+   count := 0
+
+   while tie := read(input) do {
+      panel := showtie(tie, size, fg, bg)
+      WriteImage(panel.window, prefix || right(count +:= 1, 3, "0") || ".gif")
+      WClose(panel.window)
+      }
+
+end

@@ -1,0 +1,18 @@
+j=$1
+shift
+for i in `cat $j.lst`
+do
+   rm -f local/$i.out
+   echo Compiling $i
+   ../../bin/iconc -s $* $i.icn
+   echo Running $i
+   if test -r $i.dat
+   then
+      ./$i <$i.dat >local/$i.out 2>&1
+   else
+      ./$i >local/$i.out 2>&1
+   fi
+   echo Checking $i
+   diff local/$i.out stand/$i.out
+   rm -f $i
+done

@@ -1,0 +1,80 @@
+############################################################################
+#
+#	File:     mandala.icn
+#
+#	Subject:  Program to draw mandala design
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 13, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program draws "mandala" patterns.
+#
+#  The following options are supported:
+#
+#	-g	run continuously; ignore user events; default: process user
+#		  events
+#	-l i	limit on number of iterations, default 2 ^ 10
+#	-n i	maximum number of points, default 50
+#	-s i	size of window (width/height); default 256
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  gobject, interact, joinpair, options, wopen
+#
+############################################################################
+
+link gobject
+link interact
+link joinpair
+link options
+link wopen
+
+procedure main(args)
+   local i, j, k, angle, incr, xpoint, ypoint, size, radius, opts
+   local extent, max, limit, run, points
+
+   opts := options(args, "gl+n+s+")
+
+   extent := \opts["s"] | 256
+   limit := \opts["l"] | (2 ^ 10)
+   max := \opts["n"] | 50
+   run := opts["g"]
+
+   radius := extent / 2
+
+   WOpen("label=mandala", "width=" || extent, "height=" || extent,
+      "bg=light gray", "dx=" || (extent / 2), "dy=" || (extent / 2)) |
+         ExitNotice("Cannot open window.")
+
+   every 1 to limit do {
+      i := ?max
+      if i < 4 then i+:= 3 +  ?10		# too few doesn't work well ...
+      points := list(i)
+      angle := 0.0
+      incr := 2 * &pi / i
+      every j := 1 to i do {
+         points[j] := Point(radius * cos(angle), radius * sin(angle))
+         angle +:= incr
+         }
+      joinpair(points, points)
+      if /run then repeat case Event() of {
+         "q":   exit()
+         "s":   snapshot()
+         "n":   break
+         }
+      WDelay(1000)
+      EraseArea()
+      }
+   
+end

@@ -1,0 +1,81 @@
+############################################################################
+#
+#	File:     bkutil.icn
+#
+#	Subject:  Procedures for HP95LX phone books and appointment books
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# Utility procedures for HP95LX phone book and appointment book processing.
+#
+############################################################################
+#
+#  See also: abkform.icn, pbkform.icn
+#
+############################################################################
+
+procedure bk_int(i)
+   return char(i % 256) || char(i / 256)
+end
+
+procedure bk_read_int(f)
+   return ord(reads(f)) + 256 * ord(reads(f))
+end
+
+procedure bk_format_lines(s,width)
+   local lines,lines2,line,c,lineSeg
+   /width := 39
+   lines := []
+   #
+   #  Make a list of the actual lines, as delimited by "\0".
+   #
+   s ? {
+      while put(lines,tab(find("\0"))) do move(1)
+      put(lines,"" ~== tab(0))
+      }
+   #
+   #  Now build a new list, with lines longer than "width" broken at
+   #  word boundaries.
+   #
+   lines2 := []
+   every line := !lines do {
+      while *line > width do {
+	 line ? {
+	    #
+	    #  Scan back from end of string to find a space
+	    #
+	    tab(width + 2)
+	    until pos(1) do {
+	       c := move(-1)
+	       if c == " " then break
+	       }
+	    if pos(1) then {
+	       #
+	       #  No space was found -- use next "width" chars.
+	       #
+	       lineSeg := move(width)
+	       line := tab(0)
+	       }
+	    else {
+	       #
+	       #  A space was found -- break line there.
+	       #
+	       lineSeg := &subject[1:&pos]
+	       move(1)
+	       line := tab(0)
+	       }
+	    put(lines2,lineSeg)
+	    }
+	 }
+      put(lines2,line)
+      }
+   return lines2
+end

@@ -1,0 +1,85 @@
+#############################################################################
+#
+#	File:     lastc.icn
+#
+#	Subject:  Procedures for string scanning
+#
+#	Author:   David A. Gamey
+#
+#	Date:     June 8, 1994
+#
+#############################################################################
+#
+#   This file is in the public domain.
+#
+#############################################################################
+#
+#     Descriptions:
+#
+#     lastc( c, s, i1, i2 ) : i3
+#
+#        succeeds and produces i1, provided either
+#        -  i1 is 1, or
+#        -  s[i1 - 1] is in c and i2 is greater than i1
+#
+#        defaults:   same as for any
+#        errors:     same as for any
+#
+#     findp( c, s1, s2, i1, i2 ) : i3, i4, ..., in
+#
+#        generates the sequence of positions in s2 at which s1 occurs
+#        provided that: 
+#        -  s2 is preceeded by a character in c,
+#           or is found at the begining of the string
+#        i1 & i2 limit the search as in find
+#
+#        defaults:   same as for find
+#        errors:     same as for find & lastc
+#
+#     findw( c1, s1, c2, s2, i1, i2 ) : i3, i4, ..., in
+#
+#        generates the sequence of positions in s2 at which s1 occurs
+#        provided that:
+#        -  s2 is preceeded by a character in c1, 
+#           or is found at the beginning of the string; 
+#        and
+#        -  s2 is succeeded by a character in c2,
+#           or the end of the string
+#        i1 & i2 limit the search as in find
+#
+#        defaults:   same as for find
+#        errors:     same as for find & lastc
+#
+#############################################################################
+
+procedure lastc( c, s, i1, i2 )
+
+if /s  := &subject then /i1 := &pos
+/i1 := 1
+/i2 := 0
+
+suspend ( ( i1 = 1 )  |  any( c, s, 0 < ( i1 - 1 ), i2 ) )
+end
+
+procedure findp( c, s1, s2, i1, i2 )
+
+if /s2 := &subject then /i1 := &pos 
+/i1 := 1
+/i2 := 0
+
+suspend lastc( c, s2, find( s1, s2, i1, i2 ), i2 )
+end
+
+procedure findw( c1, s1, c2, s2, i1, i2 )
+
+local csr,csr2
+
+if /s2 := &subject then /i1 := &pos 
+/i1 := 1
+/i2 := 0
+
+suspend 1(  csr := findp( c1, s1, s2, i1, i2 ),
+            csr2 := csr + *s1,
+            ( csr2 = ( *s2 + 1 ) ) | any( c2, s2, csr2, i2 )
+         )
+end

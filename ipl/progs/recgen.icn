@@ -1,0 +1,169 @@
+############################################################################
+#
+#	File:     recgen.icn
+#
+#	Subject:  Program to generate context-free recognizer
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 28, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This program reads a context-free BNF grammar and produces an Icon
+#  program that is a recognizer for the corresponding language.
+#
+#     Nonterminal symbols are are enclosed in angular brackets. Vertical
+#  bars separate alternatives.  All other characters are considered to
+#  be terminal symbols.  The nonterminal symbol on the first line is
+#  taken to be the goal.
+#
+#     An example is:
+#
+#	<expression>::=<term>|<term>+<expression>
+#	<term>::=<element>|<element>*<term>
+#	<element>::=x|y|z|(<expression>)
+#
+#     Characters in nonterminal names are limited to letters and underscores.
+#  An underscore is appended for the recognizing procedure name to avoid
+#  possible collisions with Icon function names.
+#
+#     Lines beginning with an = are passed through unchanged. This allows
+#  Icon code to be placed in the recognizer.
+#
+############################################################################
+#
+#  Limitations:
+#
+#     Left recursion in the grammar may cause the recognizer to loop.
+#  There is no check that all nonterminal symbols that are referenced
+#  are defined or for duplicate definitions.
+#
+############################################################################
+#
+#  Reference:
+#
+#     The Icon Programming Language, Second Edition, Ralph E. and Madge T.
+#     Griswold, Prentice-Hall, 1990. pp. 180-187.
+#
+############################################################################
+#
+#  See also:  pargen.icn
+#
+############################################################################
+
+global call			# name suffix and parens
+global goal			# nonterminal goal name
+global nchars			# characters allowed in a nonterminal name
+
+procedure main()
+   local line			# a line of input
+
+   call := "_()"
+   nchars := &letters ++ '_'
+
+   while line := read() do {		# process lines of input
+      line ? {
+         case move(1) of {		# action depends on first character
+            "<":  tab(0) ? transprod()	# transform the production
+            "=":  write(tab(0))		# pass through
+            default: error()
+            }				# end case
+         }				# end scan
+      }					# end while
+
+   write("procedure main()")		# write out the main procedure
+   write("   while line := read() do {")
+   write("      writes(image(line))")
+   write("      if line ? (",goal,call," & pos(0)) then ")
+   write("         write(\": accepted\")")
+   write("      else write(\": rejected\")")
+   write("      }")
+   write("end")
+
+end
+
+#
+#  Transform a production.
+#
+
+procedure transprod()
+   local sym				# the symbol being defined
+
+   {
+					# begin the procedure declaration
+      write("procedure ",sym := tab(many(nchars)),call) &
+      =">::="				# skip definition symbols
+      } | error()				# catch syntactic error
+   write("   suspend {")		# begin the suspend expression
+   transalts()				# transform the alternatives
+   write("      }")			# end the suspend expression
+   write("end")				# end the procedure declaration
+   write()				# space between declarations
+   /goal := sym				# first symbol is goal
+
+end
+
+#
+#  Transform a sequence of alternatives.
+#
+procedure transalts()
+   local alt				# an alternative
+
+   writes("      ")			# write indentation
+   while alt := tab(upto('|') | 0) do {	# process alternatives
+      writes(" (")			# open parenthesis for alternative
+      alt ? transseq()			# transform the symbols
+      if move(1) then writes(") |")	# if there's more, close the parentheses
+					# and add the alternation.
+      else {
+         write(")")			# no more, so just close the parentheses
+         break
+         }				# end else
+      }					# end while
+
+end
+
+#
+#  Transform a sequence of symbols.
+#
+procedure transseq()
+
+   repeat {
+      transsym()			# process a symbols
+      if not pos(0) then writes(",")	# if there's more, provide concatenation
+      else break			# else get out and return
+      }					# end while
+
+end
+
+#
+#  Transform a symbol.
+#
+procedure transsym()
+
+   if ="<" then {			# if it's a nonterminal
+      {					# write it with suffix.
+         writes(tab(many(nchars)),call) &
+         =">"				# get rid of closing bracket
+         } | error()			# or catch the error
+      }					# end then
+					# otherwise transform nonterminal string
+   else writes("=",image(tab(upto('<') | 0)))
+
+   return
+
+end
+
+#
+#  Issue error message and terminate execution.
+#
+procedure error()
+
+   stop("*** malformed definition: ",tab(0))
+
+end

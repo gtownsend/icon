@@ -1,0 +1,38 @@
+############################################################################
+#
+#	File:     apply.icn
+#
+#	Subject:  Procedure to apply a list of functions to an argument
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 4, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure applies a list of functions to an argument.  An example is
+#
+#	apply([integer, log], 10)
+#
+#  which is equivalent to integer(log(10)).
+#
+#
+############################################################################
+
+procedure apply(plist, arg)
+   local p
+
+   plist := copy(plist)
+
+   p := get(plist) | fail
+
+   if *plist = 0 then
+      suspend p(arg)
+   else
+      suspend p(apply(plist, arg))
+
+end

@@ -1,0 +1,105 @@
+############################################################################
+#
+#       File:	  scroll.icn
+#
+#       Subject:  Program to scroll image
+#
+#	Author:   Jon Lipp
+#
+#	Date:     November 22, 1996
+#
+##########################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program displays an image, with scolling.
+#
+##########################################################################
+#
+#  Links:  options, vidgets, vscroll, wopen, xcompat
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+link options
+link vidgets, vscroll
+link wopen
+link xcompat
+
+global win, im_win, view_width, view_height
+global scv, sch
+
+procedure main(args)
+   local opts, file, scrollbar_width, picw, pich, root
+
+   opts := options(args, "f:w+h+")
+   file := \opts["f"] | 
+      stop("Usage: scroll -f file [-w window size/width] [-h window height]")
+   view_width := \opts["w"] | 300
+   view_height := \opts["h"] | view_width
+   scrollbar_width := 15
+#
+#  Load in the bitmap; get the dimensions.
+#
+   im_win := WOpen("canvas=hidden", "image=" || file) |
+      stop("Couldn't make temporary bitmap.")
+   picw := WAttrib(im_win, "width")
+   pich := WAttrib(im_win, "height")
+
+   win := WOpen("label=" || file, "size=" ||
+      (view_width + scrollbar_width + 1) || "," ||
+      (view_height + scrollbar_width + 1) ) |
+         stop("*** cannot open file")
+
+   root := Vroot_frame(win)
+#
+#  Create two scrollbars.
+#
+   scv := Vvert_scrollbar(root, -1, 0, win, sl_cb, 1,
+      view_height,scrollbar_width, pich, 0, , view_height)
+   sch := Vhoriz_scrollbar(root, 0, -1, win, sl_cb, 2, view_width,
+     scrollbar_width, 0, picw, , view_width)
+
+   VResize(root)
+#
+#  Draw the initial view of the pixmap, based on the scrollbar's values.
+#
+   sl_cb(scv, scv.callback.value)
+   sl_cb(sch, sch.callback.value)
+# 
+#  Now get events, pass control to the procedure quit() if an event is not
+#  captured by a vidget.
+#
+   GetEvents(root, quit, , resize)
+end
+
+#
+#  Terminate the program on a keypress of "q".
+#
+procedure quit(e)
+
+   if e === "q" then stop("End scroll.")
+end
+
+procedure resize(root)
+
+   VReformat(scv, WAttrib(scv.win, "height") - 15)
+   VReformat(sch, WAttrib(sch.win, "width") - 15)
+end
+   
+#
+#  Copy a portion of the bitmap to the main
+#  window based on the values of the scrollbars.
+#  
+procedure sl_cb(caller, val)
+   static vpos, hpos
+   initial vpos := hpos := 0
+
+   (caller.id = 1, vpos := val) | hpos := val
+   CopyArea(im_win, win, hpos, vpos, view_width, view_height, 0, 0)
+end

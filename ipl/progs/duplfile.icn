@@ -1,0 +1,70 @@
+############################################################################
+#
+#	File:     duplfile.icn
+#
+#	Subject:  Program to find directories with same files
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 10, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program lists the file names that occur in more than one
+#  subdirectory and the subdirectories in which the names occur.
+#
+#  This program should be used with caution on large directory
+#  structures.
+#
+############################################################################
+#
+#  Requires:  UNIX
+#
+############################################################################
+
+procedure main(args)
+   local ext, posit, files, names, name, dir, temp, dirs
+
+   ext := args[1] | ""
+   posit := -*ext
+
+   names := table()
+
+   files := open("ls -R", "p")
+
+   while name := read(files) do
+      name ? {
+         if dir <- tab(-1) & =":" then {
+            next
+            }
+         else if tab(posit) & =ext then {
+            /names[name] := []
+            put(names[name], dir)
+            }
+         }
+
+   names := sort(names, 3)
+
+   while name := get(names) do {
+      dirs := get(names)
+      if *name = 0 then next
+      if *dirs > 1 then {
+         write("file: ", image(name), " occurs in the following directories")
+         every write("\t", image(fix(!sort(dirs))))
+         write()
+         }
+      }
+
+end
+
+procedure fix(s)
+
+   /s := "."
+
+   return s
+
+end

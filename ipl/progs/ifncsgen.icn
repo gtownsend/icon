@@ -1,0 +1,67 @@
+############################################################################
+#
+#	File:     ifncsgen.icn
+#
+#	Subject:  Program to generate procedure wrappers for functions
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 28, 1996
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program generates a procedure for every (built-in) function
+#  that calls the function.
+#
+############################################################################
+
+procedure main()
+   local name, args, uname
+   static case1, case2
+
+   initial {
+      case1 := &lcase || &ucase
+      case2 := &ucase || &lcase
+      }
+    
+   every name := function() do {
+      args := arglist(name)
+      uname := {
+         name ? {
+            map(move(1), case1, case2) || tab(0)
+            }
+         }
+      write("procedure ", uname, args)
+      write("   static ", "__fnc_", name)
+      write("   initial __fnc_", name, " := proc(", image(name), ", 0)")
+      if args == "(a[])" then write("   suspend __fnc_", name, " ! a")
+      else write("   suspend __fnc_", name, args)
+      write("end")
+      write()
+      }
+
+end
+
+procedure arglist(name)
+   local result, i, arg
+
+   i := args(proc(name, 0))
+
+   if i < 0 then return "(a[])"
+   else if i = 0 then return "()"
+   else {
+      result := "("
+      every arg := ("a" || (1 to i)) do {
+         result ||:= arg || ", "
+         }
+      }
+
+   result[-2:0] := ")"
+
+   return result
+
+end

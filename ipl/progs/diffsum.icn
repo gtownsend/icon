@@ -1,0 +1,97 @@
+############################################################################
+#
+#	File:     diffsum.icn
+#
+#	Subject:  Program to count lines affected by a diff
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     May 31, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Usage:  diffsum [file]
+#
+#  Diffsum reads a file containing output from a run of the Unix "diff"
+#  utility.  Diffsum handles either normal diffs or context diffs.  For
+#  each pair of files compared, diffsum reports two numbers:
+#	1. the number of lines added or changed
+#	2. the net change in file size
+#  The first of these indicates the magnitude of the changes and the
+#  second the net effect on file size.
+#
+############################################################################
+
+global oldname, newname
+global added, deleted, chgadd, chgdel
+
+procedure main(args)
+   local f, line
+
+   if *args > 0 then
+      f := open(args[1]) | stop("can't open ", args[1])
+   else
+      f := &input
+
+   added := deleted := 0
+   oldname := newname := ""
+   chgadd := chgdel := 0
+
+   while line := read(f) do line ? {
+      if =" " then
+         next
+      else if ="***" then {
+         chgadd := 0
+         chgdel := +1
+         }
+      else if ="---" then {		# n.b. must precede tests below
+         chgadd := +1
+         chgdel := 0
+         }
+      else if any('+>') then
+         added +:= 1
+      else if any('-<') then
+         deleted +:= 1
+      else if ="!" then {
+         added +:= chgadd
+         deleted +:= chgdel
+         }
+      else if ="diff" then {
+         report()
+         while =" -" do tab(upto(' '))
+         tab(many(' '))
+         oldname := tab(upto(' ')) | "???"
+         tab(many(' '))
+         newname := tab(0)
+         }
+      else if ="Only " then
+         only()
+      }
+   report()
+end
+
+procedure report()
+   local net
+
+   if added > 0 | deleted > 0 then {
+      net := string(added - deleted)
+      if net > 0 then
+         net := "+" || net
+      write(right(added, 6) || right(net, 8), "\t", oldname, " ", newname)
+      }
+   added := deleted := 0
+   chgadd := chgdel := 0
+   return
+end
+
+procedure only()
+   report()
+   if tab(-2) & ="." & any('oa') then
+      return
+   tab(1)
+   write("#\t", tab(0))
+end

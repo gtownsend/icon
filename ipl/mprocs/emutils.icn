@@ -1,0 +1,508 @@
+############################################################################
+#
+#	File:     emutils.icn
+#
+#	Subject:  Procedures to support MT-Icon monitors
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 16, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  evname(s) maps the event code to a standard descriptive phrases and vice
+#  versa.
+#
+############################################################################
+#
+#  Links:  convert, tables
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+link convert
+link tables
+
+$include "evdefs.icn"
+
+procedure evname(s)
+   local result
+   static namemap
+
+   initial {
+      namemap   := table()
+   
+      namemap[E_Aconv] := "conversion attempt"
+      namemap[E_Argp] := "argument pointer"
+      namemap[E_Alien] := "alien allocation"
+      namemap[E_Assign] := "assignment"
+#     namemap[E_Base] := "base address of storage region"
+      namemap[E_BlkDeAlc] := "block deallocation"
+      namemap[E_Bsusp] := "suspension from operation"
+      namemap[E_Coact] := "co-expression activation"
+      namemap[E_Cocreate] := "co-expression creation"
+      namemap[E_Coexpr] := "co-expression allocation"
+      namemap[E_Cofail] := "co-expression failure"
+      namemap[E_Collect] := "garbage collection"
+#     namemap[E_Comment] := "comment"
+      namemap[E_Coret] := "co-expression return"
+      namemap[E_Cset] := "cset allocation"
+      namemap[E_Deref] := "variable dereference"
+      namemap[E_Ecall] := "call of operation"
+      namemap[E_Efail] := "failure from expression"
+      namemap[E_Efp] := "expression frame pointer"
+      namemap[E_EndCollect] := "end of garbage collection"
+      namemap[E_Erem] := "removal of a suspended generator"
+      namemap[E_Eresum] := "resumption of expression"
+#     namemap[E_Eret] := "return from expression"
+      namemap[E_Error] := "run-time error"
+      namemap[E_Esusp] := "suspension from alternation"
+      namemap[E_Exit] := "program exit"
+      namemap[E_External] := "external allocation"
+      namemap[E_Fcall] := "function call"
+      namemap[E_Fclose] := "file close"
+      namemap[E_Fconv] := "conversion failure"
+      namemap[E_Ffail] := "function failure"
+      namemap[E_File] := "file allocation"
+      namemap[E_Floc] := "file location"
+      namemap[E_Fmode] := "file open mode"
+      namemap[E_Fopen] := "file open"
+      namemap[E_Fread] := "file read"
+      namemap[E_Freads] := "file reads"
+      namemap[E_Free] := "free region"
+      namemap[E_Frem] := "function suspension removal"
+      namemap[E_Fresum] := "function resumption"
+      namemap[E_Fret] := "function return"
+      namemap[E_Fseek] := "file seek"
+      namemap[E_Fstring] := "string read or written"
+      namemap[E_Fsusp] := "function suspension"
+      namemap[E_Fwhere] := "file location"
+      namemap[E_Fwrite] := "function write"
+      namemap["\223"] := "function writes"
+      namemap[E_Gfp] := "generator frame pointer"
+#     namemap[E_Highlight] := "allocation highlight"
+      namemap[E_Ilevel] := "interpreter call level"
+      namemap[E_Intcall] := "interpreter call"
+      namemap[E_Integer] := "integer value pseudo-event"
+      namemap[E_Intret] := "interpreter return"
+      namemap[E_Ipc] := "interpreter program counter"
+      namemap[E_Kywdint] := "integer keyword value pseudo-event"
+      namemap[E_Kywdpos] := "position value pseudo-event"
+      namemap[E_Kywdsubj] := "subject value pseudo-event"
+      namemap[E_Lbang] := "list generation"
+      namemap[E_Lcreate] := "list creation"
+      namemap[E_Lelem] := "list element allocation"
+      namemap[E_Lget] := "list get"
+      namemap[E_Line] := "line change"
+      namemap[E_List] := "list allocation"
+      namemap[E_Loc] := "location change"
+      namemap[E_Lpop] := "list pop"
+      namemap[E_Lpull] := "list pull"
+      namemap[E_Lpush] := "list push"
+      namemap[E_Lput] := "list put"
+      namemap[E_Lrand] := "list random reference"
+#     namemap[E_Lref] := "list reference"
+      namemap[E_Lrgint] := "large integer allocation"
+      namemap[E_Lsub] := "list subscript"
+      namemap[E_Lsusp] := "suspension from limitation"
+      namemap[E_MXevent] := "monitor input event"
+      namemap[E_Nconv] := "conversion not needed"
+      namemap[E_NewRegion] := "new storage region"
+      namemap[E_Null] := "null value value pseudo-event"
+      namemap[E_Ocall] := "operator call"
+      namemap[E_Ofail] := "operator failure"
+#     namemap[E_Offset] := "address offset"
+#     namemap[E_Op] := "interpreter operation"
+      namemap[E_Opcode] := "virtual-machine instruction"
+      namemap[E_Orem] := "operator suspension removal"
+      namemap[E_Oresum] := "operator resumption"
+      namemap[E_Oret] := "operator return"
+      namemap[E_Osusp] := "operator suspension"
+#     namemap[E_Pause] := "memory monitoring comment"
+      namemap[E_Pcall] := "procedure call"
+      namemap[E_Pfail] := "procedure failure"
+      namemap[E_Pfp] := "procedure frame pointer"
+#     namemap[E_Pid] := "symbol name"
+      namemap[E_Prem] := "suspended procedure removal"
+      namemap[E_Presum] := "procedure resumption"
+      namemap[E_Pret] := "procedure return"
+      namemap[E_Proc] := "procedure value pseudo-event"
+      namemap[E_Psusp] := "procedure suspension"
+      namemap[E_Rbang] := "record generation"
+      namemap[E_Rcreate] := "record creation"
+      namemap[E_Real] := "real allocation"
+      namemap[E_Record] := "record allocation"
+      namemap[E_Refresh] := "refresh allocation"
+#     namemap[E_Region] := "region"
+      namemap[E_Rrand] := "record random reference"
+#     namemap[E_Rref] := "record reference"
+      namemap[E_Rsub] := "record subscript"
+      namemap[E_Sbang] := "set generation"
+      namemap[E_Sconv] := "conversion success"
+      namemap[E_Screate] := "set creation"
+      namemap[E_Sdelete] := "set deletion"
+      namemap[E_Selem] := "set element allocation"
+      namemap[E_Set] := "set allocation"
+      namemap[E_Sfail] := "scanning failure"
+      namemap[E_Sinsert] := "set insertion"
+#     namemap[E_Size] := "region size"
+      namemap[E_Slots] := "hash header allocation"
+      namemap[E_Smember] := "set membership"
+      namemap[E_Snew] := "scanning environment creation"
+      namemap[E_Spos] := "scanning position"
+      namemap[E_Srand] := "set random reference"
+      namemap[E_Srem] := "scanning environment removal"
+      namemap[E_Sresum] := "scanning resumption"
+      namemap[E_Ssasgn] := "substring assignment"
+      namemap[E_Ssusp] := "scanning suspension"
+      namemap[E_Stack] := "stack depth"
+      namemap[E_StrDeAlc] := "string deallocation"
+      namemap[E_String] := "string allocation"
+      namemap[E_Sval] := "set value"
+#     namemap[E_Sym] := "symbol table entry"
+      namemap[E_Table] := "table allocation"
+      namemap[E_Tbang] := "table generation"
+      namemap[E_Tconv] := "conversion target"
+      namemap[E_Tcreate] := "table creation"
+      namemap[E_Tdelete] := "table deletion"
+      namemap[E_Telem] := "table element allocation"
+      namemap[E_TenureBlock] := "tenure a block region"
+      namemap[E_TenureString] := "tenure a string region"
+      namemap[E_Tick] := "clock tick"
+      namemap[E_Tinsert] := "table insertion"
+      namemap[E_Tkey] := "table key generation"
+      namemap[E_Tmember] := "table membership"
+      namemap[E_Trand] := "table random reference"
+#     namemap[E_Tref] := "table reference"
+      namemap[E_Tsub] := "table subscript"
+#     namemap[E_Tval] := "table value"
+      namemap[E_Tvsubs] := "substring trapped variable allocation"
+      namemap[E_Tvtbl] := "table-element trapped variable allocation"
+#     namemap[E_Used] := "space used"
+      namemap[E_Value] := "value assigned"
+      namemap[E_Fterm] := "write terminator"
+
+#     namemap := twt(namemap)
+      }
+   
+   result := namemap[s]
+   /result := "E_\\" || exbase10(find(s, &cset) - 1, 8)
+
+   return result
+
+end
+
+############################################################################
+#
+#  evsym() maps event codes to the symbolic names for the codes and vice
+#  versa.
+#
+############################################################################
+
+procedure evsym(s)
+   local result
+   static symmap
+
+   initial {
+      symmap   := table()
+   
+      symmap[E_Aconv]    := "E_Aconv"
+      symmap[E_Argp]     := "E_Argp"
+      symmap[E_Alien]    := "E_Alien"
+      symmap[E_Assign]   := "E_Assign"
+      symmap[E_BlkDeAlc] := "E_BlkDeAlc"
+      symmap[E_Bsusp]    := "E_Bsusp"
+      symmap[E_Coact]    := "E_Coact"
+      symmap[E_Cocreate] := "E_Cocreate"
+      symmap[E_Coexpr]   := "E_Coexpr"
+      symmap[E_Cofail]   := "E_Cofail"
+      symmap[E_Cofree]   := "E_Cofree"
+      symmap[E_Collect]  := "E_Collect"
+      symmap[E_Coret]    := "E_Coret"
+      symmap[E_Cset]     := "E_Cset"
+      symmap[E_Deref]    := "E_Deref"
+      symmap[E_Ecall]    := "E_Ecall"
+      symmap[E_Efail]    := "E_Efail"
+      symmap[E_Efp]      := "E_Efp"
+      symmap[E_Eresum]   := "E_Eresum"
+      symmap[E_Error]    := "E_Error"
+      symmap[E_Esusp]    := "E_Esusp"
+      symmap[E_Erem]     := "E_Erem"
+      symmap[E_Exit]     := "E_Exit"
+      symmap[E_External] := "E_External"
+      symmap[E_Fcall]    := "E_Fcall"
+      symmap[E_Fclose]   := "E_Fclose"
+      symmap[E_Fconv]    := "E_Fconv"
+      symmap[E_Ffail]    := "E_Ffail"
+      symmap[E_File]     := "E_File"
+      symmap[E_Floc]     := "E_Loc"
+      symmap[E_Fmode]    := "E_Fmode"
+      symmap[E_Fopen]    := "E_Fopen"
+      symmap[E_Fread]    := "E_Fread"
+      symmap[E_Freads]   := "E_Freads"
+      symmap[E_Free]     := "E_Free"
+      symmap[E_Frem]     := "E_Frem"
+      symmap[E_Fresum]   := "E_Fresum"
+      symmap[E_Fret]     := "E_Fret"
+      symmap[E_Fseek]    := "E_Fseek"
+      symmap[E_Fstring]  := "E_Fstring"
+      symmap[E_Fsusp]    := "E_Fsusp"
+      symmap[E_Fwhere]   := "E_Fwhere"
+      symmap[E_Fwrite]   := "E_Fwrite"
+      symmap[E_Fterm]    := "E_Fterm"
+      symmap[E_Gfp]      := "E_Gfp"
+      symmap[E_Ilevel]   := "E_Ilevel"
+      symmap[E_Intcall]  := "E_Intcall"
+      symmap[E_Integer]  := "E_Integer"
+      symmap[E_Intret]   := "E_Intret"
+      symmap[E_Ipc]      := "E_Ipc"
+      symmap[E_Kywdint]  := "E_Kywdint"
+      symmap[E_Kywdpos]  := "E_Kywdpos"
+      symmap[E_Kywdsubj] := "E_Kywdsubj"
+      symmap[E_Lbang]    := "E_Lbang"
+      symmap[E_Lcreate]  := "E_Lcreate"
+      symmap[E_Lelem]    := "E_Lelem"
+      symmap[E_Line]     := "E_Line"
+      symmap[E_List]     := "E_List"
+      symmap[E_Loc]      := "E_Loc"
+      symmap[E_Lpop]     := "E_Lpop"
+      symmap[E_Lpull]    := "E_Lpull"
+      symmap[E_Lpush]    := "E_Lpush"
+      symmap[E_Lput]     := "E_Lput"
+      symmap[E_Lrand]    := "E_Lrand"
+      symmap[E_Lref]     := "E_Lref"
+      symmap[E_Lrgint]   := "E_Lrgint"
+      symmap[E_Lsub]     := "E_Lsub"
+      symmap[E_Lsusp]    := "E_Lsusp"
+      symmap[E_Nconv]    := "E_Nconv"
+      symmap[E_NewRegion]:= "E_NewRegion"
+      symmap[E_Null]     := "E_Null"
+      symmap[E_Ocall]    := "E_Ocall"
+      symmap[E_Ofail]    := "E_Ofail"
+      symmap[E_Op]       := "E_Op"
+      symmap[E_Opcode]   := "E_Opcode"
+      symmap[E_Oresum]   := "E_Oresum"
+      symmap[E_Oret]     := "E_Oret"
+      symmap[E_Osusp]    := "E_Osusp"
+      symmap[E_Orem]     := "E_Orem"
+      symmap[E_Pcall]    := "E_Pcall"
+      symmap[E_Pfail]    := "E_Pfail"
+      symmap[E_Pfp]      := "E_Pfp"
+      symmap[E_Presum]   := "E_Presum"
+      symmap[E_Pret]     := "E_Pret"
+      symmap[E_Proc]     := "E_Proc"
+      symmap[E_Psusp]    := "E_Psusp"
+      symmap[E_Prem]     := "E_Prem"
+      symmap[E_Rbang]    := "E_Rbang"
+      symmap[E_Rcreate]  := "E_Rcreate"
+      symmap[E_Real]     := "E_Real"
+      symmap[E_Record]   := "E_Record"
+      symmap[E_Refresh]  := "E_Refresh"
+      symmap[E_Rrand]    := "E_Rrand"
+      symmap[E_Rref]     := "E_Rref"
+      symmap[E_Rsub]     := "E_Rsub"
+      symmap[E_Sbang]    := "E_Sbang"
+      symmap[E_Sconv]    := "E_Sconv"
+      symmap[E_Screate]  := "E_Screate"
+      symmap[E_Sdelete]  := "E_Sdelete"
+      symmap[E_Selem]    := "E_Selem"
+      symmap[E_Set]      := "E_Set"
+      symmap[E_Sfail]    := "E_Sfail"
+      symmap[E_Sinsert]  := "E_Sinsert"
+      symmap[E_Slots]    := "E_Slots"
+      symmap[E_Smember]  := "E_Smember"
+      symmap[E_Snew]     := "E_Snew"
+      symmap[E_Spos]     := "E_Spos"
+      symmap[E_Srand]    := "E_Srand"
+      symmap[E_Sresum]   := "E_Sresum"
+      symmap[E_Ssasgn]   := "E_Ssasgn"
+      symmap[E_Ssusp]    := "E_Ssusp"
+      symmap[E_Stack]    := "E_Stack"
+      symmap[E_StrDeAlc] := "E_StrDeAlc"
+      symmap[E_String]   := "E_String"
+      symmap[E_Sval]     := "E_Sval"
+      symmap[E_Srem]     := "E_Srem"
+      symmap[E_Table]    := "E_Table"
+      symmap[E_Tbang]    := "E_Tbang"
+      symmap[E_Tconv]    := "E_Tconv"
+      symmap[E_Tcreate]  := "E_Tcreate"
+      symmap[E_Tdelete]  := "E_Tdelete"
+      symmap[E_Telem]    := "E_Telem"
+      symmap[E_Tick]     := "E_Tick"
+      symmap[E_Tinsert]  := "E_Tinsert"
+      symmap[E_Tkey]     := "E_Tkey"
+      symmap[E_Tmember]  := "E_Tmember"
+      symmap[E_Trand]    := "E_Trand"
+      symmap[E_Tref]     := "E_Tref"
+      symmap[E_Tsub]     := "E_Tsub"
+      symmap[E_Tval]     := "E_Tval"
+      symmap[E_Tvsubs]   := "E_Tvsubs"
+      symmap[E_Tvtbl]    := "E_Tvtbl"
+      symmap[E_Value]    := "E_Value"
+   
+      twt(symmap)
+      }
+
+   result := symmap[s]
+   /result := "E_\\" || exbase10(find(s, &cset), 8)
+
+   return result
+
+end
+
+procedure allocode(s)
+   static allocmap
+
+   initial {
+      allocmap   := table("unknown code")
+
+      allocmap[E_Coexpr] :=	"co-expression"
+      allocmap[E_Cset] :=	"cset"
+      allocmap[E_File] :=	"file"
+      allocmap[E_List] :=	"list"
+      allocmap[E_Real] :=	"real"
+      allocmap[E_Record] :=	"record"
+      allocmap[E_Set] :=	"set"
+      allocmap[E_String] :=	"string"
+      allocmap[E_Table] :=	"table"
+
+      twt(allocmap)
+      }
+
+   return allocmap[s]
+
+end
+
+#  Turn off output in SP.
+
+procedure kill_output()
+
+   variable("write", EventSource) := -1
+   variable("writes", EventSource) := -1
+
+   return
+
+end
+ 
+############################################################################
+#
+#  opname() maps a virtual-machine instruction number to a symbolic name.
+#
+############################################################################
+
+procedure opname(i)		#: map virtual-machine code to name
+   static opmap
+
+   initial {
+      opmap := table("")
+
+      opmap[1] := "Asgn"
+      opmap[2] := "Bang"
+      opmap[3] := "Cat"
+      opmap[4] := "Compl"
+      opmap[5] := "Diff"
+      opmap[6] := "Div"
+      opmap[7] := "Eqv"
+      opmap[8] := "Inter"
+      opmap[9] := "Lconcat"
+      opmap[10] := "Lexeq"
+      opmap[11] := "Lexge"
+      opmap[12] := "Lexgt"
+      opmap[13] := "Lexle"
+      opmap[14] := "Lexlt"
+      opmap[15] := "Lexne"
+      opmap[16] := "Minus"
+      opmap[17] := "Mod"
+      opmap[18] := "Mult"
+      opmap[19] := "Neg"
+      opmap[20] := "Neqv"
+      opmap[21] := "Nonnull"
+      opmap[22] := "Null"
+      opmap[23] := "Number"
+      opmap[24] := "Numeq"
+      opmap[25] := "Numge"
+      opmap[26] := "Numgt"
+      opmap[27] := "Numle"
+      opmap[28] := "Numlt"
+      opmap[29] := "Numne"
+      opmap[30] := "Plus"
+      opmap[31] := "Power"
+      opmap[32] := "Random"
+      opmap[33] := "Rasgn"
+      opmap[34] := "Refresh"
+      opmap[35] := "Rswap"
+      opmap[36] := "Sect"
+      opmap[37] := "Size"
+      opmap[38] := "Subsc"
+      opmap[39] := "Swap"
+      opmap[40] := "Tabmat"
+      opmap[41] := "Toby"
+      opmap[42] := "Unions"
+      opmap[43] := "Value"
+      opmap[44] := "Bscan"
+      opmap[45] := "Ccase"
+      opmap[46] := "Chfail"
+      opmap[47] := "Coact"
+      opmap[48] := "Cofail"
+      opmap[49] := "Coret"
+      opmap[50] := "Create"
+      opmap[51] := "Cset"
+      opmap[52] := "Dup"
+      opmap[53] := "Efail"
+      opmap[54] := "Eret"
+      opmap[55] := "Escan"
+      opmap[56] := "Esusp"
+      opmap[57] := "Field"
+      opmap[58] := "Goto"
+      opmap[59] := "Init"
+      opmap[60] := "Int"
+      opmap[61] := "Invoke"
+      opmap[62] := "Keywd"
+      opmap[63] := "Limit"
+      opmap[64] := "Line"
+      opmap[65] := "Llist"
+      opmap[66] := "Lsusp"
+      opmap[67] := "Mark"
+      opmap[68] := "Pfail"
+      opmap[69] := "Pnull"
+      opmap[70] := "Pop"
+      opmap[71] := "Pret"
+      opmap[72] := "Psusp"
+      opmap[73] := "Push1"
+      opmap[74] := "Pushn1"
+      opmap[75] := "Real"
+      opmap[76] := "Sdup"
+      opmap[77] := "Str"
+      opmap[78] := "Unmark"
+      opmap[80] := "Var"
+      opmap[81] := "Arg"
+      opmap[82] := "Static"
+      opmap[83] := "Local"
+      opmap[84] := "Global"
+      opmap[85] := "Mark0"
+      opmap[86] := "Quit"
+      opmap[87] := "FQuit"
+      opmap[88] := "Tally"
+      opmap[89] := "Apply"
+      opmap[90] := "Acset"
+      opmap[91] := "Areal"
+      opmap[92] := "Astr"
+      opmap[93] := "Aglobal"
+      opmap[94] := "Astatic"
+      opmap[95] := "Agoto"
+      opmap[96] := "Amark"
+      opmap[98] := "Noop"
+      opmap[100] := "SymEvents"
+      opmap[108] := "Colm"
+      }
+
+   return opmap[i]
+
+end

@@ -1,0 +1,965 @@
+############################################################################
+#
+#	File:     solit.icn
+#
+#	Subject:  Program to play solitaire
+#
+#	Author:   Jerry Nowlin
+#
+#	Date:     November 25, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Contributors:   Phillip L. Thomas and Ralph E. Griswold
+#
+############################################################################
+#
+#     This program was inspired by a solitaire game that was written
+#  by Allyn Wade and copyrighted by him in 1985.  His game was
+#  designed for the IBM PC/XT/PCjr with a color or monochrome moni-
+#  tor.
+#
+#     I didn't follow his design exactly because I didn't want to
+#  restrict myself to a specific machine.  This program has the
+#  correct escape sequences programmed into it to handle several
+#  common terminals and PC's.  It's commented well enough that most
+#  people can modify the source to work for their hardware.
+#
+#     These variables must be defined with the correct escape
+#  sequences to:
+#
+#          CLEAR  -  clear the screen
+#          CLREOL -  clear to the end of line
+#          NORMAL -  turn on normal video for foreground characters
+#          RED    -  make the foreground color for characters red
+#          BLACK  -  make the foreground color for characters black
+#
+#  If there is no way to use red and black, the escape sequences
+#  should at least make RED and BLACK have different video attri-
+#  butes; for example red could have inverse video while black has
+#  normal video.
+#
+#     There are two other places where the code is device dependent.
+#  One is in the face() procedure.  The characters used to display
+#  the suites of cards can be modified there.  For example, the IBM
+#  PC can display actual card face characters while all other
+#  machines currently use HDSC for hearts, diamonds, spades and
+#  clubs respectively.
+#
+#     The last, and probably trickiest place is in the movecursor()
+#  procedure.  This procedure must me modified to output the correct
+#  escape sequence to directly position the cursor on the screen.
+#  The comments and 3 examples already in the procedure will help.
+#
+#     So as not to cast dispersions on Allyn Wade's program, I
+#  incorporated the commands that will let you cheat.  They didn't
+#  exist in his program.  I also incorporated the auto pilot command
+#  that will let the game take over from you at your request and try
+#  to win.  I've run some tests, and the auto pilot can win about
+#  10% of the games it's started from scratch.  Not great but not
+#  too bad.  I can't do much better myself without cheating.  This
+#  program is about as totally commented as you can get so the logic
+#  behind the auto pilot is fairly easy to understand and modify.
+#  It's up to you to make the auto pilot smarter.
+#
+############################################################################
+#
+#  Note:
+#
+#     The command-line argument, which defaults to support for the VT100,
+#  determines the screen driver.  For MS-DOS computers, the ANSI.SYS driver
+#  is needed.
+#
+############################################################################
+#
+#  Requires:  keyboard functions
+#
+############################################################################
+
+global   VERSION, CLEAR, CLREOL, NORMAL, RED, BLACK
+
+global   whitespace, amode, seed, deck, over, hidden, run, ace
+
+procedure main(args)
+   local a, p, c, r, s, cnt, cheat, cmd, act, from, dest
+
+   VERSION := (!args == ("Atari ST" | "hp2621" | "IBM PC" | "vt100"))
+
+#  if keyboard functions are not available, disable ability to
+#  get out of auto mode.
+
+   if not(&features == "keyboard functions") then
+      stop("*** requires keyboard functions")
+
+   case VERSION of {
+
+      "Atari ST": {
+         CLEAR  := "\eE"
+         CLREOL := "\eK"
+         NORMAL := "\eb3"
+         RED    := "\eb1"
+         BLACK  := "\eb2"
+      }
+
+      "hp2621": {
+         CLEAR  := "\eH\eJ"
+         CLREOL := "\eK"
+         NORMAL := "\e&d@"
+         RED    := "\e&dJ"
+         BLACK  := "\e&d@"
+      }
+
+      "IBM PC" | "vt100": {
+         CLEAR  := "\e[H\e[2J"
+         CLREOL := "\e[0K"
+         NORMAL := "\e[0m"
+         RED    := "\e[0;31;47m"
+         BLACK  := "\e[1;30;47m"
+      }
+
+      default: {  # same as IBM PC and vt100
+         CLEAR  := "\e[H\e[2J"
+         CLREOL := "\e[0K"
+         NORMAL := "\e[0m"
+         RED    := "\e[0;31;47m"
+         BLACK  := "\e[1;30;47m"
+      }
+   }
+
+   # white space is blanks or tabs
+   whitespace := ' \t'
+
+   # clear the auto pilot mode flag
+   amode := 0
+
+   # if a command line argument started with "seed" use the rest of
+   # the argument for the random number generator seed value
+   if (a := !args)[1:5] == "seed" then seed := integer(a[5:0])
+
+   # initialize the data structures
+   deck   := shuffle()
+   over   := []
+   hidden := [[],[],[],[],[],[],[]]
+   run    := [[],[],[],[],[],[],[]]
+   ace    := [[],[],[],[]]
+
+   # lay down the 7 piles of cards
+   every p := 1 to 7 do every c := p to 7 do put(hidden[c],get(deck))
+
+   # turn over the top of each pile to start a run
+   every r := 1 to 7 do put(run[r],get(hidden[r]))
+
+   # check for aces in the runs and move them to the ace piles
+   every r := 1 to 7 do while getvalue(run[r][1]) = 1 do {
+      s := getsuite(!run[r])
+      push(ace[s],get(run[r]))
+      put(run[r],get(hidden[r]))
+   }
+
+   # initialize the command and cheat counts
+   cnt := cheat := 0
+
+   # clear the screen and display the initial layout
+   writes(CLEAR)
+   display()
+
+   # if a command line argument was "auto" let the auto pilot take over
+   if !args == "auto" then autopilot(cheat)
+
+   # loop reading commands
+   repeat {
+
+      # increment the command count
+      cnt +:= 1
+
+      # prompt for a command
+      movecursor(15,0)
+      writes("cmd:",cnt,"> ",CLREOL)
+
+      # scan the command line
+      (cmd := read() | exit()) ? {
+
+         # parse the one character action
+         tab(many(whitespace))
+         act := (move(1) | "")
+         tab(many(whitespace))
+
+         # switch on the action
+         case map(act) of {
+
+         # turn on the automatic pilot
+         "a": autopilot(cheat)
+
+         # move a card or run of cards
+         "m": {
+            if {from := move(1)
+               tab(many(whitespace))
+               dest := move(1)
+               }                                    # Keep failure of parsing
+            then {                                  #   from movecard();
+               if not movecard(from,dest) then  {   # otherwise, program
+                  whoops(cmd)                       #   aborts.
+                  next                              # Exit from wrong
+                  }                                 #   instruction.
+               else if cardsleft() = 0 then
+                  finish(cheat)
+                     else &null
+               }
+           else {                                   # Exit from incomplete
+               whoops(cmd)                          #  command.
+               next
+               }
+           }
+
+         # thumb the deck
+         "t" | "": thumb()
+
+         # print some help
+         "h" | "?": disphelp()
+
+         # print the rules of the game
+         "r": disprules()
+
+         # give up without winning
+         "q": break
+
+         # shuffle the deck (cheat!)
+         "s": {
+            deck |||:= over
+            over := []
+            deck := shuffle(deck)
+            display(["deck"])
+            cheat +:= 1
+         }
+
+         # put hidden cards in the deck (cheat!)
+         "p": {
+            from := move(1) | whoops(cmd)
+            if integer(from) &
+               from >= 2 & from <= 7 &
+               *hidden[from] > 0 then {
+               deck |||:= hidden[from]
+               hidden[from] := []
+               display(["hide","deck"])
+               cheat +:= 1
+            } else {
+               whoops(cmd)
+            }
+         }
+
+         # print the contents of the deck (cheat!)
+         "d": {
+            movecursor(17,0)
+            write(*deck + *over," card", plural(*deck + *over),
+                     " in deck:")
+            every writes(face(deck[*deck to 1 by -1])," ")
+            every writes(face(!over)," ")
+            writes("\nHit RETURN")
+            read()
+            movecursor(17,0)
+            every 1 to 4 do write(CLREOL)
+            cheat +:= 1
+         }
+
+         # print the contents of a hidden pile (cheat!)
+         "2" | "3" | "4" | "5" | "6" | "7": {
+            movecursor(17,0)
+            write(*hidden[act]," cards hidden under run ",
+               act)
+            every writes(face(!hidden[act])," ")
+            writes("\nHit RETURN")
+            read()
+            movecursor(17,0)
+            every 1 to 4 do write(CLREOL)
+            cheat +:= 1
+         }
+
+         # they gave an invalid command
+         default: whoops(cmd)
+
+         } # end of action case
+
+      } # end of scan line
+
+   } # end of command loop
+
+   # a quit command breaks the loop
+   movecursor(16,0)
+   writes(CLREOL,"I see you gave up")
+   if cheat > 0 then
+      write("...even after you cheated ",cheat," time", plural(cheat), "!")
+   else
+      write("...but at least you didn't cheat...congratulations!")
+
+   exit(1)
+
+end
+
+# this procedure moves cards from one place to another
+
+procedure movecard(from,dest,limitmove)
+
+   # if from and dest are the same fail
+   if from == dest then fail
+
+   # move a card from the deck
+   if from == "d" then {
+
+      # to one of the aces piles
+      if dest == "a" then {
+         return deck2ace()
+
+      # to one of the 7 run piles
+      } else if integer(dest) & dest >= 1 & dest <= 7 then {
+         return deck2run(dest)
+      }
+
+   # from one of the 7 run piles
+   } else if integer(from) & from >= 1 & from <= 7 then {
+
+      # to one of the aces piles
+      if dest == "a" then {
+         return run2ace(from)
+
+
+      # to another of the 7 run piles
+      } else if integer(dest) & dest >= 1 & dest <= 7 then {
+         return run2run(from,dest,limitmove)
+      }
+   }
+
+   # if none of the correct move combinations were found fail
+   fail
+
+end
+
+procedure deck2run(dest)
+   local fcard, dcard, s
+
+   # set fcard to the top of the overturned pile or fail
+   fcard := (over[1] | fail)
+
+   # set dcard to the low card of the run or to null if there are no
+   # cards in the run
+   dcard := (run[dest][-1] | &null)
+
+   # check to see if the move is legal
+   if chk2run(fcard,dcard) then {
+
+      # move the card and update the display
+      put(run[dest],get(over))
+      display(["deck",dest])
+
+      # while there are aces on the top of the overturned pile
+      # move them to the aces piles
+      while getvalue(over[1]) = 1 do {
+         s := getsuite(over[1])
+         push(ace[s],get(over))
+         display(["deck","ace"])
+      }
+      return
+   }
+
+end
+
+procedure deck2ace()
+   local fcard, a, s
+
+   # set fcard to the top of the overturned pile or fail
+   fcard := (over[1] | fail)
+
+   # for every ace pile
+   every a := !ace do {
+
+      # if the top of the ace pile is one less than the from card
+      # they are in the same suit and in sequence
+      if a[-1] + 1 = fcard then {
+
+         # move the card and update the display
+         put(a,get(over))
+         display(["deck","ace"])
+
+         # while there are aces on the top of the overturned
+         # pile move them to the aces piles
+         while getvalue(over[1]) = 1 do {
+            s := getsuite(!over)
+            push(ace[s],get(over))
+            display(["deck","ace"])
+         }
+         return
+      }
+   }
+
+end
+
+procedure run2ace(from)
+   local fcard, a, s
+
+   # set fcard to the low card of the run or fail if there are no
+   # cards in the run
+   fcard := (run[from][-1] | fail)
+
+   # for every ace pile
+   every a := !ace do {
+
+      # if the top of the ace pile is one less than the from card
+      # they are in the same suit and in sequence
+      if a[-1] + 1 = fcard then {
+
+         # move the card and update the display
+         put(a,pull(run[from]))
+         display([from,"ace"])
+
+         # if the from run is now empty and there are hidden
+         # cards to expose
+         if *run[from] = 0 & *hidden[from] > 0 then {
+
+            # while there are aces on the top of the
+            # hidden pile move them to the aces piles
+            while getvalue(hidden[from][1]) = 1 do {
+               s := getsuite(hidden[from][1])
+               push(ace[s],get(hidden[from]))
+               display(["ace"])
+            }
+
+            # put the top hidden card in the empty run
+            # and display the hidden counts
+            put(run[from],get(hidden[from]))
+            display(["hide"])
+         }
+
+         # update the from run display
+         display([from])
+         return
+      }
+   }
+
+end
+
+procedure run2run(from,dest,limitmove)
+   local fcard, dcard, s
+
+   # set fcard to the high card of the run or fail if there are no
+   # cards in the run
+   fcard := (run[from][1] | fail)
+
+   # set dcard to the low card of the run or null if there are no
+   # cards in the run
+   dcard := (run[dest][-1] | &null)
+
+   # avoid king thrashing in automatic mode (there's no point in
+   # moving a king high run to an empty run if there are no hidden
+   # cards under the king high run to be exposed)
+   if amode > 0 & /dcard & getvalue(fcard) = 13 & *hidden[from] = 0 then
+      fail
+
+   # avoid wasted movement if the limit move parameter was passed
+   # (there's no point in moving a pile if there are no hidden cards
+   # under it unless you have a king in the deck)
+   if amode > 0 & \limitmove & *hidden[from] = 0 then fail
+
+   # check to see if the move is legal
+   if chk2run(fcard,dcard) then {
+
+      # add the from run to the dest run
+      run[dest] |||:= run[from]
+
+      # empty the from run
+      run[from] := []
+
+      # display the updated runs
+      display([from,dest])
+
+      # if there are hidden cards to expose
+      if *hidden[from] > 0 then {
+
+         # while there are aces on the top of the hidden
+         # pile move them to the aces piles
+         while getvalue(hidden[from][1]) = 1 do {
+            s := getsuite(hidden[from][1])
+            push(ace[s],get(hidden[from]))
+            display(["ace"])
+         }
+
+         # put the top hidden card in the empty run and
+         # display the hidden counts
+         put(run[from],get(hidden[from]))
+         display(["hide"])
+      }
+
+      # update the from run display
+      display([from])
+      return
+   }
+
+end
+
+procedure chk2run(fcard,dcard)
+
+   # if dcard is null the from card must be a king or
+   if ( /dcard & (getvalue(fcard) = 13 | fail) ) |
+
+   # if the value of dcard is one more than fcard and
+      ( getvalue(dcard) - 1 = getvalue(fcard) &
+
+   # their colors are different they can be moved
+        getcolor(dcard) ~= getcolor(fcard) ) then return
+
+end
+
+# this procedure finishes a game where there are no hidden cards left and the
+# deck is empty
+
+procedure finish(cheat)
+
+   movecursor(16,0)
+   writes("\007I'll finish for you now...\007")
+
+   # finish moving the runs to the aces piles
+   while movecard(!"7654321","a")
+
+   movecursor(16,0)
+   writes(CLREOL,"\007You WIN\007")
+
+   if cheat > 0 then
+      write("...but you cheated ", cheat, " time", plural(cheat), "!")
+   else
+      write("...and without cheating...congratulations!")
+
+   exit(0)
+
+end
+
+# this procedure takes over and plays the game for you
+
+procedure autopilot(cheat)
+   local tseq, totdeck
+
+   movecursor(16,0)
+   writes("Going into automatic mode...")
+   if proc(kbhit) then writes( " [Press any key to return.]")
+   writes(CLREOL)
+
+   # set auto pilot mode
+   amode := 1
+
+   # while there are cards that aren't in runs or the aces piles
+   while (cardsleft()) > 0 do {
+
+      # try to make any run to run plays that will uncover
+      # hidden cards
+      while movecard(!"7654321",!"1234567","hidden")
+
+      # try for a move that will leave an empty spot
+      if movecard(!"7654321",!"1234567") then next
+
+      # if there's no overturned card thumb the deck
+      if *over = 0 then thumb()
+
+      # initialize the thumbed sequence set
+      tseq := set()
+
+      # try thumbing the deck for a play
+      totdeck := *deck + *over
+      every 1 to totdeck do {
+         if movecard("d",!"1234567a") then break
+
+         if kbhit() then {
+            movecursor(16,0)
+            write("Now in manual mode ...", CLREOL)
+            amode := 0
+            return
+            }
+         insert(tseq,over[1])
+         thumb()
+      }
+
+      # if we made a deck to somewhere move continue
+      if totdeck > *deck + *over then next
+
+      # try for a run to ace play
+      if movecard(!"7654321","a") then next
+
+      # if we got this far and couldn't play give up
+      break
+   }
+
+   # position the cursor for the news
+   movecursor(16,30)
+
+   # if all the cards are in runs or the aces piles
+   if cardsleft() = 0 then {
+
+      writes("\007YEA...\007", CLREOL)
+
+      # finish moving the runs to the aces piles
+      while movecard(!"7654321","a")
+
+      movecursor(16,37)
+      write("I won!!!!!")
+      if cheat > 0 then write("But you cheated ", cheat, " time",
+            plural(cheat), ".")
+
+      exit(0)
+
+   } else {
+
+      writes("I couldn't win this time.", CLREOL)
+      if cheat > 0 then writes(" But you cheated ", cheat, " time",
+               plural(cheat), ".")
+
+      # print the information needed to verify that the
+      # program couldn't win
+
+      movecursor(17,0)
+      writes(*deck + *over," card", plural(*deck + *over),
+               " in deck.")
+      if *tseq > 0 then {
+         write("  Final thumbing sequence:")
+         every writes(" ",face(!tseq))
+      }
+      write()
+
+      exit(1)
+
+   }
+
+end
+
+# this procedure updates the display
+
+procedure display(parts)
+   local r, a, h, c, part, l
+
+   static   long  # a list with the length of each run
+
+   initial {
+      long := [1,1,1,1,1,1,1]
+   }
+
+   # if the argument list is empty or contains "all" update all parts
+   # of the screen
+   if /parts | !parts == "all" then {
+      long  := [1,1,1,1,1,1,1]
+      parts := [  "label","hide","ace","deck",
+            "1","2","3","4","5","6","7" ]
+   }
+
+   # for every part in the argument list
+   every part := !parts do case part of {
+
+      # display the run number, aces and deck labels
+      "label" : {
+         every r := 1 to 7 do {
+            movecursor(1,7+(r-1)*5)
+            writes(r)
+         }
+         movecursor(1,56)
+         writes("ACES")
+         movecursor(6,56)
+         writes("DECK")
+      }
+
+      # display the hidden card counts
+      "hide" : {
+         every r := 1 to 7 do {
+            movecursor(1,9+(r-1)*5)
+            writes(0 < *hidden[r] | " ")
+         }
+      }
+
+      # display the aces piles
+      "ace" : {
+         movecursor(3,49)
+         every a := 1 to 4 do
+            writes(face(ace[a][-1]) | "---","  ")
+      }
+
+      # display the deck and overturned piles
+      "deck" : {
+         movecursor(8,54)
+         writes((*deck > 0 , " # ") | "   ","  ")
+         writes(face(!over) | "   ","  ")
+      }
+
+      # display the runs piles
+      "1" | "2" | "3" | "4" | "5" | "6" | "7" : {
+         l := ((long[part] > *run[part]) | long[part])
+         h := ((long[part] < *run[part]) | long[part])
+         l <:= 1
+         every c := l to h do {
+            movecursor(c+1,7+(part-1)*5)
+            writes(face(run[part][c]) | "   ")
+         }
+         long[part] := *run[part]
+      }
+   }
+
+   return
+
+end
+
+# A correction to my corrections for solit.icn.
+# The zero case never happens in solit.icn, but this
+#     procedure is more general. From Phillip L. Thomas:
+
+# Return "s" for values equal to 0 or greater than 1, e.g.,
+#     0 horses, 1 horse, 2 horses.
+
+procedure plural(n)
+   /n := 0                             # Handle &null values.
+   if n = 1 then return ""
+   else return "s"
+end
+
+# this procedure thumbs the deck 3 cards at a time
+
+procedure thumb()
+   local s
+
+   # if the deck is all thumbed
+   if *deck = 0 then {
+
+      # if there are no cards in the overturned pile either return
+      if *over = 0 then return
+
+      # turn the overturned pile back over
+      while put(deck,pull(over))
+   }
+
+   # turn over 3 cards or at least what's left
+   every 1 to 3 do if *deck > 0 then push(over,get(deck))
+
+   display(["deck"])
+
+   # while there are aces on top of the overturned pile move them to
+   # the aces pile
+   while getvalue(over[1]) = 1 do {
+      s := getsuite(over[1])
+      push(ace[s],get(over))
+      display(["deck","ace"])
+   }
+
+   # if the overturned pile is empty again and there are still cards
+   # in the deck thumb again (this will only happen if the top three
+   # cards in the deck were aces...not likely but)
+   if *over = 0 & *deck > 0 then thumb()
+
+   return
+
+end
+
+# this procedure shuffles a deck of cards
+
+procedure shuffle(cards)
+
+   static   fulldeck # the default shuffle is a full deck of cards
+
+   initial {
+      # set up a full deck of cards
+      fulldeck := []
+      every put(fulldeck,1 to 52)
+
+      # if seed isn't already set use the time to set it
+      if /seed then seed := integer(&clock[1:3] ||
+                     &clock[4:6] ||
+                     &clock[7:0])
+
+      # seed the random number generator for the first time
+      &random := seed
+   }
+
+   # if no cards were passed use the full deck
+   /cards := fulldeck
+
+   # copy the cards (shuffling is destructive)
+   deck := copy(cards)
+
+   # shuffle the deck
+   every !deck :=: ?deck
+
+   return deck
+
+end
+
+procedure face(card)
+
+   static   cstr, # the list of card color escape sequences
+      vstr, # the list of card value labels
+      sstr  # the list of card suite labels
+
+   initial {
+      cstr := [RED,BLACK]
+      vstr := ["A",2,3,4,5,6,7,8,9,10,"J","Q","K"]
+      if \VERSION == "IBM PC" then
+         sstr := ["\003","\004","\005","\006"]
+      else
+         sstr := ["H","D","S","C"]
+   }
+
+   # return a string containing the correct color change escape sequence,
+   # the value and suite labels right justified in 3 characters,
+   # and the back to normal escape sequence
+   return   cstr[getcolor(card)] ||
+      right(vstr[getvalue(card)] || sstr[getsuite(card)],3) ||
+      NORMAL
+
+end
+
+# a deck of cards is made up of 4 suites of 13 values; 1-13, 14-26, etc.
+
+procedure getvalue(card)
+
+   return (card-1) % 13 + 1
+
+end
+
+# each suite of cards is made up of ace - king (1-13)
+
+procedure getsuite(card)
+
+   return (card-1) / 13 + 1
+
+end
+
+# the first two suites are hearts and diamonds so all cards 1-26 are red
+# and all cards 27-52 are black.
+
+procedure getcolor(card)
+
+   return (card-1) / 26 + 1
+
+end
+
+# this procedure counts cards that aren't in runs or the aces piles
+
+procedure cardsleft()
+   local totleft
+
+   # count the cards left in the deck and the overturned pile
+   totleft := *deck + *over
+
+   # add in the hidden cards
+   every totleft +:= *!hidden
+
+   return totleft
+
+end
+
+# this procedure implements a device dependent cursor positioning scheme
+
+procedure movecursor(line,col)
+
+   if \VERSION == "Atari ST" then
+      writes("\eY",&ascii[33+line],&ascii[33+col])
+
+   else if \VERSION == "hp2621" then
+      writes("\e&a",col,"c",line,"Y")
+
+   else
+      writes("\e[",line,";",col,"H")
+
+end
+
+# all invalid commands call this procedure
+
+procedure whoops(cmd)
+   local i, j
+
+   movecursor(15,0)
+   writes("\007Invalid Command: '",cmd,"'\007")
+
+   # this delay loop can be diddled for different machines
+   every i := 1 to 500 do j := i
+
+   movecursor(15,0)
+   writes("\007",CLREOL,"\007")
+
+   return
+
+end
+
+# display the help message
+
+procedure disphelp()
+
+   static   help
+
+   initial {
+      help := [
+"Commands: t or RETURN     : thumb the deck 3 cards at a time",
+"          m [d1-7] [1-7a] : move cards or runs",
+"          a               : turn on the auto pilot (in case you get stuck)",
+"          s               : shuffle the deck (cheat!)",
+"          p [2-7]         : put a hidden pile into the deck (cheat!)",
+"          d               : print the cards in the deck (cheat!)",
+"          [2-7]           : print the cards in a hidden pile (cheat!)",
+"          h or ?          : print this command summary",
+"          r               : print the rules of the game",
+"          q               : quit",
+"",
+"Moving:   1-7, 'd', or 'a' select the source and destination for a move. ",
+"          Valid moves are from a run to a run, from the deck to a run,",
+"          from a run to an ace pile, and from the deck to an ace pile.",
+"",
+"Cheating: Commands that allow cheating are available but they will count",
+"          against you in your next life!"
+      ]
+   }
+
+   writes(CLEAR)
+   every write(!help)
+   writes("Hit RETURN")
+   read()
+   writes(CLEAR)
+   display()
+   return
+
+end
+
+# display the rules message
+
+procedure disprules()
+
+   static   rules
+
+   initial {
+      rules := [
+"Object:   The object of this game is to get all of the cards in each suit",
+"          in order on the proper ace pile.",
+"                                        ",
+"Rules:    Cards are played on the ace piles in ascending order: A,2,...,K. ",
+"          All aces are automatically placed in the correct aces pile as",
+"          they're found in the deck or in a pile of hidden cards.  Once a",
+"          card is placed in an ace pile it can't be removed.",
+"",
+"          Cards must be played in descending order: K,Q,..,2, on the seven",
+"          runs which are initially dealt.  They must always be played on a",
+"          card of the opposite color.  Runs must always be moved as a",
+"          whole, unless you're moving the lowest card on a run to the",
+"          correct ace pile.",
+"",
+"          Whenever a whole run is moved, the top hidden card is turned",
+"          over, thus becoming the beginning of a new run.  If there are no",
+"          hidden cards left, a space is created which can only be filled by",
+"          a king.",
+"",
+"          The rest of the deck is thumbed 3 cards at a time, until you spot",
+"          a valid move.  Whenever the bottom of the deck is reached, the",
+"          cards are turned over and you can continue thumbing."
+      ]
+   }
+
+   writes(CLEAR)
+   every write(!rules)
+   writes("Hit RETURN")
+   read()
+   writes(CLEAR)
+   display()
+   return
+
+end

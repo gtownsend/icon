@@ -1,0 +1,210 @@
+############################################################################
+#
+#	File:     slider.icn
+#
+#	Subject:  Procedures for slider sensors
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	These procedures implement slider using the "evmux" event
+#	multiplexor instead of the usual vidget library.
+#
+#	slider(win, proc, arg, x, y, w, h, lb, iv, ub)  creates a slider.
+#
+#	slidervalue(h, v)			modifies a slider's value.
+#
+############################################################################
+#
+#  slider(win, proc, arg, x, y, w, h, lb, iv, ub)
+#
+#	establishes a slider and returns a handle for use with slidervalue().
+#
+#	x,y,w,h give the dimensions of the slider.  The slider runs vertically
+#	or horizontally depending on which of w and h is larger.  20 makes a
+#	nice width (or height).
+#
+#	lb and ub give the range of real values represented by the slider;
+#	lb is the left or bottom end.  iv is the initial value.
+#	proc(win, arg, value) is called as the slider is dragged to different
+#	positions.
+#
+#  slidervalue(h, v)
+#
+#	changes the position of the slider h to reflect value v.
+#	The underlying action procedure is not called.
+#
+############################################################################
+#
+#  Example:  A simple color picker
+#
+#	record color(red, green, blue)
+#	global win, spot
+#
+#		...
+#	    Fg(win, spot := NewColor(win))
+#	    Color(win, spot, "gray50")
+#	    FillArc(win, 10, 10, 100, 100)
+#	    Fg(win, "black")
+#	    h1 := slider(win, setcolor, 1, 110, 10, 20, 100, 0, 32767, 65535)
+#	    h2 := slider(win, setcolor, 2, 140, 10, 20, 100, 0, 32767, 65535)
+#	    h3 := slider(win, setcolor, 3, 170, 10, 20, 100, 0, 32767, 65535)
+#		...
+#
+#	procedure setcolor(win, n, v)
+#	    static fg
+#	    initial fg := color(32767, 32767, 32767)
+#	    fg[n] := v
+#	    Color(win, spot, fg.red || "," || fg.green || "," || fg.blue)
+#	end
+#
+#	Draw a filled circle in a mutable color that is initially gray.
+#	Draw three parallel, vertical sliders of size 20 x 100.  Their values
+#	run from 0 to 65535 and they are each initialized at the midpoint.
+#	(The values are only used internally; the sliders are unlabeled.)
+#
+#	When one of the sliders is moved, call setcolor(win, n, v).
+#	n, from the "arg" value when it was built, identifies the slider.
+#	v is the new value of the slider.   Setcolor uses the resulting
+#	color triple to set the color of the mutable color "spot".
+#
+#	Additional calls
+#	    every slidervalue(h1 | h2 | h3, 32767)
+#	    every setcolor(win, 1 to 3, 32767)
+#	would reset the original gray color.  Note that explicit calls to
+# 	setcolor are needed because slidervalue does not call it.
+#
+############################################################################
+#
+#  Links: evmux, graphics
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  See also:  evmux.icn
+#
+############################################################################
+
+link evmux
+link graphics
+
+$define MARGIN 10
+
+record Slider_Rec(win, proc, arg, x, y, w, h, lb, ub, n)
+
+procedure slider(win, proc, arg, x, y, w, h, lb, iv, ub)
+   local r
+
+   r := Slider_Rec(win, proc, arg, x, y, w, h, lb, ub)
+   slidervalue(r, iv)
+   if h > w then 	# vertical slider
+      sensor(win, &lpress, Exec_Vert_Slider, r, x, y - MARGIN, w, h + 2*MARGIN)
+   else			# horizontal slider
+      sensor(win, &lpress, Exec_Horiz_Slider, r, x - MARGIN, y, w + 2*MARGIN, h)
+   return r
+end
+
+procedure slidervalue(r, v)
+   local n
+
+   Erase_Slider_Bar(r)			# erase old handle
+   if r.lb ~= r.ub then
+      v := real(v - r.lb) / (r.ub - r.lb)
+   else
+      v := 0.0
+   v <:= 0.0
+   v >:= 1.0
+   if r.h > r.w then			# if vertical
+      n := r.y + integer((1.0 - v) * (r.h - 1) + 0.5)
+   else
+      n := r.x + integer(v * (r.w - 1) + 0.5)
+   Set_Slider_Posn(r, n)		# redraw track and handle
+   return
+end
+
+procedure Set_Slider_Posn(r, n)
+   local c
+
+   r.n := n
+   if r.h > r.w then {
+      c := r.x + r.w / 2
+      BevelRectangle(r.win, c - 2, r.y, 4, r.h, -2)	# vertical track
+      BevelRectangle(r.win, r.x, r.n - 3, r.w, 6)	# horizontal bar
+      FillRectangle(r.win, r.x + 2, r.n - 1, r.w - 4, 2)
+      }
+   else {
+      c := r.y + r.h / 2
+      BevelRectangle(r.win, r.x, c - 2, r.w, 4, -2)	# horizontal track
+      BevelRectangle(r.win, r.n - 3, r.y, 6, r.h)	# vertical bar
+      FillRectangle(r.win, r.n - 1, r.y + 2, 2, r.h - 4)
+      }
+   return
+end
+
+procedure Erase_Slider_Bar(r)
+   if r.h > r.w then
+      EraseArea(r.win, r.x, \r.n - 3, r.w, 6)	# horizontal bar on vert. track
+   else
+      EraseArea(r.win, \r.n - 3, r.y, 6, r.h)	# vertical bar on horiz. track
+   return
+end
+
+procedure Exec_Vert_Slider(win, r, x, y)
+   local e, h, u, args, a, v
+
+   e := &lpress
+   repeat {
+      if type(e) == "integer" then {	# if a mouse event
+         y <:= r.y
+         y >:= r.y + r.h - 1
+         if y ~= r.n then {
+            Erase_Slider_Bar(r)
+            Set_Slider_Posn(r, y)
+            flush(r.win)
+            v := real(r.y + r.h - y - 1) / real(r.h - 1)	# 0.0 to 1.0
+            v := v * (r.ub - r.lb) + r.lb			# user range
+            r.proc(win, r.arg, v)
+            }
+         if e = &lrelease then
+            return
+         }
+      e := Event(win)
+      y := &y
+      }
+   return
+end
+
+procedure Exec_Horiz_Slider(win, r, x, y)
+   local e, h, u, args, a, v
+
+   e := &lpress
+   repeat {
+      if type(e) == "integer" then {	# if a mouse event
+         x <:= r.x
+         x >:= r.x + r.w - 1
+         if x ~= r.n then {
+            Erase_Slider_Bar(r)
+            Set_Slider_Posn(r, x)
+            flush(r.win)
+            v := real(x - r.x) / real(r.w - 1)		# 0.0 to 1.0
+            v := v * (r.ub - r.lb) + r.lb		# user range
+            r.proc(win, r.arg, v)
+            }
+         if e = &lrelease then
+            return
+         }
+      e := Event(win)
+      x := &x
+      }
+   return
+end

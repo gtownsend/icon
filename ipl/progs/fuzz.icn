@@ -1,0 +1,179 @@
+############################################################################
+#
+#   File:     fuzz.icn
+#
+#   Subject:  Program to perform fuzzy pattern matching
+#
+#   Author:   Alex Cecil
+#
+#   Date:     November 10, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#      This program illustrates "fuzzy" string pattern matching.  The result
+#   of matching s and t is a number between 0 and 1 which is based on 
+#   counting matching pairs of characters in increasingly long substrings
+#   of s and t.  Characters may be weighted differently, and the reverse
+#   tally may be given a negative bias.
+#
+############################################################################
+
+
+global bias, rank_list_max, weight1, weight2, weight_set, which_fuzz_value
+
+procedure main()
+   local alphanum, in_id, in_name, in_record, rank_list,
+         start_time, word_requested
+
+   bias          := -2                  # Reduce importance of reverse match
+   rank_list_max := 15                  # Number of best matches to write
+   weight1       := 6                   # Weight of chars not in weight_set
+   weight2       := 2                   # Weight of chars in weight_set
+   weight_set    := 'aehiouwy'          # Soundex ignore list
+
+   write("The ",rank_list_max,
+      " best matches for the first word in each line will be written.")
+   writes("\nName of input file: "); in_name := read()
+   in_id := (open(in_name,"r")) | (stop("Can't open file ",in_name))
+
+   writes("\nWord to search for: ")
+   word_requested := map(read())
+
+   writes("\nWhich function: Simple, Optimized, Weighted (1,2,3): ")
+   which_fuzz_value := case read() of {
+      "1"     : fuzz_value_1            # Simple, "obvious" implementation
+      "2"     : fuzz_value_2            # Simple, linearized for speed
+      default : fuzz_value_3            # Weights and bias included
+   }
+
+   write("\nSearching for \"",word_requested,"\" in file ",in_name)
+   start_time := &time
+   alphanum := &letters ++ &digits
+   rank_list := []                      # [[fuzz-value,in-record],...]
+   while in_record := read(in_id) do {
+      in_record ? {
+         tab(upto(alphanum))
+         rank(word_requested,map(tab(many(alphanum))),in_record,
+            rank_list,rank_list_max)
+      }
+   }
+   write("\nFuzz Value of first word\n  |   Input Record...")
+   every rank := !rank_list do {
+      write(left(string(rank[1]),5)," ",left(rank[2],72))
+   }
+   write("\nElapsed time in milliseconds: ",&time - start_time)
+end
+
+procedure rank(s,t,r,rl,rm)
+# Maintain a sorted list (rl) of the rm best Fuzz values with records (r).
+# Special cases to save time: strings are the same; or s and t have fewer
+# than about 50% characters in common.
+   local i, v
+   if s == t then v := 1.0
+   else if *(s ** t) * 4 <= (*s + *t) then v := 0.0
+   else v := which_fuzz_value(s,t,weight1,weight2,weight_set,bias)
+                                        # 3rd-last args needed by fuzz_value_3
+   if *rl = 0 then put(rl,[v,r])        # First entry in list
+   else if v >= rl[*rl][1] then {       # If value greater than least in list...
+      put(rl,[v,r])                     #    add to list, sort, and trim
+      every i := *rl to 2 by -1 do {
+         if rl[i][1] > rl[i-1][1] then rl[i] :=: rl[i-1]
+      }
+      if *rl > rm then pull(rl)
+   }
+end
+
+procedure fuzz_value_1(s,t)
+# Calculate Fuzz Value of s and t with weight=1 and bias=0
+# Simple, non-optomized algorithm.
+   if *s > *t then s :=: t
+   return 2.0 * (fuzz_match_1(s,t) + fuzz_match_1(reverse(s),reverse(t)))/
+      ((*s * (*s+1)) + (*t * (*t+1)))
+end
+
+procedure fuzz_match_1(s,ti)
+# Calculate the Fuzz Matches between s and t.  Simple algorithm.
+# ASCII NUL is used to mark matched pairs, so can't be used in strings
+   local i, imax, jmax, m, t, tsdif
+   tsdif := *ti - *s
+   m := 0
+   every imax := 1 to *s do {
+      t := ti
+      jmax := imax + tsdif + 1
+      every i := 1 to imax do 
+         if t[find(s[i],t,1,jmax)] := "\0" then m +:= 1
+   }
+   return m
+end
+
+procedure fuzz_value_2(s,t)
+# Calculate Fuzz Value with weight=1 and bias=0
+# Optomized version.
+   if *s > *t then s :=: t
+   return 2.0 * (fuzz_match_2(s,t) + fuzz_match_2(reverse(s),reverse(t)))/
+       ((*s * (*s+1)) + (*t * (*t+1)))
+end
+
+procedure fuzz_match_2(s,t)
+# Calculate the Fuzz Matches between s and t.
+# Replace column loop by imperical calculation.
+# ASCII NUL is used to mark matched pairs, so can't be used in s or t. 
+# s(ip) is ith char from right, similarly for t(jp)
+   local ip, j, jmp, jp, m, si
+   ip := *s
+   jmp := *t + 1
+   m := 0
+   every si := !s do {
+      if t[j := find(si,t)] := "\0" then {
+         jp := jmp - j
+         m +:= (ip <= jp | ip) - abs(ip - jp)  # max column minus column offset
+      }
+      ip -:= 1
+   }
+   return m
+end
+
+procedure fuzz_value_3(s,t,w1,w2,w2c,b,c)
+# Calculate Fuzz Value with weight w2 if in cset w2c, else weight w1; bias b.
+   if *s > *t then s :=: t
+   return 2.0 * (fuzz_match_3(s,t,w1,w2,w2c) +
+                 fuzz_match_3(reverse(s),reverse(t),w1+b,w2+b,w2c)) /
+        (fuzz_self_3(s,w1+w1+b,w2+w2+b,w2c) + fuzz_self_3(t,w1+w1+b,w2+w2+b,w2c))
+end
+
+procedure fuzz_match_3(s,t,w1,w2,w2c)
+# Calculate the Fuzz Matches between s and t. 
+# Replace column loop by imperical calculation.
+# ASCII NUL is used to mark matched pairs, so can't be used in s or t. 
+# s(ip) is ith char from right, similarly for t(jp)
+   local ip, j, jmp, jp, m, mo, si
+   ip := *s
+   jmp := *t + 1
+   m := 0
+   every si := !s do {
+      if t[j := find(si,t)] := "\0" then {
+         jp := jmp - j
+         mo := (ip <= jp | ip) - abs(ip - jp)  # max column minus column offset
+         m +:= (any(w2c,si) & (w2 * mo)) | (w1 * mo)
+      }
+      ip -:= 1
+   }
+   return m
+end
+
+procedure fuzz_self_3(s,w1fr,w2fr,w2c)
+# fuzz matches of s with s
+# w1fr, w2fr: forward plus reverse weights.
+   local ip, m, si
+   ip := *s
+   m := 0
+   every si := !s do {
+      m +:= (any(w2c,si) & (w2fr * ip)) | (w1fr * ip) 
+      ip -:= 1
+   }
+   return m
+end

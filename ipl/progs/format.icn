@@ -1,0 +1,162 @@
+############################################################################
+#
+#	File:     format.icn
+#
+#	Subject:  Program to word wrap a range of text
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     September 18, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Filter to word wrap a range of text.
+#
+#  A number of options are available, including full  justification (see
+#  usage text,  below).  All lines that have the same indentation as the
+#  first  line (or same  comment leading character format if  -c option)
+#  are wrapped.  Other lines are left as is.
+#
+#  This  program  is useful in conjunction with editors  that can invoke
+#  filters on a range of selected text.
+#
+#  The -c option attemps to establish the form of a comment based on the
+#  first  line, then does its best to deal  properly  with the following
+#  lines.   The  types of  comment lines that  are handled  are those in
+#  which  each  line starts with a "comment" character string  (possibly
+#  preceded  by  spaces).  While formatting  comment  lines, text  lines
+#  following the prototype line that don't match the  prototype  but are
+#  flush with  the  left margin are also  formatted  as  comments.  This
+#  feature simplifies  initially entering  lengthy  comments  or  making
+#  major modifications, since  new  text can  be entered without concern
+#  for comment formatting, which will be done automatically later.
+#
+############################################################################
+#
+#  Links: options
+#
+############################################################################
+
+link options
+
+procedure main(arg)
+   local usage, opts, tabs, comment, format, just1, space, nspace, wchar, Entab
+   local line, pre, empty, outline, spaces, word, len, width, xspace, Detab
+   local outpre
+   #
+   #  Process the options.
+   #
+   usage := 
+	 "usage: format [-options]\n_
+			\t-w N\tspecify line width (default 72)\n_
+			\t-t N\tspecify tab width (default 8)\n_
+			\t-j\tfully justify lines\n_
+			\t-J\tfully justify last line, too\n_
+			\t-c\tattempt to format program comments\n_
+			\t-n\tdon't put extra spaces after sentences\n_
+			\t-h\tprint help message"
+   opts := options(arg,"ht+w+cjJn")
+   if \opts["h"] then stop(usage)
+   width := integer(\opts["w"]) | 72
+   tabs := (integer(\opts["t"]) | 8) + 1
+   if tabs >= 2 then {
+      Detab := detab
+      Entab := entab
+      }
+   else Entab := Detab := 1
+   comment := opts["c"]
+   format := if \just1 | \opts["j"] then justify else 1
+   just1 := opts["J"]
+   xspace := if \opts["s"] then '' else '.?:!'
+   #
+   #  Initialize variables.
+   #
+   space := ' \t'
+   nspace := ~space
+   wchar := nspace
+   #
+   #  Read the first line to establish a prototype of comment format
+   #  if -c option, or of leading spaces if normal formatting.
+   #
+   line := Detab(read(),tabs) | exit()
+   line ?
+      pre := (tab(many(space)) | "") ||
+	 if \comment then
+	    tab(many(nspace)) || tab(many(space)) |
+			stop("### Can't establish comment pattern")
+	 else
+	    ""
+   width -:= *pre
+   empty := trim(pre)
+   outpre := Entab(pre,tabs)
+   outline := spaces := ""
+   repeat {
+      line ? {
+	 #
+	 #  If this line indicates a formatting break...
+	 #
+	 if (=empty & pos(0)) | (=pre & any(space) | pos(0)) |
+			(/comment & not match(pre)) then {
+	    write(outpre,"" ~== outline)
+	    outline := spaces := ""
+	    write(line)
+	    }
+	 #
+	 #  Otherwise continue formatting.
+	 #
+	 else {
+	    =pre
+	    tab(0) ? {
+	       tab(many(space))
+	       while word := tab(many(wchar)) & (tab(many(space)) | "") do {
+		  if *outline + *spaces + *word > width then {
+		     write(outpre,"" ~== format(outline,width))
+		     outline := spaces := ""
+		     }
+		  outline ||:= spaces || word
+		  spaces := if any(xspace,word[-1]) then "  " else " "
+		  }
+	       }
+	    }
+	 }
+      line := Detab(read(),tabs) | break
+      }
+   write(outpre,"" ~== (if \just1 then justify else 1)(outline,width))
+end
+
+
+#
+#  justify(s,width) -- Inserts extra spaces between words of "s" so that
+#  "s" will  be exactly  "width" characters  long.   "s" is  trimmed  of
+#  spaces  on the right  and left ends.  If  "s" contains fewer than two
+#  words, or if the trimmed version is longer than "width", the  trimmed
+#  version  of "s" is returned unchanged.  Where some gaps between words
+#  are  required  to  be   wider  than  others,  the  extra  spaces  are
+#  distributed randomly to minimize "rivering" in justified paragraphs.
+#
+procedure justify(s,width)
+   local wlist,wset,t,r
+   static space,nspace
+   initial {
+      space := ' '
+      nspace := &cset -- space
+      }
+   s := trim(s[many(space,s) | 1:0])
+   wlist := []
+   s ? while put(wlist,[tab(many(nspace)),*tab(many(space)) | 0])
+   if *s >= width | *wlist < 2 then return s
+   wset := set(wlist[1:-1])
+   t := (width - *s) / *wset
+   every (!wset)[2] +:= t
+   every 1 to (width - *s) % *wset do {
+      (t := ?wset)[2] +:= 1
+      delete(wset,t)
+      }
+   r := ""
+   every t := !wlist do r ||:= t[1] || repl(" ",t[2])
+   return r
+end

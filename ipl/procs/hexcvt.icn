@@ -1,0 +1,54 @@
+############################################################################
+#
+#	File:     hexcvt.icn
+#
+#	Subject:  Procedures for hexadecimal conversion
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     June 7, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  hex(s) -- Converts string of hex digits into an integer.
+#
+#  hexstring(i,n,lc) -- Returns a string that is the hexadecimal
+#  representation of the argument.  If n is supplied, a minimum
+#  of n digits appear in the result; otherwise there is no minimum,
+#  and negative values are indicated by a minus sign.  If lc is
+#  non-null, lowercase characters are used instead of uppercase. 
+#
+############################################################################
+
+procedure hex(s)
+   local a,c
+   a := 0
+   every c := !map(s) do
+	 a := ior(find(c,"0123456789abcdef") - 1,ishift(a,4)) | fail
+   return a
+end
+
+procedure hexstring(i,n,lowercase)
+   local s,hexchars,sign
+   i := integer(i) | runerr(101,i)
+   sign := ""
+   if i = 0 then s := "0"
+   else {
+      if /n & i < 0 then {
+         sign := "-"
+         i := -i
+         }
+      hexchars := if \lowercase then "0123456789abcdef" else "0123456789ABCDEF"
+      s := ""
+      until i = (0 | -1) do {
+         s := hexchars[iand(i,15) + 1] || s
+         i := ishift(i,-4)
+         }
+      }
+   if \n > *s then s := right(s,n,if i >= 0 then "0" else hexchars[16])
+   return sign || s
+end

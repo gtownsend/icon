@@ -1,0 +1,1121 @@
+############################################################################
+#
+#	File:     travels.icn
+#
+#	Subject:  Program to animate the traveling salesman problem
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     September 17, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Usage:  travels [window options] [-q] [npoints]
+#
+#     -q	(quiet) suppresses commentary normally written to stdout
+#
+#     npoints	seeds the field with that many initial cities
+#		and sets the count for the "reseed" button
+#
+#
+#     travels illustrates several heuristic algorithms for obtaining
+#  approximate solutions to the traveling salesman problem.  Cities may
+#  be seeded randomly or entered with the mouse.  Speed may be controlled
+#  using a slider.  The CPU time, number of cities, and path length are
+#  displayed on a status line and written to standard output after every
+#  major action.
+#
+############################################################################
+#
+#     Several types of controls are provided.  New cities may be added
+#  at any time, invalidating any current path.  At least two cities must
+#  be seeded before a path can be constructed.  A path must be constructed
+#  before any of the optimization algorithms can be applied.
+#
+#     For a description on of the algorithms used, see:
+#        David S. Johnson
+#	 Local Optimization and the Traveling Salesman Problem
+#        Proc. 17th Colloquium on Automata, Languages, & Programming
+#        Springer-Verlag (1990), pp. 446-461
+#
+#
+#  Mouse Actions:
+#
+#     Clicking the left mouse button adds a new point.
+#
+#
+#  Keyboard Actions:
+#
+#     The digit 0 clears all points.
+#     The digits 1 through 9 seed 1 to 81 (n ^ 2) new points.
+#
+#     Each of the pushbuttons below also has a keyboard equivalent
+#     which is indicated on the pushbutton.
+#
+#
+#  Pushbuttons:
+#
+#    Removing and adding points:
+#       Clear	   Remove all points
+#       Reseed	   Add n random points (a command option, default 20)
+#
+#    Path construction:
+#       Initial	   Connect points in order of initialization
+#       Random	   Random path
+#	Strip	   Strip-wise construction
+#       NearNbr	   Nearest-neighbor algorithm
+#	NearIns	   Nearest-insertion algorithm
+#	FarIns	   Farthest-insertion algorithm
+#       Greedy	   Greedy algorithm
+#
+#    Optimizations:
+#       2-Adj	   Swap pairs of adjacent points
+#	Uncross    Swap pairs of intersecting segments
+#       2-Opt	   Swap all segment pairs that shorten the path
+#
+#    Control:
+#       List	   List coordinates of points on standard output
+#       Refresh	   Redraw the screen
+#       Quit	   Exit the program
+#
+#
+#  Delay Slider:
+#
+#     The delay slider can be used to slow down the action.  It specifies a
+#  number of milliseconds to pause before visiting a new point or drawing
+#  a new path segment.  Its response is nonlinear in order to allow finer
+#  control of short delays.  Delays are inexact due to system granularity
+#  and other problems.
+#
+#     Unfortunately, the delay slider can only be changed between actions,
+#  not during construction or optimization.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: options, optwindw, button, slider, evmux, random, graphics
+#
+############################################################################
+
+link options
+link optwindw
+link button
+link slider
+link evmux
+link random
+link graphics
+
+$define EColor "dark blue"	# emphasis color
+
+
+
+global ptlist		# list of point records (permanent id order, not route)
+record point(
+   id,			#    permanent id
+   x, y,		#    location
+   nxt, prv,		#    forward and backward links for route
+   t1, t2)		#    scratch cells for traversal algorithms
+
+
+
+global distlist		# list of distance recs (linearized triangular matrix)
+global distsrt		# sorted distance list  (created when needed)
+record dstrec(
+   d,			#    distance between two points (x1000, stored as int)
+   p, q)		#    the two points
+
+
+
+global newpts			# non-null if points are new since last report
+
+global havepath			# non-null if we have a valid path
+				# (start from any point and follow links)
+
+global lastclk			# value of &time before last computation
+global delaytime		# delay time between steps, in msec
+
+global opts			# command line options
+global nseed			# number of points to seed
+
+global win			# main window
+global fgwin			# binding for drawing in foreground color
+global emwin			# binding for drawing in emphasis color
+global bgwin			# binding for erasing in background color
+
+global m, w, h, bw, bh, fh	# screen layout parameters
+global ax, ay, aw, ah		# corners and size of arena
+
+
+
+
+#########################  main program  #########################
+
+
+
+procedure main(args)
+   local base, pt, sg, hl
+
+   # get options and open a window
+   opts := options(args, "qE:" || winoptions())		# get options
+
+   /opts["W"] := 700					# default width
+   /opts["H"] := 500					# default height
+   /opts["E"] := EColor					# default emphasis
+   /opts["T"] := "sans,bold,12"				# default font
+   /opts["M"] := -1					# use standard margin
+   win := optwindow(opts, "linewidth=2")	# open window
+   m := opts["M"]					# save specified margin
+   h := opts["H"]					# save usable height
+   w := opts["W"]					# save usable width
+
+   bw := 100						# button width
+   bh := 18						# button height
+   fh := 20						# footer height
+
+   ax := m + bw + m					# arena bounds and size
+   ay := m
+   aw := w - bw - m
+   ah := h - fh - m
+
+   fgwin := Clone(win)
+   emwin := Clone(win, "fg=" || (opts["E"] | EColor | "black"), "linewidth=4")
+   bgwin := Clone(win, "fg=" || Bg(win), "linewidth=4")
+
+   # set up sensor for adding points
+   sensor(win, &lrelease, addpt, &null, ax, ay, aw, ah)
+
+   # set up buttons
+   buttonrow(win, m, m, bw, bh, 0, bh + (2 > m | 2),
+      "seeding", &null, &null,
+      "Clear    0", argless, clrpts,
+      "Reseed   D", argless, reseed,
+      &null,        &null, &null,			# spacing
+      "construction", &null, &null,
+      "Initial  I", argless, initpath,
+      "Random   R", argless, randpath,
+      "Strip    S", argless, strippath,
+      "NearNbr  B", argless, nearnbr,
+      "NearIns  N", argless, nearins,
+      "FarIns   F", argless, farins,
+      "Greedy   G", argless, greedypath,
+      &null,        &null, &null,
+      "optimization", &null, &null,
+      "2-Adj    A", argless, twoadj,
+      "Uncross  U", argless, uncross,
+      "2-Opt    T", argless, twoopt,
+      &null,        &null, &null,
+      "control",    &null, &null,
+      "Refresh  H", argless, refresh,
+      "List     L", argless, listpath,
+      &null,        &null, &null,
+      "Quit     Q", argless, exit,
+      )
+
+   # set up corresponding keyboard handlers
+   quitsensor(win)			# q and Q
+   sensor(win, 'Ii', argless, initpath)
+   sensor(win, 'Rr', argless, randpath)
+   sensor(win, 'Ss', argless, strippath)
+   sensor(win, 'Bb', argless, nearnbr)
+   sensor(win, 'Nn', argless, nearins)
+   sensor(win, 'Ff', argless, farins)
+   sensor(win, 'Gg', argless, greedypath)
+   sensor(win, 'Aa', argless, twoadj)
+   sensor(win, 'Uu', argless, uncross)
+   sensor(win, 'Tt', argless, twoopt)
+   sensor(win, 'Ll', argless, listpath)
+   sensor(win, 'Dd', argless, reseed)
+   sensor(win, 'Hh', argless, refresh)
+   sensor(win, '0', argless, clrpts)
+   sensor(win, '123456789', reseed)
+
+   # set up speed slider
+   slider(win, setdly, 0, m, m + h - bh, bw, bh, 0, 0, 1)
+   setdly(win, 0, 0)
+
+   # initialize
+   randomize()
+   clrpts()
+   lastclk := &time
+
+   if nseed := integer(args[1]) then
+      reseed()
+   else
+      nseed := 20
+
+   # process events
+   evmux(win)
+end
+
+
+
+#  setdly(win, arg, value) -- set delay time
+
+procedure setdly(win, arg, value)
+   local s, l
+
+   value := integer(10001 ^ value + 0.5) - 1
+   delaytime := value
+   s := "  delay " || value || "  "
+   l := TextWidth(win, s)
+   GotoXY(win, m + (bw - l) / 2, m + h - bh - m / 2)
+   writes(win, s)
+   return
+end
+
+
+
+#  pause() -- delay according to the current setting
+
+procedure pause()
+   if delaytime > 0 then
+      WDelay(win, delaytime)
+   return
+end
+
+
+
+#########################  path constructions  #########################
+
+
+
+#  initpath() -- connect in initial placement order
+
+procedure initpath()
+   local i
+
+   bgnpath(0, "placement order...") | fail
+   ptlist[1].nxt := &null
+   every i := 2 to *ptlist do {
+      follow(ptlist[i-1], ptlist[i])
+      pause()
+      }
+   ptlist[-1].nxt := ptlist[1]
+   ptlist[1].prv := ptlist[-1]
+   drawpath(fgwin, ptlist[-1], ptlist[1])
+
+   havepath := 1
+   report("initial path")
+   return
+end
+
+
+
+#  randpath() -- make random connections
+
+procedure randpath()
+   local l, i, p, q
+
+   bgnpath(0, "connecting randomly...") | fail
+
+   l := copy(ptlist)			# get copy of point list
+   every i := 1 to *l do		# shuffle it
+      l[i] :=: l[?i]
+
+   p := l[1]
+   q := l[-1]
+   p.nxt := &null
+   every i := 2 to *l do {
+      follow(l[i-1], l[i])
+      pause()
+      }
+   p.prv := q
+   q.nxt := p
+   drawpath(fgwin, q, p)
+
+   havepath := 1
+   report("random path")
+   return
+end
+
+
+
+#  strippath() -- construct using strips
+
+procedure strippath()
+   local i, l, n, p, q, r
+
+   if *ptlist < 3 then
+      return
+   bgnpath(0, "stripwise algorithm")
+
+   n := integer(sqrt(*ptlist) + .5)
+   l := list(n)
+   every !l := list()
+
+   every p := !ptlist do {
+      i := integer(1 + n * (p.x - ax) / real(aw + 1))
+      put(l[i], p)
+      }
+
+   every i := 1 to n do
+      l[i] := sortf(l[i], 3)
+   every i := 2 to n by 2 do {
+      r := []
+      every push(r, !l[i])
+      l[i] := r
+      }
+
+   q := !!l			# get first point from first non-empty bin
+   every p := !!l do {
+      q.nxt := p
+      p.prv := q
+      drawpath(fgwin, q, p)
+      q := p
+      pause()
+      }
+   q := !!l
+   p.nxt := q
+   q.prv := p
+   drawpath(fgwin, p, q)
+
+   havepath := 1
+   report("stripwise algorithm")
+   return
+end
+
+
+
+#  nearnbr() -- nearest neighbor
+
+procedure nearnbr()
+   local f, p, q, s, d
+
+   bgnpath(1, "nearest neighbor...") | fail
+
+   f := p := ?ptlist
+   p.nxt := p.prv := &null
+   s := set([p])
+   while *s < *ptlist do {
+      every d := !distsrt do {
+         if d.p === p then
+            q := d.q
+         else if d.q === p then
+            q := d.p
+         else
+            next
+         if member(s, q) then
+            next
+         insert(s, q)
+         p := follow(p, q)
+         p.nxt := &null
+         pause()
+         break
+         }
+      }
+   p.nxt := f
+   f.prv := p
+   drawpath(fgwin, p, f)
+
+   havepath := 1
+   report("nearest neighbor")
+   return
+end
+
+
+
+#  nearins() -- make path using nearest-insertion algorithm
+
+procedure nearins()
+   local d, p, q, t, todo, mind
+
+   bgnpath(0, "nearest insertion...") | fail
+
+   # init path with the two closest points
+   mind := 1000000000
+   every d := !distlist do
+      if mind >:= d.d then {
+         p := d.p
+         q := d.q
+         }
+   p.nxt := p.prv := q
+   q.nxt := q.prv := p
+   drawpath(fgwin, p, q)
+   pause()
+
+   todo := set(ptlist)		# set of points not yet on path
+   every delete(todo, p | q)
+
+   every t := !todo do
+      t.t1 := dist(t, q)	# point.t1 = distance to nearest point on path
+
+   while *todo > 0 do {		# repeat for each new point added to path
+      mind := 1000000000	# mind = minimum distance this pass
+      every t := !todo do {
+         t.t1 >:= dist(t, p)	# update pt's dist to path if latest pt closer
+         if mind >:= t.t1 then	# check for better (smaller) min d this pass
+            q := t		# if nearest so far
+         }
+      # point q is the remaining point nearest from any point on the path
+      joinpath(p, q)
+      delete(todo, q)
+      pause()
+      p := q
+      }
+
+   havepath := 1
+   redraw()
+   report("nearest insertion")
+   return
+end
+
+
+
+#  farins() -- make path using farthest-insertion algorithm
+
+procedure farins()
+   local d, p, q, t, todo, maxd
+
+   bgnpath(0, "farthest insertion...") | fail
+
+   # init path with the two most distant points
+   maxd := -1
+   every d := !distlist do
+      if maxd <:= d.d then {
+         p := d.p
+         q := d.q
+         }
+   p.nxt := p.prv := q
+   q.nxt := q.prv := p
+   drawpath(fgwin, p, q)
+   pause()
+
+   todo := set(ptlist)		# set of points not yet on path
+   every delete(todo, p | q)
+
+   every t := !todo do
+      t.t1 := dist(t, q)	# point.t1 = distance to nearest point on path
+
+   while *todo > 0 do {		# repeat for each new point added to path
+      maxd := -1		# maxd = furthest distance this pass
+      every t := !todo do {
+         t.t1 >:= dist(t, p)	# update pt's dist to path if latest pt closer
+         if maxd <:= t.t1 then	# check for better (larger) maxd this pass
+            q := t		# if farthest so far
+         }
+      # point q is the remaining point farthest from any point on the path
+      joinpath(p, q)
+      delete(todo, q)
+      pause()
+      p := q
+      }
+
+   havepath := 1
+   redraw()
+   report("farthest insertion")
+   return
+end
+
+
+
+#  joinpath(p, q) -- add q at best place in path beginning at p
+
+procedure joinpath(p, q)
+   local start, best, d
+
+   d := dist(p, q) + dist(q, p.nxt) - dist(p, p.nxt)
+   start := best := p
+   while (p := p.nxt) ~=== start do
+      if d >:= dist(p, q) + dist(q, p.nxt) - dist(p, p.nxt) then
+         best := p
+
+   follow(best, q)
+   return
+end
+
+
+
+#  greedypath() -- make path using greedy algorithm
+
+procedure greedypath()
+   local p, q, d, g, need
+
+   bgnpath(1, "greedy algorithm...") | fail
+
+   every p := !ptlist do {
+      p.nxt := p.prv := &null
+      p.t1 := p.id				# point.t1 = group membership
+      p.t2 := 0					# point.t2 = degree of node
+      }
+
+   need := *ptlist				# number of edges we still need
+
+   every d := |!distsrt do {			# |! is to handle 2-pt case
+      p := d.p
+      q := d.q
+      if p.t2 > 1 | q.t2 > 1 then		# if either is fully connected
+         next
+      if p.t1 = q.t1 & need > 1 then		# if would be cycle & not done
+         next
+
+      # now we are committed to adding the point
+      pause()
+      DrawLine(fgwin, p.x, p.y, q.x, q.y)	# draw new edge
+      p.t2 +:= 1				# increase degree counts
+      q.t2 +:= 1
+
+      if /p.nxt <- q & /q.prv := p then {	# if q can follow p easily
+         g := q.t1 ~=:= p.t1 | break		# break if the final connection
+         while q := \q.nxt do
+            q.t1 := g
+         }
+      else if /q.nxt <- p & /p.prv := q then {	# if p can follow q easily
+         g := p.t1 ~=:= q.t1 | break		# break if the final connection
+         while p := \p.nxt do
+            p.t1 := g
+         }
+      else if /p.nxt := q then {  # implies /q.nxt -- both are chain tails
+         g := p.t1
+         repeat {
+            q.t1 := g
+            q.nxt := q.prv
+            q.prv := p
+            p := q
+            q := \q.nxt | break
+            }
+         }
+      else { # /p.prv & /q.prv -- both are chain heads
+         p.prv := q
+         g := p.t1
+         repeat {
+            q.t1 := g
+            q.prv := q.nxt
+            q.nxt := p
+            p := q
+            q := \q.prv | break
+            }
+         }
+
+      if (need -:= 1) = 0 then			# quit when have all edges
+         break
+      }
+
+   havepath := 1
+   report("greedy algorithm")
+   return
+end
+
+
+
+
+#  bgnpath(i, msg) -- common setup for path construction
+#
+#  i > 0 if *sorted* distance table will be needed
+#  msg is status message
+
+procedure bgnpath(i, msg)
+   if *ptlist < 2 then
+      fail
+   prepdist(i)
+   status(msg)
+   if \havepath then
+      erasepath()
+   havepath := &null
+   lastclk := &time
+   return
+end
+
+
+
+#########################  optimizations  #########################
+
+
+
+#  twoadj() -- swap pairs of adjacent points
+
+procedure twoadj()
+   local lastchg, nflips, p, q
+
+   if /havepath then
+      return
+   status("2-adj...")
+   lastclk := &time
+   nflips := 0
+
+   lastchg := p := ?ptlist			# pick random starting point
+
+   repeat {
+
+      q := p.nxt.nxt
+      repeat {
+         DrawLine(emwin, p.x, p.y, p.nxt.x, p.nxt.y)	# mark current spot
+         if not pairtest(p, q) then		# if swap doesn't help
+            break
+         flip(p, q)				# do the swap
+         nflips +:= 1				# count it
+         lastchg := p				# update point of last change
+         }
+
+      pause()
+      p := p.nxt
+      if p === lastchg then
+         break			# have made complete circuit without changes
+      }
+
+   report("2-adj (" || nflips || " flips)")
+   refresh()
+   return
+end
+
+procedure adjtest(p, q)
+   return ((p.nxt.nxt === q) | (q.nxt.nxt === p)) & pairtest(p, q)
+end
+
+
+
+#  twoopt() -- swap segments if total path shortens
+
+procedure twoopt()
+   pairdriver("2-opt", pairtest)
+   return
+end
+
+#  pairtest(p, q) -- succeed if swapping out-segments from p and q shortens path
+
+procedure pairtest(p, q)
+   return (dist(p,q) + dist(p.nxt,q.nxt)) < (dist(p,p.nxt) + dist(q,q.nxt)) &
+            (not (p === (q.prv | q | q.nxt)))
+end
+
+
+
+#  uncross() -- swap intersecting segments
+
+procedure uncross()
+   pairdriver("uncross", intersect)
+   return
+end
+
+#  intersect(p, q) -- succeed if outward segments from p and q intersect
+#
+#  from comp.graphics.algorithms FAQ, by O'Rourke
+
+procedure intersect(p, q)
+   local a, b, c, d
+   local xac, xdc, xba, yac, ydc, yba
+   local n1, n2, d12, r, s
+
+   a := p
+   b := p.nxt
+   c := q
+   d := q.nxt
+   xac := a.x - c.x
+   xdc := d.x - c.x
+   xba := b.x - a.x
+   yac := a.y - c.y
+   ydc := d.y - c.y
+   yba := b.y - a.y
+
+   n1 := yac * xdc - xac * ydc
+   n2 := yac * xba - xac * yba
+   d12 := real(xba * ydc - yba * xdc)
+
+   if d12 = 0.0 then
+      fail		# lines are parallel or coincident
+
+   r := n1 / d12
+   s := n2 / d12
+
+   # intersection point is: (a.x + r * xba, a.y + r * yba)
+
+   if 0.0 < r < 1.0 & 0.0 < s < 1.0 then
+      return		# segments AB and CD do intersect 
+   else
+      fail		# segments do not intersect (though extensions do)
+end
+
+
+
+
+#  pairdriver(label, tproc) -- driver for "uncross" and "2-opt"
+
+procedure pairdriver(label, tproc)
+   local slist, todo, nflips, a, p, q
+
+   if /havepath then
+      return
+   status(label || "...")
+   lastclk := &time
+   nflips := 0
+
+   slist := list()			# initial list of segments
+   every put(slist, path())
+   todo := set()			# segments to reconsider
+
+   while p := get(slist) | ?todo do {	# pick candidate segment
+
+      delete(todo, p)
+      pause()
+
+      # restart search every time p's outgoing edge changes
+      repeat {
+
+         DrawLine(emwin, p.x, p.y, p.nxt.x, p.nxt.y)  # mark segment in progress
+
+         # check for swap with every other edge
+         every q := !ptlist do {
+
+            if tproc(p, q) then {		# if test procedure succeeds,
+						# a swap is worthwhile
+
+               # the path from p.nxt through q will reverse direction;
+               # this will change segment labelings; so fix up "todo" set
+               a := q.prv
+               while a ~=== p do {
+                  if member(todo, a) then {	# if segment is on list
+                     delete(todo, a)		# remove under old name
+                     insert(todo, a.nxt)	# add under new name
+                     }
+                  a := a.prv
+                  }
+
+               # new segment from p will be done when we loop again
+               # other new segment to list
+               insert(todo, p.nxt)	# add to list
+
+               # now flip the edges
+               flip(p, q)		# flip the edges
+               nflips +:= 1		# count the flip
+
+               break next	# restart search loop using new edge
+               }
+            }
+
+         break		# if no improvement for one full loop
+         }
+
+      }
+
+   report(label || " (" || nflips || " flips)")
+   refresh()
+   return
+end
+
+
+
+#########################  point maintenance  #########################
+
+
+
+#  clrpts() -- remove all points
+
+procedure clrpts()
+   ptlist := []
+   distlist := []
+   distsrt := []
+   havepath := &null
+   refresh()
+   fillrect(bgwin)
+   status("0 points")
+   return
+end
+
+
+
+#  reseed() -- add random points to the list
+
+procedure reseed(win, dummy, x, y, event)
+   local p, v, n
+
+   n := integer(\event)^2 | nseed
+   every 1 to n do
+      addpt(win, &null, ax + ?aw, ay + ?ah)
+   return
+end
+
+
+
+#  addpt(win, dummy, x, y) -- add one point to the list
+
+procedure addpt(win, dummy, x, y)
+   local n, p, q
+
+   if \havepath then {
+      erasepath()
+      havepath := &null
+      }
+   n := *ptlist
+   p := point(n + 1, x, y)
+   every q := !ptlist do
+      put(distlist, dstrec(integer(1000 * sqrt((q.x-x)^2 + (q.y-y)^2)), p, q))
+   put(ptlist, p)
+   drawpt(p)
+   status(*ptlist || " points")
+   newpts := 1
+   return p
+end
+
+
+
+#  prepdist(i) -- prepare distance data for path construction
+#
+#  copy the distance list, if not already done, so it can be indexed quickly.
+#  also create the sorted list if i > 0.
+
+procedure prepdist(i)
+   static c, n
+
+   if c ~=== distlist | n ~= *distlist then {
+      c := distlist := copy(distlist)
+      n := *distlist
+      }
+   if \i > 0 & *distsrt < *distlist then {
+      status("sorting distances... ")
+      lastclk := &time
+      WFlush(win)
+      distsrt := sortf(distlist, 1)
+      report("distance sort")
+      }
+   return
+end
+
+
+
+#  dist(p, q) -- return distance between p and q assuming p ~=== q
+
+procedure dist(p, q)
+   local m, n
+   m := p.id
+   n := q.id
+   if m < n then
+      m :=: n
+   return distlist[((m - 1) * (m - 2)) / 2 + n].d
+end
+
+
+
+#  path() -- generate current path, even if it changes during generation
+
+procedure path()
+   local l, p, q
+   p := q := ptlist[1] | fail
+   l := [p]
+   while (p := p.nxt) ~=== q do
+      put(l, p)
+   suspend !l
+end
+
+
+#  follow(p, q) -- insert q to follow p (erases old path from p, draws new)
+
+procedure follow(p, q)
+   DrawLine(bgwin, p.x, p.y, (p.prv~===\p.nxt).x, p.nxt.y)
+   every drawpt(p | \p.nxt)
+   q.nxt := p.nxt
+   q.prv := p
+   (\p.nxt).prv := q
+   p.nxt := q
+   DrawLine(fgwin, p.x, p.y, q.x, q.y)
+   DrawLine(fgwin, q.x, q.y, (\q.nxt).x, q.nxt.y)
+   return q
+end
+
+
+
+#  flip(p, q) -- link p to q, and their successors to each other
+
+procedure flip(p, q)
+   local a, b
+
+   DrawLine(bgwin, p.x, p.y, p.nxt.x, p.nxt.y)
+   DrawLine(bgwin, q.x, q.y, q.nxt.x, q.nxt.y)
+   # relink half of the chain backwards
+   a := q
+   while a ~=== p do {
+      a.prv :=: a.nxt
+      a := a.nxt
+      }
+   a := p.nxt
+   b := q.prv
+   p.nxt := q
+   q.prv := p
+   a.nxt := b
+   b.prv := a
+   DrawLine(fgwin, p.x, p.y, q.x, q.y)
+   DrawLine(fgwin, a.x, a.y, b.x, b.y)
+   every drawpt(p | q | a | b)
+   return
+end
+
+
+
+#  linkpath(p, q, ...) -- link points p, q, ... in order
+
+procedure linkpath(l[])
+   local i, p, q, v
+   i := p := get(l)
+   v := [fgwin, p.x, p.y]
+   every q := !l do {
+      p.nxt := q
+      q.prv := p
+      p := q
+      put(v, p.x, p.y)
+      }
+   DrawLine ! v
+   every drawpt(i | !l)
+   return
+end
+
+
+
+
+#########################  drawing  #########################
+
+
+
+#  refresh() -- redraw screen to repair segments and points
+
+procedure refresh()
+   fillrect(bgwin)				# erase segs
+   redraw()
+   return
+end
+
+
+
+#  redraw() -- redraw path without erasing
+
+procedure redraw()
+   local p
+
+   every drawpt(!ptlist)
+   every p := !ptlist do
+      DrawLine(fgwin, p.x, p.y, (\p.nxt).x, p.nxt.y)
+   return
+end
+
+
+
+#  erasepath() -- erase path, redraw points if necessary
+
+procedure erasepath()
+   local l, p, v
+
+   v := [bgwin]
+   every p := ptlist[1].prv | path() do
+      put(v, p.x, p.y)
+   DrawLine ! v
+   every drawpt(!ptlist)
+   return
+end
+
+
+
+#  drawpath(win, p, q) -- draw the path from p to q
+#
+#  (of course, depending on the foreground color, this can hide a path, too.)
+
+procedure drawpath(win, p, q)
+   local v
+
+   v := [win, p.x, p.y]
+   while p ~=== q do {
+      p := p.nxt
+      put(v, p.x)
+      put(v, p.y)
+      }
+   DrawLine ! v
+   return
+end
+
+
+
+#  drawpt(p) -- draw the single point p
+
+procedure drawpt(p)
+   FillRectangle(fgwin, p.x - 2, p.y - 2, 5, 5)
+   return
+end
+
+
+
+#  fillrect(win) -- fill the working area
+
+procedure fillrect(win)
+   FillRectangle(win, ax - m + 1, ay - m + 1, aw + 2 * m - 1, ah + 2 * m - 1)
+   return
+end
+
+
+
+#########################  reporting  #########################
+
+
+
+#  listpath() -- list the coordinates of each point on standard output
+
+procedure listpath()
+   local p
+
+   if \havepath then {
+      write("\point list in order of traversal:")
+      every listpt(path())
+      }
+   else {
+      write("\point list (no path established):")
+      every listpt(!ptlist)
+      }
+   return
+end
+
+#  listpt(p) - list one point
+
+procedure listpt(p)
+   write(right(p.id, 3), ".", right(p.x, 5), right(p.y, 5),
+         right((\p.prv).id | "", 6), right((\p.nxt).id | "", 6))
+   return
+end
+
+
+
+#  report(text) -- display statistics on screen and stdout
+#
+#  The statistics include the delta time since lastclk was last set.
+#
+#  Output to stdout is suppressed if the "-q" option was given.
+#  Output to stdout is double spaced if the set of points has changed.
+
+procedure report(text)
+   local p, n, d, s, dt
+
+   dt := ((((&time - lastclk) / 1000.0) || "000") ? (tab(upto(".")) || move(3)))
+   s := right(*ptlist, 4) || " pts   "
+
+   if \havepath then {
+      d := 0
+      every p := !ptlist do
+         d +:= dist(p, p.nxt)
+      d := (d + 500) / 1000
+      s ||:= right("d = " || d, 10)
+      }
+   else
+      s ||:= "          "
+
+   s ||:= right(dt , 8) || " sec   " || text
+
+   status(s)
+   if /opts["q"] then {
+      if \newpts then
+         write()
+      write(s)
+      }
+   newpts := &null
+   return
+end
+
+
+#  status(s) -- write s as a status message
+
+procedure status(s)
+   EraseArea(win, m + bw + m, m + h - fh)
+   GotoXY(win, m + bw + m, m + h - (fh / 4))
+   writes(win, s)
+   return
+end

@@ -1,0 +1,87 @@
+############################################################################
+#
+#	File:     c2icn.icn
+#
+#	Subject:  Program to assist C-to-Icon porting
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     March 11, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Filter to do some of the mundane work involved in porting a C
+#  program to Icon.
+#
+#  - Reformats comments, moving embedded comments to end of line
+#  - Removes the ";" from ends of lines
+#  - Reformats line-continued strings
+#  - Changes = to :=
+#  - Changes -> to .
+#
+############################################################################
+
+procedure main(arg)
+   local c, comment, line, tline
+
+   while line := trim(read(),' \t') do line ? {
+      line := comment := ""
+      while line ||:= tab(upto('\'"/=-')) do {
+	 case c := move(1) of {
+	    "\"" | "'": {
+	       line ||:= c
+	       repeat {
+		  until line ||:= tab(find(c) + 1) do {
+		     line ||:= tab(0)
+		     if line[-1] == "\\" then line[-1] := "_"
+		     else stop("unbalanced quotes")
+		     Out(line)
+		     line := ""
+		     &subject := read()
+		     }
+		  if not (line[-2] == "\\" & not (line[-3] == "\\")) then break
+		  }
+	       }
+	    "/": {
+	       if ="*" then {
+		  until comment ||:= trim(tab(find("*/")),' \t') do {
+		     comment ||:= trim(tab(0),' \t')
+		     Out(line,comment)
+		     line := comment := ""
+		     &subject := trim(read(),' \t')
+		     }
+		  move(2)
+		  }
+	       }
+	    "=": {
+	       if ="=" then line ||:= "=="
+	       else if any('<>!',line[-1]) then line ||:= c
+	       else line ||:= ":="
+	       }
+	    "-": {
+	       if =">" then line ||:= "."
+	       else line ||:= c
+	       }
+	    default: line ||:= c
+	    }
+	 }
+      line ||:= tab(0)
+      tline := trim(line)
+      if tline[-1] == ";" then {
+	 line := tline[1:-1] || line[*tline + 1:0]
+	 }
+      Out(line,comment)
+      }
+end
+
+
+procedure Out(line,comment)
+   line ||:= "#" || ("" ~== \comment)
+   line := trim(line,' \t')
+   write(line)
+   return
+end

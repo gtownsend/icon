@@ -1,0 +1,146 @@
+############################################################################
+#
+#	File:     vstd.icn
+#
+#	Subject:  Procedures for standard lookups
+#
+#	Author:   Jon Lipp
+#
+#	Date:     March 3, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Utility procedures in this file:
+#	VInit()
+#	null_proc()
+#	Vget_uid()
+#	_Vbomb()
+#	Vinsert_check()
+#	Vwin_check()
+#
+############################################################################
+
+record Vstd(event, draw, outline, resize, inrange, init, couplerset,
+           insert, remove, lookup, set_abs, set_value )
+
+record Vstd_coupler(set, add_client, init, unset, toggle, eval)
+
+record Vstd_dialog(open_dialog, register, format, unregister, entries, focus,
+   text_entries, text_lu)
+
+#
+#  Used by menus, buttons
+#
+record Vstd_draw(draw_off, draw_on, init, space, CS, CP, outline,
+   basex, basey, pick, format)
+
+#
+#  type is non-null for vertical; &null for horizontal.
+#
+record Vstd_scrollbar(sp, sw, tw, th, ws, cv_range, oldpos, rev, 
+   frame, drawn, type)
+record Vstd_pos(x, y, w, h)
+
+global Vrecset, Vcoupler_recset
+global V_TEXT_PAD, V_NO_RB_FOCUS, V_DRAGGING, V_FAIL
+global V_IMAGE, V_IMAGE_NO, V_RECT, V_2D, V_CHECK, V_CIRCLE, V_DIAMOND, V_XBOX
+global V_RECT_NO, V_2D_NO, V_CHECK_NO, V_CIRCLE_NO, V_DIAMOND_NO, V_XBOX_NO
+global V_CANCEL, V_OK, V_NEXT, V_PREVIOUS
+global V_ARROW, V_COUPLER, V_DUMMY_ID
+
+procedure null_proc()
+end
+
+procedure VInit()
+initial {
+
+#  Define the cset of all allowable vidget record types.
+   Vrecset := set(["Vbutton_rec", "Vcheckbox_rec", 
+      "Vline_rec", "Vdialog_frame_rec", 
+      "Vframe_rec",  "Vmenu_item_rec", 
+      "Vmenu_frame_rec", "Vradio_entry_rec", "Vradio_frame_rec", 
+      "Vpull_down_button_rec", "Vpane_rec", "Varrow_rec",
+      "Vthumb_rec", "Vscrollbar_frame_rec",
+      "Vslider_rec", "Vtext_rec", "Vgrid_rec"])
+
+   Vcoupler_recset := set(["Vcoupler_rec", "Vrange_coupler_rec"])
+
+#  The padding in a Vtext_in between the data outline and the data text.
+   V_TEXT_PAD 		:= 4
+
+#  Used for button styles.
+   V_RECT := V_2D 	:= -690402
+   V_CHECK 		:= -690403
+   V_CIRCLE 		:= -690404
+   V_RECT_NO := V_2D_NO	:= -690406
+   V_CHECK_NO 		:= -690407
+   V_CIRCLE_NO 		:= -690408
+   V_XBOX		:= -690409
+   V_XBOX_NO		:= -690410
+   V_DIAMOND		:= -690411
+   V_DIAMOND_NO		:= -690412
+   V_IMAGE              := -690413
+   V_IMAGE_NO           := -690414
+
+#  Used for communication bewtween a dialog box and its contents.
+   V_CANCEL 		:= -690417
+   V_OK		  	:= -690418
+   V_NEXT		:= -690419
+   V_PREVIOUS		:= -690420
+
+#  Used for telling a radio button frame *not* to turn on a default
+#  selection.
+   V_NO_RB_FOCUS	:= -690421
+
+#  Used in menus.
+   V_DRAGGING		:= -690422
+   V_FAIL		:= -690423
+
+#  Lets a thumb know an arrow called its couplerset.
+   V_ARROW		:= -690424
+   V_COUPLER 		:= -690425
+   V_DUMMY_ID		:= -690426
+}
+
+end
+   
+procedure Vget_uid()
+   static uid
+   initial uid := 0
+
+   uid +:= 1
+   return uid
+end
+
+procedure _Vbomb(str)
+
+   write(&errout, "Vidget error: ", str)
+   runerr(600)
+
+end   
+
+procedure Vinsert_check(p)
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if type(p[1]) ? find("frame") then {
+      if not (numeric(p[2]), numeric(p[3])) then
+         _Vbomb("invalid x or y coordinate to VInsert()")
+      return 1
+   }
+   else fail
+end
+
+procedure Vwin_check(win, caller)
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if not (type(win) ? ="window") then
+      _Vbomb("invalid window parameter to "|| caller)
+end

@@ -1,0 +1,319 @@
+############################################################################
+#
+#	File:     nim.icn
+#
+#	Subject:  Program to play the game of nim
+#
+#	Author:   Jerry Nowlin
+#
+#	Date:     June 14, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# The game of nim focuses on a pile of 15 sticks.  Each player can
+# select 1, 2, or 3 sticks from the sticks remaining in the pile when
+# it's their turn.  The player to pick up the last stick(s) wins.  The
+# loser of the previous game always gets to go first.
+#
+# There are two versions of nim in here.  The first (default) version
+# uses an algorithm to make its moves.  It will never lose if it gets
+# the first turn.  The second version tries to learn from each game.
+# You'll have to play a few games before it will get very smart but
+# after a while it will also never lose if it gets the first turn.  This
+# is assuming of course that you know how to play.  Since the learning
+# version learns from the person it plays against, if you're lousy the
+# game will be too.
+#
+# To invoke the learning version just pass any argument to the program.
+# If you want to see how the program learns, you can use the string
+# "show" as the argument and the program's current game memory will be
+# displayed after each game.  If you invoke the game with the string save
+# as an argument a file called ".nimdump" will be created in the current
+# directory with a dump of the program's game memory when you quit and
+# the next time the game is played in learn mode it will initialize its
+# game memory from the dump.  You can invoke this program with more than
+# one argument so show and save can be used at the same time.
+#
+############################################################################
+#
+#  Links:  random
+#
+############################################################################
+
+link random
+
+global	STICKS,	# the number of stick left
+	MINE,	# my trys for a given game
+	THEIRS,	# their trys for a given game
+	TRIED	# the combined tried table (game memory)
+
+procedure main(args)
+
+	local	resp,	# player response
+		turn,	# who's turn
+		fp,	# file pointer
+		stick,	# sticks index
+		take,	# take index
+		seed,	# random number seed
+		show	# show the game memory flag
+
+        randomize()
+
+	# check if we should show the thought process of a learning game
+	if !args == "show" then show := "yes"
+
+	# define game memory
+	TRIED := table()
+
+	# if this is a learning game and there's a memory dump read it
+	if *args > 0 & fp := open(".nimdump","r") then {
+		every stick := 1 to 15 do {
+			TRIED[stick] := list(3)
+			every take := 1 to 3 do
+				TRIED[stick][take] := (read(fp) | "?")
+		}
+		close(fp)
+	}
+
+	# otherwise initialize game memory to unknowns
+	else every stick := 1 to 15 do TRIED[stick] := [ "?", "?", "?" ]
+
+	# start with their turn
+	turn := "theirs"
+
+	# print the initial message
+	write("\nThis is the game of nim.  You must pick up 1, 2 or 3")
+	write("sticks from the pile when it's your turn.  The player")
+	write("that picks up the last stick(s) wins.  Good luck.")
+
+	# loop
+	repeat {
+
+		# initialize the per game variables
+		STICKS := 15
+		THEIRS := table()
+		MINE := table()
+
+		# display the initial stick pile
+		dispile()
+
+		# loop while there are sticks left
+		while STICKS > 0 do
+
+			# take turns
+			if turn == "theirs" then
+				turn := theirturn(args)
+			else	turn := myturn(args)
+
+		# the player who took the last stick(s) wins
+		if turn == "theirs" then
+			write("\nI won!")
+		else	write("\nYou won!")
+
+		# if this is a thinking game learn from it
+		if *args > 0 then learn(turn,show)
+
+		# see if they want to play again
+		writes("\nDo you want to play again? ")
+		if not any('yY',read()) then quit(args,"\nGoodbye.\n")
+	}
+end
+
+procedure theirturn(args)
+
+	local	pick	# the players pick
+
+	# find out how many sticks they want
+	writes("How many sticks do you want? ")
+	pick := read()
+
+	# check their response to see if they want to quit
+	if any('qQ',pick) then quit(args,"\nYou gave up!\n")
+
+	# check to see if their pick is valid
+	if not numeric(pick) | pick < 1 | pick > (3 | STICKS) then
+		write("\007Invalid Response\007\n") & return "theirs"
+
+	# save their pick if this is a thinking game
+	if *args > 0 then THEIRS[STICKS] := pick
+
+	# take away the sticks
+	STICKS -:= pick
+
+	# if there are any sticks left display them
+	if STICKS > 0 then dispile()
+
+	# make it my turn
+	return "mine"
+end
+
+procedure myturn(args)
+
+	local	pick	# my pick
+
+	# let them know I'm about to pick
+	writes("I'll take ")
+
+	# make my choice depending on whether or not this is a thinking game
+	if *args > 0 then {
+
+		# think about it
+		pick := thinkpick(STICKS)
+
+		# if I can't make up my mind randomly pick one choice
+		if type(pick) == "list" then pick := ?pick
+
+		MINE[STICKS] := pick
+
+	} else	pick := algorpick(STICKS)
+
+	# tell them what I decided
+	write((1 < pick) || " sticks." | "1 stick.")
+
+	# take away the sticks
+	STICKS -:= pick
+
+	# if there are any sticks left display them
+	if STICKS > 0 then dispile()
+
+	# make it their turn
+	return "theirs"
+end
+
+procedure dispile()
+	write()
+	every 1 to STICKS do writes("/ ")
+	write("\n")
+end
+
+# Use an algorithmic method to choose the number of sticks I want.  The
+# decision is made by taking the number of sticks that will leave an even
+# multiple of 4 in the pile (0 is an even multiple of 4) if possible and if
+# not then randomly choose 1, 2 or 3 sticks.
+
+procedure algorpick(sticks)
+	return (0 ~= (sticks % 4)) | ?3
+end
+
+# Use a learning method to choose the number of sticks I want.  The
+# decision is made by looking at the choices that have been made for this
+# number of sticks in the past and the results of the game where it was
+# made.  If there is no pick that resulted in a win make a random pick
+# from all the unknown picks.  If there are no unknown picks just randomly
+# choose 1, 2 or 3 sticks and hope THEY screw up.
+
+procedure thinkpick(sticks,recurse)
+
+	local	picks,	# unknown picks
+		take,	# take index
+		check,	# check list
+		pick	# my pick
+
+	# initialize a list of unknown picks
+	picks := []
+
+	# check every possible pick
+	every take := 1 to 3 do {
+
+		# if this pick won take it
+		if TRIED[sticks][take] == "won" then return take
+
+		# if this pick is unknown save it
+		if TRIED[sticks][take] == "?" then put(picks,take)
+	}
+
+	# if there are no unknown picks and no winning picks anything goes
+	if *picks = 0 then picks := [1,2,3]
+
+	# be smarter and check to see if there is a clear win for THEM
+	# after any of the picks left
+	if /recurse then {
+		check := []
+		every pick := !picks do
+			if type(thinkpick(0 < (sticks - pick),1)) == "list" then
+				put(check,pick)
+		if *check = 0 then
+			picks := [1,2,3]
+		else	picks := check
+	}
+
+	return picks
+end
+
+# Save the results of each pick in this game in the programs game memory and
+# if the command line argument was "show" display the updated game memory.
+
+procedure learn(turn,show)
+
+	local	them,	# their outcome flag
+		me,	# my outcome flag
+		stick,	# sticks index
+		take	# taken index
+
+	# decide on the outcome
+	if turn == "theirs" then
+		them := "lost" & me := "won"
+	else	them := "won" & me := "lost"
+
+	# check for all the picks made for this game and save the results
+	# in the game memory
+	every stick := 1 to 15 do {
+		if \MINE[stick] then
+			TRIED[stick][MINE[stick]] :=
+				comp(TRIED[stick][MINE[stick]],me)
+		if \THEIRS[stick] then
+			TRIED[stick][THEIRS[stick]] :=
+				comp(TRIED[stick][THEIRS[stick]],them)
+	}
+
+	# if the show flag is set print the program's game memory
+	if \show then {
+		writes("\n               picks\n          ")
+		every writes(center(1 to 3,5))
+		write("\n         ----------------")
+		every stick := 15 to 1 by -1 do {
+			if stick = 8 then
+				writes("sticks ",right(stick,2),"|")
+			else	writes("       ",right(stick,2),"|")
+			every take := 1 to 3 do
+				writes(center(TRIED[stick][take],5))
+			write()
+		}
+	}
+
+	return
+end
+
+# Compare this game's result with what the program remembers.  If the results
+# were the same fine.  If the old result was unknown save the new result.  If
+# the old result is different from the new result the game can't know for
+# sure anymore so go back to unknown.
+
+procedure comp(old,new)
+
+	return (old == new) | (old == "?" & new) | "?"
+
+end
+
+procedure quit(args,msg)
+
+	local	fp,	# file pointer
+		stick,	# sticks index
+		take	# take index
+
+	write(msg)
+
+	if !args == "save" then
+		if fp := open(".nimdump","w") then {
+			every stick := 1 to 15 do
+				every take := 1 to 3 do
+					write(fp,TRIED[stick][take])
+			close(fp)
+		}
+
+	exit()
+end

@@ -1,0 +1,140 @@
+############################################################################
+#
+#	File:     midisig.icn
+#
+#	Subject:  Program to show signature of a MIDI file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 17, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program displays the signature of a MIDI file.
+#
+############################################################################
+#
+#  Links:  bincvt, convert
+#
+############################################################################
+
+link bincvt
+link convert
+
+procedure main()
+   local rest, track, tracks, width, track_segs, seg, byte, bytes, code
+   local meta_event, event, command, channel
+
+   event := table()
+
+   event["8"] := "note off"
+   event["9"] := "note on"
+   event["a"] := "key after-touch"
+   event["b"] := "control change"
+   event["c"] := "program change"
+   event["d"] := "channel after-touch"
+   event["e"] := "pitch wheel change"
+   event["f"] := "SysEx event"
+
+   meta_event := table()
+
+   meta_event["\x00"] := "track sequence number"
+   meta_event["\x01"] := "text"
+   meta_event["\x02"] := "copyright"
+   meta_event["\x03"] := "sequence or track name"
+   meta_event["\x04"] := "track instrument name"
+   meta_event["\x05"] := "lyric"
+   meta_event["\x06"] := "marker"
+   meta_event["\x07"] := "cue point"
+   meta_event["\x20"] := "channel marker"
+   meta_event["\x2f"] := "end of track"
+   meta_event["\x51"] := "tempo"
+   meta_event["\x54"] := "SMPTE offset"
+   meta_event["\x58"] := "time signature"
+   meta_event["\x59"] := "key signature"
+   meta_event["\x07"] := "sequencer-specific information"
+
+   track_segs := []
+
+   reads(, 100000) ? {
+      ="MThd" | stop("*** invalid header")
+      (unsigned(move(4)) = 6) | stop("*** invalid size")
+      write(
+         case unsigned(move(2)) of {
+            0        :  "single track"
+            1        :  "multi-track, synchronous"
+            2        :  "multi-track, asynchronous"
+            default  :  stop("*** invalid track information")
+            } | stop("*** invalid track information")
+         )
+      write(tracks := unsigned(move(2)), " tracks") |
+         stop("*** invalid track number information")
+      write(unsigned(move(2)), " delta-ticks per quarter note") |
+         stop("*** invalid delta-tick information")
+      width := *tracks + 1
+      every track := 1 to tracks do {
+         ="MTrk" | {
+            write(&errout, "*** short file")
+            break
+            }
+         rest := unsigned(move(4))
+         put(track_segs, move(rest))
+         }
+      }
+
+   track := 0
+
+   while seg := get(track_segs) do {
+      write()
+      track +:= 1
+      write("track", right(track, width), ": ", *seg, " bytes")
+      seg ? {
+         write("delta-time: ", get_time()) | stop("*** invalid delta-time")
+         byte := move(1)
+         if byte == "\xff" then {
+            write(
+               "meta-event: ",
+               \meta_event[code := move(1)] |
+                  ("unknown code " || image(code))
+               )
+            bytes := unsigned(move(1))
+            if 1 <= unsigned(code) <= 7 then write("   ", move(bytes))
+            }
+         else {				# event
+            byte := exbase10(ord(byte), 16)
+            write(
+               "event: ",
+               \event[byte[1]] | ("unknown command " || image(byte[1])),
+               ", channel ",
+               byte[2]
+               )
+            }
+         next			# THE NEXT THING TO DO IS GET DATA BYTES
+         }			# AND LOOP
+      }
+
+end
+
+# Decode delta-time.
+
+procedure get_time()
+   local delta, byte
+
+   delta := ""
+
+   while byte := move(1) do {
+      if ord(byte) >= 128 then delta ||:= char(ord(byte) - 128)
+      else {
+         delta ||:= byte
+         return unsigned(delta)
+         }
+      }
+
+   fail						# short data
+
+end
+          

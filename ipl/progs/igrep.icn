@@ -1,0 +1,187 @@
+############################################################################
+#
+#	File:     igrep.icn
+#
+#	Subject:  Program for string search similar to egrep
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     May 1, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Program to emulate UNIX egrep, but using the enhanced regular
+#  expressions supported by regexp.icn.  Options supported are nearly
+#  identical to those supported by egrep (no -b:  print disk block
+#  number).  There is one additional option, -E, to allow Icon-type
+#  (hence C-type) string escape sequences in the pattern string.
+#  BEWARE:  when -E is used, backslashes that are meant to be processed
+#  in the regular expression context must be doubled.  The following
+#  patterns are equivalent:
+#
+#   without -E: '\bFred\b'
+#   with    -E: '\\bFred\\b'
+#
+#  To enable the -D option (intended mainly for debugging), the Icon
+#  Program Library file "ximage" must be linked with this program.
+#
+############################################################################
+
+procedure Usage(n)
+   write(&errout,
+      "igrep -- emulates UNIX egrep\n_
+      Usage: igrep -Options [expression] filename..._
+    \n  Options:_
+    \n  c   print count of matching lines rather than actual lines_
+    \n  h   don't display file names_
+    \n  i   ignore case of letters_
+    \n  l   list only the names of files containing matching lines_
+    \n  n   precede lines with line numbers_
+    \n  s   work silently -- display nothing_
+    \n  v   invert search to display only lines that don't match_
+    \n  e expr  useful if expressions starts with -_
+    \n  E expr  expresson containing Icon escape sequences_
+    \n  f file  take list of alternated expressions from \"file\""
+#   ,if \xdump then
+#   "\n D   dump compiled pattern and quit" else ""
+)
+   exit(n)
+end
+
+link options,regexp
+
+procedure main(arg)
+   local compiledPattern
+   if *arg = 0 then Usage()
+   Options(arg)
+   compiledPattern := GetPattern(arg) |
+         {write(&errout,"Bad pattern ",image(Pattern)) ; exit(2)}
+#   if \Dump then (\xdump)(compiledPattern)
+   exit(ScanFiles(arg,compiledPattern))
+end
+
+global CountOnly,NoNames,NamesOnly,NumberLines,Out,Invert,Escapes,
+      Pattern,PatternFile,Dump,Re_LeftmostShortest
+
+procedure Options(arg)
+   local opt
+   opt := options(arg,"chilnsve:E:f:DS")
+   CountOnly := opt["c"]
+   NoNames := opt["h"]
+   if \opt["i"] then Re_Filter := map
+   NamesOnly := opt["l"]
+   NumberLines := opt["n"]
+   Out := if \opt["s"] then &null else &output
+   Invert := opt["v"]
+   Pattern := \opt["e" | "E"]
+   Escapes := opt["E"]
+   PatternFile := opt["f"]
+   Dump := opt["D"]
+   Re_LeftmostShortest := (\opt["S"],&null) | 1
+   return opt
+end
+
+procedure GetPattern(arg)
+   local f,sep
+   if \PatternFile then {
+      f := open(PatternFile) |
+        stop("Can't open pattern file \"",PatternFile,"\"")
+      (/Pattern := "" & sep := "") | (sep := "|")
+      while Pattern ||:= sep || read(f) do sep := "|"
+      close(f)
+      }
+   /Pattern := get(arg)
+   if /Pattern then Usage(2)
+   return RePat(if \Escapes then istring(Pattern) else Pattern)
+end
+
+procedure ScanFiles(arg,pattern)
+   local errors,totalCount,fn,f,header,lineNbr,count,line,fLine,status,
+         lineNbrTag
+   totalCount := 0
+   if *arg = 0 then arg := ["-"]
+   every fn := !arg do {
+      f := if fn == "-" then &input else open(fn) |
+            {write(&errout,"Can't open \"",fn,"\" -- skipped") ; errors := 2 ;
+        next}
+      header := if \NoNames | *arg = 1 then &null else fn || ":"
+      lineNbr := count := 0
+      while line := read(f) do {
+         lineNbr +:= 1
+         fLine := (\Re_Filter)(line) | line
+         status := ReFind(pattern,fLine) | &null
+     status := if \Invert then (\status,&null) | 1
+         if \status then {
+        count +:= 1
+        if count = 1 & \NamesOnly then {write(\Out,fn) ; next}
+        lineNbrTag := if \NumberLines then lineNbr || ":" else &null
+        if not \(CountOnly | NamesOnly) then
+          write(\Out,header,lineNbrTag,line)
+        }
+         }
+      close(f)
+      if \CountOnly then write(header,count)
+      totalCount +:= count
+      }
+   ## if \CountOnly & *arg > 1 then write(\Out,"** Total ** ",totalCount)
+   return \errors | if totalCount = 0 then 1 else 0
+end
+
+#
+#  istring() -- Procedure to convert a string containing special escape
+#  constructs, of the same format as Icon source language character
+#  strings, to their true string representation.  Value returned is the
+#  string with special constructs converted to their respective
+#  characters.
+#
+
+procedure istring(s)
+  local r,c
+  r := ""
+  s ? {
+    while r ||:= tab(upto('\\')) do {
+      move(1)
+      r ||:= case c := map(move(1)) of {
+    "b": "\b"       # backspace
+    "d": "\d"       # delete (rubout)
+    "e": "\e"       # escape (altmode)
+    "f": "\f"       # formfeed
+    "l": "\l"       # linefeed (newline)
+    "n": "\n"       # newline (linefeed)
+    "r": "\r"       # carriage return
+    "t": "\t"       # horizontal tab
+    "v": "\v"       # vertical tab
+    "x": istring_radix(16,2)# hexadecimal code
+    "^": char(ord(move(1)) % 32) | break # control code
+    default: {      # either octal code or non-escaped character
+      if any('01234567',c) then {   # if octal digit
+        move(-1)
+        istring_radix(8,3)
+      }
+      else c            # else non-escaped character
+    } | break
+      }
+    }
+    r ||:= tab(0)
+  }
+  return r
+end
+
+procedure istring_radix(r,max)
+  local n,d,i,c
+  d := "0123456789abcdef"[1:r + 1]
+  n := 0
+  every 1 to max do {
+    c := move(1) | break
+    if not (i := find(map(c),d) - 1) then {
+      move(-1)
+      break
+    }
+    n := n * r + i
+  }
+  return char(n)
+end

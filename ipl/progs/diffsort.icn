@@ -1,0 +1,72 @@
+############################################################################
+#
+#	File:     diffsort.icn
+#
+#	Subject:  Program to reorder "diff" output
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     May 31, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#   Usage:  diffsort [file]
+#
+#   Diffsort reorders the output from the Unix "diff" program by moving
+#   one-line entries such as "Common subdirectory ..." and "Only in ..."
+#   to the front of the output file and sorting them.  Actual difference
+#   records then follow, in the original order, separated by lines of
+#   equal signs.
+#
+############################################################################
+
+
+global clines	# comment lines
+global dlines	# diff lines
+
+
+##  main program
+
+procedure main(args)
+   clines := []
+   dlines := []
+
+   if *args > 0 then
+      every dofile(!args)
+   else
+      dofile()
+
+   every write(!sort(clines))
+   every write(!dlines)
+end
+
+
+##  dofile(fname) - process one named file, or standard input if unnamed  
+
+procedure dofile(fname)
+   local f, separator
+
+   if /fname then
+      f := &input
+   else
+      f := open(fname) | stop("can't open ", fname)
+
+   separator := "\n\n" || repl("=", 78) || "\n\n"
+
+   every !f ? {
+      if any(&ucase) then
+         put(clines, &subject)
+      else {
+         if ="diff " then
+            put(dlines, separator)
+         put(dlines, &subject)
+      }
+   }
+
+   close(f)
+   return
+end

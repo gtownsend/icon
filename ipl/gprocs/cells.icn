@@ -1,0 +1,192 @@
+############################################################################
+#
+#	File:     cells.icn
+#
+#	Subject:  Procedures for creating and coloring panels of cells
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 26, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures create an manipulate panels of cells.
+#
+#	makepanel(n, m, size, fg, bg, pg)
+#		makes a panel in a hidden window with nxm cells of the
+#		given size, default 10.  fg, bg, and pg are the
+#		colors for the window and panel backgrounds. fg
+#		and bg default to black and white, respectively.
+#		If pg is not given a patterned background is used.
+#
+#	matrixpanel(matrix, size, fg, bg, pg)
+#		same as makepanel(), except matrix determines the
+#		dimensions.
+#
+#	clearpanel(panel)
+#		restores the panel to its original state as made
+#		makepanel.
+#
+#	colorcell(panel, n, m, color)
+#		colors the cell (n,m) in panel with color.  The
+#		size defaults to 10.
+#
+#	colorcells(panel, tier)
+#		is like colorcells(), except it operates on a tie-up
+#		record.
+#
+#	cell(panel, x, y)
+#		returns Cell() record for the cell in which x,y
+#		lies.  If fails if the point is out of bounds.
+#
+#	tiercells(panel, matrix)
+#		is like colorcell(), except all cells are colored
+#		using a matrix of colors.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  wopen
+#
+############################################################################
+
+link wopen
+
+record Cell(n, m, color)
+record Panel(window, n, m, size, fg, bg, pg)
+
+procedure makepanel(n, m, cellsize, fg, bg, pg)		#: make panel of cells
+   local window, x, y, width, height, panel
+
+   /fg := "black"
+   /bg := "white"
+
+   /cellsize := 10
+
+   width := (n * cellsize + 1)
+   height := (m * cellsize + 1)
+
+   window := WOpen("width=" || width, "height=" || height,
+      "fg=" || fg, "bg=" || bg, "canvas=hidden") | fail
+
+   panel := Panel(window, n, m, cellsize, fg, bg, pg)
+
+   clearpanel(panel)
+
+   return panel
+
+end
+
+procedure clearpanel(panel)
+   local width, height, x, y
+   
+   if \panel.pg then {			# default is textured
+      WAttrib(panel.window, "fillstyle=textured")
+      Pattern(panel.window, "checkers")
+      Bg(panel.window, "very dark gray")
+      }
+   else Fg(panel.window, panel.fg)
+
+   width := WAttrib(panel.window, "width")
+   height := WAttrib(panel.window, "height")
+
+   every x := 0 to width by panel.size do
+      DrawLine(panel.window, x, 0, x, height)
+
+   every y := 0 to height by panel.size do
+      DrawLine(panel.window, 0, y, width, y)
+
+   WAttrib(panel.window, "fillstyle=solid")
+
+   return panel
+
+end
+
+procedure matrixpanel(matrix, cellsize, fg, bg, pg)
+
+   return makepanel(*matrix[1], *matrix, cellsize, fg, bg)
+
+end
+
+procedure colorcell(panel, n, m, color)		#: color cell in panel
+   local cellsize
+
+   if not(integer(n) & integer(m)) then
+      stop("Non-integer value to colorcell(). n=", image(n), " m=", image(m))
+
+   cellsize := panel.size
+
+   Fg(panel.window, color)
+
+   FillRectangle(panel.window, (n - 1) * cellsize + 1, (m - 1) * cellsize + 1,
+       cellsize - 1, cellsize - 1)
+
+   return panel
+ 
+end
+
+procedure colorcells(panel, matrix)		#: color all cells in panel
+   local i, j, n, m, cellsize
+
+   cellsize := panel.size
+
+   m := *matrix
+   n := *matrix[1]
+
+   every i := 1 to m do {
+      every j := 1 to n do {
+         # fudge 0/1 matrix
+         if matrix[i, j] === "1" then matrix[i, j] := "white"
+         else if matrix[i, j] === "0" then matrix[i, j] := "black"
+         Fg(panel.window, matrix[i, j])
+            stop("Fg() failed in colorcells() with matrix[" ||
+              i || "," || j || "]=" || matrix[i, j] || ".")
+         FillRectangle(panel.window, (j - 1) * cellsize + 1, (i - 1) * cellsize + 1,
+            cellsize - 1, cellsize - 1)
+         }
+      }
+
+   return panel
+ 
+end
+
+procedure tiercells(panel, tier)		#: color all cells in panel
+   local i, j, n, m, cellsize, matrix
+
+   cellsize := panel.size
+
+   m := tier.shafts
+   n := tier.treadles
+   matrix := tier.matrix
+
+   every i := 1 to m do {
+      every j := 1 to n do {
+         if matrix[i, j] === "1" then Fg(panel.window, "white")
+         else Fg(panel.window, "black")
+         FillRectangle(panel.window, (j - 1) * cellsize + 1, (i - 1) * cellsize + 1,
+            cellsize - 1, cellsize - 1)
+         }
+      }
+
+   return panel
+ 
+end
+
+procedure cell(panel, x, y)
+   local n, m
+
+   n := x / panel.size + 1
+   m := y / panel.size + 1
+
+   if (n > panel.n) | (m > panel.m) then fail
+
+   return Cell(n, m, Pixel(panel.window, x, y))
+
+end

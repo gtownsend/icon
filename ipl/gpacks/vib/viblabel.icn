@@ -1,0 +1,125 @@
+############################################################################
+#
+#  viblabel.icn -- procedures for defining a label object
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+
+$include "vibdefn.icn"
+
+##########################################################################
+# label_obj:
+#    v       : vidget used for drawing label
+#    proc    : name of user callback procedure (unused for a label)
+#    id      : unique means of identifying instance
+#    x,y,w,h : bounding box
+#    label   : label itself
+#    focus   : should focus lines be drawn around this object?
+##########################################################################
+record label_obj(v, proc, id, x, y, w, h, label, focus)
+
+##########################################################################
+# create_label() creates a label instance and draws the label if
+#                  it is a first class object.
+##########################################################################
+procedure create_label(x, y, label)
+   local r, id
+
+   id := next_id("label")
+   r := label_obj(, "", "label" || id, x, y, 0, 0, label, 0)
+   r.v := Vmessage(ROOT, x, y, APPWIN, label)
+   VRemove(ROOT, r.v, 1)
+   return r
+end
+
+##########################################################################
+# draw_label() draws the given label instance.
+##########################################################################
+procedure draw_label(r)
+   r.v.s := r.label
+   VDraw(r.v)
+end
+
+##########################################################################
+# update_label_bb() disallows resizing of a label.
+##########################################################################
+procedure update_label_bb(object)
+   object.w  := TextWidth(APPWIN, object.label)
+   object.h  := WAttrib(APPWIN, "fheight")
+end
+
+##########################################################################
+# load_label() restores a label object from session code.
+##########################################################################
+procedure load_label(r, o)
+   r.label := o.lbl
+   r.v := Vmessage(ROOT, r.x, r.y, APPWIN, r.label)
+   VRemove(ROOT, r.v, 1)
+end
+
+##########################################################################
+# save_label() augments the record for saving a label object.
+##########################################################################
+procedure save_label(r, o)
+   r.typ := "Label"
+   r.lbl := image(o.label)[2:-1]
+   return
+end
+
+##########################################################################
+# display_label_atts() displays the attribute sheet with the current
+#                        attributes for the given label instance.
+##########################################################################
+procedure display_label_atts(object)
+   local t
+
+   t := table()
+   t["a_label"]		:= object.label
+   t["b_id"]		:= object.id
+   t["c_x"]		:= object.x
+   t["d_y"]		:= object.y - CANVASY
+
+   repeat {
+      if label_dialog(t) == "Cancel" then
+         fail
+
+      if illegal(t["a_label"], "Label", "l") |
+	 illegal(t["b_id"], "ID", "s") |
+         illegal(t["c_x"], "X", "i") |
+         illegal(t["d_y"], "Y", "i")
+      then
+         next
+
+      if *t["a_label"] = 0 then {
+         Notice("Label value must be specified")
+         next
+         }
+
+      object.label	:= t["a_label"]
+      object.id		:= t["b_id"]
+
+      unfocus_object(object)
+      move_object(object, t["c_x"], t["d_y"] + CANVASY)
+      focus_object(object)
+      break
+   }
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure label_dialog(win, deftbl)
+static dstate
+initial dstate := dsetup(win,
+   ["label_dialog:Sizer::1:0,0,460,180:",],
+   ["_cancel:Button:regular::250,120,50,30:Cancel",],
+   ["_okay:Button:regular:-1:180,120,50,30:Okay",],
+   ["a_label:Text::50:13,14,430,19:label:    \\=",],
+   ["b_id:Text::40:13,35,360,19:ID:       \\=",],
+   ["c_x:Text::3:13,62,101,19:       x: \\=",],
+   ["d_y:Text::3:13,83,101,19:       y: \\=",],
+   )
+return dpopup(win, deftbl, dstate)
+end
+#===<<vib:end>>===	end of section maintained by vib

@@ -1,0 +1,79 @@
+############################################################################
+#
+#	File:     mercator.icn
+#
+#	Subject:  Program to display surface of HLS color cones
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     July 23, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#   Usage:  mercator [window options] [palette]
+#
+#      Mercator displays the surface of the HLS color space (hue,
+#   lightness, saturation) in something approximating a Mercator
+#   projection.   The white pole is at the top, the black pole is
+#   at the bottom, and the fully saturated colors run along the
+#   central equator.
+#
+#      Colors are usually quantized to one of Icon's color palettes,
+#   with the "c1" palette being the default.  Specifying a palette
+#   of "none" inhibits quantization, generally leading to poor results
+#   due to color allocation failure.
+#   
+############################################################################
+#
+#      Calling this a mercator projection is not exactly correct.
+#   The first problem is that HLS space is a double cone, not a
+#   sphere, but that can be disregarded by mapping hue to longitude
+#   and lightness to latitude.  Even so, the projection is not truly
+#   a Mercator projection, but rather another member of the cylindrical
+#   family:  a rectangular, or equidistant cylindrical, projection.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: graphics
+#
+############################################################################
+
+link graphics
+
+$define Palette "c1"			# default palette
+$define Size "500,300"			# default size
+
+procedure main(args)
+   local ww, wh, p, x, y, h, l, dh, dl, hls, c
+
+   Window("size=" || Size, args)
+   ww := WAttrib("width")		# actual window width
+   wh := WAttrib("height")		# actual window height
+   dh := 360.0 / (ww - 1)		# change in hue per pixel
+   dl := 100.0 / (wh - 1)		# change in lightness per pixel
+
+   p := args[1] | Palette
+   if p == "none" then p := &null
+
+   every x := 0 to ww - 1 do {
+      h := integer(x * dh) || ":"
+      every y := 0 to wh - 1 do {
+         l := 100 - integer(y * dl)
+         hls := h || l || ":100"
+         c := HLSValue(hls)
+         c := PaletteColor(p, PaletteKey(\p, c))
+         Fg(c)
+         DrawPoint(x, y)
+         }
+      }
+
+   ZDone()
+end

@@ -1,0 +1,35 @@
+############################################################################
+#
+#	File:     inter.icn
+#
+#	Subject:  Program to find common values in two lists
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 13, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program lists lines common to two files.
+#
+############################################################################
+
+procedure main(args)
+   local in1, in2, one, two
+
+   in1 := open(args[1]) | stop("*** cannot open file 1")
+   in2 := open(args[2]) | stop("*** cannot open file 2")
+
+   one := set()
+   two := set()
+
+   every insert(one, !in1)
+   every insert(two, !in2)
+
+   every write(!sort(one ** two))
+
+end

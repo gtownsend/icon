@@ -1,0 +1,132 @@
+############################################################################
+#
+#	File:     caseless.icn
+#
+#	Subject:  Procedures to perform caseless scanning
+#
+#	Author:   Nevin J. Liber
+#
+#	Date:     August 19, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	These procedures are analogous to the standard string-analysis
+#	functions except that uppercase letters are considered equivalent to
+#	lowercase letters.
+#
+#	anycl(c, s, i1, i2)	succeeds and produces i1 + 1, provided
+#				map(s[i1]) is in cset(map(c)) and i2 is
+#				greater than i1.  It fails otherwise.
+#
+#	balcl(c1, c2, c3, s, i1, i2)	generates the sequence of integer
+#					positions in s preceding a
+#					character of cset(map(c1)) in
+#					map(s[i1:i2]) that is balanced with
+#					respect to characters in cset(map(c2))
+#					and cset(map(c3)), but fails if there
+#					is no such position.
+#
+#	findcl(s1, s2, i1, i2)	generates the sequence of integer positions in
+#				s2 at which map(s1) occurs as a substring
+#				in map(s2[i1:i2]), but fails if there is no
+#				such position.
+#
+#	manycl(c, s, i1, i2)	succeeds and produces the position in s
+#				after the longest initial sequence of
+#				characters in cset(map(c)) within
+#				map(s[i1:i2]).  It fails if map(s[i1]) is not
+#				in cset(map(c)).
+#
+#	matchcl(s1, s2, i1, i2)	produces i1 + *s1 if
+#				map(s1) == map(s2[i1+:=*s1]) but fails
+#				otherwise.
+#
+#	uptocl(c, s, i1, i2)	generates the sequence of integer positions in
+#				s preceding a character of cset(map(c)) in
+#				map(s[i1:i2]).  It fails if there is no such
+#				position.
+#
+#	Defaults:	s, s2	&subject
+#			i1	&pos if s or s2 is defaulted; otherwise 1
+#			i2	0
+#			c1	&cset
+#			c2	'('
+#			c3	')'
+#
+#	Errors:	101	i1 or i2 not integer
+#		103	s or s1 or s2 not string
+#		104	c or c1 or c2 or c3 not cset
+#
+################################################################################
+
+
+procedure anycl(c, s, i1, i2)	#:	Caseless version of any()
+
+	c := cset(map(cset(c)))
+	/i1 := (/s & &pos)
+	s := map(string(s) | (/s & &subject))
+
+	return any(c, s, i1, i2)
+
+end
+
+
+procedure balcl(c1, c2, c3, s, i1, i2)	#:	Caseless version of bal()
+
+	c1 := cset(map(cset(c1)))
+	c2 := cset(map(cset(c2)))
+	c3 := cset(map(cset(c3)))
+	/i1 := (/s & &pos)
+	s := map(string(s) | (/s & &subject))
+
+	suspend bal(c1, c2, c3, s, i1, i2)
+
+end
+
+
+procedure findcl(s1, s2, i1, i2)	#:	Caseless version of find()
+
+	s1 := map(string(s1))
+	/i1 := (/s2 & &pos)
+	s2 := map(string(s2) | (/s2 & &subject))
+
+	suspend find(s1, s2, i1, i2)
+
+end
+
+
+procedure manycl(c, s, i1, i2)	#:	Caseless version of many()
+
+	c := cset(map(cset(c)))
+	/i1 := (/s & &pos)
+	s := map(string(s) | (/s & &subject))
+
+	return many(c, s, i1, i2)
+
+end
+
+
+procedure matchcl(s1, s2, i1, i2)	#:	Caseless version of match()
+
+	s1 := map(string(s1))
+	/i1 := (/s2 & &pos)
+	s2 := map(string(s2) | (/s2 & &subject))
+
+	return match(s1, s2, i1, i2)
+
+end
+
+
+procedure uptocl(c, s, i1, i2)	#:	Caseless version of upto()
+
+	c := cset(map(cset(c)))
+	/i1 := (/s & &pos)
+	s := map(string(s) | (/s & &subject))
+
+	suspend upto(c, s, i1, i2)
+
+end

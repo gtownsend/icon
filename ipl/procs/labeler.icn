@@ -1,0 +1,47 @@
+############################################################################
+#
+#	File:     labeler.icn
+#
+#	Subject:  Procedure to produce successive labels
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     April 9, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure produces a new label in sequence each time it's called.
+#  The labels consist of all possible combinations of the characters given
+#  in the argument the first time it is called.  See star(s) in gener.icn
+#  for a generator that does the same thing (and much more concisely).
+#
+############################################################################
+#
+#  Increment a counter and convert to a label.
+
+procedure label(chars)
+   static s, abet
+   local i
+
+   initial {
+      abet := string(chars)		# initialize alphabet
+      s := abet[1]			# initialize string
+      return s
+   }
+
+   i := *s				# start with last `digit'
+   while s[i] == abet[*abet] do {	# while need to `carry'
+      s[i] := abet[1]			# reset digit
+      i -:= 1				# move left one digit
+      if i = 0 then			# if no more digits
+	 return s := abet[1] || s	# lengthen string
+      }
+   s[i] := abet[find(s[i],abet)+1]	# normal case: incr one digit
+
+   return s
+
+end

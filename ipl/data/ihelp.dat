@@ -1,0 +1,1037 @@
+Icon Programming Language Version 8.6 Help Summaries
+
+    Help summaries are available for each of the Icon executable
+    programs (icont, iconx), and for many aspects of the Icon
+    language itself.	
+
+    To see the help summaries, enter one of the following commands:
+    
+    ihelp icont			# Icon translator & linker
+    ihelp iconx			# Icon interpreter
+
+    ihelp expressions		# summary of expressions & precedence
+    ihelp functions		# summary of functions
+    ihelp operations		# summary of operations
+    ihelp keywords		# list of keywords
+    ihelp datatypes		# list of Icon datatypes
+    ihelp reserved		# list of reserved words
+    ihelp escapes		# list of string escape sequences
+    ihelp abbreviations		# abbreviations used in help files
+    ihelp <function name>	# information on specific function
+    ihelp about			# bibliography and credits for help file
+
+-
+abs(N) : N				# compute absolute value
+
+Produces the absolute value of N.
+-
+acos(r1) : r2				# compute arc cosine
+
+Produces the arc cosine of r1 in the range of 0 to pi for r1 in the
+range of -1 to 1.
+-
+any(c,s,i1,i2) : i3			# locate initial character
+
+Succeeds and produces i1 + 1 if s[i1] is in c and i2 > i1, but fails
+otherwise.
+
+Defaults:
+s	&subject
+i1	&pos if s defaulted, otherwise 1
+i2	0 
+-
+args(p) : i				# get number of procedure arguments
+
+Produces the number of arguments for procedure p.  For built-in
+procedures with a variable number of arguments, the value produced is
+ -1.  For declared procedures with a variable number of arguments, the
+value returned is the negative of the number of formal prameters.
+-
+bal(c1,c2,c3,s,i1,i2) : i3,i4,...,in	# locate balanced characters
+
+Generates the sequence of integer positions in s preceding a character
+of c1 in s[i1:i2] that is balanced with respect to the characters of c2
+and c3, but fails if there is no such position.
+
+Defaults:
+c1	&cset
+c2	'('
+c3	')'
+s	&subject
+i1	&pos if s defaulted, otherwise 1
+i2	0 
+-
+callout(x,x1,x2,...,xn) : xm		# call external function
+
+Calls the external function specified by x with arguments x1, x2, ...,
+xn.  The mechanism for locating the function specified by x is system
+dependent.
+-
+center(s1,i,s2) : s3			# position string at center
+
+Produces a string of size i in which s1 is centered, with s2 used for
+padding at left and right as necessary.
+
+Defaults:
+i	1
+s2	" " (blank)
+-
+char(i) : s				# produce character
+
+Produces a string of length 1 consisting of the character whose
+internal representation is i.
+-
+chdir(s) : n				# change directory
+
+Changes the directory to s but fails if there is no such directory
+or if the change cannot be made.
+-
+close(f) : f				# close file
+
+Produces f after closing it unless f was opened with the pipe ("p")
+option, in which case the integer exit status of the command is
+returned.
+-
+collect(i1,i2) : n			# perform garbage collection
+
+Causes a garbage collectionin region i1, requesting i2 bytes of space
+in that region.  It fails if the requested space is not available.  The
+regions are identified as follows:
+
+	1	Static region
+	2	String region
+	3	Block region
+
+If i1 is 0, a collection is done, but no region is identified and i2
+has no effect.  The value of i2 is ignored for the static region.
+
+Defaults:
+i1	0
+i2	0
+-
+copy(x1) : x2				# copy value
+
+Produces a copy of x1 if x1 is a structure; otherwise it produces x1.
+-
+cos(r1) : r2				# compute cosine
+
+Produces the cosine of r1 in radians.
+-
+cset(x)					# convert to cset
+
+Produces a cset resulting from converting x, but fails if the
+conversion is not possible.
+-
+delay(i) : n				# delay execution
+
+Delays execution i milliseconds.
+-
+delete(X,x) : X				# delete element
+
+If X is a set, deletes x from X.  If X is a table, deletes the element
+for key x from X.  Produces X.
+-
+detab(s1,i1,i2,...,in) : s2		# remove tabs
+
+Produces a string based on s1 in which each tab character is replaced
+by one or more blanks.  Tab stops are at i1, i2, ..., in, with
+additional stops obtained by repeating the last interval.
+
+Default:
+i1	9
+-
+display(i,f) : n			# display variables
+
+Writes the image of the current co-expression and the values of the
+local variables in the current procedure call.  If i > 0, the local
+variables in the i preceding procedure calls are displayed as well.
+After all local variables are displayed, the values of global variables
+are displayed.  Output is written to f.
+
+Defaults:
+i	&level
+f	&errout
+-
+dtor(r1) : r2				# convert degrees to radians
+
+Produces the radian equivalent of r1 given in degrees.
+-
+entab(s1,i1,i2,...,in) : s2		# insert tabs
+
+Produces a string based on s1 in which runs of blanks are replaced by
+tabs.  Tab stops are at i1, i2, ..., in, with additional stops obtained
+by repeating the last interval.
+
+Default:
+i1	9
+-
+errorclear() : n			# clear error indication
+
+Clears the indications of the last error.
+-
+exit(i)					# exit program
+
+Terminates the program with exit status i.
+
+Default:
+i	normal exit (system dependent)
+-
+exp(r1) : r2				# compute exponential
+
+Produces e raised to the power r1.
+-
+find(s1,s2,i1,i2) : i3,i4,...,in	# find string
+
+Generates the sequence of integer positions in s2 at which s1 occurs as
+a substring in s2[i1:i2], but fails if there is no such position.
+
+Defaults:
+s2	&subject
+i1	&pos if s2 defaulted, otherwise 1
+i2	0 
+-
+flush(f) : n				# flush I/O buffer
+
+Flushes the input/output buffers for f.
+-
+function() : s1,s2,...,sn		# generate function names
+
+Generates the names of the Icon (built-in) functions.
+-
+get(L) : x				# get value from list
+
+Produces the leftmost element of L and removes it from L, but fails if
+L is empty; synonym for pop(L).
+-
+getenv(s1) : s2				# get value of environment variable
+
+Produces the value of environment variable s1, but fails if the
+variable is not set or environment variables are not supported.
+-
+iand(i1,i2) : i3			# compute bit-wise "and"
+
+Produces the bitwise "and" of i1 and i2.
+-
+icom(i1) : i2				# compute bit-wise complement
+
+Produces the bitwise complement (1's complement) of i1.
+-
+image(x) : s				# produce string image
+
+Produces a string image of x.
+-
+insert(X,x1,x2) : X			# insert element
+
+If X is a table, inserts the key x1 with value x2 into X.  If X is a
+set, inserts x1 into X.  Produces X.
+
+Default:
+x2	&null
+-
+integer(x) : i				# convert to integer
+
+Produces the integer resulting from converting x, but fails if the
+conversion is not possible.
+-
+ior(i1,i2) : i3				# compute bit-wise inclusive "or"
+
+Produces the bitwise inclusive "or" of i1 and i2
+-
+ishift(i1,i2) : i3			# shift bits
+
+Produces the result of shifting the bits in i1 by i2 positions.
+Positive values of i2 shift to the left, negative to the right.
+Vacated bit positions are zero-filled.
+-
+ixor(i1,i2) : i3			# compute bit-wise exclusive "or"
+
+Produces the bitwise exclusive "or" of i1 and i2.
+-
+key(T) : x1,x2,...,xn			# generate keys from table
+
+Generates the keys in table T.
+-
+left(s1,i,s2) : s3			# position string at left
+
+Produces a string of size i in which s1 is positioned at the left, with
+s2 used for padding on the right as necessary.
+
+Defaults:
+i	1
+s2	" " (blank)
+-
+list(i,x) : L				# create list
+
+Produces a list of size i in which each value is x.
+
+Defaults:
+i	0
+x	&null
+-
+log(r1,r2) : r3				# compute logarithm
+
+Produces the logarithm of r1 to the base r2.
+
+Default:
+r2	e
+-
+many(c,s,i1,i2) : i3			# locate many characters
+
+Succeeds and produces the position in s after the longest initial sequence
+of characters in c in s[i1:i2].  It fails if s[i1] is not in c.
+
+Defaults:
+s	&subject
+i1	&pos if s defaulted, otherwise 1
+i2	0 
+-
+map(s1,s2,s3) : s4			# map characters
+
+Produces a string of size *s1 obtained by mapping characters of s1 that
+occur in s2 into corresponding characters in s3.
+
+Defaults:
+s2	string(&ucase)
+s3	string(&lcase)
+-
+match(s1,s2,i1,i2) : i3			# match initial string
+
+Produces i1 + *s1 if s1 == s2[i1+:*s1], but fails otherwise.
+
+Defaults:
+s2	&subject
+i1	&pos if s2 defaulted, otherwise 1
+i2	0 
+-
+member(X,x) : x				# test for membership
+
+If X is a set, succeeds if x is a member of X, but fails otherwise.  If
+X is a table, succeeds if x is a key of an element in X, but fails
+otherwise.  Produces x if it succeeds.
+-
+mmout(x) : n				# write text to allocation history
+
+Writes s to the allocation history file.  s is given no
+interpretation.
+-
+mmpause(s) : n				# write pause to allocation history
+
+Writes s to the allocation history file as a pause point with
+identification s.
+
+Default:
+s	"programmed pause"
+-
+mmshow(x,s) : n				# redraw in allocation history
+
+Specifies redrawing of x in the allocation history file.  The color is
+defined by s as follows:
+
+	"b"	black
+	"g"	gray
+	"w"	white
+	"h"	highlight; blinking black and white if possible
+	"r"	normal color
+
+If x is not in an allocated region, has no effect.
+
+Default:
+s	"r"
+-
+move(i) : s				# move scanning position
+
+Produces &subject[&pos:&pos + i] and assigns i + &pos to &pos, but
+fails if i is out of range; reverses assignment to &pos if resumed.
+-
+name(x) : s				# produce name
+
+Produces the name of the variable x.  If x is an identifier or a
+keyword that is a variable, the name of the identifier or keyword is
+produced.  If x is a record field reference, the record name and field
+name are produced with a separating period.  If x is a string, the name
+of the string and the subscript range are shown.  If x is a subscripted
+list or table, the type name followed by the subscripting expression is
+produced.
+-
+numeric(x) : N				# convert to numeric
+
+Produces an integer or real number resulting from converting x, but
+fails if the conversion is not possible.
+-
+open(s1,s2) : f				# open file
+
+Produces a file resulting from opening s1 according to options in s2,
+but fails if the file cannot be opened.  The options are:
+
+	"r"	open for reading
+	"w"	open for writing
+	"a"	open for writing in append mode
+	"b"	open for reading and writing
+	"c"	create
+	"t"	translate line termination sequences to linefeeds
+	"u"	do not translate line termination sequences to linefeeds
+	"p"	pipe to/from a command -- UNIX
+
+The default mode is to translate line termination sequences to
+linefeeds on input and conversely on output.  The untranslated mode
+should be used when reading and writing binary files.
+
+Default:
+s2	"rt"
+-
+ord(s) : i				# produce ordinal
+
+Produces an integer (ordinal) between 0 and 255 that is the internal
+representation of the single character in s.
+-
+pop(L) : x				# pop from list
+
+Produces the leftmost element of L and removes it from L, but fails if
+L is empty; synonym for get(L).
+-
+pos(i1) : i2				# test scanning position
+
+Produces &pos if &pos = i1, but fails otherwise.
+-
+proc(x,i) : p				# convert to procedure
+
+Produces a procedure corresponding to the value of x, but fails if x
+does not correspond to a procedure.  If x is the string name of an
+operator, i specifies the number of arguments: 1 for unary (prefix), 2
+for binary (infix), and 3 for ternary.
+
+Default:
+i	1
+-
+pull(L) : x				# pull from list
+
+Produces the rightmost element of L and removes it from L, but fails if
+L is empty.
+-
+push(L,x) : L				# push onto list
+
+Adds x to the left end of L and produces L.
+-
+put(L,x) : L				# put onto list
+
+Adds x to the right end of L and produces L.
+-
+read(f) : s				# read line
+
+Produces the next line from f, but fails on end of file.
+
+Default:
+f	&input
+-
+reads(f,i) : s				# read string
+
+Produces a string consisting of the next i characters from f, or the
+remaining characters of f if fewer remain, but fails on an end of
+file.  In reads(), unlike read(), line termination sequences have no
+special significance.  reads() should be used for reading binary data.
+
+Defaults:
+f	&input
+i	1
+-
+real(x) : r				# convert to real
+
+Produces a real number resulting from type conversion of x, but fails
+if the conversion is not possible.
+-
+remove(s) : n				# remove file
+
+Removes (deletes) the file named s, but fails if s cannot be removed.
+-
+rename(s1,s2) : n			# rename file
+
+Renames the file named s1 to be s2, but fails if the renaming cannot be
+done.
+-
+repl(s1,i) : s2				# replicate string
+
+Produces a string consisting of i concatenations of s1.
+-
+reverse(s1) : s2			# reverse string
+
+Produces a string consisting of the reversal of s.
+-
+right(s1,i,s2) : s3			# position string at right
+
+Produces a string of size i in which s1 is positioned at the right, with
+s2 used for padding on the left as necessary.
+
+Defaults:
+i	1
+s2	" " (blank)
+-
+rtod(r1) : r2				# convert radians to degrees
+
+Produces the degree equivalent of r1 given in radians.
+-
+runerr(i,x)				# terminate with run-time error
+
+Terminates program execution with error i and offending value x.
+
+Default:
+x	no offending value
+-
+save(s) : i				# save executable image
+
+Saves an executable image of the current running program in the file
+named s and produces the size of the file, but fails if the file cannot
+be created.
+-
+seek(f,i) : f				# seek to position in file
+
+Seeks to position i in f, but fails if the seek cannot be performed.
+The first byte in the file is at position 1.  seek(f,0) seeks to the
+end of file f.
+-
+seq(i1,i2) : i3,i4,...			# generate sequence of integers
+
+Generates an endless sequence of integers starting at i1 with
+increments of i2.
+
+Defaults:
+i1	1
+i2	1
+-
+set(L) : S				# create set
+
+Produces a set whose members are the distinct values in the list L.
+
+Default:
+L	[]
+-
+sin(r1) : r2				# compute sine
+
+Produces the sine of r1 given in radians.
+-
+sort(X,i) : L				# sort structure
+
+Produces a list containing values from X.  If X is a list or a set,
+sort(X,i) produces the values of X in sorted order.  If X is a table,
+sort(X,i)produces a list obtained by sorting the elements of X,
+depending on the value of i.  For Produces a list according to i:
+
+i = (1 | 2)     Produces a list of two-element lists of key/value pairs
+		from X; ordered by keys for i = 1, by values for i =
+		2.
+i = (3 | 4)	Produces a list of size 2 * *X with each consecutive
+		pair of elements consisting of a key and a value from
+		X; ordered by keys for i = 3, by values for i = 4.
+
+Default:
+i	1
+-
+sortf(X,i) : L				# sort list or set by field
+
+Produces a sorted list of the values in X.  Sorting is primarily by
+type and in most respects is the same as with sort(X,i).  However,
+among lists and among records, two structures are ordered by comparing
+their ith fields.  i can be negative but not zero.  Two structures
+having the equal ith fields are ordered as they would be in regular
+sorting, but structures lacking an ith field appear before structures
+having them.
+
+Default:
+i	1
+-
+sqrt(r1) : r2				# compute square root
+
+Produces the square root of r1.
+-
+stop(x1,x2,...,xn)			# stop execution
+
+Terminates program execution with an error status after writing strings
+x1,x2,...,xn.  If xi is a file, subsequent output is to xi.  Initial
+output is to standard error output.
+
+Default:
+xi	"" (empty string)
+-
+string(x) : s				# convert to string
+
+Produces a string resulting from converting x, but fails if the
+conversion is not possible.
+-
+system(s) : i				# call system function
+
+Calls the C library function "system" to execute s and produces the
+resulting integer exit status.
+-
+tab(i) : s				# set scanning position
+
+Produces &subject[&pos:i] and assigns i to &pos, but fails if i is out
+of range.  It reverses assignment to &pos if resumed.
+-
+table(x) : T				# create table
+
+Produces a table with a default value x.
+
+Default:
+x	&null
+-
+tan(r1) : r2				# compute tangent
+
+Produces the tangent of r1 given in radians.
+-
+trim(s1,c) : s2				# trim string
+
+Produces a string consisting of the characters of s1 up to the trailing
+characters contained in c.
+
+Default:
+c	' ' (blank)
+-
+type(x) : s				# produce type name
+
+Produces a string corresponding to the type of x.
+-
+upto(c,s,i1,i2) : i3,i4,...,in		# locate characters
+
+Generates the sequence of integer positions in s preceding a character
+of c in s[i1:i2].  It fails if there is no such position.
+
+Defaults:
+s	&subject
+i1	&pos if s defaulted, otherwise 1
+i2	0 
+-
+variable(s) : x				# produce variable
+
+Produces the variable for the identifier or keyword named s, but fails
+if there is no such variable.  Local identifiers override global
+identifiers.
+-
+where(f) : i				# produce position in file
+
+Produces the current byte position in f.  The first byte in the file is
+at position 1.
+-
+write(x1,x2,...,xn) : xn		# write line
+
+Writes strings x1,x2,...,xn with a line termination sequence added at
+the end.  If xi is a file, subsequent output is to xi.  Initial output
+is to standard output.
+
+Default:
+xi	"" (empty string)
+-
+writes(x1,x2,...,xn)			# write string
+
+Writes strings x1,x2,...,xn without a line termination sequence added
+at the end.  If xi is a file, subsequent output is to xi.  Initial
+output is to standard output.
+
+Default:
+xi	"" (empty string)
+-
+icont -- Icon translator and linker
+
+icont [option...] file...
+    -c			    # translate only (no link)
+    -o file		    # name icode file "file"
+    -s			    # suppress progress messages
+    -t			    # give &trace initial value of -1
+    -u			    # issue warnings for undeclared identifiers
+
+See also:
+    ihelp iconx
+-
+iconx -- Icon interpreter
+
+The Icon interpreter is normally invoked automatically when the name of
+an Icon program is entered as a command, but it can be invoked
+explicitly, too.
+
+iconx icode_file_name [arguments for Icon program.]
+
+
+
+    Shell environment variables recognized by iconx
+    ===============================================
+    Name	Default     Description
+    --------	-------     -----------------------
+    TRACE	0	    Initial value for &trace.
+    NOERRBUF	undefined   If set, &errout is not buffered.
+    STRSIZE	65000	    Initial size (bytes) of string region
+			    (strings).
+    BLOCKSIZE	65000	    Initial size (bytes) of block region
+			    (most objects).
+    COEXPSIZE	2000	    Size (long words) of co-expression blocks.
+    MSTKSIZE	10000	    Size (long words) of main interpreter stack.
+    STATSIZE	20480	    Initial size (bytes) of static region
+			    (co-expression blocks).
+    STATINCR	1/4 of	    Increment used to expand static region.
+		STATSIZE
+
+
+See also:
+    ihelp icont
+-
+Expressions shown in order of decreasing precedence.  Items in groups
+(as separated by empty lines) have equal precedence.
+
+High Precedence Expressions
+
+    (expr)			# grouping
+    {expr1;expr2;...}		# compound
+    x(expr1,expr2,...)		# invocation
+    x{expr1,expr2,...}		# "
+    [expr1,expr2,...]		# list
+    expr.F			# field reference
+    expr1[expr2]		# subscript
+    expr1[expr2:expr3]		# section
+    expr1[expr2+:expr3]		# "
+    expr1[expr2-:expr3]		# "
+
+Prefix Expressions
+
+    not	expr			# success/failure reversal
+    | expr			# repeated alternation
+    ! expr			# element generation
+    * expr			# size
+    + expr			# numeric value
+    - expr			# negative
+    . expr			# value (dereference)
+    / expr			# null
+    \ expr			# non-null
+    = expr			# match and tab
+    ? expr			# random value
+    ~ expr			# cset complement
+    @ expr			# activation
+    ^ expr			# refresh
+
+Infix Expressions
+
+    expr1 \ expr2		# limitation
+    expr1 @ expr2		# transmission
+    expr1 ! expr2		# invocation
+
+    expr1 ^ expr2		# power
+
+    expr1 * expr2		# product
+    expr1 / expr2		# quotient
+    expr1 % expr2		# remainder
+    expr1 ** expr2		# intersection
+
+    expr1 + expr2		# sum
+    expr1 - expr2		# numeric difference
+
+    expr1 ++ expr2		# union
+    expr1 -- expr2		# cset or set difference
+
+    expr1 || expr2		# string concatenation
+    expr1 ||| expr2		# list concatenation
+
+    expr1 < expr2		# numeric comparison
+    expr1 <= expr2		# "
+    expr1 = expr2		# "
+    expr1 >= expr2		# "
+    expr1 > expr2		# "
+    expr1 ~= expr2		# "
+    expr1 << expr2		# string comparison
+    expr1 <<= expr2		# "
+    expr1 == expr2		# "
+    expr1 >>= expr2		# "
+    expr1 >> expr2		# "
+    expr1 ~== expr2		# "
+    expr1 === expr2		# value comparison
+    expr1 ~=== expr2		# "
+
+    expr1 | expr2		# alternation
+
+    expr1 to expr2 by expr3	# integer generation
+
+    expr1 := expr2		# assignment
+    expr1 <- expr2		# reversible assignment
+    expr1 :=: expr2		# exchange
+    expr1 <-> expr2		# reversible exchange
+    expr1 op:= expr2		# (augmented assignments)
+
+    expr1 ? expr2		# string scanning
+
+    expr1 & expr2		# conjunction
+
+Low Precedence Expressions
+
+    break [expr]	   	    # break from loop
+    case expr0 of {		    # case selection
+       expr1:expr2
+       ...
+       [default:exprn]
+       }
+    create expr			    # co-expression creation
+    every expr1 [do expr2]	    # iterate over generated values
+    fail			    # failure of procedure
+    if expr1 then exp2 [else exp3]  # if-then-else
+    next			    # go to top of loop
+    repeat expr			    # loop
+    return expr			    # return from procedure
+    suspend expr1 [do expr2]	    # suspension of procedure
+    until expr1 [do expr2]	    # until-loop
+    while expr1 [do expr2]	    # while-loop
+-
+Functions and datatypes of arguments and produced values:
+
+abs(N) : N				# compute absolute value
+acos(r1) : r2				# compute arc cosine
+any(c,s,i1,i2) : i3			# locate initial character
+args(p) : i				# get number of procedure arguments
+bal(c1,c2,c3,s,i1,i2) : i3,i4,...,in	# locate balanced characters
+callout(x,x1,x2,...,xn) : xm		# call external function
+center(s1,i,s2) : s3			# position string at center
+char(i) : s				# produce character
+chdir(s) : n				# change directory
+close(f) : f				# close file
+collect(i1,i2) : n			# perform garbage collection
+copy(x1) : x2				# copy value
+cos(r1) : r2				# compute cosine
+cset(x)					# convert to cset
+delay(i) : n				# delay execution
+delete(X,x) : X				# delete element
+detab(s1,i1,i2,...,in) : s2		# remove tabs
+display(i,f) : n			# display variables
+dtor(r1) : r2				# convert degrees to radians
+entab(s1,i1,i2,...,in) : s2		# insert tabs
+errorclear() : n			# clear error indication
+exit(i)					# exit program
+exp(r1) : r2				# compute exponential
+find(s1,s2,i1,i2) : i3,i4,...,in	# find string
+flush(f) : n				# flush I/O buffer
+function() : s1,s2,...,sn		# generate function names
+get(L) : x				# get value from list
+getenv(s1) : s2				# get value of environment variable
+iand(i1,i2) : i3			# compute bit-wise "and"
+icom(i1) : i2				# compute bit-wise complement
+image(x) : s				# produce string image
+insert(X,x1,x2) : X			# insert element
+integer(x) : i				# convert to integer
+ior(i1,i2) : i3				# compute bit-wise inclusive "or"
+ishift(i1,i2) : i3			# shift bits
+ixor(i1,i2) : i3			# compute bit-wise exclusive "or"
+key(T) : x1,x2,...,xn			# generate keys from table
+left(s1,i,s2) : s3			# position string at left
+list(i,x) : L				# create list
+log(r1,r2) : r3				# compute logarithm
+many(c,s,i1,i2) : i3			# locate many characters
+map(s1,s2,s3) : s4			# map characters
+match(s1,s2,i1,i2) : i3			# match initial string
+member(X,x) : x				# test for membership
+mmout(x) : n				# write text to allocation history
+mmpause(s) : n				# write pause to allocation history
+mmshow(x,s) : n				# redraw in allocation history
+move(i) : s				# move scanning position
+name(x) : s				# produce name
+numeric(x) : N				# convert to numeric
+open(s1,s2) : f				# open file
+ord(s) : i				# produce ordinal
+pop(L) : x				# pop from list
+pos(i1) : i2				# test scanning position
+proc(x,i) : p				# convert to procedure
+pull(L) : x				# pull from list
+push(L,x) : L				# push onto list
+put(L,x) : L				# put onto list
+read(f) : s				# read line
+reads(f,i) : s				# read string
+real(x) : r				# convert to real
+remove(s) : n				# remove file
+rename(s1,s2) : n			# rename file
+repl(s1,i) : s2				# replicate string
+reverse(s1) : s2			# reverse string
+right(s1,i,s2) : s3			# position string at right
+rtod(r1) : r2				# convert radians to degrees
+runerr(i,x)				# terminate with run-time error
+save(s) : i				# save executable image
+seek(f,i) : f				# seek to position in file
+seq(i1,i2) : i3,i4,...			# generate sequence of integers
+set(L) : S				# create set
+sin(r1) : r2				# compute sine
+sort(X,i) : L				# sort structure
+sortf(X,i) : L				# sort list or set by field
+sqrt(r1) : r2				# compute square root
+stop(x1,x2,...,xn)			# stop execution
+string(x) : s				# convert to string
+system(s) : i				# call system function
+tab(i) : s				# set scanning position
+table(x) : T				# create table
+tan(r1) : r2				# compute tangent
+trim(s1,c) : s2				# trim string
+type(x) : s				# produce type name
+upto(c,s,i1,i2) : i3,i4,...,in		# locate characters
+variable(s) : x				# produce variable
+where(f) : i				# produce position in file
+write(x1,x2,...,xn) : xn		# write line
+writes(x1,x2,...,xn)			# write string
+-
+Operations and required datatypes
+
+prefix operations
+
+    +N : N			# compute positive
+    -N : N			# compute negative
+    ~c1 : c2			# compute cset complement
+    =s1 : s2			# match string in scanning
+    @C : x			# activate co-expression
+    ^C1 : C2			# create refreshed co-expression
+    *x : i			# compute size
+    ?x1 : x2			# generate random value
+    !x : x1,x2,...,xn		# generate values
+    /x : x			# check for null value
+    \x : x			# check for non-null value
+    .x : x			# dereference variable
+
+infix operations
+
+    N1 + N2 : N3		# compute sum
+    N1 - N2 : N3		# compute difference
+    N1 * N2 : N3		# compute product
+    N1 / N2 : N3		# compute quotient
+    N1 % N2 : N3		# compute remainder
+    N1 ^ N2 : N3		# compute exponential
+    x1 ++ x2 : x3		# compute cset or set union
+    x1 -- x2 : x3		# compute cset or set difference
+    x1 ** x2 : x3		# compute cset or set intersection
+    s1 || s2 : s3		# concatenate strings
+    L1 ||| L2 : L3		# concatenate lists
+    R.F : x			# get field of record
+    x1 @ C : x2			# transmission value to co-expression
+    x1 & x2 : x2		# evaluate in conjunction
+    N1 < N2 : N2		# compare numerically
+    N1 <= N2 : N2		# "
+    N1 = N2 : N2		# "
+    N1 >= N2 : N2		# "
+    N1 > N2 : N2		# "
+    N1 ~= N2 : N2		# "
+    s1 << s2 : s2		# compare lexically
+    s1 <<= s2 : s2		# "
+    s1 == s2 : s2		# "
+    s1 >>= s2 : s2		# "
+    s1 >> s2 : s2		# "
+    s1 ~== s2 : s2		# "
+    x1 === x2 : x2		# compare values
+    x1 ~=== x2 : x2		# "
+    x1 := x2 : x1		# assign value
+    x1 op:= x2 : x1		# augmented assignment
+    x1 :=: x2 : x1		# exchange values
+    x1 <- x2 : x1		# assign value reversibly
+    x1 <-> x2 : x1		# exchange values reversibly
+-
+Keywords
+
+    &allocated : i1,i2,i3,i4	# accumulated bytes allocated
+				# (total,static,string,block)
+    &ascii : c			# cset of ascii characters
+    &clock : s			# current time of day
+    &collections : i1,i2,i3,i4	# collection count
+				# (total,static,string,block)
+    &cset : c			# cset of all characters
+    &current : C		# current co-expression
+    &date : s			# current date
+    &dateline : s		# current date and time
+    &digits : c			# cset of digits 0-9
+    &e : r			# base of natural logarithms, 2.71828...
+    &error : i			# run-time error conversion control
+    &errornumber : i		# run-time error number
+    &errortext : s		# run-time error message text
+    &errorvalue	: x		# run-time error offending value
+    &errout : f			# standard error output file
+    &fail			# fails
+    &features : s1,s2,...,sn	# implementation features
+    &file : s			# current source code file name
+    &host : s			# string identifying host computer
+    &input : f			# standard input file
+    &lcase : c			# cset of lower case letters a-z
+    &letters : c		# cset of all letters A-Za-z
+    &level : i			# level of current procedure call
+    &line : i			# current source code line number
+    &main : C			# main co-expression
+    &null : n			# the null value
+    &output : f			# standard output file
+    &phi : r			# The golden ratio, 1.61803...
+    &pi : r			# The value of pi, 3.14159...
+    &pos : i			# string scanning position
+    &random : i			# random number seed
+    &regions : i1,i2,i3		# current region size
+				# (static,string,block)
+    &source : C			# activator of current co-expression
+    &storage : i1,i2,i3		# current bytes allocated
+				# (static,string,block)
+    &subject : s		# string scanning subject
+    &time : i			# current run time in milliseconds
+    &trace : i			# procedure tracing control
+    &ucase : c			# cset of upper case letters A-Z
+    &version : s		# version of Icon
+-
+Datatypes
+
+    null(n)	string(s)  co-expression(C)  table(T)
+    integer(i)	cset(c)	   procedure(p)      set(S)
+    real(r)	file(f)	   list(L)	     <record types>(R)
+
+    (see also "Abbreviations")
+-
+Reserved words
+
+    break	do	    global	next	    repeat	to
+    by		else	    if		not	    return	until
+    case	end	    initial	of	    static	while
+    create	every	    link	procedure   suspend
+    default	fail	    local	record	    then
+-
+Escapes in string and cset constants
+
+    \b	    backspace			\v	vertical tab
+    \d	    delete(rubout)		\'	single quote
+    \e	    escape (altmode)		\"	double quote
+    \f	    formfeed			\\	backslash
+    \l	    linefeed (newline)		\ddd	octal code
+    \n	    newline (linefeed)		\xdd	hexadecimal code
+    \r	    carriage return		\^c	control code
+    \t	    horizontal tab
+-
+Abbreviations used in Icon help files (and other Icon literature)
+
+	c	cset		C	co-expression
+	f	file		L	list
+	i	integer		N	numeric (i or r)
+	n	null		R	record (any record type)
+	p	procedure	S	set
+	r	real		T	table
+	s	string		X	any structure type (L, R, S, or T)
+	x	any type	F	field of record
+-
+About the Icon Programming Language Help File
+
+Information used in this help file was obtained from the following
+sources:
+
+Griswold, Ralph E. and Madge T. Griswold.  "The Icon Programming
+Language, Second Edition", Prentice-Hall, Inc., Englewood Cliffs, New
+Jersey.  1990.
+
+Griswold, Ralph E.  ICONT(1), manual page for "UNIX Programmer's
+Manual", Department of Computer Science, The University of Arizona.
+1988.
+
+Griswold, Ralph  E., Clinton L. Jeffery, Gregg M. Townsend, and
+Kenneth Walker.  "Version 8.6 of the Icon Programming Language",
+IPD188, Department of Computer Science, The University of Arizona.
+1992.
+
+Further information on the Icon Programming Language can be obtained
+from:
+
+	Icon Project
+	Department of Computer Science
+	Gould-Simpson Building
+	The University of Arizona
+	Tucson, Arizona  85721
+	U.S.A.
+	(602) 621-2018
+	icon-project@cs.arizona.edu			(Internet)
+	...{uunet,allegra,noao}!arizona!icon-project	(uucpnet)
+
+April 2, 1992.

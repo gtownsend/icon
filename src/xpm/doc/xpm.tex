@@ -1,0 +1,849 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                              XPM MANUAL                                    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% adjust these for centering on the page:
+% upper-left corner of frame in title page must be at 60mm,60mm from 
+% upper-left corner of the page
+
+% normal (A4) on our Apple Laserwriter with dvi2ps
+%\hoffset 0cm
+%\voffset 0cm
+% normal (A4 & Letter) on our Apple Laserwriter with dvips v5.0
+\hoffset -5.5mm
+\voffset 0cm
+% our imagen
+%\hoffset -0.9cm
+%\voffset -2.2cm
+		   
+% NOTE: the following line MUST be commented out!
+%\includeonly{standard}
+
+\makeindex
+
+\documentstyle[twoside,colas]{article}
+
+% IF YOUR DVI PRINTER CHOKES ON INCLUDED POSTSCRIPT FILES
+% by the \special command, uncomment the following line:
+% \def\texpsfig#1#2#3{\fbox{Figure ``#1''}}
+
+
+\pagestyle{headings}
+\begin{document} 
+
+\thispagestyle{empty}
+\ 
+\hbox{\colastitledisp
+\vbox{
+\vspace{3cm}
+\begin{center}
+\fboxrule 0.4pt \fboxsep 1pt
+\fbox{\fboxrule 3pt \fboxsep 30pt \fbox{\Huge\bf XPM Manual}}
+\end{center}
+\vspace{2cm}
+\begin{center}
+\huge
+The {\bf X} {\bf P}ix{\bf M}ap Format
+\end{center}
+\vspace{2cm}
+\begin{center} 
+\Large Version \RCSRevVersion$Version: 3.2c $\\
+\end{center}
+\vspace{2cm}
+\begin{center}
+\LARGE\sf Arnaud Le Hors\\
+\large\tt lehors@sophia.inria.fr
+\end{center}
+\vspace{1cm}
+\vspace{1cm}
+\begin{center}
+\copyright BULL 1990-92
+\end{center}
+}}
+
+\newpage
+
+\section*{Copyright restrictions}
+{\bf\begin{flushleft} 
+Copyright 1990-92 GROUPE BULL\\
+\end{flushleft}}
+
+{\sf
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted, provided
+that the above copyright notice appear in all copies and that both that
+copyright notice and this permission notice appear in supporting
+documentation, and that the name of GROUPE BULL not be used in advertising
+or publicity pertaining to distribution of the software without specific,
+written prior permission.  GROUPE BULL makes no representations about the
+suitability of this software for any purpose.  It is provided ``as is''
+without express or implied warranty.
+
+GROUPE BULL disclaims all warranties with regard to this software,
+including all implied warranties of merchantability and fitness,
+in no event shall GROUPE BULL be liable for any special,
+indirect or consequential damages or any damages
+whatsoever resulting from loss of use, data or profits,
+whether in an action of contract, negligence or other tortious
+action, arising out of or in connection with the use 
+or performance of this software.
+}
+
+\section*{Acknowledgements}
+
+I want to thank my team partner and friend Colas Nahaboo who proposed me this
+project, and who actively participates to its design. I also want to thank all
+the users who help me to improve the library by giving feed back and sending
+bug reports.
+
+\begin{flushright}
+{\Large Arnaud Le Hors.\quad}
+{\small
+KOALA Project -- BULL Research c/o INRIA\\
+2004 route des Lucioles -- 06565 Valbonne Cedex -- FRANCE\\
+}
+\end{flushright}
+
+\section*{Support}
+
+\sloppy 
+You can mail any question or suggestion relative to {\bf XPM} by electronic
+mail to {\tt lehors@sophia.inria.fr}. There is also a mailing list, please
+mail requests to {\tt xpm-talk-request@sophia.inria.fr} to subscribe.  You can
+find the latest release by anonymous ftp on avahi.inria.fr (138.96.24.30) or
+export.lcs.mit.edu (18.30.0.238), and also an archive of the mailing list on
+avahi.
+
+
+\newpage
+\section{Introduction}
+First, Why another image format?  We (Koala team at Bull Research, France)
+felt that most images bundled with X applications will be small "icons", and
+that since many applications are color-customizable, existing image formats
+such as gif, tiff, iff, etc... were intended for big images with well-defined
+colors and so weren't adapted to the task.  So {\bf XPM} was designed with
+these criterions in mind:
+\begin{itemize}
+\item be editable by hand (under emacs, vi...). Color pixmap editors aren't
+available everywhere.
+\item be includable in C code. It is unreasonable to load
+1000 pixmap files on each start of an application.
+\item be a portable, mailable ascii format.
+\item provide defaults for monochrome/color/grayscale renderings.
+\item provide overriding of colors. This way if the user wants your application
+to be bluish instead of greenish, you can use the SAME icon files.
+\item allow comments to be included in the file.
+\item compression must be managed apart of the format.
+\end{itemize}
+
+\newpage
+\section{The {\bf XPM} Format}
+
+The {\bf XPM} format presents a C syntax, in order to provide the ability to
+include {\bf XPM} files in C and C++ programs.  It is in fact an array of
+strings composed of six different sections as follows:
+{\tt
+\begin{quote}
+/* XPM */
+static char* {\tt <variable\_name>}[] = \{
+
+<Values>
+
+<Colors>
+
+<Pixels>
+
+<Extensions>
+
+\};
+\end{quote}
+}
+
+The words are separated by a white space which can be composed of space and
+tabulation characters.  
+
+The {\tt <Values>} section is a string containing four or six integers in base
+10 that correspond to: the pixmap width and height, the number of colors, the
+number of characters per pixel (so there is no limit on the number of colors),
+and, optionally the hotspot coordinates and the {\bf XPMEXT} tag if there is
+any extension following the {\tt <Pixels>} section.
+
+{\tt <width> <height> <ncolors> <cpp> [<x\_hotspot> <y\_hotspot>] [XPMEXT]}
+
+The {\tt Colors} section contains as many strings as there are colors, and
+each string is as follows:
+
+{\tt <chars> \{<key> <color>\}+}
+
+Where {\tt <chars>} is the {\tt <chars\_per\_pixel>} length string (not
+surrounded by anything) representing the pixels, {\tt <color>} is the
+specified color, and {\tt <key>} is a keyword describing in which context this
+color should be used. Currently the keys may have the following values:
+
+\begin{tabbing}
+\hspace{1cm}\= g4 \= for 4-level grayscale\kill
+\> m  \>for mono visual\\
+\> s  \> for symbolic name\\
+\> g4 \> for 4-level grayscale\\
+\> g  \> for grayscale with more than 4 levels\\
+\> c  \> for color visual
+\end{tabbing}
+
+Colors can be specified by giving the colorname, a \# foolwed by the RGB code,
+or a \% followed by the HSV code. The symbolic name provides the ability of
+specifying the colors at load time and not to hard-code them in the file.
+Also the string {\bf None} can be given as a colorname to mean
+``transparent''. Transparency is handled by providing a masking bitmap in
+addition to the pixmap.
+
+The {\tt <Pixels>} section is composed by {\tt <height>} strings of {\tt
+<width>} * {\tt <chars\_per\_pixel>} characters, where every {\tt
+<chars\_per\_pixel>} length string must be one of the previously defined
+groups in the {\tt <Colors>} section.
+
+Then follows the {\tt <Extensions>} section which must be labeled, if not
+empty, in the {\tt <Values>} section as previously described.
+This section may be composed by several {\tt <Extension>} subsections which
+may be of two types:
+
+\begin{itemize}
+\item[] one stand alone string composed as follows:
+
+{\tt XPMEXT <extension-name> <extension-data>}
+
+\item[] or a block composed by several strings:
+
+{\tt XPMEXT <extension-name>}
+
+{\tt <related extension-data composed of several strings>}
+
+\end{itemize}
+
+Finally, if not empty, this section must end by the following string:
+
+{\tt XPMENDEXT}
+
+To avoid possible conflicts with extension names in shared files, they should
+be prefixed by the name of the company. This would ensure unicity.
+
+\vspace{0.5cm}
+Below is an example which is the XPM file of a plaid pixmap. This is a 22x22
+pixmap, with 4 colors and 2 characters per pixel. The hotspot coordinates are
+(0, 0). There are symbols and default colors for color and monochrome visuals.
+Finally there are two extensions.
+
+{\small \begin{verbatim}
+
+/* XPM */
+static char * plaid[] = {
+/* plaid pixmap 
+ * width height ncolors chars_per_pixel */
+"22 22 4 2 0 0 XPMEXT",
+/* colors */
+"   c red 	m white  s light_color ",
+"Y  c green	m black  s lines_in_mix ",
+"+  c yellow	m white  s lines_in_dark ",
+"x 		m black  s dark_color ",
+/* pixels */
+"x   x   x x x   x   x x x x x x + x x x x x ", 
+"  x   x   x   x   x   x x x x x x x x x x x ", 
+"x   x   x x x   x   x x x x x x + x x x x x ", 
+"  x   x   x   x   x   x x x x x x x x x x x ", 
+"x   x   x x x   x   x x x x x x + x x x x x ", 
+"Y Y Y Y Y x Y Y Y Y Y + x + x + x + x + x + ", 
+"x   x   x x x   x   x x x x x x + x x x x x ", 
+"  x   x   x   x   x   x x x x x x x x x x x ", 
+"x   x   x x x   x   x x x x x x + x x x x x ", 
+"  x   x   x   x   x   x x x x x x x x x x x ", 
+"x   x   x x x   x   x x x x x x + x x x x x ", 
+"          x           x   x   x Y x   x   x ", 
+"          x             x   x   Y   x   x   ",
+"          x           x   x   x Y x   x   x ", 
+"          x             x   x   Y   x   x   ", 
+"          x           x   x   x Y x   x   x ", 
+"x x x x x x x x x x x x x x x x x x x x x x ", 
+"          x           x   x   x Y x   x   x ", 
+"          x             x   x   Y   x   x   ", 
+"          x           x   x   x Y x   x   x ", 
+"          x             x   x   Y   x   x   ", 
+"          x           x   x   x Y x   x   x "
+"XPMEXT ext1 data1",
+"XPMEXT ext2",
+"data2_1",
+"data2_2",
+"XPMENDEXT"
+};
+
+\end{verbatim}}
+
+\newpage
+\section{The {\bf XPM} Library}
+
+The XPM library provides a set of Xlib-level functions which allows to deal
+with images, pixmaps, XPM file, and data (included XPM file) in many ways.
+This section describes these functions and how to use them.
+
+\vspace{.5cm}
+To provide a simple interface all these functions take, in addition to their
+main arguments such as the display, a structure called {\bf XpmAttributes}.
+This structure may be considered as composed of two different groups of
+members. The first one is composed of attributes to pass data such as colormap
+and visual and attributes to retrieve returned data such as pixmap's width and
+height. The second group provides a way to rewrite an {\bf XPM} file without
+losing information such as comments, color defaults and symbolic names which
+may exist in the original file (i.e. the {\bf XpmInfo} structure in {\bf XPM 2}).
+The {\bf XpmAttributes} structure is defined as follows:
+
+{\small \begin{tabbing}
+
+\hspace{1cm}\= XpmColorSymbol *colorsymbols; \=/* List of color symbols */\kill
+typedef struct \{ \\
+\> unsigned long valuemask;  \>/* Specifies which attributes are defined */\\
+\\
+\> Visual *visual;	     \>/* Specifies the visual to use */ \\
+\> Colormap colormap; 	     \>/* Specifies the colormap to use */ \\
+\> unsigned int depth;	     \>/* Specifies the depth */ \\
+\> unsigned int width;	     \>/* Returns the width of the created pixmap */\\
+\> unsigned int height;      \>/* Returns the height of the created pixmap */\\
+\> unsigned int x\_hotspot;  \>/* Returns the x hotspot's coordinate */\\
+\> unsigned int y\_hotspot;  \>/* Returns the y hotspot's coordinate */ \\
+\> unsigned int cpp; 	     \>/* Specifies the number of char per pixel */ \\
+\> Pixel *pixels; 	     \>/* List of used color pixels */ \\
+\> unsigned int npixels;     \>/* Number of pixels */\\
+\> XpmColorSymbol *colorsymbols;\>/* Array of color symbols to override */ \\
+\> unsigned int numsymbols;  \>/* Number of symbols */ \\
+\> char *rgb\_fname;	     \>/* RGB text file name */ \\
+\> unsigned int nextensions; \>/* Number of extensions */ \\
+\> XpmExtension *extensions; \>/* Array of extensions */ \\
+\\
+\> /* Infos */  \\
+\> int ncolors;		     \>/* Number of colors */ \\
+\> char ***colorTable; 	     \>/* Color table pointer */ \\
+\> char *hints\_cmt; 	     \>/* Comment of the hints section */ \\
+\> char *colors\_cmt;	     \>/* Comment of the colors section */ \\
+\> char *pixels\_cmt;	     \>/* Comment of the pixels section */ \\
+\> unsigned int mask\_pixel; \>/* Transparent pixel's color table index */\\
+\\
+\> /* Color Allocation Directives */ \\
+\> unsigned int exactColors; \>/* Only use exact colors for visual */ \\
+\> unsigned int closeness;   \>/* Allowable RGB deviation */ \\
+\\
+\} XpmAttributes;
+
+\end{tabbing}}
+
+The valuemask is the bitwise inclusive OR of the valid attribute mask bits. If
+the valuemask is zero, the attributes are ignored and not referenced. And
+default values are taken for needed attributes which are not specified.
+
+The colorTable is a two dimensional array of strings, organized as follows:
+\begin{flushleft}
+\hspace{.5cm}colorTable[color\#][0] points to the character string associated
+to the color.\\
+\hspace{.5cm}colorTable[color\#][1] points to the symbolic name of the color.\\
+\hspace{.5cm}colorTable[color\#][2] points to the default color for monochrome
+visuals.\\
+\hspace{.5cm}colorTable[color\#][3] points to the default color for 4-level
+grayscale visuals.\\
+\hspace{.5cm}colorTable[color\#][4] points to the default color for other
+grayscale visuals.\\
+\hspace{.5cm}colorTable[color\#][5] points to the default color for color
+visuals. 
+\end{flushleft}
+
+Comments are limited to a single comment string by section. If more exist in
+the read file, then only the last comment of each section will be stored.
+
+To get information back while writing out to a file, you just have to set
+the mask bits {\bf XpmReturnInfos} to the valuemask of an {\bf XpmAttributes}
+structure that you pass to the {\bf XpmReadFileToPixmap} function while reading
+the file, and then give the structure back to the {\bf XpmWriteFileFromPixmap}
+function while writing.
+
+\vspace{.5cm}
+To allow overriding of colors at load time the {\bf XPM} library defines the
+{\bf XpmColorSymbol} structure which contains:
+
+\begin{tabbing}
+\hspace{1cm}\= char *value; \hspace{1.5cm}\= /* Color value */\kill
+typedef struct \{\\
+\> char *name; \> /* Symbolic color name */\\
+\> char *value;\> /* Color value */\\
+\> Pixel pixel;\> /* Color pixel */\\
+\} XpmColorSymbol;
+\end{tabbing}
+
+To override default colors at load time, you just have to pass, via the {\bf
+XpmAttributes} structure, a list of {\bf XpmColorSymbol} elements containing
+the desired colors to the {\bf XpmReadFileToPixmap} or {\bf
+XpmCreatePixmapFromData} {\bf XPM} functions. These colors can be specified by
+giving the color name in the value member or directly by giving the
+corresponding pixel in the pixel member. In the latter case the value member
+must be set to {\bf NULL} otherwise the given pixel will not be considered.
+
+In addition, is is possible to set the pixel for a specific color {\bf value}
+at load time by setting the color name to NULL, and setting the value and pixel
+fields appropriately. For example, by setting the color name to NULL, the
+value to ``red'' and the pixel to 51, all symbolic colors that are assigned to
+``red'' will be set to pixel 51. It is even possible to specify the pixel used
+for the transparent color ``none'' when no mask is required.
+
+\vspace{.5cm}
+To pass and retrieve extension data use the {\bf XpmExtension} structure which
+is defined below:
+
+\begin{tabbing}
+\hspace{1cm}\= unsigned int nlines; \hspace{1cm}\= /*  */ \kill
+typedef struct \{ \\
+\> char *name;		\> /* name of the extension */ \\
+\> unsigned int nlines;	\> /* number of lines in this extension */ \\
+\> char **lines;	\> /* pointer to the extension array of strings */ \\
+\}      XpmExtension;
+\end{tabbing}
+
+To retrieve possible extension data stored in an {\bf XPM} file or data, you
+must set the mask bits {\bf XpmReturnExtensions} to the valuemask of an {\bf
+XpmAttributes} structure that you pass to the read function you use. Then the
+same structure may be passed the same way to any write function if you set the
+mask bits {\bf XpmExtensions} to the valuemask.
+
+\vspace{.5cm}
+To create a pixmap from an {\bf XPM} file, use {\bf XpmReadFileToPixmap}.
+
+\begin{flushleft} 
+
+int XpmReadFileToPixmap({\it display, d, filename, \\
+\hspace{3cm}pixmap\_return, shapemask\_return, attributes})\\
+
+\hspace{1cm}Display {\it *display;}\\
+\hspace{1cm}Drawable {\it d;}\\
+\hspace{1cm}char {\it *filename;}\\
+\hspace{1cm}Pixmap {\it *pixmap\_return;}\\
+\hspace{1cm}Pixmap {\it *shapemask\_return;}\\
+\hspace{1cm}XpmAttributes {\it *attributes;}
+
+\end{flushleft}
+
+\begin{description}
+
+\itemit{display} Specifies the connection to the X server.
+\itemit{d} Specifies which screen the pixmap is created on.
+\itemit{filename} Specifies the file name to use.
+\itemit{pixmap\_return} Returns the pixmap which is created.
+\itemit{shapemask\_return} Returns the shapemask which is created, if any.
+\itemit{attributes} Specifies the location of an {\bf XpmAttributes} structure
+to get and store information.
+
+\end{description} 
+
+The {\bf XpmReadFileToPixmap} function reads in a file containing a pixmap in
+the {\bf XPM} format. If the file cannot be opened, {\bf XpmReadFileToPixmap}
+returns {\bf XpmOpenFailed}. If the file can be opened but does not
+contain valid {\bf XPM} pixmap data, it returns {\bf XpmFileInvalid}. If
+insufficient working storage is allocated, it returns {\bf XpmNoMemory}.
+
+If the passed {\bf XpmAttributes} structure pointer is not {\bf NULL}, {\bf
+XpmReadFileToPixmap} looks for the following attributes: {\bf XpmVisual}, {\bf
+XpmColormap}, {\bf XpmDepth}, {\bf XpmColorSymbols}, {\bf XpmExactColors},
+{\bf XpmCloseness}, {\bf XpmReturnPixels}, {\bf XpmReturnExtensions},
+{\bf XpmReturnInfos}, and sets the {\bf XpmSize} and possibly the
+{\bf XpmHotspot} attributes when returning.
+
+{\bf XpmReadFileToPixmap} allocates colors, as read from the file or possibly
+overridden as specified in the {\bf XpmColorSymbols} attributes. The colors
+are allocated dependently on the type of visual and on the default colors. If
+no default value exits for the specified visual, it first looks for other
+defaults nearer to the monochrome visual type and secondly nearer to the color
+visual type. If the color which is found is not valid (cannot parse it), it
+looks for another default one according to the same algorithm.
+
+If allocating a color fails, and the {\bf closeness} attribute is set, it
+tries to find a color already in the colormap that is closest to the desired
+color, and uses that. If no color can be found that is within {\bf closeness}
+of the Red, Green and Blue components of the desired color, it reverts to
+trying other default values as explained above.
+
+The RGB Components are integers within the range 0 (black) to 65535 (white).
+A closeness of less than 10000, for example, will cause only quite close colors
+to be matched, while a closeness of more than 50000 will allow quite
+dissimilar colors to match. Specifying a closeness of more than 65535 will
+allow any color to match, thus forcing the icon to be drawn in color no matter
+how bad the colormap is. The value 40000 seems to be about right for many
+situations requiring reasonable but not perfect matches. With this setting the
+color must only be within the same general area of the RGB cube as the desired
+color.
+
+If the {\bf exactColors} attribute is set it then returns {\bf XpmColorError},
+otherwise it creates the pixmap and returns XpmSuccess. If no color is found,
+and no close color exists or is wanted, and all visuals have been exhausted,
+{\bf XpmColorFailed} is returned.
+
+{\bf XpmReadFileToPixmap} returns the created pixmap to pixmap\_return if not
+{\bf NULL} and possibly the created shapemask to shapemask\_return if not
+{\bf NULL}. If required it stores into the {\bf XpmAttributes} structure the
+list of the used pixels and possible comments, color defaults and symbols.
+When finished the caller must free the pixmaps using {\bf XFreePixmap}, the
+colors using {\bf XFreeColors}, and possibly the data returned into the
+{\bf XpmAttributes} using {\bf XpmFreeAttributes}.
+
+In addition on system which support such features {\bf XpmReadFileToPixmap}
+deals with compressed files by forking an uncompress process and reading from
+the piped result. It assumes that the specified file is compressed if the
+given file name ends by .Z. In case the file name does not end so, {\bf
+XpmReadFileToPixmap} first looks for a file of which the name is the given one
+followed by .Z; then if such a file does not exist, it looks for the given
+file (assumed as not compressed). And if instead of a file name {\bf NULL} is
+passed to {\bf XpmReadFileToPixmap}, it reads from the standard input.
+
+\vspace{.5cm}
+To write out a pixmap to an {\bf XPM} file, use {\bf XpmWriteFileFromPixmap}.
+
+\begin{flushleft} 
+
+int XpmWriteFileFromPixmap({\it display, filename, pixmap, shapemask,\\
+\hspace{3cm}attributes})\\
+
+\hspace{1cm}Display {\it *display;}\\
+\hspace{1cm}char {\it *filename;}\\
+\hspace{1cm}Pixmap {\it pixmap;}\\
+\hspace{1cm}Pixmap {\it shapemask;}\\
+\hspace{1cm}XpmAttributes {\it *attributes;}
+
+\end{flushleft}
+
+\begin{description}
+
+\itemit{display} Specifies the connection to the X server.
+\itemit{filename} Specifies the file name to use.
+\itemit{pixmap} Specifies the pixmap.
+\itemit{shapemask} Specifies the shape mask pixmap.
+\itemit{attributes} Specifies the location of an {\bf XpmAttributes} structure
+containing information.
+
+\end{description} 
+
+The {\bf XpmWriteFileFromPixmap} function writes a pixmap and its possible
+shapemask out to a file in the {\bf XPM} format. If the file cannot be opened,
+it returns {\bf XpmOpenFailed}. If insufficient working storage is
+allocated, it returns {\bf XpmNoMemory}. If no error occurs then it
+returns {\bf XpmSuccess}.
+
+If the passed {\bf XpmAttributes} structure pointer is not {\bf NULL}, {\bf
+XpmWriteFileFromPixmap} look for the following attributes: {\bf XpmColormap},
+{\bf XpmSize}, {\bf XpmHotspot}, {\bf XpmCharsPerPixel}, {\bf XpmRgbFilename},
+{\bf XpmInfos} and {\bf XpmExtensions}.
+
+If the {\bf XpmSize} attributes are not defined {\bf XpmWriteFileFromPixmap}
+performs an {\bf XGetGeometry} operation. If the filename contains an
+extension such as ``.xpm'' it is cut off when writing out to the pixmap
+variable name. If the {\bf XpmInfos} attributes are defined it writes out
+possible stored information such as comments, color defaults and symbol.
+Finally if the {\bf XpmRgbFilename} attribute is defined, {\bf
+XpmWriteFileFromPixmap} searches for color names in this file and if found
+writes them out instead of the rgb values.
+
+In addition on system which support such features if the given file name ends
+by .Z it is assumed to be a compressed file. Then, {\bf XpmWriteFileFromPixmap}
+writes to a piped compress process. And if instead of a file name {\bf NULL}
+is passed to {\bf XpmWriteFileFromPixmap}, it writes to the standard output.
+
+\vspace{.5cm}
+To create a pixmap from an {\bf XPM} file directly included in a program, use
+{\bf XpmCreatePixmapFromData}.
+
+\begin{flushleft} 
+
+int XpmCreatePixmapFromData({\it display, d, data, \\
+\hspace{3cm}pixmap\_return, shapemask\_return, attributes})\\
+
+\hspace{1cm}Display {\it *display;}\\
+\hspace{1cm}Drawable {\it d;}\\
+\hspace{1cm}char {\it **data;}\\
+\hspace{1cm}Pixmap {\it *pixmap\_return;}\\
+\hspace{1cm}Pixmap {\it *shapemask\_return;}\\
+\hspace{1cm}XpmAttributes {\it *attributes;}
+
+\end{flushleft}
+
+\begin{description}
+
+\itemit{display} Specifies the connection to the X server.
+\itemit{d} Specifies which screen the pixmap is created on.
+\itemit{data} Specifies the location of the pixmap data.
+\itemit{pixmap\_return} Returns the pixmap which is created.
+\itemit{shapemask\_return} Returns the shape mask pixmap which is created if
+any.
+\itemit{attributes} Specifies the location of an {\bf XpmAttributes} structure
+to get and store information, or {\bf NULL}. 
+
+\end{description} 
+
+The {\bf XpmCreatePixmapFromData} function allows you to include in your C
+program an {\bf XPM} pixmap file which was written out by {\bf
+XpmWriteFileFromPixmap} without reading in the pixmap file.
+
+{\bf XpmCreatePixmapFromData} exactly works as {\bf
+Xpm\-Read\-File\-To\-Pixmap} does and returns the same way. It just reads data
+instead of a file. Here again, it is the caller's responsibility to free the
+pixmaps, the colors and possibly the data returned into the {\bf
+XpmAttributes} structure.
+
+\vspace{.5cm}
+In some cases, one may want to create an {\bf XPM} data from a pixmap in order
+to be able to create a pixmap from this data using the {\bf
+XpmCreatePixmapFromData} function later on. To do so use {\bf
+XpmCreateDataFromPixmap}.
+
+\begin{flushleft}
+
+int XpmCreateDataFromPixmap({\it display, data\_return, pixmap, shapemask,\\
+\hspace{3cm}attributes})\\
+
+\hspace{1cm}Display {\it *display;}\\
+\hspace{1cm}char {\it ***data\_return;}\\
+\hspace{1cm}Pixmap {\it pixmap;}\\
+\hspace{1cm}Pixmap {\it shapemask;}\\
+\hspace{1cm}XpmAttributes {\it *attributes;}
+
+\end{flushleft}
+
+\begin{description}
+
+\itemit{display} Specifies the connection to the X server.
+\itemit{data\_return} Returns the data which is created.
+\itemit{pixmap} Specifies the pixmap.
+\itemit{shapemask} Specifies the shape mask pixmap.
+\itemit{attributes} Specifies the location of an {\bf XpmAttributes} structure
+containing information.
+
+\end{description} 
+
+The {\bf XpmCreateDataFromPixmap} function exactly works as {\bf
+Xpm\-Write\-File\-From\-Pixmap} does and returns the same way. It just writes
+to a single block malloc'ed data instead of to a file. It is the caller's
+responsibility to free the data when finished.
+
+\vspace{.5cm}
+To do the same than the four functions described above do but with images
+instead of pixmaps use the functions {\bf XpmReadFileToImage}, {\bf
+XpmWriteFileFromImage}, {\bf XpmCreateImageFromData}, {\bf
+XpmCreateDataFromImage}.
+
+\vspace{.2cm}
+{\bf XpmReadFileToImage} creates an image from an {\bf XPM} file.
+
+\begin{flushleft} 
+
+int XpmReadFileToImage({\it display, filename, \\
+\hspace{3cm}image\_return, shapeimage\_return, attributes})\\
+
+\hspace{1cm}Display {\it *display;}\\
+\hspace{1cm}char {\it *filename;}\\
+\hspace{1cm}XImage {\it **image\_return;}\\
+\hspace{1cm}XImage {\it **shapeimage\_return;}\\
+\hspace{1cm}XpmAttributes {\it *attributes;}
+
+\end{flushleft}
+
+\begin{description}
+
+\itemit{display} Specifies the connection to the X server.
+\itemit{filename} Specifies the file name to use.
+\itemit{image\_return} Returns the image which is created.
+\itemit{shapeimage\_return} Returns the shape mask image which is created if
+any.
+\itemit{attributes} Specifies the location of an {\bf XpmAttributes} structure
+to get and store information.
+
+\end{description} 
+
+\vspace{.5cm}
+{\bf XpmWriteFileFromImage} writes out an image to an {\bf XPM} file.
+
+\begin{flushleft} 
+
+int XpmWriteFileFromImage({\it display, filename, image, shapeimage,\\
+\hspace{3cm}attributes})\\
+
+\hspace{1cm}Display {\it *display;}\\
+\hspace{1cm}char {\it *filename;}\\
+\hspace{1cm}XImage {\it *image;}\\
+\hspace{1cm}XImage {\it *shapeimage;}\\
+\hspace{1cm}XpmAttributes {\it *attributes;}
+
+\end{flushleft}
+
+\begin{description}
+
+\itemit{display} Specifies the connection to the X server.
+\itemit{filename} Specifies the file name to use.
+\itemit{image} Specifies the image.
+\itemit{shapeimage} Specifies the shape mask image.
+\itemit{attributes} Specifies the location of an {\bf XpmAttributes} structure
+containing information.
+
+\end{description} 
+
+\vspace{.5cm}
+{\bf XpmCreateImageFromData} creates an image from an {\bf XPM} file directly included in a program.
+
+\begin{flushleft} 
+
+int XpmCreateImageFromData({\it display, data, \\
+\hspace{3cm}image\_return, shapeimage\_return, attributes})\\
+
+\hspace{1cm}Display {\it *display;}\\
+\hspace{1cm}char {\it **data;}\\
+\hspace{1cm}XImage {\it **image\_return;}\\
+\hspace{1cm}XImage {\it **shapeimage\_return;}\\
+\hspace{1cm}XpmAttributes {\it *attributes;}
+
+\end{flushleft}
+
+\begin{description}
+
+\itemit{display} Specifies the connection to the X server.
+\itemit{data} Specifies the location of the image data.
+\itemit{image\_return} Returns the image which is created.
+\itemit{shapeimage\_return} Returns the shape mask image which is created if
+any.
+\itemit{attributes} Specifies the location of an {\bf XpmAttributes} structure
+to get and store information, or {\bf NULL}. 
+
+\end{description} 
+
+\vspace{.5cm}
+{\bf XpmCreateDataFromImage} creates an {\bf XPM} data from an image.
+
+\begin{flushleft}
+
+int XpmCreateDataFromImage({\it display, data\_return, image, shapeimage,\\
+\hspace{3cm}attributes})\\
+
+\hspace{1cm}Display {\it *display;}\\
+\hspace{1cm}char {\it ***data\_return;}\\
+\hspace{1cm}XImage {\it *image;}\\
+\hspace{1cm}XImage {\it *shapeimage;}\\
+\hspace{1cm}XpmAttributes {\it *attributes;}
+
+\end{flushleft}
+
+\begin{description}
+
+\itemit{display} Specifies the connection to the X server.
+\itemit{data\_return} Returns the data which is created.
+\itemit{image} Specifies the image.
+\itemit{shapeimage} Specifies the shape mask image.
+\itemit{attributes} Specifies the location of an {\bf XpmAttributes} structure
+containing information.
+
+\end{description} 
+
+These four functions work exactly the same way than the four ones previously
+described.
+
+\vspace{.5cm}
+To directly tranform an {\bf XPM} file to and from an {\bf XPM} data
+array, without requiring an open X display, use {\bf
+XpmReadFileToData} and {\bf XpmWriteFileFromData}.
+
+\vspace{.2cm}
+{\bf XpmReadFileToData} allocates and fills an XPM data array from an {\bf XPM} file.
+
+\begin{flushleft} 
+
+int XpmReadFileToData({\it filename, data\_return})\\
+
+\hspace{1cm}char {\it *filename;}\\
+\hspace{1cm}char {\it ***data\_return;}
+
+\end{flushleft}
+
+\begin{description}
+
+\itemit{filename} Specifies the file name to read.
+\itemit{data\_return} Returns the data array created.
+
+\end{description} 
+
+\vspace{.5cm}
+{\bf XpmWriteFileFromData} writes an {\b XPM} data array to an {\bf XPM} file.
+
+\begin{flushleft} 
+
+int XpmWriteFileFromData({\it filename, data})\\
+
+\hspace{1cm}char {\it *filename;}\\
+\hspace{1cm}char {\it **data;}
+
+\end{flushleft}
+
+\begin{description}
+
+\itemit{filename} Specifies the file name to write.
+\itemit{data} Specifies the {\b XPM} data array to read.
+
+\end{description} 
+
+\vspace{.5cm}
+To free possible data stored into an {\bf XpmAttributes} structure use {\bf
+XpmFreeAttributes}.
+
+\begin{flushleft} 
+
+int XpmFreeAttributes({\it attributes})\\
+
+\hspace{1cm}XpmAttributes {\it *attributes;}
+
+\end{flushleft}
+
+\begin{description}
+
+\itemit{attributes} Specifies the structure to free.
+
+\end{description}
+
+The {\bf XpmFreeAttributes} frees the structure members which have been
+malloc'ed: the pixels list and the infos members (comments strings and color
+table).
+
+\vspace{.5cm}
+To dynamically allocate an {\bf XpmAttributes} structure use the {\bf
+Xpm\-Attributes\-Size} function.
+
+\begin{flushleft} 
+
+int XpmAttributesSize()
+
+\end{flushleft}
+
+The {\bf XpmAttributesSize} function provides application using dynamic
+libraries with a safe way to allocate and then refer to an {\bf XpmAttributes}
+structure, disregarding whether the {\bf XpmAttributes} structure size has
+changed or not since compiled.
+
+\vspace{.5cm}
+To free data possibly stored into an array of {\bf XpmExtension} use {\bf
+XpmFreeExtensions}.
+
+\begin{flushleft} 
+
+int XpmFreeExtensions({\it extensions, nextensions})\\
+
+\hspace{1cm}XpmExtension {\it *extensions;}\\
+\hspace{1cm}int {\it nextensions;}
+
+\end{flushleft}
+
+\begin{description}
+
+\itemit{extensions} Specifies the array to free.
+\itemit{nextensions} Specifies the number of extensions.
+
+\end{description}
+
+This function frees all data stored in every extension and the array itself.
+Note that {\bf XpmFreeAttributes} call this function and thus most of the time
+it should not need to be explicitly called.
+
+\end{document} 

@@ -1,0 +1,169 @@
+############################################################################
+#
+#	File:     drag.icn
+#
+#	Subject:  Procedures for dragging rectangles
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 21, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	These procedures drag rectangular objects in a window.
+#
+#	Drag(x, y, w, h)		provides an opaque move.
+#
+#	DragOutline(x, y, w, h)		drags only the outline.
+#
+############################################################################
+#
+#  Drag(x, y, w, h) lets the user move a rectangular area using the
+#  mouse.  Called when a mouse button is pressed, Drag() handles all
+#  subsequent events until a mouse button is released.  As the mouse
+#  moves, the rectangular area originally at (x,y,w,h) follows it
+#  across the screen; vacated pixels at the original location are
+#  filled with the background color.  The rectangle cannot be dragged
+#  off-screen or outside the clipping region.  When the mouse button
+#  is released, Drag() sets &x and &y to the upper-left corner of the
+#  new location and returns.
+#
+#  DragOutline(x, y, w, h) lets the user move a reverse-mode rectangle
+#  using the mouse.  Called when a mouse button is pressed, DragOutline
+#  draws a reverse-mode rectangle inside the limits of the rectangle
+#  (x,y,w,h) and handles all subsequent events until a mouse button is
+#  released.  As the mouse moves, the rectangle follows it.  When the
+#  mouse button is released, the rectangle disappears, and DragOutline
+#  sets &x and &y to the upper-left corner of the new location.  It is
+#  up to the calling program to update the display as necessary.
+#
+############################################################################
+#
+#  Requires: Version 9 graphics
+#
+############################################################################
+
+link graphics
+
+
+#  Drag(x, y, w, h) -- opaque drag
+
+procedure Drag(win, x, y, w, h)			#: opaque rectangle drag
+   local dx, dy, x0, y0, x1, y1
+   local behind, xoff, yoff, xnew, ynew, xshift, yshift
+
+   if type(win) ~== "window" then
+      return Drag((\&window | runerr(140)), win, x, y, w)
+
+   if w < 0 then
+      x -:= (w := -w)
+   if h < 0 then
+      y -:= (h := -h)
+
+   dx := WAttrib(win, "dx")
+   dy := WAttrib(win, "dy")
+
+   x0 := -dx				# set limits due to window size
+   y0 := -dy
+   x1 := WAttrib(win, "width") - dx - w
+   y1 := WAttrib(win, "height") - dy - h
+
+   x0 <:= \WAttrib(win, "clipx")	# adjust limits for clipping
+   y0 <:= \WAttrib(win, "clipy")
+   x1 >:= \WAttrib(win, "clipx") + \WAttrib(win, "clipw") - w
+   y1 >:= \WAttrib(win, "clipy") + \WAttrib(win, "cliph") - h
+
+   behind := ScratchCanvas(win, , , "__Drag__") |
+      stop("can't get ScratchCanvas in Drag()")
+   CopyArea(win, behind, -dx, -dy)
+   Bg(behind, Bg(win))
+   EraseArea(behind, x + dx, y + dy, w, h)
+
+   xoff := x - &x
+   yoff := y - &y
+
+   until Event(win) === (&lrelease | &mrelease | &rrelease) do {
+
+      # move the rectangle
+      xnew := &x + xoff
+      ynew := &y + yoff
+      xnew <:= x0
+      ynew <:= y0
+      xnew >:= x1
+      ynew >:= y1
+      CopyArea(win, x, y, w, h, xnew, ynew)
+
+      # repaint the area exposed by its movement
+      xshift := xnew - x
+      yshift := ynew - y
+
+      if abs(xshift) >= w | abs(yshift) >= h then {
+
+         # completely disjoint from new location
+         CopyArea(behind, win, x + dx, y + dy, w, h, x, y)
+         }
+
+      else {
+
+         # new area overlaps old
+         if xshift > 0 then
+            CopyArea(behind, win, x + dx, y + dy, xshift, h, x, y)
+         else if xshift < 0 then
+            CopyArea(behind, win,
+               x + dx + w + xshift, y + dy, -xshift, h, x + w + xshift, y)
+         if yshift > 0 then
+            CopyArea(behind, win, x + dx, y + dy, w, yshift, x, y)
+         else if yshift < 0 then
+            CopyArea(behind, win,
+               x + dx, y + dy + h + yshift, w, -yshift, x, y + h + yshift)
+         }
+
+      x := xnew
+      y := ynew
+      }
+
+   EraseArea(behind)
+   &x := x			
+   &y := y
+   return win
+end
+
+
+#  DragOutline(x, y, w, h) -- outlined drag
+
+procedure DragOutline(win, x, y, w, h)		#: outlined rectangle drag
+   local wrev, xoff, yoff
+
+   if type(win) ~== "window" then
+      return DragOutline((\&window | runerr(140)), win, x, y, w)
+
+   if w < 0 then
+      x -:= (w := -w)
+   if h < 0 then
+      y -:= (h := -h)
+
+   wrev := Clone(win, "drawop=reverse")
+   xoff := x - &x
+   yoff := y - &y
+
+   w -:= 1					# adjust Draw/Fill inconsistency
+   h -:= 1
+
+   DrawRectangle(wrev, x, y, w, h)		# draw initial rectangle
+   until Event(wrev) === (&lrelease | &mrelease | &rrelease) do {
+      DrawRectangle(wrev, x, y, w, h)		# erase old rectangle
+      x := &x + xoff
+      y := &y + yoff
+      DrawRectangle(wrev, x, y, w, h)		# draw new rectangle
+      }
+   DrawRectangle(wrev, x, y, w, h)		# erase final rectangle
+   Uncouple(wrev)
+
+   &x := x			
+   &y := y
+   return win
+end

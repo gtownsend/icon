@@ -1,0 +1,80 @@
+############################################################################
+#
+#	File:     fract.icn
+#
+#	Subject:  Program to approximate real number as a fraction
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 23, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program produces successive rational approximations to a real
+#  number.
+#
+#  The options supported are:
+#
+#	-n r	real number to be approximated, default .6180339887498948482
+#		   (see below)
+#
+#	-l i	limit on number of approximations, default 100 (unlikely to
+#		   be reached).
+#
+############################################################################
+#
+#  This program was translated from a C program by Greggg Townsend.  His
+#  documentation includes the following remarks.
+# 
+#   rational mode based on a calculator algorithm posted by:
+#
+# 	Joseph D. Rudmin  (duke!dukempd!jdr)
+# 	Duke University Physics Dept.
+# 	Aug 19, 1987
+# 
+#   n.b. for an interesting sequence try "fract .6180339887498948482".
+#   Do you know why?  (Hint: "Leonardo of Pisa").
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+$define Epsilon 1.e-16	# maximum precision (more risks overflow)
+
+procedure main(args)
+   local v, t, x, y, a, d, i, j, ops, opts, limit
+
+   opts := options(args, "n.l+")
+
+   v := \opts["n"] | .6180339887498948482
+   limit := \opts["l"] | 100
+
+   x := list(limit + 2)
+   y := list(limit + 2)
+
+   t := v
+
+   every i := 1 to limit do {
+      x[i + 1] := integer(t)
+      y[i + 1] := 1
+      y[i + 2] := 0
+      every j := i - 1 to 0 by -1 do
+         y[j + 1] := x[j + 2] * y[j + 2] + y[j + 3]
+      a := real(integer(y[1])) / integer(y[2])
+      if a < 0 then exit()
+      write(integer(y[1]), " / ", integer(y[2]), " \t",  a)
+      if abs(a - v) < Epsilon then exit()
+      d := t - integer(t)
+      if d < Epsilon then exit()
+      t := 1.0 / d
+      }
+
+end

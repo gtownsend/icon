@@ -1,0 +1,408 @@
+############################################################################
+#
+#	File:     wifcvt.icn
+#
+#	Subject:  Procedure to convert WIF to PDF record
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 13, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program analyzes a Weaving Information File and returns a pattern-
+#  form draft record.
+#
+#  Information in a WIF that is not necessary for a PFD is ignored.
+#
+#  Since WIFs contain no pattern information, the expressions in the
+#  PFD are in raw form -- they contain no pattern-forms.
+#
+#  Because of the way the PFD is constructed, the number of shafts is
+#  the number of different symbols in the threading sequence.
+#
+#  From this, the dimensions of the tie-up, which consists of concatenated
+#  shaft rows, can be computed.
+#
+#  If there is a liftplan, the symbols in the treadling sequence
+#  correspond to shaft patterns given in the liftplan.  The symbols
+#  for these pattern shafts are implicit and occur in orde to the number
+#  of shaft patterns.
+#
+#  There is a problem where there is treadling with multiple treadles
+#  and no liftplan.  *Presumably* that treadling can be used like a
+#  liftplan, but without, necessarily, a direct tie-up.  This problem
+#  problem has not been addressed yet.
+#
+#  If there is a liftplan, then a direct tie-up is implied by the
+#  wording in the WIF documentation.  However, that's in the interpretation
+#  of the draft.  The tie-up produced here is the one given in the
+#
+#  If there is a liftplan and a treadling with multiple treadles,
+#  the treadling is ignored.
+#
+#  Also not handled is the possibility of multiple shafts per thread.
+#  This could be dealt with as for the liftplan.  The idea is that
+#  instead of a threading corresponding to a single shaft, there are
+#  some number of different shaft patterns, like there are liftplan
+#  patterns.
+#
+#  The liftplan is represented as concatenated rows of shaft patterns in the
+#  irder they first appear.  Thus, the symbols used for them can be
+#  reconstructed with the PFD is processed.
+#
+#  This program does not attempt to detect or correct errors in WIFs,
+#  but it does try to work around some common problems.
+#
+############################################################################
+#
+#  Links:  tieutils, tables, weavutil
+#
+############################################################################
+
+link tieutils
+link tables
+link weavutil
+
+global data_default
+global data_entries
+global sections
+global wif
+
+procedure wif2pfd(file, title, palette)
+   local section, line, i, colors, information_sections, data_sections
+   local color_range, information, data, tieup, shafts
+   local lst, x, k, r, g, b, color, opts, j, threading, treadling, tie, lift
+   local warp_colors, weft_colors, threads, treadles, range, format
+   local color_set, color_tbl, symbols, pfl, maxi, colors_in, liftplan
+   local lift_set, lift_list, lifting, lift_table, pfd
+
+   /title := "untitled"
+   /palette := "c1"
+
+   maxi := 0
+   
+   information_sections := [
+      "wif",
+      "contents",
+      "translations",
+      "color palette",
+      "warp symbol palette",
+      "weft symbol palette",
+      "text",
+      "weaving",
+      "warp",
+      "weft",
+      "bitmap image",
+      "bitmap file"
+      ]
+
+   data_sections := [
+      "notes",
+      "tieup",
+      "liftplan",
+      "color table",
+      "warp symbol table",
+      "weft symbol table",
+      "threading",
+      "warp thickness",
+      "warp thickness zoom",
+      "warp spacing",
+      "warp spacing zoom",
+      "warp colors",
+      "warp symbols",
+      "treadling",
+      "weft thickness",
+      "weft thickness zoom",
+      "weft spacing",
+      "weft spacing zoom",
+      "weft colors",
+      "weft symbols",
+      "bitmap image data",
+      "private"
+      ]
+
+   data_default := table()
+   data_entries := table()
+      
+   sections := table()
+   information := table()
+   data := table()
+
+   wif := []
+
+   #  Read WIF into list.
+
+   while line := trim(read(file)) do
+      if *line > 0 then put(wif, line)
+
+   #  Locate sections.
+
+   every i := 1 to *wif do {
+      wif[i] ? {
+         if ="[" then {
+            section := map(tab(upto(']')))
+            sections[section] := i
+            }
+         }
+      }
+
+   #  Process information sections.
+
+   every name := !information_sections do
+      information[name] := info(name)
+
+   #  Set up data information.
+
+   data_entries["tieup"] := (\information["weaving"])["treadles"] 
+   data_entries["liftplan"] := (\information["weft"])["threads"] 
+   data_entries["color table"] := (\information["color palette"])["entries"] 
+   data_entries["warp symbol table"] :=
+      (\information["warp symbol palette"])["entries"]
+   data_entries["weft symbol table"] :=
+      (\information["weft symbol palette"])["entries"]
+   data_entries["threading"] := (\information["warp"])["threads"]
+   data_entries["warp colors"] := (\information["warp"])["threads"]
+   data_entries["treadling"] := (\information["weft"])["threads"]
+   data_entries["weft colors"] := (\information["weft"])["threads"]
+
+   data_default["tieup"] := ""
+   data_default["liftplan"] := ""
+   data_default["notes"] := ""
+   data_default["warp colors"] := (\information["warp"])["color"]
+   data_default["weft colors"] := (\information["weft"])["color"]
+   \data_default["warp colors"] ?:= {		# We require index for now.
+       tab(upto(','))
+       }
+   \data_default["weft colors"] ?:= {		# We require index for now.
+       tab(upto(','))
+       }
+      
+
+   #  Process data sections.
+
+   every name := !data_sections do
+      data[name] := decode_data(name)
+
+   #  First get colors and encode them.
+
+   if colors := \data["color table"] then {
+      range := (\information["color palette"])["range"] | abort(1)
+      range ?:= {
+         tab(upto(','))
+         move(1)
+         tab(0) + 1
+         }
+      if range < 2 ^ 16 then {	# adjust color values
+         every i := 1 to *colors do {
+            color := colors[i]
+            color ?:= {
+               r := tab(upto(','))
+               move(1)
+               g := tab(upto(','))
+               move(1)
+               b := tab(0)
+               (r * range) || "," || (g * range) || "," || (b * range)
+               }
+            colors[i] := color
+            }
+         }
+      colors_in := ""
+      every colors_in ||:= upto(PaletteKey(palette, !colors),
+         PaletteChars(palette))
+      }
+
+   #  Compose pfd()
+
+   pfd := draft()
+
+   pfd.name := title
+   pfd.shafts := shafts := (\information["weaving"])["shafts"] | abort(3)
+   pfd.treadles := treadles := (\information["weaving"])["treadles"] | abort(3)
+   pfd.palette := palette
+   pfd.colors := PaletteChars(palette)
+
+   if warp_colors := \data["warp colors"] then {
+      pfl := ""
+      every color := !warp_colors do {
+         color ?:= tab(upto(','))	# possible obsolete RBG syntax
+         pfl ||:= colors_in[color]
+         }
+      pfd.warp_colors := pfl
+      }
+
+   if weft_colors := \data["weft colors"] then {
+      pfl := ""
+      every color := !weft_colors do {
+         color ?:= tab(upto(','))	# possible obsolete RGB sybtax
+         pfl ||:= colors_in[color]
+         }
+      pfd.weft_colors := pfl
+      }
+
+   #  Need to get liftplan, if there is one, before processing treadling.
+   #  Output is later.
+   #
+   #  Note: If the treadling has multiple treadles, we need to handle it
+   #  some other way than we now are.  What we need to do is to create
+   #  a treadling here.
+
+   if liftplan := \data["liftplan"] then {
+      lifting := ""
+      lift_set := set()
+      lift_list := []
+      lift_table := table()
+      k := 0
+      threads := (\information["weft"])["threads"] | abort(3)
+      every i := 1 to threads do {
+         line := repl("0", treadles)
+         if \liftplan[i] then {
+            liftplan[i] ? {
+               while j := tab(upto(',') | 0) do {
+                  if *j > 0 then line[j] := "1"
+                  move(1) | break
+                  }
+               }
+            }
+         if not member(lift_set, line) then {
+            insert(lift_set, line)
+            k +:= 1
+            lift_table[line] := sympos(k) | stop("*** masking error")
+            }
+         put(lift_list, line)
+         lifting ||:= lift_table[line]
+         }
+      }
+
+   if threading := \data["threading"] then {
+      pfl := ""
+      every line := !threading do {
+         if /line then next		# Ignore empty threading
+         line ? {			# Handles multiple threadings as first
+            i := integer(tab(upto(',') | 0)) | stop("*** invalid threading")
+            }
+         maxi <:= i
+         if i = 0 then next		# Ignore bogus 0
+         pfl ||:= sympos(\i) | stop("*** masking problem in threading, i=", i)
+         }
+      pfd.threading := pfl
+      }
+
+   if \lifting then pfd.treadling := lifting else {
+      pfl := ""
+      if treadling := \data["treadling"] then {
+         every i := !treadling do {
+            if /i then next		# IGNORE EMPTY TREADLING LINE???
+            if not integer(i) then {
+               if /lift_list then
+                  stop("*** multiple treadling without liftplan section")
+               else {			# Produce empty treadling if there
+                  pfl := ""		# multiple treadling and a liftplan
+                  break
+                  }
+               }
+            maxi <:= i
+            if i = 0 then next		#   IGNORE BOGUS 0
+            pfl ||:= sympos(\i) | stop("*** masking problem  in treadling, i=", i)
+            }
+         pfd.treadling := pfl
+         } 
+      }
+
+
+   if tieup := \data["tieup"] then {
+      tie := ""
+      every i := 1 to treadles do {
+         line := repl("0", shafts)
+         if \tieup[i] then {
+            tieup[i] ? {
+               while j := tab(upto(',') | 0) do {
+                  if *j > 0 then line[j] := "1"
+                  move(1) | break
+                  }
+               }
+            }
+         tie ||:= line			# MAY BE MIS-ORIENTED
+         }
+      pfd.tieup := tie2pat(pfd.shafts, pfd.shafts, tie)
+      }
+
+   #  Now, finally, the liftplan, if any.
+   #
+   #  The lift lines are given in order of occurrence.  The symbols
+   #  used for them in the treadling can be reconstructed and are
+   #  note included here.
+
+   if \lift_list then {
+      pfd.liftplan := ""
+      every pfd.liftplan ||:= !lift_list
+      pfd.liftplan := tie2pat(pfd.shafts, *lift_list, pfd.liftplan)
+      }
+
+   return pfd
+
+end
+
+procedure abort(i)
+
+   stop("*** insufficient information to produce specifications: ", i)
+
+end
+
+procedure info(name)
+   local i, tbl, keyname, keyvalue, line
+   
+   tbl := table()
+   
+   i := \sections[name] | fail
+   
+   repeat {
+     i +:= 1
+     line := wif[i] | return tbl
+     line ? {
+        {
+           keyname := map(tab(upto('='))) &
+           move(1) &
+           keyvalue := trim(tab(upto(';') | 0))
+           } | return tbl
+        tbl[keyname] := keyvalue
+        } | return tbl
+     }
+
+end
+
+procedure decode_data(name)
+   local i, lst, keyname, keyvalue, line, size, value
+   
+   i := \sections[name] | fail
+   
+   value := \data_default[name]
+   
+   if size := \data_entries[name] then lst := list(size, value)
+   else lst := []
+   
+   repeat {
+     i +:= 1
+     line := wif[i] | return lst
+     line ? {
+        {
+           keyname := integer(tab(upto('='))) | return lst
+           move(1)
+           keyvalue := trim(tab(upto(';') | 0))
+           if *keyvalue = 0 then {
+              keyvalue := value
+              if /keyvalue then {
+                  write(&errout, "name=", name)
+                  stop("*** no default where needed")
+                  }
+              }
+           }
+        if /size then put(lst, keyvalue) else lst[keyname] := keyvalue
+        }
+     }
+   
+end

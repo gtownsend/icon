@@ -1,0 +1,112 @@
+############################################################################
+#
+#	File:     wipe.icn
+#
+#	Subject:  Procedure to wipe window area
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 11, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  wipe(window, color, direction, x, y, w, h)  "wipes" a rectangular area of
+#  window to the specfied color.  The direction of wiping can be any one of:
+#
+#	"right"		from left to right
+#	"left"		from right to left
+#	"down"		from top to bottom
+#	"up		from bottom to top
+#	"left-right"	from left and right toward center
+#	"up-down"	from top and bottom toward center
+#	"in"		from outside to inside
+#
+#  The default direction is "right".
+#
+#  The default color is the background color of the window.
+#
+#  x, y is the top left corner of the area and w and h are the width and
+#  height. An omitted value defaults to the one for the entire window.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+procedure wipe(window, color, direction, x1, y1, w, h)
+   local x, y, x2, y2, fg
+
+   /color := Bg(window)			# establish defaults
+   /direction := "right"
+   /x1 := 0
+   /y1 := 0
+   /w := WAttrib(window, "width")
+   /h := WAttrib(window, "height")
+   x2 := x1 + w
+   y2 := y1 + h
+
+   fg := Fg(window)				# save present foreground color
+   Fg(window, color)				# set foreground for wiping
+
+   if not(integer(x1) & integer(x2) & integer(y1) & integer(y2)) |
+      (x1 > x2) | (y1 > y2) then stop("*** illegal coordinates in wipe()")
+
+   case direction of {
+      "right": {
+         every x := x1 to x2 do {
+            DrawLine(window, x, y1, x, y2)
+            }
+         }
+      "left": {
+         every x := x2 to x1 by -1 do {
+            DrawLine(window, x, y1, x, y2)
+            }
+         }
+      "left-right": {
+         until (x2 < x1) do {
+           DrawLine(window, x1, y1, x1, y2)
+           DrawLine(window, x2, y1, x2, y2)
+           x1 +:= 1
+           x2 -:= 1
+           }
+         }
+      "up-down": {
+          until y2 < y1 do {
+            DrawLine(window, x1, y1, x2, y1)
+            DrawLine(window, x1, y2, x2, y2)
+            y1 +:= 1
+            y2 -:= 1
+            }
+         }
+      "down": {
+         every y := y1 to y2 do {
+            DrawLine(window, x1, y, x2, y)
+            }
+         }
+      "up": {
+         every y := y2 to y1 by -1 do {
+            DrawLine(window, x1, y, x2, y)
+            }
+         }
+      "in": {
+         until (x2 < x1) | (y2 < y1) do {
+            DrawLine(window, x1, y1, x1, y2, x2, y2, x2, y1, x1, y1)
+            x1 +:= 1
+            x2 -:= 1
+            y1 +:= 1
+            y2 -:= 1
+            }
+         }
+      default: stop("*** illegal direction specificaion in wipe()")
+      }
+
+   Fg(window, fg)			# restore foreground color
+
+   return
+
+end

@@ -1,0 +1,78 @@
+############################################################################
+#
+#	File:     clip.icn
+#
+#	Subject:  Procedures for clipboard operations
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 26, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  XCopy(window, x, y, w, h) copies an area of window to the clipboard.
+#
+#  XCut(window, x, y, w, h) copies an area of window to the clipboard and
+#  erases it from window.
+#
+#  XPaste(window, x, y) copies the clipboard to position x,y in window.
+#
+#  NewClip(w, h) is a utility procedure that discards the old clipboard and
+#  creates a new one of the specified dimensions.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  xcompat
+#
+############################################################################
+
+link xcompat
+
+global Clipboard
+
+procedure NewClip(w, h)
+
+   close(\Clipboard)
+
+   Clipboard := XBind(, , "width=" || w, "height=" || h) |
+      stop("*** cannot create clipboard")
+
+   return
+
+end
+
+procedure XCopy(window, x, y, w, h)
+
+   NewClip(w, h)
+
+   CopyArea(window, Clipboard, x, y, w, h)
+
+   return
+
+end
+
+procedure XCut(window, x, y, w, h)
+
+   XCopy(window, x, y, w, h)
+
+   EraseArea(window, x, y, w, h)
+
+   return
+
+end
+
+procedure XPaste(window, x, y)
+
+   CopyArea(Clipboard, window, , , , , x, y)
+
+   return
+
+end

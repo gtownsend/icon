@@ -1,0 +1,35 @@
+############################################################################
+#
+#	File:     ibar.icn
+#
+#	Subject:  Program to equalize comment bars in Icon programs
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 8, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program replaces comment bars in Icon programs by bars 76 characters
+#  long -- the program library standard.
+#
+############################################################################
+
+procedure main()
+   local bar, short_bar, line, notcom
+
+   bar := repl("#", 76)
+   short_bar := repl("#", 60)
+   notcom := ~'#'
+
+   while line := read() do
+      line ? {
+         if =short_bar & not(upto(notcom)) & *line ~= 76 then write(bar)
+         else write(line)
+         }
+
+end

@@ -1,0 +1,207 @@
+############################################################################
+#
+#  vibslidr.icn -- procedures for defining slider and scrollbar objects
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+
+$include "vibdefn.icn"
+$include "vdefns.icn"
+
+##########################################################################
+# slider_obj:
+#    v       : vidget used for drawing
+#    proc    : name of user callback procedure
+#    filter  : filter out dragging events?
+#    id      : unique identifier
+#    x,y,w,h : bounding box
+#    min     : min value of range
+#    max     : max value of range
+#    value   : current value within range
+#    typ     : "Slider" or "Scrollbar"
+#    focus   : should focus lines be drawn around this object?
+##########################################################################
+record slider_obj(v, proc, filter, id, x, y, w, h, min, max, value, typ, focus)
+
+##########################################################################
+# create_slider() creates a slider instance and draws the slider.
+##########################################################################
+procedure create_slider(x, y, w, h, typ, min, max, value, filter)
+   local r, id, prefix
+
+   if typ == "Scrollbar" then
+      prefix := "sbar"
+   else
+      prefix := "slider"
+   id := next_id(prefix)
+
+   r := slider_obj(, prefix || "_cb" || id, filter, prefix || id,
+       x, y, w, h, min, max, value, typ, 0)
+
+   r.v := slider_vidget(id, typ, x, y, w, h)
+   VRemove(ROOT, r.v, 1)
+   return r
+end
+
+##########################################################################
+# slider_vidget() creates the appropriate vidget for a slider or scrollbar.
+##########################################################################
+procedure slider_vidget(id, typ, x, y, w, h)
+   local dir
+
+   dir := if w > h then "h" else "v"
+   return case dir || typ of {
+      "vSlider":     Vvert_slider(ROOT, x, y, APPWIN, , id, h, w, 1.0, 0.0)
+      "hSlider":     Vhoriz_slider(ROOT, x, y, APPWIN, , id, w, h)
+      "vScrollbar":  Vvert_scrollbar(ROOT, x, y, APPWIN, , id, h, w, 1.0, 0.0)
+      "hScrollbar":  Vhoriz_scrollbar(ROOT, x, y, APPWIN, , id, w, h)
+      }
+end
+
+##########################################################################
+# update_slider_bb() updates attributes in response to resizing.
+##########################################################################
+procedure update_slider_bb(object)
+   if object.w > object.h then {
+      object.w <:= VSlider_MinAspect * VSlider_MinWidth
+      object.h >:= object.w / VSlider_MinAspect
+   }
+   else {
+      object.h <:= VSlider_MinAspect * VSlider_MinWidth
+      object.w >:= object.h / VSlider_MinAspect
+   }
+end
+
+##########################################################################
+# draw_slider() draws the given slider object.
+##########################################################################
+procedure draw_slider(r)
+   VSetState(r.v, abs((r.value - r.min) / (real(r.max - r.min))))
+   VDraw(r.v)
+   return r
+end
+
+##########################################################################
+# load_slider() restores a slider object from session code.
+##########################################################################
+procedure load_slider(r, o)
+   local dir
+
+   r.filter := ("" ~== o.num)
+   r.typ := o.typ
+   o.lbl ? {
+      r.min := tab(upto(",")); move(1)
+      r.max := tab(upto(",")); move(1)
+      r.value := tab(0)
+      }
+
+   r.v := slider_vidget(r.id, r.typ, r.x, r.y, r.w, r.h)
+   VRemove(ROOT, r.v, 1)
+end
+
+##########################################################################
+# save_slider() augments the record for saving a slider object.
+##########################################################################
+procedure save_slider(r, o)
+   r.typ := o.typ
+   r.lbl := o.min || "," || o.max || "," || o.value
+   r.sty := if r.w > r.h then "h" else "v"
+   r.num := o.filter
+   return
+end
+
+##########################################################################
+# display_slider_atts() displays the attribute sheet with the current
+#                       attributes for the given slider instance.
+##########################################################################
+procedure display_slider_atts(object)
+   local t, s
+
+   t := table()
+   t["_filter"]		:= object.filter
+   t["a_id"]		:= object.id
+   t["b_callback"]	:= object.proc
+   t["c_x"]		:= object.x
+   t["d_y"]		:= object.y - CANVASY
+   t["g_lefttop"]	:= object.min
+   t["h_initial"]	:= object.value
+   t["i_rightbot"]	:= object.max
+
+   if object.w > object.h then {
+      t["j_orientation"] := "horizontal"
+      t["e_length"]	:= object.w
+      t["f_width"]	:= object.h
+   }
+   else {
+      t["j_orientation"] := "vertical"
+      t["e_length"]	:= object.h
+      t["f_width"]	:= object.w
+   }
+
+   repeat {
+      s := slider_dialog(t)
+      if s == "Cancel" then
+         fail
+
+      if illegal(t["a_id"], "ID", "s") |
+         illegal(t["b_callback"], "Callback", "p") |
+         illegal(t["c_x"], "X", "i") |
+         illegal(t["d_y"], "Y", "i") |
+         illegal(t["f_width"], "Width", VSlider_MinWidth) |
+         illegal(t["e_length"], "Length", t["f_width"] * VSlider_MinAspect) |
+         illegal(t["g_lefttop"], "Left / Top", "n") |
+         illegal(t["h_initial"], "Initial", "n") |
+         illegal(t["i_rightbot"], "Right / Bottom", "n")
+      then
+         next
+
+      if not ((t["g_lefttop"] <= t["h_initial"] <= t["i_rightbot"]) |
+         (t["g_lefttop"] >= t["h_initial"] >= t["i_rightbot"])) then {
+            Notice("Initial value is not between the two extremes")
+            next
+            }
+
+      object.filter	:= t["_filter"]
+      object.id		:= t["a_id"]
+      object.proc	:= t["b_callback"]
+      object.min	:= t["g_lefttop"]
+      object.value	:= t["h_initial"]
+      object.max	:= t["i_rightbot"]
+      unfocus_object(object)
+      if t["j_orientation"] == "horizontal" then
+         move_object(object,
+            t["c_x"], t["d_y"] + CANVASY, t["e_length"], t["f_width"])
+      else
+         move_object(object,
+            t["c_x"], t["d_y"] + CANVASY, t["f_width"], t["e_length"])
+      focus_object(object)
+      break
+   }
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure slider_dialog(win, deftbl)
+static dstate
+initial dstate := dsetup(win,
+   ["slider_dialog:Sizer::1:0,0,389,276:",],
+   ["_cancel:Button:regular::204,225,50,30:Cancel",],
+   ["_filter:Button:checkno:1:270,132,69,20:filter",],
+   ["_okay:Button:regular:-1:139,224,50,30:Okay",],
+   ["a_id:Text::40:13,14,360,19:ID:       \\=",],
+   ["b_callback:Text::40:13,35,360,19:callback: \\=",],
+   ["c_x:Text::3:13,62,101,19:       x: \\=",],
+   ["d_y:Text::3:13,83,101,19:       y: \\=",],
+   ["e_length:Text::3:13,109,101,19:  length: \\=",],
+   ["f_width:Text::3:13,130,101,19:   width: \\=",],
+   ["g_lefttop:Text::10:181,62,192,19:    top / left: \\=",],
+   ["h_initial:Text::10:181,83,192,19:       initial: \\=",],
+   ["i_rightbot:Text::10:181,104,192,19:bottom / right: \\=",],
+   ["j_orientation:Choice::2:15,156,99,42:",,
+      ["vertical","horizontal"]],
+   )
+return dpopup(win, deftbl, dstate)
+end
+#===<<vib:end>>===	end of section maintained by vib

@@ -1,0 +1,254 @@
+############################################################################
+#
+#	File:     anim.icn
+#
+#	Subject:  Program to show animated display of Icon source code
+#
+#	Author:   Gregg M. Townsend, modified by Ralph E. Griswold
+#
+#	Date:     February 28, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     anim displays a miniaturized program listing, highlighting each
+#  line as it is executed. 
+#
+#     Two accompanying barcharts display execution profiles.  The one on
+#  the extreme left shows the number of clock ticks attributable to each
+#  source line.  The second chart shows the number of times each line was
+#  executed.
+#
+#     A chart to the right of the listing displays a time-based history
+#  similar to that of the "roll" program (q.v.).
+#
+#     usage:  anim [options] [arg...]
+#
+#	-d n	decay after n new line events
+#	-b n	length of barcharts  (0 to disable)
+#	-z n	length of history  (0 to disable)
+#	-t n	ticks per history pixel
+#
+#	-s n	vertical line spacing, in pixels
+#	-w n	width of one character, in pixels
+#	-h n	height of one character, in pixels
+#	-p n	set in pointsize n (OpenWindows only; overrides -w and -h)
+#
+#	-P x	program text color
+#	-C x	comment color
+#	-A x	active text color
+#	-O x	old-text color (after fading)
+#	-R x	background color for barcharts and history
+#	-S n	spacing between sections of the display
+#
+#	plus standard options from optwindow.icn
+#	(-F sets the color used for the barcharts and history)
+#
+#	Setting -s or -p establishes good defaults for the other sizes.
+#
+#     It is assumed that the program source file can be found by appending
+#  ".icn" to the icode file name.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:   em_setup, evinit, evmux, barchart, decay, options, optwindw,
+#	    strpchrt
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+$include "evdefs.icn"
+
+link em_setup
+link evinit
+link evmux
+link barchart
+link decay
+link options
+link optwindw
+link strpchrt
+
+global progname, opttab, ifile, font
+global gcP, gcC, gcA, gcO, gcR
+global margin, gutter, textx
+global code, pos1, pos2
+global xsiz, ysiz, spacing, dp
+
+procedure main(args)
+   local win, len, lno, cs, i, maxlines, lifetime
+   local hchart, hlength, hscale
+   local barlength, barwidth, linescale, linecount, linebars
+   local nticks, tickscale, tickcount, tickbars
+   local src, linemask
+
+   linemask := 2 ^ 16 -1
+   progname := "anim"
+   maxlines := 1000
+   opttab := options (args, winoptions() || "d+b+z+t+s+w+h+p+P:C:A:O:R:S:")
+   lifetime := \opttab["d"] | 3
+   barlength := \opttab["b"] | 40
+   hlength := \opttab["z"] | 90
+   tickscale := 1.00
+   linescale := 0.25
+   hscale := \opttab["t"] | 10
+   gutter := \opttab["S"] | 10
+
+   # default to tiny-text mode under OpenWindows
+   if (not \opttab[!"swhp"]) & getenv ("NEWSSERVER") then
+      opttab["p"] := 6
+
+   if i := \opttab["p"] then {
+      i >:= 13				# maximum size
+      font := "lucidasanstypewriter-" || i
+      #    -p  1 2 3 4 5 6 7  8  9 10 11 12 13
+      xsiz := [1,1,2,2,3,4,4, 5, 5 ,6, 7, 7, 8] [i]
+      ysiz := [2,3,4,5,7,8,9,10,11,11,12,13,14] [i]
+      spacing := \opttab["s"] | i
+      }
+   else {
+      spacing := \opttab["s"] | \opttab["h"] + 1 | 4
+      xsiz := \opttab["w"] | 0 < integer (0.6 * spacing + 0.5) | 1
+      ysiz := \opttab["h"] | 0 < spacing - 1 | 1
+      }
+
+   EvInit (args) | stop ("can't load icode file")
+
+   # read source file into memory
+
+   src := prog_name()
+   ifile := open(src) | stop (progname, ": can't open ", src)
+   every put(code := [], detab(trim(!ifile \ maxlines)))
+
+   pos1 := list(*code)
+   pos2 := list(*code)
+   every i := 1 to *code do
+      code[i] ? {
+	 tab(many(' '))
+	 if pos(0) | ="#" then next
+	 pos1[i] := &pos
+	 pos2[i] := pos1[i] + *trim(tab(upto('#')|0))
+	 }
+
+   if /opttab["W"] then {	# calculate window width if not specified
+      len := 0
+      every len <:= *!code
+      len *:= xsiz
+      if barlength > 0 then
+	 len +:= 2 * barlength + 2 * gutter
+      if hlength > 0 then
+	 len +:= gutter + hlength
+      opttab["W"] := len
+      }
+
+   /opttab["H"] := spacing * *code
+   /opttab["L"] := "Anim"
+   /opttab["F"] := "goldenrod"
+   /opttab["R"] := "floralwhite"
+   /opttab["M"] := -1
+   win := optwindow (opttab, "cursor=off", "echo=off")
+   if \font then
+      Font (win, font) | stop ("can't set font ", font) 
+   margin := opttab["M"]
+
+   Bg (gcR := Clone(win), opttab["R"])
+
+   if barlength = 0 then
+      textx := margin
+   else {
+      barwidth := spacing - 1
+      if barwidth = 0 then
+	 barwidth := 1
+      tickcount := list (*code, 0)
+      tickbars := barchart (gcR, margin+barlength-1, margin,
+	 0, spacing, -tickscale, *code, barlength, barwidth)
+      linecount := list (*code, 0)
+      linebars := barchart (gcR, margin+barlength+gutter+barlength-1, margin,
+	 0, spacing, -linescale, *code, barlength, barwidth)
+      textx := margin + 2 * gutter + 2 * barlength
+      }
+
+   if hlength > 0 then {
+      hchart := stripchart (gcR, margin + opttab["W"] - hlength, margin,
+	 hlength, spacing * *code)
+      }
+
+   if \font then {
+      Fg (gcP := Clone(win), \opttab["P"] | "gray70")
+      Fg (gcC := Clone(win), \opttab["C"] | "gray90")
+      Fg (gcO := Clone(win), \opttab["O"] | "black")
+      Bg (gcA := Clone(gcO), \opttab["A"] | "red")
+      }
+   else {
+      Fg (gcP := Clone(win), \opttab["P"] | "gray70")
+      Fg (gcC := Clone(win), \opttab["C"] | "gray90")
+      Fg (gcA := Clone(win), \opttab["P"] | "indianred")
+      Fg (gcO := Clone(win), \opttab["O"] | "peachpuff")
+      }
+
+   every i := 1 to *code do { 
+      docmt (gcC, i)				# show comments
+      docode (gcP, i)				# show initial code listing
+      }
+
+   dp := dpipe (docode, lifetime, gcA, gcO)	# initialize decay pipe
+   cs := E_Loc ++ E_Tick
+   nticks := 0
+
+   while EvGet (cs) do				# for each line event
+      if &eventcode === E_Loc then {
+         decay (dp, lno := iand(&eventvalue, linemask))		# mark line
+	 setbar (\linebars, lno, linecount[lno] +:= 1)
+	 smark (\hchart, margin + spacing * (lno-1), margin + spacing * lno - 1)
+	 }
+      else if &eventcode === E_Tick then {
+	 setbar (\tickbars, \lno, tickcount[\lno] +:= 1)
+	 if (nticks +:= 1) % hscale = 0 then
+	    sadvance (\hchart)
+	 }
+
+   every 1 to lifetime do
+     decay (dp)					# flush decay pipe
+   quitsensor (win, 1)				# wait for quit signal
+   end
+
+procedure docode (gc, lno)
+   doblock (gc, lno, \pos1[lno], pos2[lno]);
+   return
+   end
+
+procedure docmt (gc, lno)
+   local p
+   code[lno] ? {
+      tab(upto('#')) | return
+      while not pos(0) do {
+	 p := &pos
+	 doblock (gc, lno, p, tab(upto(' ')|0) & &pos)
+	 tab(many(' '))
+	 }
+      }
+   return
+   end
+
+procedure doblock (gc, lno, pos1, pos2)
+   local x
+
+   x := textx + xsiz * (pos1 - 1)
+   if \font then {
+      GotoXY(gc, x, margin + spacing * lno - 1)
+      writes(gc, code[lno][pos1:pos2])
+      }
+   else {
+      FillRectangle(gc, x, margin + spacing*(lno-1), xsiz*(pos2-pos1), ysiz)
+      }
+   return
+   end

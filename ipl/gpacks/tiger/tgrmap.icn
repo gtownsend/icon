@@ -1,0 +1,789 @@
+############################################################################
+#
+#	File:     tgrmap.icn
+#
+#	Subject:  Program to generate map from TIGER files
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     July 31, 1998
+#
+############################################################################
+#
+#  Tgrmap draws maps based on TIGER94 data files from the Census Bureau.
+#  Data files must be in "line chain" (.lch) format as written by the
+#  associated "tgrprep" program.
+#
+#  Usage:  tgrmap [file.lch]
+#	Input is a file of chains created by "tgrprep.icn".
+#
+#  All manipulation is done by mouse actions, keyboard shortcuts, or
+#  by resizing the window.  There are no menus (although they would be 
+#  nice to have.)
+#
+#  Mouse actions:
+#	Sweeping an area with the left mouse button zooms the image
+#	to display that area better.  To cancel a sweep, just reduce
+#	the swept height or width to less than 10 pixels.
+#
+#	Clicking the center mouse button pops up the Layers dialog,
+#	which selects the categories of data to be shown or hidden.
+#	No other actions are accepted while the dialog box is up.
+#
+#  Keyboard shortcuts (where @ represents the Meta or Alt key):
+#	@L	bring up the layers dialog
+#	@R	refresh the display
+#	@O	open a new file
+#	@P	create PostScript file for printing
+#	@M	create PPM image
+#	@S	save the displayed data to file
+#	@Q	quit
+#	@+	zoom in by a factor of 2
+#	@-	zoom out by a factor of 2
+#	@2-@9	zoom to factor given
+#	@1	reset original map (centered and unzoomed)
+#	arrow	arrow keys shift the center of the displayed area
+#
+#  Window resizing is allowed.  After either a resize or an arrow-key
+#  image shift, the display is *not* redrawn.  After completing a
+#  sequence of resizes and/or shifts, enter @R to redraw, if needed.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  graphics, pscript
+#
+############################################################################
+
+#  Ideas for future changes:
+#	Allow events to interrupt a long display
+#	Add menu alternatives to keyboard shortcuts
+#	Write *color* PostScript, at least as an option
+#	   (the programming is easy; tuning the colors is the hard part)
+
+#  Known bugs:
+#	Sometimes all features disappear under extreme zooming.
+
+link graphics
+link pscript
+
+$include "keysyms.icn"
+
+$ifndef _X_WINDOW_SYSTEM
+   $define Key_KP_Up Key_Up
+   $define Key_KP_Down Key_Down
+   $define Key_KP_Left Key_Left
+   $define Key_KP_Right Key_Right
+$endif
+
+$define MARGIN 5			# margin around full-sized map
+$define CLIP 2				# clipping margin, allowing for linewdth
+$define SHIFTBY 32			# number of pixels to shift at once
+$define PSSCALE 100			# scaling from pixels to PostScript
+
+# file values
+global ifile, fname			# input file and its name
+global lonmin, lonmax, latmin, latmax 	# input range
+
+# windows
+global wintbl				# table of GCs by type
+global msgwin				# base window for notices
+global title				# window title
+global tmpwin				# temp window for PPM snapshots
+
+# window parameters
+global dx, dy				# current translation values
+global fullx, fully			# scaling for zoom-1 display
+
+# display parameters
+global ctrlong, ctrlat			# longitude/latitude of center
+global curzoom, xscale, yscale		# current zoom factor and scaling
+global lonrange, latrange		# distance from center to edge
+
+# the classification list finds things based on line type
+record class(				# classification record
+   prefix,				#    CFCC prefix
+   psgray,				#    PostScript graylevel
+   pswidth,				#    PostScript linewidth
+   label,				#    label
+   color,				#    color
+   width,				#    line width
+   index,				#    mutable color index
+   vispfx)				#    prefix code, but only if visible
+global clist				# list of classification records
+global ctable				# table keyed by two-char prefix
+
+
+
+procedure main(args)
+   local e, xywh, lon1, lat1, lon2, lat2
+
+   Window("size=870,870", "bg=pale moderate brown", args)
+
+   &error := 1
+   WAttrib("resize=on")
+   &error := 0
+
+   Font(("Helvetica" | "Univers" | "LucidaSans") || ",bold,12")	# may fail
+   WAttrib("pointer=crosshair")					# may fail
+   msgwin := Clone(&window)		# save shaded window for notices
+   setclasses()
+
+   if args[1] then
+      setfile(args[1]) | exit()
+   else
+      setfile() | exit()
+
+   setwindow()
+   setcenter()
+   setzoom()
+   drawmap()
+
+   repeat case e := Event() of {
+
+      &meta & !"01": {
+         setregion(lonmin, lonmax, latmin, latmax)
+         drawmap()
+         }
+
+      &meta & !"23456789":	{ setzoom(e); drawmap() }
+      &meta & !"+=":		{ setzoom(2.0 * curzoom); drawmap() }
+      &meta & "-":		{ setzoom(0.5 * curzoom); drawmap() }
+
+      &meta & !"Oo": {
+         if setfile() then {
+            setwindow()
+	    setcenter()
+	    setzoom()
+            drawmap()
+            }
+         }
+
+      &meta & !"Ll":	setlayers()
+      &meta & !"Rr":	drawmap()
+
+      &meta & !"Mm": {
+	 tmpwin := WOpen("canvas=hidden",
+	    "width=" || WAttrib("width"), "height=" || WAttrib("height"))
+	 if /tmpwin then {
+	    Notice("can't open temporary canvas", "for PPM snapshot")
+	    break
+	    }
+	 CopyArea(&window, tmpwin)
+	 writefile(writeppm, "Write PPM file:", "Writing PPM file...")
+	 WClose(tmpwin)
+	 tmpwin := &null
+	 }
+
+      &meta & !"Pp":	
+	 writefile(writeps, "Write PostScript file:", "Writing PostScript...")
+
+      &meta & !"Ss":	
+	 writefile(writelch, "Save displayed portion as:", "Saving...")
+
+      &meta & QuitEvents():	break
+
+      Key_Left | Key_KP_Left:	shift(-SHIFTBY, 0)
+      Key_Right | Key_KP_Right:	shift(+SHIFTBY, 0)
+      Key_Up   | Key_KP_Up:	shift(0, -SHIFTBY)
+      Key_Down | Key_KP_Down:	shift(0, +SHIFTBY)
+
+      &lpress: {
+         xywh := Sweep()
+         if xywh[3|4] < 10 then
+            next
+         lon1 := ctrlong + (get(xywh) - 0.5) / xscale
+         lat1 := ctrlat + (get(xywh) - 0.5) / yscale
+         lon2 := lon1 + (get(xywh) + 0.5) / xscale
+	 lat2 := lat1 + (get(xywh) + 0.5) / yscale
+         setregion(lon1, lon2, lat1, lat2)
+         drawmap()
+         }
+
+      &mrelease: {
+	 setlayers()
+	 }
+
+      &rrelease: {
+	 # should pop up a menu for selecting actions
+	 }
+
+      &resize: {
+	 resize()
+         }
+   }
+end
+
+
+procedure writefile(proc, caption, message)
+   local oname, ofile
+
+   repeat case OpenDialog(msgwin, caption) of {
+      "Okay": {
+	 if *dialog_value = 0 then
+	    next
+	 if close(open(oname := dialog_value)) then
+	    case TextDialog(msgwin, "Overwrite existing file?", , , ,
+	       ["Yes","No","Cancel"]) of {
+		  "Yes":	&null
+		  "No":		next
+		  "Cancel":	fail
+	       }
+	 if ofile := open(oname, "w") then
+	    break
+	 case TextDialog(msgwin, "Cannot open " || oname) of {
+	    "Okay":	next
+	    "Cancel":	fail
+	    }
+	 }
+      "Cancel":
+	 fail
+      }
+
+   Popup(msgwin, , , 32 + TextWidth(msgwin, message), 32,
+      popmsg, message, proc, ofile)
+   close(ofile)
+   return
+end
+
+procedure popmsg(message, proc, ofile)
+   CenterString(WAttrib("clipw") / 2, WAttrib("cliph") / 2, message)
+   return proc(ofile)
+end
+
+
+procedure setfile(s)
+   local f
+
+   /s := ""
+   repeat {
+      until s ~== "" do {
+         case OpenDialog(msgwin, "Input file:") of {
+            "Okay":    s := dialog_value
+            "Cancel":  fail
+            }
+         }
+      if not (f := open(s)) then {
+         Notice(msgwin, "Cannot open " || s)
+         s := ""
+	 next
+         }
+      if prescan(f) then
+         break
+      Notice(msgwin, "Invalid format: " || s)
+      s := ""
+   }
+
+   close(\ifile)
+   ifile := f
+   fname := s
+   return
+end
+
+
+
+#  prescan(f) -- verify that f is a valid file, setting globals if so
+#
+#  min/max lines are allowed to be reversed.
+
+procedure prescan(f)
+   if (read(f) || read(f)) ? (
+      ="        " &
+      (lonmin := integer(move(7))) &
+      (latmin <- integer(move(7))) &
+      ="        " &
+      (lonmax <- integer(move(7))) &
+      (latmax <- integer(move(7))) &
+      lonmin ~= lonmax &
+      latmin ~= latmax
+      )
+   then {
+      if lonmin > lonmax then lonmin :=: lonmax
+      if latmin > latmax then latmin :=: latmax
+      return
+      }
+   else
+      fail
+end
+
+
+
+procedure setwindow()
+   local ww, wh, xstr, ystr, latsin, raspr, waspr
+
+   ww := WAttrib("width")
+   wh := WAttrib("height")
+   dx := ww / 2
+   dy := wh / 2
+
+   xstr := "dx=" || (dx := WAttrib("width") / 2)
+   ystr := "dy=" || (dy := WAttrib("height") / 2)
+   every WAttrib(&window | !wintbl, xstr, ystr)
+
+   # calculate aspect ratio of file region
+   latsin := sin(((latmax + latmin) / 2.0) * (&pi / 9999999))
+   raspr := real(lonmax - lonmin) / real(latmax - latmin) * latsin * (360 / 180)
+
+   # calculate aspect ratio of window
+   waspr := real(ww - 2 * MARGIN) / real(wh - 2 * MARGIN)
+
+   # calculate scaling for zoom factor of 1.0
+   if waspr > raspr then {
+      # window is too wide
+      fully := real(wh - 2 * MARGIN) / (latmax - latmin)
+      fullx := fully * latsin * (360 / 180)
+      }
+   else {
+      # window is too tall
+      fullx := real(ww - 2 * MARGIN) / (lonmax - lonmin)
+      fully := fullx / latsin / (360 / 180)
+      }
+   return
+end
+
+
+
+procedure setcenter(long, lat)
+   ctrlong := integer(\long | (lonmin + lonmax + 1) / 2)
+   ctrlat := integer(\lat | (latmin + latmax + 1) / 2)
+   return
+end
+
+
+
+procedure setzoom(n)
+   local x1, y1, x2, y2
+
+   curzoom := \n | 1.0
+   xscale := curzoom * fullx
+   yscale := curzoom * fully
+   lonrange := integer(dx / xscale + 0.5)
+   latrange := integer(dy / yscale + 0.5)
+
+   # clip out-of-bounds data because it's probably incomplete
+   x1 := integer((lonmin - ctrlong) * xscale - 0.5) - CLIP
+   x2 := integer((lonmax - ctrlong) * xscale + 0.5) + CLIP
+   y1 := integer((latmin - ctrlat) * yscale - 0.5) - CLIP
+   y2 := integer((latmax - ctrlat) * yscale + 0.5) + CLIP
+
+   # clip only drawing windows; NOT &window, used for copying and erasing!
+   every Clip(!wintbl, x1, y1, x2 - x1, y2 - y1)
+   return
+end
+
+
+
+procedure resize()
+   local dxold, dyold, xshift, yshift
+
+   dxold := dx			# save old translation values
+   dyold := dy
+
+   setwindow()			# set window parameters for new size
+
+   xshift := dx - dxold
+   yshift := dy - dyold
+
+   # move to realign existing map with new window center
+   CopyArea(-dx - xshift, -dy - yshift, 2*dx, 2*dy, -dx, -dy)
+   if xshift > 0 then EraseArea(dx - xshift, -dy)
+   if yshift > 0 then EraseArea(-dx, dy - yshift)
+
+   # restore scaling and clipping
+   setzoom(xscale / fullx)	# don't change zoom, but reset other globals
+
+   return
+end
+
+
+
+procedure shift(nx, ny)
+   setcenter(ctrlong - nx / xscale, ctrlat - ny / yscale)
+   CopyArea(-dx, -dy, 2 * dx, 2 * dy, -dx + nx, -dy + ny)
+   if (nx > 0) then EraseArea(-dx, -dy, nx, 2 * dy)
+   if (ny > 0) then EraseArea(-dx, -dy, 2 * dx, ny)
+   if (nx < 0) then EraseArea(dx + nx, -dy)
+   if (ny < 0) then EraseArea(-dx, dy + ny)
+   settitle()			# reset center coords in title
+   setzoom(curzoom)		# reset clipping
+   return
+end
+
+
+
+procedure drawmap()
+   local line, w, lon, lat, dlon, dlat, a, bdy, dim, class
+
+   seek(ifile, 1)
+   read(ifile)		# skip minima line
+   read(ifile)		# skip maxima line
+
+   WAttrib("pointer=watch")
+   EraseArea(-WAttrib("dx"), -WAttrib("dy"))
+   settitle()
+
+   while line := read(ifile) do line ? {
+
+      w := \wintbl[class := move(2)] | next
+      move(1)
+      bdy := move(1)
+      dim := integer(move(4))
+      lon := move(7) - ctrlong
+      lat := move(7) - ctrlat
+      if dim < 9999 & (
+         lon - dim > lonrange |
+	 lon + dim < -lonrange |
+	 lat - dim > latrange |
+	 lat + dim < -latrange )
+      then
+	 next
+
+      a := [w, xscale * lon, yscale * lat]
+      while (dlon := move(4) - 5000) & (dlat := move(4) - 5000) do
+	 put(a, xscale * (lon +:= dlon), yscale * (lat +:= dlat))
+
+      if any('57', bdy) & (a[1] := \wintbl["Y" || bdy]) then {
+	 DrawLine ! a
+	 if any('F', class) then
+	    next			# chain is ONLY a boundary
+	 a[1] := w
+	 }
+
+      DrawLine ! a
+      }
+
+   WAttrib("pointer=crosshair")
+   return
+end
+
+
+
+procedure settitle()
+   local lon, lat
+
+   lon := ctrlong * (360.0 / 9999999)
+   if lon > 180.0 then
+      lon -:= 360.0
+   lat := 90.0 - ctrlat * (180.0 / 9999999)
+   title := fname || ":  " || dms(lon, "W", "E") || "  " || dms(lat, "S", "N")
+   WAttrib("label=" || title)
+   return
+end
+
+
+
+procedure dms (n, s1, s2)
+   local deg, min, sec
+
+   if n < 0 then
+       n := -n
+   else
+       s1 := s2
+
+   deg := integer(n)
+   n := (n - deg) * 60
+   min := integer(n)
+   n := (n - min) * 60
+   sec := integer(n + 0.5)
+
+   return deg || "\260" || right(min, 2, "0") || "'" ||
+      right(sec, 2, "0") || "\"" || s1
+end
+
+
+
+procedure setregion(lomin, lomax, ltmin, ltmax)
+   local xzoom, yzoom
+
+   setcenter((lomin + lomax + 1)/ 2, (ltmin + ltmax + 1) / 2)
+   xzoom := ((dx - MARGIN) * 2 / fullx) / (lomax - lomin)
+   yzoom := ((dy - MARGIN) * 2 / fully) / (ltmax - ltmin)
+   if xzoom < yzoom then
+      setzoom(xzoom)
+   else
+      setzoom(yzoom)
+   return
+end
+
+
+
+procedure zoom(f)
+   local ww, wh
+
+   xscale *:= f
+   yscale *:= f
+   ww := WAttrib("width") - 2 * MARGIN
+   wh := WAttrib("height") - 2 * MARGIN
+   lonrange := integer(ww / xscale / 2 + 0.5)
+   latrange := integer(wh / yscale / 2 + 0.5)
+   return
+end
+
+
+
+#  setclasses() -- initialize table of classifications
+#
+#  The order used here is reflected in the Layers dialog box.
+
+procedure setclasses()
+   local c, w, mcolors, m
+
+   clist := [				# classification list
+      # prefix, psgray&w, label,   color,  width
+      class("A1", .0, 4, "roads", "black", 3),		# freeway/tollway
+      class("A2", .0, 2, "roads", "black", 2),		# primary road
+      class("A3", .0, 1, "roads", "black"),		# secondary road
+      class("A4", .0, 0, "roads", "white"),		# local road
+      class("A",  .0, 0, "roads", "white"),		# other road 
+      class("B1", .4, 2, "railroads", "deep green", 2),	# railroad line
+      class("B",  .4, 1, "railroads", "deep green"),	# r.r. spur, yard, etc.
+      class("H",  .7, 1, "water", "dark cyanish blue"),	# water
+      class("Y7", .9, 5, "major boundaries", "orange", 3),#county
+      class("Y5", .9, 3, "major boundaries", "orange", 2), # city
+      class("E",  .9, 1, "minor boundaries", "light orange"),	#visible
+      class("F",  .9, 1, "minor boundaries", "light orange"),   #invisible
+      class("D",  .0, 1, "landmarks", "dark red"),	# landmark
+      class("C",  .5, 1, "piplines & power", "purple"),	# pipe, power
+      class("X",  .8, 1, "unclassified", "purple")]	# unclassified
+
+   every c := !clist do
+      c.vispfx := c.prefix		# initially, all layers visible
+
+   ctable := table()
+   every c := !clist do
+      if *c.prefix = 1 then
+	 every /ctable[c.prefix || !"0123456789"] := c
+      else
+	 ctable[c.prefix] := c
+
+   wintbl := table()			# global window table
+   mcolors := table()			# local table of mutable colors
+
+   every c := !clist do {
+
+      w := Clone() | stop("can't clone window for ", c.label)
+      /mcolors[c.color] := NewColor(w, c.color)		# may fail
+      c.index := mcolors[c.color]
+      Fg(w, \c.index | c.color) | stop("can't set color for ", c.label)
+
+      WAttrib(w, "linewidth=" || \c.width)
+      wintbl[c.prefix] := w
+      if *c.prefix = 1 then
+	 every /wintbl[c.prefix || (0 to 9)] := w
+      }
+   return
+end
+
+
+
+#  setlayers() -- bring up layers dialog
+
+procedure setlayers()
+   local c, i, defaults, buttons, choice, lset
+   static labels, values
+  
+   initial {
+      lset := set()
+      labels := []
+      values := []
+      every c := !clist do
+	 if \c.index & not member(lset, c.label) then {
+	    insert(lset, c.label)
+	    put(labels, c.label)
+	    put(values, 1)
+	    }
+      }
+
+   if *labels = 0 then {
+      Notice("No layer control available")
+      fail
+      }
+
+   while choice ~=== "Okay" do {	# loop when "Apply" selected
+
+      defaults := values
+      buttons := ["Okay", "Apply", "Cancel"]
+      choice := ToggleDialog(msgwin, "Layers:", labels, defaults, buttons)
+      if choice == "Cancel" then
+         fail
+      values := dialog_value
+
+      #  change mutable color for every item that changed in the dialog
+      every i := 1 to *values do
+         if values[i] ~=== defaults[i] then
+	    every c := !clist do
+	       if c.label == labels[i] then {
+	          if \values[i] then {
+		     Color(\c.index, c.color)
+		     c.vispfx := c.prefix
+		     }
+		  else {
+		     Color(\c.index, Bg())
+		     c.vispfx := &null
+		     }
+		  }
+      }
+   return
+end
+
+
+
+procedure writelch(ofile)
+   local line, dim, lon, lat
+
+   write(ofile, "        ",
+       right(ctrlong - lonrange, 7), right(ctrlat - latrange, 7))
+   write(ofile, "        ",
+       right(ctrlong + lonrange, 7), right(ctrlat + latrange, 7))
+
+   seek(ifile, 1)
+   read(ifile)			# skip minima line
+   read(ifile)			# skip maxima line
+
+   while line := read(ifile) do line ? {
+      move(4)
+      dim := integer(move(4))
+      lon := move(7) - ctrlong
+      lat := move(7) - ctrlat
+      if dim < 9999 & (
+         lon - dim > lonrange |
+	 lon + dim < -lonrange |
+	 lat - dim > latrange |
+	 lat + dim < -latrange )
+      then
+	 next
+      else
+	 write(ofile, &subject)
+   }
+
+   return
+end
+
+
+
+#  writeppm(ofile) -- write PPM image to ofile
+#
+#  comments note latitude and longitude bounds in arc-seconds
+
+procedure writeppm(ofile)
+   local w, h, rw, rh, s, lon, lat, dlon, dlat
+
+   w := WAttrib("width")
+   h := WAttrib("height")
+   rw := real(w)
+   rh := real(h)
+
+   lon := ctrlong * (360.0 / 9999999)
+   if lon > 180.0 then
+      lon -:= 360.0
+   lat := 90.0 - ctrlat * (180.0 / 9999999)
+
+   dlon := lonrange * (360.0 / 9999999)
+   dlat := latrange * (180.0 / 9999999)
+
+   write(ofile, "P6")
+   write(ofile, "#RTIN")
+   write(ofile, "#lon,lat:",
+     arcs(lon-dlon), arcs(lat-dlat), arcs(lon-dlon), arcs(lat+dlat),
+     arcs(lon+dlon), arcs(lat+dlat), arcs(lon+dlon), arcs(lat-dlat))
+   write(ofile, "#x,y: 0.0 0.0 0.0 ", rh, " ", rw, " ", rh, " ", rw, " 0.0")
+   write(ofile, w, " ", h)
+   write(ofile, 255)
+
+   every writes(ofile, rgb24(Pixel(tmpwin)))
+
+   return
+end
+
+
+
+#  arcs(n) -- format latitude or longitude in arc-seconds with leading space
+
+procedure arcs(n)
+   return " " || (n * 3600.0)
+end
+
+
+
+#  rgb24(k) -- return 24-bit (3-byte) r-g-b value for k
+
+procedure rgb24(k)
+   local s, r, g, b
+   static t
+   initial t := table()
+
+   if s := \t[k] then
+      return s
+      
+   (ColorValue(k | Color(k)) | fail) ? {
+      s := char(tab(upto(',')) / 256)
+      move(1)
+      s ||:= char(tab(upto(',')) / 256)
+      move(1)
+      s ||:= char(tab(0) / 256)
+      }
+   t[k] := s
+   return s
+end
+
+
+
+#  writeps(ofile) -- write Encapsulated PostScript to ofile
+
+procedure writeps(ofile)
+   local x1, x2, y1, y2, line, prevcode, code, dim, lon, lat, a, n, c
+
+   x1 := integer((lonmin - ctrlong) * xscale - 0.5) - CLIP
+   y1 := integer((latmin - ctrlat) * yscale - 0.5) - CLIP
+   x2 := integer((lonmax - ctrlong) * xscale + 0.5) + CLIP
+   y2 := integer((latmax - ctrlat) * yscale + 0.5) + CLIP
+   x1 <:= -dx
+   y1 <:= -dy
+   x2 >:= dx
+   y2 >:= dy
+   epsheader(ofile, (dx + x1) * PSSCALE, (dy - y2) * PSSCALE,
+      (x2 - x1) * PSSCALE, (y2 - y1) * PSSCALE, "r")
+
+   every write(ofile, ![
+      "/m { moveto } bind def",
+      "/r { rlineto } bind def",
+      "/s { stroke } bind def",
+      "/w { .00666667 mul inch setlinewidth setgray stroke } bind def"])
+
+   every c := !clist do
+      write(ofile, "/", left(\c.vispfx, 2),
+	 " { ", c.psgray, " ", c.pswidth, " w } bind def")
+
+   seek(ifile, 1)
+   read(ifile)			# skip minima line
+   read(ifile)			# skip maxima line
+
+   while line := read(ifile) do line ? {
+      code := \ctable[move(2)].vispfx | next
+      move(2)
+      dim := integer(move(4))
+      lon := xscale * (move(7) - ctrlong)
+      lat := yscale * (move(7) - ctrlat)
+      if dim < 9999 & (
+	 lon - dim > lonrange |
+	 lon + dim < -lonrange |
+	 lat - dim > latrange |
+	 lat + dim < -latrange )
+      then
+	 next
+      else {
+	 writes(ofile, integer(PSSCALE * (dx + lon)), " ",
+	    integer(PSSCALE * (dy - lat)), " m")
+	 while lon := move(4) - 5000 & lat := move(4) - 5000 do
+	    writes(ofile, "\n", integer(PSSCALE * xscale * lon), " ",
+		integer(-PSSCALE * yscale * lat), " r")
+	 write(ofile, " ", (prevcode ~===:= code) | "s")
+	 }
+   }
+
+   write(ofile, "showpage")
+   return
+end

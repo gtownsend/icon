@@ -1,0 +1,53 @@
+############################################################################
+#
+#       File:     filenseq.icn
+#
+#       Subject:  Procedure to get highest numbered filename in a sequence
+#
+#       Author:   David A. Gamey
+#
+#       Date:     July 25, 1994
+#
+###########################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure is useful when you need to create the next file 
+#  in a series of files (such as successive log files).
+#
+#  Usage:
+#
+#  fn := nextseqfilename( ".", "$", "log")
+#
+#  returns the (non-existant) filename next in the sequence .\$*.log
+#  (where the * represents 1, 2, 3, ...) or fails
+#
+#
+############################################################################
+#
+#  Requires:  MS-DOS or another congenial operating system
+#
+############################################################################
+
+link dos_dir
+
+procedure nextseqfilename(dir,pre,ext)
+
+local s,f,n,wn
+
+static wf
+initial wf := 8                   # filename width
+
+dir ||:= ( dir[-1] ~== "\\" ) 
+
+s := set( dosdirlist( dir, pre || "*." || ext || " /a:-d" ) )
+
+n := integer( repl( '9', wn := wf - *pre ) )
+
+every f := map( dir || pre || right( 1 to n, wn,"0") || "." || ext )  do 
+	if not member(s,f) then return f
+	
+end
+

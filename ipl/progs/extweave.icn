@@ -1,0 +1,145 @@
+############################################################################
+#
+#	File:     extweave.icn
+#
+#	Subject:  Program to extract weaving specifications from weave file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 17, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program extracts the weaving specifications from a Macintosh
+#  Painter 5 weave file in MacBinary format.  (It might work on Painter 4
+#  weave files; this has not been tested.)
+#
+#  The file is read from standard input.
+#
+#  The output consists of seven lines for each weaving specification in the
+#  file:
+#
+#	wave name
+#	warp expression
+#	warp color expression
+#	weft expression
+#	weft color expression
+#	tie-up
+#	blank separator
+#
+#  The tie-up is a 64-character string of 1s and 0s in column order. That
+#  is, the first 8 character represent the first column of the tie-up. A
+#  1 indicates selection, 0, non-selection.
+#
+#  This program does not produce the colors for the letters in color
+#  expressions.  We know where they are located but haven't yet figured
+#  out how to match letters to colors.
+#
+#  See Advanced Weaving, a PDF file on the Painter 5 CD-ROM.
+#
+############################################################################
+
+$define Offset 401			# offset to the first expression
+
+procedure main(args)
+   local hex, tieup, i, binary, expr, name, namechars, tartans_list
+
+   namechars := &letters ++ &digits ++ ' -&'
+
+   tartans_list := []
+
+   binary := ""
+
+   while binary ||:= reads(, 10000)		# read the whole file
+
+   #  Get names.
+
+   binary ? {
+      tab(find("FSWI") + 4)			# find names
+      while tab(upto(namechars)) do {		# not robust
+         name := tab(many(namechars))
+         if (*name > 3) | (name == "Op") then	# "heuristic"
+            put(tartans_list, name)
+         tab(upto(namechars)) | break
+         tab(many(namechars))
+         }
+      }
+
+   binary ? {
+      move(400) | stop("delta move error")
+      hex := move(4400) | stop("short file")
+      write(get(tartans_list)) | stop("short name list")
+      hex ? {				# get the four expressions
+         every i := (0 to 3) do {
+            tab(i * 2 ^ 10 + 1)
+            expr := tab(upto('\x00')) | stop("no null character")
+            if *expr = 0 then stop("no expression")	# no expression
+            write(expr)
+            }
+         tieup := ""
+         tab(4101)				# now the tie-up
+         every 1 to 8 do {
+            tieup ||:= map(move(8), "\x0\x1", "01")
+            move(24)
+            }
+         write(decol(tieup))
+         write()
+         }
+      }
+
+   binary ? {
+      while tab(find(".KWROYL")) do {
+         move(4908) | stop("delta move error")
+         hex := move(4400) | break
+         write(get(tartans_list)) | stop("short name list")
+         hex ? {				# get the four expressions
+            every i := (0 to 3) do {
+               tab(i * 2 ^ 10 + 1)
+               expr := tab(upto('\x00')) | stop("no null character")
+               if *expr = 0 then break break	# no expression
+               write(expr)
+               }
+            tieup := ""
+            tab(4101)				# now the tie-up
+            every 1 to 8 do {
+               tieup ||:= map(move(8), "\x0\x1", "01")
+               move(24)
+               }
+            write(decol(tieup))
+            write()
+            }
+         }
+      }	
+
+   if *tartans_list > 0 then {
+      write("Unresolved tartans:")
+      write()
+      while write(get(tartans_list))
+      }
+
+end
+
+procedure decol(s)
+   local parts, j, form
+
+   parts := list(8, "")
+
+   s ? {
+      repeat {
+         every j := 1 to 8 do {
+            (parts[j] ||:= move(1)) | break break
+            }
+         }
+      }
+
+   form := ""
+
+   every form ||:= !parts
+
+   return form
+
+end

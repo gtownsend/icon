@@ -1,0 +1,119 @@
+############################################################################
+#
+#	File:     empg.icn
+#
+#	Subject:  Program to make expression-evaluation programs
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 16, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program produces a program for evaluating Icon expressions.  The
+#  input to this program has three forms, depending on the first character
+#  of each line:
+#
+#	:	the remainder of the line is an expression to be evaluated
+#		only once
+#
+#	%	the remainder of the line is part of a declaration
+#
+#	#	the remainder of the line is a comment and is ignored
+#
+#  Anything else is an expression to be evaluated in a loop.
+#
+#  For example, the input
+#
+#  # Time record access
+#  %record complex(r, i)
+#  :z := complex(1.0, 3.5)
+#  z.r
+#
+#  produces a program to time z.r in a loop.
+
+#  The following options are supported:
+#
+#	-l i	use i for the number of loop iterations, default 100000
+#	-d i	use i for the "delta" to adjust timings; otherwise it
+#		  is computed when the expression-evaluation program
+#		  is run
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+global decls
+
+procedure main(args)
+   local line, opts, limit, delcomp
+
+   opts := options(args, "d+l+")
+
+   write("link empgsup")
+   write("link options")
+   write("procedure main(args)")
+   write("   local opts")
+   write("   opts := options(args, \"d+l+\")")
+   write("   _Limit := ", \opts["l"] | " \\opts[\"l\"] | 100000")
+   write("   _Delta := ", \opts["d"] | " \\opts[\"d\"] | _Initialize(_Limit)")
+  
+   decls := []
+
+   while line := read() do
+      line ? {
+         if =":" then evaluate(tab(0))
+         else if ="%" then declare(tab(0))
+         else if ="#" then next
+         else timeloop(tab(0))
+         }
+
+   write("end")
+
+   every write(!decls)
+
+end
+
+#  Save a declaration line.
+
+procedure declare(line)
+
+   put(decls, line)
+
+   return
+
+end
+
+#  Produce code to just evaluate an expression.
+
+procedure evaluate(expr)
+
+   write("   ", expr)
+
+   return
+
+end
+
+#  Produce code to evaluate an expression in a loop and time it.
+
+procedure timeloop(expr)
+
+   write("   write(", image(expr), ")")
+   write("   _Itime := &time")
+   write("   every 1 to _Limit do {")
+   write("      &null & (", expr, ")")
+   write("      }")
+   write("   write(real(&time - _Itime -_Delta) / _Limit, \" ms.\")")
+   write("   write()")
+
+   return
+
+end

@@ -1,0 +1,866 @@
+#
+#  Michael Shipman
+#
+#  Honors Project
+#
+
+$include "info.icn"
+$include "record.icn"
+
+# link from the icon library
+link random
+link interact
+link vsetup
+link ximage
+
+# link from own program
+link data
+link draw_crc
+link draw_sqr
+link draw_box
+link draw_rec
+link clr_list
+
+global ID
+
+procedure main(args)
+
+     local root, paused, main_window
+
+     ID := 1     
+
+     randomize()
+ 
+     #Open the color window
+     (WOpen ! color_setup_atts()) | stop("can't open window")
+     vidgets_color := color_setup()
+     color_root := vidgets_color["root"]
+     color_window := &window
+     &window := &null
+
+     # Open the main window
+     (WOpen ! ui_atts()) | stop("can't open window")
+     vidgets := ui()				# set up vidgets
+     root := vidgets["root"]
+     main_window := &window
+
+     initialize()
+
+     repeat {
+
+        # main window
+        &window := main_window
+        while (*Pending() > 0) do 
+             ProcessEvent(root, QuitCheck)
+
+        active_win_record := win_record_one
+        &window := win_record_one.win
+        process_event()
+        active_win_record := win_record_two
+        &window := win_record_two.win
+        process_event()
+        active_win_record := win_record_three
+        &window := win_record_three.win
+        process_event()
+        active_win_record := win_record_four
+        &window := win_record_four.win
+        process_event()
+
+
+    }
+
+
+end
+
+###############################################################################################
+# setups
+
+procedure initialize()
+
+   WAttrib("pointer=watch")
+   
+   # generate children 
+   Draw_String("children_default")
+   children := children_default()
+   Draw_String("children_generation")
+   children_generation(children)
+   Draw_String("get_gen_id")
+   get_gen_id(children, 0)
+   # Draw_String("print_out")
+   #print_out(children)
+
+   # set up default for the record
+   Draw_String("drawtree_circle_default")
+   circle_record    := drawtree_circle_default()
+   Draw_String("drawtree_square_default")
+   square_record    := drawtree_square_default() 
+   Draw_String("drawtree_rectangle_default")
+   rectangle_record := drawtree_rectangle_default() 
+   Draw_String("drawtree_box_default")
+   box_record       := drawtree_box_default() 
+
+   # draw the trees
+   Draw_String("drawtree_circle")
+   drawtree_circle(circle_record, children)
+   Draw_String("drawtree_square")
+   drawtree_square(square_record, children)
+   Draw_String("drawtree_rectangle")
+   drawtree_rectangle(rectangle_record, children)
+   Draw_String("drawtree_box")
+   drawtree_box(box_record, children)
+
+   #  Now get events, pass control to the procedure quit() if an event is not
+   #  captured by a vidget.
+   Draw_String("win one")
+   win_record_one      := set_scroll_window(circle_record)
+   Draw_String("win two")
+   win_record_two      := set_scroll_window(square_record)
+   Draw_String("win three")
+   win_record_three    := set_scroll_window(rectangle_record)
+   Draw_String("win four")
+   win_record_four     := set_scroll_window(box_record)
+   
+   Draw_String("DONE!   ")
+   WDelay(100)
+   Draw_String("  ")
+
+   WAttrib("pointer=top left arrow")
+
+end
+
+
+# notify the process
+procedure Draw_String(s)
+
+   static x, y, w, h
+   initial {
+           x := vidgets["where"].ux 
+           y := vidgets["where"].uy 
+           w := vidgets["where"].uw
+           h := vidgets["where"].uh
+           }
+
+   Clip(x, y, w, h)
+   EraseArea()
+   DrawString(x + 1, y + 20, s)
+   Clip()
+
+end
+
+
+
+# switch the state of the window to normal or hidden
+procedure DrawTree_cb(vidget, value)
+
+   local win
+
+   # get the window
+   case vidget.id of {
+     "circle":     win := win_record_one.win
+     "layer":      win := win_record_two.win
+     "square":     win := win_record_two.win
+     "bar":        win := win_record_three.win
+     "rectangle":  win := win_record_three.win
+     "box":        win := win_record_four.win     
+     default: return fail
+   }
+
+   # switch the state - hidden or normal
+   /value & WAttrib(win, "canvas=hidden")
+   \value & WAttrib(win, "canvas=normal") 
+
+   return
+ 
+end
+
+
+# generate new tree
+procedure re_generate(data)
+
+   local children_tmp
+
+   WAttrib("pointer=watch")
+
+   if data == DIR then {
+      children_tmp := children_directory() 
+      /children_tmp & WAttrib("pointer=top left arrow") & return fail 
+      children.num_gen := table()
+      children.all := table()
+      children := children_tmp
+   }
+   else if data == GEN then {
+      # generate children 
+      Draw_String("children_generation")
+      children.num_gen := table()
+      children.all := table()
+      children_generation(children)
+   }
+   else if data == DATA then {
+       children_tmp := parse_text()
+       /children_tmp & WAttrib("pointer=top left arrow") & return fail
+       children.num_gen := table()
+       children.all := table()
+       children := children_tmp
+   }
+
+   # draw the trees
+   Draw_String("drawtree_circle")
+   drawtree_circle(circle_record, children)
+   Draw_String("drawtree_square")
+   drawtree_square(square_record)
+   Draw_String("drawtree_rectangle")
+   drawtree_rectangle(rectangle_record, children)
+   Draw_String("drawtree_box")
+   drawtree_box(box_record, children)
+
+   Draw_String(" ")
+
+   WAttrib("pointer=top left arrow")
+
+   return
+
+end
+
+# callback to the file menu bar in the main window
+procedure file_cb(vidget, value)
+   case  get(value)  of  {
+       INPUT_DATA: re_generate(DATA)
+       QUIT    :  stop()
+   }
+end
+
+
+
+# callback to the menu bar in the main window
+procedure format_gen_cb(vidget, value)
+
+   case  get(value)  of  {
+       MAX_NODES: {
+         if Dialog(["Enter number of nodes:"], [""], 
+              [children.num_children],
+              [4]) == "Okay" then  children.num_children := integer(get(dialog_value))
+          }
+       MAX_CHILDREN: {
+          if Dialog(["Enter max number of children for each parent:"], [""], 
+              [children.max_children],
+              [1]) == "Okay" then  children.max_children := integer(get(dialog_value))
+         }
+       GENERATE:  re_generate(GEN)       
+       DIRECTORY: re_generate(DIR)
+   }
+
+end
+
+
+# quit the program
+procedure quit_cb(vidget, value)
+
+   stop()
+
+end
+
+
+
+###############################################################################################
+# scroll windows
+
+# process the event of the scroll window
+procedure process_event()
+
+        while (*Pending(active_win_record.win) > 0) & /active_win_record.resize_state do {
+           ProcessEvent(active_win_record.root, region, ,resize)
+        }
+
+        if \active_win_record.resize_state then 
+        {
+           sl_cb(active_win_record.scv, active_win_record.scv.callback.value)
+           sl_cb(active_win_record.sch, active_win_record.sch.callback.value)
+           DrawRidge(active_win_record.win, 0, 24, active_win_record.view_width + SCROLLBAR_WIDTH, 24, 2)   
+           active_win_record.resize_state := &null
+        }
+
+        # color window
+        while \color_dialog_open do {
+           &window := color_window
+           while (*Pending() > 0) do
+                ProcessEvent(color_root, QuitCheck)
+        }
+
+       return
+end
+
+
+# set the default for the record
+procedure set_scroll_window(tree)
+
+   local win_record
+
+   win_record := Scroll_Win_Record()
+   active_win_record := win_record
+
+   win_record.id := ID
+   ID +:= 1
+
+   win_record.tree := tree
+
+   win_record.vpos := win_record.hpos := 0
+
+   win_record.view_width := WINDOW_SIZE
+   win_record.view_height := WINDOW_SIZE
+
+   win_record.picw := IMAGE_SIZE
+   win_record.pich := IMAGE_SIZE
+
+   win_record.win := WOpen("size=" ||
+      (win_record.view_width + SCROLLBAR_WIDTH + 1) || "," ||
+      (win_record.view_height + SCROLLBAR_WIDTH + 1) ,  "bg=pale-gray",
+      "canvas=hidden", "resize=on")
+
+   win_record.root := Vroot_frame(win_record.win)
+
+   #  Create two scrollbars.
+   win_record.scv := Vvert_scrollbar(win_record.root, -1, MENUSIZE, win_record.win, sl_cb, 1,
+      win_record.view_height-MENUSIZE,SCROLLBAR_WIDTH, win_record.pich, 0, , win_record.view_height)
+   win_record.sch := Vhoriz_scrollbar(win_record.root, 0, -1, win_record.win, sl_cb, 2, 
+      win_record.view_width, SCROLLBAR_WIDTH, 0, win_record.picw, , win_record.view_width)
+
+   #  Create menu bars
+   win_record.FormatMenu := Vsub_menu ! ([win_record.win] ||| tree.menu)
+   win_record.tm := Vmenu_bar(win_record.root, 0, 0, win_record.win, "Format", 
+                              win_record.FormatMenu)
+ 
+   VResize(win_record.root)
+
+   #  Draw the initial view of the pixmap, based on the scrollbar's values.
+   sl_cb(win_record.scv, win_record.scv.callback.value)
+   sl_cb(win_record.sch, win_record.sch.callback.value)
+
+   #  Draw a line between the menu and the region
+   DrawRidge(win_record.win, 0, 24, win_record.view_width + SCROLLBAR_WIDTH, 24, 2)   
+ 
+   return win_record
+
+end
+
+
+#
+procedure region(e, x, y)
+
+   &x := active_win_record.hpos + x
+   &y := active_win_record.vpos + y  - MENUSIZE
+
+   event_handler_box(box_record, children, e)
+   sl_cb()
+
+  return
+
+end
+
+
+#
+procedure resize(root)
+
+   VReformat(active_win_record.scv, WAttrib(active_win_record.scv.win, "height") - SCROLLBAR_WIDTH- MENUSIZE)
+   VReformat(active_win_record.sch, WAttrib(active_win_record.sch.win, "width") - SCROLLBAR_WIDTH)
+
+   active_win_record.view_width := WAttrib("width") -SCROLLBAR_WIDTH
+   active_win_record.view_height := WAttrib("height")-SCROLLBAR_WIDTH
+
+   active_win_record.resize_state := 1
+
+   return
+   
+end
+   
+
+#  Copy a portion of the bitmap to the main
+#  window based on the values of the scrollbars.
+procedure sl_cb(caller, val)
+    
+   if \val then 
+      (caller.id = 1, active_win_record.vpos := val) | active_win_record.hpos := val
+   CopyArea(active_win_record.tree.win, active_win_record.win, 
+            active_win_record.hpos, active_win_record.vpos, 
+            active_win_record.view_width, active_win_record.view_height-MENUSIZE, 0, MENUSIZE)
+
+   return
+
+end
+
+
+
+#################################################################################################
+# change the format
+
+# a callback to change the format of circle
+procedure format_circle_cb(caller, val)
+
+     local e, s
+
+     case e := get(val) of {
+         "background"  : ColorDialog("Select a new background color:",
+                                      active_win_record.tree.bg, change_color_bg,
+                                      active_win_record.tree.bg)
+         "color list"  : s := change_color("circle")
+         "radius"      : s := change_radius()
+	 "space"       : s := change_space()
+         "gap"         : s := change_gap()
+         "snapshot"    : s := take_picture()
+         "tree"        : s := change_tree()
+         "generation"  : s := change_gen_color()
+         "color format"    : s := change_color_format()
+         "# of children"   : s := change_num_of_children()
+      }
+
+    \s & drawtree_circle(active_win_record.tree, children) & sl_cb()
+
+    return
+
+end
+
+
+# a call back to change the format of the square
+procedure format_square_cb(caller, val)
+
+   local e, size, s
+
+   size := 2
+
+   case  e := get(val) of {
+       "background"      : ColorDialog("Select a new background color:", 
+                                        active_win_record.tree.bg, 
+                                        change_color_bg, active_win_record.tree.bg)
+       "color list"      : s := change_color("square")
+       "linewidth"       : s := change_linewidth()
+       "space"           : s := change_space_rec()
+       "snapshot"        : s := take_picture()
+       "length"          : s := change_length()
+       "index"           : s := change_index()
+       "grid"            : s := change_gridwidth()
+       "line pos"        : s := change_line_pos()
+       "grid format"     : s := change_grid_format()
+       "justification"   : s := change_justification()
+       "population"      : s := change_population()
+       "color format"    : s := change_color_format()
+       "tree"            : s := change_tree()
+       "bar"             : s := change_bar_tree()
+   }
+
+   \s & drawtree_square(square_record) & sl_cb()
+
+   return
+
+end
+
+
+
+# a callback to change the format of the rectangle
+procedure format_rectangle_cb(caller, val)
+
+   local e, s
+
+   case  e := get(val) of {
+       "background"      : ColorDialog("Select a new background color:", 
+                                       active_win_record.tree.bg, change_color_bg,
+                                       active_win_record.tree.bg)
+       "color list"      : s := change_color("rectangle")
+       "linewidth"       : s := change_linewidth()
+       "space"           : s := change_space_rec()
+       "snapshot"        : s := take_picture()
+       "length"          : s := change_length()
+       "tree"            : s := change_tree()
+       "generation"      : s := change_gen_color()
+       "color format"    : s := change_color_format()
+       "# of children"   : s := change_num_of_children()
+   }
+
+   \s & drawtree_rectangle(active_win_record.tree, children) & sl_cb()
+
+   return
+
+end
+
+
+#
+procedure format_box_cb(caller, val)
+
+   local e, s
+   
+   case  e := get(val) of {
+      "background"  : ColorDialog("Select a new background color:", 
+                                   active_win_record.tree.bg, change_color_bg, 
+                                   active_win_record.tree.bg)
+      "total box size"  : s := change_box_size()
+      "visible box size": s := change_box_size_vis()
+      "snapshot"        : s := take_picture()
+   }
+
+  \s & set_box_shape(active_win_record.tree) &
+    drawtree_box(active_win_record.tree, children) &
+    sl_cb()
+
+   return
+
+end
+
+
+#
+procedure  change_box_size()
+
+   if Dialog(["Enter a new size of the box:"], [""], 
+      [active_win_record.tree.box_size], [3]) ==  "Okay" then {
+      if dialog_value[1] < 0 then Notice("Invalid number") & return fail
+      else 
+         active_win_record.tree.box_size  := get(dialog_value) & return 1
+   }
+
+end
+
+
+#
+procedure change_gen_color()
+
+      if Dialog(["Generation coded:"], [""], 
+                [active_win_record.tree.generation], [3]) == "Okay" then 
+         active_win_record.tree.generation := integer(get(dialog_value)) & return 1
+
+       return fail
+
+end
+       
+
+#
+procedure  change_box_size_vis()
+
+   if Dialog(["Enter a new size of the box:"], [""],  
+      [active_win_record.tree.draw_box_size], [3]) ==  "Okay" then {
+      if dialog_value[1] < 0 | dialog_value[1] > active_win_record.tree.box_size then 
+          Notice("Invalid number: Must be between 0 and ", active_win_record.tree.box_size) &
+          return fail
+      else 
+         active_win_record.tree.draw_box_size  := get(dialog_value) & return 1
+   }
+
+end
+
+
+#
+procedure change_color_bg(id, s)
+
+   active_win_record.tree.bg := s
+   WAttrib(active_win_record.tree.win, "bg=" || s)
+
+   return 1
+
+end
+
+
+#
+procedure change_radius()
+
+   local space
+
+   if Dialog(["Enter a new width of the line:"], [""], 
+      [active_win_record.tree.radius], [3]) == "Okay"  then {
+      if dialog_value[1] < 0 then Notice("Invalid number: Must be between 0 and 99, inclusive.") &
+                                  return fail
+      else {
+         space := active_win_record.tree.radius - active_win_record.tree.space
+         active_win_record.tree.radius := get(dialog_value)
+         active_win_record.tree.space  := active_win_record.tree.radius - space
+         return 1
+     }
+   }
+
+end
+
+
+#
+procedure change_linewidth()
+
+   local space
+
+   if Dialog(["Enter a new width of the line:"], [""], 
+      [active_win_record.tree.linewidth], [3]) == "Okay"  then {
+      if dialog_value[1] < 0 then Notice("Invalid number: Must be between 0 and 99, inclusive.") &
+                                  return fail
+      else 
+         active_win_record.tree.linewidth := get(dialog_value) & return 1
+   }
+
+end
+
+
+#
+procedure change_gridwidth()
+
+   local space
+
+   if Dialog(["Enter a new width of the grid line:"], [""], 
+      [active_win_record.tree.gridwidth], [3]) == "Okay"  then {
+      if dialog_value[1] < 0 then Notice("Invalid number: Must be between 0 and 99, inclusive.") &
+                                  return fail
+      else 
+         active_win_record.tree.gridwidth := get(dialog_value) & return 1
+   }
+
+end
+
+
+#
+procedure change_space()
+
+   if Dialog(["Enter a new space size:"], [""], 
+             [active_win_record.tree.radius - active_win_record.tree.space],
+             [3]) == "Okay" then {
+     if (dialog_value[1] < 0) | (dialog_value[1] > active_win_record.tree.radius -  1) then
+         Notice("Invalid number: Must be between 0 and ", active_win_record.tree.radius - 1, 
+                " inclusive.") & return fail
+     else {
+        active_win_record.tree.space := active_win_record.tree.radius - dialog_value[1]
+        active_win_record.tree.linewidth := get(dialog_value)
+        return 1
+    }
+  }
+
+end
+
+
+#
+procedure change_space_rec()
+
+   if Dialog(["Enter a new space size:"], [""], 
+             [active_win_record.tree.space],
+             [3]) == "Okay" then {
+     if (dialog_value[1] < 0) | (dialog_value[1] > active_win_record.tree.linewidth) then
+        Notice("Invalid number: Must be between 0 and ", active_win_record.tree.linewidth - 1, 
+               " inclusive.") & return fail
+     else 
+        active_win_record.tree.space := dialog_value[1] & return 1
+   }
+
+end
+
+
+#
+procedure change_length()
+
+   if Dialog(["Enter a new length:"], [""], [active_win_record.tree.length], [3]) == "Okay" then {
+      active_win_record.tree.length := dialog_value[1] 
+      return 1 }
+ 
+   return fail
+
+end
+
+
+#
+procedure change_num_of_children()
+
+   if Dialog(["# of children:"], [""], [active_win_record.tree.color_children], [1]) == "Okay" then {
+      active_win_record.tree.color_children := dialog_value[1] 
+      return 1 }
+  
+   return fail
+
+end
+
+
+#
+procedure change_index()
+
+   if Dialog(["Enter a new index:"], [""], [active_win_record.tree.move], [2]) == "Okay" then {
+      active_win_record.tree.move := dialog_value[1] 
+      return 1 }
+
+   return fail
+
+end
+
+
+#
+procedure change_line_pos()
+
+   if SelectDialog("Vertical or Horizontal?", [VER, HOR], active_win_record.tree.line_pos, 
+                   ["Okay", "Cancel"]) == "Okay" then {
+     if dialog_value == VER then active_win_record.tree.line_pos := VER
+     else active_win_record.tree.line_pos := HOR
+     return 1 }
+
+   return fail
+
+end
+
+
+#
+procedure change_justification()
+
+   if SelectDialog("Justification", [LEFT, MIDDLE, RIGHT], 
+                   active_win_record.tree.justification, 
+                   ["Okay", "Cancel"]) == "Okay" then  {
+      case dialog_value of {
+         LEFT   : active_win_record.tree.justification := LEFT
+         MIDDLE : active_win_record.tree.justification := MIDDLE
+         RIGHT  : active_win_record.tree.justification := RIGHT
+      }
+      return 1 }
+
+   return fail
+
+end
+
+
+#
+procedure change_grid_format()
+
+   local tmp
+ 
+   \active_win_record.tree.under & tmp := NUNDER
+   /active_win_record.tree.under & tmp := UNDER
+
+   if SelectDialog("Grid Format", [UNDER, NUNDER], tmp, 
+                   ["Okay", "Cancel"]) == "Okay" then  {
+      case dialog_value of {
+         UNDER  : active_win_record.tree.under := &null
+         NUNDER  : active_win_record.tree.under := 1
+      }
+      return 1 }
+
+   return fail
+
+end
+
+
+#
+procedure change_tree()
+
+   local tmp
+ 
+   \active_win_record.tree.tree & tmp := YES
+   /active_win_record.tree.tree & tmp := NO
+
+   if SelectDialog("See a tree?", [YES, NO], YES, 
+                   ["Okay", "Cancel"]) == "Okay" then  {
+      case dialog_value of {
+         NO  : active_win_record.tree.tree := &null
+         YES  : active_win_record.tree.tree := 1
+      }
+      return 1 }
+
+   return fail
+
+end
+
+
+#
+procedure change_bar_tree()
+
+   local tmp
+ 
+   \active_win_record.tree.tree & tmp := YES
+   /active_win_record.tree.tree & tmp := NO
+
+   if SelectDialog("See a bar tree?", [YES, NO], YES, 
+                   ["Okay", "Cancel"]) == "Okay" then  {
+      case dialog_value of {
+         NO  : active_win_record.tree.bar := &null
+         YES  : active_win_record.tree.bar := 1
+      }
+      return 1 }
+
+   return fail
+
+end
+
+
+#
+procedure change_population()
+
+   local tmp
+ 
+   if /active_win_record.tree.tree then tmp := NONE
+   else tmp := active_win_record.tree.tree
+
+   if SelectDialog("Population:", [NONE, BAR, CIRCLE], tmp,
+                   ["Okay", "Cancel"]) == "Okay" then  {
+      case dialog_value of {
+         NONE    : active_win_record.tree.population := &null
+         BAR     : active_win_record.tree.population := BAR
+         CIRCLE  : active_win_record.tree.population := CIRCLE
+      }
+      return 1 }
+
+   return fail
+
+end
+
+
+#
+procedure change_color_format()
+
+   local tmp
+ 
+   \active_win_record.tree.tree & tmp := "Population"
+   /active_win_record.tree.tree & tmp := "Generation"
+
+   if SelectDialog("Color format?", ["Population", "Generation"], tmp,  
+                   ["Okay", "Cancel"]) == "Okay" then   {
+      case dialog_value of {
+         "Generation"   : active_win_record.tree.num_children_code := &null
+         "Population"   : active_win_record.tree.num_children_code := 1
+      }
+     return 1 }
+
+   return fail
+
+end
+
+
+#
+procedure change_gap()
+
+   if Dialog(["Enter a new gap:"], [""], [active_win_record.tree.gap], [2]) == "Okay" then {
+      active_win_record.tree.gap := dialog_value[1] & return 1 }
+
+    return fail
+
+end
+
+
+#
+procedure take_picture()
+
+   snapshot(active_win_record.tree.win, 
+            active_win_record.hpos, active_win_record.vpos, 
+            active_win_record.view_width, active_win_record.view_height-MENUSIZE)
+
+   return fail
+
+end
+
+
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=220,368", "bg=gray-white"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,220,368:",],
+   ["bar:Button:regular:1:50,105,98,20:Bar",DrawTree_cb],
+   ["box:Button:regular:1:21,341,28,17:Box",DrawTree_cb],
+   ["circle:Button:regular:1:50,77,98,20:Circle",DrawTree_cb],
+   ["file:Menu:pull::0,0,36,21:File",file_cb,
+      ["Input Data","quit"]],
+   ["fomat:Menu:pull::37,0,50,21:Format",format_gen_cb,
+      ["Max # Nodes","Max # Children","Generate","Directory"]],
+   ["label1:Label:::20,52,126,13:Directed Approach:",],
+   ["label2:Label:::21,156,119,13:Layered Approach:",],
+   ["layer:Button:regular:1:51,178,100,21:Layer",DrawTree_cb],
+   ["line1:Line:::0,22,219,22:",],
+   ["where:Rect:sunken::18,262,185,40:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib
+

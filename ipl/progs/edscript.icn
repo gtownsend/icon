@@ -1,0 +1,85 @@
+############################################################################
+#
+#	File:     edscript.icn
+#
+#	Subject:  Program to produce script for ed(1)
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 7, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This program takes specifications for global edits from standard
+#  input and outputs an edit script for the UNIX editor ed to standard output.
+#  Edscript is primarily useful for making complicated literal sub-
+#  stitutions that involve characters that have syntactic meaning to
+#  ed and hence are difficult to enter in ed.
+#  
+#     Each specification begins with a delimiter, followed by a tar-
+#  get string, followed by the delimiter, followed by the replace-
+#  ment string, followed by the delimiter.  For example
+#  
+#          |...|**|
+#          |****||
+#  
+#  specifies the replacement of all occurrences of three consecutive
+#  periods by two asterisks, followed by the deletion of all
+#  occurrences of four consecutive asterisks.  Any character may be
+#  used for the delimiter, but the same character must be used in
+#  all three positions in any specification, and the delimiter char-
+#  acter cannot be used in the target or replacement strings.
+#  
+#  Diagnostic:
+#  
+#     Any line that does not have proper delimiter structure is noted
+#  and does not contribute to the edit script.
+#  
+#  Reference:
+#  
+#     "A Tutorial Introduction to the UNIX Text Editor", Brian W. Kernighan.
+#  AT&T Bell Laboratories.
+#  
+############################################################################
+
+procedure main()
+   local line, image, object, char
+   while line := read() do {
+      line ? {
+         char := move(1) | {error(line); next}
+         image := tab(find(char)) | {error(line); next}
+         move(1)
+         object := tab(find(char)) | {error(line); next}
+         }
+      write("g/",xform(image),"/s//",xform(object),"/g")
+   }
+   write("w\nq")
+end
+
+#  process characters that have meaning to ed
+#
+procedure insert()
+   static special
+   initial special := '\\/^&*[.$%'
+   suspend {
+      tab(upto(special)) ||
+      "\\" ||
+      move(1) ||
+      (insert() | tab(0))
+      }
+end
+
+procedure error(line)
+   write(&errout,"*** erroneous input: ",line)
+end
+
+#  transform line
+#
+procedure xform(line)
+   line ?:= insert()
+   return line
+end

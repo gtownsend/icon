@@ -1,0 +1,793 @@
+############################################################################
+#
+#	File:     hr.icn
+#
+#	Subject:  Program to play horse-race game
+#
+#	Author:   Chris Tenaglia
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program implements a horse-race game.
+#
+############################################################################
+#
+#  Links:  random
+#
+############################################################################
+
+link random
+ 
+global horse1, horse2, horse3,                 # horses are global
+       players, money, bets,                   # player info is global
+       vectors, leg1,  leg2, leg3,             # track parameters
+       front,   back,  y1  , y2,   y3,         # horse parameters
+       pos1,    pos2,  pos3,                   # more horse parameters
+       oops1,   oops2, oops3                   # accident flags
+ 
+procedure main()
+   local winner
+ 
+banner()
+if ready() == "no" then stop("Game Over.")     # ask if ready
+players := get_players()                       # get player name list
+money   := table(100)                          # everyone starts w/$100
+randomize()
+ 
+repeat
+  {
+  if ready() == "no" then break
+  writes("\e[2J\e[H")                          # clear old junk off screen
+  repeat                                       # choose 3 fresh horses
+    {
+    horse1  := get_horse()                     # get first horse list
+    horse2  := get_horse()                     # get second horse list
+    horse3  := get_horse()                     # get third horse list
+    if horse1[1] == horse2[1] |                # disallow duplicates
+       horse2[1] == horse3[1] |                # because a horse can't
+       horse3[1] == horse1[1] then next        # race against himself
+    break                                      # continue...
+    }
+  bets   := get_bet()                          # bets initially 0
+  winner := race()                             # race the horses, get winner
+  pay(winner)                                  # pay winner(s) if any
+  }
+done()
+end
+#
+#
+# ask if ready to play the game, return yes or no
+#
+procedure ready()
+  local answer
+  static  pass,sh
+  initial {
+          pass := 0                # initialize pass counter
+          sh   := "\e[1;7m \e[0;1;33;44m"   # initialize a shadow for box
+          }
+  if (pass +:= 1) = 1 then
+    {
+    writes("\e[0;1;33;44m\e[2J\e[H")
+    write(" +----------------------------------------------------------+")
+    write(" |          WELCOME TO ICON PARK VIRTUAL RACE TRACK         |",sh)
+    write(" |                                                          |",sh)
+    write(" |   The following game allow one or more players to bet on |",sh)
+    write(" |   three Cyberspace steeds that will run on an ANSI VT100 |",sh)
+    write(" |   dirt track. Of course the bets are Cyberspace dollars, |",sh)
+    write(" |   which have no real world value. We use only the oldest |",sh)
+    write(" |   escape sequences to condition the track surface, which |",sh)
+    write(" |   may not appeal  to TEK crowds,  and I'm sure some fans |",sh)
+    write(" |   will hurl curses. C'est la vie!                        |",sh)
+    write(" |                                                          |",sh)
+    write(" +----------------------------------------------------------+",sh)
+    write("  \e[1;7m                                                            \e[0;1;33;44m")
+    write("")
+    write("    Are we ready to enter our names, and begin?")
+    answer := map(input("Enter yes or no:"))
+    if answer[1] == "n" then return "no" else return "yes"
+    }
+  end
+ 
+#
+# get the names of the players
+#
+procedure get_players()
+  local counter, people, who
+  people  := []
+  counter := 1
+  write("\nEnter Player Names. Enter blank when done.")
+  repeat
+    {
+    (who := input("  Player #" || counter || ":")) | break
+    if trim(who) == "" then break
+    put(people,who)
+    counter +:= 1
+    }
+  if *people < 1 then stop("Not enough players. Need at least one.")
+  return people
+  end
+#
+#
+# build a horse list structure
+#
+procedure get_horse()
+  local odds, pic, tmp
+  static  stable,photos
+  initial {
+          photos := [pick1(),pick2(),pick3(),
+                     pick4(),pick5(),pick6()]
+          stable := ["Incredible Hash",
+                     "Random Number",
+                     "Floppy Crash",
+                     "RAM Dump",
+                     "Programmers Nightmare",
+                     "Spaghetti Code",
+                     "Infinite Loop",
+                     "User Blues",
+                     "See Plus Plus",
+                     "Press Any Key",
+                     "Paradigm Shift",
+                     "Adricks' Abend",
+                     "Client Server",
+                     "Network Storm",
+                     "Mr. Cobol",
+                     "Forgotten Password",
+                     "Hackers' Byte",
+                     "Chad Hollerith",
+                     "ASCII Question",
+                     "EBCDIC Object",
+                     "Recursive Instance",
+                     "RunTime Error"]
+          }
+  name := ?stable                      # pick a horse name
+  odds := 1 + real((?30)/real(10.0))   # calculate the odds
+  tmp  := ?photos                      # choose a photo file
+  pic  := [name,odds]
+  every put(pic,!tmp)
+  return pic
+  end
+#
+#
+# obtain bets from the players
+#
+procedure get_bet()
+  local items, person, summation, wager
+  (&features == "MS-DOS") | writes("\e[?25h")
+  bets := table(0)
+  summation    := 0
+  every person := !players do
+    {
+    if money[person] <= 0 then next
+    summation +:= money[person]
+    write("\e[2J\e[H",person,", enter your bet. You have $",money[person],"\n")
+    write("1. ",left(horse1[1],32)," odds = ",horse1[2]," : 1")
+    write("2. ",left(horse2[1],32),"   \"  = ",horse2[2]," : 1")
+    write("3. ",left(horse3[1],32),"   \"  = ",horse3[2]," : 1")
+    write("\n       (enter 5 on 2 for $5 on ",horse2[1],")\n")
+    wager := trim(map(input("Your decision : ")))
+    if wager == "" then next
+    if wager == "q" then done()
+    items := parse(wager,' ')
+    if not(numeric(items[1])) | not(numeric(items[3])) then
+      {
+      input("\7Wager Improperly Entered. No wager made. Press RETURN")
+      next
+      }
+    if (*items ~= 3)              |
+       (items[2] ~== "on")        |
+       (items[1] > money[person]) |
+       (1 > items[3] > 3)         then
+         {
+         input("\7Wager Improperly Entered. No wager made. Press RETURN")
+         next
+         }
+    bets[person]   := wager
+    money[person] -:= parse(wager,' ')[1]
+    }
+  if summation = 0 then
+    {
+    write("\e[2J\e[HICON PARK CYBER RACE TRACK BIDS YOU ADIEU\n")
+    write("It looks you'all lost all your money here today.")
+    write("Take it easy now. Better luck next time")
+    stop("Game Over")
+    }
+  input("Done Entering Wagers. Press RETURN to Continue.")
+  end
+#
+#
+# determine the victor and pay out winnings. if there is a tie
+# then nothing gets payed out (bets are refunded)
+#
+procedure pay(victor)
+  local check, i, msg, nag, odds, pair, player, prize, test
+  local wager, winner, winnings, y
+
+  (&features == "MS-DOS") | writes("\e[?25h")          # turn on cursor again
+  winner := case victor of
+    {
+    1 : horse1
+    2 : horse2
+    3 : horse3
+    default : ["tie"]
+    }
+  if victor = 4 then
+    {
+    writes(at(12,14),"All The Steeds Fell Down! Too many injuries!\7")
+    wait(1)
+    writes(at(12,14),"The judges are coming to a decision....")
+    wait(2)
+    writes(at(12,14),"All bets will be refunded. Sorry.......")
+    check := sort(bets,1)
+    every pair := !check do
+      {
+      name         := pair[1]
+      wager        := pair[2]
+      odds         := winner[2]
+      prize        := parse(bets[name],' ')[1]
+      money[name] +:= integer(prize)
+      }
+    test := map(input(at(13,1) || "Press RETURN to Continue."))
+    if test[1] == "q" then done()
+    return
+    }
+  if winner[1] == "tie" then
+    {
+    writes(at(12,14),"It was a photo finish!\7")
+    wait(1)
+    writes(at(12,14),"The judges are coming to a decision....")
+    wait(2)
+    writes(at(12,14),"All bets will be refunded. Sorry.......")
+    check := sort(bets,1)
+    every pair := !check do
+      {
+      name         := pair[1]
+      wager        := pair[2]
+      odds         := winner[2]
+      prize        := parse(bets[name],' ')[1]
+      money[name] +:= integer(prize)
+      }
+    test := map(input(at(13,1) || "Press RETURN to Continue."))
+    if test[1] == "q" then done()
+    return
+    } else {
+    writes(at(12,14),winner[1],"   WINS!                              ")
+    writes(at(victor+21,1),"\e[1;5;33;44m",victor,"  : ",left(winner[1],32),"\e[0;1;33;44m")
+    wait(2)
+    writes(at(12,14),"And now for a closeup of the winner....")
+    wait(3)
+    y := 4
+    writes(at((y+:=1),40),"+",repl("-",35),"+")
+    every i := 3 to *winner do
+      writes(at((y+:=1),40),"|",left(winner[i],35),"|")
+    writes(at(y,40),"+",repl("-",35),"+")
+    }
+  check := sort(bets,1)
+  every pair := !check do
+    {
+    name  := pair[1]
+    wager := pair[2]
+    nag   := parse(wager,' ')[3]
+    if nag = victor then
+      {
+      odds         := winner[2]
+      prize        := odds * parse(bets[name],' ')[1]
+      money[name] +:= integer(prize)
+      }
+    }
+  test := map(input(at(13,1) || "Press RETURN to Continue."))
+  if test[1] == "q" then
+    {
+    #
+    # evaluate results from todays races
+    #
+    write("\e[2J\e[HICON PARK CYBER RACE TRACK BIDS YOU ADIEU\n")
+    write("    We all started with $100. And now for the results...\n")
+    every player := !players do
+      {
+      winnings := money[player]
+      if winnings < 100 then msg := "Looks like you lost some $ today."
+      if winnings = 0   then msg := "Lost all your money today."
+      if winnings = 100 then msg := "Looks like you broke even today."
+      if winnings > 100 then msg := "Looks like a winner. Stop at the IRS window please!"
+      if winnings > 300 then msg := "Wow! The IRS agent will escort you to his office."
+      write("OK ",player,", you have $",winnings," left. ",msg)
+      }
+    }
+  end
+#
+#
+# run the race and return the winning horse # (1, 2, or 3)
+#
+procedure race()
+  local diamx, diamy, finish, inc1, inc2, inc3, platform, result
+
+  vectors := draw_track()
+  #
+  # set up starting positions
+  #
+  pos1  := 1
+  pos2  := 1
+  pos3  := 1
+  
+  #
+  # select lanes to run in
+  #
+  y1    := 5
+  y2    := 7
+  y3    := 9
+
+  #
+  # set up for the legs of the race, 3 normal + 3 accidentsal
+  #
+  leg1  := 1
+  leg2  := 1
+  leg3  := 1
+
+  #
+  # set up accident multipliers
+  #
+  oops1 := 1
+  oops2 := 1
+  oops3 := 1
+
+  #
+  # designate vector milestones, marking legs of the race
+  #
+  diamx   := 68
+  diamy   := 10
+  finish  := 146
+  
+  #
+  # design horse bodies from different vantage points
+  #
+  front    := list(6)
+  front[1] := "#^"
+  front[2] := "V"
+  front[3] := "#'  "
+  front[4] := "_X  "
+  front[5] := "X"
+  front[6] := "_X  "
+
+  back     := list(6)
+  back[1]  := "  `#"
+  back[2]  := "/"
+  back[3]  := "^#"
+  back[4]  := "  X_"
+  back[5]  := "X"
+  back[6]  := "  X_"
+
+  #
+  # display the starting positions and fire the gun to begin!
+  #
+    (&features == "MS-DOS") | writes("\e[?25l")         # deactivate cursor
+    writes(at(5,1),back[1],1,front[1])                  # horse 1
+    writes(at(22,6),left(horse1[1],32)," / ",horse1[2]," : 1 / ")
+
+    writes(at(7,1),back[1],2,front[1])                  # horse 2
+    writes(at(23,6),left(horse2[1],32)," / ",horse2[2]," : 1 / ")
+
+    writes(at(9,1),back[1],3,front[1])                  # horse 3
+    writes(at(24,6),left(horse3[1],32)," / ",horse3[2]," : 1 / ")
+ 
+    writes(at(12,14),"ON YOUR MARK...  GET SET...")
+    wait(1)
+    writes("\7",at(12,14),"AND THEY'RE OFF!                           ")
+  #
+  # run the race
+  #
+  repeat
+    {
+    case &features of
+        {
+        "VMS" : delay(500)                    # delay 10,000/sec VMS
+        "UNIX": delay(50)                     # delay  1,000/sec UNIX
+        default : platform := &features       # not on DOS icon 8.5
+        }
+    inc1    := ?3-1 * oops1
+    if oops1 = 1 then pos1 +:= inc1
+
+    inc2    := ?3-1 * oops2
+    if oops2 = 1 then pos2 +:= inc2
+
+    inc3    := ?3-1 * oops3
+    if oops3 = 1 then pos3 +:= inc3
+
+    if (pos1 >= 68) & (leg1 = 1) then leg1 := 2
+    if (pos2 >= 68) & (leg2 = 1) then leg2 := 2
+    if (pos3 >= 68) & (leg3 = 1) then leg3 := 2
+    if (pos1 > 78)  & (leg1 = 2) then leg1 := 3
+    if (pos2 > 78)  & (leg2 = 2) then leg2 := 3
+    if (pos3 > 78)  & (leg3 = 2) then leg3 := 3
+ 
+    if (78 >= pos1 >= 68) then y1 +:= inc1
+    if (78 >= pos2 >= 68) then y2 +:= inc2
+    if (78 >= pos3 >= 68) then y3 +:= inc3
+ 
+    if y1 > 15 then y1 := 15
+    if y2 > 17 then y2 := 17
+    if y3 > 19 then y3 := 19
+ 
+    result := accident()
+    display()
+
+    if result = 0 then  return 4
+    if (pos1 >= finish) & (pos2 < finish) & (pos3 < finish) then return 1
+    if (pos2 >= finish) & (pos1 < finish) & (pos3 < finish) then return 2
+    if (pos3 >= finish) & (pos1 < finish) & (pos2 < finish) then return 3
+
+    if (pos1 >= finish) & (pos2 >= finish) |
+       (pos2 >= finish) & (pos3 >= finish) |
+       (pos3 >= finish) & (pos1 >= finish) then return 0
+    }
+  end
+#
+#
+# display the horses at different legs of the race
+#
+procedure display()
+  static  oldy1,oldy2,oldy3,blanks
+  initial {
+          oldy1 := 5
+          oldy2 := 7
+          oldy3 := 9
+          blanks:= "       "
+          }
+  if leg1 = 2 then
+    {
+    writes(at(5,68),blanks)
+    writes(at(oldy1,68),blanks)
+    if y1 < 12 then
+      {
+      writes(at(y1,68),"  ",back[2],"  ")
+      writes(at(y1+1,68),"  1  ")
+      writes(at(y1+2,68),"  ",front[2],"  ")
+      }
+    oldy1 := y1
+    } else {
+    writes(at(y1,vectors[pos1]),back[leg1],1,front[leg1])
+    }
+ 
+  if leg2 = 2 then
+    {
+    writes(at(7,68),blanks)
+    writes(at(oldy2,68),blanks)
+    if y2 < 14 then
+      {
+      writes(at(y2,69),"  ",back[2],"  ")
+      writes(at(y2+1,69),"  2  ")
+      writes(at(y2+2,69),"  ",front[2],"  ")
+      }
+    oldy2 := y2
+    } else {
+    writes(at(y2,vectors[pos2]),back[leg2],2,front[leg2])
+    }
+  if leg3 = 2 then
+    {
+    writes(at(9,68),blanks)
+    writes(at(oldy3,68),blanks)
+    if y3 < 16 then
+      {
+      writes(at(y3,70),"  ",back[2],"  ")
+      writes(at(y3+1,70),"  3  ")
+      writes(at(y3+2,70),"  ",front[2],"  ")
+      }
+    oldy3 := y3
+    } else {
+    writes(at(y3,vectors[pos3]),back[leg3],3,front[leg3])
+    }
+  end
+ 
+#
+# simulate rare freakish accidents
+#
+procedure accident()
+  if (?2000 = 111) & (leg1 ~= 2) then
+    {
+    oops1 := 0
+    leg1 +:= 3
+    write(at(13,1),"\7OH NO! ",horse1[1]," fell down!")
+    }
+
+  if (?2000 = 111) & (leg2 ~= 2) then
+    {
+    oops2 := 0
+    leg2 +:= 3
+    write(at(13,1),"\7OH NO! ",horse2[1]," fell down!")
+    }
+
+  if (?2000 = 111) & (leg3 ~= 2) then
+    {
+    oops3 := 0
+    leg3 +:= 3
+    write(at(13,1),"\7OH NO! ",horse3[1]," fell down!")
+    }
+
+  if oops1+oops2+oops3 = 0 then return 0
+  return 1
+  end
+#                            
+#
+# return a list of track x positions
+#
+procedure draw_track()
+  local i, offset
+  static  pavement
+  initial pavement := copy(mktrack())
+  offset     := []
+  every i    := 1  to 68       do put(offset,i)
+  every i    := 1  to 10       do put(offset,72)
+  every i    := 68 to 1  by -1 do put(offset,i)
+  offset  |||:= [1,1,1,1,1]
+  writes("\e[0;1;33;44m\e[2J\e[H")
+  every i := 1 to *pavement do
+    writes(at(i,1),pavement[i])
+  return offset
+  end
+ 
+#
+# generate racing track
+#
+procedure mktrack()
+  local track
+  track := []
+  put(track,"                 WELCOME TO ICON PARK CYBER STEED RACE TRACK")
+  put(track,"")
+  put(track,"___________________________________________________________________________")
+  put(track,"                                                                           \\")
+  put(track,"`#1#^                                                                       \\")
+  put(track,"                                                                             \\")
+  put(track,"`#2#^                                                                         \\")
+  put(track,"                                                                              |")
+  put(track,"`#3#^                                                                         |")
+  put(track,"_________________________________________________________________             |")
+  put(track,"                                                                 \\            |")
+  put(track,"Commentator:                                                      |           |")
+  put(track,"                                                                  |           |")
+  put(track,"_________________________________________________________________/            |")
+  put(track,"                                                                              |")
+  put(track,"                                                                              |")
+  put(track,"                                                                              /")
+  put(track,"                                                                             /")
+  put(track,"                                                                            /")
+  put(track,"                                                                           /")
+  put(track,"__________________________________________________________________________/")
+  put(track,"1  :")
+  put(track,"2  :")
+  put(track,"3  :")
+  return track
+  end
+
+#
+# final wrapup procedure, summarize winnings
+#
+procedure done()
+  local msg, player, winnings
+  write("\e[2J\e[HICON PARK CYBER RACE TRACK BIDS YOU ADIEU\n")
+  write("    We all started with $100. And now for the results...\n")
+  every player := !players do
+    {
+    winnings := money[player]
+    if winnings < 100 then msg := "\nLooks like you lost some $ today.\n"
+    if winnings = 100 then msg := "\nLooks like you broke even today.\n"
+    if winnings > 100 then msg := "\nLooks like a winner. Stop at the IRS window please!\n"
+    write("OK ",player,", you have $",winnings," left. ",msg)
+    }
+  stop("Game Over.")
+  end
+#
+#
+# generate horse 1 portraite
+#
+procedure pick1()
+  local pferd
+
+  pferd := []
+  put(pferd,"")
+  put(pferd,"                  /\\")
+  put(pferd,"              |||/  \\")
+  put(pferd,"             /       \\\\")
+  put(pferd,"            /        \\\\\\\\")
+  put(pferd,"           /   o     \\\\\\\\\\\\")
+  put(pferd,"          /          \\\\\\\\\\\\")
+  put(pferd,"         /           \\\\\\\\\\\\\\")
+  put(pferd,"        /               \\\\\\\\\\\\")
+  put(pferd,"       O     /-----\\     \\\\\\\\\\___")
+  put(pferd,"        \\/|_/       \\")
+  put(pferd,"                     \\")
+  put(pferd,"                      \\")
+  put(pferd,"                       \\")
+  return pferd
+  end
+ 
+#
+# generate horse 2 portraite
+#
+procedure pick2()
+  local pferd
+
+  pferd := []
+  put(pferd,"")
+  put(pferd,"                  /\\")
+  put(pferd,"              |||/  \\")
+  put(pferd,"             /       \\\\")
+  put(pferd,"            /  /     \\\\\\\\")
+  put(pferd,"           /   O      \\\\\\\\")
+  put(pferd,"          /            \\\\\\\\")
+  put(pferd,"         /              \\\\\\\\")
+  put(pferd,"        /                \\\\\\\\")
+  put(pferd,"        o     /----\\\\      \\\\\\\\\\___")
+  put(pferd,"         \\/|_/     \\\\")
+  put(pferd,"                   \\\\\\")
+  put(pferd,"                      \\")
+  put(pferd,"                       \\")
+  put(pferd,"")
+  return pferd
+  end
+
+#
+# generate horse 3 portraite
+#
+procedure pick3()
+  local pferd
+
+  pferd := []
+  put(pferd,"                    \\/          ")
+  put(pferd,"                   \\  /|||      ")
+  put(pferd,"                 \\       /      ")
+  put(pferd,"               \\\\        /     ")
+  put(pferd,"              \\\\\\     o   /   ")
+  put(pferd,"             \\\\\\\\          / ")
+  put(pferd,"            \\\\\\\\\\           / ")
+  put(pferd,"          \\\\\\\\\\               / ")
+  put(pferd,"      ___\\\\\\\\    \\\\-----/     O")
+  put(pferd,"                  \\\\       /_|/\\ ")
+  put(pferd,"                 \\               ")
+  put(pferd,"                \\                ")
+  put(pferd,"               \\                 ")
+  put(pferd,"")
+  return pferd
+  end
+#
+#
+# generate horse 4 portraite
+#
+procedure pick4()
+  local pferd
+
+  pferd := []
+  put(pferd,"                    \\/           ")
+  put(pferd,"                   \\\\//|||       ")
+  put(pferd,"                 \\\\       /     ")
+  put(pferd,"               \\\\\\     /  /    ")
+  put(pferd,"              \\\\\\      O   /   ")
+  put(pferd,"             \\\\\\            /  ")
+  put(pferd,"            \\\\\\              / ")
+  put(pferd,"           \\\\\\                /")
+  put(pferd,"      ___\\\\\\      \\----/     o")
+  put(pferd,"                   \\\\     /_|/\\  ")
+  put(pferd,"                  \\\\             ")
+  put(pferd,"                 \\               ")
+  put(pferd,"                \\                ")
+  put(pferd,"")
+  return pferd
+  end
+ 
+#
+# generate horse 5 portraite
+#
+procedure pick5()
+  local pferd
+
+  pferd := []
+  put(pferd,"         /\\     /\\")
+  put(pferd,"        |  |||||  |")
+  put(pferd,"        |    |||  |")
+  put(pferd,"        |     ||  |\\")
+  put(pferd,"        |         | \\")
+  put(pferd,"        | 0     0 | |\\")
+  put(pferd,"        |         |  |\\")
+  put(pferd,"        |         |   |\\")
+  put(pferd,"        |         |    |\\")
+  put(pferd,"        |         |     |")
+  put(pferd,"        |  o   o  |\\")
+  put(pferd,"        \\  ____  /  \\")
+  put(pferd,"         \\______/    \\")
+  put(pferd,"")
+  return pferd
+  end
+ 
+#
+# generate horse 6 portraite
+#
+procedure pick6()
+  local pferd
+
+  pferd := []
+  put(pferd,"                 \\/     \\/ ")
+  put(pferd,"                |  |||||  |  ")
+  put(pferd,"                |  |||    |  ")
+  put(pferd,"               \\|  ||     | ")
+  put(pferd,"              \\ |         | ")
+  put(pferd,"             \\| | 0     0 | ")
+  put(pferd,"            \\|  |         | ")
+  put(pferd,"           \\|   |         | ")
+  put(pferd,"          \\|    |         | ")
+  put(pferd,"          |     |         |  ")
+  put(pferd,"               \\|  o   o  | ")
+  put(pferd,"              \\  /  ____  \\")
+  put(pferd,"             \\    /______\\ ")
+  put(pferd,"")
+  return pferd
+  end
+
+procedure banner()
+  write("\e[0;1;33;44m\e[2J\e[H")
+  write("###############################################################################")
+  write("                                                                               ")
+  write("      ****  *   *  ****   *****  ****         ****  *****  *****  *****  ****  ")
+  write("    *       * *   *   *  *      *   *       *        *    *      *      *   *  ")
+  write("   *        *    ****   ***    ****         ***     *    ***    ***    *   *   ")
+  write("  *        *    *   *  *      * *             *    *    *      *      *   *    ")
+  write("  ****    *    ****   *****  *  *        ****     *    *****  *****  ****      ")
+  write("                                                                               ")
+  write("                         ****     *     ****  ***  *   *   ****                ")
+  write("                        *   *   * *   *       *   **  *  *                     ")
+  write("                       ****   *****  *       *   * * *  *  ***                 ")
+  write("                      * *    *   *  *       *   *  **  *   *                   ")
+  write("                     *  *   *   *   ****  ***  *   *   ****                    ")
+  write("                                                                               ")
+  write("   \e[1;5m               by tenaglia\e[0;1;33;44m")
+  write("                                                                               ")
+  write("###############################################################################")
+  wait(3)
+  end
+#
+#
+# move cursor to specified screen position
+#
+procedure at(row,column)
+  return "\e[" || row || ";" || column || "f"
+  end
+ 
+#
+# procedure to wait n seconds
+#
+procedure wait(n)
+  local now, secs
+
+  secs := &clock[-2:0] + n
+  if secs > 60 then secs -:= 60
+  repeat
+    {
+    now := &clock[-2:0]
+    if now = secs then break
+    }
+  return
+  end
+ 
+#
+# this procedure prompts for an input string
+#
+procedure input(prompt)
+  writes(prompt)
+  return read()
+  end
+ 
+#
+# parse a string into a list with respect to a delimiter
+#
+procedure parse(line,delims)
+  local tokens
+  static chars
+  chars  := &cset -- delims
+  tokens := []
+  line ? while tab(upto(chars)) do put(tokens,tab(many(chars)))
+  return tokens
+  end
+

@@ -1,0 +1,68 @@
+############################################################################
+#
+#	File:     strucget.icn
+#
+#	Subject:  Program to collect SP stuctures
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 4, 1997
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This prorgram collects the structures in an SP and when the SP
+#  terminates, it saves them as an xencoded file.  Records are not
+#  collected because they cannot be decoded in the absense of the
+#  appropriate record declaration.
+#
+#  By keeping pointers to the structures in an SP, it assures that
+#  all structures produced by that program are intact at the time
+#  the SP terminates.  Be aware, however, that some structures may
+#  have been "emptied" by the time the SP terminates, for example,
+#  by get(L).
+#
+#  Saving the SP structure sprevents them from being collected, which may
+#  affect SP performance or even behavior.
+#
+#  The xencoded file is named <sp>.xcode there <sp> is the name of the
+#  SP as given on the command line.
+#
+############################################################################
+#
+#  Requires:  MT Icon and instrumentation
+#
+############################################################################
+#
+#  Links:  evinit, xcodes
+#
+############################################################################
+
+link evinit
+link xcodes
+
+$include "evdefs.icn"
+
+procedure main(args)
+   local mask, structs, name
+
+   name := args[1] | stop("*** no SP")
+
+   EvInit(args) | stop("*** cannot open SP")
+
+   variable("write", &eventsource) := -1	# turn off SP output
+   variable("writes", &eventsource) := -1
+
+   structs := set()
+
+   mask := cset(E_Lcreate || E_Rcreate || E_Screate || E_Tcreate)
+
+   while EvGet(mask) do
+      insert(structs, &eventvalue)		# add new structure
+
+   xencoden(sort(structs), name || ".xcode")	# save SP structures
+
+end

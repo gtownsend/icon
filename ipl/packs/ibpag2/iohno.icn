@@ -1,0 +1,95 @@
+############################################################################
+#
+#	Name:	 iohno.icn
+#
+#	Title:	 iohno (error handler, with hard-coded messages)
+#
+#	Author:	 Richard L. Goerwitz
+#
+#	Version: 1.20
+#
+############################################################################
+#
+#  This file contains iohno(n, s) - an error handler taking two
+#  arguments: 1) an integer and 2) a string.  The string (2) is an
+#  optional error message.  The integer (1) is one of several
+#  hard-coded error numbers (see below).
+#
+############################################################################
+#
+#  Links: rewrap
+#
+############################################################################
+
+#
+# iohno:  print error message s to stderr; abort with exit status n
+#
+procedure iohno(n, s)
+
+    local i, msg
+    static errlist
+    initial {
+        errlist := [[100, "unspecified failure"],
+
+		    [2,   "can't find iiparse.lib file"],
+
+		    [4,   "unexpected EOF"],
+		    [5,   "unknown associativity value"],
+
+                    [11,  "malformed right-hand side"],
+                    [12,  "unexpected RHS symbol type"],
+
+                    [21,  "malformed left-hand side"],
+		    
+		    [30,  "unknown or unimplemented % declaration"],
+		    [31,  "malformed token declaration"],
+		    [32,  "start symbol redefined"],
+		    [33,  "LHS symbol expected"],
+		    [34,  "colon missing"],
+		    [35,  "malformed RHS in rule declaration"],
+		    [36,  "undeclared character literal"],
+		    [37,  "illegal $integer reference"],
+		    [38,  "out-of-range $reference"],
+		    [39,  "unterminated brace { in action"],
+		    [43,  "bogus precedence"],
+		    [44,  "superfluous epsilon"],
+		    [45,  "superfluous %union declaration"],
+		    [47,  "empty or missing rules section"],
+		    [48,  "garbled declarations section"],
+		    [49,  "multiple characters within quotes"],
+
+		    [40,  "same prec, different (or perhaps lacking) assoc"],
+		    [41,  "conflict between nonassociative rules"],
+		    [42,  "reduce -- reduce conflict"],
+		    [46,  "unresolvable shift/reduce conflict"],
+
+		    [50,  "illegal conflict for nonassociative rules"],
+		    [51,  "reduce/reduce conflict"],
+		    [52,  "nonterminal useless and/or declared as a terminal"],
+
+		    [60,  "malformed $insertion point in iiparse file"],
+
+		    [70,  "bad action format"],
+		    [71,  "nonexistent rule number specified in old action"],
+		    [72,  "nonexistent rule number specified in new action"],
+
+		    [80,  "conflict in goto table"],
+
+		    [90,  "RHS nonterminal appears in no LHS"],
+		    [91,  "useless nonterminal"]
+		    ]
+    }
+
+    /n := 0
+    every i := 1 to *errlist do
+        if errlist[i][1] = n then msg := errlist[i][2]
+    writes(&errout, "error ", n, " (", msg, ")")
+    if \s then {
+	write(&errout, ":  ")
+	every write(&errout, "\t", rewrap(s) | rewrap())
+    }
+    else write(&errout)
+
+    exit(n)
+
+end

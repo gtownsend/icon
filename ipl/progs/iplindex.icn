@@ -1,0 +1,131 @@
+############################################################################
+#
+#	File:     iplindex.icn
+#
+#	Subject:  Program to produce indexed listing of the program library
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 3, 1996
+#
+###########################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  The following options are supported:
+#
+#	-k i	width keyword field, default 16
+#	-p i	width of field for program name, default 12
+#
+#     Some noise words are omitted (see "exceptions" in the program text).
+#  If a file named except.wrd is open and readable in the current directory,
+#  the words in it are used instead.
+#
+#     This program is pretty simple.  Possible extensions include ways
+#  of specifying words to be omitted, more flexible output formatting, and
+#  so on.  Another "embellisher's delight".
+#
+#     This program was derived from kwic.icn by Steve Wampler.
+#
+#     The format of the output was suggested by Gregg Townsend.
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+global line, loc, exceptions, key_width,  program_width, tag
+
+record pair(name, line)
+
+procedure main(args)
+   local exceptfile, opts
+
+   opts := options(args, "k+p+")
+   key_width := \opts["k"] | 16
+   program_width := \opts["p"] | 12
+
+   if exceptfile := open("except.wrd") then {
+      exceptions := set()
+      every insert(exceptions, lcword(exceptfile))
+      close(exceptfile)
+      }
+   else
+      exceptions := set(["and", "for", "into", "all", "from", "get", "put",
+         "compute", "perform", "apply", "model", "value", "model", "operator",
+         "out", "problem", "produce", "such", "use", "operation",
+         "between", "data", "different", "down", "miscellaneous", "non",
+         "obtaining", "using", "value", "values", "various", "with",
+         "begin", "end", "not", "way", "possible", "required", "until",
+         "that", "within", "once", "the"
+         ])
+
+   write(left("keyword", key_width), left("location", program_width),
+      "description")
+   write()
+
+   every write(filter(indexer(&input)))
+
+end
+
+procedure indexer(file)
+   local index, word
+
+#  Each word, in lowercase form, is a key in the table "index".
+#  The corresponding values are lists of the lines for that word.
+
+   index := table()
+
+   every word := lcword(file) do {
+      if not member(exceptions,word) then {
+         /index[word] := []
+         index[word] := put(index[word],line)
+         }
+      }
+
+   index := sort(index,3)
+
+#  while get(index) do
+#     suspend !get(index)
+
+   while name := get(index) do
+      suspend pair(name, !get(index))
+
+end
+
+procedure lcword(file)
+   local name, word
+   static chars
+
+   initial {
+      chars := &letters ++ &digits
+      tag := table()
+      }
+
+   every line := !file do {
+      line ?:= {
+         name := tab(find(": "))	# program name
+         move(2)			# skip trash
+         tab(0)				# rest is now line
+         }
+      tag[line] := name			# name for the line
+      line ? {
+         while tab(loc := upto(chars)) do {
+            word := map(tab(many(chars)))
+            if *word > 2 & not(any('(')) then suspend word
+            }
+          }
+      }
+end
+
+procedure filter(result)
+
+   return left(result.name, key_width) ||
+      left(tag[result.line], program_width) || result.line
+
+end

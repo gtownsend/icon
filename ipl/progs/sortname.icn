@@ -1,0 +1,40 @@
+############################################################################
+#
+#	File:     sortname.icn
+#
+#	Subject:  Program to order by last name
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 18, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program sorts a list of person's names by the last names.
+#
+############################################################################
+
+link namepfx, lastname
+
+procedure main()
+   local names, line, last, first
+
+   names := table()
+
+   while line := read() do {
+      last := lastname(line)
+      first := namepfx(line)
+      /names[last] := set()
+      insert(names[last], first)
+      }
+
+   names := sort(names, 3)
+
+   while last := get(names) do
+      every write(!sort(get(names)), " ", last)
+
+end

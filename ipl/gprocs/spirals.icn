@@ -1,0 +1,45 @@
+############################################################################
+#
+#	File:     spirals.icn
+#
+#	Subject:  Procedure to produce traces of fractal stars
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 26, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Draw spiral with n segments and t rotations, starting at (x,y).
+#  The extent determines the size of the drawing.
+#
+#  The eccentricity is e (1 gives circle) and the reduction factor is r.
+#  The angular increment is incr and the y scaling factor is yfact.
+#
+#  Links:  numbers
+#
+############################################################################
+
+link numbers
+
+procedure spiral(x, y, extent, n, t, e, r, incr, yfact)
+   local i, c, s, angle, redrad, x1, y1
+
+   incr := dtor(incr)
+
+   every i := 0 to n do {
+      redrad := r ^ div(i, n)
+      angle := (incr * i) / n
+      x1 := redrad * cos(t * angle)
+      y1 := redrad * e * sin(t * angle)
+      c := cos(angle)
+      s := sin(angle)
+      suspend Point(x + extent / 2 * (1 + x1 * c - y1 * s),
+         y + extent / 2 * yfact * (1 + x1 * s + y1 * c))
+      }
+
+end

@@ -1,0 +1,58 @@
+############################################################################
+#
+#	File:     rstars.icn
+#
+#	Subject:  Procedure to generate traces of regular stars
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 27, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure generates traces of regular stars.
+#
+############################################################################
+#
+#  Links:  gobject
+#
+############################################################################
+
+link gobject
+
+global size
+
+#
+#  Generate points on regular star with n vertices, jumping j vertices,
+#  centered at x and y, with scaled radius, with an initial offset angle,
+#  and with a specified frame size.
+
+procedure rstar(x, y, n, j, scale, offset, size)	#:  regular star
+   local i, jangle, angle
+
+   /x := 100				# defaults
+   /y := 100 
+   /n := 5
+   /j := 3
+   /scale := 0.45
+   /offset := 0.5
+   /size := 200
+
+   jangle := j * 2 * &pi / n
+
+   scale *:= size
+   offset *:= &pi
+
+   every i := 0 to n do {
+      angle := jangle * i + offset
+      suspend Point(
+          x + scale * cos(angle),
+          y + scale * sin(angle)
+         )
+      }
+
+end

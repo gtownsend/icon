@@ -1,0 +1,213 @@
+############################################################################
+#
+#	File:     img.icn
+#
+#	Subject:  Program to create images
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     January 3, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  img is a simple editor of Icon images.
+#
+#  usage:  img [-cn | -gn] [width [height]]
+#
+#  -c or -g specifies a palette; the default is -c1.
+#  The default image size is 32 x 32.
+#
+#  img brings up a window within which:
+#	-- clicking on the color palette sets the color of that mouse button
+#	-- clicking on the cell grid sets the color of a cell
+#	-- pressing "W" writes the image string to standard output
+#	-- pressing "Q" writes the image string and then exits
+#	-- pressing "Z" clears all cells to white
+#	-- pressing "O" or "L" toggles palette outlining or labeling
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: graphics, imscolor
+#
+############################################################################
+
+# To Do:
+#  need a way to READ an image!
+#  use standard utils for row<->image translation
+#  make shift-click in image pick up the color
+
+
+link graphics, imscolor
+
+$define Border 16		# window border
+
+$define ColorW 12		# width of color indicator
+$define ColorH 24		# height of color indicator
+
+$define LMar 150		# left margin of cell area
+$define MaxCell 24		# maximum cell size
+
+
+global rows, imspec		# current image
+global palette			# color palette
+global palx, paly, palw, palh	# palette display area
+global palf			# palette display flags
+global buttons			# button colors
+
+
+#  main program
+
+procedure main(args)
+   local wwidth, wheight
+   local hcells, vcells, cellsize, x0, y0
+   local black, white
+   local i, j, x, y, k, e
+
+   Window(args)
+   wwidth := WAttrib("width")			# window width
+   wheight := WAttrib("height")			# window height
+
+   palette := "c1"
+   args[1] ? if ="-" then {
+      palette := tab(0)
+      get(args)
+      }
+
+   hcells := integer(args[1]) | 16		# cells horizontally
+   vcells := integer(args[2]) | hcells		# cells vertically
+   cellsize := MaxCell				# cell size on window
+   cellsize >:= wheight / (vcells + 4)
+   cellsize >:= (wwidth - LMar) / (hcells + 4)
+
+   palx := Border
+   paly := Border + vcells + Border
+   palw := LMar - 2 * Border
+   palh := wheight - Border - paly
+   palf := "u"
+   drawpalette(palette, palx, paly, palw, palh, palf)
+
+   x0 := wwidth / 2 - (cellsize * hcells) / 2 + LMar / 2  # UL corner of cells
+   y0 := wheight / 2 - (cellsize * vcells) / 2
+   Fg("gray")
+   every x := x0 to x0 + (hcells - 1) * cellsize by cellsize do
+      every y := y0 to y0 + (vcells - 1) * cellsize by cellsize do
+         DrawRectangle(x, y, cellsize, cellsize)
+
+   black := PaletteKey(palette, "black")
+   white := PaletteKey(palette, "white")
+   buttons := table()
+   setbutton(&lpress, black)
+   setbutton(&mpress, black)
+   setbutton(&rpress, white)
+
+   rows := list(vcells, repl(white, hcells))	# list of row values
+   newimage()
+
+   repeat case e := Event() of {
+
+      &lpress | &mpress | &rpress | &ldrag | &mdrag | &rdrag: {
+
+         # mouse on palette: set color
+         if k := pickpalette(palette, &x - palx, &y - paly, palw, palh) then {
+            case e of {
+               &lpress | &ldrag:  setbutton(&lpress, k)
+               &mpress | &mdrag:  setbutton(&mpress, k)
+               &rpress | &rdrag:  setbutton(&rpress, k)
+               }
+            next
+            }
+
+         # mouse on cell: set color
+         j := (&x - x0) / cellsize
+         i := (&y - y0) / cellsize
+         if j < 0 | j >= hcells | i < 0 | i >= vcells then
+            next
+         x := x0 + j * cellsize + 1
+         y := y0 + i * cellsize + 1
+         case e of {
+            &lpress | &ldrag:  k := buttons[&lpress]
+            &mpress | &mdrag:  k := buttons[&mpress]
+            &rpress | &rdrag:  k := buttons[&rpress]
+            }
+         Fg(PaletteColor(palette, k))
+         FillRectangle(x, y, cellsize - 1, cellsize - 1)
+         rows[i + 1, j + 1] := k
+         newimage()
+         }
+
+      !"oOlL": {			# O or L: toggle outlining / labeling
+         e := map(e)
+         if palf ? find(e) then
+            palf := string(palf -- e)
+         else
+            palf ||:= e
+         drawpalette(palette, palx, paly, palw, palh, palf)
+         }
+      QuitEvents(): {			# Q (etc): quit
+         imswrite(, imspec)
+         exit()
+         }
+      !"wW": {				# W: write pattern to stdout
+         imswrite(, imspec)
+         }
+      !"zZ": {				# Z: clear pattern
+         rows := list(vcells, repl(white, hcells))
+         newimage()
+         every x := x0 to x0 + (hcells - 1) * cellsize by cellsize do
+            every y := y0 to y0 + (vcells - 1) * cellsize by cellsize do
+               EraseArea(x + 1, y + 1, cellsize - 1, cellsize - 1)
+         }
+      }
+end
+
+
+#  setbutton(event, key) -- set the color of a button
+
+procedure setbutton(e, k)
+   local i, x, y
+
+   buttons[e] := k
+   i := case e of {
+      &lpress: 2
+      &mpress: 1
+      &rpress: 0
+      }
+   x := palx + palw - ColorW - i * (ColorW * 3 / 2)
+   y := (paly - ColorH) / 2
+   Fg(PaletteColor(palette, k))
+   FillArc(x, y, ColorW, ColorH)
+   Fg("black")
+   DrawArc(x, y, ColorW, ColorH)
+end
+
+
+#  newimage() -- update image (in memory and onscreen) from rows
+
+procedure newimage()
+   imspec := rowstoims(palette, rows)
+   DrawImage(Border, Border, imspec)
+   return
+end
+
+
+#  rowstoims(pal, rows) -- convert array of rows into image string
+
+procedure rowstoims(pal, rows)
+   local w, s, im
+
+   w := *rows[1] | fail
+   im := w || "," || pal || ","
+   every s := !rows do {
+      if *s ~= w then fail
+      im ||:= s
+      }
+   return im
+end

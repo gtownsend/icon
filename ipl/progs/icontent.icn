@@ -1,0 +1,75 @@
+############################################################################
+#
+#	File:     icontent.icn
+#
+#	Subject:  Program to list Icon procedures
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     August 17, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Builds a list, in Icon comment format, of procedures and records
+#  in an Icon source file.
+#
+#  Multiple files can be specified as arguments, and will be processed
+#  in sequence.  A file name of "-" represents the standard input file.
+#  If there are no arguments, standard input is processed.
+#
+#  usage: icontent <options> <Icon source file>...
+#	options:	-s	sort names alphabetically (default is in
+#				order of occurrence)
+#			-l	list in single column (default is to list
+#				in multiple columns)
+#
+
+link options,colmize
+
+procedure main(arg)
+   local opt,linear,Colmize,Sort,namechar,fn,f,names,line,name,type
+   #
+   #  Process command line options and file names.
+   #
+   opt := options(arg,"sl")
+   linear := opt["l"]
+   Colmize := if \opt["l"] then proc("!",1) else colmize
+   Sort := if \opt["s"] then sort else 1
+   if *arg = 0 then arg := ["-"] # if no arguments, standard input
+   namechar := &letters ++ &digits ++ "_"
+   #
+   #  Loop to process files.
+   #
+   every fn := !arg do {
+      f := if fn == "-" then &input else {
+	 if not (fn[-4:0] == ".icn") then fn ||:= ".icn"
+	 open(fn) | stop("Can't open input file \"",fn,"\"")
+         }
+      names := []
+      write("#  Procedures and Records",
+	  if f === &input then "" else " in " || fn,":")
+      #
+      #  Loop to process lines of file (in string scanning mode).
+      #
+      while line := read(f) do line ? {
+	 if    (tab(many(' \t')) | "")\1 &
+	       type := (=("procedure" | "record"))\1 &
+	       (tab(many(' \t')) | "")\1 & name := tab(many(namechar)) &
+	       (tab(many(' \t')) | "")\1 & ="(" then {
+	    put(names,name || if type == "procedure" then "()" else ".")
+	    }
+	 }
+      #
+      #  Close this file.
+      #
+      close(&input ~=== f)
+      every write("#    ",Colmize(Sort(names),71))
+      }
+   #
+   #  End of program.
+   #
+end

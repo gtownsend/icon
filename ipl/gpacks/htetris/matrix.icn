@@ -1,0 +1,331 @@
+############################################################################
+#
+# File  :   matrix.icn
+# Author:   Henrik Sandin
+# Date  :   May 3, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# This file contains procedures for creating and manipulate a two-
+# dimensional matrix structure.
+# A matrix is represented with a list of lists and an element is accessed
+# in the same way as with lists, row first and column second.
+# For example my_matrix[3][4] is the fourth element in the third row
+# of my_matrix.
+#
+############################################################################
+
+$define POS_INF   11
+$define NEG_INF   0
+$define NO_VALUE -1
+
+############################################################################
+#
+# Record: non_zero
+# Fields: min_row - The first row with non-zero elements in it.
+#         max_row - The last row with non-zero elements in it.
+#         min_col - The first column with non-zero elements in it.
+#         max_col - The last column with non-zero elements in it.
+#
+# This record represents the smallest rectangular area within a matrix that
+# covers all non-zero elements. It contains the top and bottom row numbers
+# and left and right column numbers for such an area.
+#
+############################################################################
+
+record non_zero( min_row, max_row, min_col, max_col)
+
+############################################################################
+#
+# Procedure: new_matrix
+# Arguments: nr_rows    - The number of rows in the new matrix.
+#            nr_columns - The number of columns in the new matrix.
+# Returns  : matrix     - A new matrix structure.
+#
+# This procedure constructs and returns a new matrix structure with
+# 'nr_rows' rows and 'nr_columns' columns.
+# The new matrix is filled with zeroes.
+#
+############################################################################
+
+procedure new_matrix( nr_rows, nr_columns)
+
+    matrix := list( nr_rows, &null)
+    every r := 1 to nr_rows do
+	matrix[r] := list( nr_columns, 0)
+
+    return matrix
+end
+
+############################################################################
+#
+# Procedure: rotate_matrix
+# Arguments: matrix  - The matrix to be rotated.
+# Returns  : rotated - A new rotated matrix structure.
+#
+# This procedure constructs and returns a new matrix structure that is
+# the argument matrix rotated 90 degrees counter-clockwise.
+# The number of rows in the new matrix is the number of columns in the
+# original and vice versa.
+#
+############################################################################
+
+procedure rotate_matrix( matrix)
+
+    old_width  := *matrix[1]
+    old_height := *matrix
+
+    rotated := list( old_width, &null)
+    every r := 1 to *rotated do
+	rotated[r] := list( old_height, &null)
+
+    every r := 1 to old_height do
+	every c := old_width to 1 by -1 do
+	    rotated[old_width-c+1][r] := matrix[r][c]
+
+    return rotated
+end
+
+############################################################################
+#
+# Procedure: non_zero_limits
+# Arguments: matrix - The matrix to be analyzed.
+# Returns  : A used_area structure.
+#
+# This procedure analyzes the elements of the given matrix and determines
+# the limits of the smallest rectangular area covering all the non-zero
+# elements in it in terms of a used_area structure.
+#
+############################################################################
+
+procedure non_zero_limits( matrix)
+
+    rows    := []
+    min_col := POS_INF
+    max_col := NEG_INF
+
+    every r := 1 to *matrix do {
+	new_min_col := NO_VALUE
+	new_max_col := NO_VALUE
+
+	every c := 1 to *matrix[1] do
+	    if matrix[r][c] ~= 0 then {
+		new_min_col := c
+	        break
+	    }
+	every c := *matrix[1] to 1 by -1 do
+	    if matrix[r][c] ~= 0 then {
+		new_max_col := c
+		break
+	    }
+	if new_min_col ~= NO_VALUE & new_max_col ~= NO_VALUE then {
+	    if new_min_col < min_col then
+		min_col := new_min_col
+	    if new_max_col > max_col then
+		max_col := new_max_col
+	    put( rows, r)
+	}
+    }
+    if *rows = 1 then {
+	min_row := get( rows)
+	max_row := min_row
+    }
+    else {
+	min_row := get( rows)
+	max_row := pull( rows)
+    }
+    return non_zero( min_row, max_row, min_col, max_col)
+end
+
+############################################################################
+#
+# Procedure: trim_matrix
+# Arguments: matrix  - The matrix to be trimmed.
+# Returns  : trimmed - A new trimmed matrix.
+#
+# This procedure peels off possibly unused outer rows and columns.
+# A row or column is concidered unused if it contains only zeros.
+# A new matrix with a possibly smaller size and the contents of the
+# non-zero rows and columns in the original is constructed and returned.
+#
+############################################################################
+
+procedure trim_matrix( matrix)
+
+    non_zero_area := non_zero_limits( matrix)
+
+    trimmed := new_matrix( non_zero_area.max_row-non_zero_area.min_row+1,
+			   non_zero_area.max_col-non_zero_area.min_col+1)
+    trimmed_row := 1
+    every matrix_row := non_zero_area.min_row to non_zero_area.max_row do {
+	trimmed_col := 1
+	every matrix_col := non_zero_area.min_col to non_zero_area.max_col do {
+	    trimmed[trimmed_row][trimmed_col] := matrix[matrix_row][matrix_col]
+	    trimmed_col := trimmed_col+1
+	}
+	trimmed_row := trimmed_row+1
+    }
+    return trimmed
+end
+
+############################################################################
+#
+# Procedure: mtos
+# Arguments: matrix        - A matrix containing only ones and zeros.
+# Returns  : matrix_string - Its string representation.
+#
+# This procedure returns the string representation of the given matrix.
+# It has the following format:
+# <nr rows>,<nr columns>;<row 1>;...;<row n>
+# Where nr rows and nr columns are integers and row i is a string of ones
+# and/or zeros.
+#
+############################################################################
+
+procedure mtos( matrix)
+
+    matrix_string := *matrix || "," || *matrix[1] || ";"
+
+    every r := 1 to *matrix do {
+	every c := 1 to *matrix[1] do
+		matrix_string := matrix_string || matrix[r][c]
+
+	if r < *matrix then
+	    matrix_string := matrix_string || ";"
+    }
+    return matrix_string
+end
+
+############################################################################
+#
+# Procedure: stom
+# Arguments: matrix_string - String representation of a matrix.
+# Returns  : matrix        - The corresponding matrix.
+#
+# This procedure returns a matrix corresponding to the given string
+# representation which represents a matrix containing only ones and zeros.
+#
+############################################################################
+
+procedure stom( matrix_string)
+
+    matrix_string ? {
+	rows := integer( tab( upto( ',')))
+	move( 1)
+	columns := integer( tab( upto( ';')))
+	matrix  := new_matrix( rows, columns, 0)
+	move( 1)
+	every r := 1 to rows do {
+	    row_string := tab( many( '01'))
+	    row_string ? {
+		every c := 1 to columns do
+		    matrix[r][c] := move( 1)
+	    }
+	    move( 1)
+	}
+    }
+    return matrix
+end
+
+############################################################################
+#
+# Procedure: copy_matrix
+# Arguments: matrx   - A matrix.
+# Returns  : new_mtx - A copy of the original list of matrices.
+#
+# This procedure constructs and returns a copy of a given  matrix.
+# Only the top-level of the elements (if they are structures) are copied.
+#
+############################################################################
+
+procedure copy_matrix( matrix)
+
+    new_mtx := list( *matrix, &null)
+    every r := 1 to *matrix do {
+
+	new_r := list( *matrix[r], &null)
+	every c := 1 to *matrix[r] do {
+	    
+	    new_r[c] := copy( matrix[r][c])
+	}
+	new_mtx[r] := new_r
+    }
+    return new_mtx
+end
+
+############################################################################
+#
+# Procedure: copy_matrices
+# Arguments: matrices - A list of matrices.
+# Returns  : new_lst  - A copy of the original list of matrices.
+#
+# This procedure constructs and returns a copu of a given list of matrices.
+#
+############################################################################
+
+procedure copy_matrices( matrices)
+
+    new_lst := list( *matrices, &null)
+    every matrix := 1 to *matrices do
+	new_lst[matrix] := copy_matrix( matrices[matrix])
+
+    return new_lst
+end
+
+############################################################################
+#
+# Procedure: init_positions
+# Arguments: matrix - Matrix representing a brick which is to be initialized.
+# Returns  : Nothing.
+#
+# This procedure initializes a brick matrix with the starting positions in
+# the game pane matrix. Each element is set to a record containing the
+# row/column position of the game pane matrix and whether that square
+# (of the brick) is transparent or not.
+#
+############################################################################
+
+procedure init_positions( matrix)
+
+    start_column := MIDDLE+1 - (*matrix[1])/2
+
+    init_row := 1
+    every r := 1 to *matrix do {
+	init_column := start_column
+	every c := 1 to *matrix[r] do {
+	    if matrix[r][c] = 0 then
+		matrix[r][c] := position( init_row, init_column, TRUE)
+	    else
+		matrix[r][c] := position( init_row, init_column, FALSE)
+	    init_column := init_column+1
+	}
+	init_row := init_row+1
+    }
+    return matrix
+end
+
+############################################################################
+#
+# Procedure: print_matrix
+# Arguments: matrix - A matrix.
+# Returns  : Nothing.
+#
+# This procedure writes the given matrix to standard output, one row
+# per line. Used for debugging.
+#
+############################################################################
+
+procedure print_matrix( matrix)
+
+    every r := 1 to *matrix do {
+	every c := 1 to *matrix[r] do
+	    writes( image( matrix[r][c]) || " ")
+	write()
+    }
+    write()
+    return    
+end

@@ -1,0 +1,36 @@
+############################################################################
+#
+#	File:     lower.icn
+#
+#	Subject:  Program to map file names to lowercase
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 6, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program maps the names of all files in the current directory to
+#  lowercase.
+#
+############################################################################
+#
+#  Requires:   UNIX 
+#
+############################################################################
+
+procedure main()
+   local input, old, new
+
+   input := open("ls", "p")
+
+   while old := read(input) do {
+      new := map(old)
+      if new ~== old then rename(old, new)
+      }
+
+end

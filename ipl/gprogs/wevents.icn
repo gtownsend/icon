@@ -1,0 +1,140 @@
+############################################################################
+#
+#	File:     wevents.icn
+#
+#	Subject:  Program to report Icon window events
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 4, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     wevents reports all the events delivered to an Icon window.
+#  Each event produces a single line of output.  The program terminates
+#  after receiving and reporting a ^C, ^D, or DELETE key event.
+#
+#     Each event is reported both in Icon terms and in terms of its
+#  internal representation.  The output fields on each line are:
+#
+#	&interval (interval since previous event, in milliseconds)
+#	&control, &meta, &shift (modifier keys: c, m, or s if pressed)
+#	event returned by Event: keyword name, if any, or else image
+#	&x, &y (usually coordinates, but new size for resize event)
+#
+#	image() of the first value on the event queue
+#	hex dump of the second value (modifier flags and x coordinate)
+#	hex dump of the third value (encoded interval and y coordinate)
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: hexcvt, options, optwindw
+#
+############################################################################
+
+link hexcvt, options, optwindw
+
+$include "keysyms.icn"
+
+procedure main(args)
+   local w, q, e, xhex, yhex, eimage
+
+   w := optwindow(options(args, winoptions()))
+   WAttrib(w, "resize=on")
+
+   repeat {
+      q := Pending(Active())	# wait until event is queued
+      eimage := right(image(q[1]), 10) | "******"
+      xhex := hexstring(q[2], 8) | "********"
+      yhex := hexstring(q[3], 8) | "********"
+      e := Event(w)
+      write(
+         r(&interval, 5), " ",
+         if &control then "c" else "-",
+         if &meta then "m" else "-",
+         if &shift then "s" else "-",
+         " ", right(evname(e), 10),
+         " @", r(&x, 4), ",", l(&y, 6),
+         eimage, "  ",
+         left(xhex, 4), " ", right(xhex, 4), "  ",
+         left(yhex, 4), " ", right(yhex, 4),
+         )
+      if e === ("\^C" | "\^D" | "\177") then
+         break
+      if e === &resize & &x < 0 & &y < 0 then
+         break
+      }
+end
+
+
+# evname(e) -- translate e into text representation
+
+procedure evname(e)
+   return case e of {
+      &lpress:		"&lpress"
+      &mpress:		"&mpress"
+      &rpress:		"&rpress"
+      &lrelease:	"&lrelease"
+      &mrelease:	"&mrelease"
+      &rrelease:	"&rrelease"
+      &ldrag:		"&ldrag"
+      &mdrag:		"&mdrag"
+      &rdrag:		"&rdrag"
+      &resize:		"&resize"
+      Key_PrSc:		"Key_PrSc"
+      Key_ScrollLock:	"Key_ScrollLock"
+      Key_Pause:	"Key_Pause"
+      Key_Insert:	"Key_Insert"
+      Key_Home:		"Key_Home"
+      Key_PgUp:		"Key_PgUp"
+      Key_End:		"Key_End"
+      Key_PgDn:		"Key_PgDn"
+      Key_Left:		"Key_Left"
+      Key_Up:		"Key_Up"
+      Key_Right:	"Key_Right"
+      Key_Down:		"Key_Down"
+      Key_F1:		"Key_F1"
+      Key_F2:		"Key_F2"
+      Key_F3:		"Key_F3"
+      Key_F4:		"Key_F4"
+      Key_F5:		"Key_F5"
+      Key_F6:		"Key_F6"
+      Key_F7:		"Key_F7"
+      Key_F8:		"Key_F8"
+      Key_F9:		"Key_F9"
+      Key_F10:		"Key_F10"
+      Key_F11:		"Key_F11"
+      Key_F12:		"Key_F12"
+      default:		image(e)
+      }
+end
+
+
+#  r(v, n) -- right-justify image of v in at least n characters
+
+procedure r(v, n)
+   local s
+   s := image(v)
+   if *s < n then
+      s := right(s, n)
+   return s
+end
+
+
+#  l(v, n) -- left-justify image of v in at least n characters
+
+procedure l(v, n)
+   local s
+   s := image(v)
+   if *s < n then
+      s := left(s, n)
+   return s
+end

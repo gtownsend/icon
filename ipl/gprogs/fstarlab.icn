@@ -1,0 +1,70 @@
+############################################################################
+#
+#	File:     fstarlab.icn
+#
+#	Subject:  Program to draw fractal stars
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 29, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program draws fractal "stars".  For a discussion of fractal
+#  stars, see
+#
+#	Fractals; Endlessly Repeated Geometrical Figures, Hans Lauwerier,
+#	Princeton University Press, 1991, pp. 72-77.
+#
+#  and
+#
+#	Geometric and Artistic Graphics; Design Generation with
+#	Microcomputers, Jean-Paul Delahaye, Macmillan, 1987, pp. 55-63.
+#	
+#  The window is square.  The window size can be given on the command line,
+#  default 600.
+#
+#  The present user interface is crude.  To see all the fractal stars
+#  that are provided by default, type
+#
+#	all
+#
+#  from standard input.  After each star is drawn, the program waits
+#  for an event before going on to the next star.
+#
+#  Alternatively, a single star can be drawn by typing its name preceeded
+#  by an equals sign.  The names are fstar01 through fstar13.  For example,
+#
+#	=fstar09
+#
+#  draws the ninth star.
+#
+#  In future extensions, provision will be made for user-defined stars.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  drawlab, fstars, fstartbl
+#
+############################################################################
+
+link drawlab
+link fstars
+link fstartbl
+
+global size
+
+procedure main(argl)
+
+   size := integer(argl[1]) | 600
+
+   drawlab(fstar, fstartbl, "fractal stars")
+
+end

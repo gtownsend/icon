@@ -1,0 +1,421 @@
+############################################################################
+#
+#	File:     viface.icn
+#
+#	Subject:  Procedures for interfacing vidgets
+#
+#	Authors:  Jon Lipp and Gregg M. Townsend
+#
+#	Date:     April 1, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Utility procedures in this file:
+#	VDraw()
+#	VErase()
+#	VOutline()
+#	VResize()
+#	VRemove()
+#	VInsert()
+#	VEvent()
+#	VRegister()
+#	VUnregister()
+#	VOpenDialog()
+#	VFormat()
+#	VAddClient()
+#	VToggle()
+#	VUnSet()
+#	VSetState()  [formerly SetVidget() and VSet()]
+#	VGetState()
+#	VSetItems()
+#	VGetItems()
+#	ProcessEvent()
+#	GetEvents()
+#	VEcho()
+#	VSetFont()
+#
+############################################################################
+#
+#  Includes:  vdefns
+#
+############################################################################
+#
+#  Links:  vidgets
+#
+############################################################################
+
+link vidgets
+
+$include "vdefns.icn"
+
+procedure VDraw(vid, code)
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+   if not (type(vid) == !Vrecset ) then
+      _Vbomb("invalid vidget parameter to VDraw()")
+
+   vid.V.draw(vid, code)
+end
+
+procedure VErase(vid)
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+   if not (type(vid) == !Vrecset) then
+      _Vbomb("invalid vidget parameter to VErase()")
+   if type(vid) == "Vline_rec" then
+      erase_Vline(vid)
+   else
+      EraseArea(vid.win, vid.ax, vid.ay, vid.aw, vid.ah)
+end
+
+procedure VOutline(vid)
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+   if not (type(vid) == !Vrecset ) then
+      _Vbomb("invalid vidget parameter to VOutline()")
+
+   vid.V.outline(vid)
+end
+
+procedure VResize(vid, x, y, w, h)
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+   if not (type(vid) == !Vrecset ) then
+      _Vbomb("invalid vidget parameter to VResize()")
+   if type(vid) == "Vline_rec" then {
+      vid.ax1 := \x
+      vid.ay1 := \y
+      vid.ax2 := vid.ax1 + \w
+      vid.ay2 := vid.ay1 + \h
+   }
+   else {
+      vid.ax := \x
+      vid.ay := \y
+      vid.aw := \w
+      vid.ah := \h
+   }
+   vid.V.resize(vid)
+end
+
+procedure VRemove(frame, vid, erase)
+   if not (type(frame) ? find("frame") ) then
+      _Vbomb("invalid frame parameter to VRemove()")
+   else if not (type(vid) == !Vrecset ) then
+      _Vbomb("invalid vidget parameter to VRemove()")
+ 
+   frame.V.remove(frame, vid, erase)
+end
+
+procedure VInsert(frame, vid, x, y, w, h)
+   static image
+
+   initial image := proc("image", 0)	# protect attractive name
+
+   if not (type(frame) ? find("frame") ) then
+      _Vbomb("invalid frame parameter to VInsert()")
+   else if not (type(vid) == !Vrecset ) then
+      _Vbomb("invalid vidget parameter to VInsert(): " || image(vid))
+   else if (\x, not numeric(x) ) then
+      _Vbomb("non-numeric x parameter to VInsert()")
+   else if (\y, not numeric(y) ) then
+      _Vbomb("non-numeric y parameter to VInsert()")
+   else if (\w, not numeric(w) ) then
+      _Vbomb("non-numeric w parameter to VInsert()")
+   else if (\h, not numeric(h) ) then
+      _Vbomb("non-numeric y parameter to VInsert()")
+   frame.V.insert(frame, vid, x, y, w, h)
+end
+
+procedure VEvent(vid, e, x, y)
+   if not (type(vid) == !Vrecset ) then
+      _Vbomb("invalid vidget parameter to VEvent()")
+
+   return vid.V.event(vid, e, x, y)
+end
+
+############################################################################
+#  The following two procedure are only for use with dialog box frames
+#  and menu_frames.
+#
+#  VRegister is analogous to VInsert, except, it tells the dialog box that
+#  this is an editable field.
+############################################################################
+procedure VRegister(dialog, vid, x, y, w, h)
+   if not (type(dialog) ? find("dialog_frame") ) then
+      _Vbomb("invalid dialog parameter to VRegister()")
+   else if not (type(vid) == !Vrecset ) then
+      _Vbomb("invalid vidget parameter to VRegister()")
+   else if (\x, not numeric(x) ) then
+      _Vbomb("Non-numeric x parameter to VRegister()")
+   else if (\y, not numeric(y) ) then
+      _Vbomb("Non-numeric y parameter to VRegister()")
+   else if (\w, not numeric(w) ) then
+      _Vbomb("Non-numeric w parameter to VRegister()")
+   else if (\h, not numeric(h) ) then
+      _Vbomb("Non-numeric y parameter to VRegister()")
+
+   dialog.F.register(dialog, vid, x, y, w, h)
+end
+
+procedure VUnregister(dialog, vid)
+   if not (type(dialog) ? find("dialog_frame") ) then
+      _Vbomb("invalid dialog parameter to VUnregister()")
+   else if not (type(vid) == !Vrecset ) then
+      _Vbomb("invalid vidget parameter to VUnregister()")
+
+   dialog.F.unregister(dialog, vid)
+end
+
+#
+# Vopen_dialog
+# Opens a dialog for input.  Returns the list of new objects, or the
+# original data if "cancel" was picked.
+#
+# open a dialog box at (x, y);  dialog contains a record of type
+# 'dialog', data is a list of initial values corresponding to the
+# objects "registered" with the dialog; default_string is the label
+# of the control button to press upon hitting a return.
+#
+# If x is null and y is not, y is an "ID" for the dialog box, which
+# opens at the default location but can be moved by the user.  The
+# location is remembered and applied to subsequent opens.
+#
+procedure VOpenDialog(dialog, x, y, data, default_string)
+   if not (type(dialog) ? find("dialog_frame") ) then
+      _Vbomb("invalid dialog parameter to VOpenDialog()")
+   if \x & not (numeric(x) & numeric(y)) then
+      _Vbomb("invalid x or y parameter passed to VOpenDialog()")
+   /data := []
+   return \(dialog.F.open_dialog(dialog, x, y, data, default_string)) | data
+end
+
+
+#
+#  VFormat resizes the frame, and figures out the width and height
+#  automatically, contingent on all vidgets being inserted or registered
+#  with absolute coordinates.
+#
+procedure VFormat(frame)
+   if not (type(frame) ? find("frame") ) then
+      _Vbomb("invalid frame parameter to VFormat()")
+
+   frame["F"].format(frame)
+end
+
+############################################################################
+#  The following procedure is only for use with couplers.
+############################################################################
+
+procedure VAddClient(coupler, client, caller)
+   if not (type(coupler) ? find("coupler") ) then
+      _Vbomb("invalid coupler parameter to VAddClient()")
+
+   coupler.V.add_client(coupler, client, caller)
+end
+
+procedure VToggle(coupler)
+   if not (type(coupler) ? find("coupler") ) then
+      _Vbomb("invalid coupler parameter to VToggle()")
+
+   coupler.V.toggle(coupler)
+end
+
+procedure VUnSet(coupler)
+   if not (type(coupler) ? find("coupler") ) then
+      _Vbomb("invalid coupler parameter to VUnSet()")
+
+   coupler.V.unset(coupler)
+end
+
+procedure VLock(coupler)
+   if not (type(coupler) ? find("coupler") ) then
+      _Vbomb("invalid coupler parameter to VLock()")
+
+   coupler.locked := 1
+end
+
+procedure VUnLock(coupler)
+   if not (type(coupler) ? find("coupler") ) then
+      _Vbomb("invalid coupler parameter to VUnLock()")
+
+   coupler.locked := &null
+end
+
+############################################################################
+# VSetState sets the vidget | coupler to the value.
+############################################################################
+procedure VSetState(vid, val, code)
+   if type(vid) ? find("coupler") then
+      return (\(\vid).V.set)(vid, , val, code)
+   else if type(vid) == !Vrecset then
+      return (\(\vid).V.set_value)(vid, val, code)
+   else 
+      _Vbomb("invalid vidget parameter to VSetState()")
+end
+
+procedure SetVidget(vid, val, code)	# old name
+   SetVidget := VSetState
+   return VSetState(vid, val, code)
+end
+
+procedure VSet(vid, val, code)		# older name
+   VSet := VSetState
+   return VSetState(vid, val, code)
+end
+
+############################################################################
+# VGetState returns the value of the vidget state.
+############################################################################
+procedure VGetState(vid)
+   if type(vid) ? find("scroll" | "slide" | "radio" | "text") then
+      return (\vid.callback).value
+   else if vid.V.set_value === set_value_Vlist then		# list vidget
+      return get_value_Vlist(vid)
+   else if type(vid) == "Vbutton_rec" &
+      (vid.V.event === event_Vtoggle) then return(\vid.callback).value
+   else
+      fail
+end
+
+############################################################################
+# VSetItems sets the items displayed by a list vidget.
+############################################################################
+procedure VSetItems(vid, val)
+   if vid.V.set_value === set_value_Vlist then	# list vidget
+      return set_items_Vlist(vid, val)
+   else if type(vid) == "Vframe_rec" & type(vid.lookup) == "list" &
+         type(vid.lookup[1]) == "Vmenu_item_rec" then
+      return Vmenu_set_items(vid, val)
+   else
+      fail
+end
+
+############################################################################
+# VGetItems returns the items displayed by a list vidget.
+############################################################################
+procedure VGetItems(vid)
+   if vid.V.set_value === set_value_Vlist then	# list vidget
+      return get_items_Vlist(vid)
+   else if type(vid) == "Vframe_rec" & type(vid.lookup) == "list" &
+         type(vid.lookup[1]) == "Vmenu_item_rec" then
+      return Vmenu_get_items(vid)
+   else 
+      fail
+end
+
+
+############################################################################
+# Event handlers. 
+############################################################################
+
+procedure GetEvents(vidget, missed, all, resize)
+   repeat ProcessEvent(vidget, missed, all, resize)
+end
+
+procedure ProcessEvent(vidget, missed, all, resize)
+   local event, lrv
+
+   type(vidget) ? {
+      if not find("frame")
+      then _Vbomb("invalid frame argument to ProcessEvent()")
+      }
+
+   event := Event(vidget.win)
+
+   if event === &resize then {
+      (\resize)(vidget, event, &x, &y)
+      VEvent(vidget, event, &x, &y)
+      }
+
+   (\(lrv := vidget.V.lookup(vidget,&x,&y)) & lrv.V.event(lrv,event,&x,&y)) |
+      (\missed)(event, &x, &y)
+
+   (\all)(event, &x, &y)
+
+   return event
+
+end
+
+
+############################################################################
+#  VEcho(v, x) -- echoing callback routine
+#
+#  VEcho can be used as the default callback routine passed to vsetup.
+#  It just prints a message on standard output giving the value of x.
+############################################################################
+
+procedure vecho(v, x)	# old name
+   vecho := VEcho
+   return VEcho(v, x)
+end
+
+procedure VEcho(v, x)
+   static image
+
+   initial image := proc("image", 0)	# protect attractive name
+
+   writes("callback: id=", v.id, ", value=")
+   if type(x) == "list" then {
+      writes("[")
+      writes(image(x[1]))
+      every writes(",", image(x[2 to *x]))
+      writes("]")
+      }
+   else
+      writes(image(x))
+   write()
+   return
+end
+
+
+############################################################################
+#  VSetFont(win) -- set vidget font in window.
+#
+#  VSetFont tries to set a 7-pixel-wide font for use by VIB and vidgets.
+############################################################################
+
+procedure vsetfont(win)		# old name
+   vsetfont := VSetFont
+   return VSetFont(win)
+end
+
+procedure VSetFont(win)
+   local spec, maybe
+
+   /win := &window
+   if WAttrib(win, "fwidth") = VFWidth then
+      return win			# existing font is acceptable
+
+   every spec := 
+
+$ifdef _X_WINDOW_SYSTEM
+         "lucidasanstypewriter-bold-12" |
+         "-*-lucidatypewriter-bold-r-*-*-12-*-*-*-*-70-iso8859-1" | 
+         "-*-lucidatypewriter-bold-r-*-*-*-*-*-*-*-70-iso8859-1" | 
+         "-*-*-r-*-sans-*-*-*-*-m-70-iso8859-1" |
+         "-*-*-r-*-*-*-*-*-*-m-70-iso8859-1" |
+         "-*-*-r-*-*-*-*-*-*-c-70-iso8859-1"
+$else
+         ("mono,bold," | "mono," | "typewriter,") || (12 | 11 | 13 | 10 | 14)
+$endif
+
+      do {
+         Font(win, spec) | next		# try a font
+         /maybe := spec			# remember first success
+         if WAttrib(win, "fwidth") = VFWidth then
+            return win			# this font is right size
+         }
+
+   # No font was the right size.  Go back to the first one that was legal.
+   # If nothing works, return with the font unchanged.
+   Font(win, \maybe)
+   return win
+end

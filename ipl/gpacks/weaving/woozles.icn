@@ -1,0 +1,77 @@
+############################################################################
+#
+#	File:     woozles.icn
+#
+#	Subject:  Program to test search path idea
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 21, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  AD HOC
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics  
+#
+############################################################################
+#
+#  Links:  turtle, wopen
+#
+############################################################################
+
+link turtle
+link wopen
+
+$define Limit 40
+
+procedure main()
+
+   TGoto(10, 10)
+
+   traverse(0)
+
+   WDone()
+
+end
+
+$define Length 10
+$define Delay 10
+
+procedure traverse(i)
+
+   if i > Limit then return
+
+   TRight()
+   TDraw(Length)		# segment 1
+   WDelay(Delay)
+   TRight()
+   every 1 to i + 1 do		# segment 2
+      TDraw(Length)
+   WDelay(Delay)
+   TRight()			# segment 3
+   every 1 to i + 1 do
+      TDraw(Length)
+   WDelay(Delay)
+   TLeft()
+   TDraw(Length)		# segment 4
+   WDelay(Delay)
+   TLeft()
+   every 1 to i + 2 do		# segment 5
+      TDraw(Length)
+   WDelay(Delay)
+   TLeft()
+   every 1 to i + 2 do		# segment 6
+      TDraw(Length)
+
+   WDelay(10 + Delay)
+
+   traverse(i + 2)
+
+end

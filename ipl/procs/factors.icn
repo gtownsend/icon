@@ -1,0 +1,328 @@
+############################################################################
+#
+#	File:     factors.icn
+#
+#	Subject:  Procedures related to factors and prime numbers
+#
+#	Authors:  Ralph E. Griswold and Gregg M. Townsend
+#
+#	Date:     June 12, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This file contains procedures related to factorization and prime
+#  numbers.
+#
+#	divisors(n)	generators the divisors of n.
+#
+#	factorial(n)	returns n!.  It fails if n is less than 0.
+#
+#	factors(i, j)	returns a list containing the factors of i limited
+#			to maximum value j; default, no limit.
+#
+#	genfactors(i, j)
+#			like factors(), except factors are generated as
+#			they are found.
+#
+#	gfactorial(n, i)
+#			generalized factorial; n x (n - i) x (n - 2i) x ...
+#
+#	ispower(i, j)	succeeds and returns root if i is k^j
+#
+#	isprime(n)	succeeds if n is a prime.
+#
+#	nxtprime(n)	returns the next prime number beyond n.
+#
+#	pfactors(i)	returns a list containing the primes that divide i.
+#
+#	prdecomp(i)	returns a list of exponents for the prime
+#			decomposition of i.
+#
+#	prime()		generates the primes.
+#
+#	primel()	generates the primes from a precompiled list.
+#
+#	primorial(i,j)	product of primes j <= i; j defaults to 1.
+#
+#	sfactors(i, j)	as factors(i, j), except output is in string form
+#			with exponents for repeated factors
+#
+############################################################################
+#
+#  Notes:  Some of these procedures are not fast enough for extensive work.
+#  Factoring is believed to be a hard problem. factors() should only be
+#  used for small numbers.
+#
+############################################################################
+#
+#  Requires:  Large-integer arithmetic and prime.lst for primel().
+#
+############################################################################
+#
+#  Links:  io, numbers
+#
+############################################################################
+
+link io
+link numbers
+
+procedure divisors(i)		#: divisors of integer
+   local divs, count, j, k
+
+   i := integer(i)
+
+   divs := set(factors(i))
+   delete(divs, 1)
+   delete(divs, i)
+
+   count := *divs
+
+   repeat {
+      every j := !divs do
+         every k := j * !divs do
+            if i % k = 0 then insert(divs, k)
+      if count = *divs then break else count := *divs
+      }
+
+   suspend !sort(divs)
+
+end
+
+procedure factorial(n)		#: factorial
+   local i
+
+   n := integer(n) | fail
+
+   if n < 0 then fail
+
+   i := 1
+
+   every i *:= 1 to n
+
+   return i
+
+end
+
+procedure factors(i, j)		#: factors of integer
+   local facts, p
+
+   i := integer(i)
+
+   /j := i / 2
+
+   facts := []
+
+### needs optimizations
+
+   every p := prime() do {
+      if p > j then break
+      while i % p = 0 do {
+         put(facts, p)
+         i /:= p
+         }
+      if i = 1 then break
+      }
+
+   if i > 1 then put(facts, i)
+
+   return facts
+
+end
+
+procedure genfactors(i, j)		#: generate factors of integer
+   local p
+
+   i := integer(i)
+
+   /j := i / 2
+
+### needs optimizations
+
+   every p := prime() do {
+      if p > j then break
+      while i % p = 0 do {
+         suspend p
+         i /:= p
+         }
+      if i = 1 then break
+      }
+
+end
+
+procedure gfactorial(n, i)		#: generalized factorial
+   local j
+
+   n := integer(n) | fail
+   i := integer(i) | 1
+
+   if n < 0 then fail
+   if i < 1 then fail
+
+   j := n
+
+   while n > i do {
+      n -:= i
+      j *:= n
+      } 
+
+   return j
+
+end
+
+procedure pfactors(i)		#: primes that divide integer
+   local facts, p
+
+   facts := []
+
+### needs optimizations
+
+   every p := prime() do {
+      if p > i then break
+      if i % p = 0 then
+         put(facts, p)
+      }
+
+   return facts
+
+end
+
+procedure ispower(i, j)		#: test for integer power
+  local k, n
+
+   k := (n := round(i ^ (1.0 / j))) ^ j
+   if k = i then return n else fail
+
+end
+
+#  NOTE:  The following method for testing primality, called Baby Division,
+#  is about the worst possible.  It is inappropriate for all but small
+#  numbers.
+
+procedure isprime(n)		#: test for primality
+   local p, limit
+
+   if n = 1 then fail		# 1 is not a prime
+
+   limit := sqrt(real(n))	# may get integer overflow
+
+   every p := prime() do {
+      if p >= n then return n
+      if n % p = 0 then fail
+      }
+
+end
+
+procedure nxtprime(n)		#: next prime beyond n
+   local d
+   static step, div
+
+   initial {
+      step := [1,6,5,4,3,2,1,4,3,2,1,2,1,4,3,2,1,2,1,4,3,2,1,6,5,4,3,2,1,2]
+      div := [7]			# list of known primes
+      }
+
+   n := integer(n) | runerr(101, n)
+   if n < 7 then			# handle small primes specially
+      return n < (2 | 3 | 5 | 7)
+
+   repeat {
+      n +:= step[n % 30 + 1]		# step past multiples of 2, 3, 5
+      every (d := !div) | |put(div, d := nxtprime(d)) do {  # get test divisors
+	 if n % d = 0 then		# if composite, try a larger candidate
+	    break
+	 if d * d > n then		# if not divisible up to sqrt, is prime
+	    return n
+	 }
+      }
+
+end
+
+procedure prdecomp(i)		#: prime decomposition
+   local decomp, count, p
+
+   decomp := []
+
+### needs optimizations
+
+   every p := prime() do {
+      count := 0
+      while i % p = 0 do {
+         count +:= 1
+         i /:= p
+         }
+      put(decomp, count)
+      if i = 1 then break
+      }
+
+   return decomp
+
+end
+
+procedure prime()		#: generate primes
+   local i, k
+
+   suspend 2 | ((i := seq(3, 2)) & (not(i = (k := (3 to sqrt(i) by 2)) *
+      (i / k))) & i)
+
+end
+
+procedure primel()		#: primes from list
+   local pfile
+
+   pfile := dopen("primes.lst") | stop("*** cannot open primes.lst")
+
+   suspend !pfile
+
+end
+
+procedure primorial(i, j)		#: product of primes
+   local m, k, mark
+
+   /j := 1
+
+   m := 1
+   mark := &null			# to check for completeness
+
+   every k := primel() do {		# limited by prime list
+      if k <= j then next
+      if k <= i then m *:= k
+      else {
+         mark := 1
+         break
+         }
+      }
+
+   if \mark then return m else fail	# fail if list is too short
+
+end
+
+procedure sfactors(i, j)
+   local facts, result, term, nterm, count
+
+   facts := factors(i, j)
+
+   result := ""
+
+   term := get(facts)			# will be at least one
+   count := 1
+   
+   while nterm := get(facts) do {
+      if term = nterm then count +:= 1
+      else {
+         if count > 1 then result ||:= " " || term || "^" || count
+         else result ||:= " " || term
+         count := 1
+         term := nterm
+         }
+      }
+
+   if count > 1 then result ||:= " " || term || "^" || count
+   else result ||:= " " || term
+
+   return result[2:0]
+
+end

@@ -1,0 +1,38 @@
+############################################################################
+#
+#	File:     idepth.icn
+#
+#	Subject:  Program to report maximum recursion depth
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 26, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program processes trace output and reports the maxium depth of
+#  recursion.
+#
+############################################################################
+
+procedure main()
+   local i, max
+
+   max := 0
+
+   every !&input ? {
+      tab(upto('(')) ? {
+         i := 0
+         every find("| ") do
+            i +:= 1
+         max <:= i
+         }
+      }
+
+   write(max)
+
+end

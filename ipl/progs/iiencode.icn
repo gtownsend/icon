@@ -1,0 +1,217 @@
+############################################################################
+#
+#       File:     iiencode.icn
+#
+#       Subject:  Program to encode text in the style of uuencode
+#
+#       Author:   Richard L. Goerwitz, enhanced by Frank J. Lhota
+#
+#       Date:     January 10, 1995
+#
+###########################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#       Version:  2.0
+#
+###########################################################################
+#
+#  This is an Icon port of the UNIX/C uuencode utility.  Since
+#  uuencode is publicly distributable BSD code, I simply grabbed a
+#  copy, and rewrote it in Icon.  The only basic functional changes I
+#  made to the program were:  (1) To simplify the notion of file mode
+#  (everything is encoded with 0644 permissions), and (2) to add sup-
+#  port for xxencode format (which will generally pass unscathed even
+#  through EBCDIC sites).
+#
+#  Iiencode's usage is compatible with that of the UNIX uuencode
+#  command, i.e. a first (optional) argument gives the name the file
+#  to be encoded.  If this is omitted, iiencode just uses the standard
+#  input.  The second argument specifies the name the encoded file
+#  should be given when it is ultimately decoded.
+#
+#  Extensions to the base uuencode command options include -x and -o.
+#  An -x tells iiencode to use xxencode (rather than uuencode) format.
+#  Option -o causes the following argument to be used as the file
+#  iiencode is to write its output to (the default is &output).  Note
+#  that, on systems with newline translation (e.g. MS-DOS), the -o
+#  argument should always be used.
+#
+#    iiencode [infile] [-x] remote-filename [-o output-filename]
+#
+#
+#  FIXES: Speeded up substantually (more than twice as fast on my
+#  machine) by using a more icon-ish algorithm.  We encode in two
+#  steps:
+#
+#  1)   We first "unpack" the bytes by taking groups of 3 bytes (24
+#       bits) and spreading them out by inserting two 0 bits before
+#       every block of 6 bits.  The result is that each group of 3     
+#       bytes is unpacked to 4 "small bytes", each <<= "\x3F".                          
+#  2)   The unpacked bytes are mapped to the coded line by using the
+#       Icon map function.                      
+#
+#  There are numerous advantages to this approach.  The Icon map
+#  function is much faster than the 'C'-ish alternatives.  We can
+#  process the file one line at a time. Also, the different encoding
+#  mechanisms (old BSD, new BSD, xxencode) can be produces by simply
+#  using different map parameters.
+#
+############################################################################
+#
+#  See also: iidecode.icn
+#
+############################################################################
+
+link options
+
+procedure main ( a )
+
+    local in_filename, out_filename, in, out, is_xx, remotename, opt
+
+    # Parse arguments.
+
+    opt := options ( a, "-o:-x", Usage )
+    is_xx := opt [ "x" ]
+    out_filename := opt [ "o" ]
+    case *a of {
+    1 :
+    	in_filename := remotename := a [ 1 ]
+    2 :
+	{
+	in_filename := a [ 1 ]
+	remotename  := a [ 2 ]
+	}
+    default :
+	Usage ( "", write, 2 )
+    }
+       
+    # If no input filename was supplied, use &input.
+    if /in_filename then
+	in := &input
+    else
+	in := open ( in_filename, "ru" ) |
+	    Usage ( "Can't open input file " || in_filename || "." )
+
+    # If an output filename was specified, open it for writing.
+    if /out_filename then
+	out := &output
+    else
+	out := open ( out_filename, "w" ) |
+	    Usage ( "Can't open output file " || out_filename || "." )
+
+    # This generic version of uuencode treats file modes in a primitive
+    # manner so as to be usable in a number of environments.  Please
+    # don't get fancy and change this unless you plan on keeping your
+    # modified version on-site (or else modifying the code in such a
+    # way as to avoid dependence on a specific operating system).
+    write ( out, "begin 644 ", remotename )
+    encode ( out, in, is_xx )
+    write ( out, "end" )
+
+    every close ( ( &input ~=== in ) | ( &output ~=== out ) )
+    exit ( 0 )
+
+end
+
+###########################################################################
+#
+# Writes msg and the Usage line to &errout using the output procedure Show,
+# which defaults to stop.  If Show does not stop processing and \errcode,
+# exit with errcode.
+#
+###########################################################################
+procedure Usage ( msg, Show, errcode )
+    static usage
+    initial usage := "usage:  iiencode [infile] [-x] _
+	remote-filename [-o output-filename]"
+
+    /Show := stop
+    Show ( &errout, msg, "\n", usage )
+    exit ( \errcode )
+    return msg
+end
+
+###########################################################################
+#
+# Reads all of file in, encodes it, and writes the encoded lines to out.
+# "uu" encoding is used unless \is_xx, in which case "xx" encoding is used.
+#
+###########################################################################
+procedure encode ( out, in, is_xx )
+
+    # Copy from in to out, encoding as you go along.
+
+    local line, coded
+    static unpacked
+    initial unpacked := "_
+	\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F_
+	\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F_
+	\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2A\x2B\x2C\x2D\x2E\x2F_
+	\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3A\x3B\x3C\x3D\x3E\x3F"
+
+    if \is_xx then {
+	coded := "_
+	    +-0123456789ABCD_
+	    EFGHIJKLMNOPQRST_
+	    UVWXYZabcdefghij_
+	    klmnopqrstuvwxyz"
+    }
+    else {
+	# 
+	# To get the BSD old code, replace the next 2 lines with:
+	#       coded := " _
+	#            !\"#$%&'()*+,-./_
+	#
+	coded := "_
+	    `!\"#$%&'()*+,-./_
+	    0123456789:;<=>?_
+	    @ABCDEFGHIJKLMNO_
+	    PQRSTUVWXYZ[\\]^_"
+    }
+
+    # 1 (up to) 45 character segment
+    while line := reads ( in, 45 ) do {
+	write ( out,
+	    map ( char ( *line ) || unpack ( line ), unpacked, coded )
+	)
+    }
+
+    # Output a zero-length line.
+    write ( out, coded [ 1 ] )
+    
+end
+
+###########################################################################
+#
+# Takes groups of 3 bytes in s and expands the groups to 4 bytes.  Each
+# byte in the unpacked group has 2 zero high bits, i.e. is <<= "\x3F".
+# If *s is not divisible by 3, we pad s with blanks on the right
+# to make up the last group.
+#
+###########################################################################
+procedure unpack ( s )
+
+    local n, grp
+
+    s ? {
+	s := ""
+
+	while grp := ( move ( 3 ) | left ( "" ~== tab ( 0 ), 3 ) ) do
+	    {
+	    n := 0
+	    grp ? while n := ord ( move ( 1 ) ) + ( n * 16r100 )
+
+	    s ||:=
+		char ( ishift ( iand ( n, 16rFC0000 ), -18 ) ) ||
+		char ( ishift ( iand ( n, 16r03F000 ), -12 ) ) ||
+		char ( ishift ( iand ( n, 16r000FC0 ), - 6 ) ) ||
+		char (          iand ( n, 16r00003F )        )
+	    }
+	}
+
+    return s
+
+end

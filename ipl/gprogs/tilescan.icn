@@ -1,0 +1,649 @@
+############################################################################
+#
+#	File:     tilescan.icn
+#
+#	Subject:  Program to select tile from an image
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 14, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program is designed to assist in locating areas within an image
+#  that, when tiled, produce a desired effect.  For example, a background
+#  may consist of a tiled image; this program can be used to find the
+#  smallest tile for the repeat (by "eye-balling").  It's worth noting
+#  that interesting images can be found for other settings.  For example,
+#  another interesting use of this program is to produce striped patterns by
+#  selecting a row or column of an image to get a tile that is one character
+#  wide.  Sometimes a few rows or columns give an interesting "fabric"
+#  effect.
+#
+#  There are three windows:
+#
+#	the VIB control window
+#	the source image window
+#	a repeat window, which shows the selection from the source
+#	  image, tiled.
+#
+#  The selection from the source image is shown as a marquee in the
+#  source image window.  When a source image is loaded, the marquee starts
+#  with the entire image.  The marquee can be changed by buttons and
+#  arrow-key events on the control window (not the source image window).
+#
+#  The arrow keys have two modes.  With no modifier, they nudge the
+#  location of the marquee.  With the meta-key modifier, they nudge
+#  the dimensions of the marquee.
+#
+#  The reset button resets the marquee to the entire image.
+#
+#  The current selection can be mirrored using the mirror button.
+#
+#  The following features are provided through keyboard shortcuts,
+#  the File menu, and in some cases, on-board buttons:
+#
+#	@M	mirror selection
+#	@M	mirror selection
+#	@O	open new source image
+#	@P	pick a source image from GIF files in the current directory
+#	@Q	quit application
+#	@S	save current selection as an image
+#
+#  The repeat window can be resized by the user, but it is not redrawn
+#  until the marque is changed or the refresh button is pushed.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics, UNIX (for "pick" feature)
+#
+############################################################################
+#
+#  Links:   grecords, interact, mirror, tile
+#
+############################################################################
+#
+#  Includes:  keysyms.icn
+#
+############################################################################
+
+link grecords
+link interact
+link mirror
+link tile
+
+$include "keysyms.icn"
+
+#  Globals related to windows:
+
+global controls		# VIB control window
+global pattern		# repeat window
+global screen		# source image window visible
+global source		# source image window hidden
+global symmetry		# mirroring window
+
+global posx		# x position relative to interface window
+global posy		# y position relative to repeat window
+
+global sx		# marquee location information
+global sy
+
+#  Globals related to the selection:
+
+global current		# current selection record
+global hmax		# maximum height of source image
+global wmax		# maximum width of source image
+global previous		# previous selection record
+
+global vidgets		# table of interface vidgets
+
+procedure main()
+   local atts, x1, y1
+
+   atts := ui_atts()
+   put(atts,  "posx=10", "posy=10")
+
+   controls := (WOpen ! atts) | ExitNotice("Cannot open control window.")
+
+   vidgets := ui()
+
+   init()
+
+   repeat {
+      while *Pending(controls) > 0 do
+         ProcessEvent(vidgets["root"], , shortcuts)
+      while *Pending(\screen) > 0 do
+         if Event(screen) === &lpress then draw_marquee()
+      }
+
+end
+
+#  Callback that handles all the buttons that change x, y, w, and h.
+
+procedure dimens_cb(vidget, value)
+
+   if /source then fail
+
+   # Cute code alert:  The selected reversible assignment is performed
+   # and passed to check().  It checks the resulting selection rectangle
+   # and fails if it's not valid.  That failure causes the reversible
+   # assignment to be undone and the expression fails, leaving the
+   # selection as it was.
+
+   case value of {
+      "w max":  current.w := (wmax - current.x)
+      "h max":  current.h := (hmax - current.y)
+      "w = 1":  current.w := 1
+      "h = 1":  current.h := 1
+      "full":   {
+         current.h := hmax
+         current.w := wmax
+         current.x := 0
+         current.y := 0
+         }
+      "w / 2":    check(current.w <- current.w / 2)
+      "h / 2":    check(current.h <- current.h / 2)
+      "w * 2":    check(current.w <- current.w * 2)
+      "h * 2":    check(current.h <- current.h * 2)
+      } | fail
+
+   show()
+
+   return
+
+end
+
+procedure draw_marquee()
+   local x1, y1
+
+   current.x := &x
+   current.y := &y
+   current.h := current.w := 0
+
+   update()
+
+   repeat {
+      case Event(screen) of {
+         &ldrag:  update_marquee()
+         &lrelease:  {
+            update_marquee()
+            Raise(controls)
+            return
+            }
+         }
+      }
+
+end
+
+procedure update_marquee()
+
+   if &x < 0 then &x := 0
+   if &y < 0 then &y := 0
+   if &x > wmax then &x := wmax
+   if &y > hmax then &y := hmax
+   current.w := &x - current.x
+   current.h := &y - current.y
+
+   show()
+
+   return
+
+end
+
+procedure location_cb(vidget, value)
+
+   if /source then fail
+
+   # Cute code alert:  The selected reversible assignment is performed
+   # and passed to check().  It checks the resulting selection rectangle
+   # and fails if it's not valid.  That failure causes the reversible
+   # assignment to be undone and the expression fails, leaving the
+   # selection as it was.
+
+   case value of {
+      "nw":     current.x := current.y := 0
+      "ne":     {
+          current.x := wmax - current.w
+          current.y := 0
+          }
+      "se":     {
+          current.x := wmax - current.w
+          current.y := hmax - current.h
+          }
+      "sw":     {
+          current.x := 0
+          current.y := hmax - current.h
+          }
+      "x max":  current.x := wmax - current.w
+      "y max":  current.y := hmax - current.h
+      "center": {
+         current.x := (wmax - current.w) / 2
+         current.y := (hmax - current.h) / 2
+         }
+      "home":   {
+         current.x := 0
+         current.y := 0
+         }
+      "x / 2":    current.x <- current.x / 2
+      "y / 2":    current.y <- current.y / 2
+      "x * 2":    check(current.x <- current.x * 2)
+      "y * 2":    check(current.y <- current.y * 2)
+         } | fail
+   show()
+
+   return
+
+end
+
+#  Check validity of selection.
+
+procedure check()
+
+   if
+      (0 <= current.w <= (wmax - current.x)) &
+      (0 <= current.h <= (hmax - current.y)) &
+      (0 <= current.x <= hmax) &
+      (0 <= current.y <= wmax)
+   then return else {
+      Alert()
+      fail
+      }
+
+end
+
+#  Copy hidden source window to a visible window.
+
+procedure copy_source(label)
+
+   screen := WOpen(
+      "size=" || WAttrib(source, "width") || "," || WAttrib(source, "height"),
+      "posx=" || posx,
+      "posy=" || posy,
+      "label=" || label,
+      "drawop=reverse",
+      "linestyle=onoff"
+      ) | ExitNotice("Cannot open image window.")
+
+   CopyArea(source, screen)
+
+   Raise(controls)
+
+   wmax := WAttrib(source, "width")
+   hmax := WAttrib(source, "height")
+
+   WAttrib(pattern, "width=" || (WAttrib(screen, "width")))
+   WAttrib(pattern, "height=" || (WAttrib(screen, "height")))
+   EraseArea(pattern)
+
+   current := rect(0, 0, wmax, hmax)
+
+   show()
+
+   return
+
+end
+
+#  File menu callback.
+
+procedure file_cb(vidget, value)
+
+   case value[1] of {
+      "open  @O":        get_image()
+      "pick  @P":        pick()
+      "quit  @Q":        exit()
+      "save  @S":        save_cb()
+      "save mirrored":   mirror_snap()
+      }
+
+   return
+
+end
+
+#  Utility procedure to get new source image.
+
+procedure get_image()
+
+   WClose(\source)
+   WClose(\screen)
+   WClose(\symmetry)
+   EraseArea(pattern)
+
+   repeat {
+      (OpenDialog("Open image:") == "Okay") | fail
+      source := WOpen("canvas=hidden", "image=" || dialog_value) | {
+         Notice("Can't open " || dialog_value || ".")
+         next
+         }
+      copy_source(dialog_value)
+      wmax := WAttrib(source, "width")
+      hmax := WAttrib(source, "height")
+      break
+      }
+
+   return
+
+end
+
+#  These values are for Motif; they may need to be changed for other
+#  window managers.
+
+$define Offset1	32
+$define Offset2	82
+
+#  Initialize the program.
+
+procedure init()
+   local iheight
+
+   posx := WAttrib(controls, "width") + Offset1
+
+   iheight := WAttrib(controls, "height")
+
+   pattern := WOpen("label=repeat", "resize=on", "size=" || iheight ||
+      "," || iheight, "posx=" || posx, "posy=10") |
+         ExitNotice("Cannot open pattern window.")
+
+   posy := WAttrib(pattern, "height") + Offset2
+
+   sx := vidgets["text"].ax
+   sy := vidgets["text"].ay
+
+   Raise(controls)
+
+   return
+
+end
+
+procedure update()
+
+   #  Update selection information on interface.
+
+   WAttrib(controls, "drawop=reverse")
+
+   DrawString(controls, sx, sy, "marquee:  x=" || (\previous).x  || "  y=" ||
+      previous.y || "  w=" || previous.w || "  h=" || previous.h)
+   DrawString(controls, sx, sy, "marquee:  x=" || current.x  || "  y=" ||
+      current.y || "  w=" || current.w || "  h=" || current.h)
+
+   WAttrib(controls, "drawop=copy")
+
+   #  Update the selection rectangle.
+
+   DrawRectangle(screen, (\previous).x, previous.y, previous.w, previous.h)
+   DrawRectangle(screen, current.x, current.y, current.w, current.h)
+
+   previous := copy(current)
+
+   return
+
+end
+
+procedure mirror_cb()
+
+   if /source then {
+      Notice("No source window.")
+      fail
+      }
+
+   if current.w < 0 then {
+      current.w := -current.w
+      current.x -:= current.w
+      }
+
+   if current.h < 0 then {
+      current.h := -current.h
+      current.y -:= current.h
+      }
+
+   WClose(\symmetry)
+
+   symmetry := mirror(source, current.x, current.y, current.w, current.h) | {
+      Notice("Cannot mirror tile.")
+      fail
+      }
+
+   #  In case the window manager opens a window larger than requested ...
+
+   tile(symmetry, pattern, 0, 0, current.w * 2, current.h * 2)
+
+   #  Hide it but keep it in case the user wants to save it.
+
+   WAttrib(symmetry, "canvas=hidden")
+
+   Raise(controls)
+
+   return
+
+end
+
+procedure mirror_snap()
+
+   snapshot(\symmetry, 0, 0, current.w * 2, current.h * 2) | {
+      Notice("No mirrored tile.")
+      fail
+      }
+
+   return
+
+end
+
+#  Utility procedure to let user pick an image file in the current directory.
+
+procedure pick()
+   local plist, ls
+
+   plist := filelist("*.gif *.GIF") | {
+      Notice("Pick not supported on this platform.")
+      fail
+      }
+
+   if *plist = 0 then {
+      Notice("No files found.")
+      fail
+      }
+
+   repeat {
+      if SelectDialog("Select image file:", plist, plist[1]) == "Cancel"
+         then fail
+      WClose(\source)
+      WClose(\screen)
+      WClose(\symmetry)
+      EraseArea(pattern)
+      source := WOpen("canvas=hidden", "image=" || dialog_value) | {
+         Notice("Cannot open " || dialog_value || ".")
+         next
+         }
+      copy_source(dialog_value)
+      break
+      }
+
+   return
+   
+end
+   
+#  Callback to terminate program execution.
+
+procedure quit_cb()
+
+   exit()
+
+end
+
+procedure refresh_cb()
+
+   tile(source, pattern, current.x, current.y, current.w, current.h)
+
+   return
+
+end
+
+#  Callback procedure to allow use of standard tile sizes.
+
+procedure select_cb(vidget, value)
+
+   if /source then fail
+
+   check(current.w <- current.h <-
+      case value of {
+         "     4 x 4":    4
+         "     8 x 8":    8
+         "   16 x 16":   16
+         "   32 x 32":   32
+         "   64 x 64":   64
+         "   72 x 72":   72
+         "   96 x 96":   96
+         " 100 x 100":  100
+         " 128 x 128":  128
+         " 200 x 200":  200
+         " 256 x 256":  256
+         " 400 x 400":  400
+         " 512 x 512":  512
+         }) | fail
+
+   show()
+
+   return
+
+end
+
+#  Callback to allow setting of specific selection rectangle values.
+
+procedure set_cb()
+
+   repeat {
+      if TextDialog("Set values:",
+         ["x", "y", "w", "h"],
+         [current.x, current.y, current.w, current.h ]
+         ) == "Cancel" then fail
+      check(
+         current.x <- integer(dialog_value[1]) &
+         current.y <- integer(dialog_value[2]) &
+         current.w <- integer(dialog_value[3]) &
+         current.h <- integer(dialog_value[4])
+         ) | {
+            Notice("Invalid value.")
+            next
+            }
+      show()
+      return
+      }
+
+end
+
+#  Keyboard shortcuts.
+
+procedure shortcuts(e)
+
+   case type(e) of {
+      "string": {
+         if &meta then case map(e) of {			# fold case
+            "m":   mirror_cb()
+            "o":   get_image()
+            "p":   pick()
+            "q":   exit()
+            "s":   save_cb()
+            }
+         }
+      "integer": {
+         if &meta then {	# nudge dimensions
+            if check(
+               case e of {
+                  Key_Left:  current.w <- current.w - 1
+                  Key_Right: current.w <- current.w + 1
+                  Key_Up:    current.h <- current.h - 1
+                  Key_Down:  current.h <- current.h + 1
+                  }
+               ) then show() else fail
+            }
+         else {			# nudge location
+            if check (
+               case e of {
+                  Key_Left:  current.x <- current.x - 1
+                  Key_Right: current.x <- current.x + 1
+                  Key_Up:    current.y <- current.y - 1
+                  Key_Down:  current.y <- current.y + 1
+                  }
+               ) then show() else fail
+            }
+         }
+      }
+
+   return
+
+end
+
+#  Procedure to handle all that goes with a new selection.
+
+procedure show()
+   local x, y, w, h
+
+   if /source then {
+      Notice("No source image.")
+      fail
+      }
+
+   x := current.x
+   y := current.y
+   w := current.w
+   h := current.h
+
+   if w < 0 then
+      x -:= (w := -w)
+   if h < 0 then
+      y -:= (h := -h)
+
+   tile(source, pattern, x, y, w, h)
+
+   update()
+
+   return
+
+end
+
+#  Utility procedure to save current selection.
+
+procedure save_cb()
+
+   return snapshot(\source, current.x, current.y, current.w, current.h) | {
+     Notice("No source image.")
+     fail
+     }
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=445,373", "bg=gray-white"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,445,373:",],
+   ["dim:Label:::209,34,70,13:dimensions",],
+   ["dimens:Choice::9:214,55,64,189:",dimens_cb,
+      ["home","w max","h max","w * 2","h * 2",
+      "w / 2","h / 2","w = 1","h = 1"]],
+   ["file:Menu:pull::0,1,36,21:File",file_cb,
+      ["open  @O","pick  @P","save  @S    ","save mirrored","quit  @Q"]],
+   ["line1:Line:::0,22,326,22:",],
+   ["loc:Label:::120,34,56,13:location",],
+   ["location:Choice::11:113,55,71,231:",location_cb,
+      ["nw","ne","se","sw","center",
+      "x max","y max","x * 2","y * 2","x / 2",
+      "y / 2"]],
+   ["mirror:Button:regular::17,126,58,20:mirror",mirror_cb],
+   ["refresh:Button:regular::17,88,58,20:refresh",refresh_cb],
+   ["select:Choice::13:309,55,99,273:",select_cb,
+      ["     4 x 4","     8 x 8","   16 x 16","   32 x 32","   64 x 64",
+      "   72 x 72","   96 x 96"," 100 x 100"," 128 x 128"," 200 x 200",
+      " 256 x 256"," 400 x 400"," 512 x 512"]],
+   ["set:Button:regular::17,51,58,20:set",set_cb],
+   ["size:Label:::341,34,28,13:size",],
+   ["text:Button:regularno::17,347,10,20:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

@@ -1,0 +1,160 @@
+############################################################################
+#
+#	File:     evsyms.icn
+#
+#	Subject:  Procedures to produce table of event codes and symbols
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     October 3, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  evsyms() returns returns a two-way table. Indexed by an event code, it
+#  produces the symbol (global identifier name) for the code. Indexed by the
+#  symbol of the code, it produces the event code.
+#
+#  This procedure is intended for use in event monitors under MT Icon.
+#
+############################################################################
+#
+#  Links:  tables
+#
+############################################################################
+#
+#  Includes:  "evdefs.icn"
+#
+############################################################################
+
+link tables
+
+$include "evdefs.icn"
+
+procedure evsyms()
+   static symmap
+
+   initial {
+      symmap   := table("E_????")
+   
+      symmap[E_Aconv]    := "E_Aconv"
+      symmap[E_Alien]    := "E_Alien"
+      symmap[E_Assign]   := "E_Assign"
+      symmap[E_BlkDeAlc] := "E_BlkDeAlc"
+      symmap[E_Bsusp]    := "E_Bsusp"
+      symmap[E_Coact]    := "E_Coact"
+      symmap[E_Coexpr]   := "E_Coexpr"
+      symmap[E_Cofail]   := "E_Cofail"
+      symmap[E_Collect]  := "E_Collect"
+      symmap[E_Coret]    := "E_Coret"
+      symmap[E_Cset]     := "E_Cset"
+      symmap[E_Ecall]    := "E_Ecall"
+      symmap[E_Efail]    := "E_Efail"
+      symmap[E_Eresum]   := "E_Eresum"
+      symmap[E_Error]    := "E_Error"
+      symmap[E_Esusp]    := "E_Esusp"
+      symmap[E_Erem]     := "E_Erem"
+      symmap[E_Exit]     := "E_Exit"
+      symmap[E_External] := "E_External"
+      symmap[E_Fcall]    := "E_Fcall"
+      symmap[E_Fconv]    := "E_Fconv"
+      symmap[E_Ffail]    := "E_Ffail"
+      symmap[E_File]     := "E_File"
+      symmap[E_Free]     := "E_Free"
+      symmap[E_Fresum]   := "E_Fresum"
+      symmap[E_Fret]     := "E_Fret"
+      symmap[E_Fsusp]    := "E_Fsusp"
+      symmap[E_Frem]     := "E_Frem"
+      symmap[E_Intcall]  := "E_Intcall"
+      symmap[E_Integer]  := "E_Integer"
+      symmap[E_Intret]   := "E_Intret"
+      symmap[E_Kywdint]  := "E_Kywdint"
+      symmap[E_Kywdpos]  := "E_Kywdpos"
+      symmap[E_Kywdsubj] := "E_Kywdsubj"
+      symmap[E_Lbang]    := "E_Lbang"
+      symmap[E_Lcreate]  := "E_Lcreate"
+      symmap[E_Lelem]    := "E_Lelem"
+      symmap[E_Line]     := "E_Line"
+      symmap[E_List]     := "E_List"
+      symmap[E_Loc]     := "E_Loc"
+      symmap[E_Lpop]     := "E_Lpop"
+      symmap[E_Lpull]    := "E_Lpull"
+      symmap[E_Lpush]    := "E_Lpush"
+      symmap[E_Lput]     := "E_Lput"
+      symmap[E_Lrand]    := "E_Lrand"
+      symmap[E_Lref]     := "E_Lref"
+      symmap[E_Lrgint]   := "E_Lrgint"
+      symmap[E_Lsub]     := "E_Lsub"
+      symmap[E_Lsusp]    := "E_Lsusp"
+      symmap[E_Nconv]    := "E_Nconv"
+      symmap[E_Null]     := "E_Null"
+      symmap[E_Ocall]    := "E_Ocall"
+      symmap[E_Ofail]    := "E_Ofail"
+      symmap[E_Opcode]   := "E_Opcode"
+      symmap[E_Oresum]   := "E_Oresum"
+      symmap[E_Oret]     := "E_Oret"
+      symmap[E_Osusp]    := "E_Osusp"
+      symmap[E_Orem]     := "E_Orem"
+      symmap[E_Pcall]    := "E_Pcall"
+      symmap[E_Pfail]    := "E_Pfail"
+      symmap[E_Presum]   := "E_Presum"
+      symmap[E_Pret]     := "E_Pret"
+      symmap[E_Proc]     := "E_Proc"
+      symmap[E_Psusp]    := "E_Psusp"
+      symmap[E_Prem]     := "E_Prem"
+      symmap[E_Rbang]    := "E_Rbang"
+      symmap[E_Rcreate]  := "E_Rcreate"
+      symmap[E_Real]     := "E_Real"
+      symmap[E_Record]   := "E_Record"
+      symmap[E_Refresh]  := "E_Refresh"
+      symmap[E_Rrand]    := "E_Rrand"
+      symmap[E_Rref]     := "E_Rref"
+      symmap[E_Rsub]     := "E_Rsub"
+      symmap[E_Sbang]    := "E_Sbang"
+      symmap[E_Sconv]    := "E_Sconv"
+      symmap[E_Screate]  := "E_Screate"
+      symmap[E_Sdelete]  := "E_Sdelete"
+      symmap[E_Selem]    := "E_Selem"
+      symmap[E_Set]      := "E_Set"
+      symmap[E_Sfail]    := "E_Sfail"
+      symmap[E_Sinsert]  := "E_Sinsert"
+      symmap[E_Slots]    := "E_Slots"
+      symmap[E_Smember]  := "E_Smember"
+      symmap[E_Snew]     := "E_Snew"
+      symmap[E_Spos]     := "E_Spos"
+      symmap[E_Srand]    := "E_Srand"
+      symmap[E_Sresum]   := "E_Sresum"
+      symmap[E_Ssasgn]   := "E_Ssasgn"
+      symmap[E_Ssusp]    := "E_Ssusp"
+      symmap[E_Stack]    := "E_Stack"
+      symmap[E_StrDeAlc] := "E_StrDeAlc"
+      symmap[E_String]   := "E_String"
+      symmap[E_Sval]     := "E_Sval"
+      symmap[E_Srem]     := "E_Srem"
+      symmap[E_Table]    := "E_Table"
+      symmap[E_Tbang]    := "E_Tbang"
+      symmap[E_Tconv]    := "E_Tconv"
+      symmap[E_Tcreate]  := "E_Tcreate"
+      symmap[E_Tdelete]  := "E_Tdelete"
+      symmap[E_Telem]    := "E_Telem"
+      symmap[E_Tick]     := "E_Tick"
+      symmap[E_Tinsert]  := "E_Tinsert"
+      symmap[E_Tkey]     := "E_Tkey"
+      symmap[E_Tmember]  := "E_Tmember"
+      symmap[E_Trand]    := "E_Trand"
+      symmap[E_Tref]     := "E_Tref"
+      symmap[E_Tsub]     := "E_Tsub"
+      symmap[E_Tval]     := "E_Tval"
+      symmap[E_Tvsubs]   := "E_Tvsubs"
+      symmap[E_Tvtbl]    := "E_Tvtbl"
+      symmap[E_Value]    := "E_Value"
+   
+      symmap := twt(symmap)
+      }
+
+   return symmap
+
+end

@@ -1,0 +1,147 @@
+############################################################################
+#
+#	File:     puzz.icn
+#
+#	Subject:  Program to create word search puzzle
+#
+#	Author:   Chris Tenaglia
+#
+#	Date:     February 18, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program creates word search puzzles.
+#
+############################################################################
+
+global matrix,      # the actual puzzle board
+       width,       # width of the puzzle
+       height,      # height of the puzzle
+       completed    # number of completed word placements
+
+procedure main(param)
+  local i, j, line, pass, tokens, word, words
+
+#
+# initial set up : x=20, y=20 by default
+#
+  width  := param[1] | 20
+  height := param[2] | 20
+  words  := []
+#
+# load words to place in a space delimited
+# file. more than one word per line is ok.
+#
+  while line := map(read()) do
+    {
+    tokens := parse(line,' \t')
+    while put(words,pop(tokens))
+    }
+#
+# get ready for main processing
+#
+  matrix    := table(" ")
+  pass      := 0
+  completed := 0
+  &random:= map(&clock,":","0")
+#
+# here's the actual word placement rouinte
+#
+  every word := !words do place(word)
+#
+# fill in the unchosen areas with random alphas
+#
+  every i := 1 to height do
+    every j := 1 to width do
+      if matrix[i||","||j] == " " then
+         matrix[i||","||j] := ?(&ucase)
+#
+# output results (for the test giver, words are lcase, noise is ucase)
+#
+  write(completed," words inserted out of ",*words," words.\n")
+  write("\nNow for the puzzle you've been waiting for! (ANSWER)\n")
+  every i := 1 to height do
+    {
+    every j := 1 to width do writes(matrix[i||","||j]," ")
+    write()
+    }
+#
+# output results (for the test taker, everything is upper case
+#
+  write("\fNow for the puzzle you've been waiting for! (PUZZLE)\n")
+  every i := 1 to height do
+    {
+    every j := 1 to width do writes(map(matrix[i||","||j],&lcase,&ucase)," ")
+    write()
+    }
+  end
+
+#
+# this procedure tries to place the word in a copy of the matrix
+# if successful the updated copy is moved into the original
+# if not, the problem word is skipped after 20 tries
+#
+procedure place(str)
+  local byte, construct, direction, item, pass, x, xinc, y, yinc
+  static xstep,ystep
+
+  initial {
+          xstep := [0,1,1,1,0,-1,-1,-1]
+          ystep := [-1,-1,0,1,1,1,0,-1]
+          }
+  pass := 0
+
+  repeat  {
+  if (pass +:= 1) > 20 then
+    { 
+    write("skipping ",str)
+    fail
+    }
+  direction := ?8
+  xinc      := integer(xstep[direction])
+  yinc      := integer(ystep[direction])
+
+  if xinc < 0 then x := *str + ?(width - *str)
+  if xinc = 0 then x := ?height
+  if xinc > 0 then x := ?(width - *str)
+
+  if yinc < 0 then y := *str + ?(height - *str)
+  if yinc = 0 then y := ?width
+  if yinc > 0 then y := ?(height - *str)
+
+  if (x < 1) | (y < 1) then stop(str," too long.")
+
+  construct := copy(matrix)
+  item      := str
+  write("placing ",item)
+  every byte := !item do
+    {
+    if (construct[x||","||y] ~== " ")  &
+       (construct[x||","||y] ~== byte) then break next
+    construct[x||","||y] := byte
+    x +:= xinc
+    y +:= yinc
+    }
+  matrix     := copy(construct)
+  completed +:= 1
+  return "ok"
+  } # end repeat
+  return "ok"
+  end
+
+#
+# parse a string into a list with respect to a delimiter (cset)
+#
+procedure parse(line,delims)  
+  local tokens
+  static chars
+
+  chars  := &cset -- delims
+  tokens := []
+  line ? while tab(upto(chars)) do put(tokens,tab(many(chars)))
+  return tokens
+  end

@@ -1,0 +1,54 @@
+############################################################################
+#
+#	File:     readcpt.icn
+#
+#	Subject:  Procedure to read produce "carpet" from file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 7, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure reads a "carpet" file and returns a corresponding matrix.
+#
+############################################################################
+#
+#  Links:  matrix
+#
+############################################################################
+#
+#  See also:  writecpt.icn 
+#
+############################################################################
+
+link matrix
+
+procedure read_cpt(input)	#: convert numerical carpet to matrix
+   local carpet, width, height, i, j, line
+
+   read(input) ? {
+      ="width=" &
+      width := integer(tab(many(&digits))) &
+      =" height=" &
+      height := integer(tab(many(&digits)))
+      } | stop("*** invalid carpet file")
+
+   carpet := create_matrix(height, width)
+
+   every j := 1 to height do {
+      line := read(input) | stop("*** short carpet data")
+      i := 0
+      line ? {
+         while carpet[j, i +:= 1] := tab(upto(' ')) do
+            move(1) | stop("*** narrow carpet data")
+         }
+      }
+
+   return carpet
+
+end

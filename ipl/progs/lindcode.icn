@@ -1,0 +1,97 @@
+############################################################################
+#
+#	File:     lindcode.icn
+#
+#	Subject:  Program to produce Icon code from L-system specifications
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 19, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program reads a file of L-system specifications and build Icon
+#  code that creates a table of records containing the specifications.
+#
+#  If the option -e is given, symbols for which there is no definition
+#  are included in the table with themselves as replacement.
+#
+############################################################################
+#
+#  See also:  lindrec.icn
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local allchar, rchar, line, prefix, symbol, rhs, file, name, spec
+   local value, c, opts, expand
+
+   opts := options(args, "e")
+   expand := opts["e"]
+   write("   linden := table()\n")
+
+   while line := read() do {
+      line ? {
+         if ="name:" then {
+            name := tab(0)
+            break
+            }
+         }
+      }
+
+   repeat {
+
+      allchar := rchar := ''
+
+      prefix := "   linden[" || image(name) || "]"
+   
+      write(prefix, " := lsys_0l(\"\", table(), 0, 90)")
+   
+      while line := read() | exit() do
+         line ? {
+            if symbol := move(1) & ="->" then {
+               rchar ++:= symbol
+               rhs := tab(0)
+               write(prefix, ".rewrite[\"", symbol, "\"] := ", image(rhs))
+               allchar ++:= rhs
+               }
+         else if spec := tab(upto(':')) then {
+            move(1)
+            value := tab(0)
+            case spec of {
+               "axiom":  {
+                  allchar ++:= value
+                  write(prefix, ".axiom := ", image(value))
+                  }
+               "gener":  write(prefix, ".gener := ", integer(value))
+               "angle":  write(prefix, ".angle := ", real(value))
+               "length":  write(prefix, ".length := ", integer(value))
+               "name":   {
+                   name := value
+                   break
+                   }
+               }
+            }
+
+         }
+
+      if \expand then {
+         allchar --:= rchar
+         every c := image(!allchar) do
+            write(prefix, ".rewrite[", c, "] := ", c)
+         }
+
+      }
+
+
+end

@@ -1,0 +1,213 @@
+############################################################################
+#
+#	File:     sier.icn
+#
+#	Subject:  Program for generalized Sierpinski's triangle
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     November 9, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     Originally inspired by the Nova television show on chaos.
+#     Colorization suggested by Kenneth Walker.
+#
+############################################################################
+#
+#     This program constructs Sierpinski's triangle using an iterative
+#  method.  An initial point is chosen (by clicking the mouse inside the
+#  triangle) and marked.  Then, the program repeatedly moves half way to
+#  a randomly chosen vertex and plots a point in the color corresponding
+#  to the vertex.
+#
+#     The polygon need not be a triangle.  The number of sides may be given
+#  as a command line argument, or a digit 3 through 9 or 0 through 2 may be
+#  pressed to establish a new polygon of 3 to 12 sides.
+#
+#     The S, G, E, and Q keys function identically to the Stop, Go, Erase,
+#  Quit pushbuttons.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: button, evmux, random, graphics
+#
+############################################################################
+
+link button
+link evmux
+link random
+link graphics
+
+$define BevelWidth 2
+$define WindowMargin 10
+
+global win, bwin, vwin, vcolors
+global m, w, h
+global nsides, xpos, ypos, outline
+global running, xcur, ycur
+
+procedure main(args)
+   local i, vcolors
+
+   win := Window("size=400,400", "font=Helvetica,bold,14", "bg=pale gray", args)
+   nsides := integer(args[1]) | 3
+   if nsides < 3 then stop("sierpinski: need at least 3 sides!")
+
+   m := WindowMargin
+   h := WAttrib("height") - 2 * m		# usable height
+   w := WAttrib("width") - 2 * m		# usable width
+
+   # make a window (g.c.) for drawing in background color
+   bwin := Clone(win)
+   Fg(bwin, Bg(win))
+
+   # make a color for each vertex (up to 7)
+   vcolors := [ 
+      "deep vivid green-blue",
+      "medium strong red",
+      "deep red-magenta",
+      "deep strong green",
+      "deep strong red brown",
+      "dark purple",
+      "dark brown"
+      ]
+   vwin := []
+   if WAttrib(win, "depth") > 2 then
+      every put(vwin, Clone(win, "fg=" || !vcolors))
+   else
+      put(vwin, win)
+
+   # configure and draw the polygon
+   configure()
+   erase()
+
+   # set up buttons and character handlers
+   button(win, "Go", setfill, 0, m, m, 50, 20)
+   button(win, "Stop", setfill, -1, m, m + 30, 50, 20)
+   button(win, "Erase", argless, erase, m + w - 50, m, 50, 20)
+   button(win, "Quit", argless, exit, m + w - 50, m + 30, 50, 20)
+   sensor(win, 'Gg', setfill, 0)
+   sensor(win, 'Ss', setfill, -1)
+   sensor(win, 'Ee', argless, erase)
+   quitsensor(win)				# enable Q-for-quit etc.
+   sensor(win, '3456789012', setsides)
+
+   # set up sensor for drawing the curve
+   sensor(win, &lrelease, setfill, 1, m, m, w, h)
+
+   # process events
+   randomize()
+   i := 1
+   repeat {
+      while *Pending(win) > 0 | running < 0 do
+         evhandle(win)
+      every 1 to 100 do {
+         DrawPoint(vwin [i | 1], xcur, ycur)
+         i := ?nsides
+         xcur := (xcur + xpos[i]) / 2
+         ycur := (ycur + ypos[i]) / 2
+         }
+      }
+end
+
+
+
+#  configure() -- set vertex points
+
+procedure configure()
+   local a, da, i
+   local xmin, xmax, xscale, ymin, ymax, yscale
+
+   # ensure we have enough windows for the vertices
+   while *vwin < nsides do
+      vwin |||:= vwin
+
+   # get coordinates for vertices as points on a radius-1 circle
+   da := 2 * &pi / nsides
+   a := 1.5 * &pi - da / 2
+   if nsides = 4 then
+      a +:= &pi / 12
+   xpos := list(nsides)
+   ypos := list(nsides)
+   every i := 1 to nsides do {
+      xpos[i] := cos(a)
+      ypos[i] := sin(a)
+      a -:= da
+      }
+
+   # now scale to available window size
+   # also make coord list for drawing outline
+   xmin := xmax := ymin := ymax := 0.0
+   every xmin >:= !xpos
+   every xmax <:= !xpos
+   every ymin >:= !ypos
+   every ymax <:= !ypos
+   xscale := w / (xmax - xmin)
+   yscale := h / (ymax - ymin)
+   outline := [win]
+   every i := 1 to nsides do {
+      put(outline, m + xscale * (1.01 * xpos[i] - xmin))
+      put(outline, m + h - yscale * (1.01 * ypos[i] - ymin))
+      xpos[i] := m + xscale * (xpos[i] - xmin)
+      ypos[i] := m + h - yscale * (ypos[i] - ymin)
+      }
+   put(outline, outline[2])
+   put(outline, outline[3])
+end
+
+
+
+#  erase(gc) -- erase the polygon and draw its outline
+
+procedure erase(gc)
+   outline[1] := bwin
+   FillPolygon ! outline
+   outline[1] := \gc | win
+   DrawLine ! outline
+   running := -1
+   xcur := m + w / 2
+   ycur := m + h / 2
+   return
+end
+
+
+
+#  setfill(win, n, x, y) -- start/stop filling points according to n
+#
+#  n<0  stop
+#  n=0  start, from current point
+#  n>0  start, from (x,y)
+
+procedure setfill(win, n, x, y)
+   if n > 0 then {
+      xcur := x
+      ycur := y
+      }
+   if n >= 0 then {
+      outline[1] := bwin
+      DrawLine ! outline		# erase outline
+      }
+   running := n
+   return
+end
+
+
+
+#  setsides(win, dummy, x, y, event) - reset the number of sides
+
+procedure setsides(win, dummy, x, y, event)
+   nsides := integer(event)
+   if nsides < 3 then nsides +:= 10
+   erase(bwin)
+   configure()
+   erase()
+end

@@ -1,0 +1,79 @@
+############################################################################
+#
+#	Name:	 slshupto.icn
+#
+#	Title:	 slshupto (upto with backslash escaping)
+#
+#	Author:	 Richard L. Goerwitz
+#
+#	Version: 1.4
+#
+############################################################################
+#
+#  Slshupto works just like upto, except that it ignores backslash
+#  escaped characters.  I can't even begin to express how often I've
+#  run into problems applying Icon's string scanning facilities to
+#  to input that uses backslash escaping.  Normally, I tokenize first,
+#  and then work with lists.  With slshupto() I can now postpone or
+#  even eliminate the traditional tokenizing step, and let Icon's
+#  string scanning facilities to more of the work.
+#
+#  If you're confused:
+#
+#  Typically UNIX utilities (and probably others) use backslashes to
+#  "escape" (i.e. remove the special meaning of) metacharacters.  For
+#  instance, UNIX shells normally accept "*" as a shorthand for "any
+#  series of zero or more characters.  You can make the "*" a literal
+#  "*," with no special meaning, by prepending a backslash.  The rou-
+#  tine slshupto() understands these backslashing conventions.  You
+#  can use it to find the "*" and other special characters because it
+#  will ignore "escaped" characters.
+#
+############################################################################
+#
+#  Links: none
+#
+#  See also: slashbal.icn
+#
+############################################################################
+
+# for compatibility with the original name
+#
+procedure slashupto(c, s, i, j)
+    suspend slshupto(c, s, i, j)
+end
+
+#
+# slshupto:  cset x string x integer x integer -> integers
+#             (c, s, i, j) -> Is (a generator)
+#    where Is are the integer positions in s[i:j] before characters
+#    in c that is not preceded by a backslash escape
+#
+procedure slshupto(c, s, i, j)
+
+    local c2
+
+    if /s := &subject
+    then /i := &pos
+    else /i := 1
+    /j := *s + 1
+    
+    /c := &cset
+    c2 := '\\' ++ c
+    s[1:j] ? {
+        tab(i)
+        while tab(upto(c2)) do {
+            if ="\\" then {
+		move(1) | {
+		    if find("\\", c)
+		    then return &pos - 1
+		}
+		next
+	    }
+            suspend .&pos
+            move(1)
+        }
+    }
+
+end
+

@@ -1,0 +1,97 @@
+############################################################################
+#
+#	File:     icn2c.icn
+#
+#	Subject:  Program to assist Icon-to-C porting
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     March 11, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Filter to do some mundane aspects of conversion of Icon to C.
+#
+#  - Reformats comments
+#  - Reformats line-continued strings
+#  - Changes := to =
+#  - Reformats procedure declarations
+#  - Changes end to "}"
+#
+############################################################################
+
+procedure main(arg)
+   local c, comment, line, parenLevel, suffix, tline
+
+   parenLevel := 0
+   while line := trim(read(),' \t') do line ? {
+      line := comment := suffix := ""
+      ="procedure" & tab(many(' \t')) & suffix := " {"
+      ="end" & tab(many(' \t')) | pos(0) & line ||:= "}"
+      while line ||:= tab(upto('\'":#')) do {
+	 case c := move(1) of {
+	    "\"" | "'": {
+	       #
+	       #  Handle character strings.
+	       #
+	       line ||:= c
+	       repeat {
+		  until line ||:= tab(find(c) + 1) do {
+		     line ||:= tab(0)
+		     if line[-1] == "_" then line[-1] := "\""
+		     else stop("unbalanced quotes")
+		     Out(line)
+		     line := ""
+		     &subject := read()
+		     line := (tab(many(' \t')) | "") || "\""
+		     }
+		  if not (line[-2] == "\\" & not (line[-3] == "\\")) then break
+		  }
+	       }
+	    "#": {
+	       #
+	       #  Handle comments.
+	       #
+	       comment := trim(tab(0),' \t')
+	       }
+	    ":": {
+	       #
+	       #  Change := to =
+	       #
+	       if ="=" then line ||:= "="
+	       else line ||:= c
+	       }
+	    "(": {
+	       parenLevel +:= 1
+	       line ||:= c
+	       }
+	    ")": {
+	       parenLevel -:= 1
+	       line ||:= c
+	       }
+	    default: line ||:= c
+	    }
+	 }
+      line ||:= tab(0) || suffix
+      tline := trim(line,' \t')
+      if not (parenLevel > 0 | *tline = 0 |
+	    any('{}(!%&*+,-./:<=>?@\\^',tline,-1) |
+	    (tline[-4:0] == ("else" | "then") &
+	    not tline[-5] | any(' \t',tline[-5]))) then {
+	 line := tline || ";" || line[*tline + 1:0]
+	 }
+      Out(line,comment)
+      }
+end
+
+
+procedure Out(line,comment)
+   line ||:= "/*" || ("" ~== \comment) || " */"
+   line := trim(line,' \t')
+   write(line)
+   return
+end

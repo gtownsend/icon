@@ -1,0 +1,142 @@
+############################################################################
+#
+#	File:     lindsys.icn
+#
+#	Subject:  Program to generate sentences in 0L-systems
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     October 23, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program reads in a 0L-system (Lindenmayer system) consisting of
+#  rewriting rules in which a string is rewritten with every character
+#  replaced simultaneously (conceptually) by a specified string of
+#  symbols.
+#
+#  Rules have the form
+#
+#	S->SSS...
+#
+#  where S is a character.
+#
+#  In addition to rules, there are keywords that describe attributes of the
+#  system.  These include the "axiom", the string on which rewriting is
+#  started and "gener", the number of generations.
+#
+#  The keyword "name" may be used to identify different L-systems in
+#  a file.  If a name is given, it must be the first line of the L-system.
+#
+#  If the keyword "end" is present, it is taken as the termination of
+#  the grammar.  Otherwise, the end of the file serves this purpose.
+#
+#  Other keywords may be present, but are ignored.  For example,
+#
+#	comment:This produces a great tree.
+#
+#  is ignored.
+#
+#  Keywords are followed by a colon.
+#
+#    An example 0L-system is:
+#
+#	name:dragon
+#	X->-FX++FY-
+#	Y->+FX--FY+
+#	F->
+#	-->-
+#	+->+
+#	axiom:FX
+#
+#  Here, the initial string is "FX".
+#
+#  Note that "-" is a legal character in a 0L-system -- context determines
+#  whether it's 0L character or part of the "->" that stands for "is
+#  replaced by".
+#
+#  If no rule is provided for a character, the character is not changed
+#  by rewriting. Thus, the example above can be expressed more concisely
+#  as
+#
+#	name:dragon
+#	X->-FX++FY-
+#	Y->+FX--FY+
+#	F->
+#	axiom:FX
+#
+#  The file containing the 0L-system is read from standard input.
+#
+#  The command-line options are:
+#
+#	-g i	number of generations if not given, default 3
+#	-a s	axiom (overrides axiom given in the grammar)
+#	-A	generate all intermediate results, not just the last
+#
+#  Note:  An earlier version of this program had the ability to
+#  extract an L-System specification by name from a file with
+#  multiple specifications.  This version does not -- the former
+#  functionality was deemed to cumbersome.
+#
+#  References:
+#
+#     Formal Languages, Arto Salomaa, Academic Press, 1973. pp. 234-252.
+#
+#     The Algorithmic Beauty of Plants, Przemyslaw Prusinkiewicz and
+#     Aristid Lindenmayer, Springer Verlag, 1990.
+#
+#     Lindenmayer Systems, Fractals, and Plants, Przemyslaw Prusinkiewicz
+#     and James Hanan, Springer Verlag, 1989.
+#
+############################################################################
+#
+#  See linden.dat for an example of input data.
+#
+#  See also linden.icn for a graphics version.
+#
+############################################################################
+#
+#  Links: lindgen, makelsys, options
+#
+############################################################################
+
+link lindgen
+link makelsys
+link options
+
+procedure main(args)
+   local line, gener, axiom, opts, i, s, c, symbol, rewrite
+   local low, lsys, lst
+
+   opts := options(args,"n:g+a:A")
+
+   lst := []
+
+   while put(lst, read())
+
+   lsys := makelsys(lst)
+
+   axiom := lsys.axiom
+   gener := lsys.gener
+   rewrite := lsys.productions
+
+   axiom := \opts["a"]
+   gener := \opts["g"]
+   /gener := 3
+
+   if /axiom then stop("*** no axiom")
+
+   #  The following approach is inefficient if low is not gener.
+
+   low := if /opts["A"] then gener else 1 
+
+   every i := low to gener do {
+      every writes(lindgen(!axiom, rewrite, i))
+      write()
+      }
+
+end

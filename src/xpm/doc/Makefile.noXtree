@@ -1,0 +1,85 @@
+# Copyright 1990-92 GROUPE BULL -- See license conditions in file COPYRIGHT
+#
+# XPM Makefile - Arnaud LE HORS
+#
+
+AR = ar r
+CC = cc
+RANLIB = ranlib
+RM = rm -f
+# on sysV, define this as cp.
+INSTALL = install -c
+
+DVIPS = dvips
+
+CDEBUGFLAGS= -O
+
+# if your system doesn't provide strcasecmp add -DNEED_STRCASECMP
+# if your system doesn't provide strdup add -DNEED_STRDUP
+# if your system doesn't provide pipe remove -DZPIPE
+DEFINES = -DZPIPE
+
+DESTBINDIR=/usr/local/bin/X11
+DESTLIBDIR=/usr/local/lib/X11
+DESTINCLUDEDIR=$(DESTLIBDIR)/xpm-include
+MANDIR=/usr/man/manl
+
+LIBDIRS= -L/usr/lib/X11 -L.
+LIBS= -lXpm -lXext -lXt -lX11
+OBJS= data.o create.o misc.o rgb.o scan.o parse.o hashtable.o \
+      XpmWrFFrP.o XpmRdFToP.o XpmCrPFData.o XpmCrDataFP.o \
+      XpmWrFFrI.o XpmRdFToI.o XpmCrIFData.o XpmCrDataFI.o \
+      XpmRdFToData.o XpmWrFFrData.o
+
+CFLAGS= $(CDEBUGFLAGS) $(DEFINES)
+
+all: sxpm
+
+clean: 
+	$(RM) *.o sxpm libXpm.a
+
+sxpm: libXpm.a sxpm.o
+	$(CC) $(CFLAGS) sxpm.o $(LIBDIRS) $(LIBS) -o sxpm
+
+libXpm.a: $(OBJS)
+	$(AR) libXpm.a $(OBJS)
+	$(RANLIB) libXpm.a
+
+install: install.lib install.sxpm install.man
+
+install.lib:
+	$(INSTALL) -m 0664 libXpm.a $(DESTLIBDIR)
+	cd $(DESTLIBDIR); $(RANLIB) libXpm.a
+	-mkdir $(DESTINCLUDEDIR)
+	-chmod ugo+rx $(DESTINCLUDEDIR)
+	$(INSTALL) -m 0444 xpm.h $(DESTINCLUDEDIR)
+
+install.sxpm:
+	$(INSTALL) -m 0755 sxpm $(DESTBINDIR)
+
+install.man:
+	$(INSTALL) -m 0644 sxpm.man $(MANDIR)/sxpm.l
+
+doc:	xpm.ps
+
+xpm.ps:	xpm.dvi
+	$(DVIPS) -o xpm.ps xpm
+
+xpm.dvi: xpm.tex
+	latex xpm
+	latex xpm
+
+print:	xpm.ps
+	lpr xpm.ps
+
+# Other dependencies.
+scan.o:	     xpmP.h
+parse.o:     xpmP.h
+data.o:      xpmP.h
+create.o:    xpmP.h
+free.o:	     xpmP.h
+rgb.o:	     xpmP.h
+XpmWrPixF.o:   xpmP.h
+XpmRdPixF.o:   xpmP.h
+XpmCrPFData.o: xpmP.h
+sxpm.o:	     xpm.h

@@ -1,0 +1,522 @@
+# Build the files:
+#    lextab.h - token tables and operator recognizer
+#    yacctok.h - %token declarations for YACC
+# from token description file "tokens.txt" and operator description
+# file "op.txt".
+
+global token, tokval, bflag, eflag, head, oper, tail, count
+global restable, flagtable, op_lst, asgn_loc, semicol_loc, plus_loc, minus_loc
+global white_sp, unary_set
+global tokfile, opfile, toktab, tok_dot_h
+
+record op_sym(op, aug, tokval, unary, binary)
+record association(op, n)
+record trie(by_1st_c, dflt)
+
+procedure tokpat()
+   if tab(many(white_sp)) & (token := tab(upto(white_sp))) &
+      tab(many(white_sp)) & (tokval := (tab(upto(white_sp) | 0)))
+   then return (tab(upto('b')) & (bflag := move(1))) | (bflag := "") &
+      ((tab(upto('e')) & (eflag := move(1))) | (eflag := "")) & pos(0)
+end
+
+procedure main()
+   local line, letter, lastletter
+   local s, op, aug, tok, unary, binary, tok_chars, sym, op_trie
+   local prognm, tokfnm, opfnm, toktbnm, dothnm, op_linenum
+
+   white_sp := ' \t'
+
+   prognm := "mktoktab"
+   tokfnm := "tokens.txt"
+   opfnm := "op.txt"
+   toktbnm := "lextab.h"
+   dothnm := "yacctok.h"
+
+   restable := table()
+   flagtable := table("")
+   flagtable[""] := "0"
+   flagtable["b"] := "Beginner"
+   flagtable["e"] := "Ender"
+   flagtable["be"] := "Beginner+Ender"
+   count := 0
+   lastletter := ""
+
+   tokfile := open(tokfnm) | stop("unable to open \"", tokfnm, "\"")
+   opfile := open(opfnm) | stop("unable to open \"", opfnm, "\"")
+   toktab := open(toktbnm,"w") | stop("unable to create \"", toktbnm, "\"")
+   tok_dot_h := open(dothnm,"w") | stop("unable to create \"", dothnm, "\"")
+   write("  writing ", tokfnm, " and ", dothnm)
+
+# Output header for token table
+   write(toktab,"/*")
+   write(toktab," * NOTE: this file is generated automatically by ", prognm)
+   write(toktab," *  from ", tokfnm, " and ", opfnm, ".")
+   write(toktab," */")
+   write(toktab)
+   write(toktab,"/*")
+   write(toktab," * Token table - contains an entry for each token type")
+   write(toktab," * with printable name of token, token type, and flags")
+   write(toktab," * for semicolon insertion.")
+   write(toktab," */")
+   write(toktab)
+   write(toktab,"struct toktab toktab[] = {")
+   write(toktab,"/*  token\t\ttoken type\tflags */")
+   write(toktab)
+   write(toktab,"   /* primitives */")
+
+# output header for token include file
+   write(tok_dot_h,"/*")
+   write(tok_dot_h," * NOTE: these %token declarations are generated")
+   write(tok_dot_h," *  automatically by ", prognm, " from ", tokfnm, " and ")
+   write(tok_dot_h," *  ", opfnm, ".")
+   write(tok_dot_h," */")
+   write(tok_dot_h)
+   write(tok_dot_h, "/* primitive tokens */")
+   write(tok_dot_h)
+
+
+# Skip the first few (non-informative) lines of "tokens.txt"
+
+   garbage()
+
+# Read primitive tokens
+
+   repeat {
+      write(toktab,makeline(token,tokval,bflag || eflag,count))
+      wrt_tok_def(tokval)
+      count +:= 1
+      line := read(tokfile) | stop("premature end-of-file")
+      line ? tokpat() | break
+         }
+
+# Skip some more garbage lines
+
+   garbage()
+
+# Output some more comments
+
+   write(toktab)
+   write(toktab,"   /* reserved words */")
+   write(tok_dot_h)
+   write(tok_dot_h, "/* reserved words */")
+   write(tok_dot_h)
+
+# Read in reserved words, output them,
+# and build table of first letters.
+
+   repeat {
+      write(toktab,makeline(token,tokval,bflag || eflag,count))
+      wrt_tok_def(tokval, token)
+      letter := token[1]
+      if letter ~== lastletter then {
+         lastletter := letter
+         restable[letter] := count
+        }
+   count +:= 1
+   line := read(tokfile) | stop("premature end-of-file")
+   if line ? tokpat() then next else break
+   }
+
+# output end of token table and reserveed word first-letter index.
+
+   write(toktab,makeline("end-of-file","0","",""))
+   write(toktab,"   };")
+   write(toktab)
+   write(toktab,"/*")
+   write(toktab," * restab[c] points to the first reserved word in toktab which")
+   write(toktab," * begins with the letter c.")
+   write(toktab," */")
+   write(toktab)
+   write(toktab,"struct toktab *restab[] = {")
+   write(toktab,"#if !EBCDIC")
+   write(toktab,makeres("abcd", 16r61))
+   write(toktab,makeres("efgh"))
+   write(toktab,makeres("ijkl"))
+   write(toktab,makeres("mnop"))
+   write(toktab,makeres("qrst"))
+   write(toktab,makeres("uvwx"))
+   write(toktab,makeres("yz"))
+#  NOTE:  THE EBCDIC PART OF THIS MAY NOT BE CORRECT
+   write(toktab,"#else					/* EBCDIC */")
+   write(toktab,makeres("abcd", 16r81))
+   write(toktab,makeres("efgh"))
+   write(toktab,makeres("i..."))
+   write(toktab,makeres("...."))
+   write(toktab,makeres("jklm"))
+   write(toktab,makeres("nopq"))
+   write(toktab,makeres("r..."))
+   write(toktab,makeres("...."))
+   write(toktab,makeres(".stu"))
+   write(toktab,makeres("vwxy"))
+   write(toktab,makeres("z"))
+   write(toktab,"#endif					/* EBCDIC */")
+   write(toktab,"   };")
+
+# Another comment
+
+   write(toktab)
+   write(toktab,"/*")
+   write(toktab," * The operator table acts to extend the token table, it")
+   write(toktab," *  indicates what implementations are expected from rtt,")
+   write(toktab," *  and it has pointers for the implementation information.")
+   write(toktab," */")
+   write(toktab)
+   write(toktab, "struct optab optab[] = {")
+   write(tok_dot_h)
+   write(tok_dot_h, "/* operators */")
+   write(tok_dot_h)
+
+# read operator file
+
+   tok_chars := &lcase ++ &ucase ++ '_'
+
+   op_linenum := 0
+   unary_set := set()
+   ops := table()
+   op_lst := []
+   
+   while s := read(opfile) do {
+      op_linenum +:= 1
+      s ? {
+         tab(many(white_sp))
+         if pos(0) | = "#" then
+            next
+         op := tab(upto(white_sp)) | err(opfnm, op_linenum,
+            "unexpected end of line")
+         tab(many(white_sp))
+         if ="(:=" then {
+            tab(many(white_sp))
+            if not ="AUG)" then
+               err(opfnm, op_linenum, "invalid augmented indication")
+            tab(many(white_sp))
+            aug := 1
+            }
+         else
+            aug := &null
+         tok := tab(many(tok_chars)) | err(opfnm, op_linenum, "invalid token")
+         tab(many(white_sp))
+         unary := tab(any('_us')) | err(opfnm,op_linenum,"invalid unary flag")
+         tab(many(white_sp))
+         binary := tab(any('_bs')) | err(opfnm,op_linenum,"invalid binary flag")
+         if unary == "_" & binary == "_" then
+            err(opfnm, op_linenum, "either unary or binary flag must be set")
+         if unary ~== "_" then {
+            if *op ~= 1 then
+               err(opfnm, op_linenum,
+                  "unary operators must be single characters: " || op);
+            insert(unary_set, op)
+            }
+         if \aug & binary == "_" then
+            err(opfnm, op_linenum,
+              "binary flag must be set for augmented assignment")
+
+         ops[op] := op_sym(op, aug, tok, unary, binary)
+         }
+      }
+
+   ops := sort(ops, 3)
+   while get(ops) & sym := get(ops) do
+     op_out(sym.op, sym.aug, sym.tokval, sym.unary, sym.binary)
+
+# Skip more garbage
+
+   garbage()
+
+repeat {
+   wrt_op(token, tokval, bflag || eflag, 0, 1)
+   line := read(tokfile) | stop("premature end-of-file")
+   line ? tokpat() | break
+   }
+
+# Skip more garbage
+
+   garbage()
+
+repeat {
+   wrt_op(token, tokval, bflag || eflag, 0, &null)
+   line := read(tokfile) | stop("premature end-of-file")
+   line ? tokpat() | break
+   }
+   write(toktab,
+      "   {{NULL,          0,     0},        0,              NULL, NULL}")
+   write(toktab, "   };")
+
+   write(toktab)
+   if /asgn_loc then
+      stop(opfnm, " does not contain a definition for ':='")
+   if /semicol_loc then
+      stop(tokfnm, " does not contain a definition for ';'")
+   if /plus_loc then
+      stop(tokfnm, " does not contain a definition for '+'")
+   if /minus_loc then
+      stop(tokfnm, " does not contain a definition for '-'")
+   write(toktab, "int asgn_loc = ", asgn_loc, ";")
+   write(toktab, "int semicol_loc = ", semicol_loc, ";")
+   write(toktab, "int plus_loc = ", plus_loc, ";")
+   write(toktab, "int minus_loc = ", minus_loc, ";")
+
+   op_trie := build_trie(op_lst)
+
+   write(toktab);
+   wrt(toktab, 0, "/*")
+   wrt(toktab, 0, " * getopr - find the longest legal operator and return the")
+   wrt(toktab, 0, " *  index to its entry in the operator table.")
+   wrt(toktab, 0, " */\n")
+   wrt(toktab, 0, "int getopr(ac, cc)")
+   wrt(toktab, 0, "int ac;")
+   wrt(toktab, 0, "int *cc;")
+   wrt(toktab, 1, "{")
+   wrt(toktab, 1, "register char c;\n")
+   wrt(toktab, 1, "*cc = ' ';")
+   bld_slct(op_trie, "", "ac", toktab, 1)
+   wrt(toktab, 1, "tfatal(\"invalid character\", (char *)NULL);")
+   wrt(toktab, 1, "return -1;")
+   wrt(toktab, 1, "}")
+end
+
+procedure makeline(token,tokval,flag,count)	# build an output line for token table.
+   local line
+   line := left("   \"" || token || "\",",22) || left(tokval ||  ",",15)
+   flag := flagtable[flag] || ","
+   if count ~=== "" then flag := left(flag,19)
+   line ||:= flag
+   if count ~=== "" then line ||:= "/* " || right(count,3) || " */"
+   return line
+end
+
+# makeres - build an output line for reserved word index.
+#
+procedure makeres(lets, strt_repr)
+   local let, letters, line
+   static repr
+
+   repr := \strt_repr
+
+   line := "   "
+   letters := lets
+   every let := !lets do
+      if let ~== "." & \restable[let] then {
+         line ||:= "&toktab[" || right(restable[let],2) || "], "
+         }
+      else line ||:= "NULL,        "
+   line := left(line,55) || "/* " 
+   if integer(repr) then
+      line ||:= hex(repr) || "-" || hex((repr +:= *lets) - 1) || " "
+   return line || letters || " */"
+end
+
+procedure garbage()
+   local line
+   while line := read(tokfile) | stop("premature end-of-file") do
+      if line ? tokpat() then return
+end
+
+procedure hex(n)
+   local s
+   static hexdig
+
+   initial hexdig := "0123456789ABCDEF"
+
+   s := ""
+   while n > 0 do {
+      s := hexdig[n % 16 + 1] || s
+      n := n / 16
+      }
+   return s
+end
+
+procedure op_out(op, aug, tokval, unary, binary)
+   local flag, arity
+
+   if unary_str(op) then
+      flag := "b"
+   else
+      flag := ""
+   if unary == "u" then
+      arity := "Unary"
+   if binary == "b" then
+      if /arity then
+         arity := "Binary"
+      else
+         arity ||:= " | Binary"
+   /arity := "0"
+   wrt_op(op, tokval, flag, arity, 1)
+   if \aug then
+      wrt_op(op || ":=", "AUG" || tokval, "", "0", 1)
+end
+
+procedure wrt_op(op, tokval, flag, arity, define)
+   static cnt
+
+   initial cnt := 0;
+
+   flag := flagtable[flag]
+   writes(toktab, "   {{\"", left(esc(op) || "\",", 9))
+   writes(toktab, left(tokval || ",", 12))
+   writes(toktab, left(flag || "},", 11))
+   writes(toktab, left(arity|| ",", 16))
+   write(toktab, "NULL, NULL}, /* ", cnt, " */")
+   if \define then
+      wrt_tok_def(tokval, op)
+   if op == ":=" then
+      asgn_loc := cnt
+   else if op == ";" then
+      semicol_loc := cnt
+   else if op == "+" then
+      plus_loc := cnt
+   else if op == "-" then
+      minus_loc := cnt
+   put(op_lst, association(op, cnt))
+   cnt +:= 1
+end
+
+procedure wrt_tok_def(tokval, tok)
+   if \tok then
+      write(tok_dot_h, "%token\t", left(tokval, 12), "/* ", left(tok, 9),
+         " */")
+   else
+      write(tok_dot_h, "%token\t", tokval);
+end
+
+procedure unary_str(op)
+   if op == "" then
+      return
+   if member(unary_set, op[1]) then
+      return unary_str(op[2:0])
+end
+
+procedure err(file, line, msg)
+   stop(&errout, "file: ", file, ", line: ", line, " - ", msg)
+end
+
+procedure build_trie(ops)
+   local by_1st_c, dflt, asc, c, c_ops
+
+   by_1st_c := table()
+   every asc := !ops do {
+      #
+      # See if there are more characters in this operator.
+      #
+      if c := asc.op[1] then {
+          /by_1st_c[c] := []
+          put(by_1st_c[c], association(asc.op[2:0], asc.n))
+          }
+      else 
+          dflt := asc.n
+      }
+   by_1st_c := sort(by_1st_c)
+   every c_ops := !by_1st_c do
+      c_ops[2] := build_trie(c_ops[2])
+   return trie(by_1st_c, dflt)
+end
+
+
+# bld_slct - output selection code which will recongize operators
+#   represented by the given trie. Code has already been generated
+#   to recognize the string in prefix.
+procedure bld_slct(op_trie, prefix, char_src, f, indent)
+   local fall_through, by_1st_c, dflt, char, trie_1, a, ft
+
+   by_1st_c := op_trie.by_1st_c
+   dflt := op_trie.dflt
+
+   case *by_1st_c of {
+      0:
+         #
+         # There are no more characters to check. When execution gets
+         #  here in the generated code we have found a longest possible
+         #  operator: the one contained in prefix.
+         #
+         wrt(f, indent, "return " , dflt, ";   /* ", prefix, " */")
+      1: {
+         #
+         # If there is only one valid character to check for, generate an
+         #  if statement rather than a switch statement. If the character
+         #  is not next in the input, either we are already at the end of
+         #  a valid operator (in which case, the generated code must
+         #  must save the one-character look ahead) or the generated
+         #  code will fall through to an error message at the end of the
+         #  function.
+         #
+         char := by_1st_c[1][1]
+         trie_1 := by_1st_c[1][2]
+         wrt(f, indent, "if ((c = ", char_src, ") == '", esc(char), "') {")
+         fall_through := bld_slct(trie_1, prefix || char, "NextChar", f,
+            indent + 1)
+         wrt(f, indent + 1, "}")
+         if \dflt then {
+            wrt(f, indent, "else {")
+            wrt(f, indent + 1, "*cc = c;")
+            wrt(f, indent + 1, "return " , dflt, ";   /* ", prefix, " */")
+            wrt(f, indent + 1, "}")
+            }
+         else
+            fall_through := 1
+         }
+      default: {
+         #
+         # There are several possible next characters. Produce a switch
+         #  statement to check for them.
+         #
+         wrt(f, indent, "switch (c = ", char_src, ") {")
+         every a := !by_1st_c do {
+            char := a[1]
+            trie_1 := a[2]
+            wrt(f, indent + 1, "case '", esc(char), "':")
+            ft := bld_slct(trie_1, prefix || char, "NextChar", f, indent + 2)
+            if \ft then {
+               wrt(f, indent + 2, "break;")
+               fall_through := 1
+               }
+           }
+         if \dflt then {
+            wrt(f, indent + 1, "default:")
+            wrt(f, indent + 2, "*cc = c;")
+            wrt(f, indent + 2, "return " , dflt, ";   /* ", prefix, " */")
+            }
+         else
+            fall_through := 1
+         wrt(f, indent + 1, "}")
+         }
+      }
+
+   return fall_through
+end
+
+procedure wrt(f, indent, slst[])
+   local s1, i, exp_indent
+
+   exp_indent := indent * 3;
+   s1 := repl(" ", exp_indent)
+   while s1 ||:= get(slst) 
+   if (*s1 > 80) then {
+      #
+      # line too long, find first space before 80th column, and
+      #  break there. note, this will not work in general. it may
+      #  break a line within a string.
+      #
+      every i := 80 to 1 by -1 do
+         if s1[i] == " " then
+            if i <= exp_indent then {
+               #
+               # we have indented too far
+               #
+               wrt(f, indent - 1, s1[exp_indent+1:0])
+               return
+               }
+            else {
+               write(f, s1[1:i])
+               wrt(f, indent, s1[i+1:0])
+               return
+               }
+      }
+   write(f, s1)
+end
+
+procedure esc(c)
+   if c == "\\" then
+      return "\\\\"
+   else
+      return c
+end

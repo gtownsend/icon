@@ -1,0 +1,87 @@
+# This file contains Icon type specifications.
+
+#   The first group of types have special semantics that are not completely
+#   captured by the specification system. 
+
+
+    string{s}:    simple
+                  # special form of descriptor
+                  # has RLT return construct with two arguments
+
+    integer{i}:   simple
+                  # two kinds of dwords
+
+    record{R}:    simple # really special aggregate
+                  return block_pointer
+                  # special semantics for allocating sub-types
+                  # different sub-types have different components
+
+    proc:         simple
+                  return block_pointer
+                  # special semantics for allocating sub-types
+                
+    coexpr{C}:    simple
+                  return block_pointer
+                  # special semantics for allocating sub-types
+
+    # sub-string trapped variables
+    tvsubs{sstv}: aggregate(str_var)
+                  # has RTL return construct with three arguments
+                  # variable type with special dereferencing semantics
+
+    # table-element trapped variables
+    tvtbl{tetv}:  aggregate(trpd_tbl)
+                  return block_pointer
+                  # variable type with special dereferencing semantics
+
+
+#   The second group of types are required by iconc but have no special
+#   semantics.
+
+       null{n}:  simple
+
+       cset{c}:  simple
+                 return block_pointer
+
+       real{r}:  simple
+                 return block_pointer
+
+       list{L}:  aggregate(var lst_elem{LE})
+                 return block_pointer
+
+       table{T}: aggregate(tbl_key, var tbl_val{TV}, tbl_dflt)
+                 return block_pointer
+
+
+#    The third group of types appear only in RTL code. They have no special
+#    semantics nor any special uses by iconc.
+
+       file{f}:  simple
+                 return block_pointer
+
+       set{S}:   aggregate(set_elem)
+                 return block_pointer
+
+       # integer keyword variables: &random, &trace, &error
+       kywdint:  variable always integer
+                 return descriptor_pointer
+
+       # &subject
+       kywdsubj: variable always string
+                 return descriptor_pointer
+
+       # &pos
+       kywdpos:  variable always integer
+                 return descriptor_pointer
+
+       # &eventsource, &eventvalue, &eventcode
+       kywdevent: variable always any_value
+                 return descriptor_pointer
+
+       # &window
+       kywdwin: variable always file ++ null
+                 return descriptor_pointer
+
+       # &fg and friends
+       kywdstr: variable always string
+                 return descriptor_pointer

@@ -1,0 +1,43 @@
+############################################################################
+#
+#	File:     evaluate.icn
+#
+#	Subject:  Program to evaluate Icon expressions
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 4, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program evaluates Icon operations given from standard input in
+#  functional form.  It cannot handle nested expressions or control
+#  structures.  See eval.icn for more details.
+#
+#  There is one option:
+#
+#	-l i	limit on number of results from a generator; default 2 ^ 30
+#
+############################################################################
+#
+#  Links:  eval, options
+#
+############################################################################
+
+link eval
+link options
+
+procedure main(args)
+   local expr, opts, limit
+
+   opts := options(args, "l+")
+   limit := \opts["l"] | 2 ^ 30
+
+   while expr := read() do
+      every write(eval(expr)) \ limit
+
+end

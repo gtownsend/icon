@@ -1,0 +1,241 @@
+############################################################################
+#
+#	File:     offtiler.icn
+#
+#	Subject:  Program to tile images with offset
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 14, 1998
+#
+############################################################################
+#
+#  This program is in the public domain.
+#
+############################################################################
+#
+#  This program produces drop repeats and brick patterns.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  io, vsetup
+#
+############################################################################
+
+link io
+link vsetup
+
+global direction
+global factor
+global height
+global subject
+global target
+global vidgets
+global width
+
+procedure main()
+
+   vidgets := ui()
+
+   direction := "vertical"
+   factor := 1
+
+   GetEvents(vidgets["root"], , shortcuts)
+
+end
+
+procedure file_cb(vidget, value)
+
+   case value[1] of {
+      "open  @O"  :  open_image()
+      "save  @S"  :  save_tile()
+      "quit  @Q"  :  exit()
+      }
+
+   return
+
+end
+
+procedure parameter_cb(vidget, value)
+
+   case value[1] of {
+      "direction  @D"  :  set_direction()
+      "factor     @F"  :  set_factor()
+      }
+
+   return
+
+end
+
+procedure tile_cb()
+   local incr, i, j, offset
+
+   if /subject then {
+      Notice("No subject image.")
+      fail
+      }
+      
+   WClose(\target)
+
+   target := WOpen("label=offset tile", "size=" || (width * factor) || "," ||
+      (height * factor)) | {
+         Notice("Cannot open target window.")
+         fail
+         }
+
+   Raise()
+
+   case direction of {
+      "vertical"    :  {
+         incr := height / factor
+         every i := -1 to factor do {		# columns
+            offset := i * incr
+            every j := -1 to factor do {	# rows
+               CopyArea(subject, target, 0, 0, width, height, i * width,
+                  j * height + offset)
+               }
+            }
+         }
+      "horizontal"  :  {
+         incr := width / factor
+         every i := -1 to factor do {		# rows
+            offset := i * incr
+            every j := -1 to factor do {	# columns
+               CopyArea(subject, target, 0, 0, width, height,
+                  j * width + offset, i * height)
+               }
+            }
+         }
+      }
+
+   return
+
+end
+
+procedure set_direction()
+
+   repeat {
+      if SelectDialog("Direction", ["vertical", "horizontal"], direction) ==
+         "Cancel" then fail
+      direction := dialog_value
+      check_parameters() | next
+      return
+      }
+
+end
+
+procedure set_factor()
+
+   repeat {
+      if TextDialog("Offset factor", , factor) == "Cancel" then fail
+      factor := (0 < integer(dialog_value[1])) | {
+         Notice("Invalid factor specification.")
+         next
+         }
+      check_parameters() | next
+      return
+      }
+
+end
+
+procedure check_parameters()
+
+   case direction of {
+      "vertical"    :  {
+         if (height % factor) ~= 0 then {
+            Notice("Factor does not evenly divide height.")
+            fail
+            }
+         if factor >= height then {
+            Notice("Factor too large.")
+            fail
+            }
+         }
+      "horizontal"  :  {
+         if (width % factor) ~= 0 then {
+            Notice("Factor does not evenly divide width.")
+            fail
+            }
+         if factor >= width then {
+            Notice("Factor too large.")
+            fail
+            }
+         }
+      }
+
+   return
+
+end
+
+procedure shortcuts(e)
+
+   if &meta then case map(e) of {
+      "d"  :  set_direction()
+      "f"  :  set_factor()
+      "o"  :  open_image()
+      "q"  :  exit()
+      "s"  :  save_tile()
+      "t"  :  tile_cb()
+      }
+
+   return
+
+end
+
+procedure open_image()
+
+   repeat {
+      if OpenDialog("Open image:") == "Cancel" then fail
+      WClose(\subject)
+      subject := WOpen("label=" || dialog_value, "image=" || dialog_value) | {
+         Notice("Cannot open image.") 
+         next
+         }
+      width := WAttrib(subject, "width")
+      height := WAttrib(subject, "height")
+      factor := 1
+      Raise()
+      return
+      }
+
+end
+
+procedure save_tile()
+   local file
+
+   repeat {
+      if SaveDialog("Save tile:") ~== "Yes" then fail
+      file := dialog_value
+      if exists(file) then {
+         if TextDialog("Overwrite existing file?") == "Cancel" then next
+         }
+      WriteImage(target, file) | {
+         Notice("Cannot write image.")
+         next
+         }
+      return
+      }
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=200,165", "bg=pale gray"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,200,165:",],
+   ["file:Menu:pull::0,0,36,21:File",file_cb,
+      ["open  @O","save  @S","quit  @Q"]],
+   ["line1:Line:::0,23,200,23:",],
+   ["parameters:Menu:pull::37,0,78,21:Parameters",parameter_cb,
+      ["direction  @D","factor     @F"]],
+   ["tile:Button:regular::12,36,35,20:tile",tile_cb],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

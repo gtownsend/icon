@@ -1,0 +1,608 @@
+############################################################################
+#
+#	File:     datetime.icn
+#
+#	Subject:  Procedures for date and time operations
+#
+#	Author:   Robert J. Alexander and Ralph E. Griswold
+#
+#	Date:     November 6, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Notes:
+#		- the default value for function parameters named
+#		  "hoursFromGmt" is the value of global variable
+#		  "HoursFromGmt" if nonnull, or environment variable
+#		  "HoursFromGmt" if set, or 0.
+#		- The base year from which the "seconds" representation
+#		  of a date is calculated is by default 1970 (the ad hoc
+#		  standard used by both Unix and MS-Windows), but can be
+#		  changed by either setting the global variable
+#		  "DateBaseYear" or environment variable "DateBaseYear".
+#		- There are some procedures not mentioned in this summary
+#		  that are useful: DateRecToSec(), SecToDateRec(). See the
+#		  source code for details.
+#
+#	ClockToSec(seconds)
+#		converts a time in the format of &clock to seconds past
+#		midnight.
+#
+#	DateLineToSec(dateline,hoursFromGmt)
+#		converts a date in &dateline format to seconds since start of
+#		dateBaseYear.
+#
+#	DateToSec(date,hoursFromGmt)
+#		converts a date string in Icon &date format (yyyy/mm/dd)
+#		to seconds past DateBaseYear.
+#
+#	SecToClock(seconds)
+#		converts seconds past midnight to a string in the format of
+#		&clock.
+#
+#	SecToDate(seconds,hoursFromGmt)
+#		converts seconds past DateBaseYear to a string in Icon
+#		&date format (yyyy/mm/dd).
+#
+#	SecToDateLine(seconds,hoursFromGmt)
+#		produces a date in the same format as Icon's &dateline.
+#
+#	SecToUnixDate(seconds,hoursFromGmt)
+#		returns a date and time in typical UNIX format:
+#		Jan 14 10:24 1991.
+#
+#	IsLeapYear(year)
+#		succeeds if year is a leap year, otherwise fails.
+#
+#	calendat(j)
+#		returns a record with the month, day, and year corresponding
+#		to the Julian Date Number j.
+#
+#	date()	natural date in English.
+#
+#	dayoweek(day, month, year)
+#		produces the day of the week for the given date
+#
+#	full13th(year1, year2)
+#		generates records giving the days on which a full moon occurs
+#		on Friday the 13th in the range from year1 though year2.
+#
+#	julian(m, d, y)
+#		returns the Julian Day Number for the specified
+#		month, day, and year.
+#
+#	pom(n, phase)
+#		returns record with the Julian Day number of fractional
+#		part of the day for which the nth such phase since
+#		January, 1900.  Phases are encoded as:
+#
+#			0 - new moon
+#			1 - first quarter
+#			2 - full moon
+#			3 - last quarter#
+#
+#		GMT is assumed.
+#
+#	saytime()
+#		computes the time in natural English.  If an argument is
+#		supplied it is used as a test value to check the operation
+#		 the program.
+#
+#	walltime()
+#		produces the number of seconds since midnight.  Beware
+#		wrap-around when used in programs that span midnight.
+#
+############################################################################
+#
+#  See also:  datefns.icn
+#
+############################################################################
+#
+#  Acknowledgement:  Some of these procedures are based on an algorithm
+#  given in "Numerical Recipes; The Art of Scientific Computing";
+#  William H. Press, Brian P. Flannery, Saul A. Teukolsky, and William
+#  T. Vetterling;#  Cambridge University Press, 1986.
+#
+############################################################################
+
+record date1(month, day, year)
+record date2(month, year, fraction)
+record jdate(number, fraction)
+record DateRec(year,month,day,hour,min,sec,weekday)
+
+global Months,Days,DateBaseYear,HoursFromGmt
+
+procedure ClockToSec(seconds)			#: convert &date to seconds
+#
+#  Converts a time in the format of &clock to seconds past midnight.
+#
+    seconds ? return (
+	 (1(tab(many(&digits)),move(1)) * 60 +
+	 1(tab(many(&digits)),move(1) | &null)) * 60 +
+	 (tab(many(&digits)) | 0)
+	 )
+end
+
+procedure DateInit()
+#
+#  Initialize the date globals -- done automatically by calls to date
+#  procedures.
+#
+   initial {
+      Months := ["January","February","March","April","May","June",
+	    "July","August","September","October","November","December"]
+      Days := ["Sunday","Monday","Tuesday","Wednesday","Thursday",
+	    "Friday","Saturday"]
+      /DateBaseYear := integer(getenv("DateBaseYear")) | 1970
+      /HoursFromGmt := integer(getenv("HoursFromGmt")) | 0
+      }
+   return
+end
+
+
+procedure DateLineToSec(dateline,hoursFromGmt)	#: convert &dateline to seconds
+#
+#  Converts a date in long form to seconds since start of DateBaseYear.
+#
+   local day,halfday,hour,min,month,sec,year
+   static months
+   initial {
+      DateInit()
+      months := table()
+      months["jan"] := 1
+      months["feb"] := 2
+      months["mar"] := 3
+      months["apr"] := 4
+      months["may"] := 5
+      months["jun"] := 6
+      months["jul"] := 7
+      months["aug"] := 8
+      months["sep"] := 9
+      months["oct"] := 10
+      months["nov"] := 11
+      months["dec"] := 12
+      }
+   map(dateline) ? {
+      tab(many(' \t'))
+      =("sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat") &
+	    tab(many(&letters)) | &null & tab(many(' \t,')) | &null
+      month := 1(tab(many(&letters)),tab(many('  \t')) | &null)
+      day <- integer(1(tab(many(&digits)),tab(many(' \t,')) | &null)) | &null &
+      year <- integer(1(tab(many(&digits)),tab(many(' \t')) | &null)) | &null &
+      (hour <- integer(tab(many(&digits))) &
+	    ((=":" & min <- integer(tab(many(&digits)))) &
+	    ((=":" & sec <- integer(tab(many(&digits)))) | &null) | &null) &
+	    tab(many(' \t')) | &null & halfday := =("am" | "pm") | &null &
+	    tab(many(' \t')) | &null) | &null & pos(0)
+      }
+   \month :=  \months[month[1+:3]] | fail
+   if not /(halfday | hour) then {
+      if hour = 12 then hour := 0
+      if halfday == "pm" then
+	    hour +:= 12
+      }
+   return DateRecToSec(DateRec(year,month,day,hour,min,sec),hoursFromGmt)
+end
+
+procedure DateRecToSec(dateRec,hoursFromGmt)
+#
+#  Converts a DateRec to seconds since start of DateBaseYear.
+#
+   local day,hour,min,month,sec,secs,year,yr
+   static days
+   initial {
+      DateInit()
+      days := [
+	 0,
+	 2678400,
+	 5097600,
+	 7776000,
+	 10368000,
+	 13046400,
+	 15638400,
+	 18316800,
+	 20995200,
+	 23587200,
+	 26265600,
+	 28857600
+      ]
+      }
+   /hoursFromGmt := HoursFromGmt
+   hoursFromGmt := integer(hoursFromGmt) | runerr(101,hoursFromGmt)
+   year := \dateRec.year | +&date[1+:4]
+   month := \dateRec.month | +&date[6+:2]
+   day := \dateRec.day | +&date[9+:2]
+   hour := \dateRec.hour | 0
+   min := \dateRec.min | 0
+   sec := \dateRec.sec | 0
+   secs := 0
+   every yr := DateBaseYear to year - 1  do {
+      secs +:= if IsLeapYear(yr) then 31622400 else 31536000
+      }
+   if month > 2 & IsLeapYear(year) then secs +:= 86400
+   return secs + days[month] + (day - 1) * 86400 +
+	 (hour - hoursFromGmt) * 3600 + min * 60 + sec
+end
+
+procedure DateToSec(date,hoursFromGmt)	#: convert &date to seconds
+#
+#  Converts a date in Icon &date format (yyyy/mm/dd) do seconds
+#  past DateBaseYear.
+#
+    date ? return DateRecToSec(DateRec(+1(tab(find("/")),move(1)),
+	+1(tab(find("/")),move(1)),+tab(0)),hoursFromGmt)
+end
+
+procedure SecToClock(seconds)		#: convert seconds to &clock
+#
+#  Converts seconds past midnight to a string in the format of &clock.
+#
+    local sec
+    sec := seconds % 60
+    seconds /:= 60
+    return right(seconds / 60,2,"0") || ":" || right(seconds % 60,2,"0") ||
+	     ":" || right(sec,2,"0")
+end
+
+procedure SecToDate(seconds,hoursFromGmt) #: convert seconds to &date
+#
+#  Converts seconds past DateBaseYear to a &date in Icon date format
+#  (yyyy,mm,dd).
+#
+    local r
+    r := SecToDateRec(seconds,hoursFromGmt)
+    return right(r.year,4,"0") || "/" || right(r.month,2,"0") || "/" ||
+	     right(r.day,2,"0")
+end
+
+procedure SecToDateLine(seconds,hoursFromGmt) #: convert seconds to &dateline
+#
+#  Produces a date in the same format as Icon's &dateline.
+#
+   local d,hour,halfday
+   d := SecToDateRec(seconds,hoursFromGmt)
+   if (hour := d.hour) < 12 then {
+      halfday := "am"
+      }
+   else {
+      halfday := "pm"
+      hour -:= 12
+      }
+   if hour = 0 then hour := 12
+   return Days[d.weekday] || ", " || Months[d.month] || " " || d.day ||
+	 ", " || d.year || "  " || hour || ":" || right(d.min,2,"0") || " " ||
+	 halfday
+end
+
+procedure SecToDateRec(seconds,hoursFromGmt)
+#
+#  Produces a date record computed from the seconds since the start of
+#  DateBaseYear.
+#
+   local day,hour,min,month,secs,weekday,year
+   initial DateInit()
+   seconds := integer(seconds) | runerr(101,seconds)
+   /hoursFromGmt := HoursFromGmt
+   hoursFromGmt := integer(hoursFromGmt) | runerr(101,hoursFromGmt)
+   seconds +:= hoursFromGmt * 3600
+   weekday := (seconds / 86400 % 7 + 4) % 7 + 1
+   year := DateBaseYear
+   repeat {
+      secs := if IsLeapYear(year) then 31622400 else 31536000
+      if seconds < secs then break
+      year +:= 1
+      seconds -:= secs
+      }
+   month := 1
+   every secs :=
+	 2678400 |
+	 (if IsLeapYear(year) then 2505600 else 2419200) |
+	 2678400 |
+	 2592000 |
+	 2678400 |
+	 2592000 |
+	 2678400 |
+	 2678400 |
+	 2592000 |
+	 2678400 |
+	 2592000 |
+	 2678400 do {
+      if seconds < secs then break
+      month +:= 1
+      seconds -:= secs
+      }
+   day := seconds / 86400 + 1
+   seconds %:= 86400
+   hour := seconds / 3600
+   seconds %:= 3600
+   min := seconds / 60
+   seconds %:= 60
+   return DateRec(year,month,day,hour,min,seconds,weekday)
+end
+
+procedure SecToUnixDate(seconds,hoursFromGmt)	#: convert seconds to UNIX time
+#
+#  Returns a date and time in UNIX format: Jan 14 10:24 1991
+#
+   local d
+   d := SecToDateRec(seconds,hoursFromGmt)
+   return Months[d.month][1+:3] || " " || d.day || " " ||
+	 d.hour || ":" || right(d.min,2,"0") || " " || d.year
+end
+
+procedure IsLeapYear(year)			#: determine if year is leap
+   #
+   # Fails unless year is a leap year.
+   #
+   return year % 4 = 0 & (year % 100 ~= 0 | year % 400 = 0) & &null
+end
+
+procedure calendat(julian)			#: Julian date
+   local ja, jalpha, jb, jc, jd, je, gregorian
+   local month, day, year
+
+   gregorian := 2299161
+
+   if julian >= gregorian then {
+      jalpha := integer(((julian - 1867216) - 0.25) / 36524.25)
+      ja := julian + 1 + jalpha - integer(0.25 * jalpha)
+      }
+   else ja := julian
+
+   jb := ja + 1524
+   jc := integer(6680.0 + ((jb - 2439870) - 122.1) / 365.25)
+   jd := 365 * jc + integer(0.25 * jc)
+   je := integer((jb - jd) / 30.6001)
+   day := jb - jd - integer(30.6001 * je)
+   month := je - 1
+   if month > 12 then month -:= 12
+   year := jc - 4715
+   if month > 2 then year -:= 1
+   if year <= 0 then year -:= 1
+
+   return date1(month, day, year)
+
+end
+
+procedure date()			#: date in natural English
+
+   &dateline ? {
+      tab(find(", ") + 2)
+      return tab(find("  "))
+      }
+
+end
+#
+#
+#  The method used was adapted from a Web page by Mark Dettinger.
+
+procedure dayoweek(day, month, year)	#: day of the week
+   static d_code, c_code, m_code, ml_code, y, C, M, Y
+
+   initial {
+      d_code := ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday",
+         "Thursday", "Friday"]
+
+      c_code := table()
+      c_code[16] := c_code[20] := 0
+      c_code[17] := c_code[21] := 6
+      c_code[18] := c_code[22] := 4
+      c_code[19] := c_code[23] := 2
+
+      m_code := table()
+      m_code["January"] := m_code["October"] := 1
+      m_code[1] := m_code[10] := 1
+      m_code["February"] := m_code["March"]:=  m_code["November"] := 4
+      m_code[2] := m_code[3]:=  m_code[11] := 4
+      m_code["April"] := m_code["July"] := 0
+      m_code[4] := m_code[7] := 0
+      m_code["May"] := 2
+      m_code[2] := 2
+      m_code[5] := 5
+      m_code["June"] := 5
+      m_code[6] := 5
+      m_code["August"] := 3
+      m_code[8] := 3
+      m_code["September"] := m_code["December"] := 6
+      m_code[9] := m_code[12] := 6
+
+      ml_code := copy(m_code)
+      ml_code["January"] := 0
+      ml_code[1] := 0
+      ml_code[2] := 3
+      }
+
+   #  This can be fixed to go back to October 15, 1582.
+
+   if year < 1600 then stop("*** can't compute day of week that far back")
+
+   #  This can be fixed to go indefinitely far into the future; the day of
+   #  of the week repeats every 400 years.
+
+   if year > 2299 then stop("*** can't compute day of week that far ahead")
+
+   C := c_code[(year / 100) + 1]
+   y := year % 100
+   Y := (y / 12) + (y % 12) + ((y % 12) / 4)
+   month := integer(month)
+   M := if (year % 4) = 0 then ml_code[month] else m_code[month]
+
+   return d_code[(C + Y + M + day) % 7 + 1] 
+   
+end
+
+procedure full13th(year1, year2)	#: full moons on Friday 13ths
+   local time_zone, jd, jday, fraction, jul
+   local year, month, julday, n, icon, day_of_week, c
+
+   time_zone :=  -5.0 / 24.0
+
+   every year := year1 to year2 do {
+      every month := 1 to 12 do {
+         jday := julian(month, 13, year)
+         day_of_week := (jday + 1) % 7
+         if day_of_week = 5 then {
+            n := integer(12.37 * (year - 1900 + integer((month - 0.5) / 12.0)))
+            icon := 0
+            repeat {
+               jul := pom(n,2)
+               jd := jul.number
+               fraction := 24.0 * (jul.fraction + time_zone)
+               if (fraction < 0.0) then {
+                  jd  -:= 1
+                  fraction  +:= 24.0
+                  }
+               if fraction > 12.0 then {
+                  jd +:= 1
+                  fraction -:= 12.0
+                  }
+               else fraction  +:= 12.0
+               if jd = jday then {
+                  suspend date2(month, year, fraction)
+                  break
+                  }
+               else {
+                  c := if jday >= jd then 1 else -1
+                  if c = -icon then break
+                  icon := c
+                  n +:= c
+                  }
+               }
+            }
+         }
+      }
+
+end
+
+procedure julian(month, day, year)	#: Julian date
+   local jul, gregorian, ja, julian_year, julian_month
+
+   gregorian := (15 + 31 * (10 + 12 * 1582))
+
+   if year = 0 then fail
+   if year < 0 then year +:= 1
+   if month > 2 then  {
+      julian_year := year
+      julian_month := month + 1
+      } else {
+      julian_year := year - 1
+      julian_month := month + 13
+      }
+   jul := (integer(365.25 * julian_year) + integer(30.6001 * julian_month) +
+      day + 1720995)
+   if day + 31 * (month + 12 * year) >= gregorian then  {
+      ja := integer(0.01 * julian_year)
+      jul +:= 2 - ja + integer(0.25 * ja)
+      }
+
+   return jul
+
+end
+
+procedure pom(n, nph)			#: phase of moon
+   local i, jd, fraction, radians
+   local am, as, c, t, t2, extra
+
+   radians := &pi / 180
+
+   c := n + nph / 4.0
+   t := c / 1236.85
+   t2 := t * t
+   as := 359.2242 + 29.105356 * c
+   am := 306.0253 + 385.816918 * c + 0.010730 * t2
+   jd := 2415020 + 28 * n + 7 * nph
+   extra := 0.75933 + 1.53058868 * c + ((1.178e-4) - (1.55e-7) * t) * t2
+
+   if nph = (0 | 2) then
+      extra +:=  (0.1734 - 3.93e-4 * t) * sin(radians * as) - 0.4068 *
+          sin(radians * am)
+   else if nph = (1 | 3) then
+      extra +:= (0.1721 - 4.0e-4 * t) * sin(radians * as) - 0.6280 *
+        sin(radians * am)
+   else fail
+
+   if extra >= 0 then i := integer(extra)
+   else i := integer(extra - 1.0)
+   jd  +:=  i
+   fraction := extra - i
+
+   return jdate(integer(jd), fraction)
+
+end
+
+procedure saytime(time)			#: time in natural English
+   local hour,min,mod,near,numbers,out,sec
+   #
+   # Extract the hours, minutes, and seconds from the time.
+   #
+   /time := &clock
+   time ? {
+      hour := integer(tab(find(":") | 0)) | fail
+      move(1)
+      min := tab(find(":") | 0)
+      move(1)
+      sec := tab(0)
+      }
+   min := integer(min) | 0
+   sec := integer(sec) | 0
+   #
+   # Now start the processing in earnest.
+   #
+   near := ["just gone","just after","nearly","almost"]
+   if sec > 29 then min +:= 1    # round up minutes
+   mod := min % 5                # where we are in 5 minute bracket
+   out := near[mod] || " " | ""  # start building the result
+   if min > 32 then hour +:= 1   # we are TO the hour
+   min +:= 2             # shift minutes to straddle the 5-minute point
+   #
+   # Now special-case the result for Noon and Midnight hours.
+   #
+   if hour % 12 = 0 & min % 60 <= 4 then {
+      return if hour = 12 then out || "noon"
+				    else out || "midnight"
+      }
+   min -:= min % 5               # find the nearest 5 mins
+   if hour > 12 then hour -:= 12 # get rid of 25-hour clock
+   else if hour = 0 then hour := 12 # .. and allow for midnight
+   #
+   # Determine the phrase to use for each 5-minute segment.
+   #
+   case min of {
+       0: {}                      # add "o'clock" later
+      60: min=0                   # ditto
+       5: out ||:= "five past"
+      10: out ||:= "ten past"
+      15: out ||:= "a quarter past"
+      20: out ||:= "twenty past"
+      25: out ||:= "twenty-five past"
+      30: out ||:= "half past"
+      35: out ||:= "twenty five to"
+      40: out ||:= "twenty to"
+      45: out ||:= "a quarter to"
+      50: out ||:= "ten to"
+      55: out ||:= "five to"
+      }
+   numbers := ["one","two","three","four","five","six",
+		     "seven","eight","nine","ten","eleven","twelve"]
+   out ||:= (if *out = 0 then "" else " ") || numbers[hour]
+				 # add the hour number
+   if min = 0 then out ||:= " o'clock" # .. and o'clock if exact
+   return out                    # return the final result
+end
+ 
+procedure walltime()			#: time since midnight
+   local seconds
+
+   &clock ? {
+      seconds := tab(upto(':')) * 3600		# seconds in a hour
+      move(1)
+      seconds +:= tab(upto(':')) * 60		# seconds in a minute
+      move(1)
+      return seconds + tab(0)
+      }
+
+end

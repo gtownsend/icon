@@ -1,0 +1,53 @@
+############################################################################
+#
+#	File:     tdialog.icn
+#
+#	Subject:  Procedure for threading/treadling sequences
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 10, 1999
+#
+############################################################################
+#
+#  This dialog procedure handles the editing and manipulation of the
+#  threading and treadling sequences for seqdraft.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: dsetup
+#
+############################################################################
+
+link dsetup
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure t_db(win, deftbl)
+static dstate
+initial dstate := dsetup(win,
+   ["t_db:Sizer::1:0,0,587,348:Threading and Treadling",],
+   ["cancel:Button:regular::313,310,50,20:Cancel",],
+   ["copy1:Button:regular::163,68,105,20:Copy Treadling",],
+   ["copy2:Button:regular::163,228,105,20:Copy Treadling",],
+   ["default1:Button:regular::333,70,56,20:Default",],
+   ["default2:Button:regular::333,228,56,20:Default",],
+   ["define1:Button:regular::407,69,49,20:Define",],
+   ["define2:Button:regular::407,228,49,20:Define",],
+   ["label1:Label:::231,7,126,13:Threading Sequence",],
+   ["label2:Label:::231,154,126,13:Treadling Sequence",],
+   ["line1:Line:::447,3,495,3:",],
+   ["line2:Line:::0,125,594,125:",],
+   ["line3:Line:::2,280,596,280:",],
+   ["okay:Button:regular::244,310,50,20:Okay",],
+   ["read1:Button:regular::284,70,35,20:Read",],
+   ["read2:Button:regular::284,228,35,20:Read",],
+   ["text1:Text::79:18,31,563,19:\\=",],
+   ["text2:Text::79:10,184,563,19:\\=",],
+   )
+return dpopup(win, deftbl, dstate)
+end
+#===<<vib:end>>===	end of section maintained by vib

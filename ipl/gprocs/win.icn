@@ -1,0 +1,54 @@
+############################################################################
+#
+#	File:     win.icn
+#
+#	Subject:  Procedures to open bare-bones window
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 3, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures are provided as quick-and-dirty ways to get a
+#  nominal window as, for example, when testing.
+#
+#  win() causes error terminatation if a window can't be opened.
+#  winf(), on the other hand, just fails.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  wopen
+#
+############################################################################
+
+link wopen
+
+procedure win(width, height)
+
+   /width := 500
+   /height := 500
+
+   return WOpen("size=" || width || "," || height) |
+      stop("*** can't open window")
+
+   return
+
+end
+
+procedure winf(width, height)
+
+   /width := 500
+   /height := 500
+
+   return WOpen("size=" || width || "," || height) | fail
+
+end

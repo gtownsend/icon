@@ -1,0 +1,39 @@
+############################################################################
+#
+#	File:     sortt.icn
+#
+#	Subject:  Procedure to sort table into records
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 20, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program sorts a table in the manner of sort(T, i) but produces a
+#  list of two-element records instead of a list of two-element lists
+#
+############################################################################
+#
+#  Requires:  Version 9
+#
+############################################################################
+
+record element(key, value)
+
+procedure sortt(T, i)
+   local result, k
+
+   if not(integer(i) = (1 | 2)) then runerr(205, i)
+
+   result := []
+
+   every put(result, element(k := key(T), T[k]))
+
+   return sortf(result, i)
+
+end

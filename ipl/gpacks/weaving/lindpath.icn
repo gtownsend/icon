@@ -1,0 +1,206 @@
+############################################################################
+#
+#	File:     lindpath.icn
+#
+#	Subject:  Program to create paths for 0L-systems
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 19, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program reads in a 0L-system (Lindenmayer system) consisting of
+#  rewriting rules in which a string is rewritten with every character
+#  replaced simultaneously (conceptually) by a specified string of
+#  symbols.
+#
+#  Rules have the form
+#
+#	S->SSS...
+#
+#  where S is a character.
+#
+#  In addition to rules, there are keywords that describe the system and how
+#  to draw it.  These include the "axiom" on which rewriting is started and
+#  optionally the angle in degrees between successive lines (default 90).
+#  Other keywords are ignored.
+#
+#  Keywords are followed by a colon.
+#
+#    An example 0L-system is:
+#
+#	X->-FX++FY-
+#	Y->+FX--FY+
+#	F->
+#	-->-
+#	+->+
+#	axiom:FX
+#	angle:45.0
+#	xorg:100
+#	yorg:100
+#
+#  Here, the initial string is "FX" and angular increment is 45 degrees.
+#  Note that "-" is a legal character in a 0L-system -- context determines
+#  whether it's 0L character or part of the "->" that stands for "is
+#  replaced by".
+#
+#  If no rule is provided for a character, the character is not changed
+#  by rewriting. Thus, the example above can be expressed more concisely
+#  as
+#
+#	X->-FX++FY-
+#	Y->+FX--FY+
+#	F->
+#	axiom:FX
+#	angle:45.0
+#
+#  The recognized keywords are:
+#
+#	axiom	axiom for generation
+#	angle	angular increment for turns
+#	length	segment length
+#	xorg	x origin
+#	yorg	y origin
+#	comment	comment; ignored
+#
+#  Distances increase from left to right in the x direction and from top
+#  to bottom in the y direction.
+#
+#  As pure-production systems, the characters are symbolic and have no
+#  meaning.  When interpreted for drawing, the characters have the
+#  following meaning:
+#
+#	F	move forward by length
+#	f	move backward by length
+#	+	turn right by angle
+#	-	turn left by angle
+#	[	save current state
+#	]	restore current state
+#
+#  The file containing the 0L-systems is read from standard input.
+#
+#  The command-line options are:
+#
+#	-g i	number of generations, default 3
+#	-l i	length of line segments, default 5
+#	-a i	angular increment in degrees (overrides angle given in
+#		  the grammar)
+#	-w i	window width
+#	-h i	window height
+#	-x i	initial x position, default mid-window
+#	-y i	initial y position, default mid-window
+#	-W	write out string instead of drawing
+#	-s	take snapshot of image
+#	-d i	delay in milliseconds between symbol interpretations;
+#		  default 0
+#
+#  References:
+#
+#     Formal Languages, Arto Salomaa, Academic Press, 1973. pp. 234-252.
+#
+#     The Algorithmic Beauty of Plants, Przemyslaw Prusinkiewicz and
+#     Aristid Lindenmayer, Springer Verlag, 1990.
+#
+#     Lindenmayer Systems, Fractals, and Plants, Przemyslaw Prusinkiewicz and
+#     James Hanan, Springer Verlag, 1989.
+#
+############################################################################
+#
+#  See linden.dat for an example of input data.
+#
+############################################################################
+#
+#  Requires:  graphics if drawing
+#
+############################################################################
+#
+#  Links: linddraw, options, tpath, wopen
+#
+############################################################################
+
+link linddraw
+link options
+link tpath
+link wopen
+
+procedure main(args)
+   local line, gener, axiom, angle, opts, i, s, c, symbol, rewrite
+   local allchars, rhs, value, spec, x, y, length, w, h, delay
+
+   rewrite := table()
+   allchars := ''			# cset of all rhs characters
+ 
+   opts := options(args,"g+l+a+w+h+x+y+Wsd+")
+
+   while line := read() do
+      line ? {
+         if symbol := move(1) & ="->" then {
+            rhs := tab(0)
+            rewrite[symbol] := rhs
+            allchars ++:= rhs			# keep track of all characters
+            }
+         else if spec := tab(upto(':')) then {
+            move(1)
+            value := tab(0)
+            case spec of {
+               "axiom":    {
+                  axiom := value
+                  allchars ++:= rhs		# axiom might have strays
+                  }
+               "angle":    angle := value
+               "xorg":     x := value
+               "yorg":     y := value
+               "comment":  &null		# ignore comments
+               "length":   length := value   
+               "gener":    gener := value   
+               default:    write(&errout, "unknown keyword: ", spec)
+               }				# ignore others
+            }
+         else write(&errout, "malformed input: ", tab(0))
+         }
+
+#  At this point, we have the table to map characters, but it may lack
+#  mappings for characters that "go into themselves" by default.  For
+#  efficiency in rewriting, these mappings are added.
+
+   every c := !allchars do
+     /rewrite[c] := c
+
+   h := \opts["h"] | 400
+   w := \opts["w"] | 400
+
+   angle := \opts["a"]			# command-line overrides
+   length := \opts["l"]
+   gener := \opts["g"]
+   x := \opts["x"]
+   y := \opts["y"]
+   delay := \opts["d"]
+
+   /angle := 90				# defaults
+   /length := 5
+   /gener := 3
+   /x := 0
+   /y := 0
+   /delay := 0
+
+   if /axiom then stop("*** no axiom")
+
+   TPath(x, y, -90.0)
+
+   WDelay := WFlush := 1
+
+   linddraw(x, y, axiom, rewrite, length, angle, gener, delay)
+
+   WOpen("size=" || w || "," || h, "dx=" || (w / 2),
+      "dy=" || (h / 2)) | stop("*** cannot open window")
+
+   DrawPath(T_path)
+
+   Event()
+
+end

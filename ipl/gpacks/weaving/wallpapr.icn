@@ -1,0 +1,96 @@
+############################################################################
+#
+#	File:     wallpapr.icn
+#
+#	Subject:  Program to generate mutant shadow weave wallpaper
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 19, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program is based on the Painter weave "Shadow Op Art".
+#
+############################################################################
+#
+#  Links:  random, tieutils, weavegif, weavutil
+#
+############################################################################
+
+link random
+link tieutils
+link weavegif
+link weavutil
+
+global anchors
+global palpat
+global palindromes
+
+procedure main(args)
+   local tieup, palette, mutant, win1, win2, colorways, i
+
+   randomize()
+
+   # In this instantiation, the tieup and palindrome sequence
+   # basis are fixed.  Anchors are shuffled (permuted randomly),
+   # but the palindromes attached to the anchors.  That is,
+   # the anchors and attached palindromes are permuted together.
+
+   anchors := "1234567"
+   palpat := "82143657"
+   tieup := "8,#8040201008040201"	# NOTE:  this is direct tie-up
+   palette := "g2"
+
+   palindromes := list(*palpat)
+
+   every i := 1 to *palpat do
+      palindromes[i] := "[" || palpat[1:i] || "!" || palpat[i] || "]"
+
+   mutant := draft()
+   mutant.name := "Shadow Weave Variation"
+   mutant.shafts := 8
+   mutant.treadles := 8
+   mutant.colors := PaletteChars(palette)
+   mutant.palette := palette
+   mutant.tieup := tieup
+
+   every 1 to 10 do {
+      anchors := shuffle(anchors)
+      mutant.threading := mutant.treadling := "[" || thread(1) || "|]"
+      mutant.warp_colors := "12"
+      mutant.weft_colors := "21"
+      win2 := weavegif(expandpfd(mutant), ["canvas=hidden"])
+      WriteImage(win2, "bandw.gif")
+      WDelay(win2, 10000)
+      WClose(win2)
+      }
+
+   # Because of a memory leak (possibly in X), it is necessary to
+   # terminate this program at intervals and start up a new version.
+
+   system("wallpapr &")
+
+   exit()
+
+end
+
+#  Compute sequence as pattern-form.
+
+procedure thread(i)
+   local result
+
+   if i = *palpat then return ""
+
+   result := "-[" || anchors[i] || "-[" || palindromes[i] ||
+      thread(i + 1) || "]]"
+
+   if i = 1 then result := result[2:0]
+
+   return result
+
+end

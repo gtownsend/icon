@@ -1,0 +1,121 @@
+############################################################################
+#
+#	File:     deal.icn
+#
+#	Subject:  Program to deal bridge hands
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This program shuffles, deals, and displays hands in the game
+#  of bridge.  An example of the output of deal is
+#       ---------------------------------
+#  
+#                 S: KQ987
+#                 H: 52
+#                 D: T94
+#                 C: T82
+#  
+#       S: 3                S: JT4
+#       H: T7               H: J9863
+#       D: AKQ762           D: J85
+#       C: QJ94             C: K7
+#  
+#                 S: A652
+#                 H: AKQ4
+#                 D: 3
+#                 C: A653
+#  
+#       ---------------------------------
+#  
+#  Options: The following options are available:
+#  
+#       -h n Produce n hands. The default is 1.
+#  
+#       -s n Set the seed for random generation to n.  Different
+#            seeds give different hands.  The default seed is 0.
+#  
+############################################################################
+#
+#  Links: options, random
+#
+############################################################################
+
+link options
+link random
+
+global deck, deckimage, handsize, suitsize, denom, rank, blanker
+
+procedure main(args)
+   local hands, opts
+
+   deck := deckimage := string(&letters)	# initialize global variables
+   handsize := suitsize := *deck / 4
+   rank := "AKQJT98765432"
+   blanker := repl(" ",suitsize)
+   denom := &lcase[1+:suitsize]
+
+   opts := options(args,"h+s+")
+   hands := \opts["h"] | 1
+   &random := \opts["s"]
+
+   every 1 to hands do
+      disphand()
+
+end
+
+#  Display the hands
+#
+procedure disphand()
+   local layout, i
+   static bar, offset
+
+   initial {
+      bar := "\n" || repl("-",33)
+      offset := repl(" ",10)
+      }
+
+   deck := shuffle(deck)
+   layout := []
+   every push(layout,show(deck[(0 to 3) * handsize + 1 +: handsize]))
+
+   write()
+   every write(offset,!layout[1])
+   write()
+   every i := 1 to 4 do
+      write(left(layout[4][i],20),layout[2][i])
+   write()
+   every write(offset,!layout[3])
+   write(bar)
+end
+
+#  Put the hands in a form to display
+#
+procedure show(hand)
+   static clubmap, diamondmap, heartmap, spademap
+   initial {
+      clubmap := denom || repl(blanker,3)
+      diamondmap := blanker || denom || repl(blanker,2)
+      heartmap := repl(blanker,2) || denom || blanker
+      spademap := repl(blanker,3) || denom
+      }
+   return [
+      "S: " || arrange(hand,spademap),
+      "H: " || arrange(hand,heartmap),
+      "D: " || arrange(hand,diamondmap),
+      "C: " || arrange(hand,clubmap)
+      ]
+end
+
+#  Arrange hands for presentation
+#
+procedure arrange(hand,suit)
+   return map(map(hand,deckimage,suit) -- ' ',denom,rank)
+end

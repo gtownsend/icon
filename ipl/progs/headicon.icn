@@ -1,0 +1,84 @@
+############################################################################
+#
+#	File:     headicon.icn
+#
+#	Subject:  Program to add header to Icon program
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 20, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program prepends a standard header to an Icon program.  It does not
+#  check to see if the program already has a header.
+#
+#  The first command-line argument is taken as the base
+#  name of the file; default "foo".  The second command-line argument is
+#  taken as the author; the default is "Ralph E. Griswold" -- with minor
+#  apologies, I use this program a lot; personalize it for your own
+#  use.
+#
+#  The new file is brought up in the vi editor.
+#
+#  The file skeleton.icn must be accessible via dopen().
+#
+############################################################################
+#
+#  Requires:  system(), vi(1)
+#
+############################################################################
+#
+#  Links:  datetime, io
+#
+############################################################################
+
+link datetime
+link io
+
+procedure main(args)
+   local name, author, input, output, line
+
+   name := (args[1] | "foo")
+   if (*name < 4) | (name[-4:0] ~== ".icn") then name ||:= ".icn"
+
+   author := args[2] | "Ralph E. Griswold"
+
+   output := tempfile("head", , "/tmp") |
+      stop("*** cannot open temporary file")
+
+   input := dopen("skeleton.icn") | stop("*** cannot open skeleton file")
+
+   every 1 to 2 do
+      write(output, read(input)) | stop("*** short skeleton file")
+   write(output, read(input), name) | stop("*** short skeleton file")
+   every 1 to 3 do
+      write(output, read(input)) | stop("*** short skeleton file")
+   write(output, read(input), author) | stop("*** short skeleton file")
+   write(output, read(input)) | stop("*** short skeleton file")
+   write(output, read(input), date()) | stop("*** short skeleton file")
+   every 1 to 14 do
+      write(output, read(input)) | stop("*** short skeleton file")
+
+   close(input)
+
+   input := open(name) | stop("*** cannot open input file")
+
+   while write(output, read(input))
+
+   close(output)
+
+   image(output) ? {
+      ="file("
+      output := tab(upto(')'))
+      }
+
+   system("cp " || output || " " || name)
+
+   system("vi " || name)
+
+end

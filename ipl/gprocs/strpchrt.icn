@@ -1,0 +1,126 @@
+############################################################################
+#
+#	File:     strpchrt.icn
+#
+#	Subject:  Procedure for dynamic stripchart for windows
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	A stripchart models a continuous roll of paper that is marked along
+#	the right edge while it moves continuously to the left.  This is
+#	also known as a chart recording.
+#
+#	stripchart(window, x, y, width, height)	creates a stripchart.
+#
+#	sadvance(sc)				advances a stripchart.
+#
+#	smark(sc, y1, y2)			marks a stripchart.
+#
+############################################################################
+#
+#
+#   stripchart(window, x, y, width, height)
+#
+#	establishes a stripchart and returns a record sc for use with
+#	other procedures.
+#
+#	The chart can be marked by calling smark() or by drawing directly
+#	at location (sc.x, y) where y is arbitrary.
+#
+#   sadvance(sc)
+#
+#	advances the stripchart by one pixel.
+#
+#   smark(sc, y1, y2)
+#
+#	marks the current position of the stripchart from y1 to y2.  y2 may
+#	be omitted, in which case a single pixel at (sc.x, y1) is marked.
+#
+#	If the chart has not been advanced since the last mark at y1,
+#	nothing happens.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+record StripChart_Rec(win, x0, y, w, h, x, n, last)
+
+
+## stripchart(win, x, y, w, h) - create stripchart of size w by h at (x, y)
+
+procedure stripchart(win, x, y, w, h)		#: create stripchart
+   if type(win) ~== "window" then
+      return stripchart((\&window | runerr(140)), win, x, y, w)
+
+   /x := -WAttrib(win, "dx")
+   /y := -WAttrib(win, "dy")
+   /w := WAttrib(win, "width") - (x + WAttrib(win, "dx"))
+   /h := WAttrib(win, "height") - (y + WAttrib(win, "dy"))
+
+   if w < 0 then
+      x -:= (w := -w)
+   if h < 0 then
+      y -:= (h := -h)
+
+   EraseArea(win, x, y, w, h)
+   return StripChart_Rec(win, x, y, w, h, x, 0, list(y + h, -1))
+end
+
+
+## sadvance(sc, n) - advance stripchart n pixels (default 1)
+
+procedure sadvance(sc, n)			#: advance stripchart
+
+   /n := 1
+   every 1 to n do {
+      if sc.x < (sc.x0 + sc.w - 1) then
+         sc.x +:= 1
+      else
+         CopyArea(sc.win, sc.x0 + 1, sc.y, sc.w - 1, sc.h, sc.x0, sc.y)
+      EraseArea(sc.win, sc.x, sc.y, 1, sc.h)
+      sc.n +:= 1
+      }
+   return
+end
+
+
+## smark (sc, y1, y2) - mark stripchart from y1 to y2.
+
+procedure smark(sc, y1, y2)			#: mark stripchart
+   y1 := integer(y1)
+   if sc.last[y1] <:= sc.n then
+      DrawLine(sc.win, sc.x, y1, sc.x, \y2) | DrawPoint(sc.win, sc.x, y1)
+   return
+end
+
+
+
+#  ## test program.
+#  #
+#  #  usage:  stripchart [n]
+#  #
+#  link graphics
+#  procedure main(args)
+#     local win, sc, n, y, d
+#     Window("size=500,200", args)
+#     n := integer(args[1]) | 700
+#     sc := stripchart()
+#     y := 80
+#     d := 40
+#     every 1 to n do {
+#        smark(sc, y +:= 2 * (?0 - ?0))
+#        smark(sc, y + (d +:= 2 * (?0 - ?0)))
+#        sadvance(sc)
+#        }
+#     WDone()
+#     end

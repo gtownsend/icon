@@ -1,0 +1,38 @@
+############################################################################
+#
+#	File:     tab2rec.icn
+#
+#	Subject:  Procedure to put tab-separated strings in records
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 4, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This procedure to takes tab-separated strings and inserts them
+#  into fields of a record.
+#
+#  Vertical tabs in strings are converted to carriage returns.
+#
+#  (Works for lists too.)
+#
+############################################################################
+
+procedure tab2rec(s,x)
+   local i
+
+   i := 0
+
+   s ? {
+      while x[i +:= 1] := map(tab(upto('\t') | 0), "\v", "\n") do
+         move(1) | break
+      }
+
+   return
+
+end

@@ -1,0 +1,269 @@
+############################################################################
+#
+#	File:     carputil.icn
+#
+#	Subject:  Procedures to support numerical carpets
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 16, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  Links:  colrlist
+#
+############################################################################
+
+link colrlist
+
+record carpet(			# carpet specification
+   Name,
+   Width,
+   Height,
+   Modulus,
+   Colors,
+   Top,
+   Left,
+   Neighbors,
+   Defns,
+   Links,
+   Comments
+   )
+
+record karpet(			# karpet specification
+   Name,
+   Width,
+   Height,
+   Modulus,
+   Colors,
+   Paths,
+   Sweeps,
+   Neighbors,
+   Defns,
+   Links,
+   Comments
+   )
+
+record pathexpr(		# path expression
+   x,
+   y,
+   v
+   )
+
+procedure carpcolr(cspec)
+   local clist
+
+   clist := (colrhues | colrspec | colrplte | colrlist)(cspec) | fail
+
+   return clist
+
+end
+
+#  Convert string of color specifications to color list.
+
+procedure colrspec(s)
+   local lst, spec
+
+   lst := []
+
+   s ? {
+      while spec := tab(upto(':')) do {
+         put(lst, ColorValue(spec)) | fail
+         move(1)
+         }
+      if not pos(0) then fail else return lst
+      }
+
+end 
+      
+
+#  Interpret string of characters as hues. 
+
+procedure colrhues(s)
+   local lst, c
+   static hue_tbl, hues
+
+   initial {
+      hue_tbl := table()
+      hue_tbl["R"] := "red"
+      hue_tbl["G"] := "green"
+      hue_tbl["B"] := "blue"
+      hue_tbl["C"] := "cyan"
+      hue_tbl["Y"] := "yellow"
+      hue_tbl["M"] := "magenta"
+      hue_tbl["k"] := "black"
+      hue_tbl["W"] := "white"
+      hue_tbl["O"] := "orange"
+      hue_tbl["P"] := "purple"
+      hue_tbl["V"] := "violet"
+      hue_tbl["b"] := "brown"
+      hue_tbl["p"] := "pink"
+      hue_tbl["G"] := "gray"
+      }
+
+   lst := []
+
+   every c := !s do
+      put(lst, \hue_tbl[c]) | fail
+
+   return lst
+
+end
+
+procedure write_spec(name, spec)
+   local n, output
+   static bar
+
+   initial bar := repl("#", 72)
+
+   output := open(name, "a") | fail
+
+   every write(output, "link ", !sort(spec.Links))
+
+   write(output, "$define Comments ", image(spec.Comments))
+   write(output, "$define Name ", image(spec.Name))
+   write(output, "$define Width (", spec.Width, ")")
+   write(output, "$define Height (", spec.Height, ")")
+   write(output, "$define Modulus (", spec.Modulus, ")")
+   write(output, "$define Top (", spec.Top, ")")
+   write(output, "$define Left (", spec.Left, ")")
+   write(output, "$define Neighbors (", spec.Neighbors, ")")
+   write(output, "$define Colors ", spec.Colors)
+   
+   every n := !keylist(spec.Defns) do
+      write(output, "$define ", n, " (", spec.Defns[n], ")")
+
+   write(output, bar)
+
+   close(output)
+
+   return
+
+end
+
+procedure write_spek(file, spec)
+   local n, output, links, initializers, p, weavers, neighbors, i
+   static bar
+
+   initial bar := repl("#", 72)
+
+   output := open(file, "w") | {
+      Notice("Cannot open include file for writing.")
+      fail
+      }
+
+   every i := 1 to *dopt_list do
+      if \dset_list[i] then
+         write(output, "$define ", map(dopt_list[i][1], &lcase, &ucase),
+            map(dopt_list[i][2:0], " ", "_"))
+
+   every i := 1 to *fopt_list do
+      if \fset_list[i] then
+         write(output, "$define ", map(fopt_list[i][1], &lcase, &ucase),
+            fopt_list[i][2:0])
+
+   write(output, "$define Comments ", image(specification["comments"]))
+   write(output, "$define Name ", image(specification["name"]))
+   write(output, "$define Width (", specification["width"], ")")
+   write(output, "$define Height (", specification["height"], ")")
+   write(output, "$define Modulus (", specification["modulus"], ")")
+   write(output, "$define Colors ", specification["colors"])
+   
+   every n := !keylist(specification["definitions"]) do
+      write(output, "$define ", n, " (", specification["definitions"][n], ")")
+
+   if *entries["initializers"] = 0 then {
+      Notice("No initializers.")
+      fail
+      }
+   else {
+      initializers := "$define Paths ["
+      every n := !entries["initializers"] do {
+         p := specification["initializers"][n]
+         initializers ||:= "pathexpr(create " || p.x || ", create " || p.y ||
+           ", create " || p.v || "),"
+         }
+      write(output, initializers[1:-1], "]")
+      }
+
+   if *entries["weavers"] = 0 then {
+      Notice("No weavers.")
+      fail
+      }
+   else {
+      weavers := "$define Weavers ["
+      every n := !entries["weavers"] do {
+         p := specification["weavers"][n]
+         weavers ||:= "pathexpr(create " || p.x || ", create " || p.y || "),"
+         }
+      write(output, weavers[1:-1], "]")
+      }
+
+   if *specification["links"] > 0 then {
+      links := "$define Link "
+      every links ||:= !sort(specification["links"]) || ", "
+      write(output, links[1:-2])
+      }
+
+   if *specification["neighbors"] = 0 then {
+      Notice("No neighborhood expressions.")
+      fail
+      }
+   else {
+      neighbors := "$define Neighbors ["
+      every n := !keylist(specification["neighbors"]) do
+         neighbors ||:= "create " || specification["neighbors"][n] || ","
+      write(output, neighbors[1:-1], "]")
+      }
+
+   write(output, bar)
+
+   close(output)
+
+   return
+
+end
+
+$define Cells 16
+$define Width 20
+
+procedure draw_colors(clist)
+   local i, j, k, depth, color, colors
+
+   depth := *clist / Cells
+   if *clist % Cells ~= 0 then depth +:= 1
+
+   WClose(\colors)
+
+   colors :=  WOpen("size=" || (Cells * Width) || "," || (depth * Width),
+      "bg=black") | {
+         Notice("Cannot open window for color map.")
+         exit()
+         }
+
+   every j := 0 to depth - 1 do
+      every i := 0 to Cells - 1 do {
+         color := get(clist) | break break
+         Fg(colors, color) | {
+            Notice("Cannot set foreground to " || image(color) || ".")
+            next
+            }
+         FillRectangle(colors, i * Width + 1, j * Width + 1, Width - 1,
+            Width - 1)
+         }
+
+   Bg(colors, "dark gray")
+   Fg(colors, "black")
+   WAttrib(colors, "fillstyle=textured")
+   WAttrib(colors, "pattern=checkers")
+
+   every k := i to Width - 1 do			# fill out rest
+      FillRectangle(colors, k * Width + 1, j * Width + 1, Width - 1, Width - 1)
+
+   return colors
+
+end

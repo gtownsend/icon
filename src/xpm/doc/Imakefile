@@ -1,0 +1,59 @@
+# Copyright 1990-92 GROUPE BULL -- See licence conditions in file COPYRIGHT
+#
+# XPM Imakefile - Arnaud LE HORS
+#
+
+
+#if (ProjectX < 5)
+    STD_DEFINES = LibraryDefines
+    CDEBUGFLAGS = LibraryCDebugFlags
+#else
+/* R5 needs another .tmpl file to find these #def's.  This .tmpl file will */
+/* also set STD_DEFINES and CDEBUGFLAGS properly.                          */
+#include <Library.tmpl>
+#endif
+
+       INCLUDES = -I.
+   INSTALLFLAGS = $(INSTINCFLAGS)
+       LINTLIBS = $(LINTXTOLL) $(LINTXLIB) 
+
+#ifdef OsNameDefines
+OS_NAME_DEFINES = OsNameDefines
+#endif
+
+## if your system doesn't provide strcasecmp add -DNEED_STRCASECMP
+## if your system doesn't provide strdup add -DNEED_STRDUP
+## if your system doesn't provide pipe remove -DZPIPE
+DEFINES = -DZPIPE
+
+HEADERS = xpm.h
+  SRCS1 = data.c create.c misc.c rgb.c scan.c parse.c \
+	  XpmWrFFrP.c XpmRdFToP.c XpmCrPFData.c XpmCrDataFP.c \
+	  XpmWrFFrI.c XpmRdFToI.c XpmCrIFData.c XpmCrDataFI.c \
+	  hashtable.c XpmRdFToData.c XpmWrFFrData.c
+   SRCS = $(SRCS1) sxpm.c
+  OBJS1 = data.o create.o misc.o rgb.o scan.o parse.o \
+	  XpmWrFFrP.o XpmRdFToP.o XpmCrPFData.o XpmCrDataFP.o \
+	  XpmWrFFrI.o XpmRdFToI.o XpmCrIFData.o XpmCrDataFI.o \
+	  hashtable.o XpmRdFToData.o XpmWrFFrData.o
+   OBJS = sxpm.o
+
+NormalLibraryObjectRule()
+
+NormalLibraryTarget(Xpm,$(OBJS1))
+LintLibraryTarget(Xpm,$(SRCS1))
+InstallLibrary(Xpm,$(USRLIBDIR))
+InstallLintLibrary(Xpm,$(LINTLIBDIR))
+
+InstallMultiple($(HEADERS),$(INCDIR))
+DependTarget()
+NormalLintTarget($(SRCS1))
+
+
+        DEPLIBS = libXpm.a $(DEPXTOOLLIB) $(DEPXLIB)
+LOCAL_LIBRARIES = libXpm.a $(XTOOLLIB) $(XLIB)
+
+ComplexProgramTarget(sxpm)
+
+clean::	
+	$(RM) sxpmout.xpm

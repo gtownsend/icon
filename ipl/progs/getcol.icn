@@ -1,0 +1,53 @@
+############################################################################
+#
+#	File:     getcol.icn
+#
+#	Subject:  Program to extract column from data
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 21, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#   This program extracts a column from multi-column data.
+#
+#   The supported options are:
+#
+#	-n i	column number, default 1
+#	-c s	column-spearation characters, default ' \t'
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local i, chars, col, line, opts
+
+   opts := options(args, "n+c:")
+
+   i := \opts["n"] | 1
+   if i < 1 then stop("*** invalid column specifications")
+
+   chars := cset(\opts["c"]) | ' \t'
+   if *chars = 0 then stop("*** invalid character-separation specification")
+
+   while line := read() do {
+      line ? {
+         every 1 to i - 1 do {
+            tab(upto(chars)) | stop("*** column missing")
+            tab(many(chars))
+            }
+         write(tab(upto(chars) | 0))
+         }
+      }
+            
+end

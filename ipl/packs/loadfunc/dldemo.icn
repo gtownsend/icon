@@ -1,0 +1,25 @@
+#  dldemo.icn -- dynamic loading demo
+#
+#  Calls a simple C function that prints out its arguments.
+
+$include "libnames.icn"
+
+global argdump
+
+procedure main()
+   argdump := loadfunc(FUNCLIB,"argdump")
+   write("loadfunc result: ", image(argdump))
+   xcall(1, "a")
+   xcall()
+   xcall(&null)
+   xcall(1, 2, 3)
+   xcall("abc", "abcde"[2+:2], 123, 4.56, 'quick brown fox')
+   xcall(&input, &output, &errout)
+   xcall(main, argdump, [], &main, )
+end
+
+procedure xcall(args[])
+   writes("\nargs:")
+   every writes(" ", image(!args) | "\n")
+   write("--- ", image(argdump ! args) | "failed")
+end

@@ -1,0 +1,64 @@
+############################################################################
+#
+#	File:     rstarlab.icn
+#
+#	Subject:  Program to draw regular stars
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 29, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program draws regular stars.  See
+#
+#	Geometric and Artistic Graphics; Design Generation with
+#	Microcomputers, Jean-Paul Delahaye, Macmillan, 1987, pp. 5-7.
+#	
+#  The window is square.  The window size can be given on the command line,
+#  default 600.
+#
+#  The present user interface is crude.  To see all the regular stars
+#  that are provided by default, type
+#
+#	all
+#
+#  from standard input.  After each star is drawn, the program waits
+#  for an event before going on to the next star.
+#
+#  Alternatively, a single star can be drawn by typing its name preceeded
+#  by an equals sign.  The names are rstar01 through rstar06.  For example,
+#
+#	=rstar02
+#
+#  draws the second star.
+#
+#  In future extensions, provision will be made for user-defined stars.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  drawlab, rstars, rstartbl
+#
+############################################################################
+
+link drawlab
+link rstars
+link rstartbl
+
+global size
+
+procedure main(argl)
+
+   size := integer(argl[1]) | 600
+
+   drawlab(rstar, rstartbl, "regular stars")
+
+end

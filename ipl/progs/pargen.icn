@@ -1,0 +1,204 @@
+############################################################################
+#
+#	File:     pargen.icn
+#
+#	Subject:  Program to generate context-free parser
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 31, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This program reads a context-free BNF grammar and produces an Icon
+#  program that is a parser for the corresponding language.
+#
+#     Nonterminal symbols are are enclosed in angular brackets. Vertical
+#  bars separate alternatives.  All other characters are considered to
+#  be terminal symbols.  The nonterminal symbol on the first line is
+#  taken to be the goal.
+#
+#     An example is:
+#
+#	<expression>::=<term>|<term>+<expression>
+#	<term>::=<element>|<element>*<term>
+#	<element>::=x|y|z|{<expression>}
+#
+#     Parentheses can be used for grouping symbols, as in
+#
+#	<term>::=<element>(|*<term>)
+#
+#     Note that an empty alternative is allowable.
+#
+#     The right-hand side metacharacters <, >, (, ), and | are accessible
+#  through the built-in symbols <lb>, <rb>, <lp>, <rp>, and <vb>,
+#  respectively. There are two other build-in symbols, <empty> and <nl>
+#  that match the empty string and a newline, respectively.
+#
+#     Characters in nonterminal names are limited to letters, digits, and
+#  underscores.
+#
+#     An underscore is appended to the parsing procedure name to avoid
+#  possible collisions with Icon function names.
+#
+#     Lines beginning with an = are passed through unchanged. This allows
+#  Icon declarations to be placed in the parser.  Lines beginning with
+#  a # are considered to be comments and are ignored.
+#
+#     If the name of a ucode file is given on the command line, a link
+#  declaration for it is provided in the output. Otherwise the main
+#  procedure in recog is used.
+#
+############################################################################
+#
+#  Limitations:
+#
+#     Left recursion in the grammar may cause the parser to loop.
+#  There is no check that all nonterminal symbols that are referenced
+#  are defined or that there may be duplicate definitions.
+#
+############################################################################
+#
+#  Reference:
+#
+#     The Icon Programming Language, Second Edition, Ralph E. and Madge T.
+#     Griswold, Prentice-Hall, 1990, pp. 180-187.
+#
+############################################################################
+#
+#  Output links recog, matchlib
+#
+#  See also: recog.icn, matchlib.icn, and parscond.icn
+#
+############################################################################
+
+global declend			# name suffix and record body
+global goal			# nonterminal goal name
+global nchars			# characters allowed in a nonterminal name
+global procend			# name suffix and parens
+global sym			# current nonterminal symbol
+
+procedure main(args)
+   local line			# a line of input
+
+   declend := "__"
+   procend := "_()"
+   nchars := &letters ++ &digits ++ '_'
+
+   while line := read() do {		# process lines of input
+      line ? {
+         case move(1) of {		# action depends on first character
+            "<":  tab(0) ? transprod()	# transform the production
+            "=":  write(tab(0))		# pass through
+            "#":  &null			# ignore
+            default: error()
+            }				# end case
+         }				# end scan
+      }					# end while
+
+   write("link ",args[1] | "recog")	# link main procedure
+   write("link matchlib")		# link built-in symbols
+   write("global goal\n")		# write out global declaration
+   write("procedure init()")		# write out initialization procedure
+   write("   goal := ",goal,"_")
+   write("   return")
+   write("end")
+
+end
+
+#
+#  Transform a production.
+#
+
+procedure transprod()
+
+   {
+      sym := tab(many(nchars)) &	# get the nonterminal name
+      =">::=" 
+      } | error()			# catch syntactic error
+   write("record ",sym,declend,"(alts)")# record declaration
+   write("procedure ",sym,procend)	# procedure header
+   write("   suspend {")		# begin the suspend expression
+   writes("      ",sym,declend,"(")	# write indentation
+   transalts()				# transform the alternatives
+   write(")")
+   write("      }")			# end the suspend expression
+   write("end")				# end the procedure declaration
+   write()				# space between declarations
+   /goal := sym				# first symbol is goal
+
+end
+
+#
+#  Transform a sequence of alternatives.
+#
+procedure transalts()
+   local alt				# an alternative
+
+   while alt := tab(bal('|') | 0) do {	# process alternatives
+      writes("[")		# record for alternative
+      alt ? transseq()			# transform the symbols
+      if move(1) then writes("] | ")	# if more, close the parentheses
+					# and add the alternation.
+      else {
+         writes("]")			# no more, so just close the parentheses
+         break
+         }				# end else
+      }					# end while
+
+end
+
+#
+#  Transform a sequence of symbols.
+#
+procedure transseq()
+
+   repeat {
+      transsym()			# process a symbols
+      if not pos(0) then writes(" , ")	# if there's more, provide concatenation
+      else break			# else get out and return
+      }					# end while
+
+   return
+
+end
+
+#
+#  Transform a symbol.
+#
+procedure transsym()
+   local group
+
+   if ="<" then {			# if it's a nonterminal
+      {					# write it with suffix.
+         writes(tab(many(nchars)),procend) &
+         =">"				# get rid of closing bracket
+         } | error()			# or catch the error
+      }					# end then
+
+   else if ="(" then {			# if it's a parenthesis, pass it
+      writes("(")			# along and call transseq()
+      group := tab(bal(')')) | error()
+      group ? transalts()
+      writes(")")
+      move(1)
+      }
+					# else transform nonterminal string
+   else writes("=",image(tab(upto('<') | 0)))
+
+   return
+
+end
+
+#
+#  Issue error message and terminate execution.
+#
+procedure error()
+
+   stop("*** malformed definition: ",tab(0))
+
+end

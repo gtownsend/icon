@@ -1,0 +1,332 @@
+############################################################################
+#
+#	Name:	 follow.icn
+#
+#	Title:	 compute follow sets for grammar
+#
+#	Author:	 Richard L. Goerwitz
+#
+#	Version: 1.15
+#
+############################################################################
+#
+#  This file contains FIRST(st, symbol...) and FOLLOW(start_symbol,
+#  st, symbol).  For FIRST(), arg1 is a list of productions.  Arg 2 is
+#  a string (nonterminal) or an integer (terminal).  FIRST may take
+#  more than one symbol argument.  FOLLOW takes a string as its first
+#  argument, a list of productions as its second, and a symbol as its
+#  third.  There is never any need to call FOLLOW with any more than
+#  one symbol.  The return values for FIRST() and FOLLOW() may be
+#  described as follows:
+#
+#  FIRST returns the set of all terminal symbols that begin valid
+#  prefixes of the first symbol argument, or, if this contains
+#  epsilon, of the first symbol -- <epsilon> ++ the set of terminals
+#  beginning valid prefixes of the second symbol, etc....  The first
+#  argument, st, contains the production list over which FIRST is to
+#  be computed.
+#
+#  FOLLOW is similar, except that it accepts only one symbol argument,
+#  and returns the set of nonterminals that begin valid prefixes of
+#  symbols that may follow symbol in the grammar defined by the
+#  productions in st.
+#
+#  Both FIRST() and FOLLOW() are optimized.  When called for the first
+#  time with a specific production list (st), both FIRST() and
+#  FOLLOW() create the necessary data structures to calculate their
+#  respective return values.  Once created, these data structures are
+#  saved, and re-used for subsequent calls with the same st argument.
+#  The implications for the user are two: 1) The first call to FOLLOW
+#  or FIRST for a given production list will take a while to return,
+#  but 2) subsequent calls will return much faster.  Naturally, you
+#  can call both FIRST() and FOLLOW() with various st arguments
+#  throughout the life of a given program.
+#
+############################################################################
+#
+#  Links: none
+#
+############################################################################
+
+
+#
+# FIRST:  list|set x string|integer...   -> set
+#         (st, symbols...)               -> FIRST_set
+#
+#     Where symbols are strings or integers (nonterminal or terminal
+#     symbols in a production in the list or set of productions, st),
+#     and where FIRST_set is a set of integers corresponding to
+#     terminal symbols that begin valid prefixes of symbols[1], or if
+#     that derives epsilon, of symbols[1] -- epsilon ++ symbols[2],
+#     unless that derives epsilon, etc...
+#
+procedure FIRST(st, symbols[])
+
+    local   i, result, FIRST_tbl
+    static  FIRST_tbl_tbl
+    initial FIRST_tbl_tbl := table()
+
+    /FIRST_tbl_tbl[st] := make_FIRST_sets(st)
+    FIRST_tbl := FIRST_tbl_tbl[st]
+
+    result := set()
+    i := 0
+    while *symbols >= (i +:= 1) do {
+	/FIRST_tbl[symbols[i]] & iohno(90, image(symbols[i]))
+	if not member(FIRST_tbl[symbols[i]], -2) then {
+	    # We're done if no epsilons.
+	    result ++:= FIRST_tbl[symbols[i]]
+	    break
+	} else {
+	    # Remove the epsilon & try the next symbol in p.RHS.
+	    result ++:= FIRST_tbl[symbols[i]] -- FIRST_tbl[-2]
+	}
+    }
+    # If we get to here without finding a symbol that doesn't derive
+    # epsilon, then give up and insert <epsilon> into result.
+    if i > *symbols then
+	result ++:= FIRST_tbl[-2]
+
+    return result
+
+end
+
+
+#
+# FOLLOW: list|set x string|integer -> set
+#         (st,       symbol)        -> FOLLOW_set
+#
+procedure FOLLOW(start_symbol, st, symbol)
+
+    static  FOLLOW_tbl_tbl
+    initial FOLLOW_tbl_tbl := table()
+
+    /FOLLOW_tbl_tbl[st] := make_slr_FOLLOW_sets(start_symbol, st) 
+    return FOLLOW_tbl_tbl[st][symbol]
+
+end
+
+
+#
+#  Below is the procedure make_slr_FOLLOW_sets(start_symbol, st),
+#  which accepts a string, a set, and a table as its arguments and
+#  returns another table.  The first argument must contain the start
+#  symbol for the set (or list) of productions contained in the second
+#  argument.  Returns a table of FOLLOW sets, where keys = symbols and
+#  values = follow sets for those symbols.
+#
+#  The algorithm - somewhat inefficiently implemented here - works out
+#  as follows:
+#
+#      1. Place $ (internal 0) in FOLLOW_tbl[start_symbol].
+#      2. Initialize FOLLOW_tbl[symbol] to { } for every other symbol.
+#      3. For each production A -> aBb do FOLLOW_tbl[B] ++:= FIRST(b) --
+#         FIRST(<epsilon>).
+#      4. For each production A -> aBb where FIRST(b) contains
+#         <epsilon> and for each production A -> aB, do FOLLOW_tbl[B] ++:=
+#         FOLLOW_tbl[A].
+#
+#  Repeat steps 3 and 4 until no FOLLOW set can be expanded, at which
+#  point return the FOLLOW table.
+#
+#  Note that <epsilon> is represented internally by -2.
+#
+
+
+#
+# make_slr_FOLLOW_sets: string x set/list  -> table
+#                       (start_symbol, st) -> FOLLOW_tbl
+#
+#     Where start_symbol is the start symbol for the grammar defined
+#     by the set/list of productions in st, and where FOLLOW_tbl is a
+#     table of follow sets (keys = symbols, values = follow sets for
+#     the symbols).
+#
+procedure make_slr_FOLLOW_sets(start_symbol, st)
+
+    local FOLLOW_tbl, k, size, old_size, p, i, j
+
+    FOLLOW_tbl := table()
+    # step 1 above; note that 0 = EOF
+    FOLLOW_tbl[start_symbol] := set([0])
+
+    # step 2
+    every k := (!st).LHS do
+	/FOLLOW_tbl[k] := set()
+
+    # steps 3 and 4
+    size := 0
+    #
+    # When the old size of the FOLLOW sets equals the new size, we are
+    # done because nothing was added to the FOLLOW sets on the last
+    # pass.
+    #
+    while old_size ~===:= size do {
+	size := 0
+	every p := !st do {
+	    every i := 1 to *p.RHS-1 do {
+		type(p.RHS[i]) == "string" | next
+		/FOLLOW_tbl[p.RHS[i]] & iohno(90, image(p.RHS[i]))
+		# Go through every RHS symbol until we get a FIRST set
+		# without an epsilon move.
+		every j := i+1 to *p.RHS do {
+		    if member(FIRST(st, p.RHS[j]), -2) then {
+			FOLLOW_tbl[p.RHS[i]] ++:=
+			    FIRST(st, p.RHS[j]) -- FIRST(st, -2)
+		    } else {
+			FOLLOW_tbl[p.RHS[i]] ++:= FIRST(st, p.RHS[j])
+			size +:= *FOLLOW_tbl[p.RHS[i]]
+			break next
+		    }
+		}
+		# If we get past "break next" then b in A -> aBb =>*
+		# <epsilon>; add FOLLOW_tbl[A] to FOLLOW_tbl[B].
+		FOLLOW_tbl[p.RHS[i]] ++:= FOLLOW_tbl[p.LHS]
+		size +:= *FOLLOW_tbl[p.RHS[i]]
+	    }
+	    # Add FOLLOW_tbl[A] to FOLLOW_tbl[B] for the last symbol in the
+	    # RHS of every rule.
+	    type(p.RHS[*p.RHS]) == "string" | next
+	    /FOLLOW_tbl[p.RHS[*p.RHS]] & iohno(90, image(p.RHS[*p.RHS]))
+	    FOLLOW_tbl[p.RHS[*p.RHS]] ++:= FOLLOW_tbl[p.LHS]
+	    size +:= *FOLLOW_tbl[p.RHS[*p.RHS]]
+	}
+    }
+
+    # Print human-readable version of FOLLOW_tbl if instructed to do so.
+    if \DEBUG then
+	print_follow_sets(FOLLOW_tbl)
+
+    # check for useless nonterminal symbols
+    every k := (!st).LHS do
+	*FOLLOW_tbl[k] = 0 & iohno(91, k)
+
+    return FOLLOW_tbl
+
+end
+
+
+#
+#  Below is the routine make_FIRST_sets(st), which accepts as its one
+#  argument a list or set of production records, and which returns a
+#  table t, where t's keys are symbols from the grammar defined by the
+#  productions in st, and where the values assocated with each of
+#  these keys is the FIRST set for that key.
+#
+#  Production records are structures where the first two fields, LHS
+#  and RHS, contain the left-hand and right-hand side of each rule in
+#  a given grammar.  The right-hand side is a linked list of integers
+#  (used for terminals) and strings (used for nonterminals). LHS must
+#  contain a string.  Terminals below 1 are reserved.  Currently three
+#  are actually used:
+#
+#      0    EOF
+#      -1   error
+#      -2   epsilon
+#
+#  For a description of the FIRST() construction algorithm, see Alfred
+#  Aho, Ravi Sethi, and Jeffrey D. Ullman _Compilers_ (Reading,
+#  Massachusetts: Addison & Wesley, 1986), section 4.4, page 189.
+#  Their algorithm is not strictly suitable, as is, for use here.  I
+#  thank Dave Schaumann of the University of Arizona at Tuscon for
+#  explaining to me the iterative construction algorithm that in fact
+#  *is* suitable.
+#  
+#  FIRST is computed on an iterative basis as follows:
+#
+#      1. For every terminal symbol a, FIRST(a) = { a }
+#      2. For every non-terminal symbol A, initialize FIRST(A) = { }
+#      3. For every production A -> <epsilon>, add <epsilon> to FIRST(A)
+#      4. For each production of the grammar having the form X -> Y1
+#         Y2 ... Yn, perform the following procedure:
+#          i := 1
+#          while i <= number-of-RHS-symbols do {
+#              if <epsilon> is not in FIRST(Y[i]) then {
+#                  FIRST(X) ++:= FIRST(Y[i])
+#                  break
+#              } else {
+#                  FIRST(X) ++:= FIRST(Y[i]) -- FIRST[<epsilon>]
+#                  i +:= 1
+#              }
+#          }
+#          if i > number-of-RHS-symbols then
+#              # <epsilon> is in FIRST(Y[i])
+#              FIRST(X) ++:= FIRST[epsilon]
+#      5. Repeat step 3 until no new symbols or <epsilon> can be added
+#         to any FIRST set
+#
+
+
+#
+# make_FIRST_sets:  set/list -> table
+#                   st       -> t
+#
+#     Where st is a set or list of production records, and t is a
+#     table of FIRST sets, where the keys = terminal or nonterminal
+#     symbols and the values = sets of terminal symbols.
+#
+#     Epsilon move is -2; terminals are positive integers;
+#     nonterminals are strings.  Error is -1; EOF is 0.
+#
+procedure make_FIRST_sets(st)
+
+    local FIRST_tbl, symbol, p, old_size, size, i
+
+    FIRST_tbl    := table()
+    FIRST_tbl[0] := set([0])
+
+    # steps 1, 2, and 3 above
+    every p := !st do {
+	# check for empty RHS (an error)
+	*p.RHS = 0 & iohno(11, production_2_string(p))
+	# step 1
+	every symbol := !p.RHS do {
+	    if type(symbol) == "integer"
+	    then FIRST_tbl[symbol] := set([symbol])
+	}
+	# step 2
+	/FIRST_tbl[p.LHS] := set() &
+	# step 3
+	if *p.RHS = 1 then {
+	    if p.RHS[1] === -2	# -2 is epsilon
+	    then insert(FIRST_tbl[p.LHS], -2)
+	}
+    }
+
+    # steps 4 and 5 above
+    size := 0
+    #
+    # When the old size of the FIRST sets equals the new size, we are
+    # done.  As long as they're unequal, set old_size to size and try
+    # to add to the FIRST sets.
+    #
+    while old_size ~===:= size do {
+	size := 0
+	every p := !st do {
+	    every i := 1 to *p.RHS do {
+		\FIRST_tbl[p.RHS[i]] | iohno(90, image(p.RHS[i]))
+		if not member(FIRST_tbl[p.RHS[i]], -2) then {
+		    # We're done with this pass if no epsilons.
+		    FIRST_tbl[p.LHS] ++:= FIRST_tbl[p.RHS[i]]
+		    size +:= *FIRST_tbl[p.LHS]
+		    break next
+		} else {
+		    # Remove the epsilon & try the next symbol in p.RHS.
+		    FIRST_tbl[p.LHS] ++:= FIRST_tbl[p.RHS[i]] -- FIRST_tbl[-2]
+		}
+	    }
+	    # If we get past the every...do structure without
+	    # break+next-ing, then we are still finding epsilons.  In
+	    # this case, add epsilon to FIRST_tbl[p.LHS].
+	    FIRST_tbl[p.LHS] ++:= FIRST_tbl[-2]
+	    size +:= *FIRST_tbl[p.LHS]
+	}
+    }
+
+    # Print human-readable version of FIRST_tbl if instructed to do so.
+    if \DEBUG then
+	print_first_sets(FIRST_tbl)
+
+    return FIRST_tbl
+
+end

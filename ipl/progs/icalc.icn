@@ -1,0 +1,477 @@
+############################################################################
+#
+#	File:     icalc.icn
+#
+#	Subject:  Program to simulate infix desk calculator
+#
+#	Author:   Stephen B. Wampler
+#
+#	Date:     January 3, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# This is a simple infix calculator with control structures and
+#   compound statements.  It illustrates a technique that can be
+#   easily used in Icon to greatly reduce the performance cost
+#   associated with recursive-descent parsing with backtracking.
+#   There are numerous improvements and enhancements that can be
+#   made.
+#
+# Features include:
+#
+#	- integer and real value arithmetic
+#       - variables
+#       - function calls to Icon functions
+#       - strings allowed as function arguments
+#       - unary operators:
+#             +	(absolute value), - (negation)
+#       - assignment:
+#             :=
+#       - binary operators:
+#             +,-,*,/,%,^,
+#       - relational operators:
+#             =, !=, <, <=, >, >=
+#                (all return 1 for true and 0 for false)
+#       - compound statements in curly braces with semicolon separators
+#       - if-then and if-then-else
+#       - while-do
+#       - limited form of multiline input
+#
+# The grammar at the start of the 'parser' proper provides more
+#   details.
+#
+# Normally, the input is processed one line at a time, in calculator
+#   fashion.  However, compound statements can be continued across
+#   line boundaries.
+#
+# Examples:
+#
+#   Here is a simple input:
+#
+#       {
+#	a := 10;
+#	while a >= 0 do {
+#          write(a);
+#          a := a - 1
+#          };
+#       write("Blastoff")
+#       }
+#
+#    (execution is delayed until entire compound statement is entered)
+#
+#   Another one:
+#
+#   write(pi := 3.14159)
+#   write(sin(pi/2))
+#
+#    (execution done as each line is entered)
+#
+############################################################################
+
+invocable all
+
+	# the types for parse tree nodes:
+
+record  trinary(op,first,second,third)
+record  binop(op,left,right)
+record  unary(op,opnd)
+record  id(name)
+record  const(value)
+
+	# a global table for holding variable values:
+
+global  sym_tab
+
+
+procedure main()
+   local line, sline
+
+   sym_tab := table()
+
+   every line := getbs() do {			# a 'line' may be more
+						#   than one input line
+      if *(sline := trim(line)) > 0 then {	# skip empty lines
+         process(parse(sline))
+         }
+      }
+end
+
+### Input routines...
+
+## getbs - read enough input to ensure that it is
+#	balanced with respect to curly braces, allowing
+#       compound statements to extend across lines...
+#	This can be made considerably more sophisticated,
+#       but handles the more common cases.
+#
+procedure getbs()
+static tmp
+   initial tmp := (("" ~== |read()) || " ") | fail
+
+   repeat {
+      while not checkbal(tmp,'{','}') do {
+         if more('}','{',tmp) then break
+         tmp ||:= (("" ~== |read()) || " ") | break
+         }
+      suspend tmp
+      tmp := (("" ~== |read()) || " ") | fail
+      }
+end
+
+## checkbal(s) - quick check to see if s is
+#       balanced w.r.t. braces or parens
+#
+procedure checkbal(s,l,r)
+   return (s ? 1(tab(bal(&cset,l,r)),pos(-1)))
+end
+
+## more(c1,c2,s) - succeeds if any prefix of
+#       s has more characters in c1 than
+#       characters in c2, fails otherwise
+#
+procedure more(c1,c2,s)
+local cnt
+   cnt := 0
+   s ? while (cnt <= 0) & not pos(0) do {
+         (any(c1) & cnt +:= 1) |
+         (any(c2) & cnt -:= 1)
+         move(1)
+         }
+   return cnt >= 0
+end
+
+
+### Parser routines...  Implementing an efficient recursive-descent
+###     parser with backtracking.
+
+#   Parser  --  Based on following CFG, but modified to
+#	           avoid useless backtracking...  (see comments
+#		   preceding procedures 'save' and 'restore')
+
+#      Statement ::= Expr | If | While | Compound
+#
+#      Compound ::= {Statement_list}
+#
+#      Statement_list ::= Statement | Statement ; Statement_list
+#
+#      If ::= if Expr then Statement Else
+#
+#      Else ::= else Statement | ""
+#
+#      While ::= while Expr do Statement
+#
+#      Expr ::= R | Id := Expr 
+#
+#      R ::= X [=,!=,<,>,>=,<=] X | X
+#
+#      X ::= T [+-] X | T
+#
+#      T ::= F [*/%] T | F
+#
+#      F ::= E ^ F | E
+#
+#      E ::= L | [+,-] L
+#
+#      L ::= Func | Id | Constant | ( Expr ) | String
+#
+#      Func ::= Id ( Arglist )
+#
+#      Arglist ::= "" | Expr | Expr , arglist
+
+#
+#  Note, this version correctly handles left-associativity
+#	despite the fact that the above grammar doesn't
+#	handle it correctly.  (Cannot embed left-associativity
+#	into a recursive descent parser!)
+#
+
+procedure parse(s)		# must match entire line
+   local tree
+
+   if s ? ((tree := Statement()) & (ws(),pos(0))) then {
+      return tree
+      }
+   write("Syntax error.")
+end
+
+procedure Statement()
+   suspend If() | While() | Compound() | Expr()
+end
+
+procedure Compound()
+   suspend unary("{",2(litmat("{"),Statement_list(),litmat("}")))
+end
+
+procedure Statement_list()
+   local t
+   t := scan()
+   suspend binary(save(Statement,t), litmat(";"), Statement_list()) | restore(t)
+end
+
+procedure If()
+   suspend trinary(keymat("if"),Expr(),2(keymat("then"),Statement()),
+                                       2(keymat("else"),Statement())|&null)
+end
+
+procedure While()
+   suspend binary(2(keymat("while"),Expr()),"while",2(keymat("do"),Statement()))
+end
+
+procedure Expr()
+   suspend binary(Id(),litmat(":="),Expr()) | R()
+end
+
+procedure R()
+   local t
+   t := scan()
+   suspend binary(save(X,t),litmat(!["=","!=","<=",">=","<",">"]),X()) |
+           restore(t)
+end
+   
+procedure X()
+   local t
+   t := scan()
+   suspend binary(save(T,t),litmat(!"+-"),X()) | restore(t)
+end
+
+procedure T()
+   local t
+   t := scan()
+   suspend binary(save(F,t),litmat(!"*/%"),T()) | restore(t)
+end
+
+procedure F()
+   local t
+   t := scan()
+   suspend binary(save(E,t),litmat("^"),F()) | restore(t)
+end
+
+procedure E()
+   suspend unary(litmat(!"+-"),L()) | L()
+end
+
+procedure L()
+   # keep track of fact expression was parenthesized,
+   #   so we don't accidently override the parens when
+   #   handling left-associativity
+   suspend Func() | Id() | Const() |
+           unary("(",2(litmat("("), Expr(), litmat(")"))) |
+           String()
+end
+
+procedure Func()
+   suspend binary(Id(),litmat("("),1(Arglist(),litmat(")")))
+end
+
+procedure Arglist()
+   local a
+   a := []
+   suspend (a <- ([Expr()] | [Expr()] ||| 2(litmat(","),Arglist()))) | a
+end
+
+procedure Id()
+   static first, rest
+
+   initial {
+      first := &letters ++ "_"
+      rest := first ++ &digits
+      }
+
+   suspend 2(ws(),id(tab(any(first))||tab(many(rest)) | tab(any(first))))
+end
+
+procedure Const()
+   local t
+
+   t := scan()
+
+   suspend 2(ws(),const((save(digitseq,t)||="."||digitseq()) | restore(t)))
+
+end
+
+procedure digitseq()
+   suspend tab(many(&digits))
+end
+
+procedure String()
+	# can be MUCH smarter, see calc.icn (by Ralph Griswold) for
+	#   example of how to do so...
+    suspend 2(litmat("\""),tab(upto('"')),move(1))
+end
+
+procedure litmat(s)
+   suspend 2(ws(),=s)
+end
+
+procedure keymat(key)
+   suspend 2(ws(),key==tab(many(&letters)))
+end
+
+procedure ws()
+   static wsp
+   initial wsp := ' \t'
+   suspend ""|tab(many(wsp))
+end
+
+procedure binary(l,o,r)
+   local lm
+
+   # if operator is left-associative, then alter tree to
+   #    reflect that fact, since it isn't parsed that way
+   # (this isn't the most efficient way to do this, but
+   #  it is a simple way...)
+
+   if (type(r) == "binop") & samelop(o,r.op) then {
+
+      # ok, have to add node to far left end of chain for r
+
+      # ...do so by first finding leftmost node of chain for r
+      lm := r
+      while (type(lm.left) == "binop") & samelop(o,lm.left.op) do {
+         lm := lm.left
+         }
+
+      # ...add new node as new left-most node in chain
+      lm.left := binop(o,l,lm.left)
+
+      # ...and return original right child as root of tower
+      return r
+      }
+
+   # nothing to do, just return 'normal' tree
+   return binop(o,l,r)
+end
+
+procedure samelop(o1,o2)
+   # both operators are left associative at the same precedence level
+   return (any('+-',o1) & any('+-',o2)) |
+          (any('*/%',o1) & any('*/%',o2))
+end
+
+## Speed up tools for recursive descent parsing...
+#
+#     The following two routines make it possible to 'defer'
+#        the backtracking into a parsing procedure (at least
+#        so far as restoring &pos).  This makes it easy to
+#        reuse the result of a parsing procedure if needed.
+#
+#     For example,  the grammar rules:
+#
+#	X := T | T + F
+#
+#     can be processed as:
+#
+#	X := save(T,t) | restore(t) + F
+#
+#     The net effect is a very substantial speedup in processing
+#     such rules.
+#
+
+record scan(val,pos)	# used to avoid repeating a successful scan
+			#   (see the use of save() and restore())
+
+# save the current scanning position and result of parsing procedure P
+#   and then prevent backtracking into P
+#
+procedure save(P,t)
+   return (t.pos <- &pos, t.val := P())
+end
+
+#
+# if t has in it the saved result of a parsing procedure, then
+#   suspend it.  if backtracked into reset position back to
+#   start of original call to that parsing procedure.
+#
+procedure restore(t)
+   suspend \t.val
+   &pos := \t.pos
+end
+
+### execution of infix expression...
+
+## process -- given an expression tree - walk it to produce a result
+#
+
+	# The only tricky part is in the assignment operator.
+	# Here, since we know the left-hand side is an identifier
+	# We avoid processing it, since process(id(name)) will
+	# return the value of id(name), not it's address.
+	
+	# This version just relies upon the icon interpreter to
+	# catch runtime errors.  It would be better to catch them
+	# here.
+
+procedure process(t)
+   local a, val
+
+   return case type(t) of {
+      "trinary" : case t.op of {	# has to be an 'if'!
+                   "if": if process(t.first) ~= 0 then
+                            process(t.second)
+                         else
+                            process(t.third)
+                   }
+
+      "binop" : case t.op of {
+		  # the relation operators
+		   "=" : if process(t.left) = process(t.right) then 1 else 0
+		   "!=": if process(t.left) ~= process(t.right) then 1 else 0
+		   "<=": if process(t.left) <= process(t.right) then 1 else 0
+		   ">=": if process(t.left) >= process(t.right) then 1 else 0
+		   "<" : if process(t.left) < process(t.right) then 1 else 0
+		   ">" : if process(t.left) > process(t.right) then 1 else 0
+
+		  # the arithmetic operators
+                   "+" : process(t.left) + process(t.right)
+		   "-" : process(t.left) - process(t.right)
+                   "*" : process(t.left) * process(t.right)
+                   "/" : process(t.left) / process(t.right)
+                   "%" : process(t.left) % process(t.right)
+                   "^" : process(t.left) ^ process(t.right)
+
+                  # assignment
+                   ":=": sym_tab[t.left.name] := process(t.right)
+
+		  # statements in a statement list
+                   ";" : {
+                         process(t.left)
+                         process(t.right)
+                         }
+
+		  # while loop
+                  "while" : while process(t.left) ~= 0 do
+                               process(t.right)
+
+		  # function calls
+                  "("  : t.left.name ! process(t.right)
+                  }
+
+      "unary" : case t.op of {
+                   "-" : -process(t.opnd)
+                   "+" : if val := process(t.opnd) then
+                            return if val < 0 then -val else val
+	   	  # parenthesized expression
+                   "(" : process(t.opnd)
+                  # compound statement
+                   "{" : process(t.opnd)
+                   }
+
+      "id"    : \sym_tab[t.name] | (write(t.name," is undefined!"),&fail)
+
+      "const" : numeric(t.value)
+
+      "list"  : {	# argument list for function call
+			#   evaluate each argument into a new list
+                a := []
+                every put(a,process(!t))
+                a
+                }
+
+      default: t	# anything else (right now, just strings)
+      }
+
+end

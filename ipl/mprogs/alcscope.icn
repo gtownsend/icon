@@ -1,0 +1,312 @@
+############################################################################
+#
+#	File:     alcscope.icn
+#
+#	Subject:  Program to visualize allocation as a kaleidoscopic display
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 14, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program displays kaleidoscopic images.  The controls on the
+#  user interface are relatively intuitive -- trying them will give
+#  a better idea of what's possible than a prose description here.
+#
+#  This program is based on an earlier one by Steve Wampler, which in
+#  turn was based on a C program by Lorraine Callahan.
+#
+#  This version is adapted to visualize storage management.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  interact, random, vsetup
+#
+############################################################################
+
+link interact
+link vsetup
+link colormap
+link evinit
+
+#  Interface globals
+
+global vidgets				# table of vidgets
+global root				# the root vidget
+global size				# size of view area (width & height)
+global half				# half size of view area
+global pane				# graphics context for viewing
+
+#  Parameters that can be set from the interface
+
+global delayval				# delay between drawing circles
+global density				# number of circles in steady state
+global draw_proc			# drawing procedure
+global max_off				# maximum offset of circle
+global min_off				# minimum offset of circle
+global scale				# scaling factor for sizes
+global color				# color table
+
+#  State information
+
+global draw_list			# list of pending drawing parameters
+global reset				# nonnull when view area needs resetting
+global state				# nonnull when display paused
+
+$include "evdefs.icn"
+
+procedure main(args)
+
+   init(args)
+
+   kaleidoscope()
+
+end
+
+procedure init(args)
+
+   color := colormap()
+
+   vidgets := ui()
+
+   root := vidgets["root"]
+   size := vidgets["region"].uw
+   if vidgets["region"].uh ~= size then stop("*** improper interface layout")
+
+#  Set initial values.
+
+   draw_proc := FillCircle
+
+   state := &null
+
+#  Initialize vidget values.
+
+   density := VGetState(vidgets["density"])
+   delayval := VGetState(vidgets["speed"])
+   scale := VGetState(vidgets["scale"])
+   VSetState(vidgets["shape"], "rings")
+
+#  Get graphics context for drawing.
+
+   half := size / 2
+
+   pane := Clone("bg=black", "dx=" || (vidgets["region"].ux + half),
+      "dy=" || (vidgets["region"].uy + half), "drawop=reverse")
+   Clip(pane, -half, -half, size, size)
+
+   EvInit(args) | ExitNotice("Cannot load SP.")
+
+   every variable("write" | "writes", &eventsource) := -1
+
+   return
+
+end
+
+procedure kaleidoscope()
+
+   #  Each time through this loop, the display is cleared and a
+   #  new drawing is started.
+
+   repeat {
+
+      EraseArea(pane, -half, -half, size, size)	# clear display
+      draw_list := []				# new drawing list
+      reset := &null
+
+      #  In this loop a new circle is drawn and an old one erased, once the
+      #  specified density has been reached.  This maintains a steady state.
+
+      repeat {
+         while (*Pending() > 0) | \state do {
+            ProcessEvent(root, , shortcuts)
+            if \reset then break break next
+            }
+         putcircle()
+         WDelay(delayval)
+
+         #  Don't start clearing circles until the specified density has
+         #  reached. (The drawing list has four elements for each circle.)
+
+         if *draw_list > (4 * density) then clrcircle()
+         }
+      }
+
+end
+
+procedure putcircle()
+   local off1, off2, radius, fg
+
+   EvGet(AllocMask) | ExitNotice("SP terminated.")
+
+   fg := color[&eventcode]
+   radius := sqrt(&eventvalue * scale)
+
+   # get a random center point and radius
+
+   off1 := ?size % half
+   off2 := ?size % half
+   
+   put(draw_list, off1, off2, radius, fg)
+
+   outcircle(off1, off2, radius, fg)
+
+   return
+
+end
+
+procedure clrcircle()
+
+   outcircle(
+     get(draw_list),			# off1
+     get(draw_list),			# off2
+     get(draw_list),			# radius
+     get(draw_list)			# color
+     )
+
+   return
+
+end
+
+procedure outcircle(off1, off2, radius, color)
+
+   Fg(pane, color)
+
+   # Draw in symmetric positions.
+
+   draw_proc(pane, off1, off2, radius)
+   draw_proc(pane, off1, -off2, radius)
+   draw_proc(pane, -off1, off2, radius)
+   draw_proc(pane, -off1,-off2, radius)
+   draw_proc(pane, off2, off1, radius)
+   draw_proc(pane, off2, -off1, radius)
+   draw_proc(pane, -off2, off1, radius)
+   draw_proc(pane, -off2,-off1, radius)
+
+   return
+
+end
+
+procedure density_cb(vidget, value)
+
+   density := value
+
+   reset := 1
+
+end
+
+procedure speed_cb(vidget, value)
+
+   delayval := value
+
+   return
+
+end
+
+procedure file_cb(vidget, value)
+
+   case value[1] of {
+      "snapshot @S":  snapshot(pane, -half, -half, size, size)
+      "quit     @Q":  exit()
+      }
+
+   return
+
+end
+
+procedure scale_cb(vidget, value)
+
+   scale := value
+
+   return
+
+end
+
+procedure pause_cb(vidget, value)
+
+   state := value
+
+   return
+
+end
+
+procedure reset_cb(vidget, value)
+
+   reset := 1
+
+   return
+
+end
+
+procedure shape_cb(vidget, value)
+
+   draw_proc := case value of {
+     "discs":  FillCircle
+     "rings":  DrawCircle
+     }
+
+   reset := 1
+
+   return
+
+end
+
+procedure shortcuts(e)
+
+   if &meta then
+      case map(e) of {			# fold case
+         "q":	exit()
+         "s":	snapshot(pane, -half, -half, size, size)
+         }
+
+   return
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=600,455", "bg=gray-white", "label=kaleido"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,600,455:kaleido",],
+   ["density:Slider:h:1:41,171,100,15:10,100,50",density_cb],
+   ["file:Menu:pull::12,3,36,21:File",file_cb,
+      ["snapshot @S","quit     @Q"]],
+   ["label07:Label:::7,120,28,13:slow",],
+   ["label08:Label:::151,120,28,13:fast",],
+   ["label10:Label:::64,270,7,13:1",],
+   ["label11:Label:::124,270,7,13:5",],
+   ["label12:Label:::47,200,14,13:10",],
+   ["label13:Label:::116,200,21,13:100",],
+   ["label14:Label:::78,200,14,13:50",],
+   ["label9:Label:::43,270,14,13:.2",],
+   ["lbl_density:Label:::67,151,49,13:density",],
+   ["lbl_scale:Label:::74,220,35,13:scale",],
+   ["lbl_speed:Label:::74,100,35,13:speed",],
+   ["line:Line:::0,30,600,30:",],
+   ["line1:Line:::68,256,68,266:",],
+   ["line2:Line:::128,256,128,266:",],
+   ["line3:Line:::54,256,54,266:",],
+   ["line4:Line:::128,186,128,196:",],
+   ["line5:Line:::55,186,55,196:",],
+   ["line6:Line:::86,186,86,196:",],
+   ["pause:Button:regular:1:33,55,45,20:pause",pause_cb],
+   ["reset:Button:regular::111,55,45,20:reset",reset_cb],
+   ["scale:Slider:h:1:42,240,100,15:0.1,5,1",scale_cb],
+   ["shape:Choice::2:64,330,64,42:",shape_cb,
+      ["discs","rings"]],
+   ["speed:Slider:h:1:41,121,100,15:100,0,0",speed_cb],
+   ["region:Rect:raised::187,42,400,400:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

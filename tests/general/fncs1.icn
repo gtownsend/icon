@@ -1,0 +1,72 @@
+record array(a,b,c,d,e,f,g)
+global F, f
+global w, t
+
+procedure main()
+   q1()
+   q2()
+   q3()
+   q4()
+   q5()
+end
+
+procedure q1()
+   write(" ----> ",image() | "none")
+   write("f := open(\"foo.baz\",\"w\") ----> ",image(f := open("foo.baz","w")) | "none")
+   write("write(f,\"hello world\") ----> ",image(write(f,"hello world")) | "none")
+   write("close(f) ----> ",image(close(f)) | "none")
+   write("F := open(\"gc1.icn\") ----> ",image(F := open("gc1.icn")) | "none")
+   write("every write(reverse(!F)) ----> ",image(every write(reverse(!F))) | "none")
+   write("close(F) ----> ",image(close(F)) | "none")
+   write("F := open(\"gc1.icn\") ----> ",image(F := open("gc1.icn")) | "none")
+   write("every write(map(!F)) ----> ",image(every write(map(!F))) | "none")
+   write("close(F) ----> ",image(close(F)) | "none")
+   write("F := open(\"gc1.icn\") ----> ",image(F := open("gc1.icn")) | "none")
+end
+
+procedure q2()
+   write("every write(map(!F,&cset || \"aeiou\",&cset || \"-----\")) ----> ",image(every write(map(!F,&cset || "aeiou",&cset || "-----"))) | "none")
+   write("close(F) ----> ",image(close(F)) | "none")
+   write("F := open(\"gc1.icn\") ----> ",image(F := open("gc1.icn")) | "none")
+   write("every write(map(!F,&cset || \"     \",&cset || \"aeiou\")) ----> ",image(every write(map(!F,&cset || "     ",&cset || "aeiou"))) | "none")
+   write("close(F) ----> ",image(close(F)) | "none")
+   write("f := open(\"gc1.icn\") ----> ",image(f := open("gc1.icn")) | "none")
+   write("while writes(reads(f)) ----> ",image(while writes(reads(f))) | "none")
+   write("close(f) ----> ",image(close(f)) | "none")
+   write("f := open(\"gc1.icn\") ----> ",image(f := open("gc1.icn")) | "none")
+   write("while writes(reads(f,10)) ----> ",image(while writes(reads(f,10))) | "none")
+   write("f := open(\"gc1.icn\") ----> ",image(f := open("gc1.icn")) | "none")
+end
+
+procedure q3()
+   write("while write(read(f)) ----> ",image(while write(read(f))) | "none")
+   write("close(f) ----> ",image(close(f)) | "none")
+end
+
+procedure q4()
+   T := table()
+   L := list()
+   every T[1 to 20] := 1
+   every put (L, key(T))
+   every write (!sort(L))
+end
+
+procedure q5()
+    every i := 1 to 25 do {
+	v := 0.25 * i
+	wf (v)
+	if (v <= 1.0) then
+	    every wf ((acos | asin) (v))
+	else
+	    every wf ("" | "")
+	every wf (atan(v) | atan(v,3))
+	every wf ((cos | sin | tan) (v))
+	every wf ((sqrt | exp | log) (v))
+	wf (log(v,3))
+	write ()
+    }
+    end
+
+procedure wf (v)
+    writes(left(v,5)," ")
+    end

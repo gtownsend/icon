@@ -1,0 +1,56 @@
+# Semantics stack manipulation routines to be called by
+# parseLL1(...), the parser for the TCLL1 LL(1) parser
+# generator.
+#	(written by Thomas W. Christopher)
+#
+
+invocable all
+global semanticsStack
+
+record ErrorToken(type,body,line,column)
+
+procedure initSemanticsStack()
+ semanticsStack:=[]
+return
+end
+
+
+procedure outToken(tok)
+ push(semanticsStack,tok)
+return
+end
+
+procedure outAction(a)
+a()
+return
+end
+
+procedure outError(t,l,c)
+push(semanticsStack,ErrorToken(t,t,\l|0,\c|0))
+return
+end
+
+procedure isError(v)
+ return type(v)=="ErrorToken"
+end
+
+procedure popSem(n)
+local V
+V:=[]
+every 1 to n do push(V,pop(semanticsStack))
+return V
+end
+
+procedure pushSem(s)
+push(semanticsStack,s)
+return
+end
+
+procedure anyError(V)
+local v
+if v:=!V & type(v)=="ErrorToken" then {
+	return v
+}
+fail
+end
+

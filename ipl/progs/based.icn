@@ -1,0 +1,540 @@
+############################################################################
+#
+#	File:     based.icn
+#
+#	Subject:  Program to do BASIC-style editing
+#
+#	Author:   Chris Tenaglia
+#
+#	Date:     February 18, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program models a line editor for BASIC.
+#
+############################################################################
+
+global chars,program,cmd,token,name
+
+procedure main(param)
+  local ff, old
+
+  if find("p",map(param[1])) then ff := "\014"
+                             else ff := "\e[2J\e[H"
+  chars   := &cset -- '\t '
+  program := list()
+  name    := &null
+  write("Basic Line Editor V1.3 by Tenaglia 910104.1700")
+  write(&host," ",&dateline,"\n")
+
+  repeat
+    {
+    writes(">")
+    (cmd   := read()) | { quit() ; next }
+    if cmd == "!!" then
+      {
+      cmd := old
+      write("> ",cmd)
+      }
+    token := parse(cmd)
+    if integer(token[1]) then
+      {
+      entry(token[1])
+      token[1] := ""
+      }
+    old := cmd
+#EJECT
+    case map(token[1]) of
+      {
+      ""       : "ignore this case"
+      "load"   : write(load())
+      "save"   : write(save())
+      "resave" : write(resave())
+      "read"   : write(basread())
+      "write"  : write(baswrite())                   
+      "merge"  : write(merge())
+      "new"    : write(new())
+      "list"   : write(print())
+      "renum"  : write(renum())
+      "del"    : write(del())
+      "dir"    : write(dir())
+      "size"   : write("Buffer contains ",*program," lines.")
+      "find"   : write(search())
+      "cls"    : write(ff)
+      "compile": write(compile())
+      "build"  : write(build())
+      "test"   : write(build(),run())
+      "run"    : write(run())
+      "ver"    : write("Basic Line Editor V1.3 by Tenaglia 910104.1700")
+      "date"   : write(&host," ",&dateline)
+      "time"   : write(&host," ",&dateline)
+      "help"   : write(help())
+      "?"      : write(help())
+      "$"      : write(shell())
+      "exit"   : break
+      "quit"   : break
+      default  : write("\007What ?")
+      }
+     }
+
+  write("Returning to operating system")
+  write(&host," ",&dateline)
+end
+
+procedure quit()           # allows CTRL_Z exit under VMS
+  local test
+
+  writes("QUIT! Are you sure? Y/N :")
+  (test := read()) | stop("Returning to operating system\n",&host," ",&dateline)
+  if map(test)[1] == "y" then stop("Returning to operating system\n",&host," ",&dateline)
+  return
+  end
+  
+#SUB LOAD, SAVE, AND RESAVE COMMANDS
+#EJECT
+procedure load()
+  local file, in, lnum
+
+  if not(token[2]) then
+    {
+    writes("_file:")
+    if (file := string(read())) == "" then return
+    } else file := token[2]
+  lnum  := 0
+  (in   := open(file)) | return ("Can't open " || file)
+  name  := file
+  program := []
+  while put(program,((lnum+:=10) || " " || read(in))) do
+    not(find("00",lnum)) | (writes("."))
+  close(in)
+  return ("\n" || file || " loaded.")
+end
+
+procedure save()
+  local file, i, line, lnum, out, text
+
+  if not(token[2]) then
+    {
+    writes("_file:")
+    if (file := string(read())) == "" then return
+    } else file := token[2]
+  (out  := open(file,"w")) | return ("Can't open " || file)
+  name  := file
+  every line := !program do
+    {
+    i    := upto(' \t',line)
+    lnum := line[1:i]
+    text := line[i+1:0]
+    write(out,text)
+    not(find("00",lnum)) | (writes("."))
+    }
+  close(out)
+  return ("\n" || file || " saved.")
+end
+
+procedure resave()
+  local i, line, lnum, out, text
+
+  if not(string(name)) then return("Nothing LOADed to resave.")
+  (out  := open(name,"w")) | return ("Can't open " || name)
+  every line := !program do
+    {
+    i    := upto(' \t',line)
+    lnum := line[1:i]
+    text := line[i+1:0]
+    write(out,text)
+    not(find("00",lnum)) | (writes("."))
+    }
+  close(out)
+  return ("\n" || name || " resaved.")
+end
+#SUB READ, WRITE, AND MERGE COMMANDS
+#EJECT
+procedure basread()
+  local file, in, line, lnum, test
+
+  if not(token[2]) then
+    {
+    writes("_file:")
+    if (file := string(read())) == "" then return
+    } else file := token[2]
+  lnum  := 0
+  (in   := open(file)) | return ("Can't open " || file)
+  name  := file
+  program := []
+  while line := read(in) do
+    {
+    test := (line[1:upto(' \t',line)]) | ""
+    if integer(test) then put(program,line)
+    not(find("00",(lnum+:=10))) | (writes("."))
+    }
+  close(in)
+  return ("\n" || file || " read in.")
+end
+
+procedure baswrite()
+  local file, lnum, out
+
+  if not(token[2]) then
+    {
+    writes("_file:")
+    if (file := string(read())) == "" then return
+    } else file := token[2]
+  (out  := open(file,"w")) | return ("Can't open " || file)
+  name  := file ; lnum := 0
+  every write(out,!program) do
+    not(find("00",(lnum+:=10))) | (writes("."))
+  close(out)
+  return ("\n" || file || " writen out.")
+end
+
+procedure merge()
+  local file, i, in, line, lnum
+
+  if not(token[2]) then
+    {
+    writes("_file:")
+    if (file := string(read())) == "" then return
+    } else file := token[2]                    
+  (in  := open(file)) | return ("Can't open " || file)
+  every line := !in do
+    {
+    (lnum := integer(line[1:(i:=upto(' \t',line))])) | next
+    cmd   := line
+    entry(lnum)
+    not(find("00",lnum)) | writes(".")
+    }
+  close(in)
+  return (file || " merged in current buffer.")
+end
+#SUB DIR, DEL, AND NEW COMMANDS
+#EJECT   
+procedure dir()
+  local spec
+
+  spec  := (token[2]) | ("")
+  if &host == "MS-DOS" then
+    {
+    system(("dir/w " || spec))
+    return ""
+    }
+  if find("nix",map(&host)) then
+   system(("ls -l " || spec || " | more")) else
+   system(("dir " || spec))
+  return ""
+end
+
+procedure del()
+  local From, To, element, lnum, num, other
+
+  if (From := integer(token[2])) & (To := integer(token[3])) then
+    {
+    other := []
+    every element := !program do
+      {
+      lnum := element[1:upto(' \t',element)]
+      if (lnum >= From) & (lnum <= To) then next
+      put(other,element)
+      }
+    program := copy(other)
+    return ("Lines " || From || " - " || To || " deleted.")
+    }
+
+  if not(num := integer(token[2])) then
+    {
+    writes("_line:")
+    (num := integer(read())) | (return ("Not a line number."))
+    }
+  other := []
+  every element := !program do
+    {
+    lnum := element[1:upto(' \t',element)]
+    if lnum = num then next
+    put(other,element)
+    }
+  program := copy(other)
+  return ("Line " || num || " deleted.")
+end
+
+procedure new()                 
+  program := []
+  name    := &null
+  return ("Buffer cleared.")
+end
+#SUB FIND COMMAND
+#EJECT
+procedure search()
+  local From, To, delta, diff, i, item, j, k, l, line, lnum
+
+  if (From := token[2]) & (To := token[3]) then
+    {
+    diff    := (*token[3]) - (*token[2])
+    every i := 1 to *program do
+      {
+      line := program[i]
+      l    := upto(' \t',line) + 1
+      delta:= 0
+      every j := find(From,line,l) do
+        {
+        k := j + delta
+        line[k+:*From]      := ""
+        line[((k-1)|(1))] ||:= To
+        delta +:= diff
+        writes(".")
+        }
+      program[i] := line
+      }
+    return ""
+    }
+
+  if not(item := token[2]) then
+    {
+    writes("_string:")
+    if (item := read()) == "" then return ""
+    }
+  every i := 1 to *program do
+    {
+    line := program[i]
+    l    := upto(' \t',line) + 1
+    if find(item,line,l) then
+      {
+      lnum := line[1:l-1]
+      writes(lnum,",")
+      }
+    }
+  return ""
+end
+#SUB COMPILATION AND RUNNING ROUTINES
+#EJECT
+procedure compile()       # compile only
+  local fid, opt
+  local i, ext, command, val
+
+  find(".",name) | return "Can't compile! Language &or Filename not recognized"
+  i   := last(".",name)               
+  fid := map(name[1:i])
+  ext := map(name[i:0])
+  command := case ext of
+    {
+    ".icn" : "icont -c " || name
+    ".c"   : "cc " || opt || " " || name
+    ".f"   : "f77 "|| opt || " " || name
+    ".asm" : "asm "|| opt || " " || name
+    ".p"   : "pc " || opt || " " || name
+    ".for" : "fortran " || name
+    ".bas" : "basic "   || name
+    ".cob" : "cobol "   || name
+    ".mar" : "macro "   || name
+    ".pas" : "pascal "  || name
+    default: return "Can't compile! Language &or Filename not recognized"
+    }
+  write("Issuing -> ",command)
+  val := system(command)
+  return " Completion Status = " || val
+  end
+
+procedure build()         # compile and link
+  local i, ext, command, val1, val2, fid
+
+  find(".",name) | return "Can't compile! Language &or Filename not recognized"
+  i   := last(".",name)
+  fid := map(name[1:i])
+  ext := map(name[i:0])
+  command := case ext of
+    {
+    ".icn" : ["icont "   || name]
+    ".c"   : ["cc "      || name]
+    ".f"   : ["f77 "     || name]
+    ".asm" : ["asm "     || name]
+    ".p"   : ["pc "      || name]
+    ".for" : ["fortran " || name, "link " || fid]
+    ".bas" : ["basic "   || name, "link " || fid]
+    ".cob" : ["cobol "   || name, "link " || fid]
+    ".mar" : ["macro "   || name, "link " || fid]
+    ".pas" : ["pascal "  || name, "link " || fid]
+    default: return "Can't compile! Language &or Filename not recognized"
+    }
+  write("Issuing -> ",command[1])
+  val1 := system(command[1])
+  val2 := if *command = 2 then
+    {
+    write("And Issuing -> ",command[2])
+    system(command[2])
+    } else -1
+  return " Completion status = " || val1 || " and " || val2
+  end
+  
+procedure run()           # run built ware
+  local i, ext, command, val, fid
+
+  find(".",name) | return "Can't compile! Language &or Filename not recognized"
+  i   := last(".",name)
+  fid := map(name[1:i])
+  ext := map(name[i:0])
+  command := case ext of
+    {
+    ".icn" : "iconx " || fid
+    ".c"   : fid
+    ".f"   : fid
+    ".asm" : fid
+    ".p"   : fid
+    ".com" : "@"    || name
+    ".for" : "run " || fid       
+    ".bas" : "run " || fid
+    ".cob" : "run " || fid
+    ".mar" : "run " || fid
+    ".pas" : "run " || fid
+    default: return "Can't Run ! Language &or Filename not recognized"
+    }
+  write("Issuing -> ",command)
+  val := system(command)
+  return " Completion status = " || val
+  end
+#SUB LIST AND RENUM COMMANDS
+#EJECT
+procedure print()          
+  local From, To, items, line
+
+  if *token = 1 then
+    {
+    every write(!program)
+    return ""
+    }
+  if not(numeric(token[2])) then return proc_list()
+  From := integer(token[2])
+  To   := integer(token[3])
+  if not(integer(To)) then
+    {
+    every line := !program do
+      {
+      items := parse(line)
+      if items[1] > From then return ""
+      if items[1] = From then
+        {
+        write(line)
+        return ""
+        }
+      }
+    return ""
+    }
+  every line := !program do
+    {
+    items := parse(line)
+    if items[1] < From then next
+    if items[1] > To   then return ""
+    write(line)
+    }
+  return ""
+end
+#
+procedure proc_list()
+  local flag, line
+
+  flag := 0
+  every line := !program do
+    {
+    if find("procedure",line) & find(token[2],line) then flag := 1
+    if flag = 1 then write(line)
+    if (parse(line)[2] == "end") & (flag = 1) then
+      {
+      write("")
+      flag := 0
+      }
+    }
+  return ""
+  end
+#
+procedure renum()
+  local inc, line, lnum, other
+
+  (lnum := integer(token[2])) | (lnum := 10)
+  (inc  := integer(token[3])) | (inc  := 10)
+  other := list()
+  every line := !program do
+    {
+    line[1:upto(' \t',line)] := lnum
+    put(other,line)
+    not(find("00",lnum)) | (writes("."))
+    lnum +:= inc
+    }
+  program := copy(other)
+  return ("\nProgram renumbered.")
+end
+#SUB ON LINE HELP DISPLAY
+#EJECT
+procedure help()
+  write("Basic Line Editor V1.3 by Tenaglia")
+  write("     This editor works on the same principle as basic interpreter")
+  write("     environments.  The lines are all prefixed with line numbers.")
+  write("     These line numbers  are used to reference lines in the file.")
+  write("     The line numbers are not written to, or read from  the file.")
+  write("     This editor is designed to work on a hard copy terminal like")
+  write("     a teletype or decwriter as well as a crt.")
+  write("Command Summary : (parameters are space delimited)")
+  write("  NEW       - erase buffer        | CLS        - clear screen or form feed")
+  write("  LOAD file - load file           | SAVE file  - save file")
+  write("  READ file - read w/line numbers | WRITE file - write w/line numbers")
+  write("  RESAVE    - resave current file | MERGE file - insert w/line numbers")
+  write("  DIR [spec]- list directory      | SIZE       - lines in editing buffer")
+  write("  RENUM     - renumber the lines  | VER        - current version number")
+  write("  COMPILE   - current source      | BUILD      - compile & link")
+  write("  TEST      - compile,link, & run | RUN        - run last compiled")
+  write("  $ - command to system (shell)   | HELP or ?  - this help screen")
+  write("  TIME or DATE - displays time    | !!         - repeat last command")
+  write("*---------------------------------+--------------------------------------*")
+  write("  LIST or DEL [from [to]]  - list or delete line(s)")
+  write("  FIND str [repl]  - find or replace string")
+  return "  EXIT or QUIT     - return to operating system"
+end
+#SUB LINE ENTRY AND HANDY PARSER PROCEDURE
+#EJECT
+procedure entry(stuff)
+  local element, finish, flag, lnum, other
+
+  other  := list()
+  flag   := "i"
+  finish := 9999999
+  every element := !program do
+    {
+    lnum := integer(element[1:upto(' \t',element)])
+    if stuff = lnum then
+      {
+      put(other,cmd)
+      stuff := finish
+      next
+      }
+    if stuff < lnum then
+      {                                  
+      put(other,cmd)
+      stuff := finish
+      }
+    put(other,element)
+    }
+  if stuff ~= finish then put(other,cmd)
+  program := copy(other)
+  end
+            
+procedure shell()
+  local command
+  command := cmd[find(" ",cmd):0]
+  if trim(detab(command))=="" then return "No shell command"
+  system(command)
+  return "\nReturn to editor"
+  end
+
+procedure parse(line)
+  local tokens
+  tokens := []
+  line ? while tab(upto(chars)) do put(tokens,tab(many(chars)))
+  return tokens
+  end
+                                
+procedure last(substr,str)
+  local  i
+  every  i := find(substr,str)
+  return i
+  end

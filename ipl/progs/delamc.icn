@@ -1,0 +1,118 @@
+############################################################################
+#
+#	File:     delamc.icn
+#
+#	Subject:  Program to delaminate file using tab characters
+#
+#	Author:   Thomas R. Hicks
+#
+#	Date:     May 28, 1989
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This program delaminates standard input into several output
+#  files according to the separator characters specified by the
+#  string following the -t option.  It writes the fields in each
+#  line to the corresponding output files as individual lines. If no
+#  data occurs in the specified position for a given input line an
+#  empty output line is written. This insures that all output files
+#  contain the same number of lines as the input file.
+#  
+#     If - is used as an output file name, the corresponding field
+#  is written to the standard output. If the -t option is not used,
+#  an ascii horizontal tab character is assumed as the default field
+#  separator.
+#  
+#     The use of delamc is illustrated by the following examples.
+#  The command
+#  
+#          delamc labels opcodes operands
+#  
+#  writes the fields of standard input, each of which is separated
+#  by a tab character, to the output files labels, opcodes, and
+#  operands.  The command
+#  
+#          delamc -t: scores names matric ps1 ps2 ps3
+#  
+#  writes the fields of standard input, each of which are separated
+#  by a colon, to the indicated output files.  The command
+#  
+#          delamc -t,: oldata f1 f2
+#  
+#  separates the fields using either a comma or a colon.
+#  
+############################################################################
+#
+#  Links:  usage
+#
+############################################################################
+
+link usage
+
+procedure main(a)
+   local tabset, fylist, nxtarg
+   if match("-t",a[1]) then {		# tab char given
+      tabset := cset(a[1][3:0])
+      pop(a)				# get rid of that argument
+      }
+    if 0 = *(fylist := doutfyls(a)) then
+       Usage("delamc [-tc] {outputfile | -} ...")
+    /tabset := cset(&ascii[10])			# tab is default separator
+    delamrc(tabset,fylist)			# call main routine
+end
+
+# delamrc - do actual division of input file using tab chars
+#
+procedure delamrc(tabset,fylist)
+    local i, flen, line
+    while line := read() do
+        {
+        i := 1
+        flen := *fylist
+        line ? while (i <= flen) do
+            {
+            if i = flen then
+                write(fylist[i][2],tab(0) | "")
+            else
+                write(fylist[i][2],tab(upto(tabset)) | tab(0) | "")
+            move(1)
+            i +:= 1
+            }
+        }
+end
+
+# doutfyls - process output file arguments; return list
+#
+procedure doutfyls(a)
+   local lst, x, i
+   lst := []
+   i := 1
+   while \a[i] do {
+      if x := llu(a[i],lst) then		# already in list
+         lst |||:= [[a[i],lst[x][2]]]
+      else					# not in list
+         if a[i] == "-" then			# standard out
+            lst |||:= [[a[i],&output]]
+         else				# a new file
+            if not (x := open(a[i],"w")) then
+               stop("Cannot open ",a[i]," for output")
+            else lst |||:= [[a[i],x]]
+      i +:= 1
+      }
+   return lst
+end
+
+# llu - lookup file name in output file list
+#
+procedure llu(str,lst)
+   local i
+   i := 1
+   while \lst[i] do {
+      if \lst[i][1] == str then return i
+      i +:= 1
+      }
+end

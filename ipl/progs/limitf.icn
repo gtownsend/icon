@@ -1,0 +1,38 @@
+############################################################################
+#
+#	File:     limitf.icn
+#
+#	Subject:  Program to limit throughput
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 17, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program is intended to be used in a pipe line.  It passes through
+#  at most the number of line given by the command-line option -l (default
+#  10). 
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local opts, limit
+
+   opts := options(args, "l+")
+
+   limit := \opts["l"] | 10
+
+   every write(!&input) \ limit
+
+end

@@ -1,0 +1,532 @@
+############################################################################
+#
+#	File:     abkform.icn
+#
+#	Subject:  Procedures to process HP95LX appointment books
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Procedures set to read and write HP95LX appointment book (.abk) files.
+#
+# 
+# Notes:
+# 
+# 1. Files created by the Appointment Book application may contain 
+# some padding following the last field of some data records.  Hence,
+# the RecordLength field must be used to determine the start of the
+# next record.  Appointment book files created by other programs need not
+# have any padding.
+# 
+# 2. ApptState has several bit fields.  Only bit 0 is meaningful to software
+# processing an appointment book file.  Bit 0 being set or cleared 
+# corresponds to the alarm being enabled or disabled, respectively.
+# Programs creating Appointment book files should clear all bits, except
+# perhaps bit 0.
+# 
+# 3. ToDoState has two one-bit bit fields.  Bit 0 being set or cleared
+# corresponds to carry forward being enabled or disabled for this todo
+# item, respectively.  Bit 1 being set or cleared corresponds to the doto 
+# being checked off or not checked off, respectively. 
+# 
+# 4. Appointment and ToDo texts are each limited to a maximum of 27
+# characters.
+# 
+# 5. Note text is limited to a maximum of 11 lines of 39 characters per line
+# (not counting the line terminator).
+# 
+#
+############################################################################
+#
+#  Links: bkutil
+#
+############################################################################
+#
+#  See also: bkutil.icn, pbkform.icn
+#
+############################################################################
+
+link bkutil
+
+# HP 95LX Appointment Book File Format
+# 
+# The HP 95LX Appointment Book file is structured as a file-identification
+# record, followed by a settings record, followed by a variable number of data
+# records, and terminated by an end-of-file record. There are multiple types of
+# data records corresponding to the different types of appointment book entries.
+# 
+# The formats of these appointment book records is described in the following
+# tables. In the descriptions, the type <int> refers to a two-byte integer
+# stored least significant byte first, the type <swpint> refers to a two-byte
+# integer stored most significant byte first, the type <char> refers to a
+# one-byte integer, and the type <ASCII> refers to a string of ASCII
+# characters.
+# 
+# HP 95LX Appointment Book File Identification Record:
+# 
+# Byte Offset      Name            Type     Contents
+# 
+# 0                ProductCode     int      -1 (FFh, FFh)
+# 2                ReleaseNum      int      1 (01h, 00h)
+# 4                FileType        char     1 (01h) 
+# 
+procedure abk_write_id(f)
+   return writes(f,"\xff\xff\x01\x00\x01")
+end
+
+record abk_id(releaseNum,filetype)
+
+procedure abk_read_id(f)
+   pbk_read_int(f) = 16rffff | fail
+   return pbk_id(pbk_read_int(f),ord(reads(f)))
+end
+
+# 
+# HP 95LX Appointment Book Settings Record:  
+# 
+# Byte Offset      Name            Type     Contents
+# 
+# 0                StartTime       int      Daily display start time as the
+#                                           number of minutes past midnight.
+# 2                Granularity     int      Daily display time line granularity
+#                                           in minutes.
+# 4                AlarmEnable     char     1 = on, 0 = off
+# 5                LeadTime        char     Alarm default lead time in minutes.
+# 6                CarryForward    char     To do carry forward default,
+#                                           1 = on, 0 = off.
+#
+record abk_settings(startTime,granularity,alarmEnable,leadTime,carryForward)
+
+procedure abk_write_settings(f,data)
+   return writes(f,bk_int(startTime),bk_int(granularity),char(alarmEnable),
+	 char(leadTime),char(carryForward))
+end
+
+procedure abk_read_settings(f)
+   return abk_settings(bk_read_int(f),bk_read_int(f),ord(reads(f)),
+	 ord(reads(f)),ord(reads(f)))
+end
+
+# 
+# 
+# HP 95LX Appointment Book Daily Data Record:
+# 
+# Byte Offset      Name            Type     Contents
+# 
+# 0                RecordType      char     1 (01h)
+# 1                RecordLength    int      Number of bytes in remainder
+#                                           of this data record, see note 1
+#                                           below.
+# 3                ApptState       char     See note 2 below.
+# 4                Year            char     Year counting from 1900.
+# 5                Month           char     Month, 1 - 12.
+# 6                Day             char     Day, 1 - 31.
+# 7                StartTime       swpint   Start time in minutes since midnight.
+# 9                EndTime         int      End time in minutes since midnight.
+# 11               LeadTime        char     Alarm lead time in minutes, 0 - 30.
+# 12               ApptLength      char     Length of appointment text in bytes.
+# 13               NoteLength      int      Length of note text in bytes.
+# 15               ApptText        ASCII    Appointment text - see note 4 below.
+# 15+ApptLength    NoteText        ASCII    Note text where the null character 
+#                                           is used as the line terminator -
+#                                           see note 5.
+#
+record abk_daily(alarmEnable,year,month,day,startTime,endTime,leadTime,
+      apptText,noteText)
+
+procedure abk_write_daily(f,data)
+      writes(char((\data.alarmEnable,1) | 0),
+	    char(data.year),char(data.month),char(data.day),
+	    bk_int(data.startTime),bk_int(data.endTime),bk_int(data.leadTime),
+	    char(*data.apptText),char(*data.noteText),data.apptText,data.noteText)
+      return data
+end
+
+procedure abk_read_daily(f)
+   local alarmEnable,year,month,day,startTime,endTime,leadTime,
+	 apptText,noteText,apptLength,noteLength,next_rec
+   (reads(f) == "\x01" | (seek(f,where(f) - 1),&fail) &
+   next_rec := bk_read_int(f) + where(f) &
+   alarmEnable := iand(ord(reads(f)),1) = 1 | &null &
+   year := ord(reads(f)) &
+   month := ord(reads(f)) &
+   day := ord(reads(f)) &
+   startTime := bk_read_int(f) &
+   endTime := bk_read_int(f) &
+   leadTime := ord(reads(f)) &
+   apptLength := ord(reads(f)) &
+   noteLength := bk_read_int(f) &
+   apptText := reads(f,apptLength) &
+   noteText := reads(f,noteLength)) | fail
+   return abk_daily(alarmEnable,year,month,day,startTime,endTime,leadTime,
+	 apptText,noteText)
+end
+
+# 
+# HP 95LX Appointment Book Weekly Data Record:
+# 
+# Byte Offset      Name            Type     Contents
+# 
+# 0                RecordType      char     2 (02h)
+# 1                RecordLength    int      Number of bytes in remainder
+#                                           of this data record, see note 1
+#                                           below.
+# 3                ApptState       char     See note 2 below.
+# 4                DayOfWeek       char     Day of week, 1=Sun, ..., 7=Sat.
+# 5                StartTime       swpint   Start time in minutes since midnight.
+# 7                StartYear       char     Start year counting from 1900.
+# 8                StartMonth      char     Start month, 1 - 12.
+# 9                StartDay        char     Start day, 1 - 31.
+# 10               EndTime         int      End time in minutes since midnight.
+# 12               EndYear         char     End year counting from 1900.
+# 13               EndMonth        char     End month, 1 - 12.
+# 14               EndDay          char     End day, 1 - 31.
+# 15               LeadTime        char     Alarm lead time in minutes, 0 - 30.
+# 16               ApptLength      char     Length of appointment text in bytes.
+# 17               NoteLength      int      Length of note text in bytes.
+# 19               ApptText        ASCII    Appointment text - see note 4 below.
+# 19+ApptLength    NoteText        ASCII    Note text where the null character 
+#                                           is used as the line terminator -
+#                                           see note 5 below.
+#
+record abk_weekly(alarmEnable,dayOfWeek,startTime,startYear,startMonth,startDay,
+      endTime,endYear,endMonth,endDay,leadTime,apptText,noteText)
+
+procedure abk_write_weekly(f,data)
+      writes(char((\data.alarmEnable,1) | 0),
+	    char(data.dayOfWeek),
+	    bk_int(data.startTime),char(data.startYear),
+	    char(data.startMonth),char(data.startDay),
+	    bk_int(data.endTime),char(data.endYear),
+	    char(data.endMonth),char(data.endDay),
+	    bk_int(data.leadTime),
+	    char(*data.apptText),char(*data.noteText),data.apptText,data.noteText)
+      return data
+end
+
+procedure abk_read_weekly(f)
+   local alarmEnable,dayOfWeek,startTime,startYear,startMonth,startDay,
+	 endTime,endYear,endMonth,endDay,leadTime,apptLength,noteLength,
+	 apptText,noteText,next_rec
+   (reads(f) == "\x02" | (seek(f,where(f) - 1),&fail) &
+   next_rec := bk_read_int(f) + where(f) &
+   alarmEnable := iand(ord(reads(f)),1) = 1 | &null &
+   dayOfWeek := ord(reads(f)) &
+   startTime := bk_read_int(f) &
+   startYear := ord(reads(f)) &
+   startMonth := ord(reads(f)) &
+   startDay := ord(reads(f)) &
+   endTime := bk_read_int(f) &
+   endYear := ord(reads(f)) &
+   endMonth := ord(reads(f)) &
+   endDay := ord(reads(f)) &
+   leadTime := ord(reads(f)) &
+   apptLength := ord(reads(f)) &
+   noteLength := bk_read_int(f) &
+   apptText := reads(f,apptLength) &
+   noteText := reads(f,noteLength)) | fail
+   return abk_daily(alarmEnable,dayOfWeek,startTime,startYear,startMonth,
+	 startDay,endTime,endYear,endMonth,endDay,leadTime,apptText,noteText)
+end
+
+# 
+# 
+# HP 95LX Appointment Book Monthly by Date Data Record:
+# 
+# Byte Offset      Name            Type     Contents
+# 
+# 0                RecordType      char     3 (03h)
+# 1                RecordLength    int      Number of bytes in remainder
+#                                           of this data record, see note 1
+#                                           below.
+# 3                ApptState       char     See note 2 below.
+# 4                DayOfMonth      char     Day of month, 1 - 31.
+# 5                StartTime       swpint   Start time in minutes since midnight.
+# 7                StartYear       char     Start year counting from 1900.
+# 8                StartMonth      char     Start month, 1 - 12.
+# 9                StartDay        char     Start day, 1 - 31.
+# 10               EndTime         int      End time in minutes since midnight.
+# 12               EndYear         char     End year counting from 1900.
+# 13               EndMonth        char     End month, 1 - 12.
+# 14               EndDay          char     End day, 1 - 31.
+# 15               LeadTime        char     Alarm lead time in minutes, 0 - 30.
+# 16               ApptLength      char     Length of appointment text in bytes.
+# 17               NoteLength      int      Length of note text in bytes.
+# 19               ApptText        ASCII    Appointment text - see note 4 below.
+# 19+ApptLength    NoteText        ASCII    Note text where the null character 
+#                                           is used as the line terminator -
+#                                           see note 5 below.
+# 
+record abk_monthly(alarmEnable,dayOfMonth,startTime,startYear,startMonth,
+      startDay,endTime,endYear,endMonth,endDay,leadTime,apptText,noteText)
+
+procedure abk_write_monthly(f,data)
+      writes(char((\data.alarmEnable,1) | 0),
+	    char(data.dayOfMonth),
+	    bk_int(data.startTime),char(data.startYear),
+	    char(data.startMonth),char(data.startDay),
+	    bk_int(data.endTime),char(data.endYear),
+	    char(data.endMonth),char(data.endDay),
+	    bk_int(data.leadTime),
+	    char(*data.apptText),char(*data.noteText),data.apptText,data.noteText)
+      return data
+end
+
+procedure abk_read_monthly(f)
+   local alarmEnable,dayOfMonth,startTime,startYear,startMonth,startDay,
+	 endTime,endYear,endMonth,endDay,leadTime,apptLength,noteLength,
+	 apptText,noteText,next_rec
+   (reads(f) == "\x03" | (seek(f,where(f) - 1),&fail) &
+   next_rec := bk_read_int(f) + where(f) &
+   alarmEnable := iand(ord(reads(f)),1) = 1 | &null &
+   dayOfMonth := ord(reads(f)) &
+   startTime := bk_read_int(f) &
+   startYear := ord(reads(f)) &
+   startMonth := ord(reads(f)) &
+   startDay := ord(reads(f)) &
+   endTime := bk_read_int(f) &
+   endYear := ord(reads(f)) &
+   endMonth := ord(reads(f)) &
+   endDay := ord(reads(f)) &
+   leadTime := ord(reads(f)) &
+   apptLength := ord(reads(f)) &
+   noteLength := bk_read_int(f) &
+   apptText := reads(f,apptLength) &
+   noteText := reads(f,noteLength)) | fail
+   return abk_daily(alarmEnable,dayOfMonth,startTime,startYear,startMonth,
+	 startDay,endTime,endYear,endMonth,endDay,leadTime,apptText,noteText)
+end
+
+# 
+# HP 95LX Appointment Book Monthly by Position Data Record:
+# 
+# Byte Offset      Name            Type     Contents
+# 
+# 0                RecordType      char     4 (04h)
+# 1                RecordLength    int      Number of bytes in remainder
+#                                           of this data record, see note 1
+#                                           below.
+# 3                ApptState       char     See note 2 below.
+# 4                WeekOfMonth     char     Week of month, 1 - 5.
+# 5                DayOfWeek       char     Day of week, 1=Sun, ..., 7=Sat.
+# 6                StartTime       swpint   Start time in minutes since midnight.
+# 8                StartYear       char     Start year counting from 1900.
+# 9                StartMonth      char     Start month, 1 - 12.
+# 10               StartDay        char     Start day, 1 - 31.
+# 11               EndTime         int      End time in minutes since midnight.
+# 13               EndYear         char     End year counting from 1900.
+# 14               EndMonth        char     End month, 1 - 12.
+# 15               EndDay          char     End day, 1 - 31.
+# 16               LeadTime        char     Alarm lead time in minutes, 0 - 30.
+# 17               ApptLength      char     Length of appointment text in bytes.
+# 18               NoteLength      int      Length of note text in bytes.
+# 20               ApptText        ASCII    Appointment text - see note 4 below.
+# 20+ApptLength    NoteText        ASCII    Note text where the null character 
+#                                           is used as the line terminator -
+#                                           see note 5 below.
+# 
+record abk_monthly_pos(alarmEnable,weekOfMonth,dayOfWeek,startTime,startYear,
+      startMonth,startDay,endTime,endYear,endMonth,endDay,leadTime,
+      apptText,noteText)
+
+procedure abk_write_monthly_pos(f,data)
+      writes(char((\data.alarmEnable,1) | 0),
+	    char(data.weekOfMonth),
+	    char(data.dayOfWeek),
+	    bk_int(data.startTime),char(data.startYear),
+	    char(data.startMonth),char(data.startDay),
+	    bk_int(data.endTime),char(data.endYear),
+	    char(data.endMonth),char(data.endDay),
+	    bk_int(data.leadTime),
+	    char(*data.apptText),char(*data.noteText),data.apptText,data.noteText)
+      return data
+end
+
+procedure abk_read_monthly_pos(f)
+   local alarmEnable,weekOfMonth,dayOfWeek,startTime,startYear,startMonth,
+	 startDay,endTime,endYear,endMonth,endDay,leadTime,apptLength,noteLength,
+	 apptText,noteText,next_rec
+   (reads(f) == "\x04" | (seek(f,where(f) - 1),&fail) &
+   next_rec := bk_read_int(f) + where(f) &
+   alarmEnable := iand(ord(reads(f)),1) = 1 | &null &
+   weekOfMonth := ord(reads(f)) &
+   dayOfWeek := ord(reads(f)) &
+   startTime := bk_read_int(f) &
+   startYear := ord(reads(f)) &
+   startMonth := ord(reads(f)) &
+   startDay := ord(reads(f)) &
+   endTime := bk_read_int(f) &
+   endYear := ord(reads(f)) &
+   endMonth := ord(reads(f)) &
+   endDay := ord(reads(f)) &
+   leadTime := ord(reads(f)) &
+   apptLength := ord(reads(f)) &
+   noteLength := bk_read_int(f) &
+   apptText := reads(f,apptLength) &
+   noteText := reads(f,noteLength)) | fail
+   return abk_daily(alarmEnable,weekOfMonth,dayOfWeek,startTime,startYear,
+	 startMonth,startDay,endTime,endYear,endMonth,endDay,leadTime,apptText,
+	 noteText)
+end
+
+# 
+# HP 95LX Appointment Book Yearly Data Record:
+# 
+# Byte Offset      Name            Type     Contents
+# 
+# 0                RecordType      char     5 (05h) 
+# 1                RecordLength    int      Number of bytes in remainder
+#                                           of this data record, see note 1
+#                                           below.
+# 3                ApptState       char     See note 2 below.
+# 4                MonthOfYear     char     Month of year, 1=Jan, ... 12=Dec.
+# 5                DayOfMonth      char     Day of month, 1 - 31.
+# 6                StartTime       swpint   Start time in minutes since midnight.
+# 8                StartYear       char     Start year counting from 1900.
+# 9                StartMonth      char     Start month, 1 - 12.
+# 10               StartDay        char     Start day, 1 - 31.
+# 11               EndTime         int      End time in minutes since midnight.
+# 13               EndYear         char     End year counting from 1900.
+# 14               EndMonth        char     End month, 1 - 12.
+# 15               EndDay          char     End day, 1 - 31.
+# 16               LeadTime        char     Alarm lead time in minutes, 0 - 30.
+# 17               ApptLength      char     Length of appointment text in bytes.
+# 18               NoteLength      int      Length of note text in bytes.
+# 20               ApptText        ASCII    Appointment text - see note 4 below.
+# 20+ApptLength    NoteText        ASCII    Note text where the null character 
+#                                           is used as the line terminator -
+#                                           see note 5 below.
+# 
+record abk_yearly(alarmEnable,monthOfYear,dayOfMonth,startTime,startYear,
+      startMonth,startDay,endTime,endYear,endMonth,endDay,leadTime,
+      apptText,noteText)
+
+procedure abk_write_yearly(f,data)
+      writes(char((\data.alarmEnable,1) | 0),
+	    char(data.monthOfYear),
+	    char(data.dayOfMonth),
+	    bk_int(data.startTime),char(data.startYear),
+	    char(data.startMonth),char(data.startDay),
+	    bk_int(data.endTime),char(data.endYear),
+	    char(data.endMonth),char(data.endDay),
+	    bk_int(data.leadTime),
+	    char(*data.apptText),char(*data.noteText),data.apptText,data.noteText)
+      return data
+end
+
+procedure abk_read_yearly(f)
+   local alarmEnable,monthOfYear,dayOfMonth,startTime,startYear,startMonth,
+	 startDay,endTime,endYear,endMonth,endDay,leadTime,apptLength,noteLength,
+	 apptText,noteText,next_rec
+   (reads(f) == "\x05" | (seek(f,where(f) - 1),&fail) &
+   next_rec := bk_read_int(f) + where(f) &
+   alarmEnable := iand(ord(reads(f)),1) = 1 | &null &
+   monthOfYear := ord(reads(f)) &
+   dayOfMonth := ord(reads(f)) &
+   startTime := bk_read_int(f) &
+   startYear := ord(reads(f)) &
+   startMonth := ord(reads(f)) &
+   startDay := ord(reads(f)) &
+   endTime := bk_read_int(f) &
+   endYear := ord(reads(f)) &
+   endMonth := ord(reads(f)) &
+   endDay := ord(reads(f)) &
+   leadTime := ord(reads(f)) &
+   apptLength := ord(reads(f)) &
+   noteLength := bk_read_int(f) &
+   apptText := reads(f,apptLength) &
+   noteText := reads(f,noteLength)) | fail
+   return abk_daily(alarmEnable,monthOfYear,dayOfMonth,startTime,startYear,
+	 startMonth,startDay,endTime,endYear,endMonth,endDay,leadTime,apptText,
+	 noteText)
+end
+
+#
+# HP 95LX Appointment Book To Do Data Record:
+# 
+# Byte Offset      Name            Type     Contents
+# 
+# 0                RecordType      char     6 (06h)
+# 1                RecordLength    int      Number of bytes in remainder
+#                                           of this data record, see note 1
+#                                           below.
+# 3                ToDoState       char     See note 3 below.
+# 4                Priority        char     Priority, 1 - 9.
+# 5                StartYear       char     Start year counting from 1900.
+# 6                StartMonth      char     Start month, 1 - 12.
+# 7                StartDay        char     Start day, 1 - 31.
+# 8                CheckOffYear    char     Check off year counting from 1900,
+#                                           0 indicates not checked off.
+# 9                CheckOffMonth   char     Check off month, 1 - 12,
+#                                           0 indicates not checked off.
+# 10               CheckOffDay     char     Check off day, 1 - 31,
+#                                           0 indicates not checked off.
+# 11               ToDoLength      char     Length of to do text in bytes.
+# 12               NoteLength      int      Length of note text in bytes.
+# 14               ToDoText        ASCII    To do text - see note 4 below.
+# 14+ToDoLength    NoteText        ASCII    Note text where the null character 
+#                                           is used as the line terminator -
+#                                           see note 5 below.
+# 
+record abk_todo(carryForward,checkOff,priority,startYear,startMonth,
+      startDay,CheckOffYear,CheckOffMonth,CheckOffDay,toDoText,toDoNote)
+
+procedure abk_write_todo(f,data)
+      writes(char(ior((\data.carryForward,1) | 0,(\data.checkOff,2) | 0)),
+	    char(priority),
+	    char(data.startYear),
+	    char(data.startMonth),char(data.startDay),
+	    char(data.checkOffYear),
+	    char(data.checkOffMonth),char(data.checkOffDay),
+	    char(*data.toDoText),char(*data.noteText),data.toDoText,data.noteText)
+      return data
+end
+
+procedure abk_read_todo(f)
+   local carryForward,checkOff,priority,startYear,startMonth,
+	 startDay,CheckOffYear,CheckOffMonth,CheckOffDay,toDoLength,noteLength,
+	 toDoText,toDoNote,toDoState,next_rec
+   (reads(f) == "\x06" | (seek(f,where(f) - 1),&fail) &
+   next_rec := bk_read_int(f) + where(f) &
+   toDoState := ord(reads(f)) &
+   carryForward := iand(toDoState,1) = 1 | &null &
+   checkOff := iand(toDoState,2) = 1 | &null &
+   priority := ord(reads(f)) &
+   startYear := ord(reads(f)) &
+   startMonth := ord(reads(f)) &
+   startDay := ord(reads(f)) &
+   checkOffYear := ord(reads(f)) &
+   checkOffMonth := ord(reads(f)) &
+   checkOffDay := ord(reads(f)) &
+   toDoLength := ord(reads(f)) &
+   noteLength := bk_read_int(f) &
+   toDoText := reads(f,toDoLength) &
+   noteText := reads(f,noteLength)) | fail
+   return abk_daily(carryForward,checkOff,priority,startYear,startMonth,
+	 startDay,CheckOffYear,CheckOffMonth,CheckOffDay,toDoText,toDoNote)
+end
+
+# 
+# HP 95LX Appointment Book End of File Record:
+# 
+# Byte Offset      Name            Type     Contents
+# 
+# 0                RecordType      char     50 (32h)
+# 1                RecordLength    int      0 (00h, 00h)
+#
+procedure pbk_write_end(f)
+   writes(f,"\x32\x00\x00")
+   return
+end
+
+procedure pbk_read_end(f,id)
+   (reads(f) == "\x32" & reads(f,2)) | fail
+   return
+end

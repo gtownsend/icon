@@ -1,0 +1,144 @@
+This test of floating-point arithmetic is likely to show
+differences from platform to platform because of differences
+in floating-point precision and details of the routines that
+convert floating-point numbers to strings.  If the values
+produced in local tests are approximately the same in magnitude
+as shown in the standard results, there's nothing to worry about.
+In addition, some platforms may show 0.0 as "-0.0".  You can
+ignore this if you wish.
+Image(2.0) ----> "2.0"
+string(2.0) ----> "2.0"
+string(2.7) ----> "2.7"
+string(".") ----> "."
+string(".3") ----> ".3"
+string("0.3") ----> "0.3"
+string(" . 3") ----> " . 3"
+string("e2") ----> "e2"
+string("3e500") ----> "3e500"
+type(1.0) ----> "real"
+cset(2.0) ----> '.02'
+cset(2.7) ----> '.27'
+cset(".") ----> '.'
+cset(".3") ----> '.3'
+cset("0.3") ----> '.03'
+cset(" . 3") ----> ' .3'
+cset("e2") ----> '2e'
+cset("3e500") ----> '035e'
++1.0 ----> 1.0
+-1.0 ----> -1.0
+real(2) ----> 2.0
+real(2.0) ----> 2.0
+real(2.7) ----> 2.7
+real("2") ----> 2.0
+real(" 2") ----> 2.0
+real("2 ") ----> 2.0
+real("+2") ----> 2.0
+real("-2") ----> -2.0
+real("- 2") ----> none
+real(" -    2 ") ----> none
+real("") ----> none
+real("--2") ----> none
+real(" ") ----> none
+real("-") ----> none
+real("+") ----> none
+real(".") ----> none
+real(".3") ----> 0.3
+real("0.3") ----> 0.3
+real(" . 3") ----> none
+real("e2") ----> none
+real("3e500") ----> none
+real("7r4") ----> 4.0
+real("4r7") ----> none
+real("4r 7") ----> none
+real("7r 4") ----> none
+real("16rff") ----> 255.0
+real("36rcat") ----> 15941.0
+real("36Rcat") ----> 15941.0
+real("36rCAT") ----> 15941.0
+real("1r1") ----> none
+integer(2.0) ----> 2
+integer(2.7) ----> 2
+integer(".") ----> none
+integer(".3") ----> 0
+integer("0.3") ----> 0
+integer(" . 3") ----> none
+numeric(2.0) ----> 2.0
+numeric(2.7) ----> 2.7
+numeric(".") ----> none
+numeric(".3") ----> 0.3
+numeric("0.3") ----> 0.3
+numeric(" . 3") ----> none
+real(2.0) ----> 2.0
+real(2.7) ----> 2.7
+real(".") ----> none
+real(".3") ----> 0.3
+real("0.3") ----> 0.3
+real(" . 3") ----> none
+abs(3.0) ----> 3.0
+abs(0.0) ----> 0.0
+abs(-3.0) ----> 3.0
+36. % 7 ----> 1.0
+36 % 7. ----> 1.0
+36. % 7. ----> 1.0
+-36. % 7 ----> -1.0
+36 % -7. ----> 1.0
+-36. % -7. ----> -1.0
+36. * 9 ----> 324.0
+36 * 9. ----> 324.0
+36. * 9. ----> 324.0
+-36. * 9 ----> -324.0
+36 * -9. ----> -324.0
+-36. * -9. ----> 324.0
+36. / 9 ----> 4.0
+36 / 9. ----> 4.0
+36. / 9. ----> 4.0
+-36. / 9 ----> -4.0
+36 / -9. ----> -4.0
+-36. / -9. ----> 4.0
+36. + 9 ----> 45.0
+36 + 9. ----> 45.0
+36. + 9. ----> 45.0
+-36. + 9 ----> -27.0
+36 + -9. ----> 27.0
+-36. + -9. ----> -45.0
+1. < 1 ----> none
+1 < 2. ----> 2.0
+1. < 0. ----> none
+-1 < 0. ----> 0.0
+1. < -2 ----> none
+-1 < -0. ----> 0.0
+1. > 1 ----> none
+1 > 2. ----> none
+1. > 0. ----> 0.0
+-1 > 0. ----> none
+1. > -2 ----> -2.0
+-1 > -0. ----> none
+1. <= 1 ----> 1.0
+1 <= 2. ----> 2.0
+1. <= 0. ----> none
+-1 <= 0. ----> 0.0
+1. <= -2 ----> none
+-1 <= -0. ----> 0.0
+1. >= 1 ----> 1.0
+1 >= 2. ----> none
+1. >= 0. ----> 0.0
+-1 >= 0. ----> none
+1. >= -2 ----> -2.0
+-1 >= -0. ----> none
+1. = 1 ----> 1.0
+1 = 2. ----> none
+1. = 0. ----> none
+-1 = 0. ----> none
+1. = -2 ----> none
+-1 = -0. ----> none
+1. ~= 1 ----> none
+1 ~= 2. ----> 2.0
+1. ~= 0. ----> 0.0
+-1 ~= 0. ----> 0.0
+1. ~= -2 ----> -2.0
+-1 ~= -0. ----> 0.0
+36. ^ 9 ----> 1.015599e+14
+36 ^ 9. ----> 1.015599e+14
+36. ^ 9. ----> 1.015599e+14
+-36. ^ 9 ----> -1.01559e+14
+-36. ^ -9 ----> -9.84640e-15

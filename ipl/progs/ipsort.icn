@@ -1,0 +1,92 @@
+############################################################################
+#
+#	File:     ipsort.icn
+#
+#	Subject:  Program to sort Icon procedures
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 27, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This program reads an Icon program and writes an equivalent
+#  program with the procedures sorted alphabetically. Global, link,
+#  and record declarations come first in the order they appear in
+#  the original program.  The main procedure comes next followed by
+#  the remaining procedures in alphabetical order.
+#  
+#     Comments and white space between declarations are attached to
+#  the next following declaration.
+#  
+#  Limitations: This program only recognizes declarations that start
+#  at the beginning of a line.
+#  
+#     Comments and interline white space between declarations may
+#  not come out as intended.
+#
+#     One option is accepted:
+#
+#	-v	preserve VIB section at end
+#  
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+procedure main(args)
+   local line, x, i, proctable, proclist, comments, procname, opts, vib
+
+   opts := options(args, "v")
+
+   vib := opts["v"]
+   comments := []			# list of comment lines
+   proctable := table()			# table of procedure declarations
+
+   while line := read() do {
+     line ? {
+        if \vib & ="#===<<vib:begin>>===" then break
+        if ="procedure" &		#  procedure declaration
+           tab(many('\t ')) &
+           procname := tab(upto('(')) | stop("*** bad syntax: ",line)
+        then {				# if main, force sorting order
+           if procname == "main" then procname := "\0main"
+           proctable[procname] := x := []
+           while put(x,get(comments))	#  save it
+           put(x,line)
+           while line := read() do {
+              put(x,line)
+              if line == "end" then break
+              }
+           }
+					#  other declarations
+         else if =("global" | "record" | "link" | "invocable")
+         then {
+            while write(get(comments))
+            write(line)
+            }
+         else put(comments,line)
+         }
+      }
+
+   while write(get(comments))
+
+   proclist := sort(proctable,3)		#  sort procedures
+
+   while get(proclist) do
+      every write(!get(proclist))
+
+   if \vib then {
+      write()
+      write(line)
+      while write(read())
+      }
+
+end

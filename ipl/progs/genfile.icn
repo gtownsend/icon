@@ -1,0 +1,47 @@
+############################################################################
+#
+#	File:     genfile.icn
+#
+#	Subject:  Program to generate sequence from Icon expression in file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 22, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program writes the results of an Icon expression given in the file
+#  named on the command line.
+#
+############################################################################
+#
+#  Requires:  system(), pipes
+#
+############################################################################
+#
+#  Links:  exprfile
+#
+############################################################################
+
+link exprfile
+
+procedure main(args)
+   local expression, input, limit
+
+   limit := 1000		# AD HOC; make option.
+
+   input := open(args[1]) | stop("*** cannot open file")
+
+   expression := read(input) | stop("*** empty file")
+
+   close(input)
+
+   input := exprfile(expression, "seqfncs")
+
+   every write(!input) \ limit
+
+end

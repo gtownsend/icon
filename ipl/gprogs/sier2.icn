@@ -1,0 +1,68 @@
+############################################################################
+#
+#	File:     sier2.icn
+#
+#	Subject:  Program to display the Sierpinski fractal
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 24, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This is a barebones version of a display of the Sierpinski fractal.
+#  It has deliberately been left simple and free of options so that the
+#  basic idea is clear and so that it can be used as the basis of
+#  more capable versions.
+#
+#  This program is based on material given in "Chaos, Fractals,
+#  and Dynamics", Robert L. Devaney, Addison-Wesley, 1990.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  wopen
+#
+############################################################################
+
+link wopen
+
+procedure main()
+   local extent, x, y, i
+
+   extent := 300
+
+   WOpen("label=sier", "height=" || extent, "width=" || extent) |
+      stop("*** cannot open window")
+
+   x := 20			# The results do not depend on these values
+   y := 150
+
+   every i := 1 to 100000 do {
+      case ?3 of {		# Decide what to do at random
+         1: {
+            x /:= 2
+            y /:= 2
+            }
+         2: {
+            x /:= 2
+            y := (extent + y) / 2
+            }
+         3: {
+            x := (extent + x) / 2
+            y := (extent + y) / 2
+            }
+         }
+      if i > 1000 then DrawPoint(x, y)		# Wait until attraction
+      }
+
+   Event()
+
+end

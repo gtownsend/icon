@@ -1,0 +1,63 @@
+############################################################################
+#
+#	File:     procprep.icn
+#
+#	Subject:  Program to produce input to index for procedure comments
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 22, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program is used to produce the data needed to index the "#:"
+#  comments on procedure declarations that is needed to produces a
+#  permuted index to procedures.
+#
+############################################################################
+
+procedure main()
+   local files, file, input, line, prefix
+
+   files := open("ls [a-z]*.icn", "p")
+
+   while file := read(files) do {
+      if *file > 13 then write(&errout,"*** file name too long: ", file)
+      prefix := file[1:-4]
+      input := open(file)
+      every 1 to 4 do read(input)		# skip to subject line
+      line := read(input) | {
+         write(&errout, "*** no subject in ", file)
+         next
+         }
+      line ? {
+         if tab(find("Subject:  Procedures") + 21) |
+            tab(find("Subject:  Declarations ") + 23) |
+            tab(find("Subject:  Declaration ") + 22) |
+            tab(find("Subject:  Procedure ") + 20) then {
+               =("for " | "to ")
+               }
+          else {
+             write(&errout, "*** bad subject line in ", file)
+             close(input)
+             next
+             }
+         }
+      
+      while line := read(input) do
+         line ? {
+            if ="procedure" then {
+               tab(many(' \t'))
+               write(prefix, ":", tab(upto('(')), ": ", (tab(find("#: ") + 3),
+                  tab(0)))
+               }
+         }
+               
+      close(input)
+      }
+
+end

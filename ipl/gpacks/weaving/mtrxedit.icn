@@ -1,0 +1,822 @@
+############################################################################
+#
+#	File:     mtrxedit.icn
+#
+#	Subject:  Program to create and edit binary arrays
+#
+#	Authors:  Ralph E. Griswold and Gregg M. Townsend
+#
+#	Date:     June 1, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This application provides a variety of facilities for creating and
+#  editing binary arrays.  It is intended for use with weaving tie-ups
+#  and liftplans.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: isort, patxform, vdialog, vsetup, dialog, wopen, xcompat
+#
+############################################################################
+
+link isort
+link patxform
+link vdialog
+link vsetup
+link dialog
+link wopen
+link xcompat
+
+$define MaxCell   	24			# maximum size of grid cell
+
+$define GridSize	(32 * 8)		# size of area for edit grid
+$define GridXoff	(32 * 5)		# x offset of grid area
+$define GridYoff	(32 * 2 + 6)		# y offset of grid area
+
+$define PattXoff	(32 * 14)		# x offset of pattern area
+$define PattYoff	(32 * 2)		# y offset of pattern area
+$define PattWidth	(32 * 8)		# width of pattern area
+$define PattHeight	(32 * 8)		# heigth of pattern area
+
+$define IconSize	16			# size of button icons
+
+$define XformXoff	(16 * 2)		# x offset of xform area
+$define XformYoff	(16 * 4)		# y offset of xform area
+
+$define MaxPatt		128
+
+$define InfoLength	40			# length of lines in info box
+
+global allxform					# transform-all switch
+global hbits					# number of bits horizontally
+global vbits					# number of bits veritcally
+global rows					# row repesentation of tile
+global old_pat					# old pattern for undo
+global cellsize					# size of cell in edit grid
+global pattgc					# graphic context for pattern
+global bordergc					# border for tile/pattern
+global viewgc					# clipping area for viewing
+global mode					# pattern/tile display mode
+global tile_touched				# tile modification switch
+global blank_pat				# 8x8 blank tile
+global response					# switch for save dialog
+global sym_state				# drawing state
+global sym_image_current			# current drawing images
+global sym_image_next				# next drawing images
+global symmetries				# general symmetry state
+
+global flip_right				# icon for right flip
+global flip_left				# icon for left flip
+global flip_vert				# icon for vertical flip
+global flip_horiz				# icon for horizontal flip
+global rotate_90				# icon for 90-degree rotation
+global rotate_m90				# icon for -90-degree rotation
+global rotate_180				# icon for 180-degree rotation
+global ident					# icon for identity
+global hi_ident					# highlighted icon for identity
+global hi_left					# highlighted icon for l-flip
+global hi_right					# highlighted icon for r-flip
+global hi_vert					# highlighted icon for v-flip
+global hi_horiz					# highlighted icon for h-flip
+global hi_rot_90				# highlighted icon for 90-rot
+global hi_rot_m90				# highlighted icon for -90 rot
+global hi_rot_180				# highlighted icon for 180 rot
+global SymmetXoff
+global SymmetYoff
+
+record pattrec(tile)
+
+procedure main(args)
+   local vidgets, e, i, j, x, y, v, h, input, mdigits
+
+#  Initial state
+
+   mdigits := '-' ++ &digits
+   symmetries := 0				# initially no symmetries
+   allxform := &null				# initially not all xforms
+
+   sym_state := [				# initially no symmetries
+      [1, -1, -1, -1],
+      [-1, -1, -1, -1]
+      ]
+
+   blank_pat := "8,#0000000000000000"		# 8x8 blank tile
+
+   tile_touched := &null
+
+#  Set up vidgets
+
+   vidgets := ui()
+
+#  Set up graphic contexts
+
+   pattgc := XBind(&window, "fillstyle=textured")	# for patterns
+   bordergc := XBind(&window, "fg=red")			# for border
+   viewgc := XBind(&window) 				# for tile view
+   Clip(viewgc, PattXoff, PattYoff, PattWidth, PattHeight)
+   Clip(bordergc, PattXoff - 1, PattYoff - 1, PattWidth + 2, PattHeight + 2)
+
+   SymmetXoff := vidgets["symregion"].ux
+   SymmetYoff := vidgets["symregion"].uy
+
+#  Assign and draw the icons
+
+   icons()
+
+#  Initial and toggled editing images
+
+   sym_image_next := [
+      [ident, hi_rot_90, hi_rot_m90, hi_rot_180],
+      [hi_right, hi_left, hi_vert, hi_horiz]
+      ]
+   sym_image_current := [
+      [hi_ident, rotate_90, rotate_m90, rotate_180],
+      [flip_right, flip_left, flip_vert, flip_horiz]
+      ]
+
+   rows := pat2rows(blank_pat)
+
+#  Initial setup of grid and view areas
+
+   setup() | stop("*** cannot set up pattern")
+
+#  Enter event loop
+
+   GetEvents(vidgets["root"], ,  shortcuts)
+   
+end
+
+############################################################################
+#
+#	Callback procedures
+#
+############################################################################
+
+#  file menu
+
+procedure file_cb(vidget, menu)
+
+   return case menu[1] of {
+      "read  @R"  :  read_tile()
+      "write @W"  :  write_tile()
+      "copy  @C"  :  copy_tile()
+      "paste @P"  :  paste_tile()
+      "quit  @Q"  :  exit()
+      }
+
+end
+
+procedure copy_tile()
+   local output
+
+   output := open("/tmp/tieup", "w") | {
+      Notice("Cannot copy tile.")
+      fail
+      }
+
+   write_pattern(output, pattrec(rows2pat(rows)))
+
+   close(output)
+
+   return
+
+end
+
+procedure paste_tile()
+   local input, tile
+
+   input := open("/tmp/tieup") | {
+         Notice("Cannot paste tie-up file.")
+         fail
+         }
+
+   tile := read_pattern(input) | {
+      Notice("Cannot process matrix.")
+      close(input)
+      fail
+      }
+
+   close(input)
+
+   rows := pat2rows(tile.tile)
+
+   return setup()
+
+end
+
+#  editing grid
+
+procedure grid_cb(vidget, e)
+   local x, y, i, j
+
+   if e === (&lpress | &rpress | &ldrag | &rdrag) then {
+      j := (&x - GridXoff) / cellsize
+      i := (&y - GridYoff) / cellsize
+      if j < 0 | j >= hbits | i < 0 | i >= vbits then return
+
+      if e === (&lpress | &ldrag) then setbit(i, j, "1")
+      else setbit(i, j, "0")
+
+      tile_touched := 1
+      }
+
+   return
+
+end
+
+#  symmetry buttons
+
+procedure symmet_cb(vidget, e)
+   local col, row, symcount
+
+   if e === (&lpress | &rpress | &mpress) then {
+      col := (&x - SymmetXoff) / IconSize + 1
+      row := (&y - SymmetYoff) / IconSize + 1
+      sym_state[row, col] *:= -1
+      sym_image_current[row, col] :=: sym_image_next[row, col]
+      place(SymmetXoff, SymmetYoff, col - 1, row - 1,
+         sym_image_current[row, col])
+      symcount := 0
+      every symcount +:= !!sym_state
+      if symcount = -8 then
+         Notice("No drawing mode enabled; pattern cannot be edited")
+      else if (sym_state[1, 1] = 1) & (symcount = -6) then symmetries := 0
+      else symmetries := 1
+
+      return
+      }
+
+   fail
+
+end
+
+#  tile menu
+
+procedure tile_cb(vidget, value)
+   local result
+
+   case value[1] of {
+      "new  @N"  :  new_tile()
+      "info @I"  : tile_info()
+      }
+
+   return
+
+end
+
+procedure new_tile()
+
+   case Dialog("New:", ["width", "height"], [*rows[1], *rows], 3,
+      ["Okay", "Cancel"]) of {
+         "Cancel"  :  fail
+         "Okay"    :   {
+            icheck(dialog_value) | fail
+            rows := list(dialog_value[2], repl("0", dialog_value[1]))
+            tile_touched := 1
+            return setup()
+            }
+      }
+
+   return
+
+end
+
+#  transformation buttons
+
+procedure xform_cb(vidget, e)
+   local col, row
+
+   if e === (&lpress | &rpress | &mpress) then {
+      old_pat := rows2pat(rows)
+      col := (&x - XformXoff) / IconSize
+      row := (&y - XformYoff) / IconSize
+      rows := xform(col, row) | fail
+      return setup()
+      }
+
+end
+
+############################################################################
+#
+#  Support procedures
+#
+############################################################################
+
+#  clear bits on current tile
+
+procedure clear_tile()
+
+   rows := list(vbits, repl("0", hbits))
+
+   grid()
+
+   return
+
+end
+
+#  draw editing grid
+
+procedure grid()
+   local x, y
+
+   EraseArea(GridXoff, GridYoff, GridSize - 15, GridSize - 15)
+
+   every x := 0 to hbits * cellsize by cellsize do
+      DrawLine(GridXoff + x, GridYoff, GridXoff + x,
+         GridYoff + vbits * cellsize)
+   every y := 0 to vbits * cellsize by cellsize do
+      DrawLine(GridXoff, GridYoff + y, GridXoff + hbits * cellsize,
+         y + GridYoff)
+
+   return
+
+end
+
+#  check for valid integers
+
+procedure icheck(values)
+   local i
+
+   every i := !values do
+      if not(integer(i)) | (i < 0) then {
+         Notice("Invalid value")
+         fail
+         }
+
+   return
+
+end
+
+#  assign and draw icons
+
+procedure icons()
+   local shift_up, shift_left, shift_right, shift_down, pixmap
+   local clear, invert, scramble, trim, enlarge, resize, crop
+
+   shift_up := "16,#3ffe6003408141c143e140814081408140814081408140_
+      81408160033ffe0000"
+   shift_left := "16,#3ffe6003400140014001401140195ffd40194011400140_
+      01400160033ffe0000"
+   shift_right := "16,#3ffe600340014001400144014c015ffd4c014401400140_
+      01400160033ffe0000"
+   shift_down := "16,#3ffe60034081408140814081408140814081408143e141_
+      c1408160033ffe0000"
+   flip_left := "16,#3ffe600340014079403940394049408149014e014e014f_
+      01400160033ffe0000"
+   flip_right := "16,#3ffe600340014f014e014e014901408140494039403940_
+      79400160033ffe0000"
+   flip_vert := "16,#3ffe6003408141c143e14081408140814081408143e141_
+      c1408160033ffe0000"
+   flip_horiz := "16,#3ffe600340014001400144114c195ffd4c194411400140_
+      01400160033ffe0000"
+   rotate_90 := "16,#3ffe6003400140f141014201420142014f814701420140_
+      01400160033ffe0000"
+   rotate_m90 := "16,#3ffe600340014781404140214021402140f94071402140_
+      01400160033ffe0000"
+   rotate_180 := "16,#3ffe6003400141c140214011401140114111432147c143_
+      01410160033ffe0000"
+   clear := "16,#3ffe600340014001400140014001400140014001400140_
+      01400160033ffe0000"
+   invert := "16,#3ffe60ff40ff40ff40ff40ff40ff7fff7f817f817f817f_
+      817f817f833ffe0000"
+   scramble := "16,#3ffe60034c014c0d418d41814001403159b1598140194c_
+      194c0160033ffe0000"
+   trim := "16,#3ffe60134011407d40394011400140fd48854c857e854c_
+      8548fd60033ffe0000"
+   enlarge := "16,#3ffe6083418143fd418148815c017efd48854885488548_
+      8548fd60033ffe0000"
+   resize := "16,#3ffe6093419943fd419948915c017efd488548857e855c_
+      8548fd60033ffe0000"
+   crop := "16,#3ffe60034011401147fd441144114411441144115ff144_
+      01440160033ffe0000"
+
+   ident := "16,#3ffe6003400140014001400141c141c141c14001400140_
+      01400160033ffe0000"
+
+   hi_ident := "16,#00001ffc3ffe3ffe3ffe3ffe3e3e3e3e3e3e3ffe3ffe3f_
+      fe3ffe1ffc00000000"
+   hi_rot_90 := "16,#00001ffc3ffe3f0e3efe3dfe3dfe3dfe307e38fe3dfe3f_
+      fe3ffe1ffc00000000"
+   hi_rot_m90 := "16,#00001ffc3ffe387e3fbe3fde3fde3fde3f063f8e3fde3f_
+      fe3ffe1ffc00000000"
+   hi_rot_180 := "16,#00001ffc3ffe3e3e3fde3fee3fee3fee3eee3cde383e3c_
+      fe3efe1ffc00000000"
+   hi_right := "16,#00001ffc3ffe30fe31fe31fe36fe3f7e3fb63fc63fc63f_
+      863ffe1ffc00000000"
+   hi_left := "16,#00001ffc3ffe3f863fc63fc63fb63f7e36fe31fe31fe30_
+      fe3ffe1ffc00000000"
+   hi_vert := "16,#00001ffc3f7e3e3e3c1e3f7e3f7e3f7e3f7e3f7e3c1e3e_
+      3e3f7e1ffc00000000"
+   hi_horiz := "16,#00001ffc3ffe3ffe3ffe3bee33e6200233e63bee3ffe3f_
+      fe3ffe1ffc00000000"
+
+#  now place the images
+
+   place(XformXoff, XformYoff, 1, 0, shift_up)
+   place(XformXoff, XformYoff, 0, 1, shift_left)
+   place(XformXoff, XformYoff, 2, 1, shift_right)
+   place(XformXoff, XformYoff, 1, 2, shift_down)
+   place(XformXoff, XformYoff, 0, 4, flip_right)
+   place(XformXoff, XformYoff, 0, 5, flip_left)
+   place(XformXoff, XformYoff, 1, 4, flip_vert)
+   place(XformXoff, XformYoff, 1, 5, flip_horiz)
+   place(XformXoff, XformYoff, 0, 7, rotate_90)
+   place(XformXoff, XformYoff, 0, 8, rotate_m90)
+   place(XformXoff, XformYoff, 1, 7, rotate_180)
+   place(XformXoff, XformYoff, 0, 10, clear)
+   place(XformXoff, XformYoff, 1, 10, invert)
+   place(XformXoff, XformYoff, 2, 10, scramble)
+   place(XformXoff, XformYoff, 0, 12, trim)
+   place(XformXoff, XformYoff, 1, 12, enlarge)
+   place(XformXoff, XformYoff, 2, 12, resize)
+   place(XformXoff, XformYoff, 0, 14, crop)
+
+   place(SymmetXoff, SymmetYoff, 0, 0, hi_ident)
+   place(SymmetXoff, SymmetYoff, 1, 0, rotate_90)
+   place(SymmetXoff, SymmetYoff, 2, 0, rotate_m90)
+   place(SymmetXoff, SymmetYoff, 3, 0, rotate_180)
+   place(SymmetXoff, SymmetYoff, 0, 1, flip_right)
+   place(SymmetXoff, SymmetYoff, 1, 1, flip_left)
+   place(SymmetXoff, SymmetYoff, 2, 1, flip_vert)
+   place(SymmetXoff, SymmetYoff, 3, 1, flip_horiz)
+
+   return
+
+end
+
+#  invert bits on current pattern
+
+procedure invert()
+
+   rows := pinvert(rows)
+
+   return
+
+end
+
+#  place icon
+
+procedure place(xoff, yoff, col, row, pattern)
+
+#  Pattern(pattgc, pattern)
+#  FillRectangle(pattgc, xoff + col * IconSize, 
+   DrawImage(pattgc, xoff + col * IconSize, 
+     yoff + row * IconSize, pattern)
+
+   return
+
+end
+
+#  terminate session
+
+#  read pattern specification
+
+procedure read_pattern(file)
+   local line
+
+   line := readpattline(file) | fail
+
+   return pattrec(legaltile(getpatt(line)), getpattnote(line))
+
+end
+
+#  read and add tile to tile list
+
+procedure read_tile()
+   local input, tile
+   static file, line
+
+   initial line := "1"
+
+   repeat {
+      if TextDialog("Read tile:", ["file", "line"], [file, line], [60, 4]) == "Cancel" then fail
+      input := open(dialog_value[1]) | {
+         Notice("Cannot open file.")
+         next
+         }
+      file := dialog_value[1]
+      line := (0 < integer(dialog_value[2]))
+      every 1 to line - 1 do
+         read(input) | {
+            Notice("Not that many lines in file.")
+            close(input)
+            next
+            }
+      tile := read_pattern(input) | {
+         Notice("Cannot process matrix.")
+         close(input)
+         next
+         }
+      close(input)
+      rows := pat2rows(tile.tile)
+      return setup()
+      }
+
+end
+
+#  scramble bits of current tile
+
+procedure bscramble()
+
+   rows := pscramble(rows, "b")
+
+   return
+
+end
+
+#  set bits of tile
+
+procedure setbit(i, j, c)
+   local x, y, xu, yu, xv, yv, xt, yt, action
+
+   if (symmetries = 0) & (rows[i + 1, j + 1] == c) then return	# optimization
+
+   x := GridXoff + j * cellsize + 1		# the selected cell itself
+   y := GridYoff + i * cellsize + 1
+   xt := GridXoff + i * cellsize + 1
+   yt := GridYoff + j * cellsize + 1
+
+   i +:= 1					# for computational convenience
+   j +:= 1
+
+   xu := GridXoff + (hbits - j) * cellsize + 1	# opposite cells
+   yu := GridYoff + (vbits - i) * cellsize + 1
+   xv := GridXoff + (hbits - i) * cellsize + 1
+   yv := GridYoff + (vbits - j) * cellsize + 1
+
+   action := if c = 1 then FillRectangle else EraseArea
+
+   if sym_state[1, 1] = 1 then {		# cell itself
+      rows[i, j] := c
+      action(x, y, cellsize - 1, cellsize - 1)
+      }
+   if sym_state[1, 2] = 1 then {		# 90 degrees
+      if rows[j, -i] := c then			# may be out of bounds
+         action(xv, yt, cellsize - 1, cellsize - 1)
+      }
+   if sym_state[1, 3] = 1 then {		# -90 degrees
+      if rows[-j, i] := c then			# may be out of bounds
+         action(xt, yv, cellsize - 1, cellsize - 1)
+      }
+   if sym_state[1, 4] = 1 then {		# 180 degrees
+      rows[-i, -j] := c
+      action(xu, yu, cellsize - 1, cellsize - 1)
+      }
+   if sym_state[2, 1] = 1 then {		# left diagonal
+      if rows[j, i] := c then			# may be out of bounds
+      action(xt, yt, cellsize - 1, cellsize - 1)
+      }
+   if sym_state[2, 2] = 1 then {		# right diagonal
+      if rows[-j, -i] := c then			# may be out of bounds
+      action(xv, yv, cellsize - 1, cellsize - 1)
+      }
+   if sym_state[2, 3] = 1 then {		# vertical
+      rows[-i, j] := c
+      action(x, yu, cellsize - 1, cellsize - 1)
+      }
+   if sym_state[2, 4] = 1 then {		# horizontal
+      rows[i, -j] := c
+      action(xu, y, cellsize - 1, cellsize - 1)
+      }
+
+   return
+
+end
+
+#  set up editing grid and view area
+
+procedure setup()
+   local i, j
+
+   hbits := *rows[1]
+   vbits := *rows
+
+   if (hbits | vbits) > 80 then {		# based on cell size >= 3
+      Notice("Dimensions too large")
+      fail
+      }
+   if hbits > MaxPatt then mode := &null	# too large for pattern
+
+   cellsize := MaxCell				# cell size on window
+   cellsize >:= GridSize / (vbits + 4)
+   cellsize >:= GridSize / (hbits + 4)
+
+   grid()
+
+   every i := 1 to hbits do
+      every j := 1 to vbits do
+         if rows[j, i] == "1" then
+            FillRectangle(GridXoff + (i - 1) * cellsize,
+               GridYoff + (j - 1) * cellsize, cellsize, cellsize)
+
+   return
+
+end
+
+#  keyboard shortcuts
+
+procedure shortcuts(e)
+
+   if &meta then case map(e) of {
+      "c"  :  copy_tile()
+      "i"  :  tile_info()
+      "n"  :  new_tile()
+      "p"  :  paste_tile()
+      "q"  :  exit()
+      "r"  :  read_tile()
+      "z"  :  undo_xform()
+      "w"  :  write_tile()
+      }
+
+   return
+
+end
+
+#  return number of bits set in tile for sorting
+
+procedure tile_bits(x)
+
+   return tilebits(pat2rows(x.tile))
+
+end
+
+#  show information about tile
+
+procedure tile_info()
+   local line1, line2, pattern, bits, density
+
+   pattern := rows2pat(rows)
+   bits := tilebits(rows)
+   density := left(bits / real(*rows[1] * *rows), 6)
+
+   line1 := left(*rows[1] || "x" || *rows || " b=" || bits || " d=" ||
+      density, InfoLength)
+   line2 := if *pattern > InfoLength then pattern[1+:(InfoLength - 3)] ||
+      "..." else left(pattern, InfoLength)
+
+   Notice(line1, line2)
+
+   return
+
+end
+
+#  return tile size for sorting
+
+procedure tile_size(x)
+   local dims
+
+   dims := tiledim(x.tile)
+
+   return dims.w * dims.h
+
+end
+
+#  undo transformation
+
+procedure undo_xform()
+
+   rows := pat2rows(old_pat)
+
+   return setup()
+
+end
+
+#  write pattern
+
+procedure write_pattern(file, pattern)
+
+   write(file, pattern.tile)
+
+   return
+
+end
+
+#  write tile
+
+procedure write_tile()
+   local output
+
+   repeat {
+      if SaveDialog("Write tie-up") == "Cancel" then fail
+      output := open(dialog_value, "w") | {
+         Notice("Cannot open file for writing.")
+         next
+         }
+      write_pattern(output, pattrec(rows2pat(rows)))
+      close(output)
+      return
+      }
+
+end
+
+#  handle transformation
+
+procedure xform(col, row)
+   local result
+   static params
+
+   tile_touched := 1
+
+   return case col of {
+      0:   case row of {
+         1:   pshift(rows, -1, "h")
+         4:   pflip(rows, "r")
+         5:   pflip(rows, "l")
+         7:   protate(rows, 90)
+         8:   protate(rows, -90)
+         10:  list(vbits, repl("0", hbits))
+         12:  ptrim(rows)
+         14:  {
+              if /allxform then {
+                 case Dialog("Crop:", ["left", "right", "top", "bottom"],
+                    0, 3, ["Okay", "Cancel"]) of {
+                       "Cancel":   fail
+                        "Okay": {
+                           icheck(dialog_value) | fail
+                           result := copy(params := dialog_value)
+                           push(result, rows)
+                           pcrop ! result
+                           }
+                    }
+                 }
+            }
+         default:   fail
+         }
+      1: case row of {
+         0:   pshift(rows, -1, "v")
+         2:   pshift(rows, 1, "v")
+         4:   pflip(rows, "v")
+         5:   pflip(rows, "h")
+         7:   protate(rows, 180)
+         10:  pinvert(rows)
+         12:  {
+              if /allxform then {
+                 case Dialog("Enlarge:", ["left", "right", "top", "bottom"],
+                    0, 3, ["Okay", "Cancel"]) of {
+                       "Cancel":  fail
+                       "Okay":  {
+                           icheck(dialog_value) | fail
+                           result := copy(params := dialog_value)
+                           push(result, rows)
+                           pborder ! result
+                           }
+                       }
+                    }
+                 }
+         default:   fail
+         }
+      2: case row of {
+         1:   pshift(rows, 1, "h")
+         10:  pscramble(rows, "b")
+         12:  {
+              if /allxform then {
+                 case Dialog("Center:", ["width", "height"], [*rows[1], *rows], 
+                    3, ["Okay", "Cancel"]) of {
+                    "Cancel":  fail
+                    "Okay": {
+                       icheck(dialog_value) | fail
+                       result := copy(params := dialog_value)
+                       push(result, rows)
+                       pcenter ! result
+                       }
+                    }
+                 }
+              }
+         default:   fail
+         }
+      default:   fail
+      }
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=427,419", "bg=pale gray", "label=Penelope"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,427,419:Penelope",],
+   ["file:Menu:pull::0,0,36,21:file",file_cb,
+      ["read  @R","write @W","copy  @C","paste @P","quit  @Q "]],
+   ["line1:Line:::27,22,427,22:",],
+   ["symmetries:Label:::25,340,70,13:symmetries",],
+   ["tile:Menu:pull::38,0,36,21:tile",tile_cb,
+      ["new  @N","info @I"]],
+   ["transformations:Label:::5,33,105,13:transformations",],
+   ["symregion:Rect:grooved::25,367,70,38:",symmet_cb],
+   ["info:Rect:invisible::147,368,251,31:",],
+   ["xform:Rect:grooved::26,58,58,256:",xform_cb],
+   ["grid:Rect:grooved::145,58,251,256:",grid_cb],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

@@ -1,0 +1,64 @@
+############################################################################
+#
+#	File:     imagedim.icn
+#
+#	Subject:  Procedures for getting image dimensions
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 9, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  imagedim(s) returns a record that contins the type and dimensions of an 
+#  image named s.
+#
+#  The assumptions about image formats are naive.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+record idim(type, w, h)
+
+procedure imagedim(s)
+   local Image, line, dim
+
+   Image := open(s) | stop("*** cannot open ", s)
+
+   line := read(Image) | idim_bad()
+   line ? {
+      if tab(find("width") + 6) then {
+         dim := idim("xbm")
+         dim.w := integer(tab(0)) | idim_bad()
+         read(Image) ? {
+            tab(find("height") + 7) | idim_bad()
+            dim.h := integer(tab(0)) | idim_bad()
+            } | idim_bad()
+         }
+      else if find("XPM") then {
+         dim := idim("xpm")
+         read(Image) | idim_bad()
+
+         read(Image) ? {
+            ="\"" & dim.w := integer(tab(many(&digits))) &
+              =" " & dim.h := integer(tab(many(&digits)))
+            } | idim_bad()
+         }
+      }
+
+#  close(Image)
+
+   return dim
+
+end
+
+procedure idim_bad()
+   stop("*** bad image data")
+end

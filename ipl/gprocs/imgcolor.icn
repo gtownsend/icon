@@ -1,0 +1,36 @@
+############################################################################
+#
+#	File:     imgcolor.icn
+#
+#	Subject:  Procedure to produce table of colors in area
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 5, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#   This procedure produces a table of all the colors in a specified
+#   area of a window.  The value corresponding to a color key is
+#   the number of pixels with that color
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+procedure imgcolor(win, x, y, w, h)
+   local colors
+
+   colors := table(0)
+
+   every colors[Pixel(win, x, y, w, h)] +:= 1
+
+   return colors
+
+end

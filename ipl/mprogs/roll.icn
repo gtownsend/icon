@@ -1,0 +1,103 @@
+############################################################################
+#
+#	File:     roll.icn
+#
+#	Subject:  Program to display the program counter on a stripchart
+#
+#	Author:   Gregg M. Townsend and Ralph E. Griswold
+#
+#	Date:     June 25, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     roll displays a chart recording a time-history of program execution
+#  by line number. 
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  em_setup, filedim, strpchrt
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+$include "evdefs.icn"
+
+link em_setup
+link filedim
+link strpchrt
+
+$define Width 500
+$define MaxHeight 500
+
+global ifile, Limit
+global maxln
+
+procedure main(args)
+   local fname, sc, h, t, y, mask, ymul, maxln
+   local size, i, linemask
+
+   linemask := 2 ^ 16 - 1
+
+   em_setup(args)
+
+   size := filedim(prog_name())
+   maxln := size.rows
+
+   if maxln > MaxHeight then {
+      ymul := real(MaxHeight) / maxln
+      maxln := MaxHeight
+      }
+   else ymul := 1
+
+   Limit := 10
+
+   vis_setup("size=" || Width || "," || maxln,  "label=roll")
+
+   sc := stripchart(Visualization, 0, 0, Width, maxln)
+
+   t := 0
+   i := 0
+
+   mask := E_Loc ++ E_Tick
+
+   repeat {
+
+      i := (i + 1) % Limit
+
+      if i = 0 then {
+         while *Pending(Visualization) > 0 do
+            case Event(Visualization) of {
+               &lpress | &mpress | &rpress: {
+                  event(E_ALoc, integer(&y / ymul) + 1, &eventsource)
+                  }
+               }
+         }
+
+
+      EvGet(mask) | break
+         if &eventcode === E_Loc then {
+            y := ymul * iand(&eventvalue, linemask)
+            DrawPoint(sc.win, sc.x, y)
+            }
+         else if &eventcode === E_Tick then sadvance(sc, &eventvalue)
+      }
+
+   sadvance(sc)
+
+   Fg(sc.win, "red")
+   DrawLine(sc.win, sc.x, 0, sc.x, maxln)
+
+   em_end()
+
+end

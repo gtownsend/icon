@@ -1,0 +1,208 @@
+############################################################################
+#
+#	File:     utrim.icn
+#
+#	Subject:  Program to remove unneeded procs from ucode
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 7, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Usage:  utrim [-s | -v] file...
+#
+#  Utrim alters a set of uncode files comprising a complete Icon program
+#  by removing unreferenced procedures.  The resulting files are smaller,
+#  and they produce a smaller icode file.
+#
+#  The basename of each command argument is used to find a pair of
+#  .u1 and .u2 files; each pair is renamed to .u1o and .u2o and
+#  replaced by new .u1 and .u2 files.
+#
+#  -s invokes silent mode; -v invokes verbose mode.
+#
+#  Warning: utrim may break programs that use string invocation.
+#
+############################################################################
+#
+#  Links: options
+#
+############################################################################
+
+link options
+
+record prc(name, size, calls, need)	# proc record
+record lcl(name, flags)			# local record
+
+global pnames, ptable			# proc names and table
+
+
+# main procedure
+
+procedure main(args)
+   local opts, fname, name, need
+
+   # process options
+   opts := options(args, "sv")
+   if *args = 0 then
+      stop("usage: ", &progname, " [-s | -v] file.u1 ...")
+   every !args ?:= tab(upto('.'))
+
+   # scan .u1 files to decide what's needed
+   pnames := set()
+   ptable := table()
+   every scan1(!args)
+   if /ptable["main"] then
+      stop(&progname, ": no main procedure")
+   dependencies()
+   report(opts)
+
+   # write new .u1 and .u2 files
+   every fname := !args || (".u1" | ".u2") do {
+      remove(fname || "o")
+      rename(fname, fname || "o") | stop("can't rename ", fname)
+      }
+   every filter1(!args)
+   every filter2(!args)
+end
+
+
+#  scan1(fname) -- read .u1 file, add proc names and refs to ptable
+
+procedure scan1(fname)
+   local u1, line, i, name, flags, curr, locals
+   u1 := open(fname || ".u1") | stop(&progname, ": can't open", fname || ".u1")
+   while line := read(u1) do line ? {
+      if ="proc " then {
+         # new proc: make table entry
+         name := tab(0)
+         insert(pnames, name)
+         ptable[name] := curr := prc(name, 0, set())
+         locals := []
+         }
+      else if ="\tlocal\t" then {
+         # new local: remember its name
+         i := tab(many(&digits))
+         =","
+         flags := tab(upto(','))
+         =","
+         name := tab(0)
+         put(locals, lcl(name, flags))
+         }
+      else if ="\tvar\t" then {
+         # ref to "local": note as needed if it's a global
+         i := tab(0) + 1
+         if locals[i].flags = 0 then
+            insert(curr.calls, locals[i].name)
+         }
+      curr.size +:= 1		# tally number of lines
+      }
+   close(u1)
+   return
+end
+
+
+#  dependencies() -- mark procs called directly or indirectly from main proc
+
+procedure dependencies()
+   local need, p
+
+   need := ["main"]
+   while name := get(need) do
+      if (p := \ptable[name]) & (/p.need := 1) then
+         every put(need, !p.calls)
+   return
+end
+
+
+#  report(opts) -- write reports as selected by command options
+
+procedure report(opts)
+   local name, p, ptrim, ltrim, ltotal
+
+   ltotal := ltrim := ptrim := 0
+   every name := !sort(pnames) do {
+      p := ptable[name]
+      ltotal +:= p.size
+      if /p.need then {
+         ltrim +:= p.size
+         ptrim +:= 1
+         }
+      if /opts["v"] then
+         next
+      writes(right(p.size, 6))
+      writes(if \p.need then " * " else "   ")
+      writes(left(p.name, 16))
+      every writes(" ", !sort(p.calls))
+      write()
+      }
+   if /opts["s"] then
+      write(&errout, "Trimming ", ptrim, "/", *pnames, " procedures (",
+         (100 * ptrim + 5) / *pnames, "%), ", ltrim, "/", ltotal, " lines (",
+         (100 * ltrim + 5) / ltotal, "%)")
+   return
+end
+
+
+#  filter1(fname) -- filter .u1o file to make new .u1 file
+#
+#  For each proc body, copy only if marked as needed in ptable.
+
+procedure filter1(fname)
+   local old, new, line
+
+   old := open(fname||".u1o") | stop(&progname, ": can't open", fname||".u1o")
+   new := open(fname||".u1","w") | stop(&progname,": can't write",fname||".u1")
+
+   while line := read(old) do line ?
+      if ="proc " & /ptable[tab(0)].need then		    # check new proc
+         until (line ? ="\tend") | not (line := read(old))  # skip to proc end
+      else
+         write(new, line)
+   close(old)
+   close(new)
+   return
+end
+
+
+#  filter2(fname) -- filter .u2o file to make new .u2 file
+#
+#  Copy header verbatim; read list of globals, remove procs trimmed from .u1,
+#  and write new (renumbered) global list.
+
+procedure filter2(fname)
+   local old, new, line, n, glist, flags, name, args, p
+
+   old := open(fname||".u2o") | stop(&progname, ": can't open ", fname||".u2o")
+   new := open(fname||".u2","w") | stop(&progname,": can't write ",fname||".u2")
+
+   write(new, read(old)) | stop(&progname, ": empty ", fname || ".u2o")
+   while (line := read(old)) & not (line ? ="global") do
+      write(new, line)
+
+   glist := []
+   while line := read(old) do line ? {
+      ="\t"
+      tab(many(&digits))
+      p := &pos
+      =","
+      flags := tab(upto(','))
+      =","
+      name := tab(upto(','))
+      if flags = 5 & /(\ptable[name]).need then
+         next
+      tab(p)
+      put(glist, tab(0))
+      }
+   write(new, "global\t", *glist)
+   every write(new, "\t", 0 to *glist - 1, get(glist))
+
+   close(old)
+   close(new)
+   return
+end

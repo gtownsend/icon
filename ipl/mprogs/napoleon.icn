@@ -1,0 +1,168 @@
+############################################################################
+#
+#	File:     napoleon.icn
+#
+#	Subject:  Program to track memory usage by type
+#
+#	Author:   Clinton Jeffery
+#
+#	Date:     August 12, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# Displays an animated chart showing recent memory usage by Icon type.
+#
+# Currently not interactive, hence, keys and clicks don't do anything.
+# Resizes are handled.
+#
+# usage: napoleon [-r | -c] prog [args...]
+#
+# -r provides a regions view, separating the string and block regions
+# and displaying memory quantities proportional to the total region size
+# rather than the total amount allocated
+#
+# -c provides continuous updates on each allocation, instead of updating
+# only when a change is significant (i.e. when proportions change by >= 1%).
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:   evinit, options, optwindw, typebind
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+$include "evdefs.icn"
+
+link evinit
+link options
+link optwindw
+link typebind
+
+global Visualization, contexts
+global t, sum, wid, hei, realhei, x, optable
+
+procedure main(av)
+   local lines, mymask, allocstr, p, update, e
+   optable := options(av,"c!r!")
+
+   if *av>0 then
+      EvInit(av) | stop("EvInit() can't load ",av[1])
+   else
+      EvInit() | stop("can't EvInit()")
+
+   /optable["W"] := 100
+   /optable["H"] := 400
+   &window := optwindow(optable) | stop("no window")
+
+   Visualization := &window
+   contexts := typebind(&window,E_Integer||E_Real||E_Record||E_Set||E_String||
+			E_Cset||E_File||E_List||E_Null||E_Proc||E_Table||
+			E_Tvsubs, table())
+
+   wid := WAttrib("width")
+   hei := WAttrib("height")
+   realhei := real(hei)
+   if \optable["r"] then {
+      realhei /:= 2
+      sum := 65000
+      }
+   else {
+      sum := 0
+      }
+
+   lines := WAttrib("lines")
+
+   mymask := AllocMask ++ cset(E_EndCollect||E_Collect)
+   allocstr := string(AllocMask)
+
+   t := table(0.0)
+   p := table(0)
+
+   update := 1
+
+   while EvGet(mymask) do {
+      if &eventcode === E_Lelem then &eventcode := E_List
+      if &eventcode === (E_Telem|E_Tvtbl|E_Slots) then &eventcode := E_Table
+      if &eventcode === E_Selem then &eventcode := E_Set
+      if &eventcode === E_Refresh then &eventcode := E_Coexpr
+      case &eventcode of {
+	 E_Collect: {
+	    EraseArea(x,0)
+	    every !t := 0.0
+	    if /optable["r"] then sum := 0
+	    update := &null
+	    }
+	 E_EndCollect: {
+	    update := 1
+	    if sum=0 then sum := 1
+	    redraw()
+	    }
+	 !.allocstr: {
+	    t[&eventcode] +:= &eventvalue
+	    if /optable["r"] then sum +:= &eventvalue
+	    if \optable["c"] |
+	       p[&eventcode] ~=:= integer(t[&eventcode] / (0<sum) * 100) then {
+	       if \update then redraw()
+	       }
+	    }
+	 default: {
+	    write("unknown event code ",&eventcode)
+	    }
+	 }
+      if Pending()[1] then {
+	 e := Event()
+	 case e of {
+	    &resize: {
+	       wid := &x
+	       hei := &y
+	       EraseArea()
+	       realhei := real(hei)
+	       if \optable["r"] then {
+		  realhei /:= 2
+		  }
+	       if \update then redraw()
+	       }
+	    }
+	 }
+      }
+   EvTerm()
+   close(&window)
+end
+
+procedure redraw()
+   local start, fract, k, path
+   initial {
+      x := 0
+      }
+   if \optable["r"] then
+      start := integer(realhei)
+   else
+      start := 0
+   fract := realhei / sum
+   every k := key(t) do {
+      path := fract * t[k]
+      if \optable["r"] & k==E_String then
+	 FillRectangle(\contexts[k]|Visualization, x, 0, 1, path)
+      else {
+	 FillRectangle(\contexts[k]|Visualization, x, start, 1, path)
+	 start +:= path
+	 }
+      }
+   x +:= 1
+   if x > wid then {
+      x := 0
+      EraseArea(0,0,5)
+      }
+   EraseArea(x+3,0,1)
+end

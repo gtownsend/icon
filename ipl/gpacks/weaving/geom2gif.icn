@@ -1,0 +1,53 @@
+############################################################################
+#
+#	File:     geom2gif.icn
+#
+#	Subject:  Program to convert weaving geometry to a GIF file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 11, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  AD HOC AND PRELIMINARY
+#
+#  DOESN'T WORK CORRECTLY
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  weavutil, open
+#
+############################################################################
+
+link weavutil
+link wopen
+
+procedure main()
+    local geom, sequence, img, i
+
+    sequence := read() | stop("*** empty input file")
+
+    geom := []
+
+    while put(geom, read())
+
+    WOpen("size=" || *sequence || "," || *sequence) | stop("*** cannot open window")
+
+    img := *sequence || "," || "c1,"
+
+    every img ||:= geom[sympos(!sequence)]
+
+    DrawImage(0, 0, img) | stop("DrawImage() failed")
+
+    WDone()
+
+end

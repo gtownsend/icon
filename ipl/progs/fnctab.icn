@@ -1,0 +1,67 @@
+############################################################################
+#
+#	File:     fnctab.icn
+#
+#	Subject:  Program to list function usage
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 18, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program processes an MVT token file and tabulates the usage
+#  of functions.
+#
+#  Since function usage cannot be determined completely from static
+#  analysis, the results should be viewed with this limitation in mind.
+#
+############################################################################
+
+procedure main()
+   local fncset, fnctab, line, count, name, total
+
+   fncset := set()			# set for the names of all functions
+   fnctab := table(0)			# table to tabulate function count
+
+   total := 0
+
+   every insert(fncset, function())
+   delete(fncset, "args")		# ad hoc -- usual not used as functions
+   delete(fncset, "name")
+
+   while line := read() | stop("*** didn't find variable references") do {
+      line ? {
+         if ="Variable references:" then break
+         }
+      }
+
+
+   while line := trim(read()) do {
+      line ? {
+         if tab(upto(&digits)) then {
+            count := tab(many(&digits))
+            tab(upto(&letters))
+            name := tab(0)
+            if name == "" then break
+            if member(fncset, name) then {
+               fnctab[name] +:= count
+               total +:= count
+               }
+            }
+         }
+      }
+
+   fnctab := sort(fnctab, 4)
+
+   while count := pull(fnctab) do
+      write(left(pull(fnctab), 14), right(count, 8))
+
+   write()
+   write("total         ", right(total, 8))
+
+end

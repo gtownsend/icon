@@ -1,0 +1,433 @@
+# an XIB program constructed of several different objects;
+# constructed for the purpose of testing the UIX conversion program
+
+link vidgets
+link vslider
+link vmenu
+link vscroll
+link vtext
+link vbuttons
+link vradio
+
+global
+         region3
+
+procedure ui (win)
+   local 
+         menu1, 
+         sub_menu1, 
+         menu1_Chinese, 
+         radio_button1, 
+         sbar3, 
+         sbar2, 
+         slider2, 
+         slider1, 
+         text_input1, 
+         message1, 
+         check1, 
+         button6, 
+         button5, 
+         button4, 
+         button3, 
+         button2, 
+         GCregion3, 
+         line8, 
+         GCline8, 
+         button1, 
+         root
+
+   /win := open ("ui", "x", "width=311", "height=400", "font=6x12") | 
+           stop ("bad win")
+   root := Vroot_frame (win)
+
+   menu1_Chinese := Vsub_menu (win, 
+      "Cantonese", menu_cb1,
+      "Mandarin", menu_cb1)
+   sub_menu1 := Vsub_menu (win, 
+      "American", menu_cb1,
+      "Chinese", menu1_Chinese,
+      "Greek", menu_cb1,
+      "Italian", menu_cb1,
+      "Mexican", menu_cb1)
+   menu1 := Vmenu_bar (win, "Food", sub_menu1)
+   VInsert (root, menu1, 175, 85)
+
+   radio_button1 := Vradio_buttons (win, 
+                                   ["KUAT", "KUAZ", "KJZZ", "KLPX"], 
+                                   radio_button_cb1, , V_CIRCLE)
+   VInsert (root, radio_button1, 192, 142)
+
+   sbar3 := Vhoriz_scrollbar (win, sbar_cb3, "sbar3", 114, 16, 999, 1, , , )
+   VInsert (root, sbar3, 148, 248)
+
+   sbar2 := Vvert_scrollbar (win, sbar_cb2, "sbar2", 213, 11, 22, 77, , , 1)
+   VInsert (root, sbar2, 263, 23)
+
+   slider2 := Vvert_slider (win, slider_cb2, "slider2", 379, 18, 67, 33, 50, 1)
+   VInsert (root, slider2, 287, 5)
+
+   slider1 := Vhoriz_slider (win, slider_cb1, "slider1", 88, 11, 0, 100, 50, )
+   VInsert (root, slider1, 151, 296)
+
+   text_input1 := Vtext (win, "text prompt:\\=(initial value)", text_input_cb1, , 31)
+   VInsert (root, text_input1, 10, 369)
+
+   message1 := Vmessage (win, "This is a Message")
+   VInsert (root, message1, 22, 262)
+
+   check1 := Vcheckbox (win, check_cb1, "check1", 43)
+   VInsert (root, check1, 118, 172, 43, 43)
+
+   button6 := Vtoggle (win, "switch, no circle", button_cb6, "switch, no circle", V_CIRCLE_NO)
+   VInsert (root, button6, 33, 330)
+
+   button5 := Vtoggle (win, "switch", button_cb5, "switch", V_2D, 84, 25)
+   VInsert (root, button5, 30, 297)
+
+   button4 := Vbutton (win, "circle", button_cb4, "circle", V_CIRCLE)
+   VInsert (root, button4, 24, 209)
+
+   button3 := Vbutton (win, "checkno", button_cb3, "checkno", V_CHECK_NO)
+   VInsert (root, button3, 20, 182)
+
+   button2 := Vbutton (win, "check", button_cb2, "check", V_CHECK)
+   VInsert (root, button2, 37, 150)
+
+   GCregion3 := XBind (win, "dx=106", "dy=13")
+   region3 := Vpane (GCregion3, region_cb3, "region3", 2)
+   VInsert (root, region3, 106, 13, 39, 66)
+
+   GCline8 := XBind (win, "linewidth=3", "linestyle=onoff")
+   line8 := Vline (GCline8, 24, 16, 83, 79)
+   VInsert (root, line8)
+
+   button1 := Vbutton (win, "simple", button_cb1, "simple", V_2D, 100, 35)
+   VInsert (root, button1, 20, 103)
+
+   VResize (root)
+   return root
+end
+
+#######################################################################
+# Session Code:
+#######################################################################
+# Sizer_Obj:
+# 302
+# 469
+# 9
+# 9
+# Button_Obj:
+# button_cb1
+# button1
+# 
+# 20
+# 181
+# 100
+# 35
+# simple
+# 53
+# 203
+# 
+# regular
+# 
+# 0
+# 0
+# Line_Obj:
+# line_cb8
+# line8
+# 
+# 24
+# 94
+# 24
+# 94
+# 83
+# 157
+# 59
+# 63
+# 0
+# 0
+# onoff
+# 3
+# Rect_Obj:
+# region_cb3
+# region3
+# 1
+# 106
+# 91
+# 39
+# 66
+# 2
+# 0
+# 0
+# Button_Obj:
+# button_cb2
+# button2
+# 
+# 37
+# 228
+# 52
+# 20
+# check
+# 55
+# 240
+# 9
+# check
+# 
+# 0
+# 0
+# Button_Obj:
+# button_cb3
+# button3
+# 
+# 20
+# 260
+# 64
+# 20
+# checkno
+# 38
+# 272
+# 9
+# checkno
+# 
+# 0
+# 0
+# Button_Obj:
+# button_cb4
+# button4
+# 
+# 24
+# 287
+# 58
+# 20
+# circle
+# 42
+# 299
+# 9
+# circle
+# 
+# 0
+# 0
+# Button_Obj:
+# button_cb5
+# button5
+# 
+# 30
+# 375
+# 84
+# 25
+# switch
+# 55
+# 392
+# 
+# regular
+# 1
+# 0
+# 0
+# Button_Obj:
+# button_cb6
+# button6
+# 
+# 33
+# 408
+# 124
+# 20
+# switch, no circle
+# 51
+# 420
+# 9
+# circleno
+# 1
+# 0
+# 0
+# Check_Obj:
+# check_cb1
+# check1
+# 
+# 118
+# 250
+# 43
+# 43
+# 0
+# 0
+# Message_Obj:
+# 
+# message1
+# 
+# 22
+# 340
+# 102
+# 12
+# This is a Message
+# 22
+# 348
+# 0
+# 0
+# Text_Input_Obj:
+# text_input_cb1
+# text_input1
+# 
+# 10
+# 447
+# 268
+# 16
+# 459
+# text prompt:
+# (initial value)
+# 31
+# 0
+# 0
+# Slider_Obj:
+# slider_cb1
+# 
+# slider1
+# 
+# 151
+# 374
+# 88
+# 11
+# 4
+# 0
+# 100
+# 50
+# h
+# 0
+# 0
+# 1
+# Slider_Obj:
+# slider_cb2
+# 1
+# slider2
+# 
+# 287
+# 83
+# 18
+# 379
+# 4
+# 33
+# 67
+# 50
+# v
+# 0
+# 0
+# 1
+# Scrollbar_Obj:
+# Slider_Obj:
+# slider_cb3
+# 
+# slider3
+# 
+# 264
+# 113
+# 9
+# 189
+# 7
+# 0
+# 100
+# 50
+# v
+# 0
+# 1
+# 0
+# sbar_cb2
+# 1
+# sbar2
+# 
+# 77
+# 22
+# 263
+# 101
+# 11
+# 213
+# v
+# 0
+# 0
+# Scrollbar_Obj:
+# Slider_Obj:
+# slider_cb3
+# 
+# slider3
+# 
+# 165
+# 327
+# 80
+# 14
+# 12
+# 0
+# 100
+# 50
+# h
+# 0
+# 1
+# 0
+# sbar_cb3
+# 
+# sbar3
+# 
+# 999
+# 1
+# 148
+# 326
+# 114
+# 16
+# h
+# 0
+# 0
+# Radio_Button_Obj:
+# radio_button_cb1
+# radio_button1
+# 
+# 192
+# 220
+# 46
+# 80
+# 9
+# 0
+# 0
+# 4
+# KUAT
+# KUAZ
+# KJZZ
+# KLPX
+# Menu_Obj:
+# menu_cb1
+# menu1
+# 
+# 175
+# 163
+# 44
+# 20
+# Food
+# 179
+# 175
+# pull
+# 1
+# 0
+# 5
+# American
+# menu_cb1
+# 
+# 0
+# Chinese
+# menu_cb1
+# 1
+# 2
+# Cantonese
+# menu_cb1
+# 
+# 0
+# Mandarin
+# menu_cb1
+# 
+# 0
+# Greek
+# menu_cb1
+# 
+# 0
+# Italian
+# menu_cb1
+# 
+# 0
+# Mexican
+# menu_cb1
+# 
+# 0

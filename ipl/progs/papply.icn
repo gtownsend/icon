@@ -1,0 +1,42 @@
+############################################################################
+#
+#	File:     papply.icn
+#
+#	Subject:  Program to apply procedure to lines of file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 31, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program applies the procedure given as a command-line argument
+#  to each line of standard input, writing out the results.  For example,
+#
+#	papply reverse <foo
+#  
+#  writes out the lines of foo reversed end-for-end.
+#
+#  As it stands, there is no way to provide other arguments.  That' easy
+#  to remedy.
+#
+#  Except for use with (built-in) functions, this program needs to be linked
+#  with procedures that might be used with it.
+#
+############################################################################
+
+invocable all
+
+procedure main(args)
+   local p, line
+
+   p := proc(get(args)) | stop("*** invalid or missing procedure")
+
+   while line := read() do
+      write(p(line))
+
+end

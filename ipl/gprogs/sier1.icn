@@ -1,0 +1,50 @@
+############################################################################
+#
+#	File:     sier1.icn
+#
+#	Subject:  Program to draw the Sierpinski triangle
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 17, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program deomnstrates an interesting way to draw the Sierpinski
+#  triangle.  For an explanation, see
+#
+#	Chaos and Fractals, Heinz-Otto Peitgen, Harmut Jurgens,
+#	and Dietmar Saupe, Springer-Verlah, 1992, pp. 132-134.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  wopen
+#
+############################################################################
+
+link wopen
+
+procedure main()
+   local width, offset, x, y
+
+   WOpen("label=sierpinski", "size=300,300") |
+      stop("*** cannot open window")
+
+   width := 256
+   offset := 30
+
+   every y := 0 to width - 1 do
+      every x := 0 to width - 1 do
+         if iand(x, y) = 0 then DrawPoint(x + offset, y + offset)
+
+  Event()
+
+end

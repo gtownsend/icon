@@ -1,0 +1,48 @@
+############################################################################
+#
+#	File:     randfigs.icn
+#
+#	Subject:  Procedures to generate random figures
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 27, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures generate random geometrical figures.
+#
+############################################################################
+#
+#  Links:  gobject
+#
+############################################################################
+
+link gobject
+
+#
+#  random_points(width, height) generates an infinite sequence of
+#  randomly chosen points within the area bounded by 0, 0 and width - 1,
+#  height - 1.
+
+procedure random_points(width, height)
+
+   suspend |Point(?width - 1, ?height - 1)
+
+end
+
+#
+#  random_lines(width, height) generates an infinite sequence of
+#  randomly chosen lines within the area bounded by 0, 0 and width - 1,
+#  height - 1.
+
+procedure random_lines(width, height)
+
+   suspend |Line(Point(?width - 1, ?height - 1),
+      Point(?width - 1, ?height - 1))
+
+end

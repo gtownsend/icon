@@ -1,0 +1,61 @@
+############################################################################
+#
+#	File:     phoname.icn
+#
+#	Subject:  Procedures to generate letters for phone numbers
+#
+#	Author:   Thomas R. Hicks
+#
+#	Date:     June 10, 1988
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This procedure generates the letter combinations corresponding to the
+#  digits in a telephone number.
+#
+#  Warning:
+#
+#     The number of possibilities is very large. This procedure should be
+#  used in a context that limits or filters its output.
+#
+############################################################################
+
+procedure phoname(number)
+
+    local buttons, nondigits, pstr, t, x
+
+
+    buttons := ["000","111","abc","def","ghi","jkl","mno", "prs","tuv","wxy"]
+    nondigits := ~&digits
+
+    pstr := stripstr(number,nondigits)
+
+    if 7 ~= *pstr then fail
+    t := []
+    every x := !pstr do
+	put(t,buttons[x+1])
+    
+    suspend !t[1] || !t[2] || !t[3] || !t[4] || !t[5] || !t[6] || !t[7]
+
+end
+
+procedure stripstr(str,delchs)
+
+    local i
+
+    i := 1
+    while i <= *str do
+	{
+	if any(delchs,str,i) then
+	    str[i] := ""
+	else
+	    i +:= 1
+	}
+
+    return str
+
+end # stripstr

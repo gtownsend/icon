@@ -1,0 +1,58 @@
+############################################################################
+#
+#	File:     imgcolrs.icn
+#
+#	Subject:  Program to list colors in images.
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 6, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program analyzes images whose names are given on the command line
+#  and produces a file with the lists of colors used in each.  The entries
+#  are given in the order of most to least frequent color.  The color
+#  files have the base name of the image file and the extension ".clr".
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  basename, imgcolor, wopen
+#
+############################################################################
+
+link imgcolor
+link basename
+link wopen
+
+procedure main(args)
+   local file, colors, output, name
+
+   every file := !args do {
+      WOpen("canvas=hidden", "image=" || file) | {
+         write(&errout, "*** cannot open image file ", file)
+         next
+         }
+     colors := imgcolor()
+     WClose()
+     name := basename(file, ".gif")
+     output := open(name || ".clr", "w") | {
+        write("*** cannot open ", name, ".clr")
+        next
+        }
+      colors := sort(colors, 4)
+      while pull(colors) do
+         write(output, pull(colors))
+      close(output)
+      &window := &null
+      }
+
+end

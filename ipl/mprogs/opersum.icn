@@ -1,0 +1,200 @@
+############################################################################
+#
+#	File:     opersum.icn
+#
+#	Subject:  Program to tabulate operation activity
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 10, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This tool tabulates operation activity.  It is called as
+#
+#	opersum prog
+#
+#  where prog is a program compiled under MT Icon whose events are to
+#  be tabulated.
+#	
+#  The options supported are:
+#
+#	-m s	sets the event mask named s.  The supported masks are
+#		FncMask (the default), OperMask, ProcMask, ScanMask,
+#		and Oper+Mask, which includes both ScanMask and
+#		OperMask.
+#
+#	-o s	write output to file s; default &output.
+#
+#	-t	record time spent in monitoring.
+#
+############################################################################
+#
+#  Requires:  MT Icon and event monitoring.
+#
+############################################################################
+#
+#  Links:  evinit, evnames, options, procname
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+link evaltree
+link evinit
+link evnames
+link options
+link procname
+
+$include "evdefs.icn"
+
+global namemap, output, fncset, scan, fnames, mask
+global calltbl, retntbl, susptbl, failtbl, resmtbl, remvtbl
+
+procedure main(args)
+   local opts, itime
+
+   namemap := evnames()
+
+   opts := options(args, "m:o:t")
+
+   mask := FncMask
+   mask := case \opts["m"] of {
+      "ProcMask":  ProcMask
+      "FncMask":   FncMask
+      "OperMask":  OperMask
+      "ScanMask":  {
+         scan := 1
+         ScanMask
+         }
+      "Oper+Mask": {
+         scan := 1
+         OperMask ++ ScanMask
+         }
+      default:  stop("*** invalid event mask name")
+      }
+
+   if mask === FncMask then {			# beware record constructors
+      fnames := set()				# valid function names
+      every insert(fnames, function() || "()")
+      }
+
+   output := open(\opts["o"], "w") | &output
+
+   if \opts["t"] then itime := &time
+
+   EvInit(args) | stop("*** cannot load program")	# initialize interface
+
+   calltbl := table(0)
+   retntbl := table(0)
+   susptbl := table(0)
+   failtbl := table(0)
+   resmtbl := table(0)
+   remvtbl := table(0)
+
+   fncset := set()
+
+   EvInit(args) | stop("*** cannot load program")	# initialize interface
+
+   evaltree(mask, note)
+
+   write(output,
+      left("name", 14),
+      right("calls", 10),
+      right("returns", 10),
+      right("suspends", 10),
+      right("failures", 10),
+      right("resumps", 10),
+      right("removals", 10)
+      )
+   write(output)
+
+   every name := !sort(fncset) do
+      write(output,
+         left(name, 14),
+         right(calltbl[name], 10),
+         right(retntbl[name], 10),
+         right(susptbl[name], 10),
+         right(failtbl[name], 10),
+         right(resmtbl[name], 10),
+         right(remvtbl[name], 10)
+         )
+
+   write(output,
+      "\n",
+      left("total", 14),
+      right(tblsum(calltbl), 10),
+      right(tblsum(retntbl), 10),
+      right(tblsum(susptbl), 10),
+      right(tblsum(failtbl), 10),
+      right(tblsum(resmtbl), 10),
+      right(tblsum(remvtbl), 10)
+      )
+
+   write(output, "\nelapsed time: ", &time - \itime, "ms")
+
+end
+
+procedure note(new, old)
+
+   case &eventcode of {
+      !CallCodes: {
+         name := ename(new.node)
+         if (mask === FncMask) & not(member(fnames, name)) then return
+         calltbl[name] +:= 1
+         insert(fncset, name)
+         }
+      !ReturnCodes:  {
+         name := ename(old.node)
+         if (mask === FncMask) & not(member(fnames, name)) then return
+         retntbl[name] +:= 1
+         }
+      !SuspendCodes: {
+         name := ename(old.node)
+         if (mask === FncMask) & not(member(fnames, name)) then return
+         susptbl[name] +:= 1
+         }
+      !FailCodes:    {
+         name := ename(old.node)
+         if (mask === FncMask) & not(member(fnames, name)) then return
+         failtbl[name] +:= 1
+         }
+      !ResumeCodes:  {
+         name := ename(new.node)
+         if (mask === FncMask) & not(member(fnames, name)) then return
+         resmtbl[name] +:= 1
+         }
+      !RemoveCodes:  {
+         name := ename(old.node)
+         if (mask === FncMask) & not(member(fnames, name)) then return
+         remvtbl[name] +:= 1
+         }
+      }
+
+   return
+
+end
+
+procedure ename(x)
+    if /x then return "bogon"
+    else if \scan & not(proc(x)) then return "e1 ? e2"
+    else return procname(x, 1)			# use the expanded form
+
+end
+
+procedure tblsum(tbl)
+   local count
+
+   count := 0
+
+   every count +:= !tbl
+
+   return count
+
+end

@@ -1,0 +1,84 @@
+############################################################################
+#
+#	File:     webimage.icn
+#
+#	Subject:  Program to produce Web page for image files
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 29, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program takes the names of image files on the command line and
+#  writes a Web page that imbeds each image.
+#
+#  The following options are supported:
+#
+#	-a s	alignment, default "bottom"
+#	-t s	title for page; default "untitled"
+#	-n	include file names; default no names
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  options, wopen
+#
+############################################################################
+
+link options
+link wopen
+
+record dim(w, h)
+
+procedure main(args)
+   local name, opts, title, dim, align, names
+
+   opts := options(args, "t:a:n")
+   title := \opts["t"] | "untitled"
+   align := \opts["a"] | "bottom"
+   names := opts["n"]
+
+   write("<html><head><title>", title, "</title></head><body>")
+
+   every name := !args do {
+      dim := image_size(name) | {
+         write(&errout, "*** cannot open image file ", image(name))
+         next
+         }
+      write(
+         if \names then name else "",
+         "<p><img src=\"",
+         name,
+         "\" width=\"",
+         dim.w,
+         "\" height=\"",
+         dim.h,
+         "\" align=\"",
+         align,
+         "\"></p>"
+         )
+      }
+   write("</body></html>")
+
+end
+
+procedure image_size(name)			#: size of GIF file
+   local win, size
+
+   win := WOpen("canvas=hidden", "image=" || name) | fail
+
+   size := dim(WAttrib(win, "width"), WAttrib(win, "height"))
+
+   WClose(win)
+
+   return size
+
+end

@@ -1,0 +1,248 @@
+############################################################################
+#
+#       File:     iidecode.icn
+#
+#       Subject:  Program to decode text in style of uudecode
+#
+#       Author:   Richard L. Goerwitz, enhanced by Frank J. Lhota
+#
+#       Date:     January 10, 1995
+#
+###########################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#       Version:  2.0 
+#
+###########################################################################
+#
+#  This is an Icon port of the UNIX/C uudecode utility.  Since
+#  uudecode is publicly distributable BSD code, I simply grabbed a
+#  copy, and rewrote it in Icon.  The only basic functional changes I
+#  made to the program were:  (1) To simplify the notion of file mode
+#  (everything is encoded with 0644 permissions), and (2) to add a
+#  command-line switch for xxencoded files (similar to uuencoded
+#  files, but capable of passing unscathed through non-ASCII EBCDIC
+#  sites).
+#
+#         usage:  iidecode [infile] [-x]
+#
+#  Usage is compatible with that of the UNIX uudecode command, i.e. a
+#  first (optional) argument gives the name the file to be decoded.
+#  If this is omitted, iidecode just uses the standard input.  The -x
+#  switch (peculiar to iidecode) forces use of the the xxdecoding
+#  algorithm.  If you try to decode an xxencoded file without speci-
+#  -x on the command line, iidecode will try to forge ahead anyway.
+#  If it thinks you've made a mistake, iidecode will inform you after
+#  the decode is finished.
+#
+#
+#  FIXES: Speeded up substantually (more than twice as fast on my
+#  machine) by using a more icon-ish algorithm.  We decode in two
+#  steps:
+#
+#  1)   The coded characters are mapped to "small bytes",
+#       each with 2 zero high bits, i.e. <<= "\x3F".                        
+#  2)   We then 'pack' the small bytes by taking groups of 4 small bytes
+#       (each with 2 zero high bits and 6 data bits) and packing
+#       the data bits into groups of 3 bytes.
+#
+#  There are numerous advantages to this approach.  The icon map
+#  function is much faster than the 'C'-ish alternatives.  We can
+#  process things one line at a time. Also, the different decoding
+#  mechanisms (old BSD, new BSD, xxdecode) can be produces by simply
+#  using different map parameters.
+#
+############################################################################
+#
+#  See also: iiencode.icn
+#
+############################################################################
+
+link options
+
+global oversizes
+
+procedure main ( a )
+
+    local opt, in, out, dest, is_xx
+    initial oversizes := 0
+
+
+    opt := options ( a, "-x" )
+    is_xx := opt [ "x" ]
+
+    # Check for correct number of args.
+    case *a of
+	{
+	0       : in := &input
+	1       : in := open ( a [ 1 ], "r" ) |
+	    {
+	    write ( &errout, "Can't open input file, ", a [ 1 ], ".\n_
+		usage:  iidecode [infile] [-x]" )
+	    exit ( 1 )
+	    }
+	default :
+	    {
+	    write ( &errout, "usage:  iidecode [infile] [-x]" )
+	    exit ( 2 )
+	    }
+	}
+
+
+    # Find the "begin" line, and determine the destination file name.
+    !in ? {
+	="begin "                  &
+	tab ( many ( &digits ) )   & # mode ignored
+	tab ( many ( ' ' ) )       &
+	dest := tab ( 0 )
+    }
+
+    # If dest is null, the begin line either isn't present, or is
+    # corrupt (which necessitates our aborting with an error msg.).
+    if /dest then {
+	write ( &errout, "No begin line." )
+	exit ( 3 )
+    }
+
+    # Tilde expansion is heavily UNIX dependent, and we can't always
+    # safely write the file to the current directory.  Our only choice
+    # is to abort.
+    if match ( "~", dest ) then {
+	write ( &errout, "Please remove ~ from input file begin line." )
+	exit ( 4 )
+    }
+       
+    out := open ( dest, "wu" )
+    decode ( in, out, is_xx )   # decode checks for "end" line
+    if not match ( "end", !in ) then {
+	write ( &errout, "No end line.\n" )
+	exit ( 5 )
+    }
+
+    # Check global variable oversizes (set by decode)
+    # to see if we used the correct decoding algorithm.
+    if oversizes > 0 then {
+	if \is_xx then {
+	    write ( &errout, "Input file appears to have been uuencoded.\n_
+		Try invoking iidecode without the -x arg." )
+	}
+	else {
+	    write ( &errout, "Input file is either corrupt, or xxencoded.\n_
+		Please check the output; try the -x option." )
+	}
+    }
+
+    every close ( ( &input ~=== in ) | out )
+
+    exit ( 0 )
+
+end
+
+###########################################################################
+#
+# Reads encoded lines from file in, decodes them,
+# and writes the decoded data# to out.
+# "uu" decoding is done unless \is_xx, in which case "xx" decoding is done.
+#
+###########################################################################
+procedure decode(in, out, is_xx)
+    
+    # Copy from in to out, decoding as you go along.
+
+
+    local line, n, coded, unpacked, badchars
+
+    if \is_xx then {
+	coded := "_
+	    +-0123456789ABCD_
+	    EFGHIJKLMNOPQRST_
+	    UVWXYZabcdefghij_
+	    klmnopqrstuvwxyz"
+	unpacked := "_
+	    \x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F_
+	    \x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F_
+	    \x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2A\x2B\x2C\x2D\x2E\x2F_
+	    \x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3A\x3B\x3C\x3D\x3E\x3F"
+    }
+    else {
+	#
+	# To be safe, we map both " " and "`" to "\x00"
+	#
+	coded := " _
+	     !\"#$%&'()*+,-./_
+	    0123456789:;<=>?_
+	    @ABCDEFGHIJKLMNO_
+	    PQRSTUVWXYZ[\\]^_`"
+	unpacked := "_
+	    \x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F_
+	    \x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F_
+	    \x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2A\x2B\x2C\x2D\x2E\x2F_
+	    \x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3A\x3B\x3C\x3D\x3E\x3F\x00"
+    }
+
+    badchars := ~ coded
+
+    while line := read ( in ) do {
+
+	if *line = 0 then {
+	    write ( &errout, "Short file.\n" )
+	    exit ( 10 )
+	}
+
+	line ? while tab ( upto ( badchars ) + 1 ) do oversizes +:= 1
+
+	map ( line, coded, unpacked ) ? {
+	    n := ord ( move ( 1 ) )
+	    line := tab ( 0 )
+
+	    if not ( *line % 4 = 0, n <= ( ( *line / 4 ) * 3 ) ) then {
+		write ( &errout, "Short and/or corrupt line:\n", line )
+		if /is_xx & oversizes > 0 then
+		    write ( &errout, "Try -x option?" )
+		exit ( 15 )
+	    }
+
+	    # Uuencode signals the end of the coded text by a space
+	    # and a line (i.e. a zero-length line, coded as a space).
+	    if n <= 0 then break
+	    
+	    writes ( out, left ( repack ( line ),  n ) )
+	}
+    }
+    
+    return
+
+end
+
+
+###########################################################################
+#
+# Takes groups of 4 bytes in s (each byte should have 2 zero high bits)
+# and packs the 6 lower data bits into group of 3 bytes.
+#
+###########################################################################
+procedure repack ( s )
+
+    local n, grp
+
+    s ? {
+	s := ""
+	while grp := move ( 4 ) do
+	    {
+	    n := 0
+	    grp ? while n := ord ( move ( 1 ) ) % 16r40 + ( n * 16r40 )
+
+	    s ||:=
+		char ( ishift ( iand ( n, 16rFF0000 ), -16 ) ) ||
+		char ( ishift ( iand ( n, 16r00FF00 ), - 8 ) ) ||
+		char (          iand ( n, 16r0000FF )        )
+	    }
+	}
+
+    return s
+
+end
+

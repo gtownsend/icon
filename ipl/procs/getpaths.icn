@@ -1,0 +1,64 @@
+############################################################################
+#
+#	File:     getpaths.icn
+#
+#	Subject:  Procedure to generate elements in path
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.3
+#
+############################################################################
+#
+#      Suspends, in turn, the paths supplied as args to getpaths(),
+#  then all paths in the PATH environment variable.  A typical
+#  invocation might look like:
+#
+#     open(getpaths("/usr/local/lib/icon/procs") || filename)
+#
+#  Note that getpaths() will be resumed in the above context until
+#  open succeeds in finding an existing, readable file.  Getpaths()
+#  can take any number of arguments.
+#
+############################################################################
+#
+#  Requires: UNIX or MS-DOS
+#
+############################################################################
+
+procedure getpaths(base_paths[])
+
+    local paths, p
+    static sep, trailer, trimmer
+    initial {
+	if find("UNIX", &features) then {
+	    sep := ":"
+	    trailer := "/"
+	    trimmer := cset(trailer || " ")
+        }
+	else if find("MS-DOS", &features) then {
+	    sep := ";"
+	    trailer := "\\"
+	    trimmer := cset(trailer || " ")
+	}
+        else stop("getpaths:  OS not supported.")
+    }
+
+    suspend !base_paths
+    paths := getenv("PATH")
+    \paths ? {
+	tab(match(sep))
+	while p := 1(tab(find(sep)), move(1))
+	do suspend ("" ~== trim(p,trimmer)) || trailer
+	return ("" ~== trim(tab(0),trimmer)) || trailer
+    }
+
+end

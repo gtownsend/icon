@@ -1,0 +1,110 @@
+############################################################################
+#
+#	File:     xcompat.icn
+#
+#	Subject:  Procedures for compatibility with 8.10 graphics
+#
+#	Authors:  Gregg M. Townsend and Ralph E. Griswold
+#
+#	Date:     May 26, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This file provides compatible implementation of Icon 8.10 functions
+#  that cannot be replaced with 9.0 functions via the simple renaming
+#  done in xnames.icn.  The following procedures are provided:
+#
+#	XBind(w1, w2, ...)
+#	XUnbind()
+#	XWindowLabel(s)
+#	XDrawArc(w,x,y,width,height,a1,a2,...),
+#	XFillArc(w,x,y,width,height,a1,a2,...),
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+
+procedure XBind(args[])
+   local window
+
+   if type(args[2]) == type(args[1]) == "window" then
+      return Couple ! args		# two windows: couple them
+
+   if type(args[1]) == "window" then { 	# one window: clone it
+      window := pop(args)
+      if /args[1] then
+         pop(args)
+      push(args, window)
+      return Clone ! args
+      }
+
+   # no windows: create hidden canvas
+   while /args[1] do			# remove leading null args
+      pop(args)
+   if type(args[1]) == "window" then	# remove possible arg2 window
+      pop(args)
+   while /args[-1] do			# remove trailing null args
+      pull(args)
+   put(args, "canvas=hidden")		# turn into open() call
+   push(args, "x")
+   push(args, "window")
+   return open ! args
+end
+
+
+procedure XUnbind(args[])
+   XUnbind := proc("XUnbind" | "XUncouple" | "Uncouple", 0)
+   return XUnbind ! args
+end
+
+
+procedure XWindowLabel(win, s)
+   if type(win) == "window" then
+      WAttrib(win, "label=" || s)
+   else
+      WAttrib("label=" || win)
+   return
+end
+
+
+procedure XDrawArc(args[])
+   local a1, i
+   static m
+
+   initial m := -(2 * &pi) / (360 * 64)
+
+   if type(args[1]) == "window" then
+      a1 := 6
+   else
+      a1 := 5
+   every i := a1 to *args by 6 do {
+      args[i] *:= m
+      args[i + 1] *:= m
+      }
+   return DrawArc ! args
+end
+
+
+procedure XFillArc(args[])
+   local a1, i
+   static m
+
+   initial m := -(2 * &pi) / (360 * 64)
+
+   if type(args[1]) == "window" then
+      a1 := 6
+   else
+      a1 := 5
+   every i := a1 to *args by 6 do {
+      args[i] *:= m
+      args[i + 1] *:= m
+      }
+   return FillArc ! args
+end

@@ -1,0 +1,37 @@
+############################################################################
+#
+#	File:     digitcnt.icn
+#
+#	Subject:  Procedure to count number of digits in file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 15, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure counts the number of each digit in a file and returns
+#  a ten-element list with the counts.
+#
+############################################################################
+
+procedure digitcnt(file)	#: count digits in file
+   local result
+
+   /file := &input
+
+   result := list(10, 0)
+
+   #  If the file contains only digits, remove the # on the next line and add
+   # to the following one.
+
+#  every result[!!file + 1] +:= 1
+   every result[integer(!!file) + 1] +:= 1
+
+   return result
+
+end

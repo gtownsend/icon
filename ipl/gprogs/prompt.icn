@@ -1,0 +1,44 @@
+############################################################################
+#
+#	File:     prompt.icn
+#
+#	Subject:  Program to prompt in a window
+#
+#	Author:   Clinton L. Jeffery
+#
+#	Date:     June 17, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#    A utility for interactive shell scripts.  Called from a
+# shell script, it pops up a window, writes its arguments out as
+# a prompt, and echos the user's response to standard output where
+# the shell script can use it (by means of the backquote character).
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  wopen
+#
+############################################################################
+
+link wopen
+
+procedure main(args)
+  local s2, w
+
+  pos := "pos="
+  every s2 := QueryPointer() do pos ||:= (s2-10) || ","
+
+  w := WOpen("label=prompt", "cursor=on", "font="||("12x24"|"fixed"),
+	    "lines=1", pos[1:-1]) | stop("opening the window fails")
+  every writes(w,!args," ")
+  write(read(w))
+end

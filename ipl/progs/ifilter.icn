@@ -1,0 +1,86 @@
+############################################################################
+#
+#	File:     ifilter.icn
+#
+#	Subject:  Program to filter lines of file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 21, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program applies the operation given as a command-line argument
+#  to each line of standard input, writing out the results.  For example,
+#
+#	ifilter reverse <foo
+#  
+#  writes out the lines of foo reversed end-for-end.
+#
+#  Trailing arguments can be given on the command line, as in
+#
+#	ifilter right 10 0 <foo		# right(*, "10", "0")
+#	ifilter "%" 11 <foo		# * % "11"
+#
+#  The modules strings and numbers are linked to provide access to the
+#  procedures they contain.  Except for these and operators and (built-in)
+#  functions, this program needs to be linked with procedures to be
+#  used with it.
+#
+#  The following options are supported:
+#
+#	-a i	argument position for strings read in; default 1
+#	-o i	resolution of ambiguous operator string names, 1 for unary, 2
+#		  for binary; default 2
+#	-l i	limit on generation, with nonpositive indicating
+#		  no limitation; default 1
+#
+############################################################################
+#
+#  Note:  This is a renaming of an earlier program, filter.icn, to
+#  avoid name collisions on systems where there already is a utility
+#  named filter.
+#
+############################################################################
+#
+#  Links:  lists, numbers, options, and strings
+#
+############################################################################
+
+invocable all
+
+link lists
+link numbers
+link options
+link strings
+
+procedure main(args)
+   local op, opts, i, interp, limit
+
+   opts := options(args, "a+o+l+")
+   i := \opts["a"] | 1
+   limit := \opts["l"] | 1
+   if limit < 1 then limit := 2 ^ 31
+
+   if opts["o"] === (&null | 2) then {
+      op := proc(pop(args), 2 | 1 | 3) |
+         stop("*** invalid or missing operation")
+      }
+   else if opts["o"] = 1 then {
+       op := proc(pop(args), 1 | 2 | 3) |
+         stop("*** invalid or missing operation")
+      }
+   else stop("*** invalid -o option")
+
+   lextend(args, i - 1)				# be sure list is long enough
+
+   args := args[1:i] ||| [&null] ||| args[i:0]	# make room for input argument
+
+   while args[i] := read() do
+      every write(op ! args) \ limit
+
+end

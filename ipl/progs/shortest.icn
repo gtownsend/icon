@@ -1,0 +1,44 @@
+############################################################################
+#
+#	File:     shortest.icn
+#
+#	Subject:  Program to write shortest line in a file
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 25, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program writes the (last) shortest line in the input file.  If the
+#  command-line option  -# is given, the number of the shortest line is
+#  written first.
+#
+############################################################################
+
+procedure main(argl)
+   local shortest, min, count, countl, number, line
+
+   if argl[1] == "-#" then number := 1
+
+   shortest := read() | exit()
+   count := 1
+   min := *shortest
+
+   every line := !&input do {
+      count +:= 1
+      if *line <= min then {
+         min := *line
+         shortest := line
+         countl := count
+         }
+      }
+
+   if \number then write(countl)
+   write(shortest)
+
+end

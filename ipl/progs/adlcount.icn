@@ -1,0 +1,40 @@
+############################################################################
+#
+#	File:     adlcount.icn
+#
+#	Subject:  Program to count address list entries
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 19, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This program counts the number of entries in an address list file.
+#  If an argument is given, it counts only those that have designators
+#  with characters in the argument. Otherwise, it counts all entries.
+#
+############################################################################
+#
+#  See also: address.doc, adlcheck.icn, adlfiltr.icn, adllist.icn,
+#     adlsort,icn, labels.icn
+#
+############################################################################
+
+procedure main(arg)
+   local s, count
+
+   s := cset(arg[1]) | &cset
+
+   count := 0
+   every !&input ? {
+      any('#') & upto(s) \ 1
+      } do
+      count +:= 1
+   write(count)
+
+end

@@ -1,0 +1,48 @@
+############################################################################
+#
+#	File:     scroller.icn
+#
+#	Subject:  Program to scroll image
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     October 4, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: wopen
+#
+############################################################################
+
+link wopen
+
+procedure main(args)
+   local width, height, win1, win2
+
+   win1 := WOpen("image=" || args[1]) | stop("*** cannot open image")
+
+   height := WAttrib(win1, "height")
+   width := WAttrib(win1, "width")
+
+   win2 := WOpen("canvas=hidden", "size=1," || height)
+
+   repeat {
+      CopyArea(win1, win2, 0, 0, 1, height)
+      CopyArea(win1, win1, 1, 0, width - 1, height)
+      CopyArea(win2, win1, 0, 0, 1, height, width - 1, 0)
+      WDelay(10)
+      }
+
+end

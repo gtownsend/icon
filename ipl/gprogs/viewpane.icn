@@ -1,0 +1,195 @@
+############################################################################
+#
+#	File:     viewpane.icn
+#
+#	Subject:  Program to view image through a "pane"
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 27, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program loads images and uses scroll bars to pan over parts
+#  of an image that is larger than the viewing pane.
+#
+#  This program is intended primarily as an example of a simple
+#  application with a visual interface.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  dialog, vsetup
+#
+############################################################################
+
+link dialog
+link vsetup
+
+global view_xoff, view_yoff			# upper-left corner of pane
+global view_width, view_height			# view-pane dimensions
+global x_fact, y_fact				# image scaling values
+global image_win				# image window
+global image_width, image_height		# image dimensions
+global xpos, ypos				# upper-left corner of image
+global hbar, vbar				# scrolling vidgets
+
+procedure main()
+   local vidgets
+
+   vidgets := ui()				# set up interface
+
+   view_xoff := vidgets["port"].ax + 1		# get pane information
+   view_yoff := vidgets["port"].ay + 1
+   view_width := vidgets["port"].aw - 1
+   view_height := vidgets["port"].ah - 1
+
+   hbar := vidgets["hbar"]			# horizontal scroll bar
+   vbar := vidgets["vbar"]			# vertical scroll bar
+
+   GetEvents(vidgets["root"], , shortcuts)	# enter event loop
+
+end
+
+
+#  Process event for the file menu.
+
+procedure file_cb(vidget, menu)
+
+   case menu[1] of {
+      "open  @O":   image_open()
+      "quit  @Q":   exit()
+      }
+
+   return
+
+end
+
+#  Check for keyboard shortcuts.
+
+procedure shortcuts(e)
+
+   case &meta & map(e) of {			# fold case
+      "o":  image_open()
+      "q":  exit()
+      }
+
+   return
+
+end
+
+#  Open image file.
+
+procedure image_open()
+
+      case OpenDialog() of {
+         "Okay": {
+            WClose(\image_win)
+            image_win := WOpen("image=" || dialog_value, "canvas=hidden") | {
+               Notice("Cannot open image file")
+               fail
+               }
+            setup_win(image_win)
+            return
+            }
+         "Cancel":  fail
+         }
+
+end
+
+#  Process event for horizontal scroll bar.
+
+procedure horiz_cb(vidget, val)
+
+   if /image_win then return			# don't do anything if no image
+
+   xpos := val * x_fact
+
+   copy_image()
+
+   return
+
+end
+
+#  Process event for vertical scroll bar.
+
+procedure vert_cb(vidget, val)
+
+   if /image_win then return			# don't do anything if no image
+
+   ypos := val * y_fact
+
+   copy_image()
+
+   return
+
+end
+
+#  Process event for "hide" button.
+
+procedure hide_cb(vidget, val)
+
+   if /image_win then return			# don't do anything if no image
+
+   if val === 1 then
+      FillRectangle(view_xoff, view_yoff, view_width, view_height)
+   else copy_image()
+
+   return
+
+end
+
+#  Utility procedure for copying image.
+
+procedure copy_image()
+
+   CopyArea(image_win, &window, xpos, ypos, view_width, view_height,
+      view_xoff, view_yoff)
+
+   return
+
+end
+
+#  Procedure to set up window.
+
+procedure setup_win(win)
+
+   EraseArea(view_xoff, view_yoff, view_width, view_height)
+   image_width := real(WAttrib(win, "width"))
+   image_height := real(WAttrib(win, "height"))
+   x_fact := 1.0 - view_width / image_width	# set up x and y factors
+   y_fact := 1.0 - view_height / image_height
+   x_fact <:= 0.0
+   y_fact <:= 0.0
+   x_fact *:= image_width
+   y_fact *:= image_height
+   VSet(hbar, 0.0)				# reset the scroll bars
+   VSet(vbar, 0.0)
+   xpos := ypos := 0
+   copy_image()					# place image
+
+   return
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:lucidasanstypewriter-bold-12::0,0,455,410:View",],
+   ["file:Menu:pull::29,1,36,21:File",file_cb,
+      ["open  @O","quit  @Q"]],
+   ["hbar:Scrollbar:h:1:30,362,300,18:0.0,1.0,0.5",horiz_cb],
+   ["hide:Button:regular:1:382,60,45,20:Hide",hide_cb],
+   ["line:Line:solid:1:0,25,455,25:",],
+   ["port:Rect::1:30,60,300,300:",],
+   ["vbar:Scrollbar:v:1:332,60,18,300:0.0,1.0,0.5",vert_cb],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

@@ -1,0 +1,595 @@
+############################################################################
+#
+#	File:     strings.icn
+#
+#	Subject:  Procedures for manipulating strings
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 9, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#  These procedures perform operations on strings.
+#
+#	cat(s1, s2, ...)   concatenates an  arbitrary number of strings.
+#  
+#	charcnt(s, c)	   returns the number of instances of characters in
+#			   c in s.
+#
+#	collate(s1, s2)    collates the characters of s1 and s2.  For example,
+#
+#                              collate("abc", "def")
+#
+#                          produces "adbecf".
+#
+#	comb(s, i)	   generates the combinations of characters from s
+#			   taken i at a time.
+#
+#       compress(s, c)     compresses consecutive occurrences of charac-
+#                          ters in c that occur in s; c defaults to &cset.
+#
+#	csort(s)           produces the characters of s in lexical order.
+#  
+#	decollate(s, i)    produces a string consisting of every other
+#                          character of s. If i is odd, the odd-numbered
+#                          characters are selected, while if i is even,
+#                          the even-numbered characters are selected.
+#			   The default value of i is 1.
+#
+#	deletec(s, c)	   deletes occurrences of characters in c from s.
+#
+#	deletep(s, L)	   deletes all characters at positions specified in
+#			   L.
+#
+#	deletes(s1, s2)    deletes occurrences of s2 in s1.
+#
+#	diffcnt(s)	   returns count of the number of different
+#			   characters in s.
+#
+#	extend(s, n)	   replicates s to length n.
+#
+#	interleave(s1, s2) interleaves characters s2 extended to the length
+#			   of s1 with s1.
+#
+#	ispal(s)	   succeeds and returns s if s is a palindrome
+#
+#	maxlen(L, p)	   returns the length of the longest string in L.
+#			   If p is given, it is applied to each string as
+#			   as a "length" procedure.  The default for p is
+#			   proc("*", 1).
+#
+#	meander(s, n)      produces a "meandering" string that contains all
+#                          n-tuples of characters of s.
+#
+#	multicoll(L)	   returns the collation of the strings in L.
+#
+#	ochars(s)          produces the unique characters of s in the order
+#			   that they first appear in s.
+#
+#	palins(s, n)       generates all the n-character palindromes from the
+#			   characters in s.
+#
+#	permute(s)         generates all the permutations of the string s.
+#
+#	pretrim(s, c)	   trims characters from beginning of s.
+#
+#	reflect(s1, i, s2)
+#			   returns s1 concatenated s2 and the reversal of s1
+#			   to produce a palindroid; the values of i
+#			   determine "end conditions" for the reversal:
+#
+#				0	pattern palindrome
+#				1	pattern palindrome with center duplicated
+#				2	true palindrome with center not duplicated
+#				3	true palindrome with center duplicated
+#
+#			   s2 defaults to the empty string, in which case the
+#			   result is a full palindrome
+#
+#       replace(s1, s2, s3)
+#			   replaces all occurrences of s2 in s1 by s3; fails
+#			   if s2 is null.
+#
+#	replacem(s, ...)   performs multiple replacements in the style of
+#			   of replace(), where multiple aregument pairs
+#			   may be given, as in
+#
+#				replacem(s, "a", "bc", "d", "cd")
+#
+#			   which replaced all "a"s by "bc"s and all
+#			   "d"s by "cd"s.  Replacements are performed
+#			   one after another, not in parallel.
+#
+#	replc(s, L)	   replicates each character of c by the amount
+#			   given by the values in L.
+#  
+#       rotate(s, i)       rotates s i characters to the left (negative i
+#                          produces rotation to the right); the default
+#                          value of i is 1.
+#
+#	schars(s)          produces the unique characters of s in lexical
+#			   order.
+#
+#	scramble(s)	   scrambles (shuffles) the characters of s randomly.
+#
+#	selectp(s, L)	   selects characters of s that are at positions
+#			   given in L.
+#
+#	starseq(s) 	   sequence consisting of the closure of s
+#		  	   starting with the empty string and continuing
+#			   in lexical order as given in s
+#
+#	strcnt(s1, s2)	   produces a count of the number of non-overlapping
+#			   times s1 occurs in s2; fails is s1 is null
+#
+#	substrings(s, i, j)
+#			   generates all the substrings of s with lengths
+#			   from i to j, inclusive; i defaults to 1, j
+#			   to *s
+#
+#	transpose(s1, s2, s3)
+#			   transposes s1 according to label s2 and
+#			   transposition s3.
+#  
+#	words(s, c)	   generates the "words" from the string s that
+#			   are separated by characters from the cset
+#			   c, which defaults to ' \t\r\n\v\f'.
+#
+############################################################################
+
+procedure cat(args[])			#: concatenate strings
+   local result
+
+   result := ""
+
+   every result ||:= !args
+
+   return result
+
+end
+
+procedure charcnt(s, c)			#: character count
+   local count
+
+   count := 0
+
+   s ? {
+      while tab(upto(c)) do
+         count +:= *tab(many(c))
+      }
+
+   return count
+
+end
+
+procedure collate(s1, s2)		#: string collation
+   local length, ltemp, rtemp
+   static llabels, rlabels, clabels, blabels, half
+
+   initial {
+      llabels := "ab"
+      rlabels := "cd"
+      blabels := llabels || rlabels
+      clabels := "acbd"
+      half := 2
+      ltemp := left(&cset, *&cset / 2)
+      rtemp := right(&cset, *&cset / 2)
+      clabels := collate(ltemp, rtemp)
+      llabels := ltemp
+      rlabels := rtemp
+      blabels := string(&cset)
+      half := *llabels
+      }
+
+   length := *s1
+   if length <= half then
+      return map(left(clabels, 2 * length), left(llabels, length) ||
+         left(rlabels, length), s1 || s2)
+   else return map(clabels, blabels, left(s1, half) || left(s2, half)) ||
+      collate(right(s1, length - half), right(s2, length - half))
+
+end
+
+procedure comb(s, i)			#: character combinations
+   local j
+
+   if i < 1 then fail
+   suspend if i = 1 then !s
+      else s[j := 1 to *s - i + 1] || comb(s[j + 1:0], i - 1)
+
+end
+
+procedure compress(s, c)		#: character compression
+   local result, s1
+
+   /c := &cset
+
+   result := ""
+
+   s ? {
+      while result ||:= tab(upto(c)) do {
+         result ||:= (s1 := move(1))
+         tab(many(s1))
+         }
+      return result || tab(0)
+      }
+end
+
+procedure csort(s)			#: lexically ordered characters
+   local c, s1
+
+   s1 := ""
+
+   every c := !cset(s) do
+      every find(c, s) do
+         s1 ||:= c
+
+   return s1
+
+end
+
+#  decollate s according to even or odd i
+#
+procedure decollate(s, i)		#: string decollation
+   local ssize
+   static dsize, image, object
+
+   initial {
+      image := collate(left(&cset, *&cset / 2), left(&cset, *&cset / 2))
+      object := left(&cset, *&cset / 2)
+      dsize := *image
+      }
+
+   /i := 1
+
+   i %:= 2
+   ssize := *s
+
+   if ssize + i <= dsize then
+      return map(object[1+:(ssize + i) / 2], image[(i + 1)+:ssize], s)
+   else return map(object[1+:(dsize - 2) / 2], image[(i + 1)+:dsize - 2],
+      s[1+:(dsize - 2)]) || decollate(s[dsize - 1:0], i)
+
+end
+
+procedure deletec(s, c)			#: delete characters
+   local result
+
+   result := ""
+
+   s ? {
+      while result ||:= tab(upto(c)) do
+         tab(many(c))
+      return result ||:= tab(0)
+      }
+
+end
+
+procedure deletep(s, L)
+
+   L := sort(L)
+
+   while s[pull(L)] := ""
+
+   return s
+
+end
+
+procedure deletes(s1, s2)		#: delete string
+   local result, i
+
+   result := ""
+   i := *s2
+
+   s1 ? {
+      while result ||:= tab(find(s2)) do
+         move(i)
+      return result ||:= tab(0)
+      }
+         
+end
+
+procedure diffcnt(s)			#: number of different characters
+
+   return *cset(s)
+
+end
+
+procedure extend(s, n)			#: extend string
+   local i
+
+   i := n / *s
+   if n % *s > 0 then i +:= 1
+
+   return left(repl(s, i), n)
+
+end
+
+procedure interleave(s1, s2)		#: interleave strings
+
+   return collate(s1, extend(s2, *s1))
+
+end
+
+procedure ispal(s)			#: test for palindrome
+
+   if s == reverse(s) then return s else fail
+
+end
+
+procedure maxlen(L, p)			#: maximum string length
+   local i
+
+   if *L = 0 then fail
+
+   /p := proc("*", 1)
+
+   i := 0
+
+   every i <:= p(!L)
+
+   return i
+
+end
+
+procedure meander(alpha, n)		#: meandering strings
+   local result, trial, t, i, c
+
+   i := *alpha
+   t := n - 1
+   result := repl(alpha[1], t)			# base string
+
+   while c := alpha[i] do {			# try a character
+      result ? {				# get the potential n-tuple
+         tab(-t)
+         trial := tab(0) || c
+         }
+      if result ? find(trial) then 		# duplicate, work back
+         i -:= 1
+      else {
+         result ||:= c				# add it
+         i := *alpha				# and start from end again
+         }
+      }
+
+   return result[n:0]
+
+end
+
+procedure multicoll(L)			#: collate strings in list
+   local result, i, j
+
+   result := ""
+
+   every i := 1 to *L[1] do		# no other longer if legal
+      every j := 1 to *L do
+         result ||:= L[j][i]
+
+   return result
+
+end
+
+procedure ochars(w)			#: first appearance unique characters
+   local out, c
+
+   out := ""
+
+   every c := !w do
+	if not find(c, out) then
+	    out ||:= c
+
+   return out
+
+end
+
+procedure palins(s, n)			#: palindromes
+   local c, lpart, mpart, rpart, h, p
+
+   if n = 1 then suspend !s
+   else if n = 2 then
+      every c := !s do suspend c || c
+   else if n % 2 = 0 then {		# even
+      h := (n - 2) / 2
+      every p := palins(s, n - 2) do {
+         p ? {
+            lpart := move(h)
+            rpart := tab(0)
+            }
+         every c := !s do {
+            mpart := c || c
+            suspend lpart || mpart || rpart
+            }
+         }
+      }
+   else {				# odd
+      h := (n - 1) / 2
+      every p := palins(s, n - 1) do {
+         p ? {
+            lpart := move(h)
+            rpart := tab(0)
+            }
+         every suspend lpart || !s || rpart
+         }
+      }
+    
+end
+
+procedure permute(s)			#: string permutations
+   local i
+
+   if *s = 0 then return ""
+   suspend s[i := 1 to *s] || permute(s[1:i] || s[i+1:0])
+
+end
+
+procedure pretrim(s, c)			#: pre-trim string
+
+   /c := ' '
+
+   s ? {
+      tab(many(c))
+      return tab(0)
+      }
+
+end
+
+procedure reflect(s1, i, s2)			#: string reflection
+
+   /i :=0
+   /s2 := ""
+
+   return s1 || s2 || reverse(
+      case i of {
+         0:   s1[2:-1]		# pattern paindrome
+         1:   s1[2:0]		# pattern palindrome with first character at end
+         2:   s1[1:-1]		# true palindrome with center character unduplicated
+         3:   s1		# true palindrome with center character duplicated
+         }
+      )
+
+end
+
+procedure replace(s1, s2, s3)		#: string replacement
+   local result, i
+
+   result := ""
+   i := *s2
+   if i = 0 then fail			# would loop on empty string
+
+   s1 ? {
+      while result ||:= tab(find(s2)) do {
+         result ||:= s3
+         move(i)
+         }
+      return result || tab(0)
+      }
+
+end
+
+procedure replacem(s, pairs[])		#: multiple string replacement
+
+   while s := replace(s, get(pairs), get(pairs))
+
+   return s
+
+end
+procedure replc(s, L)			#: replicate characters
+   local result
+
+   result := ""
+
+   every result ||:= repl(!s, get(L))
+
+   return result
+
+end
+
+procedure rotate(s, i)			#: string rotation
+
+   if s == "" then return s
+   /i := 1
+   if i <= 0 then i +:= *s
+   i %:= *s
+
+   return s[i + 1:0] || s[1:i + 1]
+
+end
+
+procedure schars(s)			#: lexical unique characters
+
+   return string(cset(s))
+
+end
+
+procedure scramble(s)			#: scramble string
+   local i
+
+   every i := *s to 2 by -1 do
+      s[?i] :=: s[i]
+
+   return s
+
+end
+
+procedure selectp(s, L)			#: select characters
+   local result
+
+   result := ""
+
+   every result ||:= s[!L]
+
+   return result
+
+end
+
+procedure starseq(s)		#: closure sequence
+
+   /s := ""
+
+   suspend "" | (starseq(s) || !s)
+
+end
+
+procedure strcnt(s1, s2)		#: substring count
+   local j, i
+
+   if *s1 = 0 then fail			# null string would loop
+
+   j := 0
+   i := *s1
+
+   s2 ? {
+      while tab(find(s1)) do {
+         j +:= 1
+         move(i)
+         }
+      return j
+      }
+
+end
+
+procedure substrings(s, i, j)		#: generate substrings
+
+   /i := 1
+   /j := *s
+
+   s ? {
+      every tab(1 to *s) do
+         suspend move(i to j)
+      }
+
+end
+
+procedure transpose(s1, s2, s3)		#: transpose characters
+   local n, result
+
+   n := *s2
+   result := ""
+
+   s1 ? {
+      while result ||:= map(s3, s2, move(n))
+      return result ||:= tab(0)
+      }
+
+end
+
+procedure words(s, c)		#: generate words from string
+
+   /c := ' \t\r\n\v\f'
+
+   s ? {
+      tab(many(c))
+      while not pos(0) do {
+         suspend tab(upto(c) | 0) \ 1
+         tab(many(c))
+         }
+      }
+
+   fail
+
+end

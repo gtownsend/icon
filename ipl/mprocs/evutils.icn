@@ -1,0 +1,94 @@
+############################################################################
+#
+#	File:     evutils.icn
+#
+#	Subject:  Procedures to support event monitoring
+#
+#	Author:   Clinton L. Jeffery
+#
+#	Date:     November 23, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This may not be the latest version of this file, despite the date.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+#
+# location() - encodes a two-dimensional location in an integer
+#
+procedure location(x, y)
+   return ishift(x, 16) + y
+end
+
+#
+# vertical() - returns the y/line/row component of a location
+#
+procedure vertical(Loc)
+  return iand(Loc, 65535) # 16 least-significant bits
+end
+
+#
+# horizontal - returns the x/column component of a location
+#
+procedure horizontal(Loc)
+  return ishift(Loc, -16) # 16 most-significant bits
+end
+
+#
+# prog_len() return the number of lines in TP
+#  Don't call until EvInit() has been called.
+#
+procedure prog_len()
+   local basename, fname, f, count
+   #
+   # Extract TP's &file keyword
+   #
+   basename := fname := keyword("file", EventSource)
+   if (not (f := open(fname))) & lpath := getenv("LPATH") || " " then {
+      #
+      # Search LPATH for the file if it wasn't in the current directory.
+      #
+      lpath ? {
+	 while dir := tab(find(" ")) do {
+	    if fname := dir || "/" || basename & (f := open(fname)) then break
+	    }
+	 if /f then fail
+	 }
+      }
+   count := 0
+   every !f do count +:= 1
+   close(f)
+   return count
+end
+
+#
+# procedure_name() - return the name of a procedure
+#
+procedure procedure_name(p)
+   return image(p)[10:0] # strip off "procedure " prefix of image
+end
+
+#
+# XHeight(w) - return window height in pixels
+#
+procedure XHeight(w)
+   /w := &window
+   return WAttrib(w, "height")
+end
+
+#
+# XWidth(w) - return window width in pixels
+#
+procedure XWidth(w)
+   /w := &window
+   return WAttrib(w, "width")
+end

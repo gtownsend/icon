@@ -1,0 +1,62 @@
+############################################################################
+#
+#	File:     fixpath.icn
+#
+#	Subject:  Program to replace path in a binary file
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     November 14, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Usage:  fixpath filename oldpath newpath
+#
+#  Fixpath changes file paths or other strings in a binary file by modifying
+#  the file in place.  Each null-terminated occurrence of "oldpath" is
+#  replaced by "newpath".
+#
+#  If the new path is longer than the old one, a warning is given and the
+#  old path is extended by null characters, which must be matched in the
+#  file for replacement to take place.  This is dangerous in general but
+#  allows repairing an errant fixpath command.
+#
+############################################################################
+
+
+procedure main(args)
+   local fname, oldpath, newpath, f, pgm, n, p, s
+
+   (*args == 3) | stop("usage: fixpath filename oldpath newpath")
+   fname := args[1]
+   oldpath := args[2]
+   newpath := args[3]
+   if *newpath > *oldpath then {
+      write(&errout, "warning: newpath is longer than oldpath")
+      oldpath := left(oldpath, *newpath, "\0")
+   }
+   oldpath ||:= "\0"
+   newpath := left(newpath, *oldpath, "\0")
+
+   (f := open(fname, "rwu"))		| stop(fname, ": can't open")
+   pgm := ""
+   while pgm ||:= reads(f, 8192)
+   (*pgm > 0)				| stop(fname, ": empty file")
+   n := 0
+   pgm ? {
+      while tab(p := find(oldpath)) do {
+         seek(f, p)			| stop(fname, ": can't seek")
+         writes(f, s, newpath)		| stop(fname, ": can't write")
+         move(*newpath)
+         n +:= 1
+      }
+      (n > 0) | stop(fname, ": can't find string `", args[2], "'")
+   }
+   write("replaced ", n, " occurrence", if n>1 then "s" else "")
+
+end
+

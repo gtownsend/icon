@@ -1,0 +1,69 @@
+############################################################################
+#
+#	File:     math.icn
+#
+#	Subject:  Procedures for mathematical computations
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 26, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	binocoef(n, k)	produces the binomial coefficient n over k.  It
+#			fails unless 0 <= k <= n.
+#
+#	cosh(r)		produces the hyperbolic cosine of r.
+#
+#	sinh(r)		produces the hyperbolic sine of r.
+#
+#	tanh(r)		produces the hyperbolic tangent of r.
+#
+#
+############################################################################
+#
+#  Requires:  Large integer arithmetic for binocoef(n, k) for all but small
+#	      values of n and k.
+#
+############################################################################
+#
+#  Links:  factors
+#
+############################################################################
+
+link factors
+
+procedure binocoef(n, k)	#: binomial coefficient
+
+   k := integer(k) | fail
+   n := integer(n) | fail
+
+   if (k = 0) | (n = k) then return 1
+
+   if 0 <= k <= n then 
+      return factorial(n) / (factorial(k) * factorial(n - k))
+   else fail
+
+end
+
+procedure cosh(r)		#: hyperbolic cosine
+
+   return (&e ^ r + &e ^ -r) / 2
+
+end
+
+procedure sinh(r)		#: hyperbolic sine
+
+   return (&e ^ r - &e ^ -r) / 2
+
+end
+
+procedure tanh(r)		#: hyperbolic tanh
+
+   return (&e ^ r - &e ^ -r) / (&e ^ r + &e ^ -r)
+
+end

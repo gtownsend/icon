@@ -1,0 +1,46 @@
+begin new for; new sum; new equal;
+	new i; new array; new x;
+	new a1; new a2;
+for <- 'formal v; formal n; formal s;
+     begin label k;
+     v <- 1;
+  k: if v <= n then
+          begin s;
+          v <- v + 1;
+          goto k
+          end
+     else undef
+     end';
+
+x<-(1,2,3,4,5);
+sum <- 0;
+for(@i,length x,'sum<-sum+x[i]') ;
+out sum;
+
+equal<-'formal x; formal y;
+     begin new t; new i; label k;
+     t <- false;
+     if isli x and isli y and length x = length y then
+          begin
+          for(@i,length x,
+               'if ~ equal(x[i],y[i]) then goto k else undef');
+          t <- true
+          end
+     else t <- isn x and isn y and x=y;
+  k: t
+     end';
+
+out equal(1,1);
+
+array<-'formal l; formal x;
+     begin new t; new a; new b; new i;
+     b <- l; t <- list b[1];
+     a <- 'if length b>1 then array(tail b,x) else x';
+     for(@i,b[1],'t[i]<-a');
+     t
+     end';
+a1 <- array((2,3,4),1);
+a2 <- array((2,3,4),1);
+out equal(a1,a2)
+
+end

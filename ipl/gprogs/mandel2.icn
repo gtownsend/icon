@@ -1,0 +1,162 @@
+############################################################################
+#
+#	File:     mandel2.icn
+#
+#	Subject:  Program to draw the Mandelbrot set
+#
+#	Author:   Roger Hare
+#
+#	Date:     June 17, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# This program draws portions of the Mandelbrot set according to the values
+# input # on the command line. The method is that described in the articles by
+# Dewdney # in the Computer Recreations column of Scientific American in August
+# '85, # October '87 and February '89.
+#
+# I have problems with colours (not enough of 'em!), so I have used alternated
+# black and white. Those with decent X-terminals will be able to do far
+# better than me.
+#
+# The program certainly doesn't display images as striking as those seen 
+# in publications. Perhaps the scaling of the value of k needs to be
+# different? All suggestions gratefully received.
+#
+# It is possible to speed things up by displaying the points row by row
+# rather than randomly, but as the program is resident in the 100 cycle
+# iteration most of the time, this is only ~5% speed-up. Not really
+# worth it.
+#
+# One of Dewdney's articles mentions other methods to speed things up - I 
+# will search out the algorithms one of these days...
+#
+# Usage is - xmand startr startc size n &
+#
+# where:
+#
+# startr, startc are the co-ordinates of the lower left hand corner of the
+#  area of the complex plane to be displayed
+# size is the size of the (square) area of the complex plane to be displayed
+# n is the number of pixels into which size is to be divided for display
+#  purposes
+#
+# For example - xmand -1.5 -1.25 2.5 400 &
+# 
+# will display the Mandelbrot set in the 2.5x2.5 region of the complex plane
+# whose s-w corner is -1.5-i1.25. The display will be 400x400 pixels.
+#
+# The program has been tested on a Sun 4 using the Icon compiler, and 
+# on a Sequent Symmetry running Version 5 Unix using both the
+# compiler and translator.
+#
+############################################################################
+#
+#  Links:  random, wopen
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+link random
+link wopen
+
+procedure main(args)
+   local a, b, c, colours, coords, events, gap, i, k, n, r, size
+   local startc, startr, t, x, xmand, y
+
+# check the number of arguments - if it's not 4, select 4 arbitrary values
+if *args == 4
+then {startr:=args[1]
+      startc:=args[2]
+      size:=args[3]
+      n:=args[4]
+      n:=integer(n)}
+else {startr:=-1.5
+      startc:=-1.25
+      size:=2.5
+      n:=200}
+
+# set max size to 400
+if (n>400) then n:=400
+
+# calculate 'size' of each pixel
+gap:=size/n
+
+# open window
+xmand:=WOpen("label=xmand", "height="||n+40,
+   "width="||n+40) | stop("Can't open xmand")
+
+# set colours to be 5 cycles of alternating black & white - this for the
+# benefit of those with monochrome screens, or (like me!), a crummy palette.
+colours:=["black","white"]
+colours:=colours|||colours|||colours|||colours|||colours
+
+# write image info in window
+GotoXY(xmand,20,35+n)
+writes(xmand,startr," ",startc," ",size," ",n)
+
+# this bit coupled with counting y *downwards* later, effectively means that
+# the image in the X-window is 'right way up' for those who live in a 
+# cartesian world.
+startc+:=size
+
+# set up co-ordinates, one for every point in the display and randomize
+coords:=list(n*n,0)
+every i:=1 to n*n
+do coords[i]:=i-1
+randomize()
+every !coords:=:?coords
+
+# main loop
+every i := 1 to n*n
+do {t:=get(coords)
+
+# compute random x,y value from co-ordinate
+    x:=(t/n)
+    y:=(t%n)
+
+# compute value of this x,y point in complex plane - count downwards in
+# y direction to get image 'right way up'
+    r:=startr+x*gap
+    c:=startc-y*gap
+    a:=0
+    b:=0
+
+# and calculate if point is in set or not
+    every k:=1 to 100
+    do {t:=a*a-b*b+r
+        b:=2*a*b+c
+        a:=t
+        if (a*a+b*b) > 4.0 then break}
+
+# scale final value of k to one of range of colours
+# subtract 1 to put in range 0->99; divide by 10 to put in range 0->9
+# add 1 to put in range 1->10 - I have 10 'colours' selected
+# this scaling gives fairly unexciting displays, is there a better scaling
+# (eg: logarithmic, square root, w.h.y)?
+    k-:=1
+    k/:=10
+    k+:=1
+
+# and display
+    Fg(xmand,colours[k])
+    DrawPoint(xmand,(x+20),(y+20))
+
+# this bit bales out of loop if left button is pressed
+    if (events:=Pending(xmand)) & (*events > 0)
+    then if Event(xmand)==&lpress
+            then break}
+WFlush(xmand)
+
+# just close the window and exit when it is finished
+Event(xmand)
+
+end
+

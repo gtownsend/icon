@@ -1,0 +1,56 @@
+############################################################################
+#
+#	File:     iheader.icn
+#
+#	Subject:  Program to list Icon program library headers
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 14, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program lists the headers of Icon programs whose file names are
+#  given on the command line.  It complains if the header does not start
+#  correctly but otherwise does not check the syntax of what follows.
+#
+############################################################################
+
+global input
+
+procedure main(args)
+   local file, line, bar
+
+   bar := repl("#", 76)
+
+   every file := !args do {
+      write(file, ":")
+      input := open(file) | {
+         write("*** cannot open file")
+         close(\input)
+         next
+         }
+      line := read(input) | {
+         write("*** empty file")
+         close(\input)
+         next
+         }
+      if line ~== bar then {
+         write("*** invalid first line")
+         close(\input)
+         next
+         }
+      while line := read(input) do {
+         if line == bar then {
+            close(input)
+            break
+            }
+         else write(line)
+         }
+      }
+
+end

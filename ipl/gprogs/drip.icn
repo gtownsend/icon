@@ -1,0 +1,150 @@
+############################################################################
+#
+#	File:     drip.icn
+#
+#	Subject:  Program to demonstrate color map animation
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     May 31, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  usage:  drip [-n ncolors] [-c correlation] [-d delay] [window options]
+#
+#     drip uses color map animation to simulate the spread of colored
+#  liquid dripping into the center of a pool.
+#
+#     ncolors is the number of different colors present at one time.
+#
+#     correlation (0.0 to 1.0) controls the similarity of two consecutive
+#  colors.  It probably doesn't meet a statistician's strict definition
+#  of the term.
+#
+#     delay is the delay between drops, in milliseconds.  This may not be
+#  needed; speed seems to vary greatly among different X servers, even on
+#  the same machine.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: evmux, options, optwindw, random
+#
+############################################################################
+
+
+link evmux
+link options
+link optwindw
+link random
+
+global opttab
+
+procedure main(args)
+   local win, mono, w, h, m, d
+   local a, r, i, xscale, yscale, rad, xctr, yctr, xrad, yrad
+   local cindex, cspec, ncolors, bg
+
+   # process options
+   opttab := options(args, winoptions() || "n+d+c.")
+   /opttab["B"] := "black"
+   /opttab["W"] := 512
+   /opttab["H"] := 512
+   /opttab["M"] := -1
+   /opttab["d"] := 50
+   /opttab["n"] := 32
+   /opttab["c"] := 0.8
+   win := optwindow(opttab, "cursor=off", "echo=off")
+   w := opttab["W"]
+   h := opttab["H"]
+   m := opttab["M"]
+   ncolors := opttab["n"]
+   d := opttab["d"]
+
+   # calculate radius of circle and limit number of colors to that
+   r := h / 2
+   r >:= w / 2
+   xscale := (w / 2.0) / r
+   yscale := (h / 2.0) / r
+   ncolors >:= r
+
+   # get background color as string of 3 integers (works faster that way)
+   bg := ColorValue(win, opttab["B"])
+
+   # allocate a set of mutable colors, initialized to the background
+   cindex := list()
+   every 1 to ncolors do
+      put(cindex, NewColor(win, bg))
+   if *cindex = 0 then
+      stop("can't allocate mutable colors")
+   if ncolors >:= *cindex then
+      write(&errout, "proceeding with only ", ncolors, " colors")
+
+   # make list of radii, with a minimum difference of 1
+   # try to equalize the *areas* of the rings, not their widths
+   a := &pi * r * r
+   rad := list(ncolors)
+   every i := 1 to *rad do
+      rad[i] := integer(sqrt((a * i) / (ncolors * &pi)) + 0.5)
+   every i := 1 to *rad-1 do
+      rad[i] >:= rad[i+1] - 1
+
+   # draw nested circles (in different mutable colors all set to the background)
+   xctr := m + w / 2
+   yctr := m + h / 2
+   every i := *rad to 1 by -1 do {
+      Fg(win, cindex[i])
+      xrad := xscale * rad[i]
+      yrad := yscale * rad[i]
+      FillArc(win, xctr - xrad, yctr - yrad, 2 * xrad, 2 * yrad)
+      }
+   WFlush(win)
+
+   # install a sensor to exit on q or Q
+   quitsensor(win)
+
+   # drip colors into the center and watch them spread,
+   # checking for events each time around
+   cspec := list(ncolors, bg)
+   repeat {
+      while *Pending(win) > 0 do
+         evhandle(win)
+      if d > 0 then {
+         WFlush(win)
+         delay(d)
+         }
+      pull(cspec)
+      push(cspec, newcolor())
+      every i := 1 to *cspec do
+         Color(win, cindex[i], cspec[i])
+      }
+
+end
+
+
+#  newcolor -- return a new color spec somewhat close to the previous color
+
+procedure newcolor()
+   static r, g, b, c
+
+   initial {
+      randomize()
+      r := ?32767
+      g := ?32767
+      b := ?32767
+      c := integer(32767 - 32767 * opttab["c"])
+      c <:= 1
+      }
+
+   r +:= ?c - c/2 - 1;  r <:= 0;  r >:= 32767
+   g +:= ?c - c/2 - 1;  g <:= 0;  g >:= 32767
+   b +:= ?c - c/2 - 1;  b <:= 0;  b >:= 32767
+   return (r + 32768) || "," || (g + 32768) || "," || (b + 32768)
+end

@@ -1,0 +1,43 @@
+############################################################################
+#
+#	File:     istrip.icn
+#
+#	Subject:  Program to strip comments from Icon program
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 29, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program strips comments out of an Icon program. It also removes
+#  empty lines and leading whitespace (see stripcom.icn).
+#
+############################################################################
+#
+#  Links:  stripcom
+#
+############################################################################
+
+link stripcom
+
+procedure main()
+   local line, nextline
+
+   while line := read() do {
+      while line[-1] == "_" do {	# handle continued literal
+         nextline := read() | stop("*** unclosed continued literal")
+         nextline ?:= {
+            tab(many(' \t'))		# remove leading whitespace
+            tab(0)
+            }
+         line := line[1:-1] || nextline
+         }
+      write(stripcom(line))
+      }
+
+end

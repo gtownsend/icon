@@ -1,0 +1,236 @@
+############################################################################
+#
+#	File:     senten1.icn
+#
+#	Subject:  Procedure to generate sentences
+#
+#	Author:   Peter A. Bigot
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# sentence(f) generates the English sentences encountered in a file.
+#
+############################################################################
+#
+# The following rules describe what a 'sentence' is.
+# 
+# * A sentence begins with a capital letter.
+# 
+# * A sentence ends with one or more of '.!?', subject to other
+#   constraints.
+# 
+# * If a period is immediately followed by:
+#   - a digit
+#   - a letter
+#   - one of ',;:'
+#   it is not a sentence end.
+# 
+# * If a period is followed (with intervening space) by a lower case
+#   letter, it is not a sentence end (assume it's part of an abbreviation).
+#
+# * The sequence '...' does not end a sentence.  The sequence '....' does.
+# 
+# * If a sentence end character appears after more opening parens than
+#   closing parens in a given sequence, it is not the end of that
+#   particular sentence. (I.e., full sentences in a parenthetical remark
+#   in an enclosing sentence are considered part of the enclosing
+#   sentence.  Their grammaticality is in question, anyway.) (It also
+#   helps with attributions and abbreviations that would fail outside
+#   the parens.)
+#
+# * No attempt is made to ensure balancing of double-quoted (") material.
+# 
+# * When scanning for a sentence start, material which does not conform is
+#   discarded.
+# 
+# * Corollary: Quotes or parentheses which enclose a sentence are not
+#   considered part of it.
+# 
+# * An end-of-line on input is replaced by a space unless the last
+#   character of the line is 'a-' (where 'a' is any letter), in which case
+#   the hyphen is deleted.
+#
+# * Leading and trailing space (tab, space, newline) chars are removed
+#   from each line of the input.
+#
+# * If a blank line is encountered on input while scanning a sentence,
+#   the scan is aborted and search for a new sentence begins (rationale:
+#   ignore section and chapter headers separated from text by newlines).
+#
+# * Most titles before names would fail the above constraints.  They are
+#   special-cased.
+#
+# * This does NOT handle when a person uses their middle initial.  To do
+#   so would rule out sentences such as 'It was I.',  Six of one, half-dozen
+#   of the other--I made my choice.
+#
+# * Note that ':' does not end a sentence.  This is a stylistic choice,
+#   and can be modified by simply adding ':' to sentend below.
+#
+############################################################################
+
+procedure sentence (infile)
+   local
+      line,                     # Line read from input, beginning could be sent.
+      sentence,                 # A possible sentence
+      lstend,                   # Position in line of last checked sentence end
+      possentp,                 # Boolean: non-null if line mod context =  sent.
+      spaceskip,                # Spaces betwen EOSent and next char (context)
+      nextch,                   # Next char after EOSent
+      cnt,                       # Balanced count of parens in possible sent.
+      t,
+      newline
+   static
+      sentend,                  # Cset for sentence end chars
+      wspace,                   # White space characters
+      noperend,                 # Chars which, after period, don't end sentence
+      titles                    # Titles that can appear before names.
+   initial {
+      sentend := '.?!'          # Initial value for sentend
+      wspace := ' \t\n'         # Space chars
+      noperend := &digits ++ &letters ++ ',:;' # No-end after period chars
+      titles := ["Mr.", "Mrs.", "Ms.", "Dr.", "Prof.", "Pres."]
+      }
+
+   line := ""
+   # Repeat scanning for and suspending sentences until input fails.
+   repeat {
+      # Try to find the start of a sentence in the current input string.
+      # If there are none, read more from file; fail if file exhausted.
+      # Trim trailing space from line (leading skipped by sentence start)
+      while not (line ?:= (tab (upto (&ucase)) & tab (0))) do {
+         line := trim (read (infile), wspace) | fail
+         }
+
+      # Find the sentence end.  If there's no viable candidate, read more
+      # from input.  Set the last end position to the first char in the
+      # sentence.
+      lstend := 1
+      possentp := &null
+      repeat {
+         line ? {
+            # Skip up to new stuff (scanned in previous lines).
+            sentence := tab (lstend)
+            while sentence ||:= tab (upto (sentend)) do {
+               sentence ||:= tab (many (sentend))
+               
+               # Verify end-of-sentence.  Assume it doesn't pass.
+               possentp := &null
+               
+               # Check for sentence end conformance.  See what follows it: put
+               # that in nextch, and the intervening space before it in
+               # spaceskip.
+               # Note hack to scan in remainder of line w/o changing &pos.
+               nextch := &null
+               every tab (0) ? {
+                  spaceskip := tab (many (wspace)) | ""
+                  nextch := move (1)
+                  }
+                  
+               if /nextch then {
+                  # Don't have enough context to ensure a proper sentence end.
+                  # Read more, but let readers know that this could be a
+                  # sentence end (e.g., in case of EOF on input).
+                  possentp := 1
+                  break
+                  }
+               
+               # Save position of last checked sentence end, so we don't try to
+               # recheck this one.
+               lstend := &pos
+               
+               # .<noperend> doesn't end a sentence.
+               if (sentence [-1] == '.' &
+                   spaceskip == "" &
+                   any (noperend, nextch)) then {
+                  next
+                  }
+               
+               # .<spc><lcase> doesn't end sentence
+               if (sentence [-1] == '.' &
+                   any (&lcase, nextch)) then {
+                  next
+                  }
+
+               # ... doesn't end sentence. .... does.
+               if (sentence [-3:0] == "..." &
+                   sentence [-4] ~== ".") then {
+                  next
+                  }
+
+               # Number of ')' must be >= number '(' in sentence.
+               sentence ? {
+                  cnt := 0
+                  while tab (upto ('()')) do {
+                     if ="(" then {
+                        cnt +:= 1
+                        }
+                     else {
+                        =")"
+                        cnt -:= 1
+                        }
+                     }
+                  }
+               if (cnt > 0) then {
+                  next
+                  }
+
+               # Special case titles that appear before names (otherwise look
+               # like sentence ends).
+               every t := ! titles do {
+                  if (t == sentence [- *t:0]) then {
+                     # Break every, next in sentence-end search repeat
+                     break next
+                     }
+                  }
+
+               # This is a sentence.  Replace the line with what follows the
+               # sentence, and break out of the sentence-end-search loop.
+               line := tab (0)
+               break break
+               }
+            }
+         # There is no valid sentence end so far.  Remove a trailing hyphen
+         # from the current line, or add a word-separating space.
+         if line [-1] == '-' & any (&letters, line [-2]) then {
+            line := line [1:-1]
+            }
+         else {
+            line ||:= " "
+            }
+
+         # Read another line.  If can't, then fail--but suspend sentence first
+         # if it _could_ be a sentence end.  Trim leading and trailing spaces
+         # from the new line--if it's empty, toss the line so far and restart;
+         # otherwise, tack it onto the end of the current line.
+         if not (newline := read (infile)) then {
+            if \possentp then {
+               suspend (sentence)
+               }
+            fail
+            }
+         if any (wspace, newline) then {
+            newline ?:= (tab (many (wspace)), tab (0))
+            }
+         newline := trim (newline, wspace)
+         if (*newline = 0) then {
+            if \possentp then {
+               suspend (sentence)
+               }
+            line := ""
+            # Break EOS check, next beginning-of-sent scan
+            break next
+            }
+         line ||:= newline
+         }
+
+      # Suspend the sentence, then loop back for more.
+      suspend sentence
+      }
+   end # procedure sentence

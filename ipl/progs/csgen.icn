@@ -1,0 +1,153 @@
+############################################################################
+#
+#	File:     csgen.icn
+#
+#	Subject:  Program to generate context-sensitive sentences
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 19, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This program accepts a context-sensitive production grammar
+#  and generates randomly selected sentences from the corresponding
+#  language.
+#  
+#     Uppercase letters stand for nonterminal symbols and -> indi-
+#  cates the lefthand side can be rewritten by the righthand side.
+#  Other characters are considered to be terminal symbols. Lines
+#  beginning with # are considered to be comments and are ignored.
+#  A line consisting of a nonterminal symbol followed by a colon and
+#  a nonnegative integer i is a generation specification for i
+#  instances of sentences for the language defined by the nontermi-
+#  nal (goal) symbol.  An example of input to csgen is:
+#  
+#          #   a(n)b(n)c(n)
+#          #   Salomaa, p. 11.
+#          #   Attributed to M. Soittola.
+#          #
+#          X->abc
+#          X->aYbc
+#          Yb->bY
+#          Yc->Zbcc
+#          bZ->Zb
+#          aZ->aaY
+#          aZ->aa
+#          X:10
+#  
+#  The output of csgen for this example is
+#  
+#          aaabbbccc
+#          aaaaaaaaabbbbbbbbbccccccccc
+#          abc
+#          aabbcc
+#          aabbcc
+#          aaabbbccc
+#          aabbcc
+#          abc
+#          aaaabbbbcccc
+#          aaabbbccc
+#  
+#  
+#     A positive integer followed by a colon can be prefixed to a
+#  production to replicate that production, making its selection
+#  more likely. For example,
+#  
+#          3:X->abc
+#  
+#  is equivalent to
+#  
+#          X->abc
+#          X->abc
+#          X->abc
+#  
+#  One option is supported:
+#
+#	-g i	number of derivations; overrides the number specified
+#		in the grammar
+#  
+#  Limitations: Nonterminal symbols can only be represented by sin-
+#  gle uppercase letters, and there is no way to represent uppercase
+#  letters as terminal symbols.
+#  
+#     There can be only one generation specification and it must
+#  appear as the last line of input.
+#  
+#  Comments: Generation of context-sensitive strings is a slow pro-
+#  cess. It may not terminate, either because of a loop in the
+#  rewriting rules or because of the progressive accumulation of
+#  nonterminal symbols.  The program avoids deadlock, in which there
+#  are no possible rewrites for a string in the derivation.
+#  
+#     This program would be improved if the specification of nonter-
+#  minal symbols were more general, as in rsg.
+#  
+############################################################################
+#
+#  Links: options, random
+#
+############################################################################
+
+link options
+link random
+
+global xlist
+
+procedure main(args)
+   local line, goal, count, s, opts
+
+   opts := options(args, "g+")
+
+   randomize()
+
+   while line := read() do		#  read in grammar
+      if line[1] == "#" then next
+      else if xpairs(line) then next
+      else {
+         line ? (goal := move(1),move(1),count := (1 < integer(tab(0))))
+         break
+         }
+
+   if /count then stop("no goal specification")
+
+   count := \opts["g"]
+   if count < 1 then stop("*** invalid number of derivations specified")
+
+   every 1 to count do {		#  generate sentences
+      s := goal
+      repeat {
+         if not upto(&ucase,s) then break	# text for nonterminal
+					#  quit on deadlock
+         if not(s ? subst(!xlist)) then break next
+         until s ?:= subst(?xlist)	#  make replacement
+         }
+      write(s)
+      }
+end
+
+#  replace left hand side by right hand side
+#
+procedure subst(a)
+   suspend tab(find(a[1])) || (move(*a[1]),a[2]) || tab(0)
+end
+
+#  enter rewriting rule
+#
+procedure xpairs(s)
+   local i, a
+   initial xlist := []
+   if s ? {
+				#  handle optional replication factor
+      i := 1(0 < integer(tab(upto(':'))),move(1)) | 1 &
+      a := [tab(find("->")),(move(2),tab(0))]
+      }
+   then {
+      every 1 to i do put(xlist,a)
+      return
+      }
+end

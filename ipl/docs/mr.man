@@ -1,0 +1,98 @@
+.\" mr.man version 1.0
+.\" copyright 1991 Ronald Florence
+.TH MR LOCAL "7 Feb 1992"
+.SH NAME
+mr \- mail (or news) reader
+.SH SYNOPSIS
+.B mr
+[
+.I spool 
+]
+.SH DESCRIPTION
+Mr is a simple reader for mail and/or news spools.  It won't obsolete
+elm, mailtool, emacs, mush, or even /usr/ucb/Mail, but it allows a
+reader to page, reply-to, save, append, print, forward, pipe,
+originate, conceal or reveal headers, and delete or undelete mail.  Mr
+can also be used to read the news spools produced by the bsnews news
+system for leaf nodes.
+.SH COMMANDS
+An alternate mail or news spool can be named on the command line.  The
+initial display lists waiting messages:
+.ta .5i 1i 3.5i
+.sp
+.nf
+.if t .ft CR
+1	FOP	[ 22:ron@mlfarm.com (R]	How to use mr
+.ie t .ft CB
+.el .ft B
+2	DOR	[985:goer@sophist.uchi]	Improving MR (part I)
+.ie t .ft CR
+.el .ft R
+3	N	[ 61:ralph@cs.arizona.]	MS-Dos Pipes
+.ft R
+.fi
+.P
+The letters after the message number indicate the status of the
+message; New, Old, Replied-to, Printed, Deleted, Saved, Forwarded.
+The number inside the square brackets is the number of lines in the
+message, followed by the author's name and/or email address, and the
+subject.  The current message is highlighted in bold or reverse video,
+depending on the capabilities of the display.  The prompt shows the
+current message number and the total number of messages.  The
+following commands can be given:
+.sp
+.nf
+.RS
+A	Append current message to a file
+D	Delete current message
+F	Forward current message
+G	Get new mail
+H	Help
+L	List headers
+M	Mail to a new recipient
+N	Next message
+P	Print current message
+Q	Quit, saving changes
+R	Reply-to current message
+S	Save current message to a file
+U	Undelete current message
+V	View all headers
+X	eXit without saving changes
+|	pipe current message to a command
+!	execute command
+#	make # current message
++	next message
+-	previous message
+?	help
+.RE
+.fi
+.P
+Pressing 
+.RI < return > 
+will page thru the current message, then advance the current message
+number.  Press
+.I Q 
+or 
+.I N
+at a 
+.SM MORE
+prompt to return to the command prompt.
+.SH ENVIRONMENT
+The 
+.SM EDITOR
+and 
+.SM MAILSPOOL
+environmental variables can be used to override default settings.  Mr
+uses the
+.SM TERM
+and
+.SM TERMCAP
+variables to lookup screen parameters and control strings.
+.SH SEE ALSO
+mail(1), sendmail(1), bsnews(\s-1LOCAL\s0)
+.SH BUGS
+The pseudo-pipes used for ms-dos cannot handle a complex command.
+Some users would undoubtedly prefer getch() style command parsing.
+The pager used to display messages does not back-up.
+.SH AUTHOR
+Ronald Florence (ron\s-2@\s0mlfarm.com).  

@@ -1,0 +1,1224 @@
+############################################################################
+#
+#	File:     krieg.icn
+#
+#	Subject:  Program to play kriegspiel
+#
+#	Author:   David J. Slate
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#   Kriegspiel (German for "war game") implements a monitor and, if desired,
+#   an automatic opponent for a variation of the game of chess which has the
+#   same rules and goal as ordinary chess except that neither player sees
+#   the other's moves or pieces.  Thus Kriegspiel combines the intricacies
+#   and flavor of chess with additional elements of uncertainty, psychology,
+#   subterfuge, etc., which characterize games of imperfect information such
+#   as bridge or poker.
+#
+############################################################################
+#   
+#   The version of the game implemented here was learned by the author
+#   informally many years ago.  There may be other variations, and perhaps
+#   the rules are actually written down somewhere in some book of games.
+#   
+#   The game is usually played in a room with three chess boards set up on
+#   separate tables.  The players sit at the two end tables facing away from
+#   each other.  A third participant, the "monitor", acts as a referee and
+#   scorekeeper and keeps track of the actual game on the middle board,
+#   which is also out of sight of either player.  Since each player knows
+#   only his own moves, he can only guess the position of the enemy pieces,
+#   so he may place and move these pieces on his board wherever he likes.
+#   
+#   To start the game, the "White" player makes a move on his board.  If the
+#   move is legal, the monitor plays it on his board and invites "Black" to
+#   make his response.  If a move attempt is illegal (because it leaves the
+#   king in check or tries to move through an enemy piece, etc.), the
+#   monitor announces that fact to both players and the moving player must
+#   try again until he finds a legal move.  Thus the game continues until it
+#   ends by checkmate, draw, or agreement by the players.  Usually the
+#   monitor keeps a record of the moves so that the players can play the
+#   game over at its conclusion and see what actually happened, which is
+#   often quite amusing.
+#   
+#   With no additional information provided by the monitor, the game is very
+#   difficult but, surprisingly, still playable, with viable tactical and
+#   strategic ideas.  Usually, however, the monitor gives some minimal
+#   feedback to both players about certain events.  The locations of
+#   captures are announced as well as the directions from which checks on
+#   the kings originate.
+#   
+#   Even with the feedback about checks and captures, a newcomer to
+#   Kriegspiel might still think that the players have so little information
+#   that they could do little more than shuffle around randomly hoping to
+#   accidentally capture enemy pieces or checkmate the enemy king.  But in
+#   fact a skilled player can infer a lot about his opponent's position and
+#   put together plans with a good chance of success.  Once he achieves a
+#   substantial material and positional advantage, with proper technique he
+#   can usually exploit it by mopping up the enemy pieces, promoting pawns,
+#   and finally checkmating the enemy king as he would in an ordinary chess
+#   game.  In the author's experience, a skilled Kriegspiel player will win
+#   most games against a novice, even if both players are equally matched at
+#   regular chess.
+#
+############################################################################
+#   
+#   The implementation:
+#   
+#   The functions of this program are to replace the human monitor, whose
+#   job is actually fairly difficult to do without mistakes, to permit the
+#   players to play from widely separate locations, to produce a machine-
+#   readable record of the game, and to provide, if desired, a computer
+#   opponent for a single player to practice and spar with.
+#   
+#   When two humans play, each logs in to the same computer from a separate
+#   terminal and executes his own copy of the program.  This requires a
+#   multi-tasking, multi-user operating system.  For various reasons, the
+#   author chose to implement Kriegspiel under UNIX, using named pipes for
+#   inter-process communication.  The program has been tested successfully
+#   under Icon Version 7.5 on a DecStation 3100 running Ultrix (a Berkeley-
+#   style UNIX) and also under Icon Version 7.0 on the ATT UNIX-PC and
+#   another System V machine, but unanticipated problems could be
+#   encountered by the installer on other computers.  An ambitious user may
+#   be able to port the program to non-UNIX systems such as Vax-VMS.  It may
+#   also be possible to implement Kriegspiel on a non-multi-tasking system
+#   such as MS-DOS by using separate computers linked via serial port or
+#   other network.  See the "init" procedure for much of the system-
+#   dependent code for getting user name, setting up communication files,
+#   etc.
+#   
+#   Two prospective opponents should agree on who is to play "white", make
+#   sure they know each other's names, and then execute Kriegspiel from
+#   their respective terminals.  The program will prompt each player for his
+#   name (which defaults to his user or login name), his piece color, the
+#   name of his opponent, whether he wishes to play in "totally blind" mode
+#   (no capture or check information - not recommended for beginners), and
+#   the name of the log file on which the program will leave a record of the
+#   game (the program supplies a default in /tmp).  Each program will set up
+#   some communication files and wait for the opponent's to show up.  Once
+#   communication is established, each player will be prompted for moves and
+#   given information as appropriate.  The online "help" facility documents
+#   various additional commands and responses.
+#   
+#   A player who wants a computer opponent should select "auto" as his
+#   opponent's name.  Play then proceeds as with a human opponent.  "Auto"
+#   is currently not very strong, but probably requires more than novice
+#   skill to defeat.
+#
+############################################################################
+#
+#   Known bugs and limitations:
+#
+#   No bugs are currently known in the areas of legal move generation,
+#   board position updating, checkmate detection, etc., but it is still
+#   possible that there are a few.
+#
+#   Some cases of insufficient checkmating material on both sides are
+#   not detected as draws by the program.
+#
+#   In the current implementation, a player may not play two
+#   simultaneous games under the same user name with the same piece color.
+#
+#   If the program is terminated abnormally it may leave a communication
+#   pipe file in /tmp.
+#
+############################################################################
+
+
+record board( pcs, cmv, cnm, caswq, caswk, casbq, casbk, fepp, ply)
+
+global	Me, Yu, Mycname, Yrcname, Mycomm, Yrcomm, Logname, Logfile,
+	Mycol, Yrcol, Blind, Bg, Frinclst, Lmv, Any, Tries, Remind
+
+
+procedure automov( )
+
+#   Returns a pseudo-randomly selected move type-in to be used in
+#   "auto opponent" mode.  But if possible, try to recapture (unless in
+#   blind mode):
+
+    local	m, ms
+    static	anyflag
+
+    initial	anyflag := 0
+
+    if anyflag = 0 then {
+	anyflag := 1
+	return "any"
+	}
+    anyflag := 0
+
+    ms := set( )
+    every insert( ms, movgen( Bg))
+
+    if / Any then {
+	if find( ":", \ Lmv) & not find( "ep", \ Lmv) & / Blind then {
+	    every m := ! ms do {
+		if m[ 4:6] == Lmv[ 4:6]  & movlegal( Bg, m) then
+		    return m[ 2:6] || "Q"
+		}
+	    }
+	while * ms ~= 0 do {
+	    if movlegal( Bg, m := ? ms) then
+		return m[ 2:6] || "Q"
+	    delete( ms, m)
+	    }
+	return "end"
+	}
+    else {
+	every m := ! ms do {
+	    if m[ 1] == "P" & m[ 6] == ":" & movlegal( Bg, m) then
+		return m[ 2:6] || "Q"
+	    }
+	return "end"
+	}
+end
+
+
+procedure chksqrs( b)
+
+#   Generates the set of squares of pieces giving check in board b;
+#   fails if moving side's king not in check:
+
+    local	sk
+
+    sk := find( pc2p( "K", b.cmv), b.pcs)
+    suspend sqratks( b.pcs, sk, b.cnm)
+end
+
+
+procedure fr2s( file, rank)
+
+#   Returns the square number corresponding to "file" and "rank"
+#   numbers; fails if invalid file and/or rank:
+
+    return (0 < (9 > file)) + 8 * (0 < ( 9 > rank)) - 8
+end
+
+
+procedure gamend( b)
+
+#   If the position b is at end of game,
+#   return an ascii string giving the result; otherwise, fail:
+
+    local	nbn, sk
+
+    sk := find( pc2p( "K", b.cmv), b.pcs)
+
+    if not movlegal( b, movgen( b, sk)) & not movlegal( b, movgen( b)) then {
+	if chksqrs( b) then {
+	    if b.cnm[ 1] == "W" then
+		return "1-0"
+	    else
+		return "0-1"
+	    }
+	else
+	    return "1/2-1/2"
+	}
+    else if not upto( 'PRQprq', b.pcs) then {
+	nbn := 0
+	every upto( 'NBnb', b.pcs) do
+	    nbn +:= 1
+	if nbn < 2 then
+	    return "1/2-1/2"
+	}
+end
+	
+
+procedure init( )
+
+#   init initializes the program:
+
+    local	whopipe, line, namdelim
+
+#   Setup a data table for move generation:
+
+    Frinclst := table( )
+    Frinclst[ "R"] := [ [1, 0],  [0, 1],  [-1, 0],  [0, -1] ]
+    Frinclst[ "N"] := [ [2, 1], [1, 2], [-1, 2], [-2, 1],
+			[-2, -1], [-1, -2], [1, -2], [2, -1] ]
+    Frinclst[ "B"] := [ [1, 1],  [-1, 1],  [-1, -1],  [1, -1] ]
+    Frinclst[ "Q"] := Frinclst[ "R"] ||| Frinclst[ "B"]
+    Frinclst[ "K"] := Frinclst[ "Q"]
+    Frinclst[ "r"] := Frinclst[ "R"]
+    Frinclst[ "n"] := Frinclst[ "N"]
+    Frinclst[ "b"] := Frinclst[ "B"]
+    Frinclst[ "q"] := Frinclst[ "Q"]
+    Frinclst[ "k"] := Frinclst[ "K"]
+
+#   Setup a character set to delimit user names:
+
+    namdelim := ~(&letters ++ &digits ++ '_.-')
+
+#   Set reminder bell flag to off:
+
+    Remind := ""
+
+#   Set random number seed:
+
+    &random := integer( map( "hxmysz", "hx:my:sz", &clock))
+
+#   Get my name from user or "who am I" command and issue greeting:
+
+    writes( "Your name (up to 8 letters & digits; default = user name)? ")
+    line := read( ) | kstop( "can't read user name")
+    Me := tokens( line, namdelim)
+    if /Me then {
+	whopipe := open( "who am i | awk '{print $1}' | sed 's/^.*!//'", "rp")
+	Me := tokens( read( whopipe), namdelim)
+	close( \whopipe)
+	}
+    if /Me then
+	write( "Can't get user name from system.")
+    while /Me do {
+	writes( "Your name? ")
+	line := read( ) | kstop( "can't get user name")
+	Me := tokens( line, namdelim)
+	}
+    write( "Welcome, ", Me, ", to Kriegspiel (double blind chess).")
+
+#   Prompt user to enter color:
+
+    while writes( "Your color (w or b)? ") do {
+	line := read( ) | kstop( "can't read color")
+	if find( line[ 1], "WwBb") then
+	    break
+	}
+    Mycol := (find( line[ 1], "Ww"), "White") | "Black"
+    Yrcol := map( Mycol, "WhiteBlack", "BlackWhite")
+
+#   Prompt user to enter opponent name:
+
+    writes( "Enter opponent's name (default = auto): ")
+    Yu := tokens( read( ), namdelim) | "auto"
+
+#   Prompt user to select "blind" mode, if desired:
+
+    writes( "Totally blind mode (default is no)? ")
+    Blind := find( (tokens( read( )) \ 1)[ 1], "Yy")
+
+#   Set communication file names and create my communication file:
+
+    if Yu == "auto" then {
+	Mycname := "/dev/null"
+	Yrcname := "/dev/null"
+	}
+    else {
+	Mycname := "/tmp/krcom" || Mycol[ 1] || Me
+	Yrcname := "/tmp/krcom" || Yrcol[ 1] || Yu
+	remove( Mycname)
+	system( "/etc/mknod " || Mycname || " p && chmod 644 " ||
+		Mycname) = 0 | kstop( "can't create my comm file")
+	}
+
+#   Get name of my log file, open it, then remove from directory:
+
+    Logname := "/tmp/krlog" || Mycol[ 1] || Me
+    while /Logfile do {
+	writes( "Log file name (defaults to ", Logname, ")? ")
+	line := read( ) | kstop( "can't read log file name")
+	Logname := tokens( line)
+	Logfile := open( Logname, "cr")
+	}
+    remove( Logname)
+
+#   Open our communication files, trying to avoid deadlock:
+
+    write( "Attempting to establish communication with ", Yu)
+    if Mycol == "White" then
+	Mycomm := open( Mycname, "w") | kstop( "can't open my comm file")
+    while not (Yrcomm := open( Yrcname)) do {
+	write( "Still attempting to establish communication")
+	if system( "sleep 3") ~= 0 then
+	    kstop( "gave up on establishing communications")
+	}
+    if Mycol == "Black" then
+	Mycomm := open( Mycname, "w") | kstop( "can't open my comm file")
+
+#   Initialize board and moves:
+
+    Bg := board(
+
+	"RNBQKBNRPPPPPPPP                                pppppppprnbqkbnr",
+	"White", "Black", "W-Q", "W-K", "B-Q", "B-K", &null, 0)
+
+#   Initialize set of move tries:
+
+    Tries := set( )
+
+    write( Logfile, "Kriegspiel game begins ", &dateline)
+    write( Logfile, Me, " is ", Mycol, "; ", Yu, " is ", Yrcol)
+    \ Blind & write( Logfile, Me, " is in 'totally blind' mode!")
+
+    write( "You have the ", Mycol, " pieces against ", Yu)
+    \ Blind & write( "You have chosen to play in 'totally blind' mode!")
+    write( "At the \"Try\" prompt you may type help for assistance.")
+    write( "Initialization complete; awaiting first white move.")
+    return
+end
+
+
+procedure kstop( s)
+
+#   Clean up and terminate execution with message s:
+
+    local	logtemp
+
+    close( \Mycomm)
+    remove( \Mycname)
+    write( \Logfile, "Kriegspiel game ends ", &dateline)
+    logboard( \ Logfile, \ Bg)
+    if seek( \Logfile) then {
+	logtemp := open( Logname, "w") | kstop( "can't open my log file")
+	every write( logtemp, ! Logfile)
+	write( "Game log is on file ", Logname)
+	}
+    stop( "Kriegspiel stop: ", s)
+end
+
+
+procedure logboard( file, b)
+
+#   Print the full board position in b to file:
+
+    local	f, r, p
+
+    write( file, "Current board position:")
+    write( file, " a  b  c  d  e  f  g  h")
+    every r := 8 to 1 by -1 do {
+	write( file, "-------------------------")
+	every writes( file, "|", p2c( p := b.pcs[ fr2s( 1 to 8, r)])[ 1],
+	    pc2p( p, "W"))
+	write( file, "|", r)
+	}
+    write( file, "-------------------------")
+    writes( file, b.cmv, " to move;")
+    writes( file, " enp file: ", "abcdefgh"[ \ b.fepp], ";")
+    writes( file, " castle mvs ", b.caswq || " " || b.caswk || " " ||
+	b.casbq || " " || b.casbk, ";")
+    write( file, " half-mvs played ", b.ply)
+    write( file, "")
+end
+
+
+procedure main( )
+
+    local	line
+
+#   Initialize player names and colors and establish communications:
+
+    init( )
+
+#   Loop validating our moves and processing opponent responses:
+
+    repeat {
+	while Mycol == Bg.cmv do {
+	    writes( Remind, "Try your (", Me, "'s) move # ",
+		Bg.ply / 2 + 1, ": ")
+	    line := read( ) | kstop( "player read fail")
+	    write( Mycomm, line)
+	    write( Logfile, Me, " typed: ", line)
+	    line := map( tokens( line)) | ""
+	    case line of {
+		""			: 0
+		left( "any", *line)	: myany( )
+		left( "board", *line)	: myboard( )
+		"end"			: myend( )
+		left( "help", *line)	: myhelp( )
+		left( "message", *line)	: mymessage( )
+		left( "remind", *line)	: myremind( )
+		default			: mytry( line)
+		}
+	    }
+	while Yrcol == Bg.cmv do {
+	    if Yu == "auto" then
+		line := automov( )
+	    else
+		line := read( Yrcomm) | kstop( "opponent read fail")
+	    write( Logfile, Yu, " typed: ", line)
+	    line := map( tokens( line)) | ""
+	    case line of {
+		""			: 0
+		left( "any", *line)	: yrany( )
+		left( "board", *line)	: 0
+		"end"			: yrend( )
+		left( "help", *line)	: 0
+		left( "message", *line)	: yrmessage( )
+		left( "remind", *line)	: 0
+		default			: yrtry( line)
+		}
+	    }
+	}
+end
+
+
+procedure movgen( b, s)
+
+#   movgen generates the pseudo-legal moves in board position b from the
+#   piece on square s; if s is unspecified all pieces are considered.
+#   Note: pseudo-legal here means that the legality of the move has been
+#   determined up to the question of whether it leaves the moving side's
+#   king in check:
+
+    local	r, f, p, snfr, m, fto, rto, sl, sh,
+		sto, fril, rp, r2, r4, r5, r7, ps
+
+    ps := b.pcs
+
+    sl := (\s | 1)
+    sh := (\s | 64)
+
+    every s := sl to sh do {
+	if p2c( p := ps[ s]) == b.cmv then {
+	    f := s2f( s)
+	    r := s2r( s)
+	    snfr := s2sn( s)
+
+#   Pawn moves:
+
+	    if find( p, "Pp") then {
+		if p == "P" then {
+		    rp :=  1; r2 := 2; r4 := 4; r5 := 5; r7 := 7
+		    }
+		else {
+		    rp := -1; r2 := 7; r4 := 5; r5 := 4; r7 := 2
+		    }
+		if ps[ sto := fr2s( f, r + rp)] == " " then {
+		    m := "P" || snfr || s2sn( sto)
+		    if r = r7 then
+			suspend m || ! "RNBQ"
+		    else {
+			suspend m
+			if r = r2 & ps[ sto := fr2s( f, r4)] == " " then
+			    suspend "P" || snfr || s2sn( sto)
+			}
+		    }
+		every fto := 0 < (9 > (f - 1 to f + 1 by 2)) do {
+		    m := "P" || snfr ||
+			s2sn( sto := fr2s( fto, r + rp)) || ":"
+		    if p2c( ps[ sto]) == b.cnm then {
+			if r = r7 then
+			    every suspend m || ! "RNBQ"
+			else
+			    suspend m
+			}
+		    if r = r5 & fto = \ b.fepp then
+			suspend m || "ep"
+		    }
+		}
+
+#   Sweep piece (rook, bishop, queen) moves:
+
+	    else if find( p, "RBQrbq") then {
+		every fril := ! Frinclst[ p] do {
+		    fto := f
+		    rto := r
+		    while sto := fr2s( fto +:= fril[ 1], rto +:= fril[ 2]) do {
+			if ps[ sto] == " " then
+			    suspend pc2p( p, "W") || snfr || s2sn( sto)
+			else {
+			    if p2c( ps[ sto]) == b.cnm then
+				suspend pc2p( p, "W") ||
+				    snfr || s2sn( sto) || ":"
+			    break
+			    }
+			}
+		    }
+		}
+
+#   Knight and king moves:
+
+	    else if find( p, "KNkn") then {
+		every fril := ! Frinclst[ p] do {
+		    if sto := fr2s( f + fril[ 1], r + fril[ 2]) then {
+			if p2c( ps[ sto]) == b.cnm then
+			    suspend pc2p( p, "W") ||
+				snfr || s2sn( sto) || ":"
+			else if ps[ sto] == " " then
+			    suspend pc2p( p, "W") || snfr || s2sn( sto)
+			}
+		    }
+		if p == "K" then {
+		    if (b.caswq ~== "", ps[ sn2s( "b1") : sn2s( "e1")] == "   ",
+			not sqratks( ps, sn2s( "d1"), "Black"),
+			not sqratks( ps, sn2s( "e1"), "Black")) then
+			    suspend "Ke1c1cas"
+		    if (b.caswk ~== "", ps[ sn2s( "f1") : sn2s( "h1")] == "  ",
+			not sqratks( ps, sn2s( "f1"), "Black"),
+			not sqratks( ps, sn2s( "e1"), "Black")) then
+			    suspend "Ke1g1cas"
+		    }
+		else if p == "k" then {
+		    if (b.casbq ~== "", ps[ sn2s( "b8") : sn2s( "e8")] == "   ",
+			not sqratks( ps, sn2s( "d8"), "White"),
+			not sqratks( ps, sn2s( "e8"), "White")) then
+			    suspend "Ke8c8cas"
+		    if (b.casbk ~== "", ps[ sn2s( "f8") : sn2s( "h8")] == "  ",
+			not sqratks( ps, sn2s( "f8"), "White"),
+			not sqratks( ps, sn2s( "e8"), "White")) then
+			    suspend "Ke8g8cas"
+		    }
+		}
+	    }
+	}
+end
+
+
+procedure movlegal( b, m)
+
+#   Tests move m on board b and, if it does not leave the moving color in
+#   check, returns m; fails otherwise:
+
+    local	ps, sfr, sto, sk
+
+    ps := b.pcs
+    sfr := sn2s( m[ 2:4])
+    sto := sn2s( m[ 4:6])
+
+#   Castling move:
+
+    if m[ 6:9] == "cas" then {
+	if m == "Ke1c1cas" then
+	    return not sqratks( ps, sn2s( "c1"), "Black") & m
+	if m == "Ke1g1cas" then
+	    return not sqratks( ps, sn2s( "g1"), "Black") & m
+	if m == "Ke8c8cas" then
+	    return not sqratks( ps, sn2s( "c8"), "White") & m
+	if m == "Ke8g8cas" then
+	    return not sqratks( ps, sn2s( "g8"), "White") & m
+	}
+
+#   Enpassant pawn capture:
+
+    if m[ 6:9] == ":ep" then
+	ps[ fr2s( s2f( sto), s2r( sfr))] := " "
+
+#   All non-castling moves:
+
+    ps[ sto] := ps[ sfr]
+    ps[ sfr] := " "
+    sk := find( pc2p( "K", b.cmv), ps)
+    return not sqratks( ps, sk, b.cnm) & m
+
+end
+
+
+procedure movmake( b, m)
+
+#   Makes move m on board b:
+
+    local	sfr, sto
+
+    if m == "Ke1c1cas" then {
+	b.pcs[ sn2s( "a1")] := " "
+	b.pcs[ sn2s( "d1")] := "R"
+	}
+    else if m == "Ke1g1cas" then {
+	b.pcs[ sn2s( "h1")] := " "
+	b.pcs[ sn2s( "f1")] := "R"
+	}
+    else if m == "Ke8c8cas" then {
+	b.pcs[ sn2s( "a8")] := " "
+	b.pcs[ sn2s( "d8")] := "r"
+	}
+    else if m == "Ke8g8cas" then {
+	b.pcs[ sn2s( "h8")] := " "
+	b.pcs[ sn2s( "f8")] := "r"
+	}
+
+    sfr := sn2s( m[ 2:4])
+    sto := sn2s( m[ 4:6])
+    b.pcs[ sto] := b.pcs[ sfr]
+    b.pcs[ sfr] := " "
+
+    if find( m[ -1], "rnbqRNBQ") then
+	b.pcs[ sto] := pc2p( m[ -1], b.cmv)
+
+    if sfr = sn2s( "e1") then	b.caswq := b.caswk := ""
+    if sfr = sn2s( "e8") then	b.casbq := b.casbk := ""
+
+    if (sfr | sto) = sn2s( "a1") then	b.caswq := ""
+    if (sfr | sto) = sn2s( "h1") then	b.caswk := ""
+    if (sfr | sto) = sn2s( "a8") then	b.casbq := ""
+    if (sfr | sto) = sn2s( "h8") then	b.casbk := ""
+
+    if m[ 6:9] == ":ep" then
+	b.pcs[ fr2s( s2f( sto), s2r( sfr))] := " "
+
+    b.fepp := &null
+    if m[ 1] == "P" & abs( s2r( sfr) - s2r( sto)) = 2 then
+	b.fepp := s2f( sto)
+
+    b.ply +:= 1
+    b.cmv :=: b.cnm
+end
+
+
+procedure movtry( m)
+
+#   Tests whether the typed move m is legal in the global board Bg and, if so,
+#   returns the corresponding move returned from movgen (which will be in a
+#   different format with piece letter prefix, etc.).  Fails if m is not
+#   legal.  Note that if the any flag is set, only captures by pawns are
+#   allowed:
+
+    local	ml, mt, sfr, sto
+
+    mt := map( tokens( m)) | ""
+    if mt == "o-o" then
+	mt := (Bg.cmv == "White", "e1g1") | "e8g8"
+    else if mt == "o-o-o" then
+	mt := (Bg.cmv == "White", "e1c1") | "e8c8"
+
+    sfr := sn2s( mt[ 1:3]) | fail
+    sto := sn2s( mt[ 3:5]) | fail
+
+    if find( mt[ 5], "rnbq") then
+	mt[ 5] := map( mt[ 5], "rnbq", "RNBQ")
+    else mt := mt[ 1:5] || "Q"
+    
+    if \ Any then {
+	if Bg.pcs[ sfr] ~== pc2p( "P", Bg.cmv) then fail
+	every ml := movgen( Bg, sfr) do {
+	    if ml[ 4:7] == mt[ 3:5] || ":" then {
+		if find( ml[ -1], "RNBQ") then
+		    ml[ -1] := mt[ 5]
+		return movlegal( Bg, ml)
+		}
+	    }
+	}
+    else {
+	every ml := movgen( Bg, sfr) do {
+	    if ml[ 4:6] == mt[ 3:5] then {
+		if find( ml[ -1], "RNBQ") then
+		    ml[ -1] := mt[ 5]
+		return movlegal( Bg, ml)
+		}
+	    }
+	}
+end
+
+
+procedure myany( )
+
+#   Process my any command.
+#   Check for captures by pawns and inform the player of any, and, if
+#   at least one, set Any flag to require that player try only captures
+#   by pawns:
+
+    local	m, p, s
+
+    if \ Any then {
+	write( "You have already asked 'Any' and received yes answer!")
+	fail
+	}
+
+    p := pc2p( "P", Bg.cmv)
+    if movlegal( Bg, 1( m := movgen( Bg, 1(s := 9 to 56, Bg.pcs[ s] == p)),
+		m[ 6] == ":")) then {
+	write( "Yes; you must now make a legal capture by a pawn.")
+	Any := "Yes"
+	}
+    else
+	write( "No.")
+end
+
+
+procedure myboard( )
+
+#   Process my board command by printing the board but omitting the
+#   opponent's pieces and the enpassant status; a count of pieces of
+#   both colors is printed:
+#   Note: no board printed in blind mode.
+
+    local	f, r, p, nw, nb
+
+    \ Blind & write( "Sorry; no board printout in blind mode!") & fail
+
+    write( "Current board position (your pieces only):")
+    write( " a  b  c  d  e  f  g  h")
+    every r := 8 to 1 by -1 do {
+	write( "-------------------------")
+	every f := 1 to 8 do {
+	    if (p2c( p := Bg.pcs[ fr2s( f, r)])) == Mycol then
+		writes( "|", Mycol[ 1], pc2p( p, "W"))
+	    else
+		writes( "|  ")
+	    }
+	write( "|", r)
+	}
+    write( "-------------------------")
+    writes( Bg.cmv, " to move; ")
+    writes( "castle mvs ", (Mycol == "White", Bg.caswq || " " || Bg.caswk) |
+	Bg.casbq || " " || Bg.casbk)
+    write( "; half-mvs played ", Bg.ply)
+    nw := nb := 0
+    every upto( &ucase, Bg.pcs) do nw +:= 1
+    every upto( &lcase, Bg.pcs) do nb +:= 1
+    write( nw, " White pieces, ", nb, " Black.")
+    write( "")
+end
+
+
+procedure myend( )
+
+#   Process my end command:
+
+    kstop( "by " || Me)
+end
+
+
+procedure myhelp( )
+
+#   Process my help command:
+
+    write( "")
+    write( "This is \"Kriegspiel\" (war play), a game of chess between two")
+    write( "opponents who do not see the location of each other's pieces.")
+    write( "Note: the moves of the special opponent 'auto' are played by the")
+    write( "program itself.  Currently, auto plays at a low novice level.")
+    write( "When it is your turn to move, you will be prompted to type")
+    write( "a move attempt or one of several commands.  To try a move,")
+    write( "type the from and to squares in algebraic notation, as in: e2e4")
+    write( "or b8c6.  Castling may be typed as o-o, o-o-o, or as the move")
+    write( "of the king, as in: e8g8.  Pawn promotions should look like")
+    write( "d7d8Q.  If omitted, the piece promoted to is assumed to be a")
+    write( "queen.  Letters may be in upper or lower case.  If the move is")
+    write( "legal, it stands, and the opponent's response is awaited.")
+    write( "If the move is illegal, the program will prompt you to")
+    write( "try again.  If the move is illegal because of the opponent's")
+    write( "position but not impossible based on the position of your")
+    write( "pieces, then your opponent will be informed that you tried")
+    write( "an illegal move (note: this distinction between illegal and")
+    write( "impossible is somewhat tricky and the program may, in some")
+    write( "cases, not get it right).  The program will announce the")
+    write( "result and terminate execution when the game is over.  You may")
+    write( "then inspect the game log file which the program generated.")
+    write( "")
+
+    writes( "Type empty line for more or 'q' to return from help: ")
+    if map( read( ))[ 1] == "q" then
+	fail
+
+    write( "")
+    write( "The program will let you know of certain events that take place")
+    write( "during the game.  For each capture move, both players will be")
+    write( "informed of the location of the captured piece.  The opponent")
+    write( "will be informed of a pawn promotion but not of the piece")
+    write( "promoted to or the square on which the promotion takes place.")
+    write( "When a player gives check, both players will be informed of the")
+    write( "event and of some information about the direction from which the")
+    write( "check arises, as in: check on the rank', 'check on the file',")
+    write( "'check on the + diagonal', 'check on the - diagonal', or 'check")
+    write( "by a knight'.  For a double check, both directions are given.")
+    write( "(A + diagonal is one on which file letters and rank numbers")
+    write( "increase together, like a1-h8, and a - diagonal is one in which")
+    write( "file letters increase while rank numbers decrease, as in a8-h1).")
+    write( "")
+    write( "Note: if you have selected the 'blind' mode, then you will")
+    write( "receive no information about checks, captures, or opponent")
+    write( "'any' or illegal move tries; nor will you be able to print")
+    write( "the board.  You will not even be told when your own pieces")
+    write( "are captured.  Except for answers to 'any' commands, the")
+    write( "program will inform you only of when you have moved, when")
+    write( "your opponent has moved, and of the result at end of game.")
+    write( "")
+
+    writes( "Type empty line for more or 'q' to return from help: ")
+    if map( read( ))[ 1] == "q" then
+	fail
+
+    write( "")
+    write( "Description of commands; note: upper and lower case letters")
+    write( "are not distinguished, and every command except 'end' may be") 
+    write( "abbreviated.")
+    write( "")
+    write( "any")
+    write( "")
+    write( "The 'any' command is provided to speed up the process of trying")
+    write( "captures by pawns.  Since pawns are the only pieces that capture")
+    write( "in a different manner from the way they ordinarily move, it is")
+    write( "often useful to try every possible capture, since such a move")
+    write( "can only be legal if it in fact captures something.  Since the")
+    write( "process of trying the captures can be time-consuming, the 'any'")
+    write( "command is provided to signal your intent to try captures by")
+    write( "pawns until you find a legal one.  The program will tell you if")
+    write( "you have at least one.  If you do then you must try captures by")
+    write( "pawns (in any order) until you find a legal one.  Note that the")
+    write( "opponent will be informed of your plausible 'any' commands (that")
+    write( "is, those that are not impossible because you have no pawns on")
+    write( "the board).")
+    write( "")
+
+    writes( "Type empty line for more or 'q' to return from help: ")
+    if map( read( ))[ 1] == "q" then
+	fail
+
+    write( "")
+    write( "board")
+    write( "")
+    write( "The 'board' command prints the current position of your")
+    write( "pieces only, but also prints a count of pieces of both sides.")
+    write( "Note: 'board' is disallowed in blind mode.")
+    write( "")
+    write( "end")
+    write( "")
+    write( "Then 'end' command informs the program and your")
+    write( "opponent of your decision to terminate the game")
+    write( "immediately.")
+    write( "")
+    write( "help")
+    write( "")
+    write( "The 'help' command prints this information.")
+    write( "")
+
+    writes( "Type empty line for more or 'q' to return from help: ")
+    if map( read( ))[ 1] == "q" then
+	fail
+
+    write( "")
+    write( "message")
+    write( "")
+    write( "The 'message' command allows you to send a one-line")
+    write( "message to your opponent.  Your opponent will be prompted")
+    write( "for a one-line response.  'message' may be useful for such")
+    write( "things as witty remarks, draw offers, etc.")
+    write( "")
+    write( "remind")
+    write( "")
+    write( "The 'remind' command turns on (if off) or off (if on) the")
+    write( "bell that is rung when the program is ready to accept your")
+    write( "move or command.  The bell is initially off.")
+    write( "")
+
+end
+
+
+procedure mymessage( )
+
+#   Process my message command:
+
+    local	line
+
+    write( "Please type a one-line message:")
+    line := read( ) | kstop( "can't read message")
+    write( Mycomm, line)
+    write( Logfile, line)
+    write( "Awaiting ", Yu, "'s response")
+    if Yu == "auto" then
+	line := "I'm just your auto opponent."
+    else
+	line := read( Yrcomm) | kstop( "can't read message response")
+    write( Yu, " answers: ", line)
+    write( Logfile, line)
+end
+
+
+procedure myremind( )
+
+#   Process my remind command:
+
+    if Remind == "" then
+	Remind := "\^g"
+    else
+	Remind := ""
+end
+
+
+procedure mytry( mt)
+
+#   Process my move try mt:
+
+    local	ml, result
+
+    if ml := movtry( mt) then {
+	Lmv := ml
+	write( Me, " (", Mycol, ") has moved.")
+	write( Logfile, Me, "'s move ", Bg.ply / 2 + 1, " is ", ml)
+	/ Blind & write( Me, " captures on ", s2sn( sqrcap( Bg, ml)))
+	movmake( Bg, ml)
+	/ Blind & saycheck( )
+	Any := &null
+	Tries := set( )
+	if result := gamend( Bg) then {
+	    write( "Game ends; result: ", result)
+	    write( Logfile, "Result: ", result)
+	    kstop( "end of game")
+	    }
+	}
+    else
+	write( "Illegal move, ", Me, "; try again:")
+end
+
+
+procedure p2c( p)
+
+#   Returns "White" if p is white piece code ("PRNBQK"), "Black"
+#   if p is black piece code ("prnbqk"), and " " if empty square
+#   (" "):
+
+    if find( p, "PRNBQK") then
+	return "White"
+    else if find( p, "prnbqk") then
+	return "Black"
+    else
+	return " "
+end
+
+
+procedure pc2p( p, c)
+
+#   Returns the piece letter for the piece of type p but color c;
+#   returns " " if p == " ".  Thus pc2p( "R", "Black") == "r".
+#   c may be abbreviated to "W" or "B":
+
+    if c[ 1] == "W" then
+	return map( p, "prnbqk", "PRNBQK")
+    else
+	return map( p, "PRNBQK", "prnbqk")
+end
+
+
+procedure s2f( square)
+
+#   Returns the file number of the square number "square"; fails
+#   if invalid square number:
+
+    return ( (0 < ( 65 > integer( square))) - 1) % 8 + 1
+end
+
+
+procedure s2r( square)
+
+#   Returns the rank number of the square number "square"; fails
+#   if invalid square number:
+
+    return ( (0 < ( 65 > integer( square))) - 1) / 8 + 1
+end
+
+
+procedure s2sn( square)
+
+#   Returns the algebraic square name corresponding to square number
+#   "square"; fails if invalid square number:
+
+    return "abcdefgh"[ s2f( square)] || string( s2r( square))
+end
+
+
+procedure saycheck( )
+
+#   Announce checks, if any, in global board Bg:
+
+    local	s, sk
+
+    sk := find( pc2p( "K", Bg.cmv), Bg.pcs)
+
+    every s := chksqrs( Bg) do {
+	writes( (Mycol == Bg.cnm, Me) | Yu, " checks ")
+	if s2r( s) == s2r( sk) then
+	    write( "on the rank.")
+	else if s2f( s) == s2f( sk) then
+	    write( "on the file.")
+	else if ( s2f( s) - s2f( sk)) = ( s2r( s) - s2r( sk)) then
+	    write( "on the + diagonal.")
+	else if ( s2f( s) - s2f( sk)) = ( s2r( sk) - s2r( s)) then
+	    write( "on the - diagonal.")
+	else
+	    write( "by knight.")
+	}
+end
+
+
+procedure sn2s( sn)
+
+#   Returns the square number corresponding to the algebraic square
+#   name sn; examples: sn2s( "a1") = 1, sn2s( "b1") = 2, sn2s( "h8") = 64.
+#   Fails if invalid square name:
+
+    return find( sn[ 1], "abcdefgh") + 8 * (0 < (9 > integer( sn[ 2]))) - 8
+end
+
+
+procedure sqratks( ps, s, c)
+
+#   Generates the numbers of squares of pieces of color c that "attack"
+#   square s in board piece array ps; fails if no such squares:
+
+    local	file, rank, rfr, sfr, fril, p, ffr
+
+    file := s2f( s)
+    rank := s2r( s)
+
+#   Check for attacks from pawns:
+
+    rfr := (c == "White", rank - 1) | rank + 1
+    every sfr := fr2s( file - 1 to file + 1 by 2, rfr) do {
+	if ps[ sfr] == pc2p( "P", c) then
+	    suspend sfr
+	}
+
+#   Check for attack from king or knights:
+
+    every fril := ! Frinclst[ p := ("K" | "N")] do {
+	if sfr := fr2s( file + fril[ 1], rank + fril[ 2]) then {
+	    if ps[ sfr] == pc2p( p, c) then
+		suspend sfr
+	    }
+	}
+
+#   Check for attacks from sweep (rook and bishop) directions:
+
+    every fril := ! Frinclst[ p := ("R" | "B")] do {
+	ffr := file
+	rfr := rank
+	while sfr := fr2s( ffr +:= fril[ 1], rfr +:= fril[ 2]) do {
+	    if ps[ sfr] ~== " " then {
+		if ps[ sfr] == pc2p( p | "Q", c) then
+		    suspend sfr
+		break
+		}
+	    }
+	}
+end
+
+
+procedure sqrcap( b, m)
+
+#   Returns square of piece captured by move m in board b; fails if m
+#   not a capture:
+
+    local	fto, rfr
+
+    if m[ 6:9] == ":ep" then {
+	fto := find( m[ 4], "abcdefgh")
+	rfr := integer( m[ 3])
+	return fr2s( fto, rfr)
+	}
+    else if m[ 6] == ":" then
+	return sn2s( m[ 4:6])
+end
+
+
+procedure tokens( s, d)
+
+#   Generate tokens from left to right in string s given delimiters in cset
+#   d, where a token is a contiguous string of 1 or more characters not in
+#   d bounded by characters in d or the left or right end of s.
+#   d defaults to ' \t'.
+
+    s := string( s) | fail
+    d := (cset( d) | ' \t')
+
+    s ? while tab( upto( ~d)) do
+	suspend( tab( many( ~d)) \ 1)
+end
+
+
+procedure yrany( )
+
+#   Process opponent's any command:
+
+    local	m, p, s
+
+    if \ Any then fail
+
+    p := pc2p( "P", Bg.cmv)
+    if not find( p, Bg.pcs) then fail
+
+    / Blind & writes( Yu, " asked 'any' and was told ")
+
+    if movlegal( Bg, 1( m := movgen( Bg, 1(s := 9 to 56, Bg.pcs[ s] == p)),
+		m[ 6] == ":")) then {
+	/ Blind & write( "yes.")
+	Any := "Yes"
+	}
+    else
+	/ Blind & write( "no.")
+end
+
+
+procedure yrend( )
+
+#   Process opponent's end command:
+
+    write( "Game terminated by ", Yu, ".")
+    kstop( "by " || Yu)
+end
+
+
+procedure yrmessage( )
+
+#   Process opponent's message command:
+
+    local	line
+
+    line := read( Yrcomm) | kstop( "can't read opponent message")
+    write( "Message from ", Yu, ": ", line)
+    write( Logfile, line)
+    write( "Please write a one-line response:")
+    line := read( ) | kstop( "can't read response to opponent message")
+    write( Mycomm, line)
+    write( Logfile, line)
+end
+
+
+procedure yrtry( mt)
+
+#   Process opponent move try (or other type-in!) mt:
+
+    local	ml, result, s, mtr, b, po, sfr, sto
+
+    if ml := movtry( mt) then {
+	Lmv := ml
+	write( Yu, " (", Yrcol, ") has moved.")
+	write( Logfile, Yu, "'s move ", Bg.ply / 2 + 1, " is ", ml)
+	/ Blind & write( Yu, " captures on ", s2sn( sqrcap( Bg, ml)))
+	if find( ml[ -1], "RNBQ") then
+	    / Blind & write( Yu, " promotes a pawn.")
+	movmake( Bg, ml)
+	/ Blind & saycheck( )
+	Any := &null
+	Tries := set( )
+	if result := gamend( Bg) then {
+	    write( "Game ends; result: ", result)
+	    write( Logfile, "Result: ", result)
+	    kstop( "end of game")
+	    }
+	}
+
+#   Inform Me if opponent move illegal but not impossible.  Don't inform
+#   if illegal move already tried.  Note: distinction between "illegal"
+#   and "impossible" is tricky and may not always be made properly.
+#   Note: don't bother informing if in blind mode.
+
+    else {
+	\ Blind & fail
+	mtr := map( tokens( mt)) | ""
+	if mtr == "o-o" then
+	    mtr := (Bg.cmv == "White", "e1g1") | "e8g8"
+	else if mtr == "o-o-o" then
+	    mtr := (Bg.cmv == "White", "e1c1") | "e8c8"
+	mtr := mtr[ 1:5] | fail
+	if member( Tries, mtr) then fail
+	insert( Tries, mtr)
+	b := copy( Bg)
+	po := (b.cmv[ 1] == "W", "prnbqk") | "PRNBQK"
+	b.pcs := map( b.pcs, po, "      ")
+	sfr := sn2s( mtr[ 1:3]) | fail
+	sto := sn2s( mtr[ 3:5]) | fail
+	if sn2s( movgen( b, sfr)[ 4:6]) = sto then
+	    / Any & write( Yu, " tried illegal move.")
+	else {
+	    b.pcs[ sto] := pc2p( "P", b.cnm)
+	    if sn2s( movgen( b, sfr)[ 4:6]) = sto then
+		write( Yu, " tried illegal move.")
+	    }
+	}
+end

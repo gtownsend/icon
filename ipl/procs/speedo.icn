@@ -1,0 +1,83 @@
+############################################################################
+#
+#	File:     speedo.icn
+#
+#	Subject:  Procedure to indcate percentage of completion
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     September 22, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# speedo -- a "percentage complete" graphic indicator for 
+# command-line-oriented user interfaces.
+#
+# This is a general facility that can function for anything, and a
+# specific implementation for input files.
+#
+# The general implementation consists of two procedures:
+#
+#       SpeedoNew -- Starts a speedo
+#       SpeedoValue -- Sets a new value for the speedo (non-decreasing)
+#
+# See FileSpeedo for an example of using the general facility.
+#
+# FileSpeedo is especially for input files.  Here is how to use it, by
+# example:
+#
+#   f := open("input_file") | stop("!!!")
+#   FileSpeedo(f,75,&errout)            # Start a file speedo, specifying
+#                                       # length and output file
+#   while read(f) do {
+#      FileSpeedo(f)                    # Keep it updated while reading file
+#      ...
+#      }
+#   FileSpeedo()                        # Finish up
+#
+############################################################################
+
+record SpeedoRec(max,length,file,lastOut,string)
+
+procedure SpeedoNew(max,length,file,str)
+    /length := 79
+    /file := &errout
+    /str := "="
+    write(file,"|",repl("-",length / *str * *str - 2),"|")
+    return SpeedoRec(max,length,file,0,str)
+end
+
+procedure SpeedoValue(self,value)
+    local len
+    if /value then {
+	 write(self.file)
+	 return
+	    }
+    len := self.length * value / self.max / *self.string
+    if len > self.lastOut then {
+	 writes(self.file,repl(self.string,len - self.lastOut))
+	 self.lastOut := len
+	    }
+    return self
+end
+
+procedure FileSpeedo(file,length,outFile,str)
+    local savePos
+    static speedo
+    if /file then {
+	 SpeedoValue(speedo)
+	 return
+	    }
+    if \length then {
+	 savePos := where(file)
+	 seek(file,0)
+	 fileSize := where(file)
+	 seek(file,savePos)
+	 return speedo := SpeedoNew(fileSize,length,outFile,str)
+	    }
+    return SpeedoValue(speedo,where(file))
+end

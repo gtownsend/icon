@@ -1,0 +1,356 @@
+#########################################################################
+#
+#	File:     algae.icn
+#
+#	Subject:  Program to show expression evaluation as ``algae''
+#
+#	Author:   Clinton Jeffery
+#
+#	Date:     November 22, 1997
+#
+#########################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# Press ESC or q to quit
+# Left mouse assigns specific (row,column) break "points"
+# Middle mouse assigns absolute depth and width break lines
+# Right button erases assigned break "points"
+#
+# When paused due to a break, you can:
+#
+# c to continue
+# s to single step
+# C to clear one point and continue
+# " " to clear everything and continue
+#
+#########################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+$include "evdefs.icn"
+
+link evinit
+link evutils
+link options
+link optwindw
+link hexlib
+link evaltree
+
+global scale,          # cell (hexagon or square) size
+   step,                 # single step mode
+   numrows,         # number of cell rows
+   numcols,          # number of cell columns
+   spot,                 # cell-fill procedure (hex or square)
+   mouse,             # cell-mouse-locator procedure
+   Visualization,    # the window
+   wHexOutline,    # binding for drawing cell outlines
+   depthbound,     # call-depth on which to break
+   breadthbound, # suspension-width on which to break
+   hotspots            # table of individual cells on which to break
+
+record algae_activation(node, row, column, parent, children, color)
+
+
+#
+# main() - program entry point.  The main loop is in evaltree().
+#
+procedure main(av)
+   local codes, algaeoptions
+   #
+   # pull off algae options (don't consume child's options in this call
+   #  to options()).
+   #
+   algaeoptions := []
+   while av[1][1] == "-" do {
+      put(algaeoptions, pop(av))
+      if algaeoptions[-1] == "-f" then put(algaeoptions, pop(av))
+      }
+   EvInit(av) | stop("Can't EvInit ",av[1])
+   codes := algae_init(algaeoptions)
+   evaltree(codes, algae_callback, algae_activation)
+   WAttrib("windowlabel=Algae: finished")
+   EvTerm(&window)
+end
+
+#
+# algae_init() - initialization and command-line processing.
+#  This procedure supplies default behavior and handles options.
+#
+procedure algae_init(algaeoptions)
+   local t, position, geo, codes, i, cb, coord, e, s, x, y, m, row, column
+   t := options(algaeoptions,
+		winoptions() || "P:S:-geo:-square!-func!-scan!-op!-noproc!")
+   /t["L"] := "Algae"
+   /t["B"] := "cyan"
+   scale := \t["S"] | 12
+   if \t["square"] then {
+      spot := square_spot
+      mouse := square_mouse
+      }
+   else {
+      scale /:= 4
+      spot := hex_spot
+      mouse := hex_mouse
+      }
+   codes := cset(E_MXevent)
+   if /t["noproc"] then codes ++:= ProcMask
+   if \t["scan"]   then codes ++:= ScanMask
+   if \t["func"]   then codes ++:= FncMask
+   if \t["op"]     then codes ++:= OperMask
+   hotspots := table()
+   &window := Visualization := optwindow(t) | stop("no window")
+   numrows := (XHeight() / (scale * 4))
+   numcols := (XWidth() / (scale * 4))
+   wHexOutline := Color("white") # used by the hexagon library
+   if /t["square"] then starthex(Color("black"))
+   return codes
+end
+
+#
+# algae_callback() - evaltree callback procedure for algae.
+#  Called for each event, it updates the screen to correspond
+#  to the change in the activation tree.
+#
+procedure algae_callback(new, old)
+   local coord, e
+   initial {
+      old.row := old.parent.row := 0; old.column := old.parent.column := 1
+      }
+   case &eventcode of {
+      !CallCodes: {
+	 new.column := (old.children[-2].column + 1 | computeCol(old)) | stop("eh?")
+	 new.row := old.row + 1
+	 new.color := Color(&eventcode)
+	 spot(\old.color, old.row, old.column)
+	 }
+      !ReturnCodes |
+      !FailCodes: spot(Color("light blue"), old.row, old.column)
+      !SuspendCodes |
+      !ResumeCodes: spot(old.color, old.row, old.column)
+      !RemoveCodes: {
+	 spot(Color("black"), old.row, old.column)
+	 WFlush(Color("black"))
+	 delay(100)
+	 spot(Color("light blue"), old.row, old.column)
+	 }
+      E_MXevent: do1event(&eventvalue, new)
+      }
+   spot(Color("yellow"), new.row, new.column)
+   coord := location(new.column, new.row)
+   if \step | (\breadthbound <= new.column) | (\depthbound <= new.row) |
+      \ hotspots[coord] then {
+      step := &null
+      WAttrib("windowlabel=Algae stopped: (s)tep (c)ont ( )clear ")
+      while e := Event() do
+	 if do1event(e, new) then break
+      WAttrib("windowlabel=Algae")
+      if \ hotspots[coord] then spot(Color("light blue"), new.row, new.column)
+      }
+end
+
+
+#
+# procedures for the "-square" option, display Algae using squares
+# instead of hexagons.
+#
+
+# Draw a square at (row, column)
+procedure square_spot(w, row, column)
+   FillRectangle(w, (column - 1) * scale, (row - 1) * scale, scale, scale)
+end
+
+
+# encode a location value (base 1) for a given x and y pixel
+procedure square_mouse(y, x)
+   return location(x / scale + 1, y / scale + 1)
+end
+
+#
+# clearspot() removes a "breakpoint" at (x,y)
+#
+procedure clearspot(spot)
+   local x, y, s2, x2, y2
+
+   hotspots[spot] := &null
+   y := vertical(spot)
+   x := horizontal(spot)
+   every s2 := \!hotspots do {
+      x2 := horizontal(s2)
+      y2 := vertical(s2)
+   }
+   spot(Visualization, y, x)
+end
+
+#
+# setspot() sets a breakpoint at (x,y) and marks it orange
+#
+procedure setspot(loc)
+   local x, y
+
+   hotspots[loc] := loc
+   y := vertical(loc)
+   x := horizontal(loc)
+   spot(Color("orange"), y, x)
+end
+
+#
+# do1event() processes a single user input event.
+#
+procedure do1event(e, new)
+   local m, xbound, ybound, row, column, x, y, s, p
+
+   case e of {
+      "q" |
+      "\e": exit()
+      "s": { # execute a single step
+	 step := 1
+	 return
+	 }
+      "C": { # clear a single break point
+	 clearspot(location(new.column, new.row))
+	 return
+	 }
+      " ": { # space character: clear all break points
+	 if \depthbound then {
+	    every y := 1 to numcols do {
+	       if not who_is_at(depthbound, y, new) then
+		  spot(Visualization, depthbound, y)
+	       }
+	    }
+	 if \breadthbound then {
+	    every x := 1 to numrows do {
+	       if not who_is_at(x, breadthbound, new) then
+		  spot(Visualization, x, breadthbound)
+	       }
+	    }
+	 every s := \!hotspots do {
+	    x := horizontal(s)
+	    y := vertical(s)
+	    spot(Visualization, y, x)
+	    }
+	 hotspots := table()
+	 depthbound := breadthbound := &null
+	 return
+	 }
+      &mpress | &mdrag: { # middle button: set bound box break lines
+	 if m := mouse(&y, &x) then {
+	    row := vertical(m)
+	    column := horizontal(m)
+	    if \depthbound then {       # erase previous bounding box, if any
+	       every spot(Visualization, depthbound, 1 to breadthbound)
+	       every spot(Visualization, 1 to depthbound, breadthbound)
+	       }
+	    depthbound := row
+	    breadthbound := column
+	    #
+	    # draw new bounding box
+	    #
+	    every x := 1 to breadthbound do {
+	       if not who_is_at(depthbound, x, new) then
+		  spot(Color("orange"), depthbound, x)
+	       }
+	    every y := 1 to depthbound - 1 do {
+	       if not who_is_at(y, breadthbound, new) then
+		  spot(Color("orange"), y, breadthbound)
+	       }
+	    }
+	 }
+      &lpress | &ldrag: { # left button: toggle single cell breakpoint
+	 if m := mouse(&y, &x) then {
+	    xbound := horizontal(m)
+	    ybound := vertical(m)
+	    if hotspots[m] === m then
+	       clearspot(m)
+	    else
+	       setspot(m)
+	    }
+	 }
+      &rpress | &rdrag: { # right button: report node at mouse location
+	 if m := mouse(&y, &x) then {
+	    column := horizontal(m)
+	    row := vertical(m)
+	    if p := who_is_at(row, column, new) then
+	       WAttrib("windowlabel=Algae " || image(p.node))
+	    }
+	 }
+      }
+end
+
+#
+# who_is_at() - find the activation tree node at a given (row, column) location
+#
+procedure who_is_at(row, col, node)
+   while node.row > 1 & \node.parent do
+      node := node.parent
+   return sub_who(row, col, node)		# search children
+end
+
+#
+# sub_who() - recursive search for the tree node at (row, column)
+#
+procedure sub_who(row, column, p)
+   local k
+   if p.column === column & p.row === row then return p
+   else {
+      every k := !p.children do
+	 if q := sub_who(row, column, k) then return q
+      }
+end
+
+#
+# computeCol() - determine the correct column for a new child of a node.
+#
+procedure computeCol(parent)
+   local col, x, node
+   node := parent
+   while \node.row > 1 do	# find root
+      node := \node.parent
+   if node === parent then return parent.column
+   if col := subcompute(node, parent.row + 1) then {
+      return max(col, parent.column)
+      }
+   else return parent.column
+end
+
+#
+# subcompute() - recursive search for the leftmost tree node at depth row
+#
+procedure subcompute(node, row)
+   # check this level for correct depth
+   if \node.row = row then return node.column + 1
+   # search children from right to left
+   return subcompute(node.children[*node.children to 1 by -1], row)
+end
+
+#
+# Color(s) - return a binding of &window with foreground color s;
+#  allocate at most one binding per color.
+#
+procedure Color(s)
+  static t, magenta
+  initial {
+     magenta := Clone(&window, "fg=magenta") | stop("no magenta")
+     t := table()
+     /t[E_Fcall] := Clone(&window, "fg=red") | stop("no red")
+     /t[E_Ocall] := Clone(&window, "fg=chocolate") | stop("no chocolate")
+     /t[E_Snew] :=  Clone(&window, "fg=purple") | stop("no purple")
+     }
+  if *s > 1 then
+     / t[s] := Clone(&window, "fg=" || s) | stop("no ",image(s))
+  else
+     / t[s] := magenta
+  return t[s]
+end
+
+procedure max(x,y)
+   if x < y then return y else return x
+end

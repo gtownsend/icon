@@ -1,0 +1,90 @@
+#
+# @(#)msdos.icn	1.5 5/5/90
+# OS-specific code for MS-DOS Idol
+#
+# For systems which cannot run icont from within an Icon program,
+# the approach is for Idol to generate a script/batch file to do this.
+#
+global icontopt,cd,md,env,sysok,batfile
+
+procedure mysystem(s)
+  if /batfile then batfile := open("idolt.bat","w")
+  if \loud then write(s)
+  write(batfile,s)
+  return sysok # system(s) # MS-DOS Icon is generally too big to use system()
+end
+
+procedure filename(s,ext)
+  s[9:0] := ""
+  s ||:= \ext
+  return s
+end
+# if the filename s has extension ext then return the filename less the
+# extension, otherwise fail.
+procedure fileroot(s,ext)
+  if s[- *ext : 0] == ext then return s[1 : - *ext]
+end
+procedure writesublink(s)
+  writelink(env||"\\\\"||s)
+end
+procedure envpath(filename)
+  return env||"\\"||filename
+end
+#
+# Installation.
+# Uses hierarchical filesystem on some systems (see initialize)
+#
+procedure install(args)
+  write("Installing idol environment in ",env)
+  if env ~== "" then mysystem(md||env)
+  if fout := envopen("i_object.icn","w") then {
+    write(fout,"record idol_object(__state,__methods)")
+    close(fout)
+  } else {
+    if not (fout := open("i_object.icn","w")) then stop("can't open i_object")
+    write(fout,"record idol_object(__state,__methods)")
+    close(fout)
+    mysystem("copy i_object.icn "||env)
+    mysystem("del i_object.icn")
+  }
+  fout := &null
+  cdicont(["i_object"])
+end
+procedure uninstall(args)
+  # not implemented yet
+end
+
+procedure makeexe(args,i)
+  exe := args[i]
+  if icont(exe) = \sysok then {
+      if \exec then {
+	write("Executing:")
+	exe := "iconx "||exe
+	every i := exec+1 to *args do exe ||:= " "||args[i]
+	mysystem(exe)
+      }
+  }
+end
+#
+# system-dependent compilation of idolfile.icn
+#   (in the idol subdirectory, if there is one)
+#
+procedure cdicont(idolfiles)
+  if comp = -2 then return  # -t --> don't call icont at all
+  args := " -c"
+  rms  := ""
+  every ifile := !idolfiles do args ||:= " " || ifile
+  every ifile := !idolfiles do rms  ||:= " " || ifile || ".icn"
+
+  mysystem("cd idolcode.env")
+  icont(args)
+  mysystem("cd ..")
+  return
+end
+procedure sysinitialize()
+  icontopt := " -Sr500 -SF30 -Si1000 "
+  cd := "cd "
+  md := "mkdir "
+  env := getenv("IDOLENV") | "idolcode.env"
+  sysok := 0
+end

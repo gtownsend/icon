@@ -1,0 +1,46 @@
+############################################################################
+#
+#	File:     namepfx.icn
+#
+#	Subject:  Procedure to produce prefix portion of name
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 2, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Produces the "name prefix" from a name in standard form -- omitting
+#  any title, but picking up the first name and any initials.
+#
+#  There are a lot more titles that should be added to this list.
+#
+#  Obviously, it can't always produce the "correct" result.
+#
+############################################################################
+#
+#  Links:  lastname, titleset
+#
+############################################################################
+
+link lastname, titleset
+
+procedure namepfx(s)
+   static titles
+
+   initial titles := titleset()
+
+   s ?:= {				# Get past title
+      while =!titles do tab(many(' '))	# "Professor Doctor ... "
+      tab(0)
+      }
+
+   s ?:= trim(tab(find(lastname(s))))
+
+   return s
+
+end

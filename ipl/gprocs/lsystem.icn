@@ -1,0 +1,181 @@
+############################################################################
+#
+#       File:     lsystem.icn
+#
+#	Subject:  Procedures for Lindenmayer systems support
+#
+#	Author:   Stephen B. Wampler
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.0
+#
+############################################################################
+#
+#   Comments: This package is the collection of routines
+#      developed to facillitate experiments with L-systems,
+#      including the interpretation of strings as turtle
+#      graphics commands.
+#
+#      Only rudimentary L-systems are currently implemented.
+#	users are encouraged to extend this system.
+#
+############################################################################
+#
+#	Requires:  Version 9 graphics, co-expressions (for glib.icn)
+#
+############################################################################
+#
+#	Links: glib
+#
+############################################################################
+
+link glib
+record Lsys(order, dist, delta, axiom, rewrite)
+
+# lsmap(s1,T) - replace, in s1, occurrances of character key values in T
+#     with assigned value for that key.  (Suitable for l-system rules!)
+#
+procedure lsmap(s1,T)
+   local s
+
+   if type(T) ~== "table" then
+      stop("lsmap() - second argument not a table!")
+
+   s := ""
+   s1 ? while s ||:= (\T[move(1)] | move(1))
+
+   return s
+end
+
+# mk_map(L) - build a rewriting map table from list L
+#
+procedure mk_map(L)
+   local a, t
+
+   t := table()
+   every a := !L do {
+      t[a[1]] := a[2]
+      }
+
+   return t
+end
+      
+# read_Lsystem(f) - read in an L system from a file...
+#
+#      Form for an L_system:
+#
+#	order: n
+#	delta: angle
+#	axiom: string
+#	map:   c = string
+#
+procedure read_Lsystem(f)
+   local ls, line, next_token
+
+   ls := Lsys(0,10,90,"",table())
+
+   while line := read(f) do {
+      next_token := create gen_tokens(line)
+
+      case map(@next_token) of {
+         "order:": ls.order := integer(@next_token)
+         "dist:" : ls.dist  := integer(@next_token)
+         "delta:": ls.delta := numeric(@next_token)
+	 "axiom:": ls.axiom := @next_token
+	 "map:"  : ls.rewrite[@next_token] := (@next_token, @next_token)
+         }
+      }
+
+   return ls
+end
+
+
+# write_Lsystem(ls) - display L-system ls (for debugging, mainly)
+#
+procedure  write_Lsystem(ls)
+   write("L-system:")
+   write("\torder: ",ls.order)
+   write("\t dist: ",ls.dist)
+   write("\tdelta: ",ls.delta)
+   write("\taxiom: ",ls.axiom)
+   every key := key(ls.rewrite) do
+       write("\t  map: ",key," -> ",ls.rewrite[key])
+   return
+end
+
+
+# build_cmd(ls) - return the command string for
+#	l-system ls
+#
+procedure build_cmd(ls)
+   local s
+
+   s := ls.axiom
+   every 1 to ls.order do
+      s := lsmap(s, ls.rewrite)
+   return s
+
+end
+
+# eval_cmd(s) - apply turtle t to command string
+#
+procedure eval_cmd(t,s,dist,delta)
+
+   s ? while obey(t,move(1), dist, delta)
+
+   return
+end
+         
+
+# eval_lsys(t,ls,dist,delta) - apply turtle t directly to
+#    an Lsystem avoids constructing full Lsystem string
+#    at once (i.e. no need to call build_cmd).
+#
+procedure eval_lsys(t,ls)
+   evaluate(t,ls.axiom, ls.rewrite, ls.order, ls.delta, ls.dist)
+end
+
+# evalute(t,s, Ls_map, n, delta, dist) - recursive l-system evaluation
+#   (avoids building entire command string)
+procedure evaluate(t, s, Ls_map, n, delta, dist)
+
+    if n = 0 then return eval_cmd(t,s,dist,delta)
+
+    s ? while evaluate(t, lsmap(move(1), Ls_map), Ls_map, n-1, delta, dist)
+    return
+end
+
+# obey(t, c, dist, delta) - execute the appropriate turtle command
+#      using turtle t.   (INCOMPLETE) (this is where L-systems could
+#      be greatly extended.)
+procedure obey(t, c, dist, delta)
+
+    case c of {
+       "f" : Move_Forward(t, dist)
+       "+" : Left(t, delta)
+       "-" : Right(t, delta)
+       default: Line_Forward(t, dist)
+       }
+
+   return
+end
+
+# get_tokens(s) - suspend the tokens in string s
+#
+procedure gen_tokens(s, ws)
+   local nws
+   
+   /ws := ' \t'
+   nws := ~ws
+
+   s ? while tab(upto(nws)) do
+          suspend tab(many(nws)) \ 1
+
+end

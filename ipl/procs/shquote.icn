@@ -1,0 +1,147 @@
+############################################################################
+#
+#	File:     shquote.icn
+#
+#	Subject:  Procedures to quote word for UNIX-like shells
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     December 30, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  The following procedures are useful for writing Icon programs that
+#  generate shell commands.  Certain characters cannot appear in the
+#  open in strings that are to be interpreted as "words" by command
+#  shells.  This family of procedures assists in quoting such strings so
+#  that they will be interpreted as single words.  Quoting characters
+#  are applied only if necessary -- if strings need no quoting they are
+#  returned unchanged.
+#
+#  shquote(s1, s2, ..., sN) :  s -- Produces a string of words s1, s2,
+#  ..., sN that are properly separated and quoted for the Bourne Shell
+#  (sh).
+#
+#  cshquote(s1, s2, ..., sN) :  s -- Produces a string of words s1, s2, ..., sN 
+#  that are properly separated and quoted for the C-Shell (csh).
+#
+#  mpwquote(s1, s2, ..., sN) :  s -- Produces a string of words s1, s2,
+#  ..., sN that are properly separated and quoted for the Macintosh
+#  Programmer's Workshop shell (MPW Shell).
+#
+#  dequote(s1,s2) : s3 -- Produces the UNIX-style command line word s1
+#  with any quoting characters removed. s2 is the escape character
+#  required by the shell (s2 defaults the the usual UNIX escape
+#  character, the backslash "\\").
+#
+############################################################################
+
+procedure shquote(s[])
+   return shquote_words(s)
+end
+
+procedure cshquote(s[])
+   s := shquote_words(s,'\t\n $"#&\'()*;<>?[\\`|~')
+   #
+   #  But backslashes before any bangs (!).
+   #
+   s ? {
+      s := ""
+      while s ||:= tab(find("!")) do {
+     s ||:= "\\" || move(1)
+     }
+      s ||:= tab(0)
+      }
+   return s
+end
+
+procedure mpwquote(s[])
+   #
+   #  The following are Macintosh Option- characters that have special
+   #  meaning to the MPW Shell.  They are represented here as Icon
+   #  escape sequences rather than as themselves since some
+   #  ASCII-oriented mailers change characters that have their
+   #  high-order bits set.
+   #
+   #  \xa8  circled r
+   #  \xb3  >= (I/O redirection)
+   #  \xb6  lower case delta (escape character)
+   #  \xb7  upper case sigma
+   #  \xc5  lower case phi
+   #  \xc7  << (I/O redirection)
+   #  \xc8  >> (I/O redirection)
+   #  \xc9  ...
+   #
+   local result
+   result := ""
+   #
+   # If there is a "return" in the string, it must be replaced by an
+   # escape sequence outside of the single quotes.
+   #
+   shquote_words(s,
+     '\0\t\n\r "#&\'()*+/;<>?[\\]`{|}\xa8\xb3\xb6\xb7\xc5\xc7\xc8\xc9',
+     "\xb6") ? {
+      while result ||:= tab(find("\x0d")) do {
+     result ||:= "'\xb6n'"
+     move (1)
+     }
+      result ||:= tab(0)
+      }
+   return result
+end
+
+procedure shquote_words(wordList,quotedChars,escapeString,sepString)
+   local s, result, sep
+   /quotedChars := '\t\n\r $"#&\'()*;<>?[\\^`|'
+   /escapeString := "\\"
+   /sepString := " "
+   result := sep := ""
+   every s := !wordList do {
+      if s == "" | upto(quotedChars,s) then {
+     s ? {
+        s := "'"
+        while s ||:= tab(find("'")) || "'" || escapeString || "''" & move(1)
+        s ||:= tab(0) || "'"
+        }
+     }
+      result ||:= sep || s
+      sep := sepString
+      }
+   return result 
+end
+
+procedure dequote(s,escapeString,escapeProc)
+   local quoteChars,c,d
+   /escapeString := "\\"
+   /escapeProc := 1
+   quoteChars := '"\'' ++ escapeString[1]
+   s ? {
+      s := ""
+      while s ||:= tab(upto(quoteChars)) do {
+     if =escapeString then s ||:= (if d === "'" then escapeString else 
+escapeProc(move(1)))
+     else {
+        c := move(1)
+        (/d := c) | (s ||:= d ~== c) | (d := &null)
+        }
+     }
+      return s || tab(0)
+      }
+end
+
+procedure mpwdequote(s)
+   return dequote(s,"\xb6",mpw_escape_proc)
+end
+
+procedure mpw_escape_proc(ch)
+   return case ch of {
+      "n": "\n"
+      "t": "\t"
+      "f": "\f"
+      default: ch
+      }
+end

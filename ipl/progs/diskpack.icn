@@ -1,0 +1,95 @@
+############################################################################
+#
+#	File:     diskpack.icn
+#
+#	Subject:  Program to produce packing list for diskettes
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 10, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#   This program is designed to produce a list of files to fit onto
+#   diskettes.  It can be adapted to other uses.
+#
+#   This program uses a straightforward, first-fit algorithm.
+#
+#   The options supported are:
+#
+#	-s i	diskette capacity, default 360000
+#	-r i	space to reserve on first diskettes, default 0
+#	-n s	UNIX-style file name specification for files to
+#		be packed, default "*.lzh"
+#
+############################################################################
+#
+#  Requires:  UNIX
+#
+############################################################################
+#
+#  Links:  options
+#
+############################################################################
+
+link options
+
+procedure main(argl)
+   local files, disksize, reserve, firstsize, thissize, file, size, flist
+   local disk, left, opts, spec, wc, used, number
+
+
+   files := table()				# table of files
+ 
+   opts := options(argl, "s+r+n:")
+   disksize := \opts["s"] | 360000		# diskette size
+   reserve := \opts["r"] | 0			# reserved space on 1st
+   firstsize := disksize - reserve		# available space on 1st
+   spec := \opts["n"] | "*.lzh"			# files to pack
+
+   wc := open("wc " || spec, "p")		# pipe to get sizes
+
+   every !wc ? {				# analyze wc output
+      tab(upto(&digits))
+      tab(many(&digits))
+      tab(upto(&digits))
+      tab(many(&digits))
+      tab(upto(&digits))
+      size := integer(tab(many(&digits)))	# 3rd field has bytes
+      tab(many(' '))
+      file := tab(0)				# file name
+      if file == "total" then break		# exit on summary line
+      files[file] := size			# add information to table
+      }
+
+   number := 0					# diskette number
+   thissize := firstsize			# space on this diskette
+
+   while *files > 0 do {			# while files remain
+      number +:= 1				# next diskette
+      flist := sort(files, 4)			# list of files and sizes
+      disk := []				# empty diskette
+      left := thissize				# space left
+      used := 0					# space used
+      while size := pull(flist) do {		# get largest remaining size
+         file := pull(flist)			# file name
+         if size < left then {			# if it fits
+            put(disk, file)			# put it on disk
+            left -:= size			# decrement remaining space
+            used +:= size			# increment space used
+            delete(files, file)			# delete file from table
+            }
+         }
+						# if nothing on disk, can't do
+      if *disk = 0 then stop("*** can't fit on disks")
+						# write heading information
+      write("\ndiskette ", number, ": ", used, "/", disksize - thissize + left)
+      every write(!disk)			# write file names
+      thissize := disksize			# space on next diskette
+      }
+
+end

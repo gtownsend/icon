@@ -1,0 +1,193 @@
+############################################################################
+#
+#  vibtalk.icn -- procedures involving dialogue windows
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+
+$include "vibdefn.icn"
+
+global ADD_TALK, DEL_TALK
+
+##########################################################################
+# dialogue() defines pop-up window templates for the various kinds
+#            of pop-up windows utilized within VIB.
+##########################################################################
+procedure dialogue()
+   local tempx, tempy, howmany, where
+
+   ADD_TALK := Vdialog(&window, PAD, PAD)
+   howmany := Vtext(&window, "Insert ", , 1, 2, &digits)
+   where := Vtext(&window, "item(s) after item ", , 2, 2, &digits)
+   tempy := 0
+   tempx := 0
+   VRegister(ADD_TALK, howmany, tempx, tempy)
+   tempx +:= howmany.aw + 8
+   VRegister(ADD_TALK, where, tempx, tempy)
+   tempy +:= (3 * PAD)/2
+   VInsert(ADD_TALK, Vbutton(&window, "Okay", , V_OK, , 80, 20), 20, tempy)
+   VInsert(ADD_TALK, Vbutton(&window, "Cancel", , V_CANCEL, , 80, 20),120,tempy)
+   VFormat(ADD_TALK)
+
+   DEL_TALK := Vdialog(&window, PAD, PAD)
+   howmany := Vtext(&window, "delete item(s) ", , 1, 2, &digits)
+   where := Vtext(&window, "thru ", , 2, 2, &digits)
+   tempy := 0
+   tempx := 0
+   VRegister(DEL_TALK, howmany, tempx, tempy)
+   tempx +:= howmany.aw + 8
+   VRegister(DEL_TALK, where, tempx, tempy)
+   tempy +:= (3 * PAD)/2
+   VInsert(DEL_TALK, Vbutton(&window, "Okay", , V_OK, , 80, 20), 20, tempy)
+   VInsert(DEL_TALK, Vbutton(&window, "Cancel", , V_CANCEL, , 80, 20),120,tempy)
+   VFormat(DEL_TALK)
+end
+
+##########################################################################
+# open_session() asks for a file name and opens it as the current session.
+##########################################################################
+procedure open_session()
+   local fname
+
+   repeat {
+      case OpenDialog("file to open: ") of {
+         "Okay": {
+            fname := def_extn(dialog_value)
+            if load_session(fname) then {
+               SESSION := fname
+               label_session()
+               return
+               }
+            Notice("Cannot open file " || fname)
+            }
+         "Cancel":
+            fail
+         }
+      }
+   return
+end
+
+##########################################################################
+# flush_session() asks whether the current session should be saved first.
+#                 It fails if cancelled.
+##########################################################################
+procedure flush_session()
+
+   if /DIRTY then
+      return						# nothing needs saving
+
+   return vib_save_as("save session first? ", SESSION)	# fails if cancelled
+end
+
+##########################################################################
+# vib_save_as() asks for a file name and saves the session.
+##########################################################################
+procedure vib_save_as(prompt, def)
+   local fname
+
+   repeat {
+      case SaveDialog(prompt, def) of {
+         "Yes": {
+            fname := def_extn(dialog_value)
+            if close(open(fname)) & not ok_overwrite(fname) then
+               next
+            if save_session(fname) then {
+               SESSION := fname
+               label_session()
+               return
+               }
+            }
+         "No":     return
+         "Cancel": fail
+         }
+      }
+end
+
+##########################################################################
+# def_extn(fname) adds a ".icn" extension to a file name, if appropriate.
+##########################################################################
+procedure def_extn(fname)
+   
+   if not upto('.', fname) then
+      fname ||:= ".icn"
+   return fname
+end
+
+##########################################################################
+# ok_overwrite() is called to display a dialogue window for confirming
+#                  the over-writing of a file.  It is assumed that it
+#                  is always okay to overwrite the current session.
+##########################################################################
+procedure ok_overwrite(fname)
+   if fname == SESSION then
+      return
+
+   return "Okay" == Dialog(
+      "File " || fname || " exists.  Overwrite?", , , , ["Okay", "Cancel"])
+end
+
+##########################################################################
+# label_session() sets the window and icon labels.
+##########################################################################
+procedure label_session()
+   WAttrib("label=" || SESSION, "iconlabel=" || SESSION)
+end
+
+##########################################################################
+#  illegal() posts a notice and succeeds if a value is illegal.
+#
+#  val is the value to test.
+#  label is its label.
+#  how is how to test:
+#  	"p"	procedure name, or empty
+#	"s"	general VIB string -- no : \ "
+#	"l"	label string -- can include :
+#  	"n"	any numeric value
+#	"i"	any integer value
+#	<min>	any integer of at least <min>
+##########################################################################
+procedure illegal(val, label, how)
+   local m, s
+
+   if case how of {
+      "p":  { m := CBMASK;  s := "must be a valid identifier" }
+      "s":  { m := IDMASK;  s := "cannot contain `\\' or `\"' or `:'" }
+      "l":  { m := LBMASK;  s := "cannot contain `\\' or `\"'" }
+      }
+   then val ? {
+      tab(many(m))
+      if not pos(0) | (how == "p" & any(&digits, val)) then {
+         Notice(label || " value " || s)
+         return
+      }
+      else fail
+   }
+
+   if *val == 0 then {
+      Notice(label || " value must be specified")
+      return
+   }
+
+   if how === "n" then {
+      if not numeric(val) then {
+         Notice(label || " value must be numeric")
+         return
+      }
+      else fail
+   }
+
+   if not integer(val) then {
+      Notice(label || " value must be an integer")
+      return
+   }
+
+   if val < integer(how) then {
+      Notice(label || " value must not be less than " || how)
+      return
+   }
+
+   fail		# that is, the value is legal
+end

@@ -1,0 +1,93 @@
+############################################################################
+#
+#	File:     scramble.icn
+#
+#	Subject:  Program to scramble a document
+#
+#	Author:   Chris Tenaglia
+#
+#	Date:     June 14, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# This program takes a document and re-outputs it in a cleverly
+# scrambled fashion. It uses the next two most likely words to
+# to follow.
+#
+# The concept was found in a recent Scientific American and Icon
+# seemed to offer the best implementation.
+#
+############################################################################
+#
+#  Links:  random
+#
+############################################################################
+
+link random
+
+global vocab,index
+
+procedure main()
+  local line, i, n, word, follows
+
+  vocab:= []
+  index:= table([])
+  while line := read() do
+    {
+    vocab |||:= parse(line,' ')
+    }
+
+  every i := 1 to *vocab-2 do index[vocab[i]] |||:= [i]
+  index[vocab[-2]] |||:= [-2]    # wrap end to front in order to
+  index[vocab[-1]] |||:= [-1]    # prevent stuck loop if last word chosen
+
+  n := -1 ;
+  randomize()
+  line := ""
+  every 1 to *vocab/2 do
+    {
+    (n > 1) | (n := ?(*vocab-2))
+    word    := vocab[n]
+    follows := vocab[(?(index[word]))+1]
+    n       := (?(index[follows])) + 1
+    if (*line + *word + *follows + 2) > 80 then
+      {
+      write(line)
+      line := ""
+      }
+    line ||:= word || " " || follows || " "
+    }
+  write(line,".")
+  end
+
+#
+# This procedure pulls all the elements (tokens) out of a line
+# buffer and returns them in a list. A variable named chars
+# can be statically defined here or global. It is a cset that
+# contains the valid characters that can compose the elements
+# one wishes to extract.
+#
+
+procedure parse(line,delims)
+  local tokens
+  static chars
+
+  chars  := &cset -- delims
+  tokens := []
+  line ? while tab(upto(chars)) do put(tokens,tab(many(chars)))
+  return tokens
+  end
+
+#
+# This procedure is terribly handy in prompting and getting
+# an input string
+#
+
+procedure input(prompt)
+  writes(prompt)
+  return read()
+  end

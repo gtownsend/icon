@@ -1,0 +1,194 @@
+############################################################################
+#
+#	File:     plotgrid.icn
+#
+#	Subject:  Program to create grid plots for sequence drafts
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 19, 1999
+#
+############################################################################
+#
+#  This program produces grid plots as specificed in the include
+#  file, include.wvp, which is produced by seqdraft.icn.
+#
+############################################################################
+#
+# Requires:  Version 9 graphics and large integers
+#
+############################################################################
+#
+#  Links:  cells, convert, expander, weaving, weavutil, lists, mirror,
+#	   tieutils, wopen, numbers, weaveseq
+#
+############################################################################
+#
+#  Note:   The include file may contain link declarations.
+#
+############################################################################
+
+link convert
+link expander
+link weaving
+link weavutil
+link lists
+link mirror
+link numbers
+link tieutils
+link wopen
+link weaveseq
+
+$include "include.wvp"
+
+$ifdef Link
+Link
+$endif
+
+global cmod
+global colors
+global height
+global shafts
+global width
+global threading
+global tieup
+global tieups
+global treadling
+global treadles
+global warp_colors
+global weft_colors
+
+$define CellSize 4
+
+procedure main()
+
+   init()
+
+   plot()
+
+end
+
+# Initialize the weaving.
+
+procedure init()
+   local m, n, v
+
+   shafts := Shafts
+   treadles := Treadles
+
+   colors := Colors
+
+   height := Length
+   width := Breadth
+
+   threading := []
+   every put(threading, |sconvert(Threading, shafts)) \ width
+
+   treadling := []
+   every put(treadling, |sconvert(Treadling, treadles)) \ height
+
+   warp_colors := []
+   every put(warp_colors, |sconvert(WarpColors, *colors)) \ width
+
+   weft_colors := []
+   every put(weft_colors, |sconvert(WeftColors, *colors)) \ height
+
+$ifdef Reflect
+   threading |||:= lreverse(threading[1:-1])
+   treadling |||:= lreverse(treadling[1:-1])
+   warp_colors |||:= lreverse(warp_colors[1:-1])
+   weft_colors |||:= lreverse(weft_colors[1:-1])
+   width := 2 * width - 1
+   height := 2 * height - 1
+$endif
+
+$ifdef DeBug
+   write(image(threading))
+   write(image(treadling))
+   write(image(warp_colors))
+   write(image(weft_colors))
+$endif
+
+   tieup := tie2tier(shafts, treadles, Tieup).matrix
+
+   return
+
+end
+
+# Create the plots.
+
+procedure plot()
+   local threading_pane, warp_pane, treadling_pane, weft_pane, tieup_pane
+   local tr_width, th_width, tr_height, th_height, comp, i, j
+
+   threading_pane := makepanel(*threading, shafts, CellSize)
+
+   every i := 1 to *threading do
+      colorcell(threading_pane, i, threading[i], "black")
+
+   WAttrib(threading_pane.window, "label=threading sequence")
+
+   th_width := WAttrib(threading_pane.window, "width")
+   th_height := WAttrib(threading_pane.window, "height")
+
+   warp_pane := makepanel(*warp_colors, shafts, CellSize)
+
+   every i := 1 to *warp_colors do
+      colorcell(warp_pane, i, warp_colors[i], "black")
+
+   treadling_pane := makepanel(treadles, *treadling, CellSize)
+
+   tr_width := WAttrib(treadling_pane.window, "width")
+   tr_height := WAttrib(treadling_pane.window, "height")
+
+   every i := 1 to *treadling do
+      colorcell(treadling_pane, treadles - treadling[i] + 1, i, "black")
+
+   weft_pane := makepanel(treadles, *weft_colors, CellSize)
+
+   every i := 1 to *weft_colors do
+      colorcell(weft_pane, treadles - weft_colors[i] + 1, i, "black")
+
+   tieup_pane := makepanel(treadles, shafts, CellSize)
+
+   every i := 1 to shafts do
+      every j := 1 to treadles do
+         if tieup[j, i] == "1" then 
+            colorcell(tieup_pane, j, i, "black") 
+
+   comp := WOpen(
+      "canvas=hidden",
+      "width=" || (2 * tr_width + th_width),
+      "height=" || (2 * th_height + tr_height) 
+      ) | stop("cannot open comp window")
+
+   CopyArea(threading_pane.window, comp, , , , , tr_width, 0)
+   CopyArea(treadling_pane.window, comp, , , , , 0, th_height)
+   CopyArea(warp_pane.window, comp, , , , , tr_width, tr_height + th_height)
+   CopyArea(weft_pane.window, comp, , , , , th_width + tr_width, th_height)
+   CopyArea(tieup_pane.window, comp, , , , , 0, 0)
+
+   WAttrib(comp, "canvas=normal")
+
+   WDone(comp)
+
+   return 
+
+end
+
+procedure shortcuts(e)
+
+   if &meta then case map(e) of {
+      "q"  :  exit()
+      "w"  :  weave()
+      }
+
+   return
+
+end
+
+procedure sconvert(s, n)
+
+   return abs(integer(s) % n) + 1
+
+end

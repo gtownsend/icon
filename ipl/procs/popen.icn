@@ -1,0 +1,86 @@
+############################################################################
+#    
+#	File:     popen.icn
+#	
+#	Subject:  Procedures for pipes
+#	
+#	Author:   Ronald Florence
+#
+#	Date:     September 28, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.0
+#
+############################################################################
+#
+#  Contents:
+#
+#  popen(command, mode)
+#	mode == "w" writes to a pipe
+#	mode == "r" reads from a pipe
+#
+#  pclose(pipe)
+#
+#  On systems without real pipes (ms-dos), popen and pclose imitate
+#  pipes; pclose must be called after popen.  The code should run
+#  faster on ms-dos if dir in tempfile() points to a directory on a
+#  virtual disk.
+#
+#  On systems with real pipes, popen & pclose open and close a pipe.
+# 
+############################################################################
+
+global PIPE_cmd, PIPE_fname
+
+procedure popen(cmd, mode)
+  local tfn, p
+
+  initial ("pipes" == &features) | {
+    PIPE_cmd := table()
+    PIPE_fname := table()
+  }
+  (type(PIPE_fname) ~== "table") & return open(cmd, mode || "p")
+  tfn := tempfile("pipe.")
+  upto('r', mode) & system(cmd || " > " || tfn)
+  p := open(tfn, mode)
+  PIPE_fname[p] := tfn
+  upto('w', mode) & PIPE_cmd[p] := cmd
+  return p
+end
+
+
+procedure pclose(pipe)
+  local status
+
+  (type(PIPE_fname) ~== "table") & return close(pipe)
+  if \PIPE_cmd[pipe] then {
+    close(pipe) 
+    PIPE_cmd[pipe] ||:= " < " || PIPE_fname[pipe]
+    status := system(PIPE_cmd[pipe])
+  }
+  else status := close(pipe)
+  remove(PIPE_fname[pipe])
+  PIPE_cmd[pipe] := PIPE_fname[pipe] := &null
+  return status
+end
+
+	# Richard Goerwitz's ever-useful generator.
+
+procedure tempfile(template)
+  local temp_name
+  static dir
+
+  initial {
+    if "UNIX" == &features then dir := "/tmp/"
+    else dir := ""
+  }
+  every temp_name := dir || template || right(1 to 999,3,"0") do {
+    close(open(temp_name)) & next
+    suspend \temp_name
+  }
+end

@@ -1,0 +1,66 @@
+############################################################################
+#
+#	File:     imlreduc.icn
+#
+#	Subject:  Program to reduce bi-level image strings
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 21, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program reduces bi-level image strings to their lowest equivalent
+#  form.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  imxform, imscanon
+#
+############################################################################
+
+link imxform
+link imscanon
+
+procedure main()
+   local ims, imx, sorter1, sorter2
+
+   sorter1 := set()
+   sorter2 := set()
+
+   while ims := readims() do {
+      imx := imstoimx(ims)			# combine later
+      imx := imxreduce(imx)
+      ims := imxtoims(imx)
+      insert(sorter1, ims)
+      }
+
+   every ims := !sorter1 do {
+      imx := imstoimx(ims)
+      imx := imxrotate(imx, "cw")
+      ims := imxtoims(imx)
+      ims := imscanon(ims)
+      insert(sorter2, ims)
+      }
+
+   sorter1 := set()
+
+   every ims := !sorter2 do {
+      imx := imstoimx(ims)
+      imx := imxrotate(imx, "ccw")
+      ims := imxtoims(imx)
+      ims := imscanon(ims)
+      insert(sorter1, ims)
+      }
+
+   every write(!sorter1)
+      
+end

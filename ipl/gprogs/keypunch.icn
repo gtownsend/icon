@@ -1,0 +1,166 @@
+############################################################################
+#
+#	File:     keypunch.icn
+#
+#	Subject:  Program to simulate a keypunch
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     February 7, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     In the olden days, computer data was encoded by rectangular holes
+#  punched in thin pieces of cardboard about the size of an old dollar.
+#  This program simulates a "keypunch", a mechanical device for punching
+#  those holes.  (Keypunches themselves were programmable, but there's
+#  no way to program this one; tab stops are set permanently.)
+#
+#     A carriage return feeds a new card.  Illegal characters punch a
+#  lace column.  As with a real keypunch, you can backspace, but the
+#  holes don't go away.
+#
+#     The shift key turns "UIOJKLM<>" into "123456789".  The meta key
+#  serves (imperfectly) as the multipunch key.
+#
+#     The font was chosen on a Sun workstation and may not be portable.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: options, optwindw, graphics
+#
+############################################################################
+
+
+link options
+link optwindw
+link graphics
+
+
+global hsiz, vsiz, hsep, vsep, tsep, bsep, lsep, rsep
+
+procedure main(args)
+   local win, col, card, c, s, opts
+
+   opts := options(args, winoptions())
+
+   s := ""
+   while s ||:= get(args) || " "
+
+   hsiz := 5
+   vsiz := 12
+   hsep := 3
+   vsep := 12
+   tsep := 20
+   bsep := 20
+   lsep := 20
+   rsep := 20
+
+   /opts["B"] := "pale moderate reddish yellow"
+   /opts["W"] := lsep + 80 * hsiz + 79 * hsep + rsep
+   /opts["H"] := tsep + 12 * vsiz + 11 * vsep + bsep
+   win := optwindow(opts)
+   card := WOpen("canvas=hidden", "width="||opts["W"], "height="||opts["H"])
+
+   Font(win, "-misc-fixed-medium-r-semi*--13-120-*")
+   initcard(win)
+   CopyArea(win, card)
+
+   col := 1
+   every c := !map(s, &lcase, &ucase) | keyevent(win) do {
+      if upto('\^c\^d\d', c) then
+         exit()
+      else if upto('\n\r\^u', c) then {
+         CopyArea(card, win)
+         col := 1
+         }
+      else if c == '\b' then {
+         if (col -:= 1) < 1 then
+            col := 1
+         key(win, col, " ")
+         }
+      else if c == '\t' then {
+         col := col + 10 - (col - 1) % 10
+         if col > 80 then
+            col := 80
+         }
+      else {
+         key(win, col, map(c, &lcase, &ucase))
+         if ((not &meta) & (col +:= 1)) > 80 then
+            col := 80
+         }
+      GotoXY(win, lsep + col * (hsiz + hsep), tsep / 2)
+      }
+end
+
+
+procedure keyevent(win)
+   local e
+   repeat {
+      e := Event(win)
+      if type(e) == "string" then {
+         if &shift | &meta then
+            suspend map(e, "uiojklm,.UIOJKLM<>", "123456789123456789")
+         else
+            suspend map(e, &lcase, &ucase)
+         }
+      }
+end
+
+
+procedure initcard(win)
+   local i, c
+
+   EraseArea(win)
+   GotoXY(win, lsep, tsep / 2)
+   every i := 12 to 3 by -1 do {
+      c := "  0123456789"[i]
+      every punch(win, 1 to 80, i, c)
+      }
+end
+
+
+procedure key(win, col, ch)
+   Fg(win, "black")
+   every punch(win, col, holes(ch))
+   punch(win, col, 0, ch)
+end
+
+
+procedure punch(win, col, row, ch)
+   local x, y, w, h
+   x := lsep + (col - 1) * (hsiz + hsep)
+   if row = 0 then
+      y := 0
+   else
+      y := tsep + (row - 1) * (vsiz + vsep)
+   if \ch then
+      DrawString(win, x, y + vsiz - 3, ch)
+   else
+      FillRectangle(win, x, y, hsiz, vsiz)
+end
+
+
+# Hole codes from CDC SCOPE 3.4 SPRM, Rev. A, 10-15-71, page A-4 (026 encoding).
+
+procedure holes(c)
+   static s0, s1, s2, s3, n
+   initial {
+      s0 := " 0123456789+ABCDEFGHI-JKLMNOPQR/STUVWXYZ:=@%'[.)^;]$*@?>!,(_#&\"\\"
+      s1 := "           AAAAAAAAAABBBBBBBBBB000000000     AAAAABBBBBB000000 A"
+      s2 := " 0123456789 123456789 123456789123456789235672346723456723456745"
+      s3 := "                                        888888888888888888888888"
+      }
+   if n := find(c, s0) then
+      suspend find((s1 | s2 | s3)[n], "AB0123456789")
+   else
+      suspend 1 to 12
+end

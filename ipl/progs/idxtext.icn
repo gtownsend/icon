@@ -1,0 +1,155 @@
+############################################################################
+#
+#	File:     idxtext.icn
+#
+#	Subject:  Program for creating indexed text-base
+#
+#	Author:   Richard L. Goerwitz
+#
+#  	Date:     July 9, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.15
+#
+############################################################################
+#
+#      idxtext turns a file associated with gettext() routine into an
+#  indexed text-base.  Though gettext() will work fine with files
+#  that haven't been indexed via idxtext(), access is faster if the
+#  indexing is done if the file is, say, over 10k (on my system the
+#  crossover point is actually about 5k).
+#
+#      Usage is simply "idxtext [-a] file1 [file2 [...]]," where file1,
+#  file2, etc are the names of gettext-format files that are to be
+#  (re-)indexed.  The -a flag tells idxtext to abort if an index file
+#  already exists.
+#
+#      Indexed files have a very simple format: keyname delimiter offset
+#  [delimiter offset [etc.]]\n.  The first line of the index file is a
+#  pointer to the last indexed byte of the text-base file it indexes.
+#
+#  BUGS: Index files are too large.  Also, I've yet to find a portable
+#  way of creating unique index names that are capable of being
+#  uniquely identified with their original text file.  It might be
+#  sensible to hard code the name into the index.  The chances of a
+#  conflict seem remote enough that I haven't bothered.  If you're
+#  worried, use the -a flag. (RLG)
+############################################################################
+#
+#  Links: adjuncts
+#
+#  Tested with: MS-DOS, MS-DOS/386, OS/2, ProIcon, UNIX
+#
+#  See also: gettext.icn
+#
+#  Modified by Phillip Lee Thomas
+#  History: modified link and local statements.
+#           modified to run under OS/2 and ProIcon.
+#           Added exit() statement.
+#           Move OS declarations to Set_OS() in adjuncts.icn.
+#           Allow multiple indexed values.
+#
+#  Version 1.15 (August 5, 1995)
+#           Use preprocessor include statement rather than link.
+#           Allow multiple index keys for a stretch of text:
+#              Example:
+#                ::key one  ::key two   ::another key
+#                Multiple lines of text which are retrieved
+#                by searching for these three keys.
+#                ::key for another stretch of text
+#                A second bit of text.
+#
+#
+############################################################################
+#
+#  Links:  adjuncts
+#
+############################################################################
+
+link adjuncts
+
+# declared in adjuncts.icn
+# global _slash, _baselen, _delimiter
+
+procedure main(a)
+
+   local ABORT, idxfile_name, fname, infile, outfile
+
+   Set_OS()
+   
+   if \a[1] == "-a" then ABORT := pop(a)  
+
+   # Check to see if we have any arguments.
+
+   if find("Macintosh", &features) then {
+      writes("Enter file name for indexing: ")
+      a := [read()]
+      }
+   else  {
+      *a = 0 & stop("usage: idxtext [-a] file1 [file2 [...]]")
+      }
+
+   # Start popping filenames off of the argument list.
+
+   while fname := pop(a) do {
+
+      # Open input file.
+
+      infile := open(fname) |
+         { write(&errout, "idxtext:  ",fname," not found"); next }
+
+      # Get index file name.
+
+      idxfile_name := Pathname(fname) || getidxname(fname)
+      if \ABORT then if close(open(idxfile_name)) then
+         stop("idxtext:  index file ",idxfile_name, " already exists")
+      outfile := open(idxfile_name, "w") |
+         stop("idxtext:  can't open ", idxfile_name)
+
+      # Write index to index.IDX file.
+
+      write_index(infile, outfile)
+      every close(infile | outfile)
+      }
+   exit()
+end
+
+
+procedure write_index(in, out)
+
+   local key_offset_table, w, line, KEY
+
+   # Write to out all keys in file "in," with their byte
+   # offsets.
+
+   key_offset_table := table()
+
+   while (w := where(in), line := read(in)) do {
+      line ? {
+         while ="::" do {
+            KEY := trim(tab(find("::") | 0))
+            if not (/key_offset_table[KEY] := KEY || _delimiter || w)
+            then key_offset_table[KEY] ||:= _delimiter || w
+            }
+         }
+      }
+
+   # First line of index contains the offset of the last
+   # indexed byte in write_index, so that we can still
+   # search unindexed parts of in.
+
+   write(out, where(in))
+
+   # Write sorted KEY\toffset lines.
+
+   if *key_offset_table > 0 then  {
+      every write(out, (!sort(key_offset_table))[2])
+      return
+      }
+   else stop("No indexed items found.")
+end

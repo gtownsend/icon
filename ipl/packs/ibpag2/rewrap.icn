@@ -1,0 +1,144 @@
+############################################################################
+#
+#	Name:	 rewrap.icn
+#
+#	Title:	 advanced line rewrap utility
+#
+#	Author:	 Richard L. Goerwitz
+#
+#	Version: 1.4
+#
+############################################################################
+#
+#  The procedure rewrap(s,i), included in this file, reformats text
+#  fed to it into strings < i in length.  Rewrap utilizes a static
+#  buffer, so it can be called repeatedly with different s arguments,
+#  and still produce homogenous output.  This buffer is flushed by
+#  calling rewrap with a null first argument.  The default for
+#  argument 2 (i) is 70.
+#
+#  Here's a simple example of how rewrap could be used.  The following
+#  program reads the standard input, producing fully rewrapped output.
+#
+#  procedure main()
+#      every write(rewrap(!&input))
+#      write(rewrap())
+#  end
+#
+#  Naturally, in practice you would want to do things like check for in-
+#  dentation or blank lines in order to wrap only on a paragraph-by para-
+#  graph basis, as in
+#
+#  procedure main()
+#      while line := read(&input) do {
+#          if line == "" then {
+#              write("" ~== rewrap())
+#              write(line)
+#          } else {
+#              if match("\t", line) then {
+#                  write(rewrap())
+#                  write(rewrap(line))
+#              } else {
+#                  write(rewrap(line))
+#              }
+#          }
+#      }
+#  end
+#
+#  Fill-prefixes can be implemented simply by prepending them to the
+#  output of rewrap:
+#
+#      i := 70; fill_prefix := " > "
+#      while line := read(input_file) do {
+#          line ?:= (f_bit := tab(many('> ')) | "", tab(0))
+#          write(fill_prefix || f_bit || rewrap(line, i - *fill_prefix))
+#          etc.
+#
+#  Obviously, these examples are fairly simplistic.  Putting them to
+#  actual use would certainly require a few environment-specific
+#  modifications and/or extensions.  Still, I hope they offer some
+#  indication of the kinds of applications rewrap might be used in.
+# 
+#  Note:  If you want leading and trailing tabs removed, map them to
+#  spaces first.  Rewrap only fools with spaces, leaving tabs intact.
+#  This can be changed easily enough, by running its input through the
+#  Icon detab() function.
+#
+############################################################################
+#
+#  See also:  wrap.icn
+#
+############################################################################
+
+
+procedure rewrap(s,i)
+
+    local extra_bit, line
+    static old_line
+    initial old_line := ""
+
+    # Default column to wrap on is 70.
+    /i := 70
+    # Flush buffer on null first argument.
+    if /s then {
+	extra_bit := old_line
+	old_line := ""
+	return "" ~== extra_bit
+    }
+
+    # Prepend to s anything that is in the buffer (leftovers from the last s).
+    s ?:= { tab(many(' ')); old_line || trim(tab(0)) }
+
+    # If the line isn't long enough, just add everything to old_line.
+    if *s < i then old_line := s || " " & fail
+
+    s ? {
+
+	# While it is possible to find places to break s, do so.
+	while any(' -',line := EndToFront(i),-1) do {
+	    # Clean up and suspend the last piece of s tabbed over.
+	    line ?:= (tab(many(' ')), trim(tab(0)))
+            if *&subject - &pos + *line > i
+	    then suspend line
+	    else {
+		old_line := ""
+		return line || tab(0)
+	    }
+	}
+
+	# Keep the extra section of s in a buffer.
+	old_line := tab(0)
+
+	# If the reason the remaining section of s was unrewrapable was
+	# that it was too long, and couldn't be broken up, then just return
+	# the thing as-is.
+	if *old_line > i then {
+	    old_line ? {
+		if extra_bit := tab(upto(' -')+1) || (tab(many(' ')) | "")
+		then old_line := tab(0)
+		else extra_bit := old_line & old_line := ""
+		return trim(extra_bit)
+	    }
+	}
+	# Otherwise, clean up the buffer for prepending to the next s.
+	else {
+	    # If old_line is blank, then don't mess with it.  Otherwise,
+	    # add whatever is needed in order to link it with the next s.
+	    if old_line ~== "" then {
+		# If old_line ends in a dash, then there's no need to add a
+		# space to it.
+		if old_line[-1] ~== "-"
+		then old_line ||:= " "
+	    }
+	}
+    }
+    
+end
+
+
+
+procedure EndToFront(i)
+    # Goes with rewrap(s,i)
+    *&subject+1 - &pos >= i | fail
+    suspend &subject[.&pos:&pos <- &pos+i to &pos by -1]
+end

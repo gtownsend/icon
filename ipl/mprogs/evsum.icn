@@ -1,0 +1,107 @@
+############################################################################
+#
+#	File:     evsum.icn
+#
+#	Subject:  Program to tabulate event codes
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 17, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This tool tabulates event codes.  It is called as
+#
+#	evsum prog
+#
+#  where prog is a program compiled under MT Icon whose events are to
+#  be tabulated.
+#	
+#  The options supported are:
+#
+#	-m s	sets the event mask named s.  If no mask is specied, all
+#		events are tabulated. (See evdefs.icn for a list of event
+#		mask names.)
+#
+#	-o s	write output to file s; default &output.
+#
+#	-t	record time spent in monitoring.
+#
+############################################################################
+#
+#  Requires:  MT Icon and event monitoring.
+#
+############################################################################
+#
+#  Links:  evinit, evnames, numbers, options
+#
+############################################################################
+#
+#  Includes:  evdefs.icn
+#
+############################################################################
+
+link evinit
+link evnames
+link numbers
+link options
+
+$include "evdefs.icn"
+
+procedure main(args)
+   local summary, total, i, subscr, opts, mask, output, alltotal
+   local itime
+
+   opts := options(args, "m:o:t")
+
+   mask := &cset
+   mask := case \opts["m"] of {
+      "AllocMask":     AllocMask
+      "AssignMask":    AssignMask
+      "TypeMask":      TypeMask
+      "ConvMask":      ConvMask
+      "ProcMask":      ProcMask
+      "FncMask":       FncMask
+      "OperMask":      OperMask
+      "ListMask":      ListMask
+      "RecordMask":    RecordMask
+      "ScanMask":      ScanMask
+      "SetMask":       SetMask
+      "TableMask":     TableMask
+      "StructMask":    StructMask
+      default:  stop("*** invalid event mask name")
+      }
+
+   output := open(\opts["o"], "w") | &output
+
+   if \opts["t"] then itime := &time
+
+   EvInit(args) | stop("*** cannot load program")	# initialize interface
+
+   summary := table(0)
+   total := 0
+
+   while EvGet(mask) do 
+      summary[&eventcode] +:= 1
+
+   every total +:= !summary
+   alltotal := total
+   total /:= 100.0
+
+   summary := sort(summary, 4)
+
+   write(output, left("event",45), right("count",9), right("percent",10))
+   write(output)
+   while i := pull(summary) do
+      write(output, left(evnames(pull(summary)), 45),
+         right(i, 9), "   ", fix(i, total, 5, 2))
+
+   write(output, "\n", left("total:", 45), right(alltotal, 9))
+
+   write(output, "\nelapsed time: ", &time - \itime, "ms")
+
+end

@@ -1,0 +1,79 @@
+############################################################################
+#
+#	File:     adllist.icn
+#
+#	Subject:  Program to list address list fields
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 19, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#    This program lists entries in address lists. The options are:
+#
+#	-c	by country
+#	-n	by name
+#	-C	by city (U.S. only)
+#	-s	by state (U.S. only)
+#	-z	by ZIP code (U.S. only)
+#
+# 	The default is -n.  If more than one option is specified, the
+#	order of dominance is -n -z -s -c -C.
+#
+############################################################################
+#
+#  See also: address.doc, adlcheck.icn, adlcount.icn, adlfiltr.icn, 
+#     adlsort,icn, labels.icn
+#
+#  Links: adlutils, options
+#
+############################################################################
+
+link adlutils, options
+
+procedure main(args)
+   local item, item_lists, opts, list_method, get_item, add
+
+   item_lists := table()
+
+   list_method := "n"			# The default is sorting by name.
+   get_item := get_lastname
+
+   opts := options(args,"cnszC")
+
+   if \opts["C"] then {			# If more than one given, last applies.
+      list_method := "C"
+      get_item := get_city
+      }
+   if \opts["c"] then {			# If more than one given, last applies.
+      list_method := "c"
+      get_item := get_country
+      }
+   if \opts["s"] then {
+      list_method := "s"
+      get_item := get_state
+      }
+   if \opts["z"] then {
+      list_method := "z"
+      get_item := get_zipcode
+      }
+   if \opts["n"] then {
+      list_method := "n"
+      get_item := get_lastname
+      }
+
+   case list_method of {
+      "s" | "z" | "C": while add := nextadd() do
+         write(get_item(add))
+      "c" : while add := nextadd() do
+         write(format_country(get_item(add)))
+      "n" : while add := nextadd() do
+         write(get_namepfx(add)," ",get_item(add))
+      }
+       
+end

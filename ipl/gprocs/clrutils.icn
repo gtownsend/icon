@@ -1,0 +1,45 @@
+############################################################################
+#
+#	File:     clrutils.icn
+#
+#	Subject:  Procedures to convert color formats
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 17, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures convert between comma-separated Icon color
+#  specifications and a record with r, g, and b fields.
+#
+############################################################################
+
+record RGB(r, g, b)
+
+procedure colortorgb(color)		#: rgb record for color
+   local rgb
+
+   rgb := RGB()
+
+   color ? {
+      rgb.r := tab(upto(',')) | fail
+      move(1)
+      rgb.g := tab(upto(',')) | fail
+      move(1)
+      rgb.b := tab(0)
+      }
+
+   return rgb
+
+end
+
+procedure rgbtocolor(rgb)
+
+   return rgb.r || "," || rgb.g || "," || rgb.b
+
+end

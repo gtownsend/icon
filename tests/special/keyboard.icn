@@ -1,0 +1,42 @@
+#  This program can be used to test keyboard functions.  It was provided
+#  by Richard Goerwitz.
+
+procedure main()
+
+    write("\nTest 1: You should see characters echoed as you type them, and")
+    write("then a message confirming the characters you type.  Hit ^D when")
+    write("finished with this test.\n")
+
+    while c := getche() do {
+        if c == "\x04" then break
+        write("you hit ",image(c))
+
+    }
+
+    write("\nTest 2: You should NOT see chars echoed as you type them, but")
+    write("you will see a message confirming the chars you type.  Hit ^D when")
+    write("finished with this test.\n")
+
+    while c := getch() do {
+        if c == "\x04" then break
+        write("you hit ",image(c))
+    }
+
+    write("\nTest 3: You should see characters echoed as you type them, and")
+    write("a message confirming the chars you type.  Hit your Quit key when")
+    write("finished with this test (not ^D).  Hitting Quit should cause")
+    write("normal program termination, with exit status 1.  NOTE that under")
+    write("DOS, characters will not always be echoed as you type them; this")
+    write("is the big difference between UNIX and DOS kbhit/getch interac-")
+    write("tions.\n")
+
+    repeat {
+        if kbhit() then
+            write("you hit ", image(getche()))
+        every 1 to 500
+        if kbhit() then
+            write("you hit ", image(getch()))
+        every 1 to 500
+    }
+
+end

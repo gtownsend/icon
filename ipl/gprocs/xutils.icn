@@ -1,0 +1,37 @@
+############################################################################
+#
+#	File:     xutils.icn
+#
+#	Subject:  Procedures for graphics utilities
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     June 9, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# compatibility file
+#
+############################################################################
+
+link wopen
+link gpxop
+link gpxlib
+
+procedure Quit(win)
+   /win := &window
+   while *Pending(win) > 0 do
+      if Event(win) === QuitEvents() then
+         return win
+   fail
+end
+
+procedure Done(win)
+   /win := &window
+   until Event(win) === QuitEvents()
+   exit()
+end

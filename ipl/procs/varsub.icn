@@ -1,0 +1,73 @@
+############################################################################
+#
+#	File:     varsub.icn
+#
+#	Subject:  Procedure to perform UNIX-shell-style substitution
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     November 2, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Variable values are obtained from the supplied procedure, "varProc",
+#  which returns the value of its variable-name argument or fails if
+#  there is no such variable.  "varProc" defaults to the procedure,
+#  "getenv".
+#
+#  As with the UNIX Bourne shell and C shell, variable names are
+#  preceded by $.  Optionally, the variable name can additionally be
+#  surrounded by curly braces {}, which is usually done when necessary
+#  to isolate the variable name from surrounding text.
+#
+#  As with the C-shell, the special symbol ~<username> is handled.
+#  Username can be omitted, in which case the value of the variable
+#  "HOME" is substituted.  If username is supplied, the /etc/passwd file
+#  is searched to supply the home directory of username (this action is
+#  obviously not portable to non-UNIX environments).
+#
+############################################################################
+
+procedure varsub(s,varProc)
+   local var,p,user,pw,i,c,line
+   static nameChar
+   initial nameChar := &letters ++ &digits ++ "_"
+   /varProc := getenv
+   s ? {
+      s := ""
+      while s ||:= tab(upto('$~')) do {
+     p := &pos
+     s ||:= case move(1) of {
+        "$": {
+           if c := tab(any('{(')) then var := tab(find(map(c,"{(","})"))) & 
+move(1)
+           else var := tab(many(nameChar)) | ""
+           "" ~== varProc(\var) | &subject[p:&pos]
+           }
+        "~": {
+           if user := tab(many(nameChar)) || ":" then {
+          if pw := open("/etc/passwd") then {
+             (while line := read(pw) do 
+               if match(user,line) then break) | (line := &null)
+             close(pw)
+             if \line then {
+            every i := find(":",line)\5
+            i +:= 1
+            line[i:find(":",line,i)]
+            }
+             else &subject[p:&pos]
+             }
+          else &subject[p:&pos]
+          }
+           else getenv("HOME") 
+           }
+        }
+     }
+      s ||:= tab(0)
+      }
+   return s
+end

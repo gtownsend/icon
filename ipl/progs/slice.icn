@@ -1,0 +1,35 @@
+############################################################################
+#
+#	File:     slice.icn
+#
+#	Subject:  Program to write long line as multiple short lines
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 27, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  The maximum line length is given on the command line, as in
+#
+#	slice 60 < foo > baz
+#
+############################################################################
+
+procedure main(args)
+   local i, line
+
+   i := args[1] | 60
+   integer(i) | stop("*** invalid argument")
+
+   while line := read() do
+      line ? {
+         while write(move(i))
+         if not pos(0) then write(tab(0))
+         }
+
+end

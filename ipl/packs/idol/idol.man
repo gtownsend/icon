@@ -1,0 +1,58 @@
+NAME
+	idol - Icon-Derived Object Language
+
+SYNOPSIS
+	idol [ option ... ] mainfile otherfiles... [-x arguments]
+
+DESCRIPTION
+	Idol is an object-oriented preprocessor for Version 8+ Icon.
+	It is a front-end for icont(1); typically one invokes idol on
+	a source file (extension .iol) which is translated into an
+	Icon source file (extension .icn) which is translated into a
+	file suitable for interpretation by the Icon interpreter.
+
+	On systems with directories, Idol typically stores its generated
+	class library code in a separate directory from the source code.
+	If the environment variable IDOLENV is defined, Idol uses this
+	directory for generated code.  If no IDOLENV is defined, Idol
+	creates a subdirectory named idolcode.env, and removes it after
+	successful compilation if the creation occurred for a single
+	source file.
+
+	Producing an executable is skipped when the first file on the
+	list contains only classes and no Icon entities.  Idol uses an
+	Icon translator selected by the environment variable ICONT,
+	if it is present.
+
+	The following options are recognized by idol:
+
+	-c       Suppress the linking phase
+	-t       Suppress all translation by icont
+	-s       Suppress removal of .icn files after translation by icont
+	-quiet   Suppress most Idol-specific console messages
+	-strict  Generate code that is paranoid about ensuring encapsulation
+	-version Print out the version of Idol and its date of creation
+	-ic      Generate code to create Icon-compatible class libraries
+
+	The second and following files on the command line may include
+	extensions .icn, .u1, and .cl.  The first two Idol treats as
+	Icon source code which should be translated and linked into the
+	resulting executable.  Files with extension .cl are treated as
+	class names which are linked into the resulting executable.
+	If no extension is given, Idol attempts to find the desired
+	source file by appending .iol, .icn, .u1, or .cl in that order.
+
+FILES
+
+   prog.iol                     : source file
+   prog.icn                     : code generated for non-classes in prog.iol
+   idolcode.env/i_object.*      : Icon code for the universal object type
+   idolcode.env/classname.icn   : Icon files are generated for each class
+   idolcode.env/classname.u[12] : translated class files
+   idolcode.env/classname       : class specification/interface
+
+SEE ALSO
+
+   "Programming in Idol: An Object Primer"
+   (U of Arizona Dept of CS Technical Report #90-10)
+   serves as user's guide and reference manual for Idol

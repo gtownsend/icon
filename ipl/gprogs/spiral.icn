@@ -1,0 +1,100 @@
+############################################################################
+#
+#       File:     spiral.icn
+#
+#	Subject:  Program to draw polygonal spirals
+#
+#	Author:   Stephen B. Wampler
+#
+#	Date:     June 17, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.0
+#
+############################################################################
+#
+#
+#   Comments: This program displays polyline based spiral
+#
+#	See the procedure 'helpmsg' for command line options
+#	(or run as 'spiral -help')
+#
+#	Waits for a window event before closing window
+#
+############################################################################
+#
+#  Links:  glib, wopen
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics and co-expressions (for glib.icn)
+#
+############################################################################
+
+link glib
+link wopen
+
+global win, mono, h, w
+global Window, XMAX, YMAX
+
+procedure main (args)
+    local dist, angle, incr, n, nextarg, arg, t
+
+    XMAX := YMAX := 700                 # physical screen size
+    w := h := 1.0
+   
+    dist := 0.02
+    angle := 144
+    incr := 0.01
+    n := 100
+
+    nextarg := create !args
+    while arg := @nextarg do {
+       if arg == ("-help"|"-h") then stop(helpmsg())
+       if match(arg, "-distance") then dist := numeric(@nextarg)
+       else if match(arg, "-angle") then angle := numeric(@nextarg)
+       else if match(arg, "-increment") then incr := numeric(@nextarg)
+       else if arg == "-n" then n := integer(@nextarg)
+       }
+
+    win := WOpen("label=Poly Spiral", "width="||XMAX, "height="||YMAX)
+    mono := WAttrib (win, "depth") == "1"
+    Window := set_window(win, point(0,0), point(w,h),
+                  viewport(point(0,0), point(XMAX, YMAX), win))
+
+    EraseArea(win)
+
+    Fg(win, "black")
+    t := turtle(Window, point(w/2, h/2), 0)
+    polyspiral(t, dist, angle, incr, n)
+
+    Event(win)
+    close(win)
+end
+
+procedure polyspiral(t, dist, angle, incr, n)
+   local i
+
+   every i := 1 to n do {
+      Line_Forward(t, dist)
+      Right(t, angle)
+      dist +:= incr
+      }
+
+end
+
+procedure helpmsg()
+   write("Usage: Spiral [-d dist] [-a angle] [-i increment] [-n nlines]")
+   write("   where")
+   write("     -d N		-- initial line length {default: 0.02")
+   write("     -a N		-- angle of change (degrees) {144}")
+   write("     -i N		-- incremental change to line {0.01}")
+   write("     -n N		-- number of lines to draw {100}")
+   return
+end
+

@@ -1,0 +1,175 @@
+############################################################################
+#
+#	File:     turing.icn
+#
+#	Subject:  Program to simulate a Turing machine
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     November 14, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This program simulates the operation of an n-state Turing machine,
+#  tracing all actions.  The machine starts in state 1 with an empty tape.
+#
+#     A description of the Turing machine is read from the file given as a
+#  command-line argument, or from standard input if none is specified.
+#  Comment lines beginning with '#' are allowed, as are empty lines.
+#
+#     The program states must be numbered from 1 and must appear in order.
+#  Each appears on a single line in this form:
+#
+#      sss.  wdnnn  wdnnn
+#
+#  sss is the state number in decimal.  The wdnnn fields specify the
+#  action to be taken on reading a 0 or 1 respectively:
+#
+#      w   is the digit to write (0 or 1)
+#      d   is the direction to move (L/l/R/r, or H/h to halt)
+#      nnn is the next state number (0 if halting)
+#
+#  Sample input file:
+#
+#      1. 1r2 1l3
+#      2. 1l1 1r2
+#      3. 1l2 1h0
+#
+#     One line is written for each cycle giving the cycle number, current
+#  state, and an image of that portion of the tape that has been visited
+#  so far.  The current position is indicated by reverse video (using
+#  ANSI terminal escape sequences).
+#
+#     Input errors are reported to standard error output and inhibit
+#  execution.
+#
+#     Bugs:
+#
+#     Transitions to nonexistent states are not detected.
+#  Reverse video should be parameterizable or at least optional.
+#  There is no way to limit the number of cycles.
+#  Infinite loops are not detected.  (Left as an exercise... :-)
+#
+#  Reference:
+#
+#     Scientific American, August 1984, pp. 19-23.  A. K. Dewdney's
+#  discussion of "busy beaver" turing machines in his "Computer
+#  Recreations" column motivated this program.  The sample above
+#  is the three-state busy beaver.
+#
+############################################################################
+#
+#  Links: options
+#
+############################################################################
+
+link options
+
+record action(wrt, mov, nxs)
+
+global machine, lns, lno, errs
+global cycle, tape, posn, state, video
+
+procedure main(args)
+   local opts
+
+   opts := options(args, "v")
+   video := \opts["v"]
+
+   rdmach(&input)			# read machine description
+   if errs > 0 then stop("[execution suppressed]")
+   lns := **machine			# initialize turing machine
+   tape := "0"
+   posn := 1
+   cycle := 0
+   state := 1
+   while state > 0 do {		# execute
+      dumptape()
+      transit(machine[state][tape[posn]+1])
+      cycle +:= 1
+   }
+   dumptape()
+end
+
+#  dumptape - display current tape contents on screen
+
+procedure dumptape()
+   if cycle < 10 then writes(" ")
+   writes(cycle, ". [", right(state, lns), "] ", tape[1:posn])
+   if \video then write("\e[7m", tape[posn], "\e[m", tape[posn + 1:0])
+   else {
+      write(tape[posn:0])
+      write(repl(" ", 6 + *state + posn), "^")
+      }
+end
+
+
+#  transit (act) - transit to the next state performing the given action
+
+procedure transit(act)
+   tape[posn] := act.wrt
+   if act.mov == "R" then {
+      posn +:= 1
+      if posn > *tape then tape ||:= "0"
+      }
+   else if act.mov == "L" then {
+      if posn = 1 then tape := "0" || tape
+      else posn -:= 1
+      }
+   state := act.nxs
+   return
+end
+
+#  rdmach (f) - read machine description from the given file
+
+procedure rdmach(f)
+   local nstates, line, a0, a1, n
+
+   machine := list()
+   nstates := 0
+   lno := 0
+   errs := 0
+   while line := trim(read(f), ' \t') do {
+      lno +:= 1
+      if *line > 0 & line[1] ~== "#"
+         then line ? {
+            tab(many(' \t'))
+            n := tab(many(&digits)) | 0
+            if n ~= nstates + 1 then warn("sequence error")
+            nstates := n
+            tab(many('. \t'))
+            a0 := tab(many('01LRHlrh23456789')) | ""
+            tab(many(' \t'))
+            a1 := tab(many('01LRHlrh23456789')) | ""
+            pos(0) | (warn("syntax error") & next)
+            put(machine, [mkact(a0), mkact(a1)])
+            }
+   }
+   lno := "<EOF>"
+   if *machine = errs = 0 then warn("no machine!")
+   return
+end
+
+#  mkact (a) - construct the action record specified by the given string
+
+procedure mkact(a)
+   local w, m, n
+
+   w := a[1] | "9"
+   m := map(a[2], &lcase, &ucase) | "X"
+   (any('01', w) & any('LRH', m)) | warn("syntax error")
+   n := integer(a[3:0]) | (warn("bad nextstate"), 0)
+   return action (w, m, n)
+end
+
+#  warn (msg) - report an error in the machine description
+
+procedure warn(msg)
+   write(&errout, "line ", lno, ": ", msg)
+   errs +:= 1
+   return
+end

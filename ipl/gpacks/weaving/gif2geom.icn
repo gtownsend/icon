@@ -1,0 +1,74 @@
+############################################################################
+#
+#	File:     gif2geom.icn
+#
+#	Subject:  Program to analyze weaving patterns
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 15, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program does a row analysis of a GIF image, labels each unique row,
+#  and then outputs a string of row labels for the image and the value of
+#  each as a string of palette characters.
+#
+#  The following option is supported:
+#
+#	-p s	palette name, default "c1"
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  options, weavutil, wopen
+#
+############################################################################
+
+link options
+link weavutil
+link wopen
+
+procedure main(args)
+   local rows_diff, height, width, y, row, count, row_pattern, pixel, opts
+   local palette
+
+   opts := options(args, "p:")
+
+   palette := \opts["p"] | "c1"		# need to check for valid palette
+
+   WOpen("image=" || args[1], "canvas=hidden") | stop("*** cannot open image")
+
+   rows_diff := table()
+   row_pattern := ""
+
+   height := WAttrib("height")
+   width := WAttrib("width")
+
+   count := 0
+
+   every y := 0 to height - 1 do {
+      row := ""
+      every pixel := Pixel(0, y, width, 1) do
+         row ||:= PaletteKey(palette, pixel)
+      if /rows_diff[row] then 
+         rows_diff[row] := (count +:= 1)
+      row_pattern ||:= possym(rows_diff[row]) |
+         stop("*** too many different rows to label")
+      }
+
+   write(row_pattern)
+
+   rows_diff := sort(rows_diff, 3)
+
+   while write(get(rows_diff)) do
+      get(rows_diff)
+         
+end

@@ -1,0 +1,42 @@
+############################################################################
+#
+#	File:     memlog.icn
+#
+#	Subject:  Procedure to log memory usage
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#   memlog(f) writes a message to file f recording the current memory
+#   usage in the string and block regions.  For each, three figures are
+#   written:  amount in use, amount reserved, and number of collections.
+#   
+#   memlog does not perturb the figures: it requires no allocation itself.
+#   f defaults to &output.  memlog() returns the total current usage.
+#
+############################################################################
+
+procedure memlog(f)		#: log memory usage
+   local sused, bused, salloc, balloc, scoll, bcoll
+
+   every sused := &storage \ 2
+   every bused := &storage \ 3
+
+   every salloc := &regions \ 2
+   every balloc := &regions \ 3
+
+   every scoll := &collections \ 3
+   every bcoll := &collections \ 4
+
+   write(f, "str:", sused, "/", salloc, "(", scoll, ") ",
+            "blk:", bused, "/", balloc, "(", bcoll, ") ")
+   return sused + bused
+end
+

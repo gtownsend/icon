@@ -1,0 +1,831 @@
+############################################################################
+#
+#	File:     regexp.icn
+#
+#	Subject:  Procedure for regular-expression pattern matching
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     May 19, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This is a kit of procedures to deal with UNIX-like regular expression
+#  patterns.
+#
+#  These procedures are interesting partly because of the "recursive
+#  suspension" (or "suspensive recursion" :-) technique used to simulate
+#  conjunction of an arbitrary number of computed expressions (see
+#  notes, below).
+#
+#  The public procedures are:
+#
+#  ReMatch(pattern,s,i1,i2) : i3,i4,...,iN
+#  ReFind(pattern,s,i1,i2) : i3,i4,...,iN
+#  RePat(s) : pattern list
+#
+############################################################################
+#
+#  ReMatch() produces the sequence of positions in "s" past a substring
+#  starting at "i1" that matches "pattern", but fails if there is no
+#  such position.  Similar to match(), but is capable of generating
+#  multiple positions.
+#
+#  ReFind() produces the sequence of positions in "s" where substrings
+#  begin that match "pattern", but fails if there is no such position.
+#  Similar to find().  Each position is produced only once, even if
+#  several possible matches are possible at that position.
+#
+#  "pattern" can be either a string or a pattern list -- see RePat(),
+#  below.
+#
+#  Default values of s, i1, and i2 are handled as for Icon's built-in
+#  string scanning procedures such as match().
+#
+############################################################################
+#
+#  RePat(s) : L
+#
+#  Creates a pattern element list from pattern string "s", but fails if
+#  the pattern string is not syntactically correct.  ReMatch() and
+#  ReFind() will automatically convert a pattern string to a pattern
+#  list, but it is faster to do the conversion explicitly if multiple
+#  operations are done using the same pattern.  An additional advantage
+#  to compiling the pattern separately is avoiding ambiguity of failure
+#  caused by an incorrect pattern and failure to match a correct pattern.
+#
+############################################################################
+#
+#  ReCaseIndependent() : n
+#  ReCaseDependent() : n
+#
+#  Set mode for case-independent or case-dependent matching.  The initial
+#  mode is case-dependent.
+#
+############################################################################
+#
+#  Accessible Global Variables
+#
+#  After a match, the strings matched by parenthesized regular
+#  expressions are left in list "Re_ParenGroups", and can be accessed by
+#  subscripting in using the same number as the \N construct.
+#
+#  If it is desired that regular expression format be similar to UNIX
+#  filename generation patterns but still retain the power of full
+#  regular expressions, make the following assignments prior to
+#  compiling the pattern string:
+#
+#       Re_ArbString := "*"     # Defaults to ".*"
+#
+#  The sets of characters (csets) that define a word, digits, and white
+#  space can be modified.  The following assignments can be made before
+#  compiling the pattern string.  The character sets are captured when
+#  the pattern is compiled, so changing them after pattern compilation
+#  will not alter the behavior of matches unless the pattern string is
+#  recompiled.
+#
+#       Re_WordChars := 'whatever you like'
+#                       # Defaults to &letters ++ &digits ++ "_"
+#       Re_Digits := &digits ++ 'ABCDEFabcdef'
+#                       # Defaults to &digits
+#       Re_Space := 'whatever you like'
+#                       # Defaults to ' \t\v\n\r\f'
+#
+#  These globals are normally not initialized until the first call to
+#  RePat(), and then only if they are null.  They can be explicitly
+#  initialized to their defaults (if they are null) by calling
+#  Re_Default().
+#
+############################################################################
+#
+#  Characters compiled into patterns can be passed through a
+#  user-supplied filter procedure, provided in global variable
+#  Re_Filter.  The filtering is done before the characters are bound
+#  into the pattern.  The filter proc is passed one argument, the string
+#  to filter, and it must return the filtered string as its result.  If
+#  the filter proc fails, the string will be used unfiltered.  The
+#  filter proc is called with an argument of either type string (for
+#  characters in the pattern) or cset (for character classes [...]).
+#
+#  Filtering is done only as the pattern is compiled.  Any filtering of
+#  strings to be matched must be explicitly done.
+#
+############################################################################
+#
+#  By default, individual pattern elements are matched in a "leftmost-
+#  longest-first" sequence, which is the order observed by perl, egrep,
+#  and most other regular expression matchers.  If the order of matching
+#  is not important a performance improvement might be seen if pattern
+#  elements are matched in "shortest-first" order.  The following global
+#  variable setting causes the matcher to operate in leftmost-shortest-
+#  first order.
+#
+#   Re_LeftmostShortest := 1
+#  
+############################################################################
+#
+#  In the case of patterns containing alternation, ReFind() will
+#  generally not produce positions in increasing order, but will produce
+#  all positions from the first term of the alternation (in increasing
+#  order) followed by all positions from the second (in increasing
+#  order).  If it is necessary that the positions be generated in
+#  strictly increasing order, with no duplicates, assign any non-null
+#  value to Re_Ordered:
+#
+#       Re_Ordered := 1
+#
+#  If the Re_Ordered option is chosen, there is a *small* penalty in
+#  efficiency in some cases, and the co-expression facility is required
+#  in your Icon implementation.
+#  
+############################################################################
+#
+#  Regular Expression Characters and Features Supported
+#
+#  The regular expression format supported by procedures in this file
+#  model very closely those supported by the UNIX "egrep" program, with
+#  modifications as described in the Perl programming language
+#  definition.  Following is a brief description of the special
+#  characters used in regular expressions.  In the description, the
+#  abbreviation RE means regular expression.
+#
+#  c            An ordinary character (not one of the special characters
+#               discussed below) is a one-character RE that matches that
+#               character.
+#
+#  \c           A backslash followed by any special character is a one-
+#               character RE that matches the special character itself.
+#
+#               Note that backslash escape sequences representing
+#               non-graphic characters are not supported directly
+#               by these procedures.  Of course, strings coded in an
+#               Icon program will have such escapes handled by the
+#               Icon translator.  If such escapes must be supported
+#               in strings read from the run-time environment (e.g.
+#               files), they will have to be converted by other means,
+#               such as the Icon Program Library procedure "escape()".
+#
+#  .            A period is a one-character RE that matches any
+#               character.
+#
+#  [string]     A non-empty string enclosed in square brackets is a one-
+#               character RE that matches any *one* character of that
+#               string.  If, the first character is "^" (circumflex),
+#               the RE matches any character not in the remaining
+#               characters of the string.  The "-" (minus), when between
+#               two other characters, may be used to indicate a range of
+#               consecutive ASCII characters (e.g. [0-9] is equivalent to
+#               [0123456789]).  Other special characters stand for
+#               themselves in a bracketed string.
+#
+#  *            Matches zero or more occurrences of the RE to its left.
+#
+#  +            Matches one or more occurrences of the RE to its left.
+#
+#  ?            Matches zero or one occurrences of the RE to its left.
+#
+#  {N}          Matches exactly N occurrences of the RE to its left.
+#
+#  {N,}         Matches at least N occurrences of the RE to its left.
+#
+#  {N,M}        Matches at least N occurrences but at most M occurrences
+#               of the RE to its left.
+#
+#  ^            A caret at the beginning of an entire RE constrains
+#               that RE to match an initial substring of the subject
+#               string.
+#
+#  $            A currency symbol at the end of an entire RE constrains
+#               that RE to match a final substring of the subject string.
+#
+#  |            Alternation: two REs separated by "|" match either a
+#               match for the first or a match for the second.
+#
+#  ()           A RE enclosed in parentheses matches a match for the
+#               regular expression (parenthesized groups are used
+#               for grouping, and for accessing the matched string
+#               subsequently in the match using the \N expression).
+#
+#  \N           Where N is a digit in the range 1-9, matches the same
+#               string of characters as was matched by a parenthesized
+#               RE to the left in the same RE.  The sub-expression
+#               specified is that beginning with the Nth occurrence
+#               of "(" counting from the left.  E.g., ^(.*)\1$ matches
+#               a string consisting of two consecutive occurrences of
+#               the same string.
+#
+############################################################################
+#
+#  Extensions beyond UNIX egrep
+#
+#  The following extensions to UNIX REs, as specified in the Perl
+#  programming language, are supported.
+#
+#  \w           Matches any alphanumeric (including "_").
+#  \W           Matches any non-alphanumeric.
+#
+#  \b           Matches only at a word-boundary (word defined as a string
+#               of alphanumerics as in \w).
+#  \B           Matches only non-word-boundaries.
+#
+#  \s           Matches any white-space character.
+#  \S           Matches any non-white-space character.
+#
+#  \d           Matches any digit [0-9].
+#  \D           Matches any non-digit.
+#
+#  \w, \W, \s, \S, \d, \D can be used within [string] REs.
+#
+############################################################################
+#
+#  Notes on computed conjunction expressions by "suspensive recursion"
+#
+#  A conjunction expression of an arbitrary number of terms can be
+#  computed in a looping fashion by the following recursive technique:
+#
+#       procedure Conjunct(v)
+#          if <there is another term to be appended to the conjunction> then
+#             suspend Conjunct(<the next term expression>)
+#          else
+#             suspend v
+#       end
+#
+#  The argument "v" is needed for producing the value of the last term
+#  as the value of the conjunction expression, accurately modeling Icon
+#  conjunction.  If the value of the conjunction is not needed, the
+#  technique can be slightly simplified by eliminating "v":
+#
+#       procedure ConjunctAndProduceNull()
+#          if <there is another term to be appended to the conjunction> then
+#             suspend ConjunctAndProduceNull(<the next term expression>)
+#          else
+#             suspend
+#       end
+#
+#  Note that <the next term expression> must still remain in the suspend
+#  expression to test for failure of the term, although its value is not
+#  passed to the recursive invocation.  This could have been coded as
+#
+#             suspend <the next term expression> & ConjunctAndProduceNull()
+#
+#  but wouldn't have been as provocative.
+#
+#  Since the computed conjunctions in this program are evaluated only for
+#  their side effects, the second technique is used in two situations:
+#
+#       (1)     To compute the conjunction of all of the elements in the
+#               regular expression pattern list (Re_match1()).
+#
+#       (2)     To evaluate the "exactly N times" and "N to M times"
+#               control operations (Re_NTimes()).
+#
+############################################################################
+
+record Re_Tok(proc,args)
+
+global Re_ParenGroups,Re_Filter,Re_Ordered
+global Re_WordChars,Re_NonWordChars
+global Re_Space,Re_NonSpace
+global Re_Digits,Re_NonDigits
+global Re_ArbString,Re_AnyString
+global Re_LeftmostShortest
+
+invocable "=":1
+
+###################  Pattern Translation Procedures  ###################
+
+
+procedure RePat(s)	#: regular expression pattern list
+#
+#  Produce pattern list representing pattern string s.
+#
+   #
+   #  Create a list of pattern elements.  Pattern strings are parsed
+   #  and converted into list elements as shown in the following table.
+   #  Since some list elements reference other pattern lists, the
+   #  structure is really a tree.
+   #
+   # Token      Generates                       Matches...
+   # -----      ---------                       ----------
+   #  ^         Re_Tok(pos,[1])                 Start of string or line
+   #  $         Re_Tok(pos,[0])                 End of string or line
+   #  .         Re_Tok(move,[1])                Any single character
+   #  +         Re_Tok(Re_OneOrMore,[tok])      At least one occurrence of
+   #                                            previous token
+   #  *         Re_Tok(Re_ArbNo,[tok])          Zero or more occurrences of
+   #                                            previous token
+   #  |         Re_Tok(Re_Alt,[pattern,pattern]) Either of prior expression
+   #                                            or next expression
+   #  [...]     Re_Tok(Re_TabAny,[cset])        Any single character in
+   #                                            specified set (see below)
+   #  (...)     Re_Tok(Re_MatchReg,[pattern])   Parenthesized pattern as
+   #                                            single token
+   #  <string of non-special characters>        The string of no-special
+   #            Re_Tok(Re__tabmatch,string)       characters
+   #  \b        Re_Tok(Re_WordBoundary,[Re_WordChars,Re_NonWordChars])
+   #                                            A word-boundary
+   #                                              (word default: [A-Za-z0-9_]+)
+   #  \B        Re_Tok(Re_NonWordBoundary,[Re_WordChars,Re_NonWordChars])
+   #                                            A non-word-boundary
+   #  \w        Re_Tok(Re_TabAny,[Re_WordChars])A word-character
+   #  \W        Re_Tok(Re_TabAny,[Re_NonWordChars]) A non-word-character
+   #  \s        Re_Tok(Re_TabAny,[Re_Space])    A space-character
+   #  \S        Re_Tok(Re_TabAny,[Re_NonSpace]) A non-space-character
+   #  \d        Re_Tok(Re_TabAny,[Re_Digits])   A digit
+   #  \D        Re_Tok(Re_TabAny,[Re_NonDigits]) A non-digit
+   #  {n,m}     Re_Tok(Re_NToMTimes,[tok,n,m])  n to m occurrences of
+   #                                            previous token
+   #  {n,}      Re_Tok(Re_NOrMoreTimes,[tok,n]) n or more occurrences of
+   #                                            previous token
+   #  {n}       Re_Tok(Re_NTimes,[tok,n])       exactly n occurrences of
+   #                                            previous token
+   #  ?         Re_Tok(Re_ZeroOrOneTimes,[tok]) one or zero occurrences of
+   #                                            previous token
+   #  \<digit>  Re_Tok(Re_MatchParenGroup,[n])  The string matched by
+   #                                            parenthesis group <digit>
+   #
+   local plist
+   static lastString,lastPList
+   #
+   #  Initialize.
+   #
+   initial {
+      Re_Default()
+      lastString := ""
+      lastPList := []
+      }
+
+   if s === lastString then return lastPList
+
+   Re_WordChars := cset(Re_WordChars)
+   Re_NonWordChars := ~Re_WordChars
+   Re_Space := cset(Re_Space)
+   Re_NonSpace := ~Re_Space
+   Re_Digits := cset(Re_Digits)
+   Re_NonDigits := ~Re_Digits
+
+
+   s ? (plist := Re_pat1(0)) | fail
+   lastString := s
+   lastPList := plist
+   return plist
+end
+
+
+procedure Re_pat1(level) # L
+#
+#  Recursive portion of RePat()
+#
+   local plist,n,m,c,comma
+   static parenNbr
+   initial {
+      if /Re__match then ReCaseDependent()
+      }
+   if level = 0 then parenNbr := 0
+   plist := []
+   #
+   #  Loop to put pattern elements on list.
+   #
+   until pos(0) do {
+      (="|",plist := [Re_Tok(Re_Alt,[plist,Re_pat1(level + 1) | fail])]) |
+      put(plist,
+         (="^",pos(2) | &subject[-2] == ("|" | "("),Re_Tok(pos,[1])) |
+         (="$",pos(0) | match("|" | ")"),Re_Tok(pos,[0])) |
+         (match(")"),level > 0,break) |
+         (=Re_ArbString,Re_Tok(Re_Arb)) |
+         (=Re_AnyString,Re_Tok(move,[1])) |
+         (="+",Re_Tok(Re_OneOrMore,[Re_prevTok(plist) | fail])) |
+         (="*",Re_Tok(Re_ArbNo,[Re_prevTok(plist) | fail])) |
+         1(Re_Tok(Re_TabAny,[c := Re_cset()]),\c | fail) |
+         3(="(",n := parenNbr +:= 1,
+               Re_Tok(Re_MatchReg,[Re_pat1(level + 1) | fail,n]),
+               move(1) | fail) |
+         (="\\b",Re_Tok(Re_WordBoundary,[Re_WordChars,Re_NonWordChars])) |
+         (="\\B",Re_Tok(Re_NonWordBoundary,[Re_WordChars,Re_NonWordChars])) |
+         (="\\w",Re_Tok(Re_TabAny,[Re_WordChars])) |
+         (="\\W",Re_Tok(Re_TabAny,[Re_NonWordChars])) |
+         (="\\s",Re_Tok(Re_TabAny,[Re_Space])) |
+         (="\\S",Re_Tok(Re_TabAny,[Re_NonSpace])) |
+         (="\\d",Re_Tok(Re_TabAny,[Re_Digits])) |
+         (="\\D",Re_Tok(Re_TabAny,[Re_NonDigits])) |
+         (="{",(n := tab(many(&digits)),comma := =(",") | &null,
+            m := tab(many(&digits)) | &null,="}") | fail,
+            if \m then Re_Tok(Re_NToMTimes,
+                  [Re_prevTok(plist),integer(n),integer(m)])
+            else if \comma then Re_Tok(Re_NOrMoreTimes,
+                  [Re_prevTok(plist),integer(n)])
+            else Re_Tok(Re_NTimes,[Re_prevTok(plist),integer(n)])) |
+         (="?",Re_Tok(Re_ZeroOrOneTimes,[Re_prevTok(plist) | fail])) |
+         Re_Tok(Re__tabmatch,[Re_string(level)]) |
+         (="\\",n := tab(any(&digits)),Re_Tok(Re_MatchParenGroup,[integer(n)]))
+         ) |
+      fail
+      }
+   return plist
+end
+
+
+procedure Re_prevTok(plist)
+#
+#  Pull previous token from the pattern list.  This procedure must take
+#  into account the fact that successive character tokens have been
+#  optimized into a single string token.
+#
+   local lastTok,s,r
+   lastTok := pull(plist) | fail
+   if lastTok.proc === Re__tabmatch then {
+      s := lastTok.args[1]
+      r := Re_Tok(Re__tabmatch,[s[-1]])
+      s[-1] := ""
+      if *s > 0 then {
+         put(plist,lastTok)
+         lastTok.args[1] := s
+         }
+      return r
+      }
+   return lastTok
+end
+
+
+procedure Re_Default()
+#
+#  Assign default values to regular expression translation globals, but
+#  only to variables whose values are null.
+#
+   /Re_WordChars := &letters ++ &digits ++ "_"
+   /Re_Space := ' \t\v\n\r\f'
+   /Re_Digits := &digits
+   /Re_ArbString := ".*"
+   /Re_AnyString := "."
+   return
+end
+
+
+procedure Re_cset()
+#
+#  Matches a [...] construct and returns a cset.
+#
+   local complement,c,e,ch,chars
+   ="[" | fail
+   (complement := ="^" | &null,c := move(1) || tab(find("]")),move(1)) |
+         return &null
+   c ? {
+      e := (="-" | "")
+      while chars := tab(upto('-\\')) do {
+         e ++:= case move(1) of {
+            "-": chars[1:-1] ++
+                  &cset[ord(chars[-1]) + 1:ord(move(1)) + 2] | return &null
+            "\\": case ch := move(1) of {
+               "w": Re_WordChars
+               "W": Re_NonWordChars
+               "s": Re_Space
+               "S": Re_NonSpace
+               "d": Re_Digits
+               "D": Re_NonDigits
+               default: ch
+               }
+            }
+         }
+      e ++:= tab(0)
+      if \complement then e := ~e
+      }
+   e := (\Re_Filter)(e)
+   return cset(e)
+end
+
+
+procedure Re_string(level)
+#
+#  Matches a string of non-special characters, returning a string.
+#
+   local special,s,p
+   static nondigits
+   initial nondigits := ~&digits
+   special := if level = 0 then '\\.+*|[({?' else  '\\.+*|[({?)'
+   s := tab(upto(special) | 0)
+   while ="\\" do {
+      p := &pos
+      if tab(any('wWbBsSdD')) |
+            (tab(any('123456789')) & (pos(0) | any(nondigits))) then {
+         tab(p - 1)
+         break
+         }
+      s ||:= move(1) || tab(upto(special) | 0)
+      }
+   if pos(0) & s[-1] == "$" then {
+      move(-1)
+      s[-1] := ""
+      }
+   s := string((\Re_Filter)(s))
+   return "" ~== s
+end
+
+
+#####################  Matching Engine Procedures  ########################
+
+
+procedure ReMatch(plist,s,i1,i2) #: position past regular expression matched
+#
+#  Produce the sequence of positions in s past a string starting at i1
+#  that matches the pattern plist, but fails if there is no such
+#  position.  Similar to match(), but is capable of generating multiple
+#  positions.
+#
+   local i
+   if type(plist) ~== "list" then plist := RePat(plist) | fail
+   if /s := &subject then /i1 := &pos else /i1 := 1 ; /i2 := 0
+   i := match("",s,i1,i2) - 1 | fail
+   Re_ParenGroups := []
+   suspend s[i1:i2] ? (Re_match1(plist,1),i + &pos)
+end
+
+
+procedure Re_match1(plist,i) # s1,s2,...,sN
+#
+#  Used privately by ReMatch() to simulate a computed conjunction
+#  expression via recursive generation.
+#
+   local tok
+   suspend if tok := plist[i] then
+      Re_tok_match(tok,plist,i) & Re_match1(plist,i + 1) else &null
+end
+
+
+procedure ReFind(plist,s,i1,i2) #: position where regular expression matched
+#
+#  Produce the sequence of positions in s where strings begin that match
+#  the pattern plist, but fails if there is no such position.  Similar
+#  to find().
+#
+   local i,p
+   if type(plist) ~== "list" then plist := RePat(plist) | fail
+   if /s := &subject then /i1 := &pos else /i1 := 1 ; /i2 := 0
+   i := match("",s,i1,i2) - 1 | fail
+   Re_ParenGroups := []
+   s[i1:i2] ? suspend (
+         tab(Re_skip(plist)) &
+         p := &pos &
+         Re_match1(plist,1)\1 &
+         i + p)
+end
+
+
+procedure Re_tok_match(tok,plist,i)
+#
+#  Match a single token.  Can be recursively called by the token
+#  procedure.
+#
+   local prc,results,result
+   prc := tok.proc
+   if \Re_LeftmostShortest then
+         suspend if prc === Re_Arb then Re_Arb(plist,i) else prc!tok.args
+   else {
+      results := []
+      every (if prc === Re_Arb then Re_Arb(plist,i) else prc!tok.args) do
+        push(results,[&pos,copy(Re_ParenGroups)])
+      every result := !results do {
+         Re_ParenGroups := result[2]
+     suspend tab(result[1])
+         }
+      }
+end
+
+
+##########  Heuristic Code for Matching Arbitrary Characters  ##########
+
+
+procedure Re_skip(plist,i) # s1,s2,...,sN
+#
+#  Used privately -- match a sequence of strings in s past which a match
+#  of the first pattern element in plist is likely to succeed.  This
+#  procedure is used for heuristic performance improvement by ReMatch()
+#  for the ".*" pattern element, and by ReFind().
+#
+   local x,s,p,prc,args
+   /i := 1
+   x := if type(plist) == "list" then plist[i] else plist
+   if /x then suspend find("")
+   else {
+      args := x.args
+      suspend case prc := x.proc of {
+     Re__tabmatch: Re__find!args
+     Re_TabAny: Re__upto!args
+     pos: args[1]
+     Re_WordBoundary |
+     Re_NonWordBoundary:
+           p := &pos & tab(Re_skip(plist,i + 1)) & prc!args & untab(p)
+     Re_MatchParenGroup: if s := \(\Re_ParenGroups)[args[1]] then
+           find(s) else find("")
+     Re_NToMTimes |
+     Re_NOrMoreTimes |
+     Re_NTimes:
+           if args[2] > 0 then Re_skip(args[1]) else find("")
+     Re_OneOrMore |
+     Re_MatchReg: Re_skip(args[1])
+     Re_Alt:
+           if \Re_Ordered then
+             Re_result_merge{Re_skip(args[1]),Re_skip(args[2])}
+           else
+             Re_skip(args[1 | 2])
+     default: find("")
+     }
+      }
+end
+
+
+procedure Re_result_merge(L)
+#
+#  Programmer-defined control operation to merge the result sequences of
+#  two integer-producing generators.  Both generators must produce their
+#  result sequences in numerically increasing order with no duplicates,
+#  and the output sequence will be in increasing order with no
+#  duplicates.
+#
+   local e1,e2,r1,r2
+   e1 := L[1] ; e2 := L[2]
+   r1 := @e1 ; r2 := @e2
+   while \(r1 | r2) do
+         if /r2 | \r1 < r2 then
+               suspend r1 do r1 := @e1 | &null
+         else if /r1 | r1 > r2 then
+               suspend r2 do r2 := @e2 | &null
+         else
+               r2 := @e2 | &null
+end
+
+
+procedure untab(origPos)
+#
+#  Converts a string scanning expression that moves the cursor to one
+#  that produces a cursor position and doesn't move the cursor (converts
+#  something like tab(find(x)) to find(x).  The template for using this
+#  procedure is
+#
+#       origPos := &pos ; tab(x) & ... & untab(origPos)
+#
+   local newPos
+   newPos := &pos
+   tab(origPos)
+   suspend newPos
+   tab(newPos)
+end
+
+
+#######################  Matching Procedures #######################
+
+
+procedure Re_Arb(plist,i)
+#
+#  Match arbitrary characters (.*)
+#
+   suspend tab(if plist[i + 1] then Re_skip(plist,i + 1) else Re__find(""))
+end
+
+
+procedure Re_TabAny(C)
+#
+#  Match a character of a character set ([...],\w,\W,\s,\S,\d,\D)
+#
+   suspend tab(Re__any(C))
+end
+
+
+procedure Re_MatchReg(tokList,groupNbr)
+#
+#  Match parenthesized group and assign matched string to list Re_ParenGroup
+#
+   local p,s
+   p := &pos
+   /Re_ParenGroups := []
+   every Re_match1(tokList,1) do {
+      while *Re_ParenGroups < groupNbr do put(Re_ParenGroups)
+      s := &subject[p:&pos]
+      Re_ParenGroups[groupNbr] := s
+      suspend s
+      }
+   Re_ParenGroups[groupNbr] := &null
+end
+
+
+procedure Re_WordBoundary(wd,nonwd)
+#
+#  Match word-boundary (\b)
+#
+   suspend ((pos(1),any(wd)) | (pos(0),move(-1),tab(any(wd))) | (move(-1),
+         (tab(any(wd)),any(nonwd)) | (tab(any(nonwd)),any(wd))),"")
+end
+
+
+procedure Re_NonWordBoundary(wd,nonwd)
+#
+#  Match non-word-boundary (\B)
+#
+   suspend ((pos(1),any(nonwd)) | (pos(0),move(-1),tab(any(nonwd))) | (move(-1),
+         (tab(any(wd)),any(wd)) | (tab(any(nonwd)),any(nonwd)),""))
+end
+
+
+procedure Re_MatchParenGroup(n)
+#
+#  Match same string matched by previous parenthesized group (\N)
+#
+   local s
+   suspend if s := \Re_ParenGroups[n] then =s else ""
+end
+
+
+###################  Control Operation Procedures  ###################
+
+
+procedure Re_ArbNo(tok)
+#
+#  Match any number of times (*)
+#
+   suspend "" | (Re_tok_match(tok) & Re_ArbNo(tok))
+end
+
+
+procedure Re_OneOrMore(tok)
+#
+#  Match one or more times (+)
+#
+   suspend Re_tok_match(tok) & Re_ArbNo(tok)
+end
+
+
+procedure Re_NToMTimes(tok,n,m)
+#
+#  Match n to m times ({n,m}
+#
+   suspend Re_NTimes(tok,n) & Re_ArbNo(tok)\(m - n + 1)
+end
+
+
+procedure Re_NOrMoreTimes(tok,n)
+#
+#  Match n or more times ({n,})
+#
+   suspend Re_NTimes(tok,n) & Re_ArbNo(tok)
+end
+
+
+procedure Re_NTimes(tok,n)
+#
+#  Match exactly n times ({n})
+#
+   if n > 0 then
+      suspend Re_tok_match(tok) & Re_NTimes(tok,n - 1)
+   else suspend
+end
+
+
+procedure Re_ZeroOrOneTimes(tok)
+#
+#  Match zero or one times (?)
+#
+   suspend "" | Re_tok_match(tok)
+end
+
+
+procedure Re_Alt(tokList1,tokList2)
+#
+#  Alternation (|)
+#
+   suspend Re_match1(tokList1 | tokList2,1)
+end
+
+
+###################  Case Independence Procedures  ###################
+
+
+link noncase
+
+global Re__find,Re__match,Re__any,Re__many,Re__upto,Re__tabmatch
+
+procedure ReCaseIndependent()
+  Re__find := c_find
+  Re__match := c_match
+  Re__any := c_any
+  Re__many := c_many
+  Re__upto := c_upto
+  Re__tabmatch := Re_c_tabmatch
+  return
+end
+
+procedure ReCaseDependent()
+  Re__find := find
+  Re__match := match
+  Re__any := any
+  Re__many := many
+  Re__upto := upto
+  Re__tabmatch := proc("=",1)
+  return
+end
+
+procedure Re_c_tabmatch(s)
+  suspend tab(c_match(s))
+end

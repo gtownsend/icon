@@ -1,0 +1,108 @@
+############################################################################
+#
+#	File:     ilnkxref.icn
+#
+#	Subject:  Program to produce Icon link cross reference
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     April 25, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Utility to create cross reference of library files used in Icon
+#  programs (i.e., those files named in "link" declarations).
+#
+#	ilnkxref [-options] <icon source file>...
+#
+#	options:
+#
+#		-p	sort by "popularity"
+#		-v	report progress information
+#
+############################################################################
+#
+#  Requires: UNIX
+#
+############################################################################
+#
+#  Links: wrap, options, isort
+#
+############################################################################
+
+link wrap,options,isort
+
+procedure main(arg)
+local comma, f, fill, fn, head, heads, i, libname, line, linesize, maxfile,
+   maxlib, opt, p, popularity, proctable, root, sep, spaces, verbose, x
+   #
+   #  Initialize
+   #
+   opt := options(arg,"pv")
+   popularity := opt["p"]	# sort by popularity
+   verbose := opt["v"]		# report progress
+   if *arg = 0 then {
+      p := open("ls *.icn","rp")
+      while put(arg,read(p))
+      close(p)
+      }
+   spaces := ' \t'
+   sep := ' \t,'
+   proctable := table()
+   maxlib := maxfile := 0
+   #
+   # Gather information from files.
+   #
+   every fn := !arg do {
+      if \verbose then write(&errout,"File: ",fn)
+      f := open(fn) | stop("Can't open ",fn)
+      i := 0
+      every i := find("/",fn)
+      root := fn[1:find(".",fn,i + 1) | 0]
+      comma := &null
+      while line := read(f) do {
+	 line ? {
+	    tab(many(spaces))
+	    if \comma | ="link " then {
+	       if \verbose then write(&errout,"    ",line)
+	       comma := &null
+	       tab(many(spaces))
+	       until pos(0) | match("#") do {
+		  libname := tab(upto(sep) | 0)
+		  put(\proctable[libname],root) | (proctable[libname] := [root])
+		  maxlib <:= *libname
+		  maxfile <:= *root
+		  tab(many(spaces))
+		  comma := &null
+		  if comma := ="," then tab(many(spaces))
+		  }
+	       }
+	    }
+	 }
+      close(f)
+      }
+   #
+   #  Print the cross reference table.
+   #
+   write()
+   proctable := sort(proctable)
+   if \popularity then proctable := isort(proctable,popproc)
+   every x := !proctable do {
+      head := left(x[1],maxlib + 3)
+      heads := [left("(" || *x[2] || ")",maxlib + 3),
+            fill := repl(" ",*head)]
+      linesize := 78 - *head
+      every x := !sort(x[2]) do
+	 if write(head,wrap(left(x,maxfile + 2),linesize)) then
+	    head := get(heads)
+      write(head,wrap())
+      }
+end
+
+procedure popproc(x)
+  return -*x[2]
+end

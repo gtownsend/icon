@@ -1,0 +1,743 @@
+############################################################################
+#
+#	File:     pdco.icn
+#
+#	Subject:  Procedures for programmer-defined control operations
+#
+#	Authors:  Ralph E. Griswold and Robert J. Alexander
+#
+#	Date:     June 19, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#  These procedures use co-expressions to used to model the built-in
+#  control structures of Icon and also provide new ones.
+#  
+#   AllparAER{e1,e2, ...}
+#			parallel evaluation with last result
+#			used for short sequences
+#
+#   AltPDCO{e1,e2}	models e1 | e2
+#
+#   BinopPDCO{op,e1,e2} produces the result of applying op to e1 and e2
+#
+#   CatPDCO{e1,e2, ...} produces the results of concatenating the
+#   		   	sequences for e1, e2, ...
+#  
+#   ComparePDCO{e1,e2}	compares result sequences of e1 and e2
+#  
+#   ComplintPDCO{e}	produces the integers not in e
+#
+#   CondPDCO{e1,e2, ...}
+#			models the generalized Lisp conditional
+#  
+#   CycleparAER{e1,e2, ...}
+#			parallel evaluation with shorter sequences
+#			re-evaluated
+#
+#   DeltaPDCO{e2, e1}	produces the difference of the values in e2
+#			e2 places	  
+#  
+#   EveryPDCO{e1,e2}	models every e1 do e2
+#
+#   ExtendSeqPDCO{e1,i}	extends e1 to i results
+#  
+#   ExtractAER{e1,e2, ...}
+#			extract results of even-numbered arguments
+#			according to odd-numbered values
+#
+#   FifoAER{e1,e2, ...}	reversal of lifo evaluation
+#
+#   GconjPDCO{e1,e2,...}
+#		models generalized conjunction: e1 & e2 & ...
+#
+#   The programmer-defined control operation above shows an interesting
+#   technique for modeling conjunction via recursive generative
+#   procedures.
+#
+#   InterPDCO{e1,e2, ...}
+#			produces results of e1, e2, ... alternately
+#  
+#   LcondPDCO{e1,e2, ...}
+#			models the Lisp conditional
+#
+#   LengthPDCO{e}	returns the length of e
+#  
+#   LifoAER{e1,e2, ...}	models standard Icon "lifo" evaluation
+#
+#   LimitPDCO{e1,e2}	models e1 \ e2
+#
+#   PalinPDCO{e}	x produces results of concatenating the
+#			sequences for e and then its reverse.
+#
+#   ParallelPDCO{e1,e2, ...}
+#			synonym for Inter{e1, e2, ...}
+#  
+#   ParallelAER{e1,e2, ...}
+#			parallel evaluation terminating on
+#			shortest sequence
+#
+#   PermutePDCO{e1,e2}	permutes each n-subsequence of e1 by the
+#   		  	n positional values in lists from e2.  If a list does
+#			not consist of all the integers in the range 1 to
+#   		  	n, "interesting" things happen (see the use
+#   		   	of map() for transpositions).
+#  
+#   RandomPDCO{e1,e2, ...}
+#			produces results of e1, e2, ... at random
+#
+#   ReducePDCO{op, x, e}
+#			"reduces" the sequence e by starting with the value x
+#			and repetitively applying op to the current
+#		  	value and values from e.
+#  
+#   RepaltPDCO{e}	models |e
+#
+#   RepeatPDCO{e1, e2}	repeats the sequence for e1 e2 times
+#
+#   ReplPDCO{e1,e2}	replicates each value in e1 by the corresponding
+#   		   	integer value in e2.
+#  
+#   ResumePDCO{e1,e2,e3}
+#			models every e1 \ e2 do e3
+#
+#   ReversePDCO{e}   	produces the results of e in reverse order
+#  
+#   RotatePDCO(e, i)	rotates the sequence for e left by i; negative
+#   		   	i rotates to the right
+#
+#   SelectPDCO{e1,e2}	produces results from e1 by position
+#                       according to e2
+#
+#   SelfreplPDCO{e1,i}	produces e1 * j copies of e1
+#
+#   SeqlistPDCO{e1, i}	produce list with first i values of e1; i
+#			defaults to all values
+#  
+#   SimpleAER{e1,e2, ...}
+#			simple evaluation with only success or
+#			failure
+#
+#   SkipPDCO{e1,e2}	generate e1 skipping each e2 terms
+#
+#   SumlimitPDCO{e, i, j}
+#			produces values of e until their sum exceeds
+#			i.  Values less than j are discarded.
+#  
+#
+#   TileMirrorPDCO{e}	produces the results of concatenating e and its
+#			reverse, with the center and last value removed;
+#			this produces a sequence for tiling
+#
+#   TrinopPDCO{op,e2,e2,e3}
+#			produces the result of applying op to e1, e2, and e3
+#
+#   UniquePDCO{e}	produces the unique results of e in the order
+#			they first appear
+#
+#   UnopPDCO{op,e}	produces the result of applying op to e
+#
+#   ValrptPDCO{e1,e2}	synonym for ReplPDCO
+#
+#   WobblePDCO{e}	produces e(1), e(2), e(1), e(2), e(3), e(2), ...
+#  
+#   Comments:
+#
+#   Because of the handling of the scope of local identifiers in
+#   co-expressions, expressions in programmer-defined control
+#   operations cannot communicate through local identifiers.  Some
+#   constructions, such as break and return, cannot be used in argu-
+#   ments to programmer-defined control operations.
+#  
+############################################################################
+#
+#  Requires:  co-expressions
+#
+############################################################################
+#
+#  Links:  lists
+#
+############################################################################
+
+link lists
+
+procedure AllparAER(L)	#: PDAE for parallel evuation with repeats
+   local i, L1, done
+
+   L1 := list(*L)
+
+   done := list(*L,1)
+
+   every i := 1 to *L do L1[i] := @L[i] | fail
+
+   repeat {
+      suspend L1[1] ! L1[2:0]
+      every i := 1 to *L do
+         if done[i] = 1 then ((L1[i] := @L[i]) | (done[i] := 0))
+      if not(!done = 1) then fail
+      }
+
+end
+
+procedure AltPDCO(L)	#: PDCO to model alternation
+
+   suspend |@L[1]
+   suspend |@L[2]
+
+end
+
+procedure BinopPDCO(L)	#: PDCO to apply binary operation to sequences
+   local op, x, y
+
+   repeat {
+      op := proc(@L[1], 2) | fail
+      (x := @L[2] & y := @L[3]) | fail
+      suspend op(x, y)
+      }
+
+end
+
+procedure CatPDCO(L)	#: PDCO to concatenate sequences
+   local C
+
+   every C := !L do
+      suspend |@C
+
+end
+
+procedure ComparePDCO(L)	#: PDCO to compare sequences
+   local x1, x2
+
+   while x1 := @L[1] do
+      (x1 === @L[2]) | fail
+   if @L[2] then fail else return *L[1]
+
+end
+
+procedure ComplintPDCO(L)	#: PDCO to generate integers not in sequence
+   local i, j			# EXPECTS MONOTONE NON-DECREASING SEQUENCE
+
+   j := 1
+
+   while i := @L[1] do {
+      i := integer(i) | stop("*** invalid value in sequence to Compl{}")
+      suspend j to i - 1
+      j := i + 1
+      }
+
+   suspend seq(j)
+
+end
+
+procedure CondPDCO(L)	#: PDCO for generalized Lisp conditional
+   local i, x
+
+   every i := 1 to *L do
+      if x := @L[i] then {
+         suspend x
+         suspend |@L[i]
+         fail
+         }
+
+end
+
+procedure CycleparAER(L)	#: PDAE for parallel evaluation with cycling
+   local i, L1, done
+
+   L1 := list(*L)
+
+   done := list(*L,1)
+
+   every i := 1 to *L do L1[i] := @L[i] | fail
+
+   repeat {
+      suspend L1[1]!L1[2:0]
+      every i := 1 to *L do {
+         if not(L1[i] := @L[i]) then {
+            done[i] := 0
+            if !done = 1 then {
+               L[i] := ^L[i]
+               L1[i] := @L[i] | fail
+               }
+            else fail
+            }
+         }
+      }
+end
+
+procedure DeltaPDCO(L)	#: PDCO to generate differences in sequences 
+   local C, i, delta, old_delta
+
+   C := ^L[1]
+   delta := @L[2] | fail
+   if delta < 0 then stop("*** negative delta")
+   every 1 to delta do @C | fail
+   i := @C - @L[1] | fail
+   suspend i
+
+   old_delta := delta
+
+   repeat {
+      delta := @L[2] - old_delta | fail
+      if delta < 0 then stop("*** decrease delta not implemented")
+      every 1 to delta - 1 do @C | fail
+      i := @C - @L[1] | fail
+      suspend i
+      old_delta := delta + 1
+      }
+
+end
+
+procedure EveryPDCO(L)	#: PDCO to model iteration
+
+   while @L[1] do @^L[2]
+
+end
+
+procedure ExtendSeqPDCO(L)	#: PDCO to extend sequence
+   local count
+
+   count := integer(@L[2]) | fail
+   if count < 1 then fail
+
+   repeat {
+      suspend |@L[1] do {
+         count -:= 1
+         if count = 0 then fail
+         }
+      if *L[1] == 0 then fail
+      L[1] := ^L[1]
+      }
+
+end
+
+procedure ExtractAER(L)	#: PDAE to extract values
+   local i, j, n, L1
+
+   L1 := list(*L/2)
+
+   repeat {
+      i := 1
+      while i < *L do {
+         n := @L[i] | fail
+         every 1 to n do
+            L1[(i + 1)/2] := @L[i + 1] | fail
+         L[i + 1] := ^L[i + 1]
+         i +:= 2
+         }
+      suspend L1[1] ! L1[2:0]
+      } 
+
+end
+
+procedure FifoAER(L)	#: PDAE for reversal of lifo evaluation
+   local i, L1, j
+
+   L1 := list(*L)
+
+   j := *L
+
+   repeat {
+      repeat {
+         if L1[j] := @L[j]
+         then {
+            j -:= 1
+            (L[j] := ^L[j]) | break
+            }
+         else if (j +:= 1) > *L then fail
+         }
+      suspend L1[1] ! L1[2:0]
+      j := 1
+      }
+
+end
+
+procedure GconjPDCO(L)	#: PDCO for generalized conjunction
+
+   suspend Gconj_(L,1)
+
+end
+
+procedure Gconj_(L,i,v)
+
+   local e
+   if e := L[i] then {
+      suspend v:= |@e & Gconj_(L,i + 1,v)
+      L[i] := ^e
+      }
+   else suspend v
+
+end
+
+procedure InterPDCO(L)	#: PDCO to interleave sequences
+
+   suspend |@!L
+
+end
+
+procedure LcondPDCO(L)	#: PDCO for Lisp conditional
+   local i
+
+   every i := 1 to *L by 2 do
+      if @L[i] then {
+         suspend |@L[i + 1]
+         fail
+         }
+
+end
+
+procedure LengthPDCO(L)	#: PDCO to produce length of sequence
+   local i
+
+   i := 0
+
+   while @L[1] do i +:= 1
+
+   return i
+
+end
+
+procedure LifoAER(L)	#: PDAE for standard lifo evaluation
+   local i, L1, j
+
+   L1 := list(*L)
+
+   j := 1
+
+   repeat {
+      repeat
+         if L1[j] := @L[j]
+         then {
+            j +:= 1
+            (L[j] := ^L[j]) | break
+            }
+         else if (j -:=  1) = 0
+            then fail
+      suspend L1[1] ! L1[2:0]
+      j := *L
+      }
+
+end
+
+procedure LimitPDCO(L)	#: PDCO to model limtation
+   local i, x
+
+   while i := @L[2] do {
+      every 1 to i do
+         if x := @L[1] then suspend x
+         else break
+      L[1] := ^L[1]
+      }
+
+end
+
+procedure PalinPDCO(L)	#: PDCO to produce palindromic sequence
+   local tail, x
+
+   tail := []
+
+   while x := @L[1] do {
+      suspend x
+      push(tail, x)
+      } 
+
+   every suspend !tail
+
+end
+
+procedure ParallelPDCO(L)	#: synonym for Inter
+
+   ParallelPDCO := InterPDCO		# redefine for next use
+
+   suspend InterPDCO(L)
+
+end
+
+procedure ParallelAER(L)	#: PDAE for parallel evaluation
+   local i, L1
+
+   L1 := list(*L)
+
+   repeat {
+      every i := 1 to *L do
+         L1[i] := @L[i] | fail
+      suspend L1[1] ! L1[2:0]
+      }
+
+end
+
+procedure PermutePDCO(L)	#: PDCO for permutations
+   local temp1, temp2, chunk, i, x
+
+   repeat {
+      temp1 := @L[2] | fail
+      temp2 := []
+      every put(temp2, i := 1 to *temp1)
+      chunk := []
+      every 1 to i do
+         put(chunk, @L[1]) | fail
+      suspend !lmap(temp1, temp2, chunk)
+      }
+
+end
+
+procedure RandomPDCO(L)	#: PDCO to generate from sequences at random
+   local x
+
+   while x := @?L do suspend x
+
+end
+
+procedure RepaltPDCO(L)	#: PDCO to model repeated alternation
+   local x
+
+   repeat {
+      suspend |@L[1]
+      if *L[1] == 0 then fail
+      L[1] := ^L[1]
+      }
+
+end
+
+procedure ReducePDCO(L)	#: PDCO to reduce sequence using binary operation
+   local op, x
+
+   op := proc(@L[1], 2) | stop("*** invalid operation for Reduce{}")
+   x := @L[2] | fail
+
+   while x := op(x, @L[3])
+
+   return x
+
+end
+
+procedure RepeatPDCO(L)	#: PDCO to repeat sequence
+   local i, x
+
+   while i := @L[2] do {
+      if not(i := integer(i)) then stop("*** invalid repetition in Repeat{}")
+      every 1 to i do {
+         suspend |@L[1]
+         L[1] := ^L[1]
+         }
+      }
+
+end
+
+procedure ReplPDCO(L)	#: PDCO to replicate values in a sequence
+   local x, i
+
+   while x := @L[1] do {
+      i := @L[2] | {
+         if *L[2] = 0 then fail
+         else {
+            L[2] := ^L[2]
+            i := @L[2] | fail
+            }
+         }
+      i := integer(i) | stop("*** invalid repetition in ReplPDCO{}")
+      suspend (1 to i) & x
+      }
+
+end
+
+procedure ResumePDCO(L)	#: PDCO to model limited iteration
+   local i
+
+   while i := @L[2] do {
+      L[1] := ^L[1]
+      every 1 to i do if @L[1] then @^L[3] else break
+      }
+
+end
+
+procedure ReversePDCO(L)	#: PDCO to reverse sequence
+   local result
+
+   result := []
+
+   while push(result, @L[1])
+
+   suspend !result
+
+end
+
+#  NOTE:  Rotation to the left can be implemented without storing the
+#  entire sequence:  Just save i results and generate them at the
+#  end, if there is one.
+
+procedure RotatePDCO(L)	#: PDCO to rotate sequence
+   local result, i
+
+   i := integer(@L[2]) | stop("*** invalid specification in Rotate{}")
+   result := []
+
+   while put(result, @L[1])
+
+   suspend !lrotate(result, i)
+
+end
+
+
+procedure SelectPDCO(L)
+   local i, j, x
+
+   j := 0
+
+   while i := @L[2] do {
+      while j < i do
+         if x := @L[1] then j +:= 1
+         else fail
+      if i = j then suspend x
+      else stop("*** sequence error in Select{}")
+      }
+
+end
+
+procedure SelfreplPDCO(L)	#: PDCO to produce multiple of values in sequence
+   local i, j
+
+   j := @L[2] | 1
+   j := integer(j) | stop("*** invalid second argument to Selfrepl{}")
+
+   while i := @L[1] do {
+      i := integer(i) | stop("*** invalid value in Selfrepl{}")
+      suspend (1 to i * j) & i
+      }
+
+end
+
+procedure SeqlistPDCO(L)	#: PDCO to return list of values
+   local result, limit
+
+   result := []
+
+   limit := @L[2] | 2 ^ 31	# crude ...
+
+   every 1 to limit do
+      put(result, @L[1]) | break
+
+   return result
+
+end
+
+procedure SimpleAER(L)	#: PDAE for simple evaluation
+   local i, L1
+
+   L1 := list(*L)
+
+   every i := 1 to *L do
+      L1[i] := @L[i] | fail
+
+   return L1[1] ! L1[2:0]
+
+end
+
+procedure SkipPDCO(L)	#: PDCO to skip terms
+   local gap
+
+   suspend @L[1]
+
+   repeat {
+      gap := @L[2] | fail
+      every 1 to gap do
+         @L[1] | fail
+      suspend @L[1]
+      }
+
+end
+
+procedure SumlimitPDCO(L) 	#: PDCO to sum sequence to a limit
+   local sum, min, limit, i
+
+   limit := integer(@L[2]) | 2 ^ 31
+   min := integer(@L[3]) | 0
+   sum := 0
+
+   while i := @L[1] do {
+      if i < min then next
+      if (sum + i) > limit then fail
+      sum +:= i
+      suspend i
+      }
+
+end
+
+procedure TileMirrorPDCO(L)	#: PDCO to produce tile mirroring
+   local tail, x
+
+   tail := []
+
+   while x := @L[1] do {
+      suspend x
+      push(tail, x)
+      } 
+
+   get(tail)
+
+   pull(tail)
+
+   every suspend !tail
+
+end
+
+procedure TrinopPDCO(L)	#: PDCO to apply trinary operator to sequneces
+   local op, x, y, z
+
+   repeat {
+      op := proc(@L[1], 3) | fail
+       x := @L[2] & y := @L[3] & z := @L[4] | fail
+      suspend op(x, y, z)
+      }
+
+end
+
+procedure UniquePDCO(L)	#: PDCO to filter out duplication values
+   local done, x
+
+   done := set()
+
+   while x := @L[1] do
+      if member(done, x) then next
+      else {
+         insert(done, x)
+         suspend x
+         }
+
+end
+
+procedure UnopPDCO(L)	#: PDCO to apply unary operation to sequence
+   local op, x
+
+   repeat {
+      op := proc(@L[1], 1) | fail
+      x := @L[2]  | fail
+      suspend op(x)
+      }
+
+end
+
+procedure ValrptPDCO(L)	#: synonym for Repl
+
+   ValrptPDCO := ReplPDCO
+
+   suspend ReplPDCO(L)
+
+end
+
+procedure WobblePDCO(L)	#: PDCO to produce sequence values alternately
+   local x, y
+
+   x := @L[1] | fail
+   suspend x
+
+   while y := @L[1] do {
+      suspend y | x | y
+      x := y
+      }
+
+end

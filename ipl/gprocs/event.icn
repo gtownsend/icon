@@ -1,0 +1,43 @@
+############################################################################
+#
+#	File:     event.icn
+#
+#	Subject:  Procedure to produces events from a window event history
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     April 30, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Event(win) overloads the built-in function Event() and produces
+#  events using evplay().
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  evplay
+#
+############################################################################
+
+link evplay
+
+procedure Event(win)
+   static Event_
+
+   initial {
+      Event_ := proc("Event", 0) | stop("*** cannot get built-in Event()")
+      }
+
+   evplay(win) | exit()
+
+   return Event_(win)
+
+end

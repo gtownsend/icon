@@ -1,0 +1,41 @@
+############################################################################
+#
+#	File:     pfd2gif.icn
+#
+#	Subject:  Program to create woven image from pattern-form draft
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 13, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program reads a pattern-form draft and creates a GIF image of the
+#  correspnding weave.  If command-line arguments are given, they are
+#  used as atrtibutes for the window in which the woven image is created.
+#
+############################################################################
+#
+#  Links:  weavegif, weavutil
+#
+############################################################################
+
+link weavegif
+link weavutil
+
+$include "weavdefs.icn"
+
+procedure main(attribs)
+   local i, pfd
+
+   put(attribs, "canvas=hidden")
+
+   pfd := expandpfd(readpfd(&input)) | stop("*** bad draft")
+
+   WriteImage(weavegif(pfd, attribs), pfd.name || ".gif")
+
+end

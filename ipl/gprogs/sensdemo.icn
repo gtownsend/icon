@@ -1,0 +1,157 @@
+############################################################################
+#
+#	File:     sensdemo.icn
+#
+#	Subject:  Program to demonstrate sensor routines
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     July 12, 1995.
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     sensdemo illustrates several of the input sensors provided in the
+#  program library.  It is written to use mutable colors but will struggle
+#  along slowly if they're not available.
+#
+#     There are four pushbuttons.  Buttons "One", "Two", and "Three" just
+#  write a line on standard output.  The "QUIT" button does what you'd
+#  expect.
+#
+#     The three vertically oriented sliders control (from left to right)
+#  alter the red, green, and blue components of the color in the large
+#  square.  The individual components appear in the small squares, and
+#  the hexadecimal form of the color spec is displayed below the square.
+#
+#     The small horizontal slider below the square adjusts all three
+#  color components simultaneously.  Notice how moving it also moves
+#  the three vertical sliders.
+#
+#     The largs square sounds a bell if Return is pressed while it
+#  contains the cursor.  The standard "quitsensor" causes the program
+#  to exit when q or Q is pressed anywhere in the window.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: button, slider, evmux, graphics
+#
+############################################################################
+
+link button
+link slider
+link evmux
+link graphics
+
+$define BevelWidth 2
+$define WindowMargin 10
+
+record rgbrec(r, g, b, k)
+record boxrec(x, y, w, h, b, i)
+global val, colr, sl, win
+
+procedure main(args)
+   local cwin, h, m, c
+
+   # open window
+   win := Window("size=400,400", args)
+   m := WindowMargin
+   h := WAttrib("height") - 2 * m			# usable height
+
+   # set up boxes for displaying colors, each with its own binding
+   colr := rgbrec(
+      boxrec(m, m, 40, 40),
+      boxrec(m, m + 55, 40, 40),
+      boxrec(m, m + 110, 40, 40),
+      boxrec(m + 65, m, 150, 150))
+   every c := !colr do {
+      c.b := Clone(win)
+      Bg(c.b, c.i := NewColor(win))			# fails if b/w screen
+      BevelRectangle(win, c.x, c.y, c.w, c.h, -BevelWidth)
+      EraseArea(c.b,
+         c.x+BevelWidth, c.y+BevelWidth, c.w-2*BevelWidth, c.h-2*BevelWidth)
+      }
+
+   # set up sliders to control the colors
+   val := rgbrec(0.1, 0.8, 1.0, 0.8)			# initial positions
+   sl := rgbrec()
+   sl.r := slider(win, setrgb, 1, 290, m, 20, h, 0.0, val.r, 1.0)
+   sl.g := slider(win, setrgb, 2, 330, m, 20, h, 0.0, val.g, 1.0)
+   sl.b := slider(win, setrgb, 3, 370, m, 20, h, 0.0, val.b, 1.0)
+   sl.k := slider(win, setgray, 4, m+65, m+160, 150, 14, 0.0, 0.8, 1.0)
+   setcolors()						# download the colors
+
+   # set up miscellaneous sensors
+   quitsensor(win)					# quit on q or Q
+   sensor(win, '\r', ding, &null, m+65, m, 150, 150)	# \r in box sounds bell
+   buttonrow(win, 150, 250, 100, 20, 0, 30,		# vertical button row
+      "One", bpress, "one",
+      "Two", bpress, "two",
+      "Three", bpress, "three",
+      )
+   button(win, "QUIT", argless, exit, m, m+h-60, 60, 60)  # and a QUIT button
+
+   # enter event loop
+   evmux(win)
+end
+
+procedure bpress(win, a)		# echo a button press
+   write("button ", a)
+   return
+end
+
+procedure ding(win, a, x, y, k)		# ring the bell
+   writes("\^g")
+   flush(&output)
+   return
+end
+
+procedure setcolors()			# set the colors in the color map
+   colorbox(colr.r, 65535 * val.r, 0, 0)
+   colorbox(colr.g, 0, 65535 * val.g, 0)
+   colorbox(colr.b, 0, 0, 65535 * val.b)
+   colorbox(colr.k, 65535 * val.r, 65535 * val.g, 65535 * val.b)
+   GotoXY(win, 100, 200)
+   write(win, "color = #", hexv(val.r), hexv(val.g), hexv(val.b))
+   return
+end
+
+procedure colorbox(box, r, g, b)
+   r := integer(r)
+   g := integer(g)
+   b := integer(b)
+   if \box.i then
+      Color(box.b, box.i, r || "," || g || "," || b)
+   else {
+      Shade(box.b, r || "," || g || "," || b)
+      FillRectangle(box.b, box.x+1, box.y+1, box.w-1, box.h-1)
+      }
+   return
+end
+
+procedure hexv(v)			# two-hex-digit specification of v
+   static hextab
+   initial {
+      every put((hextab := []), !"0123456789ABCDEF" || !"0123456789ABCDEF")
+      }
+   return hextab [integer(255 * v + 1.5)]
+end
+
+procedure setgray(win, i, v)		# set a grayvalue of v
+   every i := 1 to 3 do
+      slidervalue(sl[i], val[i] := v)
+   setcolors()
+   return
+end
+
+procedure setrgb(win, i, v)		# set color component i to value v
+   val[i] := v
+   setcolors()
+end

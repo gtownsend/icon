@@ -1,0 +1,107 @@
+############################################################################
+#
+#	File:     colmize.icn
+#
+#	Subject:  Procedures to arrange data into columns
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     June 15, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  colmize() -- Arrange data into columns.
+#
+#  Procedure to arrange a number of data items into multiple columns.
+#  Items are arranged in column-wise order, that is, the sequence runs
+#  down the first column, then down the second, etc.
+#
+#  This procedure goes to great lengths to print the items in as few
+#  vertical lines as possible.
+#
+############################################################################
+
+procedure colmize(entries,maxcols,space,minwidth,tag,tagspace,tagminwidth,rowwise,distribute)
+   local mean,cols,lines,width,i,x,wid,extra,t,j,first_tagfield,tagfield
+   #
+   #  Process arguments -- provide defaults.
+   #
+   # entries: a list of items to be columnized
+   /maxcols := 80                        # max width of output lines
+   /space := 2                           # min nbr of spaces between columns
+   /minwidth := 0                        # min column width
+   # tag: a label to be placed on the first line of output
+   /tagminwidth := 0
+   /tagspace := 2
+   # rowwise: if nonnull, entries are listed in rowwise order rather than
+   # columnwise
+   #
+   #
+   #  Process the tag field information. The tag will appear on the
+   #  first line to the left of the data.
+   #
+   if \tag then {
+      tagminwidth <:= *tag + tagspace
+      maxcols -:= tagminwidth
+      first_tagfield := left(tag, tagminwidth - tagspace) || repl(" ",tagspace)
+      tagfield := repl(" ",tagminwidth)
+   } else 
+      tagfield := first_tagfield := ""
+   #  Starting with a trial number-of-columns that is guaranteed
+   #  to be too wide, successively reduce the number until the
+   #  items can be packed into the allotted width.
+   #
+   mean := 0
+   every mean +:= *!entries
+   mean := mean / (0 ~= *entries) | 1
+   every cols := (maxcols + space) * 2 / (mean + space) to 1 by -1 do {
+      lines := (*entries + cols - 1) / cols
+      width := list(cols,minwidth)
+      i := 0
+      if /rowwise then {                  # if column-wise
+	 every x := !entries do {
+	    width[i / lines + 1] <:= *x + space
+	    i +:= 1
+	    }
+	 }
+      else {                              # else row-wise
+	 every x := !entries do {
+	    width[i % cols + 1] <:= *x + space
+	    i +:= 1
+	    }
+	 }
+      wid := 0
+      every x := !width do wid +:= x
+      if wid <= maxcols + space then break
+      }
+   #
+   #  Now output the data in columns.
+   #
+   extra := (\distribute & (maxcols - wid) / (0 < cols - 1)) | 0
+   if /rowwise then {            # if column-wise
+      every i := 1 to lines do {
+         if i = 1 then
+            t := first_tagfield
+         else
+            t := tagfield
+	 every j := 0 to cols - 1 do
+	       t ||:= left(entries[i + j * lines],width[j + 1] + extra)
+	 suspend trim(t)
+	 }
+      }
+   else {                                # else row-wise
+      every i := 0 to lines - 1 do {
+         if i = 0 then
+            t := first_tagfield
+         else
+            t := tagfield
+	 every j := 1 to cols do
+	       t ||:= left(entries[j + i * cols],width[j] + extra)
+	 suspend trim(t)
+	 }
+      }
+end

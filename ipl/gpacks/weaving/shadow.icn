@@ -1,0 +1,102 @@
+############################################################################
+#
+#	File:     shadow.icn
+#
+#	Subject:  Program to build pattern-form drafts for shadow weaves
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 19, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program is based on the Painter weave "Shadow Op Art".
+#
+#  Supported options are:
+#
+#	-b s	palindrome base sequence, default "8214365"
+#	-c s	warp colors, default "01"
+#	-d s	weft colors, default "10"
+#	-n s	name, default "untitled_shadow_weave"
+#	-p s	palette, default "g2"
+#	-t s 	tie-up, default "8,#8040201008040201"	# DIRECT TIE-UP
+#
+#  The first non-option command-line argument is a transposition vector for
+#  the anchors; default 1234567.  The second non-option command-line argument
+#  is a transposition vector for the palindromes; default the anchor
+#  transposition vector.
+#
+#  For example,
+#
+#	shadow 7654321
+#
+#  reverses the default order of both the anchors and palindromes.
+#
+############################################################################
+#
+#  Links:  options, strings
+#
+############################################################################
+
+link options
+link strings
+
+global anchor_indices
+global palindrome_indices
+global palindrome_basis
+global palindromes
+
+procedure main(args)
+   local expression, name, opts, tie_up, warp_colors, weft_colors, palette
+   local i, anchor_vector, palindrome_vector
+
+   opts := options(args, "b:n:t:c:d:p:")
+
+   anchor_vector := \args[1] | "1234567"
+   palindrome_vector := \args[2] | anchor_vector
+
+   palindrome_basis := \opts["b"] | "8214365"
+   weft_colors := \opts["c"] | "01"
+   warp_colors := \opts["d"] | "10"
+   palette := \opts["p"] | "g2"
+   name := \opts["n"] | "untitled_shadow_weave"
+   tie_up := \opts["t"] | "8,#8040201008040201"
+
+   anchor_indices := transpose("1234567", "1234567", anchor_vector)
+   palindrome_indices := transpose("1234567", "1234567", palindrome_vector)
+
+   palindromes := list(*palindrome_basis)
+
+   every i := 1 to *palindrome_basis do
+      palindromes[i] := "[" || palindrome_basis[1:i] || "!" || palindrome_basis[i] || "]"
+
+   expression := "[" || threading(anchor_indices[1]) || "|]"
+
+   write(name)
+   write(expression)
+   write(expression)
+   write(warp_colors)
+   write(weft_colors)
+   write(palette)
+   write(tie_up)
+   write()
+
+end
+
+procedure threading(i)
+   local result
+
+   if i > *palindrome_basis then return ""
+
+   result := "-[" || anchor_indices[i] || "-[" ||
+      palindromes[anchor_indices[i]] || threading(i + 1) || "]]"
+
+   if i = 1 then result := result[2:0]
+
+   return result
+
+end

@@ -1,0 +1,36 @@
+############################################################################
+#
+#	File:     chop.icn
+#
+#	Subject:  Program to restrict numerical values
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 21, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program limits the numerical values in a sequence
+#  visualization stream.  The limit is given on the command line;
+#  default 200.
+#
+############################################################################
+
+procedure main(args)
+   local max, line, i
+
+   max := \args[1] | 200
+
+   while line := read() do {
+      line ? {
+         i := tab(upto(' \t') | 0)
+         if i > max then i := max
+         write(i, tab(0))
+         }
+      }
+
+end

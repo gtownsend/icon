@@ -1,0 +1,99 @@
+############################################################################
+#
+#	File:     select.icn
+#
+#	Subject:  Procedure to get selection from window
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 30, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: grecords
+#
+############################################################################
+
+link grecords
+
+procedure select(win)		#: interactive selection from window
+   local x0, x1, y0, y1, w, h, state, event
+
+   /win := &window
+
+   WAttrib(win, "drawop=reverse")
+   WAttrib(win, "linestyle=onoff")
+
+   state := "wait"
+   
+   while event := Event(win) do {
+      if event == "q" then {
+         DrawRectangle(win, \x0, y0, 0, 0)	# clear if already drawn
+         fail
+         }
+      case state of {
+         "wait": {			# waiting for selection
+            case event of {
+               &lpress: {
+                  x1 := x0 := &x	# initial coordinates
+                  y1 := y0 := &y
+                  DrawRectangle(win, x0, y0, 0, 0)	# start selection
+                  state := "select"	# now select the rectangle
+                  }
+               }
+            }
+         "select": {			# select the rectangle
+            case event of {
+               &ldrag: {		# selecting ...
+                  DrawRectangle(win, x0, y0, x1 - x0, y1 - y0) # erase
+                  x1 := &x		# new opposite corner
+                  y1 := &y
+                  DrawRectangle(win, x0, y0, x1 - x0, y1 - y0) # draw
+                  }
+               &lrelease: {		# got it!
+                  DrawRectangle(win, x0, y0, x1 - x0, y1 - y0) # erase
+                  x1 := &x		# new opposite corner
+                  y1 := &y
+                  if (x0 = x1) | (y0 = y1) then	# no area
+                     state := "wait"
+                  else {
+                     w := x1 - x0	# set up for action
+                     h := y1 - y0 
+                     DrawRectangle(win, x0, y0, w, h) # draw rectangle
+                     state := "act"	# now do something
+                     }
+                  }
+               }
+            }
+         "act": {
+            case event of {
+               "n":  {			# new selection
+                     state := "wait"
+                     DrawRectangle(win, x0, y0, w, h) # try again
+                     }
+               "q":  {			# quit
+                     DrawRectangle(win, x0, y0, w, h)
+                     fail
+                     }
+               "r":  {			# return selection
+                     DrawRectangle(win, x0, y0, w, h) #
+                     return rect(x0, y0, w, h)
+                     }
+               }
+            }
+         }
+      }
+
+end

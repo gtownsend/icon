@@ -1,0 +1,212 @@
+############################################################################
+#
+#	File:     barchart.icn
+#
+#	Subject:  Procedures for dynamically growing barchart
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	These procedures draw barcharts that can grow dynamically.
+#
+#	barchart(win, x, y, dx, dy, sf, n, l, w, b) creates a barchart.
+#
+#	setbar(bc, n, v)	sets the value of a bar.
+#
+#	rebar(bc, sf)		redraws a barchart with a new scaling factor.
+#
+############################################################################
+#
+#   barchart(win, x, y, dx, dy, sf, n, l, w, b) -- establish a barchart
+#
+#	win      window
+#	x,y      position of base of first bar
+#	dx,dy    distance to base of second bar (either dx or dy should be
+#		  zero)
+#	sf       scaling (pixels per unit of value, + or -, need not be
+#		  integer)
+#	n        number of bars
+#	l,w      length (maximum) and width of one bar
+#	b        logarithmic base, if bars are to be scaled logarithmically
+#
+#	barchart() establishes structures for building a barchart.  Any of the
+#	eight possible orthogonal orientations can be selected depending on the
+#	signs of dx, dy, and sf.
+#
+#	The absolute value of sf establishes a linear scaling from barchart
+#	values to number of pixels.  Scaling is handled such that a value of 1
+#	makes the first mark on a bar and then each increment of sf lengthens
+#	the bar by one pixel.  If a bar would exceed the limit then the entire
+#	chart is rescaled so that only half the range is then used.
+#
+#   setbar(bc, n, v) - set bar n of barchart bc to represent value v
+#
+#	It is assumed that v>0 and that bars never shrink; but they may grow.
+#
+#   rebar(bc, sf) - redraw barchart with new scaling factor sf.
+#
+#	sf is assumed to be of the same sign as the previous scaling factor.
+#
+#   Example:
+#
+#	Suppose "scores" is a list of scores ranging from 0 to 100.
+#	This code fragment dynamically draws a histogram using 21 bins.
+#
+#	The call to barchart() specifies:
+#	    The lower left-hand corner of the barchart is (10, 190).
+#	    The next bar is 10 pixels to its right, which would be (20, 190).
+#	    The bars grow upward, to smaller y values, so the scaling factor
+#	    is negative; each score will grow its bar by 5 pixels.
+#	    Each bar grows to a maximum length of 180 pixels; the width is 8.
+#	    No base is given, so scaling is linear.
+#
+#	bc := barchart(win, 10, 190, 10, 0, -5, 21, 180, 8)
+#	b := list(21, 0)		# histogram bins
+#	every n := !scores do {
+#	    i := n / 5			# bin (and bar) number
+#	    b[i] +:= 1			# increment bin count
+#	    setbar(bc, i, b[i])		# update display
+#	    }
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+
+record BC_rec(win, x, y, dx, dy, sf, n, l, w, b, len, val, round)
+
+procedure barchart(win, x, y, dx, dy, sf, n, l, w, b)	#: draw barchart
+   local bc
+   bc := BC_rec(win, x, y, dx, dy, sf, n, l, w, b)
+   bc.len := list(n, 0)
+   bc.val := list(n)
+   if sf > 0 then
+      bc.round := 0.99999
+   else
+      bc.round := -0.99999
+   rebar(bc, sf)				# clear area
+   return bc
+end
+
+
+## setbar(bc, n, v) - set bar n of barchart bc to represent value v
+#
+#  It is assumed that v>0 and that bars never shrink; but they may grow.
+
+procedure setbar(bc, n, v)			#: set bar value on barchart
+   local x, y, o, oldlen, newlen, incr
+
+   v := log(v, \bc.b)
+   oldlen := bc.len[n] | fail
+   newlen := integer(v * bc.sf + bc.round)
+
+   if abs(newlen) > bc.l then {
+      # need to rescale first
+      rebar(bc, 0.5 * bc.sf * real(bc.l) / real(abs(newlen-1)))
+      return setbar(bc, n, v)
+      }
+
+   # lengthen the bar
+   if (incr := newlen - oldlen) ~= 0 then {
+      if bc.dx ~= 0 then {
+
+         # horizontal baseline
+         x := bc.x + (n - 1) * bc.dx
+         y := bc.y + oldlen
+         if incr < 0 then
+            FillRectangle(bc.win, x, y + incr, bc.w, -incr)
+         else
+            FillRectangle(bc.win, x, y, bc.w, incr)
+         }
+
+      else {
+
+         # vertical baseline
+         x := bc.x + oldlen
+         y := bc.y + (n - 1) * bc.dy
+         if incr < 0 then
+            FillRectangle(bc.win, x + incr, y, -incr, bc.w)
+         else
+            FillRectangle(bc.win, x, y, incr, bc.w)
+         }
+      bc.len[n] := newlen
+      bc.val[n] := v
+      }
+   return
+end
+
+
+## rebar(bc, sf) - redraw barchart with new scaling factor sf.
+#
+#  sf is assumed to be of the same sign as the previous scaling factor.
+
+procedure rebar(bc, sf)				#: redraw barchart
+   local i, l, x, y, dx, dy
+
+   if bc.sf > 0 then
+      l := bc.l
+   else
+      l := -bc.l
+   x := bc.x
+   y := bc.y
+
+   if bc.dx ~= 0 then {
+      dx := bc.n * bc.dx
+      dy := l
+      }
+   else {
+      dx := l
+      dy := bc.n * bc.dy
+      }
+
+   # force all values positive (negative is wrong, but works under OpenWindows!)
+   if dx < 0 then {
+      x +:= dx
+      dx := -dx
+      }
+   if dy < 0 then {
+      y +:= dy
+      dy := -dy
+      }
+   EraseArea(bc.win, x, y, dx, dy)
+
+   bc.len := list(bc.n, 0)
+   bc.sf := sf
+   every i := 1 to *bc.len do
+      setbar(bc, i, \bc.val[i])
+   return
+end
+
+
+#  ## test program
+#  #
+#  #  usage:  barchart [dx [dy [sf]]]
+#  #
+#  #  background is deliberately different in order to see what gets cleared
+#
+#  procedure main(args)
+#     local dx, dy, sf, win, n, l, bc, i
+#     dx := args[1] | 5
+#     dy := args[2] | 0
+#     sf := args[3] | -1
+#     win := open("bars", "g", "width=500", "height=500")
+#     l := list(50, 0)
+#     bc := barchart(win, 250, 250, dx, dy, sf, *l, 200, 4)
+#     Fg(win, "papayawhip")
+#     FillRectangle(win, 0, 0, 500, 500)
+#     Fg(win, "black")
+#     every 1 to 5000 do {
+#        i := ?5 + ?5 + integer(10 * log(1+20*?0))	# nonuniform random bar
+#        setbar(bc, i, l[i] +:= 1)
+#        flush(win)
+#        }
+#     while not upto('qQ', reads(win))
+#     end

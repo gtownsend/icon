@@ -1,0 +1,41 @@
+############################################################################
+#
+#	File:     lssum.icn
+#
+#	Subject:  Program to sum the file sizes in an ls -l listing
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 25, 1996
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program summarizes file sizes give by the UNIX ls -l command.
+#
+#  It probably platform dependent.
+#
+############################################################################
+#
+#  Requires:  Input from UNIX ls -l
+#
+############################################################################
+
+procedure main()
+   local sum, line
+
+   sum := 0
+
+   while line := read() do
+      line ? {
+         move(30) | next
+         tab(upto(&digits))
+         sum +:= write(tab(many(&digits)))
+         }
+
+   write(sum)
+
+end

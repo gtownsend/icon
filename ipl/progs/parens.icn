@@ -1,0 +1,117 @@
+############################################################################
+#
+#	File:     parens.icn
+#
+#	Subject:  Program to produce random balanced strings
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 14, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This program produces parenthesis-balanced strings in which
+#  the parentheses are randomly distributed.
+#  
+#  Options: The following options are available:
+#  
+#       -b n Bound the length of the strings to n left and right
+#            parentheses each. The default is 10.
+#  
+#       -n n Produce n strings. The default is 10.
+#  
+#       -l s Use the string s for the left parenthesis. The default
+#            is ( .
+#  
+#       -r s Use the string s for the right parenthesis. The default
+#            is ) .
+#  
+#       -v   Randomly vary the length of the strings between 0 and
+#            the bound.  In the absence of this option, all strings
+#            are the exactly as long as the specified bound.
+#  
+#     For example, the output for
+#  
+#          parens -v -b 4 -l "begin " -r "end "
+#  
+#  is
+#  
+#          begin end
+#          begin end begin end
+#          begin begin end end begin end
+#          begin end begin begin end end
+#          begin end
+#          begin begin end end
+#          begin begin begin end end end
+#          begin end begin begin end end
+#          begin end begin end
+#          begin begin end begin end begin end end
+#  
+#  
+#  Comments: This program was motivated by the need for test data
+#  for error repair schemes for block-structured programming lan-
+#  gauges. A useful extension to this program would be some
+#  way of generating other text among the parentheses.  In addition
+#  to the intended use of the program, it can produce a variety of
+#  interesting patterns, depending on the strings specified by -l
+#  and -r.
+#  
+############################################################################
+#
+#  Links: options, random
+#
+############################################################################
+
+link options
+link random
+
+global r, k, lp, rp
+
+procedure main(args)
+   local string, i, s, bound, limit, varying, opts
+
+   randomize()
+   
+   bound := limit := 10			# default bound and limit
+   lp := "("				# default left paren
+   rp := ")"				# default right paren
+
+   opts := options(args,"l:r:vb+n+")
+   bound := \opts["b"] | 10
+   limit := \opts["n"] | 10
+   lp := \opts["l"] | "("
+   rp := \opts["r"] | ")"
+   varying := opts["v"]
+   every 1 to limit do {
+      if \varying then k := 2 * ?bound else k := 2 * bound
+      string := ""
+      r := 0
+      while k ~= r do {
+         if r = 0 then string ||:= Open()
+         else if ?0 < probClose()
+            then string ||:= Close() else string ||:= Open()
+         }
+      while k > 0 do string ||:= Close()
+      write(string)
+      }
+end
+
+procedure Open()
+   r +:= 1
+   k -:= 1
+   return lp
+end
+
+procedure Close()
+   r -:= 1
+   k -:= 1
+   return rp
+end
+
+procedure probClose()
+   return ((r * (r + k + 2)) / (2.0 * k * (r + 1)))
+end

@@ -1,0 +1,223 @@
+############################################################################
+#
+#	File:     uix.icn
+#
+#	Subject:  Program to translate user interfaces
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     May 31, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#      uix translates a user interface prototype or application
+#   built by xib, the old X-Icon Interface Builder, into a skeletal
+#   application of the form used by vib, the new Visual Interface
+#   Builder.  The resulting file is a working application containing
+#   all the vidgets (buttons, sliders, etc.) from the input file but
+#   none of the user Icon code.  This must be added manually.  Some
+#   of the vidget sizes may be incorrect; load and save the file in
+#   vib to fix this.
+#
+#   usage:  uix [file]
+#
+#      Input is read from the named file, or from standard input if
+#   none is specified.  Output is written to standard output.
+#
+############################################################################
+#
+#  Requires:  Version 9
+#
+############################################################################
+
+$define YOFF 78		# offset incorporated in y values by XIB
+
+$define FONT "lucidasanstypewriter-bold-12"	# VIB Font
+
+record ob(t, c, v, x, y, w, h, l, s, n, i, j, k, etc)
+# type callback var x,y,w,h lbl style number initval min max other
+
+
+#  main program
+
+procedure main(args)
+   local f, line, data, objs, recs, curr, o, fmt, r, c, v, i
+
+   # open file, skip to data
+   if *args = 0 then
+      f := &input
+   else
+      f := open(args[1]) | stop(&progname, ": can't open ", args[1])
+   while line := read(f) | stop(&progname, ": EOF hit before finding data") do
+      if match("# Session Code:", line) then break
+
+   # read data
+   objs := []				# list of objects
+   curr := []				# fields of current object
+   while line := read(f) do {
+      data := line[3:0]
+      # in the following, special case lets Scrollbar consume Slider
+      if data[-5:0] == "_Obj:" & (*curr ~= 1 | *objs == 0) then
+         put(objs, curr := [])
+      put(curr, data)
+      }
+   close(f)
+
+   # define interpretations
+   fmt := table()
+   fmt["Sizer"]		:= "txywh"
+   fmt["Button"]	:= "tcv.xywhl...sn.."
+   fmt["Check"]		:= "tcv.xywh.."
+   fmt["Text_Input"]	:= "tcv.xywh.lin.."
+   fmt["Scrollbar"]	:= "t.cnv.xywh.jkis...cnv.jkxywh..."
+   fmt["Slider"]	:= "tcnv.xywh.jkis..."
+   fmt["Line"]		:= "tcv...xywh....sn"
+   fmt["Rect"]		:= "tcv.xywhn.."
+   fmt["Message"]	:= "tcv.xywhl...."
+   fmt["Radio_Button"]	:= "tcv.xywh...n"
+   fmt["Menu"]		:= "tcv.xywhl..s.."
+
+   # convert object lists into records
+   recs := []				# list of records
+   every o := !objs do {
+      r := ob()				# create empty record
+      f := \fmt[o[1][1:-5]] | {		# find appropriate format
+         write(&progname, ": vidget type ", o[1], " unrecognized")
+         next
+         }
+      f ? while c := move(1) do {	# get next char from format
+         v := get(o) | ""		# get next value, default ""
+         if c ~== "." then
+            r[c] := v			# store in rec field named by format
+         }
+      adjust(r)				# clean up special cases
+      r.etc := o			# save leftovers in "etc" field
+      put(recs, r)			# put record on list
+      }
+
+   # write UI program
+   prologue()
+   write(
+      "#===<<vib:begin>>===\tmodify using vib; do not remove this marker line")
+   write("procedure ui(win, cbk)")
+   write("return vsetup(win, cbk,")
+   every output(!recs)			# output spec for each line
+   write("   )")
+   write("end")
+   write("#===<<vib:end>>===\tend of section maintained by vib")
+end
+
+
+#  adjust(r) -- clean up record fields including type-dependent cases
+
+procedure adjust(r)
+   /r.v := ""				# default varname to "" not &null
+   \r.y -:= YOFF			# subtract xib header from y value
+   r.t := r.t[1:-5]			# chop "_Obj" off name
+   case r.t of {
+      "Sizer": {			# Sizer (overall setup) vidget:
+         r.s := FONT			# add font expected by VIB
+         }
+      "Line": {				# Line vidget:
+         \r.h -:= YOFF			# "height" is really 2nd y coordinate
+         }
+      "Text_Input": {			# Text vidget:
+         r.t := "Text"			# simplify name
+         r.l ||:= "\\\\=" || r.i	# concatenate initial value
+         }
+      "Slider" | "Scrollbar": {		# Slider, Scrollbar:
+         r.l := r.j || "," || r.k || "," || r.i	# add bounds and init value
+         }
+      "Message": {			# Message vidget:
+         r.t := "Label"			# change name
+         }
+      "Radio_Button": {			# Radio_Button vidget:
+         r.t := "Choice"		# simplify name
+         }
+      }
+   return
+end
+
+
+#  prologue() -- write boilerplate prologue to acual spec
+
+procedure prologue()
+every write(![
+   "#  User interface specification translated to vib format by uix",
+   "#  (Load and save this file once in vib to correct size information.)",
+   "#",
+   "#  This is a working program that responds to vidget events by printing",
+   "#  messages.  Use a text editor to replace this skeletal program with your",
+   "#  own code.  Retain the vib section at the end and use vib to make any",
+   "#  changes to the interface.",
+   "#",
+   "#  When a callback is generated, but there is no callback procedure, a",
+   "#  message is printed.  Remove the vecho argument below to prevent this.",
+   "",
+   "link vsetup",
+   "",
+   "procedure main()",
+   "   local vidgets",
+   "",
+   "   vidgets := ui(, vecho)\t\t\t# set up vidgets",
+   "   GetEvents(vidgets[\"root\"], QuitCheck)\t# enter event loop",
+   "end",
+   "",
+   "",
+   ""])
+end
+
+
+#  output(r) -- output one record in vib format
+
+procedure output(r)
+   if /r.t then
+      fail
+   writes("   [\"")
+   writes(r.v, ":", r.t, ":", r.s, ":", r.n, ":")
+   writes(r.x, ",", r.y, ",", r.w, ",", r.h, ":")
+   writes(r.l, "\",", r.c)
+   if r.t == "Menu" then
+      outmenu(r.etc)
+   else if *r.etc > 0 then {
+      writes(",\n      [", image(get(r.etc)))
+      while writes(",", image(get(r.etc)))
+      writes("]")
+      }
+   write("],")
+   return
+end
+
+
+#  outmenu(lst) -- output a list of menu entries
+
+procedure outmenu(lst)
+   local msize
+
+   msize := get(lst)
+   if msize = 0 then
+      return
+   writes(",\n      [")
+   outentry(lst)
+   every 2 to msize do {
+      writes(",")
+      outentry(lst)
+      }
+   writes("]")
+   return
+end
+
+
+#  outentry(lst) -- output menu entry
+
+procedure outentry(lst)
+   writes(image(get(lst)))	# output label
+   get(lst)			# skip unused data
+   get(lst)
+   outmenu(lst)			# output submenu (if any)
+   return
+end

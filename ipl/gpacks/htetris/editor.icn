@@ -1,0 +1,981 @@
+############################################################################
+#
+# File  :   editor.icn
+# Author:   Henrik Sandin
+# Date  :   May 3, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# This file contains procedures to handle user actions in the brick editor.
+# An edited brick can be up to 10 x 10 sqares in size which is the width
+# of the htetris playing field. A square is 20 by 20 pixels.
+# A brick being edited is represented by a matrix, containing ones for
+# colored squares and zeros for non-colored (black) squares.
+# The editor is invoked and closed by the htetris module simply by changing
+# the "canvas" attribute of the editor window.
+#
+############################################################################
+
+############################################################################
+#
+# Global varibles used by both htetris.icn and editor.icn.
+#
+############################################################################
+
+global editor_window    # The editor window, initially hidden.
+global editor_vidgets   # The table of widgets in the editor interface.
+
+############################################################################
+#
+# Global varibles used by editor.icn only.
+#
+# edit_pane  - The editing area, which is 200 by 200 pixels.
+# grid_width - Current width of the grid (the active drawing area within
+#              the edit pane).
+# grid_height - Current height of the grid (the active drawing area within
+#               the edit pane).
+# grid_status        - Flag determining whether the grid is visible or not.
+# mutable_grid_color - Mutable color of grid if mutable colors are used.
+# mutable_brick_color       - Mutable base color of a brick.
+# mutable_brick_color_light - Mutable light shade for 3D-effect on bricks.
+# mutable_brick_color_dark  - Mutable dark shade for 3D-effect on bricks. 
+# brick_color               - Color of brick on string format. 
+# brick_matrix - Twodimensional matrix representing the current brick.
+# mutables     - Flag determining whether mutable colors are used or not.
+# saved    - Flag determining whether the current brick is saved or not.
+#
+############################################################################
+
+global edit_pane
+global mutable_grid_color   # Color of grid used if mutable colors are in use.
+global grid_width
+global grid_height
+global grid_status          # Status of grid, 'ON' or 'OFF'.
+global brick_color          # Current non-mutable color of brick.
+global mutable_brick_color  # Color of brick used if mutable colors are in use.
+global mutable_brick_color_light  
+global mutable_brick_color_dark  
+global brick_matrix         # The matrix representation of the current brick.
+global mutables             # Flag indicating if mutable colors are used or not.
+global saved                # Flag indicating if current brick is saved or not.
+
+$define OFF       0    # Constant representing the grid state off.
+$define ON        1    # Constant representing the grid state on.
+$define NO        0    # Constant representing the semantics of no.
+$define YES       1    # Constant representing the semantics of yes.
+$define BLACK     0    # Constant representing a black square on the edit pane.
+$define COLORED   1    # Constant representing a colored square.
+
+############################################################################
+#
+# Procedure: start_editor
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure starts up the brick editor in a hidden window.
+# The editing area is initialized and it is determined if mutable colors
+# are to be used or not.
+# On a slow machine, mutable colors might make the updating of the edit
+# pane look better.
+# Also, since no brick has been edited yet, 'saved' is set to 'YES'.
+# This is only performed once when the htetris application is started.
+#
+############################################################################
+
+procedure start_editor()
+
+    atts := put( editor_atts(), "canvas=hidden")
+
+    (editor_window := WOpen ! atts) | {
+	Notice( htetris_window,
+	        "Editor can not be used because",
+	        "its window could not be opened.")
+	fail
+    }
+	
+    editor_vidgets := editor( editor_window)   
+    pane_width     := editor_vidgets["edit"].uw
+    pane_height    := editor_vidgets["edit"].uh
+    edit_pane      := Clone( editor_window, "bg=black",
+			     "dx=" || editor_vidgets["edit"].ux,
+			     "dy=" || editor_vidgets["edit"].uy)
+
+    Clip( edit_pane, 0, 0, pane_width, pane_height)
+    EraseArea( edit_pane, 0, 0, pane_width, pane_height)
+
+    mutable_brick_color       := NewColor()
+    mutable_brick_color_light := NewColor()
+    mutable_brick_color_dark  := NewColor()
+    mutable_grid_color        := NewColor()
+
+    if (mutable_brick_color       === &null  |
+	mutable_brick_color_light === &null  |
+	mutable_brick_color_dark  === &null  |
+	mutable_grid_color        === &null) then
+	mutables := NO
+    else
+	mutables := YES
+
+    saved := YES
+    return
+end
+
+############################################################################
+#
+# Procedure: kill_editor
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure closes down the editor, freeing mutable color if they are
+# used and closing the editor window.
+# This is only performed when the htetris application is closed.
+#
+############################################################################
+
+procedure kill_editor()
+
+    if mutables = YES then {
+	FreeColor( mutable_brick_color)
+	FreeColor( mutable_brick_color_light)
+	FreeColor( mutable_brick_color_dark)
+	FreeColor( mutable_grid_color)
+    }
+    WClose( editor_window)
+    return
+end
+
+############################################################################
+#
+# Procedure: edit
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This is the event loop for the editor which is entered by the htetris
+# application when the editor is to be used.
+#
+############################################################################
+
+procedure edit()
+
+    while (*Pending( editor_window) > 0) do
+	ProcessEvent( root)
+    
+    return
+end
+
+############################################################################
+#
+# Procedure: reset_editor
+# Arguments: matrix    - A matrix representing a new brick (possibly empty).
+#            new_color - New color.
+# Returns  : Nothing.
+#
+# This procedure resets the editor using the matrix and the given color.
+# The edit pane is cleared and the grid is shown.
+#
+############################################################################
+
+procedure reset_editor( matrix, new_color)
+
+    grid_width   := *matrix[1]   # Number of columns.
+    grid_height  := *matrix      # Number of rows.
+    brick_color  := new_color
+    brick_matrix := matrix
+
+    if mutables = YES then {
+	Color( mutable_brick_color, new_color)
+	Color( mutable_brick_color_light, "light-" || new_color)
+	Color( mutable_brick_color_dark, "dark-" || new_color)
+	Color( mutable_grid_color, "white")
+    }
+
+    EraseArea( edit_pane, 0, 0,
+	       editor_vidgets["edit"].uw, editor_vidgets["edit"].uh)
+
+    if mutables = YES then
+	draw_grid( mutable_grid_color)
+    else
+	draw_grid( "white")
+
+    grid_status := ON
+    return
+end
+
+############################################################################
+#
+# Procedure: draw_brick
+# Arguments: window - The window in which to draw the brick.
+#            color  - Color in which to draw the brick.
+#            matrix - The matrix representation of the brick.
+# Returns  : Nothing.
+#
+# This procedure draws a brick in a specified window using the specified
+# color andbrick matrix.
+# For every colored element in the matrix a square is drawn in the given
+# color if mutable colors aren't used. Otherwise the current mutable brick
+# color is used.
+#
+############################################################################
+
+procedure draw_brick( window, color, matrix)
+
+    every r := 1 to *matrix do
+	every c := 1 to *matrix[r] do
+	    if matrix[r][c] = COLORED then
+		if mutables = YES then
+		    draw_mutable_square( r, c, window)
+		else
+		    draw_square( r, c, window, color)
+    return
+end
+
+############################################################################
+#
+# Procedure: draw_grid
+# Arguments: color - Grid color.
+# Returns  : Nothing.
+#
+# This procedure redraws the grid in in all non-colored squares in the
+# specified grid color which is either white, black or the mutable grid-
+# color.
+#
+############################################################################
+
+procedure draw_grid( color)
+
+    Fg( edit_pane, color)
+    every r := 1 to grid_height do
+	every c := 1 to grid_width do
+	    if brick_matrix[r][c] = BLACK then
+		DrawSegment( edit_pane,
+			     (c-1)*20, (r-1)*20, (c-1)*20, (r-1)*20+19,
+			     (c-1)*20, (r-1)*20, (c-1)*20+19, (r-1)*20)
+
+    DrawSegment( edit_pane, 0, grid_height*20, grid_width*20, grid_height*20,
+		            grid_width*20, 0, grid_width*20, grid_height*20)
+    return
+end
+
+############################################################################
+#
+# Procedure: remove_grid
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure removes the grid from the edit pane by setting its
+# color where it is shown to black, either by changing the mutable color
+# or calling draw_grid.
+#
+############################################################################
+
+procedure remove_grid()
+
+    if mutables = YES then
+	Color( mutable_grid_color, "black")
+    else
+	draw_grid( "black")
+    return
+end
+
+############################################################################
+#
+# Procedure: apply_grid
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure shows the grid on the edit pane by setting its
+# color where it is shown to white, either by changing the mutable color
+# or calling draw_grid.
+#
+############################################################################
+
+procedure apply_grid()
+
+    if mutables = YES then
+	Color( mutable_grid_color, "white")
+    else
+	draw_grid( "white")
+    return
+end
+
+############################################################################
+#
+# Procedure: ctop
+# Arguments: coordinate - An x or y coordinate in the pixel coordinate system.
+# Returns  : The corresponding row or column position on the edit pane.
+#
+# This procedure converts an x or y pixel coordinate on the edit pane to
+# the corresponding row or column number.
+# Row and column numbers starts at 1 and are 20 pixels in height and width
+# respectively.
+#
+############################################################################
+
+procedure ctop( coordinate)
+
+    while coordinate % 20 ~= 0 do coordinate := coordinate-1
+
+    return coordinate/20+1
+end
+
+############################################################################
+#
+# Procedure: invalid
+# Arguments: color - A color on string format.
+# Returns  : Succseeds if the color is not a valid brick color, fails
+#            otherwise.
+#
+# This procedure determines whether the given color is invalid as a brick
+# color.
+#
+############################################################################
+
+procedure invalid( color)
+
+    valid_colors := set(["yellow", "red", "blue", "green", "orange",
+			 "magenta", "cyan", "brown"])
+
+    return not member( valid_colors, color)
+end
+
+############################################################################
+#
+# Procedure: out_of_bounds
+# Arguments: width  - An integer width.
+#            height - An integer height.
+# Returns  : Succseeds if width and height are not between 1 and 10 inclusive,
+#            fails otherwise.
+#
+# This procedure determines whether the given width and height are invalid
+# brick measurements. A brick must be between 1 x 1 and 10 x 10 squares.
+#
+############################################################################
+
+procedure out_of_bounds( width, height)
+
+    return width > 10 | width < 1 | height > 10 | height < 1
+end
+
+############################################################################
+#
+# Procedure: edit_new
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure shows a text dialog box with buttons "Ok" and "Cancel",
+# where the user is asked to enter width, height and color of a new brick.
+# The three input values are checked for validity and if they are correct,
+# the editor is reset with the new values and 'saved' is set to 'YES'.
+# If they are not correct, an error message is given and the dialog
+# reappears until the user enters valid values or cancel is pressed.
+#
+############################################################################
+
+procedure edit_new()
+
+    button_pressed :=
+	TextDialog( editor_window,
+		   ["Enter properties of the brick."],
+		   ["Width:", "Height:", "Color:"],
+		   [],
+		   [2, 2, 20])
+    
+    case button_pressed of {
+	"Okay" : {
+	    width  := integer( dialog_value[1])
+	    height := integer( dialog_value[2])
+	    color  := dialog_value[3]
+	    
+	    if (width === &null | height === &null) |
+	       (out_of_bounds( width, height))      then {
+		Notice( editor_window,
+		        "Width and height must be between 1 and 10.")
+		edit_new()
+		return
+	    }
+	    else if invalid( color) then {
+		Notice( editor_window,
+		       "Color must be one of the following:",
+		       "yellow, red, blue, green, orange,",
+		       "magenta, cyan or brown.")
+		edit_new()
+		return
+	    }
+	    else {
+		reset_editor( new_matrix( height, width), color)
+		saved := YES
+	    }
+	}
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: edit_open
+# Arguments: None.
+# Returns  : Nothing.
+#
+# Brick data are obtained by a call to 'open_brick'.
+# If they were successfully returned, appropriate elements of them are
+# extracted to reset the editor according to the attributes of the
+# loaded brick and draw it on the edit pane. 'saved' is set to 'YES'.
+#
+############################################################################
+
+procedure edit_open()
+    
+    old_pointer := WAttrib( editor_window, "pointer")
+    if old_pointer == "left ptr" then
+	WAttrib( editor_window, "pointer=watch")
+    else
+	WAttrib( editor_window, "pointer=wait")
+	
+    if /(brick_data := open_brick( editor_window)) then
+	return
+
+    reset_editor( brick_data.matrices[1], brick_data.color)
+    draw_brick( edit_pane, brick_color, brick_matrix)    
+    WAttrib( editor_window, "pointer=" || old_pointer)
+    saved := YES
+    return
+end
+
+############################################################################
+#
+# Procedure: empty_pane
+# Arguments: None.
+# Returns  : One of the constants YES or NO.
+#
+# This procedure determines if the edit pane is empty by traversing the
+# grid matrix. 'YES' is returned if all elements in the matrix were black.
+# If at least one element is colored, 'NO' is returned.
+#
+############################################################################
+
+procedure empty_pane()
+
+    every r := 1 to grid_height do
+	every c := 1 to grid_width do
+	    if brick_matrix[r][c] ~= BLACK then
+		return NO
+    return YES
+end
+
+############################################################################
+#
+# Procedure: save_temp_window
+# Arguments: width       - Width of the temporary window.
+#            height      - Height of the temporary window.
+# Returns  : temp_window - The temporary window.
+#
+# This procedure opens and returns a temporary hidden window of the given
+# size. This is used to draw a brick temporarily when saving it.
+#
+############################################################################
+
+procedure save_temp_window( width, height)
+
+    temp_window :=
+	WOpen( "width=" || width,
+	       "height=" || height,
+	       "bg=black",
+	       "canvas=hidden") | {
+	    Notice( editor_window, "Error while saving brick, save aborted.")
+	    return
+	}
+    return temp_window
+end
+
+############################################################################
+#
+# Procedure: transparentify
+# Arguments: spec - An icon imagestring specification.
+# Returns  : temp - The transformed specification.
+#
+# This procedure transforms and returns an imagestring with colors from
+# the "c1" palette to a transparent imagestring, replacing all black pixels
+# (zeros) with transparent pixels (~).
+#
+############################################################################
+
+procedure transparentify( spec)
+    spec ? {
+	temp := tab( upto( ',')) || move( 1) ||
+	        tab( upto( ',')) || move( 1)
+
+	while colored := tab( upto( '0')) do {
+	    nr_black := many( '0') - &pos
+	    tab( many( '0'))
+	    transparent := repl( "~", nr_black)
+	    temp := temp || colored || transparent
+	}
+	if temp := temp || move( 1) then
+	    temp := temp || tab( many( cset( PaletteChars( "c1")) -- '0'))
+    }
+    return temp
+end
+
+############################################################################
+#
+# Procedure: assemble_data
+# Arguments: None.
+# Returns  : A 'brick' record containing data of the current brick.
+#
+# This procedure assembles data for the current brick, which includes the
+# color, four matrices and four corresponding image-strings.
+# The first brick matrix must first be trimmed if all of the availible area
+# on the edit pane has not been used.
+# The trimmed brick matrix is then rotated and drawn in temporary windows
+# which contents are captured as imagestrings. Each of the four image-
+# strings produced are converted to transparent ones where all black pixels
+# become transparent instead.
+# A record of type 'brick' is returned with all fields but 'offset'
+# filled in.
+#
+############################################################################
+
+procedure assemble_data( wait_window)
+
+    area_used := non_zero_limits( brick_matrix)
+    work_done( wait_window, 10)
+
+    x      := (area_used.min_col-1)*20
+    y      := (area_used.min_row-1)*20
+    width  := (area_used.max_col-area_used.min_col+1)*20
+    height := (area_used.max_row-area_used.min_row+1)*20
+    work_done( wait_window, 12)
+
+    if /(temp_window1 := save_temp_window( height, width)) then fail
+    if /(temp_window2 := save_temp_window( width, height)) then fail
+    if /(temp_window3 := save_temp_window( height, width)) then fail
+    work_done( wait_window, 15)
+    
+    if grid_status = ON then remove_grid()
+    image1 := transparentify( Capture( edit_pane, "c1", x, y, width, height))
+    if grid_status = ON then apply_grid()
+    work_done( wait_window, 30)
+    
+    matrix1 := trim_matrix( brick_matrix)
+    work_done( wait_window, 40)
+    
+    if mutables = YES then
+	color := mutable_brick_color
+    else
+	color := brick_color
+    work_done( wait_window, 42)
+
+    draw_brick( temp_window1, color, matrix2 := rotate_matrix( matrix1))
+    image2 := transparentify( Capture( temp_window1, "c1", 0, 0, height, width))
+    work_done( wait_window, 58)
+    
+    draw_brick( temp_window2, color, matrix3 := rotate_matrix( matrix2))
+    image3 := transparentify( Capture( temp_window2, "c1", 0, 0, width, height))
+    work_done( wait_window, 74)
+    
+    draw_brick( temp_window3, color, matrix4 := rotate_matrix( matrix3))
+    image4 := transparentify( Capture( temp_window3, "c1", 0, 0, height, width))
+    work_done( wait_window, 90)
+
+    WClose( temp_window1)
+    WClose( temp_window2)
+    WClose( temp_window3)
+    work_done( wait_window, 95)
+
+    return brick( brick_color,
+		  &null,
+		  [matrix1, matrix2, matrix3, matrix4],
+		  [image1, image2, image3, image4])
+end
+
+############################################################################
+#
+# Procedure: edit_save
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure saves the current brick to disk, first checking if the
+# edit pane is empty.
+#
+############################################################################
+
+procedure edit_save()
+
+    if empty_pane() = YES then
+	Notice( editor_window, "Edit pane is empty, save aborted.")
+    else {
+	save_brick( editor_window)
+	saved := YES
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: change_color
+# Arguments: None.
+# Returns  : Nothing.
+#
+# This procedure shows a text dialog box with buttons "Ok" and "Cancel",
+# asking the user to enter a new brick color.
+# If the entered color is invalid, the dialog reappears until a valid
+# color is entered or cancel is pressed.
+# If the color was valid, the global variable 'brick_color' is updated and
+# the squares currently colored on the edit pane are updated to the new
+# color.
+#
+############################################################################
+
+procedure change_color()
+
+    button_pressed :=
+	TextDialog( editor_window,
+		   ["Enter new color."],
+		   ["Color:"],
+		   [],
+		   [20])
+
+    case button_pressed of {
+	"Okay" : {
+	    if invalid( dialog_value[1]) then {
+		Notice( editor_window,
+		       "Color must be one of the following:",
+		       "yellow, red, blue, green, orange,",
+		       "magenta, cyan or brown.")
+		change_color()
+		return
+	    }
+	    else {
+		brick_color := dialog_value[1]
+		if mutables = YES then {
+		    Color( mutable_brick_color, brick_color)
+		    Color( mutable_brick_color_light, "light-" || brick_color)
+		    Color( mutable_brick_color_dark, "dark-" || brick_color)
+		}
+		else
+		    draw_brick( edit_pane, brick_color, brick_matrix)
+	    }
+	}
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: draw_mutable_square
+# Arguments: r      - Row number of square to be drawn.
+#            c      - Column number of square to be drawn.
+#            window - Window in which the square is to be drawn.
+# Returns  : Nothing.
+#
+# This procedure draws a square using the current mutable color in the
+# given window.
+# A lighter and a darker shade of the base color is used to create a
+# 3 dimensional effect.
+#
+############################################################################
+
+procedure draw_mutable_square( r, c, window)
+
+    Fg( window, mutable_brick_color)
+    FillRectangle( window, (c-1)*20, (r-1)*20, 20, 20)
+    Fg( window, mutable_brick_color_light)
+    DrawLine( window, (c-1)*20, (r-1)*20, (c*20)-1, (r-1)*20)
+    DrawLine( window, (c-1)*20, (r-1)*20+1, (c*20)-1, (r-1)*20+1)
+    DrawLine( window, (c-1)*20, (r-1)*20, (c-1)*20, (r*20)-1)
+    DrawLine( window, (c-1)*20+1, (r-1)*20, (c-1)*20+1, (r*20)-2)
+    Fg( window, mutable_brick_color_dark)
+    DrawLine( window, (c*20)-1, (r*20)-1, (c*20)-1, (r-1)*20+1)
+    DrawLine( window, (c*20)-2, (r*20)-1, (c*20)-2, (r-1)*20+2)
+    DrawLine( window, (c*20)-1, (r*20)-1, (c-1)*20+1, (r*20)-1)
+    DrawLine( window, (c*20)-1, (r*20)-2, (c-1)*20+2, (r*20)-2)
+    return
+end
+
+############################################################################
+#
+# Procedure: draw_square
+# Arguments: r      - Row number of square to be drawn.
+#            c      - Column number of square to be drawn.
+#            window - Window in which the square is to be drawn.
+#            color  - Color of square.
+# Returns  : Nothing.
+#
+# This procedure draws a square using the given color in the given window.
+# A lighter and a darker shade of the base color is used to create a
+# 3 dimensional effect.
+#
+############################################################################
+
+procedure draw_square( r, c, window, color)
+
+    Fg( window, color)
+    FillRectangle( window, (c-1)*20, (r-1)*20, 20, 20)
+    Fg( window, "light-" || color)
+    DrawLine( window, (c-1)*20, (r-1)*20, (c*20)-1, (r-1)*20)
+    DrawLine( window, (c-1)*20, (r-1)*20+1, (c*20)-1, (r-1)*20+1)
+    DrawLine( window, (c-1)*20, (r-1)*20, (c-1)*20, (r*20)-1)
+    DrawLine( window, (c-1)*20+1, (r-1)*20, (c-1)*20+1, (r*20)-2)
+    Fg( window, "dark-" || color)
+    DrawLine( window, (c*20)-1, (r*20)-1, (c*20)-1, (r-1)*20+1)
+    DrawLine( window, (c*20)-2, (r*20)-1, (c*20)-2, (r-1)*20+2)
+    DrawLine( window, (c*20)-1, (r*20)-1, (c-1)*20+1, (r*20)-1)
+    DrawLine( window, (c*20)-1, (r*20)-2, (c-1)*20+2, (r*20)-2)
+    return
+end
+
+############################################################################
+#
+# Procedure: erase_square
+# Arguments: r - Row number of square to be erased.
+#            c - Column number of square to be erased.
+# Returns  : Nothing.
+#
+# This procedure is called when a square on the edit pane is to be erased
+# due to a right button mouse-click event on it.
+# The matrix of the current brick is updated, the appropriate foreground
+# color for the grid is selected depending on if mutable colors are in use
+# or not and the square is erased and the grid in that square is redrawn.
+#
+############################################################################
+
+procedure erase_square( r, c)
+
+    if mutables = YES then
+	Fg( edit_pane, mutable_grid_color)    
+    else
+	Fg( edit_pane, "white")
+    
+    EraseArea( edit_pane, (c-1)*20, (r-1)*20, 20, 20)
+    if grid_status = ON then
+	DrawSegment( edit_pane,
+		     (c-1)*20, (r-1)*20, (c-1)*20, (r-1)*20+19,
+		     (c-1)*20, (r-1)*20, (c-1)*20+19, (r-1)*20)
+    return
+end
+
+################################ CALLBACKS #################################
+
+############################################################################
+#
+# Procedure: edit_cb
+# Arguments: vidget - Edit pane region.
+#            event  - Event on the edit pane region.
+#            x      - Mouse x-coordinate.
+#            y      - Mouse y-coordinate.
+# Returns  : Nothing.
+#
+# This procedure is called if an event has occured on the edit pane region.
+# Only left and right mouse-button press events are handled.
+# The x and y coordinate are transformed into row and column numbers and
+# checked if they are whithin the current brick size area (the area covered
+# by the grid) on the edit pane. If not nothing happens.
+# If they are valid, a square is colored as an effect of a left button
+# press, and erased as an effect of a right button press.
+# In either case, the current brick matrix is updated accordingly.
+# 'saved' is set to 'NO' since the current brick has now changed.
+#
+############################################################################
+
+procedure edit_cb( vidget, event, x, y)
+
+    x := x-WAttrib( edit_pane, "dx")-1
+    y := y-WAttrib( edit_pane, "dy")-1
+    r := ctop( y)
+    c := ctop( x)
+    
+    if (r <= grid_height & c <= grid_width) then {
+	case event of {
+	    &lpress : {
+		brick_matrix[r][c] := COLORED
+		if mutables = YES then
+		    draw_mutable_square( r, c, edit_pane)
+		else
+		    draw_square( r, c, edit_pane, brick_color)
+	    }
+	    &rpress : {
+		brick_matrix[r][c] := BLACK
+		erase_square( r, c)
+	    }
+	}
+	saved := NO
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: editor_help_cb
+# Arguments: vidget - Vidget id.
+#            value  - A list, the menu item selected.
+# Returns  : Nothing.
+#
+# This procedure is called when a menu item on the help menu of the editor
+# is selected.
+#
+############################################################################
+
+procedure editor_help_cb( vidget, value)
+
+    case value[1] of {
+	"How to edit" : how_to_edit()
+	"Menus"       : file_menu()
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: file_cb
+# Arguments: vidget - Vidget id.
+#            value  - A list, the menu item selected.
+# Returns  : Nothing.
+#
+# This procedure is called when a menu item on the file menu of the editor
+# is selected.
+# If "New" was selected, a new brick dialog is shown, possibly prompting to
+# save the current brick first.
+# If "Open" was selected, an open brick dialog is shown, possibly prompting
+# to save the current brick first.
+# If "Save" was selected, a save brick dialog is shown.
+# If "Quit" was selected, possibly prompting to save the current brick
+# first, saved is unconditionally set to "YES" since when the editor is
+# run the next time it is to be "brand new". Then, the stream of events
+# are switched over to the htetris window which pending events are discarded.
+# Then the editor window is hidden.
+#
+############################################################################
+
+procedure file_cb( vidget, value)
+
+    case value[1] of {
+	"New"  : {
+	    if saved = NO then save_prompt( editor_window)
+	    edit_new()
+	}
+	"Open" : {
+	    if saved = NO then save_prompt( editor_window)
+	    edit_open()
+	}
+	"Save" : edit_save()
+	"Quit" : {
+	    if saved = NO then save_prompt( editor_window)
+	    saved := YES
+	    root  := htetris_vidgets["root"]
+	    while get( Pending( htetris_window))
+	    WAttrib( editor_window, "canvas=hidden")
+	}
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: brick_cb
+# Arguments: vidget - Vidget id.
+#            value  - A list, the menu item selected.
+# Returns  : Nothing.
+#
+# This procedure is called when a menu item on the brick menu of the editor
+# is selected.
+# The only item is "Change color" so the color of the current brick is
+# changed.
+#
+############################################################################
+
+procedure brick_cb( vidget, value)
+
+    case value[1] of {
+	"Change color" : change_color()
+    }
+    return
+end
+
+############################################################################
+#
+# Procedure: clear_cb
+# Arguments: vidget - Vidget id.
+#            value  - A list, the menu item selected.
+# Returns  : Nothing.
+#
+# This procedure is called when the button with the label "Clear" has been
+# pressed.
+# The brick matrix is reset by creating a new one of the same size.
+# Then the whole edit pane is erased and if the grid was previously shown,
+# it is redrawn in the appropriate foreground color.
+#
+############################################################################
+
+procedure clear_cb( vidget, value)
+
+    brick_matrix := new_matrix( grid_height, grid_width)
+
+    EraseArea( edit_pane, 0, 0,
+	       editor_vidgets["edit"].uw, editor_vidgets["edit"].uh)
+
+    if grid_status = ON then
+	if mutables = YES then
+	    draw_grid( mutable_grid_color)
+	else
+	    draw_grid( "white")
+    else
+	if mutables = YES then
+	    draw_grid( mutable_grid_color)
+	else	
+	    draw_grid( "black")
+    return
+end
+
+############################################################################
+#
+# Procedure: toggle_cb
+# Arguments: vidget - Vidget id.
+#            value  - A list, the menu item selected.
+# Returns  : Nothing.
+#
+# This procedure is called when the button with the label "Toggle grid" has
+# been pressed.
+# The grid is toggled by calling the appropriate procedure and update the
+# global variable 'grid_status' accordingly depending on whether the grid
+# is currently shown or not.
+#
+############################################################################
+
+procedure toggle_cb( vidget, value)
+
+    if grid_status == ON then {
+	remove_grid()
+	grid_status := OFF
+    }
+    else {
+	apply_grid()
+	grid_status := ON
+    }
+    return
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure editor_atts()
+   return ["size=216,276", "bg=gray-white", "label=Brick editor"]
+end
+
+procedure editor(win, cbk)
+return vsetup(win, cbk,
+   ["editor:Sizer:::0,0,216,276:Brick editor",],
+   ["brick:Menu:pull::36,0,43,21:Brick",brick_cb,
+      ["Change color"]],
+   ["clear:Button:regular::6,240,90,30:Clear",clear_cb],
+   ["editor_help:Menu:pull::79,0,36,21:Help",editor_help_cb,
+      ["How to edit","Menus"]],
+   ["editor_menubar:Line:::0,22,212,22:",],
+   ["file:Menu:pull::0,0,36,21:File",file_cb,
+      ["New","Open","Save","Quit"]],
+   ["toggle:Button:regular::119,240,90,30:Toggle grid",toggle_cb],
+   ["edit:Rect:raised::6,30,204,204:",edit_cb],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

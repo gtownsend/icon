@@ -1,0 +1,60 @@
+############################################################################
+#
+#	File:     evstream.icn
+#
+#	Subject:  Program to show events
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 8, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program lists the events that occur in the execution of the icode
+#  file given as the first argument on the command line.  Any other command-
+#  line arguments are passed to the icode file.
+#
+#  The image of the event code is given in the first column, its
+#  description is given in the second column, and an image of the
+#  event value is given in the third column.
+#
+############################################################################
+#
+#  Requires:  MT Icon and event monitoring.
+#
+############################################################################
+#
+#  Links:  evinit, evnames, convert
+#
+############################################################################
+
+link evinit
+link evnames
+link convert
+
+procedure main(args)
+   local name
+
+   EvInit(args) | stop("*** cannot open icode file ***")
+
+   name := evnames()
+
+   while EvGet() do
+      write(left(rimage(&eventcode), 8),
+         left(\name[&eventcode] | "unknown event",35), image(&eventvalue))
+
+end
+
+procedure rimage(s)
+   local i
+
+   i := ord(s)
+
+   if 32 <= i <= 126 then return image(s)
+   else return "\"\\" || exbase10(i, 8) || "\""
+
+end

@@ -1,0 +1,68 @@
+############################################################################
+#
+#	File:     usage.icn
+#
+#	Subject:  Procedures for service functions
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 19, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     These procedures provide various common services:
+#
+#     Usage(s)          stops executions with a message concerning the
+#                       expected form of usage of a program.
+#
+#     Error(L[])	writes arguments to &errout and returns.
+#
+#
+#     ErrorCheck(l,f)	reports an error that has been converted to
+#                       failure.
+#
+#     Feature(s)        succeeds if feature s is available in the running
+#                       implementation of Icon.
+#
+#     Requires(s)	terminates execution is feature s is not available.
+#
+#     Signature()	writes the version, host, and features support in
+#                       the running implementation of Icon.
+#
+############################################################################
+
+procedure Usage(s)
+   stop("Usage: ",s)
+end
+
+procedure Error(L[])
+   push(L,"*** ")
+   push(L, &errout)
+   write ! L
+end
+
+procedure ErrorCheck(line,file)
+   if &errortext == "" then fail	# No converted error
+   write("\nError ",&errornumber," at line ",line, " in file ",file)
+   write(&errortext)
+   write("offending value: ",image(&errorvalue))
+   return
+end
+
+procedure Feature(s)
+   if s == &features then return else fail
+end
+
+procedure Requires(s)
+   if not(Feature(s)) then stop(s," required")
+end
+
+procedure Signature()
+   write(&version)
+   write(&host)
+   every write(&features)
+end

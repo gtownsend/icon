@@ -1,0 +1,40 @@
+############################################################################
+#
+#	File:     rpolys.icn
+#
+#	Subject:  Procedure to produce traces of regular polygons
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 24, 1999
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# Generate points for a regular polygon with the specified number of
+# vertices and radius, centered at cx and cy.  The offset angle is theta;
+# default 0.
+#
+############################################################################
+#
+#  Links:  gobject
+#
+############################################################################
+
+link gobject
+
+procedure rpoly(cx, cy, radius, vertices, theta)	#: generate polygon points
+   local incr, i
+
+   incr := 2 * &pi / vertices
+   /theta := 0			# starting angle
+
+   every i := 1 to vertices do {
+      suspend Point(cx + radius * cos(theta), cy + radius * sin(theta))
+      theta +:= incr
+      }
+
+end

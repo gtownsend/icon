@@ -1,0 +1,89 @@
+.\"Copyright 1990-92 GROUPE BULL -- See license conditions in file COPYRIGHT
+.TH SXPM 1
+.PD
+.ad b
+.SH NAME
+sxpm \- Show an XPM (X PixMap) file and/or convert XPM2 files to XPM version 3.
+.SH SYNOPSIS
+\fBsxpm\fR
+[\|\fB-d\fR displayname\|] 
+[\|\fB-g\fR geometry\|] 
+[\|\fB-hints\fR\|] 
+[\|\fB-icon\fR filename\|] 
+[\|\fB-s\fR symbol color_name\|] 
+[\|\fB-p\fR symbol pixel_value\|] 
+[\|\fB-plaid\| | \|\fRfilename\| | \|-\|]
+[\|\fB-o\fR filename\| | \|\fB-o\fR -\|] 
+[\|\fB-nod\fR\|] 
+[\|\fB-rgb\fR filename\|] 
+[\|\fB-c\fR\|] 
+[\|\fB-v\fR\|] 
+.SH DESCRIPTION
+.PP
+The \fIsxpm\fP program can be used to view any XPM (version 2 or 3) file and/or
+to convert a file from XPM2 to XPM version 3. If \fIsxpm\fP is run without any
+option specified, the usage is displayed. If no geometry is specified, the
+show window will have the size of the read pixmap. Pressing the key Q in the
+window will quit the program.
+.SH OPTIONS
+.TP 8
+.B \-d \fIdisplay\fP
+Specifies the display to connect to.
+.TP 8
+.B \-g \fIgeom\fP
+Window geometry (default is pixmap's size).
+.TP 8
+.B \-hints
+Set ResizeInc for window.
+.TP 8
+.B \-icon \fIfilename\fP
+Set icon to pixmap created from the file \fIfilename\fP.
+.TP 8
+.B \-s \fIsymbol colorname\fP
+Overwrite default color to \fIsymbol\fP to \fIcolorname\fp.
+.TP 8
+.B \-p \fIsymbol pixelvalue\fP
+Overwrite default color to \fIsymbol\fP to \fIpixelvalue\fp.
+.TP 8
+.B \-closecolors
+Try to use "close colors" before reverting to other visuals.
+.TP 8
+.B \-plaid
+Show the plaid pixmap which is stored as data\fP.
+.TP 8
+.B \fIfilename\fP
+Read from the file \fIfilename\fP and from standard input if \fIfilename\fP is '-'.
+If no input is specified sxpm reads from standard input.
+.TP 8
+.B \-o \fIfilename\fP
+Write to the file \fIfilename\fP (overwrite if it already exists) and to
+standard output if \fIfilename\fP is '-'.
+.TP 8
+.B \-nod
+Do not display the pixmap in a window.  (Useful when using as converter)
+.TP 8
+.B \-rgb \fIfilename\fP
+Search color names in the file \fIfilename\fP and write them out instead of
+the rgb values.
+.TP 8
+.B \-c
+To use a private colormap.
+.TP 8
+.B \-v
+Verbose - to print out extensions (stderr).
+
+
+.SH KNOWN BUGS
+When converting a file from XPM2 to XPM version 3, if several pixels (symbols)
+get the same color only one will be in the file written out.
+.br
+Some window managers may not accept a pixmap which is not a bitmap as icon
+because this does not respect ICCCM, many of the well known ones will accept
+it though.
+
+.SH AUTHOR
+Arnaud Le Hors    (lehors@sophia.inria.fr)
+.br
+Bull Research France
+.br
+Copyright (C) 1990-92,92 by Groupe Bull.

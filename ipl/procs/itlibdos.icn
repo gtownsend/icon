@@ -1,0 +1,480 @@
+############################################################################
+#    
+#	File:     itlibdos.icn
+#	
+#	Subject:  Procedures for MS-DOS termlib-type tools
+#	
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.15
+#
+############################################################################
+#
+#  The following library represents a series of rough functional
+#  equivalents to the standard UNIX low-level termcap routines.  They
+#  are not meant as exact termlib clones.  Nor are they enhanced to
+#  take care of magic cookie terminals, terminals that use \D in their
+#  termcap entries, or, in short, anything I felt would not affect my
+#  normal, day-to-day work with ANSI and vt100 terminals.  At this
+#  point I'd recommend trying iolib.icn instead of itlibdos.icn.  Iolib
+#  is largely DOS-UNIX interchangeable, and it does pretty much every-
+#  thing itlibdos.icn does.
+#
+############################################################################
+#
+#  Requires:  An MS-DOS platform & co-expressions.  The MS-DOS version
+#  is a port of the UNIX version.  Software you write for this library
+#  can be made to run under UNIX simply by substituting the UNIX ver-
+#  sion of this library.  See below for additional notes on how to use
+#  this MS-DOS port.
+#
+#  setname(term)
+#	Use only if you wish to initialize itermlib for a terminal
+#  other than what your current environment specifies.  "Term" is the
+#  name of the termcap entry to use.  Normally this initialization is
+#  done automatically, and need not concern the user.
+#
+#  getval(id)
+#	Works something like tgetnum, tgetflag, and tgetstr.  In the
+#  spirit of Icon, all three have been collapsed into one routine.
+#  Integer valued caps are returned as integers, strings as strings,
+#  and flags as records (if a flag is set, then type(flag) will return
+#  "true").  Absence of a given capability is signalled by procedure
+#  failure.
+#
+#  igoto(cm,destcol,destline) - NB:  default 1 offset (*not* zero)!
+#	Analogous to tgoto.  "Cm" is the cursor movement command for
+#  the current terminal, as obtained via getval("cm").  Igoto()
+#  returns a string which, when output via iputs, will cause the
+#  cursor to move to column "destcol" and line "destline."  Column and
+#  line are always calculated using a *one* offset.  This is far more
+#  Iconish than the normal zero offset used by tgoto.  If you want to
+#  go to the first square on your screen, then include in your program
+#  "iputs(igoto(getval("cm"),1,1))."
+#
+#  iputs(cp,affcnt)
+#	Equivalent to tputs.  "Cp" is a string obtained via getval(),
+#  or, in the case of "cm," via igoto(getval("cm"),x,y).  Affcnt is a
+#  count of affected lines.  It is only relevant for terminals which
+#  specify proportional (starred) delays in their termcap entries.
+#
+############################################################################
+#
+#  Notes on the MS-DOS version:
+#	There are two basic reasons for using the I/O routines
+#  contained in this package.  First, by using a set of generalized
+#  routines, your code will become much more readable.  Secondly, by
+#  using a high level interface, you can avoid the cardinal
+#  programming error of hard coding things like screen length and
+#  escape codes into your programs.
+#	To use this collection of programs, you must do two things.
+#  First, you must add the line "device=ansi.sys" (or the name of some
+#  other driver, like zansi.sys, nansi.sys, or nnansi.sys [=new
+#  nansi.sys]) to your config.sys file.  Secondly, you must add two
+#  lines to your autoexec.bat file:  1) "set TERM=ansi-mono" and 2)
+#  "set TERMCAP=\location\termcap."  The purpose of setting the TERM
+#  variable is to tell this program what driver you are using.  If you
+#  have a color system, use "ansi-color" instead of "ansi-mono," and
+#  if you are using nansi or zansi instead of vanilla ansi, use one of
+#  these names instead of the "ansi" (e.g. "zansi-mono").  The purpose
+#  of setting TERMCAP is to make it possible to determine where the
+#  termcap file is located.  The termcap file (which should have been
+#  packed with this library as termcap.dos) is a short database of all
+#  the escape sequences used by the various terminal drivers.  Set
+#  TERMCAP so that it reflects the location of this file (which should
+#  be renamed as termcap, for the sake of consistency with the UNIX
+#  version).  Naturally, you must change "\location\" above to reflect
+#  the correct path on your system.  With some distributions, a second
+#  termcap file may be included (termcap2.dos).  Certain games work a
+#  lot better using this alternate file.  To try it out, rename it to
+#  termcap, and set TERMCAP to its location.
+#	Although I make no pretense here of providing here a complete
+#  introduction to the format of the termcap database file, it will be
+#  useful, I think, to explain a few basic facts about how to use this
+#  program in conjunction with it.  If, say, you want to clear the
+#  screen, add the line,
+#
+#	iputs(getval("cl"))
+#
+#  to your program.  The function iputs() outputs screen control
+#  sequences.  Getval retrieves a specific sequence from the termcap
+#  file.  The string "cl" is the symbol used in the termcap file to
+#  mark the code used to clear the screen.  By executing the
+#  expression "iputs(getval("cl"))," you are 1) looking up the "cl"
+#  (clear) code in the termcap database entry for your terminal, and
+#  the 2) outputting that sequence to the screen.
+#	Some other useful termcap symbols are "ce" (clear to end of
+#  line), "ho" (go to the top left square on the screen), "so" (begin
+#  standout mode), and "se" (end standout mode).  To output a
+#  boldfaced string, str, to the screen, you would write -
+#
+#	iputs(getval("so"))
+#	writes(str)
+#	iputs(getval("se"))
+#
+#  You could write "writes(getval("so") || str || getval("se")), but
+#  this would only work for DOS.  Some UNIX terminals require padding,
+#  and iputs() handles them specially.  Normally you should not worry
+#  about UNIX quirks under DOS.  It is in general wise, though, to
+#  separate out screen control sequences, and output them via iputs().
+#	It is also heartily to be recommended that MS-DOS programmers
+#  try not to assume that everyone will be using a 25-line screen.
+#  Some terminals are 24-line.  Some 43.  Some have variable window
+#  sizes.  If you want to put a status line on, say, the 2nd-to-last
+#  line of the screen, then determine what that line is by executing
+#  "getval("li")."  The termcap database holds not only string-valued
+#  sequences, but numeric ones as well.  The value of "li" tells you
+#  how many lines the terminal has (compare "co," which will tell you
+#  how many columns).  To go to the beginning of the second-to-last
+#  line on the screen, type in:
+#
+#	iputs(igoto(getval("cm"), 1, getval("li")-1))
+#
+#  The "cm" capability is a special capability, and needs to be output
+#  via igoto(cm,x,y), where cm is the sequence telling your computer
+#  to move the cursor to a specified spot, x is the column, and y is
+#  the row.  The expression "getval("li")-1" will return the number of
+#  the second-to-last line on your screen.
+#
+############################################################################
+#
+#  Requires: MS-DOS, coexpressions
+#
+############################################################################
+#
+#  See also: iscreen.icn, iolib.icn, itlib.icn
+#
+############################################################################
+
+
+global tc_table
+record true()
+
+
+procedure check_features()
+
+    local in_params, line
+
+    initial {
+	find("ms-dos",map(&features)) |
+	    er("check_features","MS-DOS system required",1)
+	find("o-expres",&features) |
+	    er("check_features","co-expressions not implemented - &$#!",1)
+    }
+
+    return
+
+end
+
+
+
+procedure setname(name)
+
+    # Sets current terminal type to "name" and builds a new termcap
+    # capability database (residing in tc_table).  Fails if unable to
+    # find a termcap entry for terminal type "name."  If you want it
+    # to terminate with an error message under these circumstances,
+    # comment out "| fail" below, and uncomment the er() line.
+
+    #tc_table is global
+    
+    check_features()
+
+    tc_table := maketc_table(getentry(name)) | fail
+    # er("setname","no termcap entry found for "||name,3)
+    return
+
+end
+
+
+
+procedure getname()
+
+    # Getname() first checks to be sure we're running under DOS, and,
+    # if so, tries to figure out what the current terminal type is,
+    # checking the value of the environment variable TERM, and if this
+    # is unsuccessful, defaulting to "mono."
+
+    local term, tset_output
+
+    check_features()
+    term := getenv("TERM") | "mono"
+	
+    return \term |
+	er("getname","can't seem to determine your terminal type",1)
+
+end
+
+
+
+procedure er(func,msg,errnum)
+
+    # short error processing utility
+    write(&errout,func,":  ",msg)
+    exit(errnum)
+
+end
+
+
+
+procedure getentry(name, termcap_string)
+
+    # "Name" designates the current terminal type.  Getentry() scans
+    # the current environment for the variable TERMCAP.  If the
+    # TERMCAP string represents a termcap entry for a terminal of type
+    # "name," then getentry() returns the TERMCAP string.  Otherwise,
+    # getentry() will check to see if TERMCAP is a file name.  If so,
+    # getentry() will scan that file for an entry corresponding to
+    # "name."  If the TERMCAP string does not designate a filename,
+    # getentry() will look through ./termcap for the correct entry.
+    # Whatever the input file, if an entry for terminal "name" is
+    # found, getentry() returns that entry.  Otherwise, getentry()
+    # fails.
+
+    local f, getline, line, nm, ent1, ent2, entry
+
+    /termcap_string := getenv("TERMCAP")
+
+    if \termcap_string ? (not match("\\"), pos(1) | tab(find("|")+1), =name)
+    then return termcap_string
+    else {
+
+	# The logic here probably isn't clear.  The idea is to try to use
+	# the termcap environment variable successively as 1) a termcap en-
+	# try and then 2) as a termcap file.  If neither works, 3) go to
+	# the ./termcap file.  The else clause here does 2 and, if ne-
+	# cessary, 3.  The "\termcap_string ? (not match..." expression
+	# handles 1.
+
+	if find("\\",\termcap_string)
+	then f := open(termcap_string)
+	/f := open("termcap") |
+	    er("getentry","I can't access your termcap file",1)
+
+	getline := create read_file(f)
+    
+	while line := @getline do {
+	    if line ? (pos(1) | tab(find("|")+1), =name, any(':|')) then {
+		entry := ""
+		while (\line | @getline) ? {
+		    if entry ||:= 1(tab(find(":")+1), pos(0))
+		    then {
+			close(f)
+			# if entry ends in tc= then add in the named tc entry
+			entry ?:= tab(find("tc=")) ||
+			    # recursively fetch the new termcap entry
+			    (move(3), getentry(tab(find(":"))) ?
+			        # remove the name field from the new entry
+			     	(tab(find(":")+1), tab(0)))
+			return entry
+		    }
+		    else {
+			\line := &null # must precede the next line
+			entry ||:= trim(trim(tab(0),'\\'),':')
+		    }
+		}
+	    }
+	}
+    }
+
+    close(f)
+    er("getentry","can't find and/or process your termcap entry",3)
+ 
+end
+
+
+
+procedure read_file(f)
+
+    # Suspends all non #-initial lines in the file f.
+    # Removes leading tabs and spaces from lines before suspending
+    # them.
+
+    local line
+
+    \f | er("read_tcap_file","no valid termcap file found",3)
+    while line := read(f) do {
+	match("#",line) & next
+	line ?:= (tab(many('\t ')) | &null, tab(0))
+	suspend line
+    }
+
+    fail
+
+end
+
+
+
+procedure maketc_table(entry)
+
+    # Maketc_table(s) (where s is a valid termcap entry for some
+    # terminal-type): Returns a table in which the keys are termcap
+    # capability designators, and the values are the entries in
+    # "entry" for those designators.
+
+    local k, v
+
+    /entry & er("maketc_table","no entry given",8)
+    if entry[-1] ~== ":" then entry ||:= ":"
+    
+    tc_table := table()
+
+    entry ? {
+
+	tab(find(":")+1)	# tab past initial (name) field
+
+	while tab((find(":")+1) \ 1) ? {
+
+	    &subject == "" & next
+	    if k := 1(move(2), ="=")
+	    then tc_table[k] := Decode(tab(find(":")))
+	    else if k := 1(move(2), ="#")
+	    then tc_table[k] := integer(tab(find(":")))
+	    else if k := 1(tab(find(":")), pos(-1))
+	    then tc_table[k] := true()
+	    else er("maketc_table", "your termcap file has a bad entry",3)
+	}
+    }
+
+    return tc_table
+
+end
+
+
+
+procedure getval(id)
+
+    /tc_table := maketc_table(getentry(getname())) |
+	er("getval","can't make a table for your terminal",4)
+
+    return \tc_table[id] | fail
+	# er("getval","the current terminal doesn't support "||id,7)
+
+end
+
+
+
+procedure Decode(s)
+    local new_s, chr, chr2
+
+    # Does things like turn ^ plus a letter into a genuine control
+    # character.
+
+    new_s := ""
+
+    s ? {
+	while new_s ||:= tab(upto('\\^')) do {
+	    chr := move(1)
+	    if chr == "\\" then {
+		new_s ||:= {
+		    case chr2 := move(1) of {
+			"\\" : "\\"
+			"^"  : "^"
+			"E"  : "\e"
+			"b"  : "\b"
+			"f"  : "\f"
+			"n"  : "\n"
+			"r"  : "\r"
+			"t"  : "\t"
+			default : {
+			    if any(&digits,chr2) then {
+				char(integer("8r"||chr2||move(2 to 0 by -1))) |
+				    er("Decode","bad termcap entry",3)
+			    }
+			   else chr2
+			}
+		    }
+		}
+	    }
+	    else new_s ||:= char(ord(map(move(1),&lcase,&ucase)) - 64)
+	}
+	new_s ||:= tab(0)
+    }
+
+    return new_s
+
+end
+
+
+
+procedure igoto(cm,col,line)
+
+    local colline, range, increment, padding, str, outstr, chr, x, y
+
+    if col > (tc_table["co"]) | line > (tc_table["li"]) then {
+	colline := string(\col) || "," || string(\line) | string(\col|line)
+	range := "(" || tc_table["co"]-1 || "," || tc_table["li"]-1 || ")"
+	er("igoto",colline || " out of range " || (\range|""),9)
+    } 
+
+    # Use the Iconish 1;1 upper left corner & not the C-ish 0 offsets
+    increment := -1
+    outstr := ""
+    
+    cm ? {
+	while outstr ||:= tab(find("%")) do {
+	    tab(match("%"))
+	    if padding := integer(tab(any('23')))
+	    then chr := (="d" | "d")
+	    else chr := move(1)
+	    if case \chr of {
+		"." :  outstr ||:= char(line + increment)
+		"+" :  outstr ||:= char(line + ord(move(1)) + increment)
+		"d" :  {
+		    str := string(line + increment)
+		    outstr ||:= right(str, \padding, "0") | str
+		}
+	    }
+	    then line :=: col
+	    else {
+		case chr of {
+		    "n" :  line := ixor(line,96) & col := ixor(col,96)
+		    "i" :  increment := 0
+		    "r" :  line :=: col
+		    "%" :  outstr ||:= "%"
+		    "B" :  line := ior(ishift(line / 10, 4), line % 10)
+		    ">" :  {
+			x := move(1); y := move(1)
+			line > ord(x) & line +:= ord(y)
+			&null
+		    }
+		} | er("goto","bad termcap entry",5)
+	    }
+	}
+    return outstr || tab(0)
+    }
+
+end
+
+
+
+procedure iputs(cp, affcnt)
+
+    # Writes cp to the screen.  Use this instead of writes() for
+    # compatibility with the UNIX version (which will need to send
+    # null padding in some cases).  Iputs() also does a useful type
+    # check.
+
+    static num_chars
+    initial num_chars := &digits ++ '.'
+
+    type(cp) == "string" |
+	er("iputs","you can't iputs() a non-string value!",10)
+
+    cp ? {
+	if tab(many(num_chars)) & ="*" then
+	    stop("iputs:  MS-DOS termcap files shouldn't specify padding.")
+	writes(tab(0))
+    }
+
+    return
+
+end

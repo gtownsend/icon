@@ -1,0 +1,40 @@
+############################################################################
+#
+#	File:     prockind.icn
+#
+#	Subject:  Procedure to indicate kind of procedure
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 4, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  prockind(p) produces a code for the kind of the procedure p as follows:
+#
+#	"p"	(declared) procedure
+#	"f"	(built-in) function
+#	"o"	operator
+#	"c"	record constructor
+#
+#  It fails if p is not of type procedure.
+#
+############################################################################
+
+procedure prockind(p)
+
+   if type(p) ~== "procedure" then fail
+
+   image(p) ? {
+      if find("procedure") then return "p"
+      if find("record constructor") then return "c"
+      ="function "
+      if upto(&letters) then return "f" else return "o"
+      }
+
+end
+

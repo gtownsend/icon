@@ -1,0 +1,296 @@
+############################################################################
+#
+#	File:     vdialog.icn
+#
+#	Subject:  Procedures for dialog boxes
+#
+#	Author:   Jon Lipp
+#
+#	Date:     November 5, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Vidgets defined in this file:
+#
+#	Vdialog
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  vbuttons, vtext
+#
+############################################################################
+
+link vbuttons
+link vtext
+
+record DL_pos_rec(x,y)		# dialog position record
+
+############################################################################
+#  Vdialog - allows a pop-up menu_frame to be associated with a button.
+#
+#  Open the dialogue, let the user edit fields, one entry per field.
+#  returns a list containing the values of the fields.
+#
+############################################################################
+record Vdialog_frame_rec(win, padx, pady, callback, aw, ah, lookup,
+   draw, id, ax, ay, uid, F, P,  V)
+
+procedure Vdialog(params[])
+   local self
+   static procs
+
+   initial {
+      procs := Vstd(event_Vframe, draw_Vframe, 1,
+                   resize_Vframe, inrange_Vpane, init_Vdialog,
+                   couplerset_Vpane, insert_Vdialog, remove_Vframe,
+                   lookup_Vframe, set_abs_Vframe)
+      if /V_OK then VInit()
+   }
+
+   self := Vdialog_frame_rec ! params[1:5|0]
+   Vwin_check(self.win, "Vdialog()")
+   if (\self.padx, not numeric(self.padx) ) then
+      _Vbomb("invalid padx parameter to Vdialog()")
+   if (\self.pady, not numeric(self.pady) ) then
+      _Vbomb("invalid pady parameter to Vdialog()")
+
+   self.uid := Vget_uid()
+   self.V := procs
+   self.F := Vstd_dialog(open_dialog_Vdialog, register_Vdialog,
+             format_Vdialog, unregister_Vdialog)
+   self.P := Vstd_pos()
+   self.V.init(self)
+   return self
+end
+
+procedure open_dialog_Vdialog(self, x, y, values, def_str)
+   local i, c, e, newfocus, tid, rv, now, val
+   local entry, r, def, sel, v, args, parent, posn
+   static xytable, type
+
+   initial {
+      xytable := table()
+      type := proc("type", 0)		# protect attractive name
+      }
+
+## Check ID and determine x and y values.
+   if \x then {
+      if WAttrib(self.win, "canvas") == ("normal" | "maximal") then  {
+	 x +:= WAttrib(self.win, "posx")
+	 y +:= WAttrib(self.win, "posy")
+	 }
+      }
+   else if \y then {
+      /xytable[y] := DL_pos_rec()
+      posn := xytable[y]
+      x := posn.x
+      y := posn.y
+      }
+
+   if WAttrib(self.win,"canvas") == ("normal" | "maximal") then  {
+      /x := WAttrib(self.win,"posx") + (WAttrib(self.win,"width")-self.aw) / 2
+      /y := WAttrib(self.win,"posy") + (WAttrib(self.win,"height")-self.ah) / 2
+      /x <:= 20
+      /y <:= 10
+      }
+
+## Sort text entry list.
+   self.F.text_entries := sort(self.F.text_entries)
+   every i := 1 to *self.F.text_entries do
+      self.F.text_lu[self.F.text_entries[i]] := i
+
+## Build arg list and open window
+   args := []
+   put(args, "size=" || self.aw || "," || self.ah)
+   put(args, "pos=" || \x || "," || \y)
+   put(args, "display=" || WAttrib(self.win, "display"))
+   put(args, "label=" || ("" ~== WAttrib(self.win, "label")))
+   put(args, "font=" || WAttrib(self.win, "font"))
+   put(args, "gamma=" || WAttrib(self.win, "gamma"))
+   if (c := Fg(self.win))[1] ~== "-" then
+      put(args, "fg=" || c)
+   if (c := Bg(self.win))[1] ~== "-" then
+      put(args, "bg=" || c)
+   parent := self.win
+   if not (self.win := WOpen ! args) then {
+      write(&errout, "can't open window for dialog")
+      writes(&errout, "window arguments:")
+      every writes(&errout, " ", !args | "\n")
+      stop()
+      }
+
+   every v := !self.draw do {
+      v.win := self.win
+      if type(v) == ("Vradio_frame_rec" | "Vscrollbar_frame_rec") then
+         every (!v.draw).win := self.win
+      }
+   self.V.resize(self, 0, 0, self.aw, self.ah)
+
+## Make a sorted list of self.F.entries
+   sel := sort(self.F.entries, 1)
+## set values of fields to value list, or default if entry is &null
+   every i := 1 to *sel do {
+      entry := sel[i][2]
+      val := values[i] | &null
+      (\entry).V.set_value(entry, val)
+      }
+   self.F.focus := &null
+   self.V.draw(self)
+
+## Find default button according to def_str.
+   if \def_str then
+      every i := !self.lookup do
+         if def_str == \i["s"] then {
+            def := i
+            break
+            }
+
+   self.F.focus := self.F.entries[self.F.text_entries[1]]
+   newfocus := \self.F.focus | \sel[1][2] | &null
+   (\self.F.focus).T.block(self.F.focus)
+
+## Call the user initialization callback, if any.
+   (\self.callback)(self)
+
+   repeat {
+      # outline the default button every time around, in case the outline was
+      # erased by a redraw call for the dialog (e.g. in ColorDialog())
+      BevelRectangle((\def).win, def.ax-5, def.ay-5, def.aw+10, def.ah+10,-2)
+
+      e := Event(self.win)
+      if e === "\r" then {
+         if \def then {
+            e := &lpress
+            &x := def.ax + 1
+            &y := def.ay + 1
+            Enqueue(def.win, &lrelease, def.ax + 1, def.ay + 1)
+         }
+         else next
+      }
+      if integer(e) < 0 then {
+         newfocus := self.V.lookup(self, &x, &y) | self.F.focus
+         if ((\newfocus).id) ~=== ((\self.F.focus).id) then
+            switch_focus_Vdialog(self, newfocus)
+      }
+      r := (\newfocus).V.event(newfocus, e, &x, &y) | &null
+      case r of {
+         V_NEXT: { 	#move to next entry
+            now := self.F.text_lu[self.F.focus.id]
+            tid := ((*self.F.text_entries >= now + 1) | 1)
+            switch_focus_Vdialog(self, self.F.entries[self.F.text_entries[tid]])
+            }
+         V_PREVIOUS: {	#move to previous entry
+            now := self.F.text_lu[self.F.focus.id]
+            tid := ((1 <= now - 1) | *self.F.text_entries)
+            switch_focus_Vdialog(self, self.F.entries[self.F.text_entries[tid]])
+            }
+         V_OK: {	# done, quit with changes
+            rv := []
+            every e := !sel do put(rv, e[2].data)
+            break
+            }
+         V_CANCEL: { 	# cancel changes, quit.
+            break
+            }
+      }
+      newfocus := self.F.focus
+   } # end repeat
+
+## close temporary window after saving its location for next time
+   (\posn).x := WAttrib(self.win, "posx")
+   (\posn).y := WAttrib(self.win, "posy")
+   WClose(self.win)
+
+## restore window fields
+   self.win := parent
+   every v := !self.draw do {
+      v.win := self.win
+      if type(v) == ("Vradio_frame_rec" | "Vscrollbar_frame_rec") then
+         every (!v.draw).win := self.win
+      }
+
+## flush pending events that may have accumulated on the parent window
+   while *Pending(self.win) > 0 do
+      Event(self.win)
+
+##  For Vtext vidgies, tell them to turn off their cursors.
+   every tid := !self.F.text_entries do
+      \(self.F.entries[tid]).T.CursorOn := &null
+
+   return \rv
+end
+
+procedure switch_focus_Vdialog(self, newfocus)
+   if (newfocus.id === !self.F.text_entries) then {
+      self.F.focus.T.unblock(self.F.focus)
+#      self.F.focus.T.erase_cursor(self.F.focus)
+      newfocus.T.block(newfocus)
+      self.F.focus := newfocus
+      }
+end
+
+procedure insert_Vdialog(self, vidget, x, y)
+   if /self | /vidget | /x | /y then
+      _Vbomb("incomplete or &null parameters to VInsert() for dialogs")
+   pad_and_send_Vdialog(self, vidget, x, y)
+end
+
+procedure register_Vdialog(self, vidget, x, y)
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if /self | /vidget | /x | /y then
+      _Vbomb("incomplete or &null parameters to VRegister()")
+   self.F.entries[vidget.id] := vidget
+   if type(vidget) ? find("text") then
+      put(self.F.text_entries, vidget.id)
+   pad_and_send_Vdialog(self, vidget, x, y)
+end
+
+procedure unregister_Vdialog(self, kid)
+local new, i
+
+   if (kid.id === !self.F.text_entries) then {
+      new := []
+      every i := !self.F.text_entries do if kid.id ~=== i then put(new, i)
+      self.F.text_entries := new
+      }
+   delete(self.F.entries, kid.id)
+   every i := 1 to *self.F.text_entries do
+      self.F.text_lu[self.F.text_entries[i]] := i
+   self.V.remove(self, kid, 1)
+end
+
+procedure pad_and_send_Vdialog(self, vidget, x, y)
+   static type
+
+   initial type := proc("type", 0)	# protect attractive name
+
+   if (x|y) < 0 | type(x|y) == "real" then
+      _Vbomb("must VRegister() or VInsert() a vidget to a dialog with absolute coordinates")
+   insert_Vframe(self, vidget, x+self.padx, y+self.pady)
+end
+
+procedure format_Vdialog(self)
+   self.V.resize(self, 0, 0,
+                 Vmin_frame_width(self)+self.padx-1,
+                 Vmin_frame_height(self)+self.pady-1)
+end
+
+procedure init_Vdialog(self)
+   init_Vframe(self)
+   /self.padx := 20
+   /self.pady := 20
+   self.F.entries := table()
+   self.F.text_entries := []
+   self.F.text_lu := table()
+end

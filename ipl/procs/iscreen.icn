@@ -1,0 +1,311 @@
+############################################################################
+#
+#	File:     iscreen.icn
+#
+#	Subject:  Procedures for screen functions
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.28
+#
+############################################################################
+#  
+#      This file contains some rudimentary screen functions for use with
+#  itlib.icn (termlib-like routines for Icon).
+#
+#      clear()              - clears the screen (tries several methods)
+#      emphasize()          - initiates emphasized (usu. = reverse) mode
+#      boldface()           - initiates bold mode
+#      blink()              - initiates blinking mode
+#      normal()             - resets to normal mode
+#      message(s)           - displays message s on 2nd-to-last line
+#      underline()          - initiates underline mode
+#      status_line(s,s2,p)  - draws status line s on the 3rd-to-last
+#        screen line; if s is too short for the terminal, s2 is used;
+#        if p is nonnull then it either centers, left-, or right-justi-
+#        fies, depending on the value, "c," "l," or "r."
+#      clear_emphasize()    - horrible way of clearing the screen to all-
+#        emphasize mode; necessary for many terminals
+#
+############################################################################
+#
+#  Requires: UNIX
+#
+############################################################################
+#
+#  Links: itlib.icn (or your OS-specific port of itlib)
+#
+############################################################################
+#
+#  See also: boldface.icn
+#
+############################################################################
+
+
+procedure clear()
+
+    # Clears the screen.  Tries several methods.
+    local i
+
+    normal()
+    if not iputs(getval("cl"))
+    then iputs(igoto(getval("cm"),1,1) | getval("ho"))
+    if not iputs(getval("cd"))
+    then {
+	every i := 1 to getval("li") do {
+	    iputs(igoto(getval("cm"),1,i))
+	    iputs(getval("ce"))
+	}
+	iputs(igoto(getval("cm"),1,1))
+    }
+    return
+
+end
+
+
+
+procedure boldface()
+    
+    static bold_str, cookie_str
+    initial {
+	if bold_str := getval("md")
+	then cookie_str := repl(getval("le"|"bc") | "\b", getval("mg"))
+	else {
+	    # One global procedure value substituted for another.
+	    boldface := emphasize
+	    return emphasize()
+	}
+    }	    
+ 
+    normal()
+    iputs(\bold_str)
+    iputs(\cookie_str)
+    return
+
+end
+
+
+
+procedure blink()
+    
+    static blink_str, cookie_str
+    initial {
+	if blink_str := getval("mb")
+	then cookie_str :=
+		 repl(getval("le"|"bc") | "\b", getval("mg"))
+	else {
+	    # One global procedure value substituted for another.
+	    blink := emphasize
+	    return emphasize()
+	}
+    }	    
+ 
+    normal()
+    iputs(\blink_str)
+    iputs(\cookie_str)
+    return
+
+end
+
+
+
+procedure emphasize()
+    
+    static emph_str, cookie_str
+    initial {
+	if emph_str := getval("so")
+	then cookie_str := repl(getval("le"|"bc") | "\b", getval("sg"))
+	else {
+	    if emph_str := getval("mr")
+	    then cookie_str := repl(getval("le"|"bc") | "\b", getval("mg"))
+	    else if emph_str := getval("us")
+	    then cookie_str := repl(getval("le"|"bc") | "\b", getval("ug"))
+	}
+    }	    
+ 
+    normal()
+    iputs(\emph_str)
+    iputs(\cookie_str)
+    return
+
+end
+
+
+
+procedure underline()
+    
+    static underline_str, cookie_str
+    initial {
+	if underline_str := getval("us")
+	then cookie_str := repl(getval("le"|"bc") | "\b", getval("ug"))
+    }
+
+    normal()
+    iputs(\underline_str)
+    iputs(\cookie_str)
+    return
+
+end
+
+
+
+procedure normal(mode)
+
+    static UN_emph_str, emph_cookie_str,
+	UN_underline_str, underline_cookie_str,
+	UN_bold_str, bold_cookie_str
+
+    initial {
+
+	# Find out code to turn off emphasize (reverse video) mode.
+	if UN_emph_str := getval("se") then
+	    # Figure out how many backspaces we need to erase cookies.
+	    emph_cookie_str := repl(getval("le"|"bc") | "\b", getval("sg"))
+	else UN_emph_str := ""
+
+	# Finally, figure out how to turn off underline mode.
+	if UN_underline_str := (UN_emph_str ~== getval("ue")) then
+	    underline_cookie_str := repl(getval("le"|"bc")|"\b", getval("ug"))
+	else UN_underline_str := ""
+
+	# Figure out how to turn off boldface mode.
+	if UN_bold_str := 
+	    (UN_underline_str ~== (UN_emph_str ~== getval("me"))) then
+	    # Figure out how many backspaces we need to erase cookies.
+	    bold_cookie_str := repl(getval("le"|"bc") | "\b", getval("mg"))
+	else UN_bold_str := ""
+
+    }	    
+    
+    iputs("" ~== UN_emph_str) &
+	iputs(\emph_cookie_str)
+
+    iputs("" ~== UN_underline_str) &
+	iputs(\underline_cookie_str)
+
+    iputs("" ~== UN_bold_str) &
+	iputs(\bold_cookie_str)
+
+    return
+
+end
+
+
+
+procedure status_line(s,s2,p)
+
+    # Writes a status line on the terminal's third-to-last line
+    # The only necessary argument is s.  S2 (optional) is used
+    # for extra narrow screens.  In other words, by specifying
+    # s2 you give status_line an alternate, shorter status string
+    # to display, in case the terminal isn't wide enough to sup-
+    # port s.  If p is nonnull, then the status line is either
+    # centered (if equal to "c"), left justified ("l"), or right
+    # justified ("r").
+
+    local width
+
+    /s := ""; /s2 := ""; /p := "c"
+    width := getval("co")
+    if *s > width then {
+	(*s2 < width, s := s2) |
+	    er("status_line","Your terminal is too narrow.",4)
+    }
+
+    case p of {
+	"c"    : s := center(s,width)
+	"l"    : s := left(s,width)
+	"r"    : s := right(s,width)
+	default: stop("status_line:  Unknown option "||string(p),4)
+    }
+
+    iputs(igoto(getval("cm"), 1, getval("li")-2))
+    emphasize(); writes(s)
+    normal()
+    return
+
+end
+
+
+
+procedure message(s)
+
+    # Display prompt s on the second-to-last line of the screen.
+    # I hate to use the last line, due to all the problems with
+    # automatic scrolling.
+
+    /s := ""
+    normal()
+    iputs(igoto(getval("cm"), 1, getval("li")))
+    iputs(getval("ce"))
+    normal()
+    iputs(igoto(getval("cm"), 1, getval("li")-1))
+    iputs(getval("ce"))
+    writes(s[1:getval("co")] | s)
+    return
+
+end
+
+
+
+procedure clear_underline()
+
+    # Horrible way of clearing the screen to all underline mode, but
+    # the only apparent way we can do it "portably" using the termcap
+    # capability database.
+
+    local i
+
+    underline()
+    iputs(igoto(getval("cm"),1,1))
+    if getval("am") then {
+	underline()
+        every 1 to (getval("li")-1) * getval("co") do
+	    writes(" ")
+    }
+    else {
+	every i := 1 to getval("li")-1 do {
+	    iputs(igoto(getval("cm"), 1, i))
+	    underline()
+	    writes(repl(" ",getval("co")))
+	}
+    }
+    iputs(igoto(getval("cm"),1,1))
+
+end
+
+
+
+procedure clear_emphasize()
+
+    # Horrible way of clearing the screen to all reverse-video, but
+    # the only apparent way we can do it "portably" using the termcap
+    # capability database.
+
+    local i
+
+    emphasize()
+    iputs(igoto(getval("cm"),1,1))
+    if getval("am") then {
+	emphasize()
+        every 1 to (getval("li")-1) * getval("co") do
+	    writes(" ")
+    }
+    else {
+	every i := 1 to getval("li")-1 do {
+	    iputs(igoto(getval("cm"), 1, i))
+	    emphasize()
+	    writes(repl(" ",getval("co")))
+	}
+    }
+    iputs(igoto(getval("cm"),1,1))
+
+end

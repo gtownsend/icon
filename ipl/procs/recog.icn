@@ -1,0 +1,36 @@
+############################################################################
+#
+#	File:     recog.icn
+#
+#	Subject:  Procedure for recognition
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 29, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     This procedure serves as a main procedure for the output of
+#  recognizers.
+#
+############################################################################
+#
+#  See also:  pargen.icn
+#
+############################################################################
+
+procedure main()
+   local line
+
+   init()
+   while line := read() do {
+      writes(image(line))
+      if line ? (goal() & pos(0)) then 
+         write(": accepted")
+      else write(": rejected")
+      }
+end

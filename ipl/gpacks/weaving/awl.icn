@@ -1,0 +1,556 @@
+############################################################################
+#
+#	File:     awl.icn
+#
+#	Subject:  Program to create weaving patterns
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 4, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  AD HOC:  UNDER DEVELOPEMENT.  For now, awl stands for A Weaving Language.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  cells, random, strings, tables, vsetup, weaving, weavrecs,
+#	   xcode
+#
+############################################################################
+
+link cells
+link random
+link strings
+link tables
+link vsetup
+link weaving
+link weavrecs
+link xcode
+
+invocable all
+
+global symbols
+global current_object
+global db_file
+global object_tbl
+global names_list
+global null
+global objects
+global objects_list
+global touched
+global vidgets
+
+procedure main()
+   local root
+
+   vidgets := ui()
+
+   root := vidgets["root"]
+
+   objects := vidgets["obj_list"]
+
+   null := sequence("null", "")
+   object_tbl := table()
+   object_tbl["null"] := null
+   current_object := "null"
+
+   VSetItems(objects, keylist(object_tbl))
+
+   update()
+
+   symbols := "12345678"
+
+   GetEvents(root, , shortcuts)
+
+end
+
+procedure alphabet()
+
+   repeat {
+      if TextDialog("Alphabet:", , symbols) == "Cancel" then fail
+      if *cset(dialog_value[1]) ~= *dialog_value[1] then {
+         Notice("Duplicate symbols not allowd.")
+         next
+         }
+      if *dialog_value = 0 then {
+         Notice("Empty alphabet not allowed.")
+         next
+         }
+      symbols := dialog_value[1]
+      return
+      }
+
+end
+
+procedure showcell(cell)
+
+   write(&errout, "n=", cell.n, " m=", cell.m, " color=", cell.color)
+
+   return
+
+end
+
+procedure Eval(name)
+   local i, fnc, args, object
+   static ftable
+
+   initial {
+      ftable := table()		# mapping from record type to function
+      ftable["block"] := Block
+      ftable["concatenation"] := Concatenate
+      ftable["extension"] := Extend
+      ftable["interleaving"] := Interleave
+      ftable["palindroid"] := Palindroid
+      ftable["palindrome"] := Palindrome
+      ftable["pbox"] := Pbox
+      ftable["permutation"] := Permutation
+      ftable["repetition"] := Repeat
+      ftable["reversal"] := Reverse
+      ftable["rotation"] := Rotate
+      ftable["sequence"] := string
+      ftable["template"] := Template 
+      }
+
+   if &level > 100 then {
+      Notice("Recursion limit exceeded.")	# ad-hoc escape
+      fail
+      }
+
+   object := \object_tbl[name] | return name
+      
+   fnc := \ftable[type(object)] | {
+      Notice("Unsupported type: " || fnc || ".")
+      fail
+      }
+
+   args := []
+
+   every i := 2 to *object do		# skip name field
+      put(args, Eval(object[i])) | {
+         Notice("Eval() failed for " || type(object) || "[" || i || "].")
+         fail
+         }
+   
+   return (fnc ! args)
+
+end
+
+procedure create_cb(vidget, value)
+   local args, object
+
+   args := case value of {
+      "block"          :  object_pp("Create block:")
+      "concatenation"  :  object_pp("Create concatenation:")
+      "extension"      :  object_pn("Create extension:")
+      "interleaving"   :  object_pp("Create interleaving:")
+      "palindroid"     :  object_pp("Create palindroid:")
+      "pbox"           :  object_pp("Create pbox:")
+      "permutation"    :  object_pp("Create permutation:")
+      "repetition"     :  object_pn("Create sequence:")
+      "reversal"       :  object_p("Create reversal")
+      "rotation"       :  object_pn("Create rotation:")
+      "sequence"       :  create_sequence()
+      "template"       :  object_pp("Create permutation:")
+      } | fail
+
+   object := (value ! args)
+   current_object := object.name
+   object_tbl[current_object] := object
+
+   VSetItems(objects, keylist(object_tbl))
+
+   update()
+
+   display_object(current_object)
+
+   return
+
+end
+
+procedure object_pp(caption)
+   local name, object1, object2
+   static number
+
+   repeat {
+      if TextDialog(caption, ["name", "object 1", "object 2"],
+         [name, object1, object2], [10, 60, 60]) == "Cancel" then fail
+      name := dialog_value[1]
+      if *name = 0 then {
+         Notice("Invalid name.")
+         next
+         }
+      if \object_tbl[dialog_value[2]] then object1 := dialog_value[2] else {
+         Notice("Invalid object name.")
+         next
+         }
+      if \object_tbl[dialog_value[3]] then object2 := dialog_value[3] else {
+         Notice("Invalid object name.")
+         next
+         }
+      return dialog_value
+      }
+
+end
+
+procedure object_p(caption)
+   local name, object
+
+   repeat {
+      if TextDialog(caption, ["name", "object"],
+         [name, object], [10, 60, 60]) == "Cancel" then fail
+      name := dialog_value[1]
+      if *name = 0 then {
+         Notice("Invalid name.")
+         next
+         }
+      if \object_tbl[dialog_value[2]] then object := dialog_value[2] else {
+         Notice("Invalid object name.")
+         next
+         }
+      return dialog_value
+      }
+
+end
+
+procedure object_pn(caption)
+   local name, object, number
+
+   repeat {
+      if TextDialog(caption, ["name", "object", "number"],
+         [name, object, number], [10, 60, 10]) == "Cancel" then fail
+      name := dialog_value[1]
+      if *name = 0 then {
+         Notice("Empty name not allowed.")
+         next
+         }
+      if \object_tbl[dialog_value[2]] then object := dialog_value[2] else {
+         Notice("Invalid name.")
+         next
+         }
+      number := (0 < integer(dialog_value[3])) | {
+         Notice("Invalid number.")
+         next
+         }
+      return dialog_value
+      }
+
+end
+
+procedure create_sequence()
+   local name, value
+
+   repeat {
+      if TextDialog("Create sequence:", ["name", "value"], [name, value] , [10, 60]) ==
+         "Cancel" then fail
+      if *dialog_value[1] = 0 then {
+         Notice("object name cannot be empty.")
+         next
+         }
+      else name := dialog_value[1]
+      if *(cset(dialog_value[2]) -- symbols) > 0 then {
+         Notice("Symbol not in alphabet.")
+         next
+         }
+     return dialog_value
+     }
+
+end
+
+procedure file_cb(vidget, value)
+
+   case value[1][1] of {
+      "save   @Q"  :  save_db()
+      "open   @O"  :  open_db()
+      "quit   @Q"  :  exit()
+      }
+
+   return
+
+end
+
+procedure parameters_cb(vidget, value)
+
+   case value[1] of {
+      "alphabet @A"  :  alphabet()
+      }
+
+   return
+
+end
+
+#  Open database
+
+procedure open_db()
+   local input
+
+   repeat{
+      if OpenDialog("Open database:", db_file) == "Cancel" then fail
+      db_file := dialog_value
+      input := open(db_file) | {
+         Notice("Cannot open database file.")
+         next
+         }
+      object_tbl := xdecode(input) | {
+         Notice("Cannot decode database.")
+         close(input)
+         next
+         }
+      close(input)
+      object_tbl["null"] := sequence("null", "")
+      current_object := "null"
+      VSetItems(objects, keylist(object_tbl))
+      return
+      }
+
+end
+
+#  Save the current database.
+
+procedure save_db()
+   local output
+
+   if /db_file then {
+      repeat{
+         if OpenDialog("Save database:") == "Cancel" then fail
+         db_file := dialog_value
+         break
+         }
+      }
+
+   output := open(db_file, "w") | {
+      Notice("Cannot write database file.")
+      fail
+      }
+
+   xencode(object_tbl, output)
+
+   close(output)
+
+   touched := &null
+
+   return
+
+end
+
+procedure libraries_cb(vidget, value)
+
+   return
+
+end
+
+procedure obj_list_cb(vidget, value)
+
+   if /value then return		# deselection event
+
+   if \object_tbl[value] then current_object := value else {
+      Notice("Internal error in object selection.")
+      fail
+      }
+
+   update()
+
+   display_object(current_object)
+
+   return
+
+end
+
+procedure show_object(name)
+   local object, attlist
+
+   object := object_tbl[\name] | {
+      Notice("No current object.")
+      fail
+      }
+
+   attlist := [type(object)]
+   every put(attlist,"", image(!object))
+
+   Notice ! attlist
+
+   return
+
+end
+
+procedure update()
+   static x, y, w, h
+
+   initial {
+      x := vidgets["display"].ux
+      y := vidgets["display"].uy
+      w := vidgets["display"].uw
+      h := vidgets["display"].uh
+      }
+
+   if /current_object then fail
+
+   EraseArea(x, y, w, h)
+
+   DrawString(
+      x,
+      y + h - 5,
+      current_object || ": " || type(object_tbl[current_object])
+      )
+
+   return
+
+end
+
+procedure objects_cb(vidgets, value)
+
+   case value[1] of {
+      "create      @C"  :  create_cb()
+      "edit        @E"  :  edit_object(current_object)
+      "information @I"  :  show_object(current_object)
+      "display     @D"  :  display_object(current_object)
+      }
+
+   return
+
+end
+
+procedure shortcuts(e)
+
+   if &meta then case map(e) of {
+      "a"  :  alphabet()
+      "c"  :  create_cb()
+      "d"  :  display_object(current_object)
+      "e"  :  edit_object(current_object)
+      "i"  :  show_object(current_object)
+      "o"  :  open_db()
+      "q"  :  exit()
+      "s"  :  save_db()
+      }
+
+   return
+
+end
+
+procedure edit_object(name)
+
+   return
+
+end
+
+procedure display_object(name)
+   local s, panel, i, place, object
+
+   s := Eval(name) | fail
+
+   panel := makepanel(*s, 8, 6, , , "black")
+
+   WAttrib(panel.window, "canvas=normal", "label=" || name)
+
+   every i := 1 to *s do
+      colorcell(panel, i, s[i], "black") | {
+         WClose(panel.window)
+         Notice("Cannot color grid cell.")
+         fail
+         }  
+
+   repeat {
+      case TextDialog(, , , , ["Okay", "Create", "Edit"]) of {
+         "Okay"    :  {
+            WClose(panel.window)
+            return
+            }
+          "Edit"   :  {
+             repeat {
+                case Event(panel.window) of {
+                   "q"     :  break next
+                   &lpress :  {
+                      place := cell(panel, &x, &y) | {
+                         Notice("Cell reporting failure.")
+                         fail
+                         }
+      #               showcell(place)
+                      if place.color == "0,0,0" then
+                         colorcell(panel, place.n, place.m, "white")
+                      else
+                         colorcell(panel, place.n, place.m, "black")
+                      }
+                   }
+                }
+             }
+          "Create"  :  {
+             Notice("Creation from grid not yet supported.")
+             return
+             }
+          }
+       }
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=600,401", "bg=pale gray"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,600,401:",],
+   ["create:Choice::13:13,82,120,273:",create_cb,
+      ["block","concatenation","extension","interleaving","palindroid",
+      "palindrome","pbox","permutation","repetition","reversal",
+      "rotation","sequence","template"]],
+   ["file:Menu:pull::1,0,36,21:File",file_cb,
+      ["save  @S","open  @O","quit  @Q"]],
+   ["label1:Label:::28,60,91,13:create object",],
+   ["label_objects:Label:::406,34,49,13:Objects",],
+   ["libraries:Menu:pull::169,0,71,21:Libraries",libraries_cb,
+      ["one","two","three"]],
+   ["menu_bar:Line:::0,21,600,21:",],
+   ["obj_list:List:w::367,59,134,313:",obj_list_cb],
+   ["objects:Menu:pull::37,0,57,21:Objects",objects_cb,
+      ["create      @C","edit        @E","information @E","display     @D"]],
+   ["parameters:Menu:pull::92,0,78,21:Parameters",parameters_cb,
+      ["alphabet @A"]],
+   ["display:Rect:invisible::15,32,346,16:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib
+
+procedure test()
+   local p, s, panel, i, place
+
+   randomize()
+
+   p := palindroid(scramble("12345678"))
+
+   every 1 to 2 do {
+      p := rotation(palindroid(p))
+      }
+
+   s := Eval(p)
+
+   panel := makepanel(*s, 8, 10, , , "black")
+
+   WAttrib(panel.window, "canvas=normal")
+
+   every i := 1 to *s do
+      colorcell(panel, i, s[i], "black")   
+
+   repeat {
+      case Event(panel.window) of {
+         "q"     :  exit()
+         &lpress :  {
+            place := cell(panel, &x, &y)
+            if place.color == "0,0,0" then
+               colorcell(panel, place.n, place.m, "white")
+            else
+               colorcell(panel, place.n, place.m, "black")
+            }
+         }
+      }
+
+end
+

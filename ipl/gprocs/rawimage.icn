@@ -1,0 +1,143 @@
+############################################################################
+#
+#	File:	  rawimage.icn
+#
+#	Subject:  Procedures to write and read images in raw format
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     October 8, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures write and read raw image files.  The format of a raw
+#  image file is:
+#
+#	width,height
+#	<palette entries with 2 hex digits, a blank, and a color specification>
+#	<blank line>
+#	<image data consising of pairs of hext digits in row-primary order>
+#
+#  These procedures are slow and should only be used when the image file
+#  formats that Icon can read and write are not sufficient.
+#
+############################################################################
+#
+#  Links:  wopen
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics and co-expressions
+#
+############################################################################
+
+link wopen
+
+$define LineLen 64
+
+procedure WriteRaw(win, x, y, w, h)
+   local nextid, palette, line, c, temp, tempname
+
+   if type(win) ~== "window" then {
+      win :=: x :=: y :=: w :=: h
+      win := &window
+      }
+
+   /w := WAttrib(win, "width")
+   /h := WAttrib(win, "height")
+   /x := 0
+   /y := 0
+
+   tempname := "/tmp/reg." || map("mmhhss", "mm:hh:ss", &clock)
+   temp := open(tempname, "w") | stop("*** cannot open temporary file")
+
+
+   line := ""
+
+   palette := table()
+
+   nextid := create !"0123456789abcdef" || !"0123456789abcdef"
+
+   every c := Pixel(win, x, y, w, h) do {
+      /palette[c] := @nextid
+      line ||:= palette[c]
+      line ?:= {
+         write(temp, move(LineLen)) & tab(0)
+         }
+      }
+
+   write(temp, "" ~== line)
+
+   write(w, ",", h)
+
+   palette := sort(palette, 4)
+
+   while c := get(palette) do
+      write(get(palette), " ", c)
+
+   write()			# separator
+
+   close(temp)
+   temp := open(tempname) | stop("*** cannot find temporary file")
+
+   while writes(reads(temp, 10000))	# copy image data
+
+   close(temp)
+   remove(tempname)
+
+   return 
+
+end
+
+procedure ReadRaw(win, s, x, y)
+   local input, palette, c, temp
+
+   if type(win) ~== "window" then {
+      win :=: s :=: x :=: y
+      win := &window
+      }
+
+   input := open(s) | stop("*** cannot read raw image file")
+
+   temp := WOpen("size=" || (size := read(input)), "canvas=hidden") |
+      stop("*** malformed raw image file")
+
+   size ? {
+      width := integer(tab(upto(','))) &
+      move(1) &
+      height := integer(tab(0)) | stop("invalid raw image header")
+      }
+
+   palette := table()
+
+   while line := read(input) do
+      line ? {
+         palette[move(2) | break] := (move(1), tab(0))
+         }
+
+   x := y := 0
+
+   repeat {
+      line := read(input) | break
+      line ? {
+         while c := move(2) do {
+            Fg(temp, palette[c]) | stop("***invalid color: ", c)
+            DrawPoint(temp, x, y)
+            x +:= 1
+            if x = width then {
+               x := 0
+               y +:= 1
+               }
+            }
+         }
+      }
+
+   CopyArea(temp, win, 0, 0, width, height, x, y)
+
+   return
+           
+end

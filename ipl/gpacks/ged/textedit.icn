@@ -1,0 +1,3091 @@
+############################################################################
+#
+#	Name:	textedit.icn
+#
+#	Title:	Mouse-Oriented Text Edit Widget for Windows
+#
+#	Author: Robert J. Alexander
+#
+#	Date:	June 27, 1993
+#
+############################################################################
+#
+#  Features
+#
+#	- Lots of commands, currently invoked by control-keys (until menus
+#	  are implemented).  Use ^? in the editor to get a help screen,
+#	  or see the EditHelpText() procedure, below.
+#
+#	- Selections are started by clicking with the left mouse button.
+#	  They are extended by dragging with the left button, or by
+#	  clicking and/or dragging with center or right button.
+#
+#	- Double-click selects word; triple-click selects line.  Double-
+#	  click on a bracket-type character (one of '{}()[]<>', or
+#	  single or double quote) selects text between it and its mate.
+#	  Double- click on a non-word, non-bracked character selects a
+#	  single character.
+#
+#	- Multiple level undo-redo.  The number of actions that can be
+#	  undone/redone is currently set arbitrarily to MaxUndo (see
+#	  code).  In this version, each keystroke is individually
+#	  undoable.  Only data- modifying actions, currently, are
+#	  undoable (i.e.  cursor movements are not undoable).
+#
+#	- A Find/Replace facility that supports regular expressions as
+#	  well as plain character strings.  To find a regular expression
+#	  bracket the Find string with slashes /.../.  The regular
+#	  expressions are nearly identical to egrep style -- see file
+#	  regexp.icn for details.
+#
+#	- Multiple files open concurrently (i.e. multiple buffers) each
+#	  with their own contexts, and the many features for navigation
+#	  among them and closing unneeded ones.
+#
+#	- Editing code is written with reusability in mind, but is not
+#	  quite ready for it yet.  For example, currently
+#	  window-relative x and y coordinates cannot be specified.  But
+#	  it's not too far off.
+#
+#
+#  Features to add:
+#
+#	Better command-entry user interface (menus).
+#	Dynamically updating, non-modal info windows (maybe).
+#	Line wrap mode.
+#	Consider revising undo for typed characters.  Currently there
+#		is one undo event per character typed.
+#	Save As.
+#	User-defined commands, keys.
+#	"Modified" indicator in title (this was once coded but didn't work).
+#
+#  Implementation improvements:
+#
+#	Use the fast scrolling capability as used for the scroll bars
+#		for other scrolling needs, too, like find, go to line, etc.
+#	Revise method of searching for matching brackets -- currently is
+#		geometrical with space between brackets -- a long wait
+#		if no matching bracket found.
+#	Change event handling so that there is a central event
+#		dispatcher, not one in "control", maybe.  (This
+#		really applies to "control.icn", not "edit").
+#	Implement textedit more independent from ged, so that it can
+#		serve as a general text widget.
+#
+#  System-dependent code
+#
+#	There is some system-dependent code in this file, which is
+#	currently enabled for UNIX and OS/2.  Some features are disabled
+#	for other systems.  Those areas of code can be located by
+#	searching for the word "System".  If any of you users of
+#	unsupported systems add support for your system, please pass the
+#	changes on (to me:  alex@metaphor.com, or to Ralph Griswold in
+#	care of the Icon Project, who can forward it to me).
+#
+#  BUGS:
+#
+#	Insertion point can go off-screen when using "arrow" keys.
+#	See "better bulletproofing" in "Features", above.
+#
+#
+#  Procedures and Records in textedit.icn (alphabetically):
+#
+#    Edit()			EditMemoryStats()
+#    EditAddTrail()		EditMessage()
+#    EditAddUndo()		EditMouseEvent()
+#    EditAdjustMarks()		EditMoveBufToFront()
+#    EditBackTrail()		EditNewBuffer()
+#    EditBackupFile()		EditNextBuffer()
+#    EditBeep()			EditNonPos()
+#    EditBufCtxList()		EditNoteState()
+#    EditBufNameList()		EditOpen()
+#    EditBuffer.		EditOpenCmd()
+#    EditChanged()		EditOpenSelectedFile()
+#    EditClearMsgPos()		EditOutputSelection()
+#    EditClearTrail()		EditPaintLines()
+#    EditClose()		EditParseCtx()
+#    EditCopy()			EditPaste()
+#    EditCreateMark()		EditPrevBuffer()
+#    EditCreateMarkCmd()	EditQuit()
+#    EditCreateMsgBox()		EditRec.
+#    EditCreateOneLineBuffer()	EditRecentBuffer()
+#    EditCtxRec.		EditRedo()
+#    EditCursorBox()		EditRefreshAndScroll()
+#    EditCursorDown()		EditRefreshScreen()
+#    EditCursorLeft()		EditReplace()
+#    EditCursorRight()		EditReplaceAgainCmd()
+#    EditCursorUp()		EditReplaceCmd()
+#    EditCut()			EditResizeWindow()
+#    EditCwd()			EditRunFilter()
+#    EditDataKeyTyped()		EditSave()
+#    EditDelete()		EditSaveCmd()
+#    EditDeleteCmd()		EditSaveCopy()
+#    EditDeleteMark()		EditSaveEvery()
+#    EditDeleteToEnd()		EditScreenLine()
+#    EditDeleteTrail()		EditScroll()
+#    EditDisplaySelection()	EditScrollToLine()
+#    EditDupAtLastClick()	EditScrollToSelection()
+#    EditEqualSel()		EditScrollToSelectionIfOffScreen()
+#    EditErrorMessage()		EditScrolled()
+#    EditEvent()		EditSelectAll()
+#    EditExecuteIcon()		EditSelectLine()
+#    EditExpandImageLine()	EditSelectNonspaces()
+#    EditExpandNormalLine()	EditSelectWholeLines()
+#    EditExpandText()		EditSelectWord()
+#    EditFind()			EditSelectedTag()
+#    EditFindAgainCmd()		EditSelection.
+#    EditFindCmd()		EditSelectionLines()
+#    EditFindFileAndLine()	EditSelectionToFind()
+#    EditFindTag()		EditSetMaxUndo()
+#    EditFlushEvents()		EditSetScroll()
+#    EditFnTail()		EditShellCommand()
+#    EditForeTrail()		EditShiftLeft()
+#    EditForgetUndos()		EditShiftLines()
+#    EditGetOneKey()		EditShiftRight()
+#    EditGetScreenOffset()	EditSortSelection()
+#    EditGetStringOffset()	EditTag.
+#    EditGetTextDialog()	EditTextAsNeeded()
+#    EditGoToCol()		EditTextFromFileCmd()
+#    EditGoToLine()		EditToggleAutoIndent()
+#    EditGoToLineCmd()		EditToggleBackward()
+#    EditGoToMark()		EditToggleCase()
+#    EditGoToMarkCmd()		EditToggleImage()
+#    EditGoToTag()		EditToggleTrace()
+#    EditHelpBuffer()		EditToggleWrap()
+#    EditHelpCmd()		EditTrailRec.
+#    EditHelpText()		EditUndo()
+#    EditHighlightSelection()	EditUndoRec.
+#    EditInfoCmd()		EditValidateSelection()
+#    EditInputSelection()	EditWaitForAnyEvent()
+#    EditInsertBuffers()	EditWriteMode()
+#    EditIsEmptySelection()	EditWriteToFile()
+#    EditKeyEvent()		EditWrites()
+#    EditLoadRec.		Max()
+#    EditMakeTmp()		Min()
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: control, varsub, regexp, shquote, xcompat
+#
+############################################################################
+
+procedure EditHelpText()
+   static text
+   initial {
+      EditSetMaxUndo()
+      #
+      #  The commands.
+      #
+      text := (
+	"\n Control Key Commands_
+	 \n --------------------_
+	 \n Q      quit_
+	 \n O      open..._
+	 \n W      close..._
+	 \n D      write a copy..._
+	 \n S      save_
+	 \n E      save every modified buffer..._
+	 \n C      copy_
+	 \n X      cut_
+	 \n V      paste_
+	 \n Z      undo (up to " || MaxUndo || " changes)_
+	 \n Y      redo_
+	 \n @      go to line and/or column..._
+	 \n A      select all_
+	 \n H      cursor left_
+	 \n J      cursor down_
+	 \n K      cursor up_
+	 \n L      cursor right_
+	 \n F      find..._
+	 \n G      find again_
+	 \n U      set \"find\" string from selection_
+	 \n R      replace..._
+	 \n T      replace again_
+	 \n B      backward mode toggle for find/replace_
+	 \n $      info..._
+	 \n ?      open help buffer_
+	 \n_
+	 \n Escape Key Commands_
+	 \n --------------------_
+	 \n d      duplicate selected text at \"*Last Click*\"_
+	 \n `      go to \"*Last Place*\"_
+	 \n .      next buffer (unshifted \">\")_
+	 \n ,      previous buffer (unshifted \"<\")_
+	 \n 1      *Scratch* buffer_
+	 \n 2-8    nth most recent buffer_
+	 \n o      open selected file_
+	 \n B      insert buffer names_
+	 \n r      enter data from file..._
+	 \n l      locate selection_
+	 \n m      mark location..._
+	 \n j      jump to mark..._
+	 \n t      add current location to trail_
+	 \n T      clear trail_
+	 \n 9      go to last trail location (unshifted \"(\")_
+	 \n 0      go to next trail location (unshifted \")\")_
+	 \n p      go to selected tag_
+	 \n P      discard cached tags table_
+	 \n bksp   delete to end of text_
+	 \n [      shift lines left 1 column_
+	 \n ]      shift lines right 1 column_
+	 \n u      \"show unprintables\" toggle_
+	 \n a      auto indent toggle_
+	 \n return execute selected text as shell command_
+	 \n i      execute selected text as Icon code_
+	 \n f      run program to filter selection..._
+	 \n R      insert ruler_
+	 \n s      go to \"file:line\" in selected text..._
+	 \n w      wrap mode toggle for find/replace_
+	 \n c      case independence toggle for find/replace_
+	 \n v      enter control character_
+	 \n x      reverse (transpose) selected characters_
+	 \n Q      quit without saving context_
+	 \n &      &trace toggle_
+	 \n M      memory allocation statistics..._
+	 \n Z      forget undos and redos for buffer_
+	 \n")
+      }
+   return text
+end
+
+
+link control,varsub,regexp,shquote
+link xcompat
+
+
+record EditRec(w,text,selection,scroller,
+      rows,columns,dialogFile,undoStatus,autoIndent,image,readOnly,
+      backward,wrap,ignoreCase,findString,replaceString,lastKey,
+      lastData,oldTextLen,oldSel,wname,buf,bufferTable,bufferList,
+      loadFileProc,saveFileProc,enterControl,msgX,msgY,boxShowing,
+      backTrail,foreTrail,useCtx,exitCtxList,tempDir,rmBackup,wd,lastFilter)
+record EditBuffer(text,selection,saveFileName,autoIndent,image,scrollValue,
+      undoList,redoList,readOnly,initialSize,version,saveVersion,markTable)
+record EditSelection(r1,c1,r2,c2)
+record EditUndoRec(proc,args,selection,oldSel,version)
+record EditTag(fileName,pattern)
+record EditLoadRec(text,fileName,changed)
+
+global EditFunnyChars,SpecialFn,WordSet,System,Space,NonSpace,MaxUndo,
+      EditClipboard,EditEOFStr
+global EditTextAsNeededLength,EditTextAsNeededLines
+global scrollWidth
+
+
+procedure EditSetMaxUndo()
+   return .(MaxUndo := 100)
+end
+
+
+procedure Edit(fnList,geometry,font,wname,
+      autoIndent,img,dialogFile,readOnly,lineNbr,ignoreCase,useCtx,
+      loadFileProc,saveFileProc,rmBackup,eofStr)
+   local columns,e,geo,height,position,rows,w,width,x,i,wdwname
+   initial {
+      EditFunnyChars := &cset[1:33] ++ &cset[128:0] -- "\t"
+      WordSet := &letters ++ &digits ++ "_"
+      Space := ' \t\v\n\r\f'
+      NonSpace := ~Space
+      System := 
+	    if &features == "UNIX" then "UNIX"
+	    else if match("OS/2 ",&host) then "OS2"
+      EditSetMaxUndo()
+      EditClipboard := "XedClip"
+      EditEOFStr := \eofStr | "~"
+      }
+   scrollWidth := 18
+   SpecialFn := "*Scratch*"
+   /geometry := "80x24"
+   /font := "fixed"
+   x := XBind("font=" || font) |
+	 stop("Can't create window with font ",image(font))
+   geometry ? {
+      columns := tab(find("x")) & move(1) & rows := tab(upto('+-')\1 | 0)
+      position := tab(0)
+      }
+   columns := integer(columns) | 80
+   rows := integer(rows) | 24
+   /wname := EditFnTail(EditCwd()) ||
+	 (case System of {default: "/" ; "OS2": "\\"})
+   wdwname := EditFnTail(&progname) || " -- " || (\wname | "")
+   columns +:= 4 # Crude way to make room for the scroll bar
+   geo := columns * WAttrib(x,"fwidth") || "x" || rows * WAttrib(x,"fheight") ||
+	 position
+   x := &null
+   w := open(wdwname,"x","font=" || font,"geometry=" || geo,
+	 "cursor=on") |
+	 stop("Can't create window")
+   width := WAttrib(w,"width")
+   height := WAttrib(w,"height")
+   e := EditRec(
+      w,				# w
+      ,					# text
+      ,					# selection
+					# scroller
+      NewScroller(w,width - scrollWidth,-1,scrollWidth,height + 1,
+	    EditScrolled,e,1,1,1,rows - 2),
+      rows,				# rows
+      columns,				# columns
+      dialogFile,			# dialogFile
+      ,					# undoStatus
+      autoIndent,			# autoIndent
+      img,				# image
+      readOnly,				# readOnly
+      ,					# backward
+      1,				# wrap
+      ignoreCase,			# ignoreCase
+      ,					# findString
+      ,					# replaceString
+      ,					# lastKey
+      ,					# lastData
+      ,					# oldTextLen
+      ,					# oldSel
+      wdwname,				# wname
+      ,					# buf
+      table(),				# bufferTable
+      list(),				# bufferList
+      loadFileProc,			# loadFileProc
+      saveFileProc,			# saveFileProc
+      ,					# enterControl
+      ,					# msgX
+      ,					# msgY
+      ,					# boxShowing
+      [],				# backTrail
+      [],				# foreTrail
+      useCtx,				# useCtx
+      ,					# exitCtxList
+      ("" ~== getenv("TMP")) || "/" |	# tmpdir
+	 (case System of {default: "/tmp/" ; "OS2": "c:/tmp/"}),
+      rmBackup,				# rmBackup
+      wname,				# wd
+      "")				# lastFilter
+   every EditOpen(e,!fnList[2:0],readOnly)
+   EditOpen(e,fnList[1],readOnly)
+   if *e.bufferList = 0 then EditOpen(e)
+   if lineNbr ~=== 1 then {
+      EditScrollToLine(e,lineNbr)
+      }
+   DoEvents(w,EditEvent,e)
+   close(w)
+   return e.exitCtxList
+end
+
+
+procedure EditFnTail(fn)
+  local i
+  every i := find("/",fn)
+  return fn[\i + 1:0] | fn
+end
+
+
+procedure EditEvent(w,evt,e,interval,x,y)
+   EditClearMsgPos(e)
+   if \e.boxShowing then {
+      e.boxShowing := &null
+      EditPaintLines(e)
+      }
+   case type(evt) of {
+      "integer": EditMouseEvent(w,evt,e,interval,x,y)
+      "string": EditKeyEvent(w,evt,e,interval)
+      }
+   return
+end
+
+
+procedure EditClearMsgPos(e)
+   e.msgX := e.msgY := &null
+   return
+end
+
+
+procedure EditClose(e)
+   local dw,resp
+   if EditChanged(e) then {
+      repeat {
+	 dw := EditCreateMsgBox(e,"Close")
+	 write(dw,"Save \"",e.buf.saveFileName,"\" before closing_
+	       \n(save, don't save, cancel)?\n")
+	 resp := EditGetOneKey(dw)
+	 close(dw)
+	 EditFlushEvents(e.w)
+	 case map(resp[1]) of {
+	    "s": {EditSave(e) & break}
+	    "d": break
+	    "c": fail
+	    }
+	 }
+      }
+   delete(e.bufferTable,e.buf.saveFileName)
+   pop(e.bufferList)
+   EditOpen(e,e.bufferList[1] | &null)
+   return
+end
+
+
+procedure EditForgetUndos(e)
+   local dw,resp,buf
+   buf := e.buf
+   repeat {
+      dw := EditCreateMsgBox(e,"Forget Undos & Redos")
+      write(dw,"Forget undos and redos for \"",buf.saveFileName,"\"_
+	    \n(ok, cancel)?\n")
+      resp := EditGetOneKey(dw)
+      close(dw)
+      EditFlushEvents(e.w)
+      case map(resp[1]) of {
+	 "o": break
+	 "c": fail
+	 }
+      }
+   buf.undoList := []
+   buf.redoList := []
+   return
+end
+
+
+procedure EditQuit(e,noCtx)
+   if /noCtx then e.exitCtxList := EditBufCtxList(e)
+   every 1 to *e.bufferTable do {
+      if EditEscapePressed(e) then return
+      EditClose(e) | return
+      WAttrib(e.w,"pointer=top left arrow")
+      }
+   ControlExit := 1
+   return
+end
+
+
+procedure EditSaveEvery(e)
+   local buf,currentBuf,resp,dw
+   currentBuf := e.buf
+   every buf := !copy(e.bufferList) do {
+      EditOpen(e,buf)
+      if EditChanged(e) then {
+	 repeat {
+	    dw := EditCreateMsgBox(e,"Save Every")
+	    write(dw,"Save \"",buf.saveFileName,"\"_
+		  \n(save, don't save, cancel)?\n")
+	    resp := EditGetOneKey(dw)
+	    close(dw)
+	    EditFlushEvents(e.w)
+	    case map(resp[1]) of {
+	       "s": {
+		  EditSave(e) &
+			WAttrib(e.w,"pointer=top left arrow") & break
+		  }
+	       "d": break
+	       "c": fail
+	       }
+	    }
+	 }
+      }
+   EditOpen(e,currentBuf)
+   return
+end
+
+
+procedure EditRecentBuffer(e,n)
+   /n := 2
+   return EditOpen(e,e.bufferList[n])
+end
+
+
+procedure EditOpen(e,fn,readOnly)
+   local text,buf,loadRec,ctx,dw,resp,x
+   /fn := SpecialFn
+   if not string(fn) then {
+      #
+      # A buffer was passed -- bring it to the front.
+      #
+      if buf === e.buf then return
+      buf := fn
+      fn := buf.saveFileName
+      text := buf.text
+      EditMoveBufToFront(e,buf)
+      }
+   else {
+      fn := varsub(fn)
+      if \e.useCtx then {
+	 ctx := EditParseCtx(fn)
+	 fn := ctx.fileName
+	 }
+      else ctx := EditCtxRec(fn)
+      if /buf := \e.bufferTable[fn] then {
+	 #
+	 # There is already a buffer by this name -- bring it to the
+	 # front.
+	 #
+	 if buf === e.buf then return
+	 text := buf.text
+	 EditMoveBufToFront(e,buf)
+	 }
+      else {
+	 #
+	 # Create a new buffer.
+	 #
+	 EditSetWatch(e)
+	 if fn == SpecialFn then {
+	    #
+	    # The special scratch buffer name was specified --
+	    # create a buffer with no text.
+	    #
+	    text := []
+	    buf := EditNewBuffer(e,fn,text)
+	    readOnly := 1
+	    }
+	 else if loadRec := e.loadFileProc(fn) then {
+	    #
+	    # There is a file by the specified name -- set up a
+	    # buffer with its text.
+	    #
+	    fn := loadRec.fileName
+	    text := loadRec.text
+	    buf := EditNewBuffer(e,fn,text)
+	    buf.version := buf.saveVersion := 1
+	    if \loadRec.changed then buf.version +:= 1
+	    }
+	 else {
+	    #
+	    # There is no file by the specified name -- create an
+	    # empty buffer.
+	    #
+	    if /readOnly then {
+	       repeat {
+		  dw := EditCreateMsgBox(e,"File Not Found")
+		  write(dw,image(fn)," if saved,\nwill create a new file._
+			\n(ok, cancel)?\n")
+		  resp := EditGetOneKey(dw)
+		  close(dw)
+		  EditFlushEvents(e.w)
+		  case map(resp[1]) of {
+		     "o" | "\r": break
+		     "c": fail
+		     }
+		  }
+	       if match("*",fn) then readOnly := 1
+	       }
+	    text := []
+	    buf := EditNewBuffer(e,fn,text)
+	    }
+	 buf.selection := \ctx.selection
+	 buf.scrollValue := \ctx.scrollValue
+	 every x := !\ctx.markList do {
+	    buf.markTable[x[1]] := x[2]
+	    }
+	 buf.readOnly := readOnly
+	 }
+      }
+   (\e.buf).scrollValue := e.scroller.value
+   e.buf := buf
+   e.text := text
+   e.selection := buf.selection
+   e.scroller.maxValue := *text
+   WAttrib(e.w,"windowlabel=" || e.wname || " -- " || buf.saveFileName)
+   WAttrib(e.w,"iconlabel=" || e.wd)
+   EditSetScroll(e,buf.scrollValue)
+   EditPaintLines(e)
+   return
+end
+
+
+procedure EditMoveBufToFront(e,buf)
+   local bufl,i
+   bufl := e.bufferList
+   every i := 1 to *bufl do {
+      if bufl[i] === buf then break
+      }
+   e.bufferList := [buf] ||| bufl[1:i] ||| bufl[i + 1:0]
+   return
+end
+
+
+procedure EditPrevBuffer(e)
+   local bufl
+   bufl := e.bufferList
+   put(bufl,get(bufl))
+   EditOpen(e,bufl[1])
+   return
+end
+
+
+procedure EditNextBuffer(e)
+   local bufl
+   bufl := e.bufferList
+   push(bufl,pull(bufl))
+   EditOpen(e,bufl[1])
+   return
+end
+
+
+procedure EditNewBuffer(e,fn,text)
+   local buf
+   buf := EditBuffer(text)
+   e.bufferTable[fn] := buf
+   push(e.bufferList,buf)
+   buf.selection := EditSelection(1,1,1,1)
+   buf.saveFileName := fn
+   buf.autoIndent := e.autoIndent
+   buf.image := e.image
+   buf.undoList := []
+   buf.redoList := []
+   buf.markTable := table()
+   buf.initialSize := *text
+   buf.version := buf.saveVersion := 0
+   buf.scrollValue := 0
+   return buf
+end
+
+
+procedure EditSaveCmd(e)
+   if not EditChanged(e) then
+	 EditErrorMessage(e,"File not changed")
+   else if \e.buf.readOnly then
+	 EditErrorMessage(e,"File is read-only, so can't be saved")
+   else EditSave(e)
+   return
+end
+
+
+procedure EditCut(e)
+   if EditCopy(e) then {
+      EditNoteState(e)
+      EditReplace(e)
+      EditRefreshScreen(e)
+      }
+   return
+end
+
+
+procedure EditNoteState(e)
+   e.oldTextLen := *e.text
+   e.oldSel := copy(e.selection)
+   return
+end
+
+
+procedure EditRefreshScreen(e)
+   local start
+   start := Min(e.oldSel.r1,e.selection.r1)
+   if *e.text = e.oldTextLen then {
+	 EditPaintLines(e,EditScreenLine(e,start),
+	       EditScreenLine(e,Max(e.selection.r2,e.oldSel.r2)))
+      }
+   else {
+      EditPaintLines(e,EditScreenLine(e,start))
+      }
+   return
+end
+
+
+procedure Min(i1,i2[])
+   every i1 >:= !i2
+   return i1
+end
+
+
+procedure Max(i1,i2[])
+   every i1 <:= !i2
+   return i1
+end
+
+
+procedure EditPaste(e)
+   local f,fn,t
+   EditNoteState(e)
+   fn := e.tempDir || EditClipboard
+   t := []
+   if f := open(fn) then {
+      every put(t,!f)
+      close(f)
+      }
+   EditReplace(e,t)
+   EditRefreshScreen(e)
+   return
+end
+
+
+procedure EditUndo(e)
+   local r,sel,sel2
+   e.undoStatus := "undoing"
+   ##EditPrintUndo(e)
+   EditNoteState(e)
+   if r := pop(e.buf.undoList) then {
+      sel := e.selection
+      sel2 := r.selection
+      sel.r1 := sel2.r1
+      sel.c1 := sel2.c1
+      sel.r2 := sel2.r2
+      sel.c2 := sel2.c2
+      r.proc!(\r.args | [e])
+      sel2 := r.oldSel
+      sel.r1 := sel2.r1
+      sel.c1 := sel2.c1
+      sel.r2 := sel2.r2
+      sel.c2 := sel2.c2
+      e.buf.version := r.version
+      }
+   else EditBeep(e)
+   e.undoStatus := &null
+   EditRefreshAndScroll(e)
+   return
+end
+
+
+procedure EditRedo(e)
+   local r,sel,sel2
+   e.undoStatus := "redoing"
+   ##EditPrintUndo(e)
+   EditNoteState(e)
+   if r := pop(e.buf.redoList) then {
+      sel := e.selection
+      sel2 := r.selection
+      sel.r1 := sel2.r1
+      sel.c1 := sel2.c1
+      sel.r2 := sel2.r2
+      sel.c2 := sel2.c2
+      r.proc!(\r.args | [e])
+      }
+   else EditBeep(e)
+   e.undoStatus := &null
+   EditRefreshAndScroll(e)
+   return
+end
+
+
+procedure EditSelectAll(e)
+   local oldSel,sel
+   sel := e.selection
+   oldSel := copy(sel)
+   sel.r1 := sel.c1 := sel.c2 := 1
+   sel.r2 := *e.text + 1
+   EditHighlightSelection(e,oldSel)
+   return
+end
+
+
+procedure EditToggleImage(e)
+   e.buf.image := (\e.buf.image,&null) | 1
+   EditPaintLines(e)
+   return
+end
+
+
+procedure EditToggleAutoIndent(e)
+   e.buf.autoIndent := (\e.buf.autoIndent,&null) | 1
+   return
+end
+
+
+procedure EditRunFilter(e)
+   local cmd,f,fn,oldSel,t
+   if not &features == "pipes" then fail
+   EditSetWatch(e)
+   oldSel := copy(e.selection)
+   EditSelectWholeLines(e)
+   EditHighlightSelection(e,oldSel)
+   if cmd := EditGetTextDialog(e,"Filter",
+	 "Enter filter command:\n(enter . for last: ",image(e.lastFilter),
+	 ")\n") then {
+      if cmd == "." then cmd := e.lastFilter
+      e.lastFilter := cmd
+      fn := EditMakeTmp(e)
+      if f := open(fn,"w") then {
+	 every write(f,EditSelectionLines(e,,1))
+	 close(f)
+	 f := open(cmd || " < " || fn,"pr")
+	 t := []
+	 while put(t,read(f))
+	 close(f)
+	 remove(fn)
+	 put(t,"")
+	 EditNoteState(e)
+	 EditReplace(e,t)
+	 EditRefreshScreen(e)
+	 }
+      else EditErrorMessage(e,"Can't create work file \"",fn,"\"")
+      }
+   return
+end
+
+
+procedure EditMakeTmp(e)
+   return e.tempDir || "xe" || &clock[1+:2] || &clock[4+:2] || &clock[7+:2]
+end
+
+procedure EditShellCommand(e)
+   local cmd,f,t,s,tsep
+   static sep
+   initial sep := case System of {"UNIX": "\n" ; "OS2": "&"}
+   if \System then {
+      EditSetWatch(e)
+      if EditIsEmptySelection(e) then {
+	 EditNoteState(e)
+	 EditSelectWholeLines(e)
+	 EditRefreshScreen(e)
+	 }
+      cmd := ""
+      t := []
+      tsep := ""
+      every s := EditSelectionLines(e,,1) do {
+	 cmd ||:= tsep || s
+	 tsep := sep
+	 put(t,s)
+	 }
+      # f := open("(" || cmd || ") 2>&1","rp")
+      f := open("sh 2>&1 -c " || shquote(cmd),"rp")
+      every put(t,!f)
+      close(f)
+      put(t,"")
+      EditNoteState(e)
+      EditReplace(e,t)
+      EditRefreshAndScroll(e)
+      return
+      }
+end
+
+
+procedure EditInsertBuffers(e)
+   local cmd,f,t,s
+   t := EditBufNameList(e)
+   put(t,"")
+   EditNoteState(e)
+   EditReplace(e,t)
+   EditRefreshAndScroll(e)
+   return
+end
+
+
+procedure EditBufNameList(e)
+   local t
+   t := []
+   every put(t,(!sort(e.bufferTable))[1])
+   return t
+end
+
+
+procedure EditBufCtxList(e)
+   local t,buf,marks,x,mark
+   e.buf.scrollValue := e.scroller.value # update buffer's scroll position
+   t := []
+   every buf := !e.bufferList do {
+      if buf.saveVersion > 0 then {
+	 marks := ""
+	 every x := !sort(buf.markTable) do {
+	    mark := x[1]
+	    if match(!"*~",mark) then next
+	    while mark[upto(',}',mark)] := "_"
+	    marks ||:= "," || mark || "," || EditOutputSelection(x[2])
+	    }
+	 put(t,buf.saveFileName || "{" || buf.selection.r1 ||
+	 "," || buf.selection.c1 || "," || buf.selection.r2 || "," ||
+	 buf.selection.c2 || "," || buf.scrollValue || marks || "}")
+	 }
+      }
+   return t
+end
+
+
+procedure EditOutputSelection(sel)
+   return sel.r1 || "," || sel.c1 || "," || sel.r2 || "," || sel.c2
+end
+
+
+procedure EditInputSelection()
+   return EditSelection(
+	 integer(tab(find(","))),
+	 (move(1),integer(tab(find(",")))),
+	 (move(1),integer(tab(find(",")))),
+	 (move(1),integer(tab(many(&digits)))))
+end
+
+
+record EditCtxRec(fileName,selection,scrollValue,markList)
+
+procedure EditParseCtx(fn)
+   local ctx,sel,scrollValue,markList
+   fn ? {
+      if fn := tab(find("{")) & move(1) & ctx := tab(find("}")) &
+	    pos(-1) then {
+	 ctx ? {
+	    sel := EditInputSelection()
+	    scrollValue := (move(1),integer(tab(find(",") | 0)))
+	    markList := []
+	    until pos(0) do {
+	       move(1)
+	       put(markList,[tab(find(",")),(move(1),EditInputSelection())])
+	       }
+	    }
+	 }
+      else {
+	 fn := tab(0)
+	 }
+      }
+   return EditCtxRec(fn,sel,scrollValue,markList)
+end
+
+
+procedure EditFindFileAndLine(e)
+   local line,fn,lineNbr,lineNbr2,column
+   EditSetWatch(e)
+   if EditIsEmptySelection(e) then EditSelectWholeLines(e)
+   line := EditSelectionLines(e)
+   #
+   #  Parse the file:line specification.
+   #
+   line ? {
+      if ="File " then {
+	 #
+	 #  Parse Icon (i.e. MPW) spec.
+	 #
+	 fn := tab(find("; Line "))
+	 move(7)
+	 lineNbr := integer(tab(many(&digits)))
+	 }
+      else {
+	 #
+	 #  Determine whether UNIX or Cset/2 format.
+	 #
+	 tab(upto('(:'))
+	 case move(1) of {
+	    ":": {
+	       #
+	       #  UNIX
+	       #
+	       tab(1)
+	       tab(many(' \t'))
+	       fn := trim(tab(find(":") | 0),' \t')
+	       move(1)
+	       =" Line"		# concession to some Icon messages
+	       tab(many(' \t'))
+	       lineNbr := integer(tab(many(&digits)))
+	       if ="," then {
+		  lineNbr2 := integer(tab(many(&digits)))
+		  }
+	       }
+	    "(": {
+	       #
+	       #  Cset/2
+	       #
+	       tab(1)
+	       fn := tab(find("("))
+	       move(1)
+	       lineNbr := integer(tab(upto(':)')))
+	       =":"
+	       column := integer(tab(find(")")))
+	       }
+	    }
+	 }
+      }
+   if EditOpen(e,fn) then {
+      EditScrollToLine(e,\lineNbr,"wholeLine") &
+	    EditGoToCol(e,\column) | &null &
+	    if \lineNbr2 then {
+	      EditNoteState(e)
+	      e.selection.r2 := lineNbr2 + 1
+	      EditRefreshScreen(e)
+	    }
+	    else {}
+      }
+   return
+end
+
+
+procedure EditGetTextDialog(e,title,s[])
+   local cmd,dw
+   dw := EditCreateMsgBox(e,title)
+   every writes(dw,!s)
+   write(dw)
+   cmd := read(dw) | fail
+   close(dw)
+   return "" ~== cmd
+end
+
+
+procedure EditErrorMessage(e,s[])
+  return EditMessage!([e,"Oops!"] ||| s)
+end
+
+
+procedure EditMessage(e,title,s[])
+   local dw
+   dw := EditCreateMsgBox(e,title)
+   every writes(dw,!s)
+   write(dw)
+   EditWaitForAnyEvent(dw)
+   close(dw)
+   return
+end
+
+
+procedure EditShiftLeft(e)
+   EditNoteState(e)
+   EditShiftLines(e,1)
+   EditRefreshScreen(e)
+   return
+end
+
+
+procedure EditShiftRight(e)
+   EditNoteState(e)
+   EditShiftLines(e,-1)
+   EditRefreshScreen(e)
+   return
+end
+
+
+procedure EditCursorLeft(e)
+   local oldSel,sel
+   sel := e.selection
+   oldSel := copy(sel)
+   EditNoteState(e)
+   if (sel.c1 -:= 1) < 1 then {
+      sel.c1 := if (sel.r1 -:= 1) < 1 then 1 else *e.text[sel.r1] + 1
+      }
+   sel.r2 := sel.r1 ; sel.c2 := sel.c1
+   EditValidateSelection(e)
+   EditRefreshAndScroll(e)
+   return
+end
+
+ 
+procedure EditCursorRight(e)
+   local oldSel,sel
+   sel := e.selection
+   oldSel := copy(sel)
+   EditNoteState(e)
+   if (sel.c2 +:= 1) > (*e.text[sel.r2] + 1 | 1)\1 then {
+      sel.r2 +:= 1
+      sel.c2 := 1
+      }
+   sel.r1 := sel.r2 ; sel.c1 := sel.c2
+   EditValidateSelection(e)
+   EditRefreshAndScroll(e)
+   return
+end
+
+ 
+procedure EditCursorUp(e)
+   local oldSel,sel
+   sel := e.selection
+   oldSel := copy(sel)
+   if not (e.lastKey == ("\^J" | "\^K")) then e.lastData :=
+	  EditGetScreenOffset(e,e.text[sel.r1],sel.c1)
+   EditNoteState(e)
+   sel.r2 := sel.r1 -:= 1
+   sel.c1 := sel.c2 := EditGetStringOffset(e,e.text[sel.r1],e.lastData)
+   EditValidateSelection(e)
+   EditRefreshAndScroll(e)
+   return
+end
+
+ 
+procedure EditCursorDown(e)
+   local oldSel,sel
+   sel := e.selection
+   oldSel := copy(sel)
+   if not (e.lastKey == ("\^J" | "\^K")) then e.lastData :=
+	 EditGetScreenOffset(e,e.text[sel.r1],sel.c1)
+   EditNoteState(e)
+   sel.r2 := sel.r1 +:= 1
+   sel.c1 := sel.c2 := EditGetStringOffset(e,e.text[sel.r1],e.lastData)
+   EditValidateSelection(e)
+   EditRefreshAndScroll(e)
+   return
+end
+
+
+procedure EditFindCmd(e)
+   (e.findString := EditGetTextDialog(e,"Find",
+	 "Find what string or /regular expression/?\n  (Current: ",
+	 image(e.findString),")\n")) | return
+   EditFind(e,e.findString)
+   return
+end
+
+
+procedure EditFindAgainCmd(e)
+   EditFind(e,e.findString)
+   return
+end
+
+
+procedure EditSelectionToFind(e)
+   e.findString := EditSelectionLines(e)
+   return
+end
+
+
+procedure EditDisplaySelection(e)
+   if EditIsEmptySelection(e) then EditCursorBox(e)
+   else {
+      if EditScrollToSelectionIfOffScreen(e) then
+	    EditPaintLines(e)
+      }
+   return
+end
+
+
+procedure EditOpenSelectedFile(e)
+   local sel,fn
+   EditNoteState(e)
+   if EditIsEmptySelection(e) then {
+      sel := EditSortSelection(e.selection)
+      if not any(NonSpace,e.text[sel.r1],sel.c1) then {
+	 if sel.c1 > 1 then {sel.c1 -:= 1 ; sel.c2 -:= 1}
+	 }
+      EditSelectNonspaces(e)
+      EditRefreshScreen(e)
+      }
+   fn := EditSelectionLines(e)
+   if any(NonSpace,fn) then EditOpen(e,fn)
+   return
+end
+
+
+procedure EditReplaceCmd(e)
+   local dw
+   dw := EditCreateMsgBox(e,"Replace")
+   write(dw,"Replace what string or /regular expression/?\n  (Current: ",
+   image(e.findString),")\n")
+   e.findString := "" ~== read(dw)
+   write(dw,"\nwith what string?\n  (Current: ",image(e.replaceString),")\n")
+   (e.replaceString := "" ~== read(dw)) | {close(dw) ; return}
+   close(dw)
+   EditFind(e,e.findString,e.replaceString)
+   return
+end
+
+
+procedure EditReplaceAgainCmd(e)
+   EditFind(e,e.findString,e.replaceString)
+   return
+end
+
+
+procedure EditToggleBackward(e)
+   return e.backward := (\e.backward,&null) | 1
+   return
+end
+
+
+procedure EditToggleWrap(e)
+   return e.wrap := (\e.wrap,&null) | 1
+end
+
+
+procedure EditToggleCase(e)
+   return e.ignoreCase := (\e.ignoreCase,&null) | 1
+end
+
+
+procedure EditTextFromFileCmd(e)
+   local f,fn,t
+   if fn := EditGetTextDialog(e,"Enter Text from File",
+	 "Enter text from what file?\n") then {
+      fn := varsub(fn)
+      if f := open(fn) then {
+	 t := []
+	 while put(t,read(f))
+	 close(f)
+	 EditNoteState(e)
+	 EditReplace(e,t)
+	 EditRefreshScreen(e)
+	 }
+      else EditErrorMessage(e,"Can't find file named \"",fn,"\"")
+      }
+   return
+end
+
+
+procedure EditToggleTrace()
+   return &trace := if &trace = 0 then -1 else 0
+end
+
+
+procedure EditDeleteCmd(e)
+   EditNoteState(e)
+   EditDelete(e)
+   EditRefreshAndScroll(e)
+   return
+end
+
+
+procedure EditGoToLineCmd(e)
+   local resp,line,col
+   static digits
+   initial digits := &digits ++ "-"
+   if resp := EditGetTextDialog(e,"Go To Line",
+	 "Enter line number [column number]:\n") then {
+      resp ? {
+	 line := tab(many(digits))
+	 tab(upto(digits)) &
+	       col := tab(many(digits))
+	 }
+      if line := integer(line) then EditScrollToLine(e,line,"wholeLine")
+      if col := integer(col) then EditGoToCol(e,col)
+      }
+   return
+end
+
+
+procedure EditGoToCol(e,col)
+   local line,sel
+   sel := EditSortSelection(e.selection)
+   line := e.text[sel.r1]
+   if col <= 0 then col := *line + 1 + col
+   if not (0 < col <= *line + 1) then {EditBeep(e) ; return}
+   EditNoteState(e)
+   sel.c1 := col
+   sel.c2 := col + 1
+   sel.r2 := sel.r1
+   EditValidateSelection(e)
+   EditRefreshScreen(e)
+   return
+end
+
+
+procedure EditScrollToLine(e,line,wholeLine)
+   EditNoteState(e)
+   EditGoToLine(e,line,wholeLine) | {EditBeep(e) ; fail}
+   EditRefreshAndScroll(e)
+   return
+end
+
+
+procedure EditCwd()
+   local p,cwd
+   static pwd
+   initial pwd := case System of {"UNIX": "pwd" ; "OS2": "cd"}
+   if p := open(\pwd,"rp") then {
+      cwd := read(p)
+      close(p)
+      return cwd
+      }
+end
+
+
+procedure EditMemoryStats(e)
+   local dw,lst
+   dw := EditCreateMsgBox(e,"Memory Stats",64,25)
+   write(dw,"\n Memory Allocation Statistics")
+   write(dw,"\n Current region sizes")
+   lst := [] ; every put(lst, &regions)
+   write(dw,"  static: ",lst[1],
+	  "\n  string: ",lst[2],
+	  "\n  block:  ",lst[3])
+   write(dw,"\n Current bytes allocated")
+   lst := [] ; every put(lst, &storage)
+   write(dw,"  static: ",lst[1],
+	  "\n  string: ",lst[2],
+	  "\n  block:  ",lst[3])
+   write(dw,"\n Accumulated bytes allocated")
+   lst := [] ; every put(lst, &allocated)
+   write(dw,"  total:  ",lst[1],
+	  "\n  static: ",lst[2],
+	  "\n  string: ",lst[3],
+	  "\n  block:  ",lst[4])
+   write(dw,"\n Collections")
+   lst := [] ; every put(lst, &collections)
+   write(dw,"  total:  ",lst[1],
+	  "\n  static: ",lst[2],
+	  "\n  string: ",lst[3],
+	  "\n  block:  ",lst[4])
+   EditWaitForAnyEvent(dw)
+   close(dw)
+   return
+end
+
+procedure EditInfoCmd(e)
+   local dw,sel,t,buf,cwd
+   sel := e.selection
+   buf := e.buf
+   cwd := EditCwd()
+   dw := EditCreateMsgBox(e,"Info",Max(64,*buf.saveFileName + 10,
+	 *\cwd + 24 | 0),24)
+   write(dw,"\n Mouse-Oriented Editor for Windows")
+   write(dw,"   written in Icon by Bob Alexander\n")
+   write(dw," File: ",
+	 "\"" || ("" ~== \buf.saveFileName) || "\"" | "** none **")
+   write(dw," ",if EditChanged(e) then "Modified" else "Not modified",
+	 " since save")
+   write(dw," Lines: ",*e.text)
+   t := 0
+   every t +:= *!e.text + 1
+   write(dw," Chars: ",t)
+   t := 0 = *e.text | sel.r2 - sel.r1 + 1
+   writes(dw," The Selection: line ",sel.r1,", column ",sel.c1)
+   if sel.r2 ~= sel.r1 then writes(dw," to line ",sel.r2,", column ",sel.c2)
+   else if sel.c2 ~= sel.c1 then writes(dw," to column ",sel.c2)
+   write(dw)
+   write(dw," Lines selected: ",abs(sel.r2 - sel.r1) + 1)
+   t := 0
+   every t +:= *EditSelectionLines(e) + 1
+   write(dw," Chars selected: ",t - 1)
+   write(dw," Current size of Undo/Redo list: ",*buf.undoList,
+	 "/",*buf.redoList)
+   write(dw," Current directory: \"",\cwd,"\"")
+   write(dw)
+
+   EditWriteMode(dw,e.wrap,"Wrap Mode for Find")
+   EditWriteMode(dw,e.ignoreCase,"Case Independence Mode for Find")
+   EditWriteMode(dw,e.backward,"Find Backward")
+   EditWriteMode(dw,buf.autoIndent,"Auto Indent")
+   EditWriteMode(dw,buf.readOnly,"Read Only")
+   EditWriteMode(dw,buf.image,"Show Unprintables")
+   write(dw," Tab spacing: ",\Tabs - 1 | "off")
+   write(dw," Tags table size: ",EditGoToTag(e,,"size"))
+   EditWriteMode(dw,&trace ~= 0 | &null,"Trace")
+   EditWaitForAnyEvent(dw)
+   close(dw)
+   return
+end
+
+
+## procedure EditHelpCmd(e)
+   ## local dw,help,lines,maxw,line
+   ## help := EditHelpText()
+   ## help ? {
+      ## maxw := lines := 0
+      ## while line := tab(find("\n")) do {
+	 ## move(1)
+	 ## lines +:= 1
+	 ## maxw <:= *line
+	 ## }
+      ## }
+   ## dw := EditCreateMsgBox(e,"Help",maxw + 1,lines + 1)
+   ## writes(dw,help)
+   ## EditWaitForAnyEvent(dw)
+   ## close(dw)
+   ## return
+## end
+
+procedure EditHelpBuffer(e)
+   local dw,help,lines,maxw,line
+   EditOpen(e,"*Help*","readOnly")
+   if *e.text = 0 then {
+      EditReplace(e,EditHelpText())
+      e.buf.saveVersion := e.buf.version
+      EditPaintLines(e)
+      }
+   return
+end
+
+
+
+procedure EditOpenCmd(e)
+   local dw,bufSort,resp,fn,n,maxwid
+   maxwid := 0
+   every fn := key(e.bufferTable) do maxwid <:= *fn
+   maxwid := Max(64,maxwid + 10)
+   dw := EditCreateMsgBox(e,"Open",maxwid,*e.bufferTable + 8)
+   bufSort := sort(e.bufferTable)
+   write(dw,"List of Open Files")
+   write(dw,"------------------")
+   n := 0
+   every fn := !bufSort do
+	 write(dw,n +:= 1,". ",if EditChanged(e,fn[2]) then "(" || fn[1] || ")"
+	 else fn[1],
+	 if fn[2] === e.buf then " <-" else if fn[2] === e.bufferList[2]
+	 then " *" else "")
+   write(dw,"\n(Enter a number or a file name)\nOpen which file?\n")
+   resp := read(dw)
+   close(dw)
+   if resp == "" then return
+   EditOpen(e,bufSort[integer(resp)][1] | resp)
+   return
+end
+
+
+procedure EditDataKeyTyped(e,evt)
+   local oldSel,r,r1,r2,sel,t,text
+   static oneChar
+   initial oneChar := ["x"]
+   sel := e.selection
+   text := e.text
+   if EditIsEmptySelection(e) & evt ~== "\r" then {
+      #
+      #  This is optimized code for inserting a character into
+      #  an empty selection.
+      #
+      oldSel := copy(sel)
+      r1 := r2 := sel.r1
+      if (r1 > *text,put(text,evt),r2 +:= 1) |
+	    (text[r1][sel.c1+:0] := evt) then
+	    sel.c2 := sel.c1 +:= 1
+      EditAddUndo(e,EditDelete,,sel,oldSel)
+      EditAdjustMarks(e,oldSel,oneChar)
+      EditScrollToSelectionIfOffScreen(e)
+      EditPaintLines(e,EditScreenLine(e,r1),EditScreenLine(e,r2))
+      }
+   else {
+      EditSortSelection(sel)
+      r := sel.r1
+      #
+      #  Generalized replacement of selection by typed character.
+      #
+      t := evt
+      EditNoteState(e)
+      if evt == "\r" & \e.buf.autoIndent then {
+	 detab(text[r],Tabs) ? {
+	    t ||:= entab(tab(many(' \t')),Tabs)
+	    }
+	 sel.c2 := many(' \t',text[sel.r2],sel.c2)
+	 }
+      EditReplace(e,t,sel)
+      EditRefreshAndScroll(e)
+      }
+   return
+end
+
+
+procedure EditKeyEvent(w,evt,e)
+   static deleteKey,cursorLeftKey,printChars
+   initial {
+      deleteKey := "\d"
+      cursorLeftKey := "\^H"
+      if System === "OS2" then {
+	 deleteKey := "\^H"	# for OS/2 backspace key deletes
+	 cursorLeftKey := "\x10"#   and Delete key does cursor-left
+	 }
+      e.findString := e.replaceString := e.lastKey := ""
+      printChars := &ascii[33:128] ++ "\r\t"
+      }
+   ## write("{{{{ event = ",image(evt)," x = ",&x," y = ",&y," t = ",&time)
+   if \e.enterControl then {
+      EditDataKeyTyped(e,evt)
+      e.enterControl := &null
+      }
+   else case evt of {
+      "\^Q": EditQuit(e)			  # quit
+      "\^O": EditOpenCmd(e)			  # open
+      "\^W": EditClose(e)			  # close file
+      "\^D": EditSaveCopy(e)			  # write a copy
+      "\^S": EditSaveCmd(e)			  # save
+      "\^E": EditSaveEvery(e)			  # save modified buffers
+      "\^C": EditCopy(e)			  # copy
+      "\^X": EditCut(e)				  # cut
+      "\^V": EditPaste(e)			  # paste
+      "\^Z": EditUndo(e)			  # undo
+      "\^Y": EditRedo(e)			  # redo
+      "\^A": EditSelectAll(e)			  # select all
+      deleteKey:
+	     EditDeleteCmd(e)			  # delete/backspace
+      "\^@": EditGoToLineCmd(e)			  # go to line
+      cursorLeftKey:
+	     EditCursorLeft(e)			  # cursor left
+      "\^J": EditCursorDown(e)			  # cursor down
+      "\^K": EditCursorUp(e)			  # cursor up
+      "\^L": EditCursorRight(e)			  # cursor right
+      "\^F": EditFindCmd(e)			  # find
+      "\^G": EditFindAgainCmd(e)		  # find again
+      "\^U": EditSelectionToFind(e)		  # set find string to selection
+      "\^R": EditReplaceCmd(e)			  # replace
+      "\^T": EditReplaceAgainCmd(e)		  # replace again
+      "\^B": EditToggleBackward(e)		  # backward mode toggle
+      "\x1c": EditInfoCmd(e)			  # info
+      "\^?" | "\^/": EditHelpBuffer(e)		  # help
+      "\e": {					  # escape key sequence
+	 evt := Event(w)
+	 if type(evt) == "string" then case evt of {
+	    "d": EditDupAtLastClick(e)		  # duplicate at "*Last Click*"
+	    "`": EditGoToMark(e,"*Last Place*")   # go to "*Last Place*"
+	    ",": EditPrevBuffer(e)		  # previous buffer
+	    ".": EditNextBuffer(e)		  # next buffer
+	    "1": EditOpen(e)			  # scratch buffer
+	    "o": EditOpenSelectedFile(e)	  # open selected file
+	    "B": EditInsertBuffers(e)		  # insert buffer names
+	    "m": EditCreateMarkCmd(e)		  # create mark
+	    "j": EditGoToMarkCmd(e)		  # jump to mark
+	    "t": EditAddTrail(e)		  # add selection to trail
+	    "T": EditClearTrail(e)		  # add selection to trail
+	    "9": EditBackTrail(e)		  # go to last trail loc
+	    "0": EditForeTrail(e)		  # go to next trail loc
+	    "u": EditToggleImage(e)		  # "image" toggle
+	    "a": EditToggleAutoIndent(e)	  # autoindent toggle
+	    "\r": EditShellCommand(e)		  # do a shell command
+	    "f": EditRunFilter(e)		  # run program (filter)
+	    "i": EditExecuteIcon(e)		  # run program (filter)
+	    "s": EditFindFileAndLine(e)		  # find "file:line" from text
+	    "w": EditToggleWrap(e)		  # wrap mode toggle
+	    "c": EditToggleCase(e)		  # case independence toggle
+	    "r": EditTextFromFileCmd(e)		  # enter text from file
+	    "l": EditDisplaySelection(e)	  # scroll to selection
+	    "p": EditSelectedTag(e)		  # go to tag
+	    "P": EditGoToTag(e,,"refresh")	  # purge tags file
+	    deleteKey: EditDeleteToEnd(e)	  # delete to end of text
+	    "[": EditShiftLeft(e)		  # shift 1 left
+	    "]": EditShiftRight(e)		  # shift 1 right
+	    "v": e.enterControl := 1		  # enter a control char
+	    "x": EditReverseText(e)		  # reverse selected characters
+	    "Q": EditQuit(e,"noCtx")		  # quit w/o saving context
+	    "&": EditToggleTrace()		  # &trace
+	    "M": EditMemoryStats(e)		  # memory allocation stats
+	    "Z": EditForgetUndos(e)		  # forget undos & redos
+	    "R": EditRuler(e)			  # insert a ruler
+	    !&digits: EditRecentBuffer(e,evt)	  # nth most recent buffer
+	    default: EditBeep(e)
+	    }
+	 }
+      default: if any(printChars,evt) then	  # data key typed
+		     EditDataKeyTyped(e,evt)
+	       else EditBeep(e)
+      }
+   e.lastKey := evt
+   return
+end
+
+
+procedure EditGoToLine(e,line,wholeLine)
+   local sel
+   sel := e.selection
+   if line = 0 then {
+      EditCreateMark(e)
+      sel.r1 := sel.r2 := *e.text + 1
+      sel.c1 := sel.c2 := 1
+      return
+      }
+   if line <= 0 then line := *e.text + line + 1
+   if 1 <= line <= *e.text then {
+      EditCreateMark(e)
+      sel.r1 := sel.r2 := line
+      sel.c1 := sel.c2 := 1
+      if \wholeLine then sel.r2 +:= 1
+      return
+      }
+   else EditBeep(e)
+end
+
+
+procedure EditBeep(e)
+   if System ~=== "OS2" then writes("\^G")
+   return
+end
+
+
+procedure EditScreenLine(e,line)
+   return line - e.scroller.value + 1
+end
+
+
+procedure EditScrollToSelectionIfOffScreen(e,linesAtBottom)
+   /linesAtBottom := 0
+   return if not
+	 (1 <= EditScreenLine(e,e.selection.r1) <= e.rows - linesAtBottom) then
+	 EditScrollToSelection(e)
+end
+
+
+procedure EditRefreshAndScroll(e,linesAtBottom)
+  return (
+      if EditScrollToSelectionIfOffScreen(e,linesAtBottom) then
+	    EditPaintLines(e)
+      else
+	    EditRefreshScreen(e)
+      )
+end
+
+
+procedure EditWriteMode(w,mode,modeString)
+   return write(w," ",modeString,": ",if \mode then "on" else "off")
+end
+
+
+procedure EditWaitForAnyEvent(w)
+   local evt
+   #
+   #  Actually, wait for mouse UP or any key.
+   #
+   repeat {
+      if type(evt := Event(w)) == "integer" then {
+	 if evt = (&lrelease|&mrelease|&rrelease) then break
+	 }
+      else break
+      }
+   return evt
+end
+
+
+procedure EditGetOneKey(w)
+   local evt
+   while type(evt := Event(w)) == "integer" do {
+      }
+   return evt
+end
+
+
+procedure EditFlushEvents(w)
+   while Pending(w)[1] do Event(w)
+   return
+end
+
+
+procedure EditSaveCopy(e)
+   local fn
+   if fn := EditGetTextDialog(e,"Write a Copy",
+	 "Write a copy to what file?\n") then return EditSave(e,fn,,1)
+end
+
+
+procedure EditMouseEvent(w,evt,e,interval,x,y)
+   local oldSel,sel,text
+   static lastKey,lastMouseEvent,clickCount,lastMouseX,lastMouseY
+   initial {
+      lastKey := ""
+      clickCount := lastMouseEvent := 0
+      }
+   ## write("{{{{ event = ",image(evt)," x = ",x," y = ",y," t = ",&time)
+   sel := e.selection
+   text := e.text
+   if evt === (&lpress | &mpress | &rpress) then {
+      #
+      #  Process mouse button presses, checking for double and triple
+      #  clicks.
+      #
+      if lastMouseEvent = evt &
+	    interval <= 200 &				# double-click interval
+	    lastMouseX - 4 < x < lastMouseX + 4 &	# double-click has slop
+	    lastMouseY - 4 < y < lastMouseY + 4 then {	#    of +/- 4 pixels
+	 3 >= (clickCount +:= 1) | (clickCount := 1)
+	 }
+      else {
+	 clickCount := 1
+	 lastMouseX := x
+	 lastMouseY := y
+	 }
+      lastMouseEvent := evt
+      }
+   oldSel := copy(sel)
+   case evt of {
+      &lpress: {  # mouse left button pressed
+	 sel.r1 := sel.r2 := &row + e.scroller.value - 1
+	 sel.c1 := sel.c2 := EditGetStringOffset(e,text[sel.r1],&col)
+	 case clickCount of {
+	    1: EditCreateMark(e,"*Last Click*",oldSel)
+	    2: EditSelectWord(e)
+	    3: EditSelectLine(e)
+	    }
+	 EditValidateSelection(e)
+	 EditHighlightSelection(e,oldSel)
+	 }
+      &rpress|&mpress|&null: {
+	 if &row < 1 then {
+	    sel.c2 := 1
+	    EditHighlightSelection(e,oldSel)
+	    oldSel := copy(sel)
+	    until e.scroller.value <= 1 | *Pending(e.w) > 0 do {
+	       sel.r2 := e.scroller.value
+	       EditHighlightSelection(e,oldSel)
+	       oldSel := copy(sel)
+	       EditScroll(e,e.scroller.value - 1,e.scroller.value)
+	       EditSetScroll(e,e.scroller.value - 1)
+	       }
+	    }
+	 else if &row > e.rows then
+	       until e.scroller.value >= *text | *Pending(e.w) > 0 do {
+	    sel.c2 := 1
+	    sel.r2 := e.scroller.value + e.rows
+	    EditHighlightSelection(e,oldSel)
+	    oldSel := copy(sel)
+	    EditScroll(e,e.scroller.value + 1,e.scroller.value)
+	    EditSetScroll(e,e.scroller.value + 1)
+	    }
+	 else {
+	    sel.r2 := &row + e.scroller.value - 1
+	    sel.c2 := EditGetStringOffset(e,text[sel.r2], &col)
+	    case clickCount of {
+	       2: EditSelectWord(e)
+	       3: EditSelectLine(e)
+	       }
+	    EditValidateSelection(e)
+	    if not EditEqualSel(sel,oldSel) then
+		  EditHighlightSelection(e,oldSel)
+	    }
+	 }
+      &ldrag|&mdrag|&rdrag: {
+	 if not Pending(w)[1] then EditMouseEvent(w,&null,e,interval,x,y)
+	 }
+      ## &lrelease|&mrelease|&rrelease:
+      &resize: EditResizeWindow(e)
+      }
+   return
+end
+
+
+
+procedure EditResizeWindow(e)
+   local height,oldScroller,w,width
+   w := e.w
+   width := WAttrib(w,"width")
+   height := WAttrib(w,"height")
+   e.columns := WAttrib(w,"columns")
+   e.rows := WAttrib(w,"lines")
+   oldScroller := RemoveScroller(e.scroller)
+   e.scroller :=
+	 NewScroller(w,width - scrollWidth,-1,scrollWidth,height + 1,
+	 EditScrolled,e,oldScroller.value,1 <= *e.text | 1,1,e.rows - 2)
+   EraseArea(w)
+   DrawScroller(e.scroller)
+   EditPaintLines(e)
+   return e
+end
+
+
+procedure EditEqualSel(sel1,sel2)
+   return sel1.r1 = sel2.r1 &
+	     sel1.c1 = sel2.c1 &
+	     sel1.r2 = sel2.r2 &
+	     sel1.c2 = sel2.c2
+end
+
+
+procedure EditShiftLines(e,n)
+   local h,i,line,oldSel,p,sel,text
+   sel := e.selection
+   oldSel := copy(sel)
+   text := e.text
+   EditSelectWholeLines(e)
+   EditAddUndo(e,EditReplace,sel,sel,oldSel)
+   every i := sel.r1 to sel.r2 - 1do {
+      line := text[i]
+      if p := many(' \t',line) then h := detab(line[1:p],Tabs)
+      else {p := 1 ; h := ""}
+      if n > 0 then {
+	 (h[-n:0] := "") | (h := "")
+	 }
+      else {
+	 h ||:= repl(" ",-n)
+	 }
+      text[i] := entab(h,Tabs) || line[p:0]
+      }
+   return
+end
+
+
+procedure EditSelectWholeLines(e,sel)
+   /sel := e.selection
+   EditSortSelection(sel)
+   if sel.c2 ~= 1 | sel.r1 = sel.r2 then sel.r2 +:= 1
+   sel.c1 := sel.c2 := 1 
+   return sel
+end
+
+
+procedure EditCreateMsgBox(e,title,width,height)
+   local dw,x,y,w,b
+   w := e.w
+   /title := "?"
+   /width := 60
+   /height := 10
+   /e.msgX := 0 <= (WAttrib(w,"posx") + WAttrib(w,"pointerx") - 92) | 0 &
+	 e.msgY := 0 <= (WAttrib(w,"posy") + WAttrib(w,"pointery") - 72) | 0
+   x := e.msgX
+   y := e.msgY
+   b := XBind("font=fixed")
+   width *:= WAttrib(b,"fwidth")
+   height *:= WAttrib(b,"fheight")
+   dw := open(title,"x","geometry=" || width || "x" || height ||
+	 "+" || x || "+" || y)
+   return dw
+end
+
+
+procedure EditFind(e,s,replace,direction)
+   local backward,c,findMap,findProc,matchProc,r,sel,sel2,text,lookHere
+   EditSetWatch(e)
+   findMap := if \e.ignoreCase then map else 1
+   sel := e.selection
+   EditSortSelection(sel)
+   sel2 := copy(sel)
+   text := e.text
+   backward := e.backward
+   backward := case direction of {
+      "forward": &null
+      "backward": 1
+      default: e.backward
+      }
+   findProc := find
+   matchProc := match
+   lookHere := \replace ~== s
+   if *s > 2 then {
+      if s[1] == "/" & s[-1] == "/" then {
+	 Re_Filter := findMap
+	 s := RePat(s[2:-1]) | {EditBeep(e) ; return}
+	 findProc := ReFind
+	 matchProc := ReMatch
+	 }
+      }
+   s := findMap(string(s))
+   EditNoteState(e)
+   if \backward then {
+      #
+      #  Search backward.
+      #
+      (\lookHere,
+	    c := (matchProc(s,findMap(text[r := sel2.r1]),sel2.c1),sel2.c1)) |
+	    every c := findProc(s,findMap(text[r := sel2.r1]),,sel2.c1)
+      if \c |
+	    (every r := (sel2.r1 - 1 to 1 by -1) |
+	    (if \e.wrap then *text to sel2.r1 by -1) do {
+	       if EditEscapePressed(e) then break &fail
+	       every c := findProc(s,findMap(text[r]))
+	       if \c then break
+	       }) then {
+	 sel.r1 := sel.r2 := r
+	 sel.c1 := c
+	 sel.c2 := matchProc(s,findMap(text[r]),c)
+	 ## writes((/replace,"Found ") | "Replaced ",image(s)," at ")
+	 ## EditPrintSelection(e)
+	 if EditReplace(e,\replace) then {
+	    ## writes("with ",image(replace)," -- new ")
+	    ## EditPrintSelection(e)
+	    }
+	 EditRefreshAndScroll(e)
+	 }
+      else {
+	 ## write("\^GCan't find ",image(s))
+	 EditBeep(e)
+	 }
+      }
+   else {
+      #
+      #  Search forward.
+      #
+      if (\lookHere,
+	    c := (matchProc(s,findMap(text[r := sel2.r1]),sel2.c1),sel2.c1)) |
+	    (c := findProc(s,findMap(text[r := sel2.r2]),sel2.c2)) |
+	    (every r := (sel2.r2 + 1 to *text) |
+	    (if \e.wrap then 1 to sel2.r2) do {
+	       if EditEscapePressed(e) then break &fail
+	       if c := findProc(s,findMap(text[r])) then break
+	       }) then {
+	 sel.r1 := sel.r2 := r
+	 sel.c1 := c
+	 sel.c2 := matchProc(s,findMap(text[r]),c)
+	 ## writes((/replace,"Found ") | "Replaced ",image(s)," at ")
+	 ## EditPrintSelection(e)
+	 if EditReplace(e,\replace) then {
+	    ## writes("with ",image(replace)," -- new ")
+	    ## EditPrintSelection(e)
+	    }
+	 EditRefreshAndScroll(e,4)
+	 }
+      else {
+	 ## write("\^GCan't find ",image(s))
+	 EditBeep(e)
+	 }
+      }
+   EditCreateMark(e,,sel2)
+   return
+end
+
+
+procedure EditScrollToSelection(e)
+   local r1,r2,rows,sel,selRows
+   sel := e.selection
+   rows := e.rows
+   r1 := sel.r1
+   r2 := sel.r2
+   if r2 > r1 then r1 :=: r2
+   selRows := r2 - r1 + 1
+   EditSetScroll(e,if selRows >= rows then r1 else r1 - (rows - selRows) / 2)
+   return
+end
+
+
+procedure EditSelectWord(e)
+   local b,c,i,line,sel,text
+   static bracketChars,startBrackets,endBrackets
+   initial {
+      bracketChars := '()[]{}<>"\''
+      startBrackets := "([{<\"'"
+      endBrackets   := ")]}>\"'"
+      }
+   sel := e.selection
+   if line := e.text[sel.r2] then {
+      if EditIsEmptySelection(e) then {
+	 if any(bracketChars,c := line[sel.c1]) then {
+	    #
+	    #  Double click on a bracket-type character selects chars
+	    #  between the brackets.
+	    #
+	    text := e.text
+	    if find(c,startBrackets) then {
+	       sel.c1 +:= 1
+	       b := map(c,startBrackets,endBrackets)
+	       if i := bal(b,c,b,EditTextAsNeeded(e,line,sel.r1 + 1,*text),
+		     sel.c1) then {
+		  sel.r2 := sel.r1 + EditTextAsNeededLines
+		  sel.c2 := i - EditTextAsNeededLength
+		  }
+	       }
+	    else {
+	       b := map(c,endBrackets,startBrackets)
+	       if i := bal(b,c,b,EditTextAsNeeded(e,line,sel.r1 - 1,1,-1,
+		     reverse),*line - sel.c1 + 2) then {
+		  sel.r2 := sel.r1 - EditTextAsNeededLines
+		  sel.c2 := *text[sel.r2] - (i - EditTextAsNeededLength) + 2
+		  }
+	       }
+	    }
+	 else {
+	    #
+	    #  Select a word -- current selection empty.
+	    #
+	    if sel.c2 := many(WordSet,line,sel.c1) then {
+	       sel.c1 +:= 1
+	       while any(WordSet,line,0 < (sel.c1 -:= 1))
+	       sel.c1 +:= 1
+	       }
+	    else {
+	       sel.c2 +:= 1
+	       EditValidateSelection(e)
+	       }
+	    }
+	 }
+      #
+      #  Handle extend-select.
+      #
+      else if sel.r1 < sel.r2 | (sel.r1 = sel.r2 & sel.c1 < sel.c2) then {
+	 #
+	 #  Extend forward.
+	 #
+	 sel.c2 := many(WordSet,line,sel.c2) | sel.c2
+	 }
+      else {
+	 #
+	 #  Extend backward.
+	 #
+	 while any(WordSet,line,0 < (sel.c2 -:= 1))
+	 sel.c2 +:= 1
+	 }
+      }
+   return
+end
+
+
+procedure EditSelectNonspaces(e)
+   local line,sel
+   sel := e.selection
+   if line := e.text[sel.r2] then {
+      if EditIsEmptySelection(e) then {
+	 #
+	 #  Select a word -- current selection empty.
+	 #
+	 if sel.c2 := many(NonSpace,line,sel.c1) then {
+	    sel.c1 +:= 1
+	    while any(NonSpace,line,0 < (sel.c1 -:= 1))
+	    sel.c1 +:= 1
+	    }
+	 else {
+	    sel.c2 +:= 1
+	    EditValidateSelection(e)
+	    }
+	 }
+      #
+      #  Handle extend-select.
+      #
+      else if sel.r1 < sel.r2 | (sel.r1 = sel.r2 & sel.c1 < sel.c2) then {
+	 #
+	 #  Extend forward.
+	 #
+	 sel.c2 := many(NonSpace,line,sel.c2) | sel.c2
+	 }
+      else {
+	 #
+	 #  Extend backward.
+	 #
+	 while any(NonSpace,line,0 < (sel.c2 -:= 1))
+	 sel.c2 +:= 1
+	 }
+      }
+   return
+end
+
+
+procedure EditTextAsNeeded(e,line,rfrom,rto,rby,prc)
+   /rby := 1
+   /prc := 1
+   EditTextAsNeededLength := 0
+   EditTextAsNeededLines := 0
+   suspend line := prc(line)
+   EditTextAsNeededLength := *line
+   EditTextAsNeededLines := 1
+   suspend line ||:= prc(e.text[rfrom to rto by rby]) do {
+      if *line > 2000 then EditSetWatch(e)
+      if EditEscapePressed(e) then fail
+      EditTextAsNeededLength := *line
+      EditTextAsNeededLines +:= 1
+      }
+end
+
+
+procedure EditEscapePressed(e)
+   if *Pending(e.w) > 0 then {
+      if Event(e.w) === "\e" then return
+      }
+end
+
+
+procedure EditSetWatch(e)
+   return WAttrib(e.w,"pointer=watch")
+end
+
+
+procedure EditSelectLine(e)
+   local line,sel
+   sel := e.selection
+   line := e.text[sel.r2]
+   if EditIsEmptySelection(e) then {
+      #
+      #  Select whole line if current selection empty.
+      #
+      sel.c2 := sel.c1 := 1
+      sel.r2 +:= 1
+      }
+   else if sel.r1 < sel.r2 | (sel.r1 = sel.r2 & sel.c1 < sel.c2) then {
+      #
+      #  Extend forward.
+      #
+      sel.c2 := 1
+      sel.r2 +:= 1
+      }
+   else {
+      #
+      #  Extend backward.
+      #
+      sel.c2 := 1
+      }
+   EditValidateSelection(e)
+   return
+end
+
+
+procedure EditValidateSelection(e,sel)
+   /sel := e.selection
+   (sel.r1 <:= 1) |
+	 (if sel.r1 > *e.text then {
+	    sel.r1 := *e.text + 1
+	    sel.c1 := 1
+	    })
+   (sel.r2 <:= 1) |
+	 (if sel.r2 > *e.text then {
+	    sel.r2 := *e.text + 1
+	    sel.c2 := 1
+	    })
+   (sel.c1 <:= 1) |
+	 (sel.c1 >:= ((*e.text[sel.r1] + 1) | 1)\1)
+   (sel.c2 <:= 1) |
+	 (sel.c2 >:= ((*e.text[sel.r2] + 1) | 1)\1)
+   ##EditPrintSelection(e,"EditValidateSelection returned",sel)
+   return
+end
+
+
+procedure EditSave(e,fn,sel,saveCopy)
+   local bakfn,buf,dw,resp,i
+   EditSetWatch(e)
+   buf := e.buf
+   (/fn := buf.saveFileName) | (fn := varsub(fn))
+   if /fn | fn == "" | match("*",fn) |
+	 \buf.readOnly then return EditSaveCopy(e)
+   if /saveCopy & buf.initialSize > 0 then {
+      if System == "OS2" then {
+	 #
+	 # Create a backup file name by substituting a ".bak" suffix.
+	 #
+	 i := 0
+	 every i := find(".",fn)
+	 bakfn := fn[1:i] || ".bak"
+	 }
+      else {
+	 #
+	 # Create a backup file name by appending "~".
+	 #
+	 bakfn := fn || "~"
+	 }
+      EditBackupFile(e,fn,bakfn) | {
+	 EditErrorMessage(e,"Unable to create backup file \"",bakfn,"\"")
+	 fail
+	 }
+      }
+   e.buf.initialSize := *e.text
+   #
+   # Check if he's trying to write over a directory.
+   #
+   if System == "UNIX" & system("test -d " || fn) = 0 then {
+      EditErrorMessage(e,image(fn)," is a directory")
+      fail
+      }
+   #
+   # Check if he's overwriting a file.
+   #
+   if System == "UNIX" & \saveCopy & system("test -f " || fn) = 0 then {
+      dw := EditCreateMsgBox(e,"Save")
+      write(dw,"Replace existing \"",fn,"\"?_
+	    \n(replace, don't replace)?\n")
+      resp := EditGetOneKey(dw)
+      close(dw)
+      EditFlushEvents(e.w)
+      case map(resp[1]) of {
+	 "r" | "\r": {}
+	 "d": fail
+	 }
+      }
+   EditWriteToFile(e,fn,sel,"edit") | fail
+   if \e.rmBackup then remove(\bakfn)
+   return
+end
+
+
+procedure EditWriteToFile(e,fn,sel,tag)
+   local f,line
+   if f := open(fn,"w") then {
+      &error := 1
+      every line := (if \sel then EditSelectionLines(e,sel,1) else !e.text) do {
+	 write(f,line) | {
+	    EditErrorMessage(e,"Error writing file: ",&errortext," (",
+		  image(&errorvalue),")")
+	    close(f)
+	    fail
+	    }
+	 }
+      &error := 0
+      close(f)
+      e.buf.saveVersion := e.buf.version
+      return
+      }
+   else EditErrorMessage(e,"Unable to write to ",tag," file \"",fn,"\"")
+end
+
+
+procedure EditBackupFile(e,fn1,fn2)
+   local f1,f2,buf
+   f1 := open(fn1,"r") | return &null
+   f2 := open(fn2,"w") | fail
+   &error := 1
+   while buf := read(f1) do {
+      write(f2,buf) | {
+	 EditErrorMessage(e,"Error copying file: ",&errortext," (",
+	       image(&errorvalue),")")
+	 every close(f1 | f2)
+	 fail
+	 }
+      }
+   &error := 0
+   every close(f2 | f1)
+   return fn2
+end
+
+
+procedure EditSelectionLines(e,sel,x)
+   local text
+   /sel := e.selection
+   sel := EditSortSelection(sel)
+   text := e.text
+   if sel.r1 = sel.r2 then suspend text[sel.r1][sel.c1:sel.c2]
+   else {
+      suspend text[sel.r1][sel.c1:0]
+      every suspend text[sel.r1 + 1 to sel.r2 - 1]
+      if /x | sel.c2 ~= 1 then
+	    suspend text[sel.r2][1:sel.c2]
+      }
+end
+
+
+procedure EditCopy(e)
+   local f,fn
+   if not EditIsEmptySelection(e) then {
+      fn := e.tempDir || EditClipboard
+      if f := open(fn,"w") then {
+	 every write(f,EditSelectionLines(e))
+	 close(f)
+	 }
+      else EditErrorMessage(e,"Can't open clipboard file \"",fn,"\"")
+      return
+      }
+   # fail
+end
+
+
+procedure EditDelete(e)
+   local sel,text
+   sel := e.selection
+   text := e.text
+   if EditIsEmptySelection(e) & (sel.c1 -:= 1) = 0 then {
+      #
+      #  Handle backspace over the beginning of a line.
+      #
+      if sel.r1 > 1 then {
+	 sel.r1 -:= 1
+	 sel.c1 := *text[sel.r1] + 1
+	 }
+      else {
+	 #
+	 #  Here if no text left in buffer.
+	 #
+	 sel.c1 := 1
+	 if *text = 0 then return	   # buffer was already empty
+	 if *text = 1 & text[1] == "" then {
+	    get(text)
+	    EditAddUndo(e,EditCreateOneLineBuffer)
+	    return text
+	    }
+	 }
+      }
+   return EditReplace(e)
+end
+
+
+procedure EditDeleteToEnd(e)
+   local sel
+   EditNoteState(e)
+   sel := EditSortSelection(e.selection)
+   sel.r2 := *e.text + 1
+   sel.c2 := 1
+   EditDelete(e)
+   EditRefreshAndScroll(e)
+   return
+end
+
+
+procedure EditCreateOneLineBuffer(e)
+   put(e.text,"")
+   EditAddUndo(e,EditDelete,,e.selection)
+   return
+end
+
+
+procedure EditPaintLines(e,fromLine,toLine)
+   local col1,col2,cols,ender,fwidth,i,off,row1,row2,rows,screenLine,
+	 scroll,scroller,sel,str,t1,t2,text,w
+   #
+   #  Set up convenient variables.
+   #
+   ##write("Painting lines ",\fromLine | "start"," to ",\toLine | "end") ##
+   ##EditPrintSelection(e) ##
+   sel := EditSortSelection(copy(e.selection))
+   row1 := sel.r1
+   col1 := sel.c1
+   row2 := sel.r2
+   col2 := sel.c2
+   scroller := e.scroller
+   w := scroller.w
+   rows := e.rows
+   fwidth :=  WAttrib(w,"fwidth")
+   cols := e.columns - (scroller.width + fwidth - 1) / fwidth
+   scroll := scroller.value
+   text := e.text
+   #
+   #  Provide argument defaults.
+   #
+   if not (\fromLine >= 1) then fromLine := 1
+   if not (\toLine <= rows) then toLine := rows
+   #
+   #  Paint lines backward so underlining doesn't get overwritten.
+   #
+   screenLine := toLine + 1
+   every i := scroll + toLine - 1 to scroll + fromLine - 1 by -1 do {
+      GotoRC(w,screenLine -:= 1,1)
+      if 1 <= screenLine <= rows then {
+	 if str := text[i] then {
+	 ## if line := EditExpandText(e,str := text[i]) then {
+	    if not (row1 <= i <= row2) then {
+	       #
+	       #  If line not selected
+	       #
+	       EditWrites(w,left(EditExpandText(e,str),cols))
+	       }
+	    else if i = row1 then {
+	       if i = row2 then {
+		  if col1 = col2 then {
+		     #
+		     #	If selection is insertion point in this line.
+		     #
+		     EditWrites(w,left(EditExpandText(e,str),cols))
+		     }
+		  else {
+		     #
+		     #	If selection starts and finishes in this line.
+		     #
+		     t1 := EditExpandText(e,str,col1,1)
+		     EditWrites(w,t1[1:(cols >= *t1 | cols) + 1])
+		     WAttrib(w,"reverse=on")
+		     t2 := EditExpandText(e,str,col2,2)
+		     EditWrites(w,
+			 t2[(cols >= *t1) + 1:(cols >= *t2 | cols) + 1 ])
+		     WAttrib(w,"reverse=off")
+		     EditWrites(w,
+			   left(EditExpandText(e,str,,3)[*t2 + 1:0],
+			   0 < cols - *t2))
+		     }
+		  }
+	       else {
+		  #
+		  #  If selection starts in this but finishes beyond.
+		  #
+		  t1 := EditExpandText(e,str,col1,1)
+		  EditWrites(w,t1[1:(cols >= *t1 | cols) + 1])
+		  WAttrib(w,"reverse=on")
+		  EditWrites(w,
+			left(EditExpandText(e,str,,3)[*t1 + 1:0],
+			0 < cols - *t1))
+		  WAttrib(w,"reverse=off")
+		  }
+	       }
+	    else if row1 < i < row2 then {
+	       #
+	       #  If this line is all included in selection.
+	       #
+	       WAttrib(w,"reverse=on")
+	       EditWrites(w,left(EditExpandText(e,str),cols))
+	       WAttrib(w,"reverse=off")
+	       }
+	    else { # i = row2
+	       #
+	       #  Selection starts before but finishes in this line.
+	       #
+	       WAttrib(w,"reverse=on")
+	       t1 := EditExpandText(e,str,col2,1)
+	       EditWrites(w,t1[1:(cols >= *t1 | cols) + 1])
+	       WAttrib(w,"reverse=off")
+	       EditWrites(w,
+		     left(EditExpandText(e,str,,3)[*t1 + 1:0],0 < cols - *t1))
+	       }
+	    }
+	 else {
+	    #
+	    #  Write lines that follow the valid text.
+	    #
+	    if i = *text + 1 then
+		  writes(w,right("",cols,EditEOFStr))
+	    else
+		  writes(w,\ender | (ender := repl(" ",cols)))
+	    }
+	 }
+      }
+   off := EditGetScreenOffset(e,text[row1],col1) | 1
+   GotoRC(w,(e.columns < off,300000) | row1 - scroll + 1,off)
+   return w
+end
+
+
+procedure EditNonPos(i,len,def)
+   /i := def
+   if i <= 0 then i +:= len + 1
+   if 1 <= i <= len + 1 then return i
+end
+
+
+procedure EditExpandText(e,line,col,part)
+   local p
+   col := EditNonPos(col,*line,0) | {
+     write(&errout, "EditNonPos failed unexpectedly: *line = ", *line)
+     runerr(500) 
+   }
+   /part := 0
+   p := if \e.buf.image then EditExpandImageLine
+	 else EditExpandNormalLine
+   return p(e,line,col,part) | {
+     write(&errout, "p failed unexpectedly:")
+     runerr(500)
+   }
+end
+
+
+procedure EditExpandImageLine(e,line,col,part)
+   return (
+	 image(line[1:col])[1:
+	       if part = (0 | 3) then 0 else -1])
+   ## image(line)[2:-1] ? {
+      ## line := ""
+      ## while line ||:= tab(find("\\\"")) do move(1)
+      ## line ||:= tab(0)
+   ## }
+   ## return line
+end
+
+
+procedure EditExpandNormalLine(e,line,col)
+   static hiChars
+   initial hiChars := cset(&cset[129:0])
+   if upto(EditFunnyChars,line,,col + 2 | 0) then {
+      line ? {
+	 line := ""
+	 while &pos < col do {
+	    line ||:= 
+	       if ="_\b" then char(ord(move(1)) + 128)
+	       else if ="\b" then line[-1] := ""
+	       else if ="\e" then move(1)
+	       else if any(EditFunnyChars) then image(move(1))[2:-1]
+	       else move(1)
+	    }
+	 }
+      }
+   else line[col:0] := ""
+   return detab(line,Tabs)
+   ## ## col := find("_\b",line,1 <= col - 2 | 1,col + (2 | 1)) + 3
+   ## line := line[1:col]
+   ## if upto(EditFunnyChars,line) then {
+      ## #
+      ## #  Remove characters that are unprintable and change underlined
+      ## #  characters by setting their high order bit.
+      ## #
+      ## line ? {
+	 ## line := ""
+	 ## while line ||:= tab(upto(EditFunnyChars)) do {
+	    ## case move(1) of {
+	       ## "\b": {
+		  ## if line[-1] == "_" then line[-1] := char(ord(move(1)) + 128)
+		  ## else line[-1] := ""
+	       ## }
+	       ## "\r": line := ""
+	    ## }
+	 ## }
+	 ## line ||:= tab(0)
+      ## }
+   ## }
+   ## return detab(line,Tabs)
+end
+
+
+procedure EditGetStringOffset(e,s,screenOffset)
+   local i
+   /screenOffset := 1
+   screenOffset -:= 1
+   if *EditExpandText(e,s) <= screenOffset then {
+      return *s + 1
+      }
+   i := 0
+   while *EditExpandText(e,s,i +:= 1,1) < screenOffset
+   return i
+end
+
+
+procedure EditGetScreenOffset(e,s,stringOffset)
+   return *EditExpandText(e,s,stringOffset | 0,1) + 1
+end
+
+
+procedure EditWrites(w,s[])
+   local t,p
+   static loChars,hiChars,hiCharSet
+   initial {
+      loChars := string(&ascii)
+      hiChars := &cset[129:0]
+      hiCharSet := cset(hiChars)
+      }
+   every t := !s do t ? {
+      while writes(w,tab(upto(hiCharSet))) do {
+	 p := [WAttrib(w,"x"),WAttrib(w,"y") + 2]
+	 writes(w,map(tab(many(hiCharSet)),hiChars,loChars))
+	 p := p ||| [WAttrib(w,"x"),WAttrib(w,"y") + 2]
+	 DrawLine!([w] ||| p)
+	 }
+      writes(w,tab(0))
+      }
+   return
+end
+
+
+procedure EditScrolled(scroller,evt,data,oldValue)
+   return EditScroll(data,scroller.value,oldValue)
+end
+
+
+procedure EditScroll(e,newValue,oldValue)
+   local dy,ady,w,fw,fh,wid,hi
+   if /oldValue then {EditPaintLines(e) ; return}
+   dy := newValue - oldValue
+   if \CopyAreaBug & not (-1 <= dy <= 1) then {EditPaintLines(e) ; return}
+   ady := abs(dy)
+   w := e.w
+   fw := WAttrib(w,"fwidth")
+   fh := WAttrib(w,"fheight")
+   wid := (e.columns - (e.scroller.width + fw - 1) / fw) * fw
+   hi := (e.rows - ady) * fh
+   if dy < 0 then {
+      CopyArea(w,w,
+	    0,0,
+	    wid,hi,
+	    0,fh * ady)
+      EditPaintLines(e,1,ady)
+      }
+   else {
+      CopyArea(w,w,
+	    0,ady * fh,
+	    wid,hi,
+	    0,0)
+      #EditPaintLines(e,e.rows - dy + 1,e.rows)
+      EditPaintLines(e,e.rows - dy,e.rows)
+      }
+   return
+end
+
+
+procedure EditHighlightSelection(e,oldSel)
+   local rows,sel
+   sel := e.selection
+   rows := sort([sel.r1,sel.r2,oldSel.r1,oldSel.r2])
+   if rows[3] <= rows[2] + 1 then
+	 EditPaintLines(e,EditScreenLine(e,rows[1]),EditScreenLine(e,rows[4]))
+   else {
+      EditPaintLines(e,EditScreenLine(e,rows[3]),EditScreenLine(e,rows[4]))
+      EditPaintLines(e,EditScreenLine(e,rows[1]),EditScreenLine(e,rows[2]))
+      }
+   return
+end
+
+
+## procedure EditPrintSelection(e,tag,sel)
+   ## /sel := e.selection
+   ## return write(\tag || " -- " | "",
+	 ## "Selection = {",sel.r1,",",sel.c1,",",sel.r2,",",sel.c2,"}")
+## end
+
+
+## procedure EditPrintClip()
+   ## local f
+   ## write(">>> Clipboard:")
+   ## if f := open(e.tempDir || EditClipboard) then {
+      ## every write(image(!f))
+      ## close(f)
+      ## }
+   ## return
+## end
+
+
+##procedure EditPrintUndo(e)
+   ## local sep,x,y,z
+   ## every y := ["Undo",e.buf.undoList] | ["Redo",e.buf.redoList] do {
+      ## write("\n",y[1],":")
+      ## every x := !y[2] do {
+	 ## writes(image(x.proc),"(")
+	 ## sep := ""
+	 ## if \x.args then {
+	    ## every z := !x.args do {
+	       ## writes(sep,image(z))
+	       ## sep := ","
+	       ## }
+	    ## }
+	 ## else writes("e")
+	 ## write(")")
+	 ## EditPrintSelection(e,,x.selection)
+	 ## if x.proc === EditReplace & type(x.args[2]) == "list" then {
+	    ## write(" -- Text:")
+	    ## every write("	",image(!x.args[2]))
+	    ## }
+	 ## }
+      ## }
+   ## return
+## end
+
+
+procedure EditReplace(e,s,sel)
+   local col1,col2,extended,firstReplLine,firstSelLine,lastReplLine,
+	 lastSelLine,line,middleReplLines,oldSel,oldText,row1,row2,t,text
+   #
+   #  Save prior text and selection for undo.
+   #
+   /sel := e.selection
+   oldText := []
+   every put(oldText,EditSelectionLines(e,sel))
+   oldSel := copy(sel)
+   #
+   #  Put data in convenient locations.
+   #
+   EditSortSelection(sel)
+   row1 := sel.r1
+   col1 := sel.c1
+   row2 := sel.r2
+   col2 := sel.c2
+   text := e.text
+   #
+   #  Provide defaults for the replacement string.
+   #
+   /s := ""
+   if type(s) == "string" then s := [s]
+   else if *s = 0 then put(s,"")
+   #
+   #  Break the replacement string into separate lines if it contains
+   #  "returns".
+   #
+   t := []
+   every line := !s do line ? {
+      while put(t,tab(upto('\n\r'))) do move(1)
+      put(t,tab(0))
+      }
+   s := t
+   #
+   #  Perform the text replacement.
+   #
+   if row2 > *text then extended := put(text,"")
+   if *s = 1 & row1 = row2 then {
+      #
+      #  Handle special case of single line selected and replacement is
+      #  a single line.
+      #
+      t := !s
+      line := text[row1]
+      text[row1] := line[1:col1] || t || line[col2:0]
+      sel.c2 := sel.c1 +:= *t
+      }
+   else {
+      #
+      #  Sort out the selection and replacement text.
+      #
+      firstReplLine := s[1]
+      lastReplLine := if *s > 1 then s[-1]
+      middleReplLines := if *s > 2 then s[2:-1]
+      firstSelLine := text[row1]
+      lastSelLine := if row1 ~= row2 then text[row2]
+      #
+      #  Construct modified text.
+      #
+      firstReplLine := firstSelLine[1:col1] || firstReplLine
+      (\lastReplLine | firstReplLine) ||:= (\lastSelLine | firstSelLine)[col2:0]
+      t := \middleReplLines | []
+      push(t,firstReplLine)
+      put(t,\lastReplLine)
+      e.text := e.buf.text := text := text[1:row1] ||| t ||| text[row2 + 1:0]
+      ## row1 := sel.r2 := sel.r1 +:= *s - 1
+      sel.r2 := sel.r1 +:= *s - 1
+      sel.c2 := sel.c1 := ((\lastReplLine,1) | sel.c1) + (*s[-1] | 0)
+      if \extended & *text[row1] == 0 then pull(text)
+      e.scroller.maxValue := *text
+      DrawScroller(e.scroller)
+      }
+   EditAddUndo(e,EditReplace,[e,oldText],EditSelection(row1,col1,sel.r2,sel.c2),
+	 oldSel)
+   EditAdjustMarks(e,oldSel,s)
+   return text
+end
+
+
+procedure EditAddUndo(e,prc,args,sel,oldSel)
+   local lst,t,oldVersion
+   if type(args) == "EditSelection" then {
+      t := []
+      every put(t,EditSelectionLines(e,args))
+      args := [e,t]
+      }
+   /sel := e.selection
+   if sel === e.selection then sel := copy(sel)
+   /oldSel := sel
+   oldVersion := e.buf.version
+   if e.undoStatus === "undoing" then {
+      lst := e.buf.redoList
+      e.buf.version -:= 1
+      }
+   else {
+      lst := e.buf.undoList
+      if /e.undoStatus then e.buf.redoList := []
+      if *lst >= MaxUndo then pull(lst)
+      e.buf.version +:= 1
+      }
+   push(lst,EditUndoRec(prc,args,sel,oldSel,oldVersion))
+   ##EditPrintUndo(e)
+   return
+end
+
+
+procedure EditIsEmptySelection(e)
+   local sel
+   sel := e.selection
+   return sel.c1 = sel.c2 & sel.r1 = sel.r2 & &null
+end
+
+
+## procedure wim(s[])
+   ## every writes("  ",image(!s))
+   ## write()
+   ## return s[-1] | &null
+## end
+
+
+procedure EditSortSelection(sel)
+   if sel.r2 < sel.r1 then {
+      sel.r1 :=: sel.r2
+      sel.c1 :=: sel.c2
+      }
+   else if sel.r2 = sel.r1 & sel.c2 < sel.c1 then
+	 sel.c1 :=: sel.c2
+   return sel
+end
+
+
+procedure EditSetScroll(e,v)
+   Scroll_SetValue(e.scroller,v)
+   DrawScroller(e.scroller)
+   return
+end
+
+
+procedure EditExecuteIcon(e)
+   local line,trailer,fn,ifn,xfn,f,t,getLine
+   if /System then fail
+   if EditIsEmptySelection(e) then {
+      EditNoteState(e)
+      EditSelectWholeLines(e)
+      EditRefreshScreen(e)
+      }
+   fn := EditMakeTmp(e)
+   ifn := fn || ".icn"
+   xfn := case System of {default: fn ; "OS2": fn || ".icx"}
+   if f := open(ifn,"w") then {
+      t := []
+      getLine := create EditSelectionLines(e)
+      while line := @getLine do line ? {
+	 put(t,line)
+	 tab(many(Space))
+	 if ="#" | pos(0) then {}
+	 else {
+	    if not (=("procedure" | "link" | "record" | "global") &
+		  any(Space) | pos(0)) then {
+	       writes(f,"procedure main(); every write(image({")
+	       trailer := "})); end"
+	       }
+	    write(f,line)
+	    break
+	    }
+	 }
+      while line := @getLine do {
+	 put(t,line)
+	 write(f,line)
+	 }
+      write(f,\trailer)
+      close(f)
+      f := open("icont 2>&1 -s -o " || fn || " " || fn || " -x","rp")
+      while put(t,read(f))
+      close(f)
+      remove(xfn)
+      remove(ifn)
+      put(t,"")
+      EditNoteState(e)
+      EditReplace(e,t)
+      EditRefreshAndScroll(e)
+      }
+   else EditRefreshScreen(e)
+   return
+end
+
+
+procedure EditSelectedTag(e,refresh)
+   local sel
+   EditNoteState(e)
+   if EditIsEmptySelection(e) then {
+      sel := EditSortSelection(e.selection)
+      if not any(WordSet,e.text[sel.r1],sel.c1) then {
+	 if sel.c1 > 1 then {sel.c1 -:= 1 ; sel.c2 -:= 1}
+	 }
+      EditSelectWord(e)
+      EditRefreshScreen(e)
+      }
+   return EditGoToTag(e,EditSelectionLines(e),refresh)
+end
+
+
+procedure EditReverseText(e)
+   local s
+   s := EditSelectionLines(e)
+   if type(s) == "string" then {
+      EditNoteState(e)
+      EditReplace(e,reverse(s))
+      EditRefreshScreen(e)
+      }
+   return
+end
+
+procedure EditGoToTag(e,tagKey,operation)
+   local f,tagRec,oldSel,oldBuf
+   static tagTable
+   case operation of {
+      "refresh": {
+	 tagTable := &null
+	 EditMessage(e,"Tags","Tags table discarded")
+      }
+      "size": return *\tagTable | 0
+      }
+   if /tagKey then return
+   #
+   #  If necessary, read the "tags" file and construct a tag table.
+   #
+   if /tagTable then {
+      if f := open("tags") then {
+	 tagTable := table()
+	 while read(f) ? {
+	   tagTable[tab(find("\t"))] := EditTag((move(1),tab(find("\t"))),
+	       (move(1),tab(0)))
+	   &null # make sure scan succeeds so loop is controlled by read()
+	   }
+	 close(f)
+	 }
+      }
+   #
+   #  Find the tag.
+   #
+   if /tagTable then {
+      EditErrorMessage(e,"No tags file")
+      fail
+      }
+   (tagRec := \tagTable[tagKey]) | {
+      EditErrorMessage(e,"Tag ",image(tagKey)," not in tags file")
+      fail
+      }
+   oldSel := copy(e.selection)
+   oldBuf := e.buf
+   EditFindTag(e,tagRec) | fail
+   EditAddTrail(e,oldSel,oldBuf)
+   return
+end
+
+
+procedure EditFindTag(e,tagRec)
+   local fn,pattern,lineNbr
+   fn := tagRec.fileName
+   if fn == e.buf.saveFileName | EditOpen(e,fn) then {
+      pattern := tagRec.pattern
+      return {
+	 if lineNbr := integer(pattern) then {
+	    #
+	    #  If the pattern is an integer, interpret it as a line number.
+	    #
+	    EditScrollToLine(e,lineNbr,"wholeLine")
+	    }
+	 else {
+	    #
+	    #  Fix up the pattern so it doesn't have any conflicts with
+	    #  regular expression special characters.
+	    #
+	    pattern ? {
+	       pattern := ""
+	       while pattern ||:= tab(upto('()[]*+?{}|')) do
+		     pattern ||:= "\\" || move(1)
+	       pattern ||:= tab(0)
+	       }
+	    EditFind(e,pattern,,"forward")
+	    }
+	 }
+      }
+end
+
+
+procedure EditCursorBox(e)
+   local w,fheight,fwidth,x,y,sel
+   if EditIsEmptySelection(e) then {
+      if EditScrollToSelectionIfOffScreen(e) then
+	    EditPaintLines(e)
+      w := XBind(e.w,"linewidth=4")
+      sel := e.selection
+      fheight := WAttrib(w,"fheight")
+      fwidth := WAttrib(w,"fwidth")
+      x := (*EditExpandText(e,e.text[sel.r1][1:sel.c1]) | 0) *
+	    fwidth + fwidth / 2
+      y := (sel.r1 - e.scroller.value) * fheight + fheight / 2
+      XDrawArc(w,x - 30,y - 30,60,60)
+      e.boxShowing := 1
+      }
+   return
+end
+
+
+procedure EditChanged(e,buf)
+   /buf := e.buf
+   return buf.version ~= buf.saveVersion
+end
+
+
+procedure EditCreateMark(e,mName,sel,buf)
+   /mName := "*Last Place*"
+   /sel := e.selection
+   /buf := e.buf
+   EditSortSelection(sel)
+   if sel === e.selection then sel := copy(sel)
+   buf.markTable[mName] := sel
+   return mName
+end
+
+
+procedure EditCreateMarkCmd(e)
+   local mName
+   mName := EditSelectionLines(e)
+   mName[64:0] := ""
+   mName := EditGetTextDialog(e,"Create Mark","Name for mark?\n(default ",
+	 image(mName),")\n")
+   EditCreateMark(e,mName)
+   return
+end
+
+
+procedure EditGoToMarkCmd(e)
+   local buf,maxwid,mName,dw,markSort,n,mark,resp,t
+   buf := e.buf
+   t := buf.markTable
+   maxwid := 0
+   every mName := key(t) do maxwid <:= *mName
+   maxwid := Max(64,maxwid + 10)
+   dw := EditCreateMsgBox(e,"Go To Mark",maxwid,*t + 8)
+   write(dw,"List of Marks")
+   write(dw,"-------------")
+   markSort := sort(t)
+   n := 0
+   every mark := (!markSort) do
+	 write(dw,n +:= 1,". ",mark[1])
+   write(dw,
+	 "\n(Enter a number or mark name, or -number or -* to delete)_
+	  \nWhich mark?\n")
+   resp := read(dw)
+   close(dw)
+   if resp == "" then return
+   if resp[1] == "-" then {
+      if resp[2] == "*" then buf.markTable := table()
+      else {
+	 resp[1] := ""
+	 mName := markSort[integer(resp)][1] | resp
+	 EditDeleteMark(e,mName)
+	 }
+      }
+   else {
+      mName := markSort[integer(resp)][1] | resp
+      EditGoToMark(e,mName)
+      }
+   return
+end
+
+
+procedure EditDeleteMark(e,mName)
+   local t
+   t := e.buf.markTable
+   return delete(t, member(t,integer(mName) | mName))
+end
+
+
+procedure EditGoToMark(e,mName)
+   local buf,selCopy
+   buf := e.buf
+   if buf.selection := copy(\buf.markTable[integer(mName) | mName]) then {
+      #
+      # The buffer's selection has been changed.  The following two
+      # lines, which require the old selection, access the copy of the
+      # selection that remains in the EditRec, so work okay.
+      #
+      EditNoteState(e)
+      EditCreateMark(e)
+      #
+      # Now synchronize the EditRec copy of the selection with
+      # the new one from the mark.
+      #
+      e.selection := buf.selection
+
+      EditRefreshAndScroll(e)
+      return
+      }
+end
+
+
+procedure EditAdjustMarks(e,sel,s)
+   local buf,t,mName,mark,d
+   buf := e.buf
+   t := buf.markTable
+   every mName := key(t) do {
+      mark := t[mName]
+      if mark.r2 >= sel.r1 then { # if mark is affected at all
+	 d := (*s - 1) - (sel.r2 - sel.r1)
+	 mark.r2 +:= d
+	 if mark.r1 >= sel.r2 then { # if whole mark moved vertically
+	    mark.r1 +:= d
+	    }
+	 if mark.r1 = sel.r2 then { # end of selection on same line as mark
+	    d := (*s[1] + (*s[1 ~= *s] | 0)) - (sel.c2 - sel.c1)
+	    mark.c2 +:= d
+	    if mark.c1 >= sel.c2 then mark.c1 +:= d
+	    }
+	 }
+      EditValidateSelection(e,mark)
+      }
+end
+
+
+record EditTrailRec(bufName,markName)
+
+procedure EditAddTrail(e,sel,buf,trailList)
+   local mName
+   static markSerial
+   initial markSerial := 0
+   /buf := e.buf
+   /trailList := e.backTrail
+   mName := "~Trail " || (markSerial +:= 1)
+   EditCreateMark(e,mName,copy(sel),buf)
+   push(trailList,EditTrailRec(buf.saveFileName,mName))
+   #if trailList === e.backTrail then EditDeleteTrail(e,e.foreTrail)
+   return
+end
+
+
+procedure EditBackTrail(e)
+   local tr
+   if tr := pop(e.backTrail) then {
+      EditAddTrail(e,,,e.foreTrail)
+      (EditOpen(e,tr.bufName) & EditGoToMark(e,tr.markName)) | fail
+      delete(e.buf.markTable,tr.markName)
+      return
+      }
+   else EditBeep(e)
+end
+
+
+procedure EditForeTrail(e)
+   local tr
+   if tr := pop(e.foreTrail) then {
+      EditAddTrail(e)
+      (EditOpen(e,tr.bufName) & EditGoToMark(e,tr.markName)) | fail
+      delete(e.buf.markTable,tr.markName)
+      return
+      }
+   else EditBeep(e)
+end
+
+
+procedure EditDeleteTrail(e,trList)
+   local tr,buf
+   while tr := pop(trList) do {
+      if buf := \e.bufferTable[tr.bufName] then {
+	 delete(buf.markTable,tr.markName)
+	 }
+      }
+   return
+end
+
+
+procedure EditClearTrail(e)
+   every EditDeleteTrail(e,e.foreTrail | e.backTrail)
+   return
+end
+
+
+procedure EditDupAtLastClick(e)
+   EditCopy(e)
+   EditGoToMark(e,"*Last Click*")
+   EditPaste(e)
+   return
+end
+
+
+procedure EditRuler(e)
+   local sel,numbers,ruler,cols
+   sel := e.selection
+   EditSortSelection(sel)
+   sel.r2 := sel.r1
+   sel.c1 := sel.c2 := 1
+   numbers := ""
+   cols := e.columns * 2
+   every numbers ||:= right(1 to cols / 10,10)
+   ruler := right("",cols,"----+----|")
+   EditNoteState(e)
+   EditReplace(e,[numbers,ruler,""])
+   EditRefreshScreen(e)
+   return
+end

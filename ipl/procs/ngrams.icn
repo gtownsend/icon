@@ -1,0 +1,80 @@
+############################################################################
+#
+#	File:     ngrams.icn
+#
+#	Subject:  Procedures to produce n-grams
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 20, 1998
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     The procedure ngrams(s, n, c, t) generates a tabulation of the n-grams
+#  in the specified string.  If c is non-null, it is used as the set of
+#  characters from which n-grams are taken (other characters break n-grams).
+#  The default for c is the upper- and lowercase letters.  If t is non-null,
+#  the tabulation is given in order of frequency; otherwise in alphabetical
+#  order of n-grams.
+#
+#     For backward compatibility, the first argument may be a file, in
+#  which case, it is read to provide the string.
+#
+############################################################################
+
+procedure ngrams(s, i, c, t)		#: n-grams with count
+   local line, grams, a, count, f
+
+   if not (integer(i) > 0) then stop("*** invalid ngrams specification")
+
+   /c := &lcase || &ucase
+   if not (c := cset(c)) then stop("*** invalid cset specification")
+
+   grams := table(0)
+
+   if type(s) == "file" then {
+      line := ""
+      while line ||:= reads(f, 1000)
+      }
+   else line := s
+   line ? while tab(upto(c)) do
+      (tab(many(c)) \ 1) ? while grams[move(i)] +:= 1 do
+         move(-i + 1)
+   if /t then {
+      a := sort(grams, 4)
+      while count := pull(a) do
+         suspend pull(a) || right(count, 8)
+         }
+   else {
+      a := sort(grams, 3)
+      suspend |(get(a) || right(get(a),8))
+      }
+end
+
+procedure ngramset(s, i, c)		#: n-grams set
+   local line, grams, a, count, f
+
+   if not (integer(i) > 0) then stop("*** invalid ngrams specification")
+
+   /c := &lcase || &ucase
+   if not (c := cset(c)) then stop("*** invalid cset specification")
+
+   grams := set()
+
+   if type(s) == "file" then {
+      line := ""
+      while line ||:= reads(f, 1000)
+      }
+   else line := s
+
+   line ? while tab(upto(c)) do
+      (tab(many(c)) \ 1) ? while insert(grams, move(i)) do
+         move(-i + 1)
+
+   return grams
+
+end

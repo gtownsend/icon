@@ -1,0 +1,69 @@
+############################################################################
+#
+#	File:     itrcfltr.icn
+#
+#	Subject:  Program to filter trace output
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     July 14, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program filters trace output.  If there are command-line arguments,
+#  they are taken as procedure names, and only those lines with those
+#  names are written.  If there are no command-line arguments, all lines
+#  are written.
+#
+#  The names of procedures to pass through can be given in a "response"
+#  file as accepted by options(), as in
+#
+#	itrcfltr @names <trace_file
+#
+#  where names is a file containing the names to be passed through.
+#
+#  The following option is supported:
+#
+#	-a	list all trace messages; overrides any procedure names
+#		  given
+#
+############################################################################
+#
+#  See also:  options.icn
+#
+############################################################################
+#
+#  Links: itrcline, options
+#
+############################################################################
+
+link itrcline
+link options
+
+$define CountWidth 10
+
+procedure main(args)
+   local line, name, selected, opts
+
+   opts := options(args, "a")
+   
+   selected := set(args)
+
+   if (*selected = 0) | \opts["a"] then		# if -a or no names produce all
+      every write(itrcline(&input))
+   else {
+      every line := itrcline(&input) do {
+         line ? {
+            move(21) | break			# line after trace output?
+            tab(many('| '))			# depth bars
+            name := tab(upto('( '))		# procedure name
+            if member(selected, name) then write(line)
+            }
+         }
+      }
+
+end

@@ -1,0 +1,53 @@
+############################################################################
+#
+#	File:     recurmap.icn
+#
+#	Subject:  Procedure to map recurrence declarations to procedures
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     February 17, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure maps a recurrence declaration of the form
+#
+#	f(i):
+#	if expr11 then expr12
+#	if expr21 then expr22
+#		...
+#	else expr
+#
+#  The declaration if passed to recurmap() in the form of a list.
+#  The result is returned as a string constituting an Icon procedure
+#  declaration.
+#
+#  into an Icon procedure that compute corresponding values.
+#
+#  At present there is no error checking and the most naive form of
+#  code is generated.
+#
+############################################################################
+
+procedure recurmap(recur)
+   local line, proto, result
+
+   result := ""
+
+   every line := !recur do {
+      line ? {
+         if proto := tab(upto(":")) & pos(-1) then {
+            result ||:= "procedure " || proto || "\nreturn {\n"
+            }
+         else result ||:= || tab(0) || "\n"
+         }
+      }
+
+   return result || "}\nend"
+
+end
+

@@ -1,0 +1,76 @@
+############################################################################
+#
+#	File:     orbits.icn
+#
+#	Subject:  Procedures to produce traces of orbits
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     October 15, 1993
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  These procedures produce traces of orbits.  See
+#
+#	Geometric and Artistic Graphics; Design Generation with
+#	Microcomputers, Jean-Paul Delahaye, Macmillan, 1987, pp. 65-73.
+#
+#  The arguments specify the starting positions, the extent of the
+#  drawing, the number of segments, and various parameters that
+#  control the orbit.
+#
+############################################################################
+
+procedure orbit1(x, y, extent, n, t1, t2, k1, k2, radius1, sscale,
+   xfact, yfact)
+   local incr1, incr2, real_n, angle1, angle2, i, radius2, loff
+
+   radius1 *:= extent			#scaling
+   loff := 0.5 * extent
+   sscale *:= extent
+
+   real_n := real(n)
+   incr1 := 2 * &pi * t1 / n
+   incr2 := 2 * &pi * t2 / n
+   angle1 := angle2 := 0
+
+   every i := 1 to n do {
+      radius2 := sscale * (1 - i / real_n)
+      angle1 +:= incr1
+      angle2 +:= incr2
+      suspend Point(x + xfact * (loff + radius1 * cos(k1 * angle1) +
+         radius2 * cos(angle2)),
+         y + yfact * (loff + radius1 * sin(k2 * angle1) +
+         radius2 * sin(angle2)))
+      }
+
+end
+
+procedure orbit2(x, y, extent, n, t1, t2, k1, k2, radius1, sscale,
+   xfact, yfact, roff, rfact, rratio, div)
+   local incr1, incr2, rangle, angle1, angle2, i, radius2, loff
+
+   rangle := 2 * &pi / div * rratio
+   radius1 *:= extent			#scaling
+   loff  := 0.5 * extent
+   sscale *:= extent
+
+   incr1 := 2 * &pi * t1 / n
+   incr2 := 2 * &pi * t2 / n
+   angle1 := angle2 := 0
+
+   every i := 1 to n do {
+      radius2 := sscale * (roff + rfact * cos(i * rangle))
+      angle1 +:= incr1
+      angle2 +:= incr2
+      suspend Point(x + xfact * (loff + radius1 * cos(k1 * angle1) +
+         radius2 * cos(angle2)),
+         y + yfact * (loff + radius1 * sin(k2 * angle1) +
+         radius2 * sin(angle2)))
+      }
+
+end

@@ -1,0 +1,161 @@
+############################################################################
+#
+#	File:     cwutils.icn
+#
+#	Subject:  Procedures to support color ways
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     September 2, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  dialog, interact, tables, wopen, xcode
+#
+############################################################################
+
+link dialog
+link interact
+link tables
+link wopen
+link xcode
+
+#  Note: This duplicates declaration in colorway.icn
+
+record colorway(table)		# note:  "table" does not conflict
+				# with the function name.  The
+				# field contains a table.
+
+$define Width 50		# width of image produced in way2image()
+
+
+procedure list2way(L)		#: convert list of color specs. to colorway
+   local cw, i, c
+
+   cw := colorway(table())
+
+   i := 0
+
+   every c := !L do {
+      c := ColorValue(c) | "black"
+      cw.table["Color " || right(i +:= 1, 3, "0")] := c
+      }
+
+   return cw
+
+end
+
+#  Note:  code is identical to procedure above.
+
+procedure file2way(f)		#: convert file of color specs. to color way
+   local cw, i, c
+
+   cw := colorway(table())
+
+   i := 0
+
+   every c := !f do {
+      c := ColorValue(c) | "black"
+      cw.table["Color " || (i +:= 1)] := c
+      }
+
+   return cw
+
+end
+
+procedure way2list(cw)		#: convert color way to list of colors
+
+   return kvallist(cw.table)
+
+end
+
+procedure way2file(cw)		#: convert color way to file of colors
+
+   every write(!kvallist(cw.table))
+
+end
+
+procedure way2image(cw)		#: create image from color way
+   local win, y
+
+   win := WOpen("canvas=hidden", "size="|| Width || "," || *cw.table) |
+      return FailNotice("Cannot open window for color way image")
+
+   y := 0
+
+   every Fg(!kvallist(cw.table)) do {
+      DrawLine(win, 0, y, Width - 1, y)
+      y +:= 1
+      }
+
+   snapshot(win)
+
+   WClose(win)
+
+   return
+
+end
+
+procedure saveway(cw, output)	#: save color way
+
+   xencodet(cw, output, "colorway") | fail
+
+end
+
+procedure loadway(input)	#: load color way
+
+    return xdecodet(input, "colorway") | fail
+
+end
+
+procedure image2way(s, direction)	#: convert image to color way
+   local result, width, color, old_color, stripes, w, h
+
+   /direction := "horizontal"
+
+   result := []
+
+   stripes := WOpen("canvas=hidden", "image=" || s) |
+      return FailNotice("Cannot open " || image(s))
+
+   width := 0
+   old_color := ""
+
+   case direction of {
+      "horizontal":   {
+         w := 1
+         h := WAttrib(stripes, "height")
+         }
+      "vertical":     {
+         w := WAttrib(stripes, "width")
+         h := 1
+         }
+      default:   stop("*** invalid direction specification in image2way()")
+      }
+
+   every color := Pixel(stripes, 0, 0, w, h) do {
+      if (color ~== old_color) & (width ~= 0) then {
+         put(result, old_color)
+         width := 0
+         }
+      old_color := color
+      width +:= 1
+      }
+
+   WClose(stripes)
+
+   return list2way(result)
+
+end

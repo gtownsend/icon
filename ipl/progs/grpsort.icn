@@ -1,0 +1,190 @@
+############################################################################
+#
+#	File:     grpsort.icn
+#
+#	Subject:  Program to sort groups of lines
+#
+#	Author:   Thomas R. Hicks
+#
+#	Date:     June 10, 1988
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This program sorts input containing ``records'' defined to be
+#  groups of consecutive lines. Output is written to standard out-
+#  put.  Each input record is separated by one or more repetitions
+#  of a demarcation line (a line beginning with the separator
+#  string).  The first line of each record is used as the key.
+#  
+#     If no separator string is specified on the command line, the
+#  default is the empty string. Because all input lines are trimmed
+#  of whitespace (blanks and tabs), empty lines are default demarca-
+#  tion lines. The separator string specified can be an initial sub-
+#  string of the string used to demarcate lines, in which case the
+#  resulting partition of the input file may be different from a
+#  partition created using the entire demarcation string.
+#  
+#     The -o option sorts the input file but does not produce the
+#  sorted records.  Instead it lists the keys (in sorted order) and
+#  line numbers defining the extent of the record associated with
+#  each key.
+#  
+#     The use of grpsort is illustrated by the following examples.
+#  The command
+#  
+#          grpsort "catscats" <x >y
+#  
+#  sorts the file x, whose records are separated by lines containing
+#  the string "catscats", into the file y placing a single line of
+#  "catscats" between each output record. Similarly, the command
+#  
+#          grpsort "cats" <x >y
+#  
+#  sorts the file x as before but assumes that any line beginning
+#  with the string "cats" delimits a new record. This may or may not
+#  divide the lines of the input file into a number of records dif-
+#  ferent from the previous example.  In any case, the output
+#  records will be separated by a single line of "cats".  Another
+#  example is
+#  
+#          grpsort -o <bibliography >bibkeys
+#  
+#  which sorts the file bibliography and produces a sorted list of
+#  the keys and the extents of the associated records in bibkeys.
+#  Each output key line is of the form:
+#  
+#          [s-e] key
+#  
+#  where
+#  
+#          s     is the line number of the key line
+#          e     is the line number of the last line
+#          key   is the actual key of the record
+#  
+#  
+############################################################################
+#
+#  Links: usage
+#
+############################################################################
+
+link usage
+
+global lcount, linelst, ordflag
+
+procedure main(args)
+   local division, keytable, keylist, line, info, nexthdr, null
+   linelst := []
+   keytable := table()
+   lcount := 0
+
+   if *args = 2 then
+      if args[1] == "-o" then
+          ordflag := pop(args)
+      else
+          Usage("groupsort [-o] [separator string] <file >sortedfile")
+
+   if *args = 1 then {
+      if args[1] == "?" then
+          Usage("groupsort [-o] [separator string] <file >sortedfile")
+      if args[1] == "-o" then
+          ordflag := pop(args)
+      else
+          division := args[1]
+      }
+
+   if *args = 0 then
+      division := ""
+
+   nexthdr := lmany(division) | fail	# find at least one record or quit
+   info := [nexthdr,[lcount]]
+
+   # gather all data lines for this group/record
+   while line := getline() do {
+      if eorec(division,line) then {	# at end of this record
+          # enter record info into sort key table
+          put(info[2],lcount-1)
+          enter(info,keytable)
+          # look for header of next record
+          if nexthdr := lmany(division) then
+      	info := [nexthdr,[lcount]] # begin next group/record
+          else
+      	info := null
+          }
+      }
+   # enter last line info into sort key table
+   if \info then {
+      put(info[2],lcount)
+      enter(info,keytable)
+      }
+
+   keylist := sort(keytable,1)		# sort by record headers
+   if \ordflag then
+      printord(keylist)		# list sorted order of records
+   else
+      printrecs(keylist,division)	# print records in order
+end
+
+# enter - enter the group info into the sort key table
+procedure enter(info,tbl)
+   if /tbl[info[1]] then		# new key value
+      tbl[info[1]] := [info[2]]
+   else
+      put(tbl[info[1]],info[2])	# add occurrance info
+end
+
+# eorec - suceed if a delimiter string has been found, fail otherwise
+procedure eorec(div,str)
+   if div == "" then			# If delimiter string is empty,
+      if str == div then return	# then make exact match
+      else
+          fail
+   if match(div,str) then return	# Otherwise match initial string.
+   else
+      fail
+end
+
+# getline - get the next line (or fail), trim off trailing tabs and blanks.
+procedure getline()
+   local line
+   static trimset
+   initial trimset := ' \t'
+   if line := trim(read(),trimset) then {
+      if /ordflag then	# save only if going to print later
+          put(linelst,line)
+      lcount +:= 1
+      return line
+      }
+end
+
+# lmany - skip over many lines matching string div.
+procedure lmany(div)
+   local line
+   while line := getline() do {
+      if eorec(div,line) then next	#skip over multiple dividing lines
+      return line
+      }
+end
+
+# printord - print only the selection order of the records.
+procedure printord(slist)
+   local x, y
+   every x := !slist do
+      every y := !x[2] do
+          write(y[1],"-",y[2],"\t",x[1])
+end
+
+# printrecs - write the records in sorted order, separated by div string.
+procedure printrecs(slist,div)
+   local x, y, z
+   every x := !slist do 
+      every y := !x[2] do {
+          every z := y[1] to y[2] do
+      	write(linelst[z])
+          write(div)
+          }
+end

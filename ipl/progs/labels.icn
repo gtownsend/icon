@@ -1,0 +1,160 @@
+############################################################################
+#
+#	File:     labels.icn
+#
+#	Subject:  Program to format mailing labels
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     December 30, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This program produces labels using coded information taken
+#  from the input file.  In the input file, a line beginning with #
+#  is a label header.  Subsequent lines up to the next header or
+#  end-of-file are accumulated and output so as to be centered hor-
+#  izontally and vertically on label forms.  Lines beginning with *
+#  are treated as comments and are ignored.
+#  
+#  Options: The following options are available:
+#  
+#       -c n Print n copies of each label.
+#  
+#       -s s Select only those labels whose headers contain a char-
+#            acter in s.
+#  
+#       -t   Format for curved tape labels (the default is to format
+#            for rectangular mailing labels).
+#  
+#       -w n Limit line width to n characters. The default width is
+#            40.
+#  
+#       -l n Limit the number of printed lines per label to n. The
+#            default is 8.
+#  
+#       -d n Limit the depth of the label to n. The default is 9 for
+#            rectangular labels and 12 for tape labels (-t).
+#  
+#     Options are processed from left to right.  If the number of
+#  printed lines is set to a value that exceeds the depth of the
+#  label, the depth is set to the number of lines.  If the depth is
+#  set to a value that is less than the number of printed lines, the
+#  number of printed lines is set to the depth. Note that the order
+#  in which these options are specified may affect the results.
+#  
+#  Printing Labels: Label forms should be used with a pin-feed pla-
+#  ten.  For mailing labels, the carriage should be adjusted so that
+#  the first character is printed at the leftmost position on the
+#  label and so that the first line of the output is printed on the
+#  topmost line of the label.  For curved tape labels, some experi-
+#  mentation may be required to get the text positioned properly.
+#  
+#  Diagnostics: If the limits on line width or the number of lines
+#  per label are exceeded, a label with an error message is written
+#  to standard error output.
+#  
+############################################################################
+#
+#  Links: options, io
+#
+############################################################################
+#
+#  See also:  address.doc, adllist.icn, adlfiltr.icn, adlcount.icn,
+#	      adlcheck.icn, zipsort.icn
+#
+############################################################################
+
+link options, io
+
+global lsize, repet, llength, ldepth, opts, selectors
+
+procedure main(args)
+   local y, i, line
+
+   selectors := '#'
+   lsize := 9
+   ldepth := 8
+   llength := 40
+   repet := 1
+   i := 0
+   opts := options(args,"c+d+l+s:tw+")
+   selectors := cset(\opts["s"])
+   if \opts["t"] then {
+      lsize := 12
+      if ldepth > lsize then ldepth := lsize
+      }
+   llength := nonneg("w")
+   if ldepth := nonneg("l") then {
+      if lsize < ldepth then lsize := ldepth
+      }
+   if lsize := nonneg("d") then {
+      if ldepth > lsize then ldepth := lsize
+      }
+   repet := nonneg("c")
+
+   while line := Read() do
+      line ? {
+         if any('#') & upto(selectors) then nextlbl()
+         }
+
+end
+
+#  Obtain next label
+#
+procedure nextlbl()
+   local label, max, line
+   label := [Read()]
+   max := 0
+   while line := Read() do {
+      if line[1] == "*" then next
+      if line[1] == "#" then {
+         PutBack(line)
+         break
+         }
+      put(label,line)
+      max <:= *line
+      if *label > ldepth then {
+         error(label[1],1)
+         return
+         }
+      if max > llength then {
+         error(label[1],2)
+         return
+         }
+      }
+   every 1 to repet do format(label,max)
+end
+
+#  Format a label
+#
+procedure format(label,width)
+   local j, indent
+   indent := repl(" ",(llength - width) / 2)
+   j := lsize - *label
+   every 1 to j / 2 do write()
+   every write(indent,!label)
+   every 1 to (j + 1) / 2 do write()
+end
+
+#  Issue label for an error
+#
+procedure error(name,type)
+   static badform
+   initial badform := list(lsize)
+   case type of {
+      1:  badform[3] := "     **** too many lines"
+      2:  badform[3] := "     **** line too long"
+      }
+   badform[1] := name
+   every write(&errout,!badform)
+end
+
+procedure nonneg(s)
+   s := \opts[s] | fail
+   return 0 < integer(s) | stop("-",s," needs postive numeric parameter")
+end

@@ -1,0 +1,325 @@
+############################################################################
+#
+#	File:     duplproc.icn
+#
+#	Subject:  Program to find duplicate declarations
+#
+#	Author:   Richard L. Goerwitz
+#
+#	Date:     December 30, 1991
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.8
+#
+############################################################################
+#
+#  Use this if you plan on posting utility procedures suitable for
+#  inclusion in someone's Icon library directories.
+#
+#  duplproc.icn compiles into a program which will search through
+#  every directory in your ILIBS environment variable (and/or in the
+#  directories supplied as arguments to the program).  If it finds any
+#  duplicate procedure or record identifiers, it will report this on
+#  the standard output.
+#
+#  It is important to try to use unique procedure names in programs
+#  you write, especially if you intend to link in some of the routines
+#  contained in the IPL.  Checking for duplicate procedure names has
+#  been somewhat tedious in the past, and many of us (me included)
+#  must be counted as guilty for not checking more thoroughly.  Now,
+#  however, checking should be a breeze.
+#
+#  BUGS:  Duplproc thinks that differently written names for the same
+#  directory are in fact different directories.  Use absolute path
+#  names, and you'll be fine.
+#
+############################################################################
+#
+#  Requires:  UNIX (MS-DOS will work if all files are in MS-DOS format)
+#
+############################################################################
+
+record procedure_stats(name, file, lineno)
+
+procedure main(a)
+
+    local proc_table, fname, elem, lib_file, tmp, too_many_table
+
+    #     usage:  duplproc [libdirs]
+    #
+    # Where libdirs is a series of space-separated directories in
+    # which relevant library files are to be found.  To the
+    # directories listed in libdirs are added any directories found in
+    # the ILIBS environment variable.
+
+    proc_table := table()
+    too_many_table := table()
+
+    # Put all command-line option paths, and ILIBS paths, into one sorted
+    # list.  Then get the names of all .icn filenames in those paths.
+    every fname := !get_icn_filenames(getlibpaths(a)) do {
+	# For each .icn filename, open that file, and find all procedure
+	# calls in it.
+	if not (lib_file := open(fname, "r")) then
+	    write(&errout,"Can't open ",fname," for reading.")
+	else {
+	    # Find all procedure calls in lib_file.
+	    every elem := !get_procedures(lib_file,fname) do {
+		/proc_table[elem.name] := set()
+		insert(proc_table[elem.name],elem)
+	    }
+	    close(lib_file)
+	}
+    }
+
+    every elem := key(proc_table) do {
+	if *proc_table[elem] > 1 then {
+	    write("\"", elem, "\" is defined in ",*proc_table[elem]," places:")
+	    every tmp := !proc_table[elem] do {
+		write("     ",tmp.file, ", line ",tmp.lineno)
+	    }
+	}
+    }
+
+end
+
+
+
+procedure getlibpaths(ipl_paths)
+
+    # Unite command-line args and ILIBS environment variable into one
+    # path list.
+
+    local i, path
+
+    # Make sure all paths have a consistent format (one trailing slash).a
+    if *\ipl_paths > 0 then {
+	every i := 1 to *ipl_paths do {
+	    ipl_paths[i] := fixup_path(ipl_paths[i])
+	}
+	ipl_paths := set(ipl_paths)
+    }
+    else ipl_paths := set()
+
+    # If the ILIBS environment variable is set, read it into
+    # ipl_paths.  Spaces - NOT COLONS - are used as separators.
+    getenv("ILIBS") ? {
+	while path := tab(find(" ")) do {
+	    insert(ipl_paths, fixup_path(path))
+	    tab(many(' '))
+	}
+    insert(ipl_paths, fixup_path(tab(0)))
+    }
+
+    return sort(ipl_paths)
+
+end
+
+
+
+procedure fixup_path(s)
+    # Make sure paths have a consistent format.
+    return "/" ~== (trim(s,'/') || "/")
+end
+
+
+
+procedure get_procedures(intext,fname)
+
+    # Extracts the names of all procedures declared in file f.
+    # Returns them in a list, each of whose elements have the
+    # form record procedure_stats(procedurename, filename, lineno).
+
+    local psl, f_pos, line_no, line
+    static name_chars
+    initial {
+	name_chars := &ucase ++ &lcase ++ &digits ++ '_'
+    }
+
+    # Initialize procedure-name list, line count.
+    psl := list()
+    line_no := 0
+
+    # Find procedure declarations in intext.
+    while line := read(intext) & line_no +:= 1 do {
+	take_out_comments(line) ? {
+	    if tab(match("procedure")) then {
+		tab(many(' \t')) &
+		    put(psl, procedure_stats(
+			    "main" ~== tab(many(name_chars)), fname, line_no))
+	    }
+	}
+    }
+
+    return psl   # returns empty list if no procedures found
+
+end
+
+
+
+procedure take_out_comments(s)
+
+    # Commented-out portions of Icon code - strip 'em.  Fails on lines
+    # which, either stripped or otherwise, come out as an empty string.
+    #
+    # BUG:  Does not handle lines which use the _ string-continuation
+    # notation.  Typically take_out_comments barfs on the next line.
+
+    local i, j, c, c2, s2
+
+    s ? {
+	tab(many(' \t'))
+	pos(0) & fail
+        find("#") | (return trim(tab(0),' \t'))
+	match("#") & fail
+	(s2 <- tab(find("#"))) ? {
+	    c2 := &null
+	    while tab(upto('\\"\'')) do {
+		case c := move(1) of {
+		    "\\"   : {
+			if match("^")
+			then move(2)
+			else move(1)
+		    }
+		    default: {
+			if \c2
+			then (c == c2, c2 := &null)
+			else c2 := c
+		    }
+		}
+	    }
+	    /c2
+	}
+	return "" ~== trim((\s2 | tab(0)) \ 1, ' \t')
+    }
+
+end
+
+
+
+procedure get_icn_filenames(lib_paths)
+
+    # Return the names of all .icn files in all of the paths in the
+    # list lib_paths.  The dir routine used depends on which OS we
+    # are running under.
+
+    local procedure_stat_list
+    static get_dir
+    initial get_dir := set_getdir_by_os()
+
+    procedure_stat_list := list()
+    # Run through every possible path in which files might be found,
+    # and get a list of procedures contained in those files.
+    every procedure_stat_list |||:= get_dir(!lib_paths)
+
+    return procedure_stat_list
+
+end
+
+
+
+procedure set_getdir_by_os()
+
+    if find("UNIX", &features)
+    then return unix_get_dir
+    else if find("MS-DOS", &features)
+    then return msdos_get_dir
+    else stop("Your operating system is not (yet) supported.")
+
+end
+
+
+
+procedure msdos_get_dir(dir)
+    local temp_name, filename
+
+    # Returns a sorted list of all filenames (full paths included) in
+    # directory "dir."  The list is sorted.  Fails on invalid or empty
+    # directory.  Aborts if temp file cannot be opened.
+    #
+    # Temp files can be directed to one or another directory either by
+    # manually setting the variable temp_dir below, or by setting the
+    # value of the environment variable TEMPDIR to an appropriate
+    # directory name.
+
+    local in_dir, filename_list, line
+    static temp_dir
+    initial {
+        temp_dir := 
+            (trim(map(getenv("TEMPDIR"), "/", "\\"), '\\') || "\\") |
+                ".\\"
+    }
+
+    # Get name of tempfile to be used.
+    temp_name := get_dos_tempname(temp_dir) |
+	stop("No more available tempfile names!")
+
+    # Make sure we have an unambiguous directory name, with backslashes
+    # instead of UNIX-like forward slashes.
+    dir := trim(map(dir, "/", "\\"), '\\') || "\\"
+
+    # Put dir listing into a temp file.
+    system("dir "||dir||" > "||temp_name)
+
+    # Put tempfile entries into a list, removing blank- and
+    # space-initial lines.  Exclude directories (i.e. return file
+    # names only).
+    in_dir := open(temp_name,"r") |
+	stop("Can't open temp file in directory ",temp_dir,".")
+    filename_list := list()
+    every filename := ("" ~== !in_dir) do {
+        match(" ",filename) | find(" <DIR>", filename) & next
+	filename ?:= trim(trim(tab(10)) || "." || tab(13), '. ')
+	if filename ? (tab(find(".ICN")+4), pos(0))
+	then put(filename_list, map(dir || filename))
+    }
+
+    # Clean up.
+    close(in_dir) & remove(temp_name)
+
+    # Check to be sure we actually managed to read some files.
+    if *filename_list = 0 then fail
+    else return sort(filename_list)
+
+end
+
+
+
+procedure get_dos_tempname(dir)
+   local temp_name, temp_file
+
+    # Don't clobber existing files.  Get a unique temp file name for
+    # use as a temporary storage site.
+
+    every temp_name := dir || "icondir." || right(string(1 to 999),3,"0") do {
+	temp_file := open(temp_name,"r") | break
+        close(temp_file)
+    }
+    return \temp_name
+
+end
+
+
+
+procedure unix_get_dir(dir)
+   local filename_list, in_dir, filename
+
+    dir := trim(dir, '/') || "/"
+    filename_list := list()
+    in_dir := open("/bin/ls -F "||dir, "pr")
+    every filename := ("" ~== !in_dir) do {
+	match("/",filename,*filename) & next
+	if filename ? (not match("s."), tab(find(".icn")+4), pos(0))
+	then put(filename_list, trim(dir || filename, '*'))
+    }
+    close(in_dir)
+
+    if *filename_list = 0 then fail
+    else return filename_list
+
+end

@@ -1,0 +1,300 @@
+############################################################################
+#
+#	File:     when.icn
+#
+#	Subject:  Program to show file age
+#
+#	Author:   Chris Tenaglia
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This one was developed for UNIX (namely ULTRIX 4.3 rev 44). Maybe
+#  it will work on some other UNIX too. I'd like to know. This program
+#  is called 'when'. It's like a date based ls command. Some have told
+#  me 'find' can do the same things, but I find find a bit arcane?
+#  
+#  So 'when' is what I use. Here are some samples:
+#  
+#       when before 4/12/92      # files before a date
+#       when before 300          # files older than an age
+#       when after 3/25          # or younger than a date this year
+#       when before 2/1/94 and after 10/31/93     # even a range
+#  
+#  More options and clauses are supported. Look at the code for clues.
+#  This one only works in the current directory. It also has an interesting
+#  property. Maybe this is just ULTRIX, maybe not, I'd like to know anyway...
+#  The interpreted version works fine, but the compiled version has a
+#  numeric overflow. That'll make for some fun debugging. I wrote it for
+#  myself as a tool to locate old files for archiving or deleting. Study and
+#  enjoy!
+#
+############################################################################
+#
+#  Requires:  UNIX
+#
+############################################################################
+
+global base,      # 1970 calculation baseline number
+       today,     # displacement from 12:00:01am today
+       now,       # upto the second mark for right now
+       method,    # ascending or descending order
+       output,    # long (ls -al) or brief (ls -1) style
+       command,   # optional command to do on each file
+       files      # list with files, sizes, and ages
+
+procedure main(param)
+  local i, option, j
+  calc_today()
+  files   := directory()
+  method  := "none"
+  output  := "long"
+  command := ""
+  if *param = 0 then show_age()
+  every i := 1 to *param do
+    {
+    (option := param[i]) | break
+    case option of
+      {
+      "to"     |
+      "before" |
+      "until"   : {
+                  files := before(files,param[i+1])
+                  i    +:= 1
+                  }
+      "from"  |
+      "since" |
+      "after"   : {
+                  files := since(files,param[i+1])
+                  i    +:= 1
+                  }
+      "asc"     : method:="ascending"
+      "des"     : method:="descending"
+      "long"    : output:="long"
+      "brief"   : output:="brief"
+      "do"      : {
+                  every j := i+1 to *param do
+                    command ||:= param[j] || " "
+                  }
+      default   : 5    # stop("Unrecognized option :",option)
+      }
+    }
+  show_age()
+  end
+
+#
+# just show another ls with days old numbers & optionally sorts
+#
+procedure show_age()
+  local line, age, ks, file, text, results, i
+  case method of
+    {
+    "none" : {  
+             every line := !files do
+               {
+               age := (today - parse(line,' ')[1]) / 86400
+               ks  := parse(line,' ')[2] / 1024
+               file:= line[23:0]
+               (command == "") |
+                 {
+                 write(command,line[37:0])
+                 system(command || line[37:0])
+                 next
+                 }
+               if output == "brief" then text := line[37:0]
+                                    else text:= right(age,6) || " days " || right(ks,6) || " kb | " || file
+               write(text)
+               }
+             }
+    "descending" : {
+                   results := sort(files)
+                   every line := !results do
+                     {
+                     age := (today - parse(line,' ')[1]) / 86400
+                     ks  := parse(line,' ')[2] / 1024
+                     file:= line[23:0]
+                     (command == "") |
+                       {
+                       write(command,line[37:0])
+                       system(command || line[37:0])
+                       next
+                       }
+                     if output == "brief" then text := line[37:0]
+                                          else text:= right(age,6) || " days " || right(ks,6) || " kb | " || file
+                     write(text)
+                     }
+                   }
+    "ascending" : {
+                   results := sort(files)
+                   every i := *results to 1 by -1 do
+                     {
+                     line:= results[i]
+                     age := (today - parse(line,' ')[1]) / 86400
+                     ks  := parse(line,' ')[2] / 1024
+                     file:= line[23:0]
+                     (command == "") |
+                       {
+                       write(command,line[37:0])
+                       system(command || line[37:0])
+                       next
+                       }
+                     if output == "brief" then text := line[37:0]
+                                          else text:= right(age,6) || " days " || right(ks,6) || " kb | " || file
+                     write(text)
+                     }
+                   }
+    default : 5
+    }
+  end
+
+#
+# remove elements later than a date
+#
+procedure before(lst,days)
+  local i, mo, da, yr, tmp, dd, age, work, file, old
+  static  mtab
+  initial mtab := [0,31,59,90,120,151,181,212,243,273,304,334]
+  if find("/",days) then
+    {
+    mo := parse(days,'/')[1]
+    da := parse(days,'/')[2]
+    yr := parse(days,'/')[3] | parse(&date,'/')[1]
+    if yr < 100 then yr +:= 1900
+    tmp := yr * 31557600
+    dd  := mtab[mo] + da
+    if ((yr % 4) = 0) & (mo > 2) then dd +:= 1
+    tmp+:= dd * 86400
+    age := tmp
+    } else {
+    age := now - (days * 86400)
+    }
+  work := []
+  every file := !lst do
+    {
+    old := parse(file,' ')[1]
+    if old <= age then put(work,file)
+    }
+  return copy(work)
+  end
+
+#
+# remove elements earlier than a date
+#
+procedure since(lst,days)
+  local mo, da, yr, tmp, dd, age, work, file, old
+  static  mtab
+  initial mtab := [0,31,59,90,120,151,181,212,243,273,304,334]
+  if find("/",days) then
+    {
+    mo := parse(days,'/')[1]
+    da := parse(days,'/')[2]
+    yr := parse(days,'/')[3] | parse(&date,'/')[1]
+    if yr < 100 then yr +:= 1900
+    tmp := yr * 31557600
+    dd  := mtab[mo] + da
+    if ((yr % 4) = 0) & (mo > 2) then dd +:= 1
+    tmp+:= dd * 86400
+    age := tmp
+    } else {
+    age := now - (days * 86400)
+    }
+  work := []
+  every file := !lst do
+    {
+    old := parse(file,' ')[1]
+    if old >= age then put(work,file)
+    }
+  return copy(work)
+  end
+
+#
+# calculate today and now figures
+#
+procedure calc_today()
+  local tmpy, tmpm, tmpd, here
+  static  mtab
+  initial {
+          base := 1970*31557600
+          mtab := [0,31,59,90,120,151,181,212,243,273,304,334]
+          }
+  tmpy := parse(&date,'/')[1]
+  tmpm := parse(&date,'/')[2]
+  tmpd := parse(&date,'/')[3]
+  here := tmpy * 31557600 +
+          (mtab[tmpm] + tmpd) * 86400
+  if ((tmpy%4) = 0) & (tmpm > 2) then here +:= 86400
+  today := here
+  now   := here +
+           parse(&clock,':')[1] * 3600 +
+           parse(&clock,':')[2] *   60 +
+           parse(&clock,':')[3]
+  end
+
+#
+# convert a ls -al output into a list for sorting and printing
+#
+procedure directory()
+  local pipe, entries, line, size, file, day, year, sec, mark, text
+  static mtab
+  initial {
+          mtab := table(0)
+          mtab["Jan"] := 0
+          mtab["Feb"] := 31
+          mtab["Mar"] := 59
+          mtab["Apr"] := 90
+          mtab["May"] := 120
+          mtab["Jun"] := 151
+          mtab["Jul"] := 181
+          mtab["Aug"] := 212
+          mtab["Sep"] := 243
+          mtab["Oct"] := 273
+          mtab["Nov"] := 304
+          mtab["Dec"] := 334
+          }
+  pipe    := open("ls -al","pr")
+  entries := []
+  every line := !pipe do
+    {
+    if any('dclst',line) then next   # ignore info and dirs
+    size := parse(line,' ')[4]
+    file := line[33:0]
+    day  := mtab[parse(line,' ')[5]] + parse(line,' ')[6]
+    year := if line[40] == " " then parse(line,' ')[7] else parse(&date,'/')[1]
+    sec  := if line[40] == " " then 0 else hhmm(parse(line,' ')[7])
+    mark := year * 31557600 + day * 86400 + sec
+    if (now-mark) < 0 then mark -:= 31557600
+    text := right(mark,12) || right(size,10) || " " || file
+    put(entries,text)
+    }
+  close(pipe)
+  return entries
+  end
+
+#
+# convert hh:mm into seconds since midnight
+#
+procedure hhmm(str)
+  local hh, mm
+  hh := str[1+:2]
+  mm := str[4+:2]
+  return hh*3600 + mm*60
+  end
+
+#
+# parse a string into a list with respect to a delimiter
+#
+procedure parse(line,delims)
+  local tokens
+  static chars
+  chars  := &cset -- delims
+  tokens := []
+  line ? while tab(upto(chars)) do put(tokens,tab(many(chars)))
+  return tokens
+  end
+
+

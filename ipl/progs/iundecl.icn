@@ -1,0 +1,124 @@
+############################################################################
+#
+#	File:     iundecl.icn
+#
+#	Subject:  Program to find undeclared Icon identifiers
+#
+#	Authors:  Robert J. Alexander and Ralph E. Griswold
+#
+#	Date:     August 14, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program invokes icont to find undeclared variables in an Icon
+#  source program.  The output is in the form of a "local" declaration,
+#  preceded by a comment line that identifies that procedure and file
+#  name from whence it arose.  Beware that undeclared variables aren't
+#  necessarily local, so any which are intended to be global must be
+#  removed from the generated list.
+#
+#  Multiple files can be specified as arguments, and will be processed
+#  in sequence.  A file name of "-" represents the standard input file.
+#  If there are no arguments, standard input is processed.
+#
+#  The program works only if procedures are formatted such that the
+#  keywords "procedure" and "end" are the first words on their
+#  respective lines.
+#
+#  Only for UNIX, since the "p" (pipe) option of open() is used.
+#
+############################################################################
+#
+#  Requires: UNIX
+#
+############################################################################
+#
+#  Links:  io
+#
+############################################################################
+
+link io
+
+procedure main(arg)
+   local f, fn, line, names, p, sep, t, argstring, undeclared, pn
+   #
+   #  Process command line file names.
+   #
+   if *arg = 0 then arg := ["-"] # if no arguments, standard input
+   #
+   #  Build a set of all the undeclared identifiers.
+   #
+   argstring := ""
+   every argstring ||:= " " || !arg
+   p := open("icont -s -u -o /dev/null 2>&1" || argstring,"p") |
+       stop("popen failed")
+   undeclared := set()
+   while line := read(p) do line ? {
+         if find("version mismatch") then {
+               write(&errout, line)
+               exit()
+               }
+	 if find("undeclared identifier") then
+	       tab(find("\"") + 1) & insert(undeclared,tab(find("\"")))
+         }
+   close(p)
+   #
+   #  Loop through files to process individual procedures.
+   #
+   every fn := !arg do {
+      f := if fn == "-" then &input else {
+	 fn := \suffix(fn)[1] || ".icn"
+	 open(fn) | stop("Can't open input file \"",fn,"\"")
+	 }
+      #
+      #  Loop to process lines of file (in string scanning mode).
+      #
+      while line := read(f) do line ? {
+	 if tab(many(' \t')) | "" & ="procedure" & tab(many(' \t')) then {
+	    t := open("undeclared_tmp.icn","w") | stop("Can't open work file")
+	    write(t,line)
+	    while line := read(f) do line ? {
+	       write(t,line)
+	       if tab(many(' \t')) | "" & ="end" & many(' \t') | pos(0) then
+		     break
+	       }
+	    close(t)
+	    #
+            #  Now we have an isolated Icon procedure -- invoke icont to
+	    #  determine its undeclared variables.
+	    #
+	    p := open("icont -s -u -o /dev/null 2>&1 undeclared_tmp.icn","p") |
+		  stop("popen failed")
+	    names := []
+	    while line := read(p) do line ?
+		  if find("undeclared identifier") then
+			tab(find("\"") + 1) &
+			put(names,member(undeclared,tab(find("\""))))
+	    close(p)
+	    #
+	    #  Output the declaration.
+	    #
+	    pn := "\"" || tab(upto(' \t(')) || "\"" ||
+		  if *arg > 1 then " (" || fn || ")" else ""
+	    if *names = 0 then write("# ",pn," is OK")
+	    else {
+	       write("# Local declarations for procedure ",pn)
+	       sep := "   local "
+	       every writes(sep,!sort(names)) do sep := ", "
+	       write()
+	       }
+	    }
+	 }
+      #
+      #  Close this input file.
+      #
+      close(f)
+      }
+   remove("undeclared_tmp.icn")
+end
+
+

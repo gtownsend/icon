@@ -1,0 +1,87 @@
+############################################################################
+#
+#	File:     autotile.icn
+#
+#	Subject:  Program to produce tile from XBM image
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     January 3, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program creates a tile of a specified size by processing an
+#  XBM image file.  The tile grid is "laid over" the image to form squares.
+#
+#  The non-white pixels in each square of the image are counted. If the
+#  percentage of non-white pixels exceeds a specified threshold, the
+#  corresponding bit in the tile is set.
+#
+#  The supported options are:
+#
+#	-h i	tile height, default 32
+#	-w i	tile width, default 32
+#	-t r	threshold, default 0.50
+#
+############################################################################
+#
+#  Links:  options, patutils
+#
+############################################################################
+
+link options
+link patutils
+
+global pixmap
+
+procedure main(args)
+   local x, y, pixels, i, j, size, rows, wcell, hcell
+   local opts, input, w, h, t, xoff, yoff
+
+   opts := options(args, "t.h+w+")
+
+   input := open(args[1]) | stop("*** cannot open input file")
+
+   pixmap := []					# image array
+
+   every put(pixmap, xbm2rows(input))
+
+   w := \opts["w"] | 32
+   h := \opts["h"] | 32
+   t := \opts["t"] | 0.50
+
+   wcell := *pixmap[1] / w
+   hcell := *pixmap / h
+   
+   size := real(wcell * hcell)
+
+   rows := list(h, repl("0", w))		# tile
+
+   x :=  0
+
+   every i := 1 to w do {
+      y := 0
+      every j := 1 to h do {
+         pixels := 0
+         xoff := x + 1
+         every 1 to wcell do {
+            yoff := y + 1
+            every 1 to hcell do {
+               every pixels +:=  pixmap[yoff, xoff]
+               yoff +:= 1
+               }
+            xoff +:= 1
+            }
+         if pixels / size > t then rows[j, i] := "1"
+         y +:= hcell
+         }
+      x +:= wcell
+      }
+
+   write(rows2pat(rows))
+   
+end

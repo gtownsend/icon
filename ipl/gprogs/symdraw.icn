@@ -1,0 +1,338 @@
+############################################################################
+#
+#	File:     symdraw.icn
+#
+#	Subject:  Program to draw symmetrically
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     November 21, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Pressing the left mouse button draws a point.  Dragging with the left mouse
+#  button draws a line.  Pressing and dragging with the middle mouse
+#  shows a dashed straight line, which is drawn solid when
+#  the middle mouse button is released.  Dragging with the right mouse
+#  button erases in the vicinity of the mouse pointer.
+#
+#  There are several known bugs:
+#
+#	Erasing in restricted mode is bogus outside the generating region.
+#
+#	Perfectly vertical and horizontal straight lines are not clipped.
+#
+#	Some legal straight lines are not drawn.
+#
+#  In other words, the clipping logic is not correct.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  graphics, interact, vsetup
+#
+############################################################################
+
+link graphics
+link interact
+link vsetup
+
+global W, H, X, Y, xc, yc, restrict, nonrestrict, gcurr, pcurr, galt, palt
+global number, xd, yd, pattern, x1, y1, x2, y2, delta, x, y, lines, Pane
+
+procedure main(args)
+   local pane, vidgets, obg
+
+   number := -1
+
+   vidgets := ui()
+
+   VSet(vidgets["lines"], 1)		# Start with lines,
+   VSet(vidgets["shade"], 1)		# shading,
+   VSet(vidgets["restrict"], 1)		# and restricted drawing enabled.
+
+   pane := vidgets["pane"]
+
+   W := pane.uw
+   H := pane.uh
+   X := pane.ux
+   Y := pane.uy
+
+   Pane := Clone("bg=white", "dx=" || X, "dy=" || Y)
+   Clip(Pane, 0, 0, W, H)
+
+   restrict := 1			# initially restricted
+   nonrestrict := &null
+
+   xc := W / 2
+   yc := H / 2
+
+   W -:= 1			# adjustment for 0-origin indexing
+   H -:= 1
+
+   gcurr := "light blue"
+   pcurr := "pink"
+   galt := "white"
+   palt := "white"
+
+   Pattern(Pane, "2,#01")	# pattern for shading generation region
+
+   obg := Bg(Pane)
+   Bg(Pane, "white")
+#  EraseArea(Pane, 0, 0, W, H)
+   EraseArea(Pane)
+   Bg(Pane, obg)
+
+   if lines := NewColor(Pane, gcurr) then {	# requires mutable colors
+      drawlines()
+      }
+
+   if pattern := NewColor(Pane, pcurr) then {	# requires mutable colors
+      shade()
+      }
+   GetEvents(vidgets["root"], shortcuts)
+
+end
+
+procedure file_cb(vidget, value)
+
+   case value[1] of {
+      "save  @S":  save()
+      "help  @H":  help()
+      "quit  @Q":  exit()
+      }
+
+   fail
+
+end				# not handled
+
+procedure pane_cb(vidget, event)	# handle drawing events
+   local obg
+
+   &x -:= X
+   &y -:= Y
+
+   case event of {
+      &lpress: {			# start free-hand drawing
+         if \restrict & ((real(&x) / (&y + 0.0001) < 1.0) | (&x > xc) |
+            (&y > yc)) then fail
+         every DrawPoint(Pane, &x | (W - &x), &y | (H - &y))
+         every DrawPoint(Pane, &y | (W - &y), &x | (H - &x))
+         x := &x
+         y := &y
+         }
+      &ldrag: {				# free-hand drawing
+         if \x then {			# just in case (for artificial events)
+            if \restrict & ((real(x) / (y + 0.0001)  < 1.0) | (x > xc) |
+               (y > yc)) then fail
+            DrawLine(Pane, x, y, &x, &y)
+            DrawLine(Pane, W - x, y, W - &x, &y)
+            DrawLine(Pane, x, H - y, &x, H - &y)
+            DrawLine(Pane, W - x, H - y, W - &x, H - &y)
+            DrawLine(Pane, y, x, &y, &x)
+            DrawLine(Pane, W - y, x, W - &y, &x)
+            DrawLine(Pane, y, H - x, &y, H - &x)
+            DrawLine(Pane, W - y, H - x, W - &y, H - &x)
+            }
+         x := &x
+         y := &y
+         }
+      &lrelease: {			# end free-hand drawing
+         x := y := &null
+         }
+      &mpress: {			# start straight line
+         x1 := xd := &x
+         y1 := yd := &y
+         WAttrib(Pane, "linestyle=dashed")
+         WAttrib(Pane, "drawop=reverse")
+         DrawLine(Pane, x1, y1, xd, yd)	# start trace line
+         }
+      &mdrag: {				# locate end of straight line
+         DrawLine(Pane, x1, y1, xd, yd)	# erase current trace
+         xd := &x
+         yd := &y
+         DrawLine(Pane, x1, y1, xd, yd)	# draw new trace line
+         }
+      &mrelease: {			# end straight line
+         DrawLine(Pane, x1, y1, xd, yd)	# erase trace line
+         WAttrib(Pane, "drawop=copy")
+         WAttrib(Pane, "linestyle=solid")
+         x2 := &x
+         y2 := &y
+
+      #  This probably can be done in a better way.  What's here "just grew"
+
+         if \restrict then {				# adjust end points
+            if ((x1 > xc) & (x2 > xc)) | ((y1 > yc) & (y2 > yc)) then fail
+            if x2 > x1 then {
+               x1 :=: x2
+               y1 :=: y2
+               }
+            if x1 > xc * x1 ~= x2 then {
+               y1 := y2 + ((xc - x2) * (y1 - y2)) / (x1 - x2)
+               x1 := xc
+               }
+            if y2 > yc & y1 ~= y2 then {
+               x2 := x1 - ((x1 - x2) * (y1 - yc)) / (y1 - y2)
+               y2 := yc
+               }
+            if y1 > y2 then {
+               y1 :=: y2
+               x1 :=: x2
+               }
+            if y1 > x1 then fail
+            if y2 > x2 & y1 ~= y2 then {
+               delta := real(x2 - x1) / (y2 - y1)
+               x2 := (x1 - y1 * delta) / (1 - delta)
+               y2 := x2
+               }
+            }
+         DrawLine(Pane, x1, y1, x2, y2)
+         DrawLine(Pane, W - x1, y1, W - x2, y2)
+         DrawLine(Pane, x1, H - y1, x2, H - y2)
+         DrawLine(Pane, W - x1, H - y1, W - x2, H - y2)
+         DrawLine(Pane, y1, x1, y2, x2)
+         DrawLine(Pane, W - y1, x1, W - y2, x2)
+         DrawLine(Pane, y1, H - x1, y2, H - x2)
+         DrawLine(Pane, W - y1, H - x1, W - y2, H - x2)
+         x := &x
+         y := &y
+         }
+
+      #  This code is not correct when pointer is outside
+      #  the generation region.
+
+      &rpress | &rdrag: {		# erase around pointer
+         obg := Bg(Pane)
+         Bg(Pane, "white")
+         every EraseArea(Pane, ((&x - 2) | (W - &x - 2)),
+            ((&y - 2) | (H - &y - 2)), 5, 5)
+         every EraseArea(Pane, ((&y - 2) | (W - &y - 2)),
+            ((&x - 2) | (H - &x - 2)), 5, 5)
+         Bg(Pane, obg)
+         }
+      }
+end
+
+procedure help()			# help (someday)
+
+   Notice("There is no help to be had")
+
+end
+
+procedure shortcuts(event)
+
+   if &meta & event := string(event) then
+      case map(event) of {			# fold case
+         "q":	exit()
+         "h":	help()
+         "s":	save()
+         }
+
+   return
+
+end
+
+procedure lines_cb()			# toggle lines
+
+   Color(Pane, \lines, gcurr :=: galt)
+
+end
+
+procedure clear_cb()			# clear drawing area
+   local obg
+
+   obg := Bg(Pane)
+   Bg(Pane, "white")
+   EraseArea(Pane, 0, 0, W, H)
+   Bg(Pane, obg)
+   if \lines then {
+      drawlines()
+      shade()
+      }
+
+end
+
+procedure drawlines()			# draw lines
+   local ofg, obg
+
+   ofg := Fg(Pane)
+   obg := Bg(Pane)
+   Fg(Pane, lines)
+   Bg(Pane, "white")
+   DrawLine(Pane, 0, 0, W, H)
+   DrawLine(Pane, W, 0, 0, H)
+   DrawLine(Pane, 0, H / 2, W, H / 2)
+   DrawLine(Pane, W / 2, 0, W / 2, H)
+   Fg(Pane, ofg)
+   Bg(Pane, obg)
+
+   return
+
+end
+
+procedure shade()			# shade generating region
+   local ofg, obg
+
+   ofg := Fg(Pane)
+   obg := Bg(Pane)
+   Fg(Pane, pattern)
+   Bg(Pane, "white")
+   WAttrib(Pane, "fillstyle=textured")
+   FillPolygon(Pane, 1, 0, W / 2, 1, W / 2, H / 2, 1, 0)
+   WAttrib(Pane, "fillstyle=solid")
+   Fg(Pane, ofg)
+   Bg(Pane, obg)
+
+   return
+
+end
+
+procedure save()			# save drawing in image file
+
+   Color(Pane, \lines, "white")
+   Color(Pane, \pattern, "white")
+   snapshot(Pane, 0, 0, W, H)
+   Color(Pane, \lines, gcurr)
+   Color(Pane, \pattern, pcurr)
+
+end
+
+procedure restrict_cb()			# toggle restriction to generating
+					# region
+   restrict :=: nonrestrict
+
+end
+
+procedure shade_cb()			# toggle shading of generating region
+
+   Color(Pane, \pattern, pcurr :=: palt)
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=523,461", "bg=pale-gray", "label=symdraw"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   ["symdraw:Sizer:::0,0,523,461:symdraw",],
+   ["clear:Button:regular::20,45,64,20:clear",clear_cb],
+   ["file:Menu:pull::33,4,36,21:File",file_cb,
+      ["save  @S","help  @H","quit  @Q"]],
+   ["line:Line:::0,30,528,30:",],
+   ["lines:Button:regular:1:20,84,64,20:lines",lines_cb],
+   ["restrict:Button:regular:1:20,165,64,20:restrict",restrict_cb],
+   ["shade:Button:regular:1:20,125,64,20:shade",shade_cb],
+   ["pane:Rect:grooved::105,45,405,405:",pane_cb],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

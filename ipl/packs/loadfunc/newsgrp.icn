@@ -1,0 +1,118 @@
+############################################################################
+#
+#	File:     newsgrp.icn
+#
+#	Subject:  Program to get news files from NNTP server
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     November 21, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Usage:  newsgrp newsgroup.name
+#
+#  This program connects to an NNTP server and prints the subject lines
+#  of the articles in the specified newsgroup.
+#
+############################################################################
+
+$include "libnames.icn"
+
+$define SERVER "news"		# default host name for server
+$define PORT 119		# NNTP port
+
+global tconnect
+global verbose
+global socket,  smode
+global host, group
+
+
+
+procedure main(args)
+   local s, n, l, h, i
+
+   tconnect := loadfunc(FUNCLIB, "tconnect")
+
+   group := args[1] | "comp.lang.icon"
+
+   host := getenv("NNTPSERVER") | SERVER
+   socket := tconnect(host, PORT) | 
+      stop("can't connect to port ", PORT, " of host ", host)
+
+   expect("20")				# read greeting line
+
+   swrite("group ", group)		# send newsgroup request
+   expect("211") ? {
+      ="211"
+      n := integer(tab(many(' ')) & tab(upto(' ')))	# number of articles
+      l := integer(tab(many(' ')) & tab(upto(' ')))	# low number
+      h := integer(tab(many(' ')) & tab(upto(' ')))	# high number
+      }
+
+   every i := l to h do {
+      swrite("head ", i)		# request article header
+      s := sread()			# read response
+      if not (s ? ="221") then
+	 next				# if not available
+
+      while (s := sread()) ~== "." do	# read through end-of-header flag
+	 if map(s) ? ="subject: " then
+	    write(i, ". ", s[10:0])	# output subject line
+      }
+
+   swrite("quit")
+end
+
+
+
+#  expect(prefix) -- read line from socket and check prefix
+
+procedure expect(prefix)
+   local s
+
+   s := sread()
+   if s ? =prefix then
+      return s
+   stop("expected ", prefix, ", read ", s)
+end
+
+
+
+#  sread() -- read line from socket
+
+procedure sread()
+   local s
+
+   if \smode := &null then
+      seek(socket)			# switch file mode from output to input
+
+   s := trim(read(socket), '\n\r') | stop("EOF")
+
+   if \verbose then			# if "verbose" mode set
+      write("< ", s)			# trace input line
+
+   return s
+end
+
+
+
+#  swrite(s, ...) -- write line to socket
+
+procedure swrite(s[])
+
+   push(s, "> ")
+   if \verbose then			# if "verbose" mode set
+      write ! s				# trace output
+   s[1] := socket
+
+   if /smode := 1 then {
+      seek(socket)			# switch file mode from input to output
+      flush(socket)			# workaround for Dec Alpha bug
+      }
+   return write ! s			# write strings to port
+end

@@ -1,0 +1,87 @@
+############################################################################
+#
+#       File:     koch.icn
+#
+#	Subject:  Program to demonstrate Koch curves
+#
+#	Author:   Stephen B. Wampler
+#
+#	Date:     October 14, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Version:  1.0
+#
+############################################################################
+#
+#
+#   Comments: This program shows how Koch curves work.
+#
+#	See the procedure 'helpmsg' for command line options
+#
+#	Waits for a window event before closing window
+#
+############################################################################
+#
+#  Links: glib, wopen
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics and co-expressions (for glib.icn)
+#
+############################################################################
+
+link glib
+link wopen
+
+global win, mono, h, w
+global Window, XMAX, YMAX
+
+procedure main (args)
+    local arg, nextarg
+
+    XMAX := YMAX := 700                 # physical screen size
+    w := h := 1.0
+   
+    nextarg := create !args
+    while arg := @nextarg do {
+       if arg == ("-help"|"-h") then stop(helpmsg())
+       }
+
+    win := WOpen("label=Koch Snowflake", "width="||XMAX, "height="||YMAX)
+    mono := WAttrib (win, "depth") == "1"
+    Window := set_window(win, point(0,0), point(w,h),
+                  viewport(point(0,0), point(XMAX, YMAX), win))
+
+    EraseArea(win)
+
+    Fg(win, "black")
+
+#    koch_line(Window, point(0.25,0.25), point(0.75,0.25), 5)
+#    koch_line(Window, point(0.75,0.25), point(0.50,0.67), 5)
+#    koch_line(Window, point(0.50,0.67), point(0.25,0.25), 5)
+
+    koch_line(Window, point(0.00,0.67), point(0.50,0.67), 5)
+    koch_line(Window, point(0.50,0.67), point(0.25,0.25), 5)
+    koch_line(Window, point(0.25,0.25), point(0.00,0.67), 5)
+
+    koch_line(Window, point(0.25,0.25), point(0.50,0.67), 5)
+    koch_line(Window, point(0.50,0.67), point(0.75,0.25), 5)
+    koch_line(Window, point(0.75,0.25), point(0.25,0.25), 5)
+
+    koch_line(Window, point(0.50,0.67), point(1.00,0.67), 5)
+    koch_line(Window, point(1.00,0.67), point(0.75,0.25), 5)
+    koch_line(Window, point(0.75,0.25), point(0.50,0.67), 5)
+
+    Event(win)
+    close(win)
+end
+
+procedure helpmsg()
+   write("Usage: Koch")
+   return
+end

@@ -1,0 +1,99 @@
+############################################################################
+#
+#	File:     sing.icn
+#
+#	Subject:  Program to sing The Twelve Days of Christmas
+#
+#	Author:   Frank J. Lhota
+#
+#	Date:     September 14, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This program is an Icon adaptation of a SNOBOL program by Mike
+#  Shapiro in the book The SNOBOL4 Programming Language.  The procedure
+#  sing writes the lyrics to the song, "The Twelve Days of Christmas"
+#  to the singer parameter.  "singer" can be any file open for output,
+#  but it would be especially nice to send the lyrics to a speech
+#  synthesiser (perhaps via a pipe).  
+#
+#     The algorithm used can be adapted to other popular songs, such as
+#  "Old McDonald had a Farm".
+#
+#  Reference:
+#
+#     "The SNOBOL 4 Programming Language" by Griswold, Poage, and
+#  Polonsky, 2nd ed. Englewood Cliffs, N.J. Prentiss-Hall, Inc. 1971.
+#
+# 
+############################################################################
+
+procedure sing(singer)
+
+    local which, and
+    static day, gift
+
+    initial {
+    day := [
+        "first",
+        "second",
+        "third",
+        "fourth",
+        "fifth",
+        "sixth",
+        "seventh",
+        "eighth",
+        "ninth",
+        "tenth",
+        "eleventh",
+        "twelfth"]
+
+    gift := [
+        "twelve lords a'leaping,",
+        "eleven ladies dancing,",
+        "ten pipers piping,",
+        "nine drummers drumming,",
+        "eight maids a'milking,",
+        "seven swans a'swimming,",
+        "six geese a'laying,",
+        "five golden rings,",
+        "four colly birds,",
+        "three french hens,",
+        "two turtle doves,",
+        "a partridge in a pear tree."]
+    }
+
+    every which := 1 to 12 do {
+    write (singer)    # Take a breath
+    write (singer, "On the ", day [which], " day of Christmas,")
+    write (singer, "my true love gave to me,")
+    every write (singer, !(gift[-which : 0]))
+
+    if (/and := "and ") then gift[-1] := and || gift[-1]
+    }
+
+    #
+    # Reset gift[-1] in case sing is called again.
+    #
+
+    gift[-1] ?:= (=and & tab (0))
+
+    return
+    
+end
+
+############################################################################
+
+procedure main ()
+
+    #
+    # Try out sing procedure with standard output.
+    #
+    
+    sing(&output)
+
+end

@@ -1,0 +1,173 @@
+############################################################################
+#
+#	File:     detex.icn
+#
+#	Subject:  Program to strip LaTeX commands
+#
+#	Author:   Clinton L. Jeffery
+#
+#	Date:     September 8, 1990
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     Program that reads in documents written in the LaTeX typesetting
+#  language, and removes some of the common LaTeX commands to produce
+#  plain ASCII.  This program is not a full LaTeX parser, and output must
+#  typically be further edited by hand to produce an acceptable result.
+
+global fin, fout, silent, date, bibliography
+
+procedure main(args)
+    local cut, i, j
+
+    initialize()
+    cut := ""
+
+    if *args=0 then {
+	every write(\ (detex(!&input)))
+    } else {
+	i := 1
+	while (args[i][1] == "-") do {
+	    case args[i] of {
+		"-silent": silent := 1
+		"-cut"   : cut := "-cut"
+		default  : write(&errout,"dont know option ",args[i])
+	    }
+	    i +:= 1
+	}
+	if /silent then write(&errout,"Detex version 1.10 executed on ",date)
+	if j := find(".tex",args[i]) then args[i][j:0] := ""
+	fin := open(args[i]||".tex","r") |
+	    stop("detex: couldn't open ",args[i],".tex for reading")
+	fout := open(args[i]||".doc","w") |
+	    stop("detex: couldn't open ",args[i],".doc for writing")
+	every write(fout,\ (detex(!fin)))
+	close(fin)
+	if \bibliography then {
+	    fin := open(bibliography,"r") |
+		write(&errout,"detex: couldn't open ",
+		      bibliography," for reading")
+	    every write(fout,\ (debib(detex(!fin))))
+	}
+	close(fout)
+    }
+end
+
+procedure initialize()
+    date := &dateline[find(",",&dateline)+2:0]
+    date := reverse(date)
+    date := date[find(":",date)+1:0]
+    date := date[many(&digits,date):0]
+    date := reverse(date)
+end
+
+# strip comments.  so far we only strip entire-line comments
+procedure detex(s)
+    if *s>0 & s[1]=="%" then fail
+    return defootnote(deline(debrace(demacro(s))))
+end
+
+#
+# remove footnotes and similar multiline entities
+# all footnotes are assumed to end in }. and this is processed after
+# all single-line entities were already processed
+#
+procedure defootnote(s)
+    if s == "}" then return ""
+    while s[find("\\footnote{",s) +: *"\\footnote{"] := " ("
+    while s[find("}.",s) +: *"}."] := ")."
+    return s
+end
+#
+# This routine handles macros that may appear anywhere on a line
+# Footnotes are translated into parentheses.
+# The close of all footnotes are assumed to be }.
+#
+procedure demacro(s)
+    local i
+
+    while i := find("\\today",s) do {
+	s[i:i+*"\\today"] := date
+    }
+    while i := find("\\cite{",s) do {
+	s[i:i+*"\\cite{"] := "["
+	s[find("}",s,i)] := "]"
+    }
+    while s[find("\\linebreak",s) +: *"\\linebreak"] := ""
+    while s[find("\\/"|"\\\\"|"\\>",s) +: 2] := ""
+    while s[find("``"|"''",s) +: 2] := "\""
+    while s[ find("\\&"|"\\$"|"\\_",s) ] := ""
+    return s
+end
+
+# extra help for .bbl files
+procedure debib(s)
+    local i
+
+    while s[find("~",s)] := ""
+    while (i:=find("{",s))=(find("}",s)-2) do s[i+:3] := s[i+1]
+    while (i:=find("{",s))=(find("}",s)-3) do s[i+:4] := s[i+1]
+    return s
+end
+
+# This procedure handles macros that comprise and entire line
+procedure deline(s)
+    local command, body
+
+    if s[1] == "\\" then s ? {
+	move(1)
+	command := tab(many(&letters))
+	case command of {
+	    "item": {
+		move(1) # past [
+		body := tab(upto(']'))
+		move(1)
+		return body || tab(0)
+	    }
+	    "bibitem": {
+		body := tab(upto(']')+1)
+		return body
+	    }
+	    "newblock": {
+		move(1)
+		body := tab(0)
+		return body
+	    }
+	    "bibliography": {
+		tab(upto('{')+1)
+		if not (body := tab(upto('}'))) then body := tab(0)
+		bibliography := body || ".bbl"
+		return trim(center("References",70))
+	    }
+	    "title" | "author" | "date" | "section" | "subsection" |
+		"subsubsection": {
+		    tab(upto('{')+1) # handle both \section{ and \section*{
+		    if not (body := tab(upto('}'))) then body := tab(0)
+		    return trim(center(body,70))
+		}
+	    default: return ""
+	}
+    } else
+	return s
+end
+
+# This procedure removes braces which get inserted by common single-line
+# environments such as font changes
+procedure debrace(s)
+    local i, j
+
+    s ||:= " "
+
+    while i := find("{\\em "|"{\\tt ",s) do {
+	j := &null
+	every j := bal(&cset,'{','}',s,i,0) \ 2
+	if \j then {
+            s := s[1:i] || s[i+5:j-1] || s[j:0]
+	}
+    }
+    return trim(s)
+end

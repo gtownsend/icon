@@ -1,0 +1,183 @@
+############################################################################
+#
+#	File:     scater.icn
+#
+#	Subject:  Program to display visualize string concatenation
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 1, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program displays successive numbers by lines of corresponding
+#  height.  When the display area is full, it scrolls from right to
+#  left.
+#
+#  In this version, input is piped in.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics, MT Icon and instrumentation
+#
+############################################################################
+#
+#  Links: evinit, interact, vsetup
+#
+############################################################################
+
+link evinit
+link interact
+link vsetup
+
+global vidgets
+global root
+global strip
+global state
+global gc_black
+global reset
+global scale
+
+global width
+global height
+
+global window
+
+$include "evdefs.icn"
+
+procedure main(args)
+
+   init(args)
+
+   display()
+
+end
+
+procedure init(args)
+
+   EvInit(args) | stop("*** cannot load SP.")
+
+   /EventSource := &eventsource
+
+   variable("write", EventSource) := -1
+   variable("writes", EventSource) := -1
+
+   window := WOpen ! ui_atts()
+
+   vidgets := ui()
+
+   root := vidgets["root"]
+
+   state := &null
+   scale := 1
+
+   width :=  vidgets["strip"].uw
+   height :=  vidgets["strip"].uh
+
+   strip := Clone(window, "dx=" || vidgets["strip"].ux, "dy=" ||
+      vidgets["strip"].uy)
+   Clip(strip, 0, 0, width, height)
+   gc_black := Clone(strip, "fg=black")
+
+end
+
+procedure display()
+   static cat, cmask, rmask
+
+   initial {
+      cat := proc("||", 2)
+      cmask := cset(E_Ocall)
+      rmask := cset(E_Oret)
+      }     
+
+   repeat {
+      while (*Pending() > 0) | \state do
+         ProcessEvent(root, , shortcuts)
+      EvGet(cmask) | exit()
+      if &eventvalue === cat then {
+         EvGet(rmask) | exit()
+         &eventvalue := *&eventvalue
+         &eventvalue *:= scale
+         &eventvalue >:= height			# Motif bug avoidance
+         CopyArea(strip, 1, 0, width - 1, height, 0, 0)
+         EraseArea(strip, width - 1, 0, width, height)
+         DrawLine(gc_black, width - 1, height - &eventvalue, width - 1, height)
+         }
+      }
+
+end
+
+procedure file_cb(vidget, value)
+
+   case value[1] of {
+      "snapshot @S":  return snapshot(strip, 0, 0, width, height)
+      "quit     @Q":  exit()
+      }
+   
+   fail
+
+end
+
+procedure configure_cb(vidget, value)
+
+   case value[1] of {
+      "scale":  {
+         repeat {
+            if TextDialog(, "scale", scale, 10) == "Okay" then {
+               scale := (0 < numeric(dialog_value[1])) | {
+                  Notice("Invalid scale value.")
+                  next
+                  }
+               reset_cb()
+               return
+               }
+            else fail			# user canceled
+            }
+         }
+      }
+
+   fail
+
+end
+
+procedure reset_cb()
+
+   EraseArea(strip)
+
+   return
+
+end
+
+procedure shortcuts(e)
+
+   if &meta then
+      case map(e) of {
+         "q":  exit()
+         "s":  return snapshot(strip, 0, 0, width, height)
+         }
+   else fail
+
+end
+
+#===<<vib:begin>>===	modify using vib; do not remove this marker line
+procedure ui_atts()
+   return ["size=477,255", "bg=gray-white"]
+end
+
+procedure ui(win, cbk)
+return vsetup(win, cbk,
+   [":Sizer:::0,0,477,255:",],
+   ["configure:Menu:pull::36,0,71,21:Configure",configure_cb,
+      ["scale"]],
+   ["file:Menu:pull::0,1,36,21:File",file_cb,
+      ["snapshot @S","quit     @Q"]],
+   ["line1:Line:::0,22,477,22:",],
+   ["reset:Button:regular::11,76,42,20:reset",reset_cb],
+   ["strip:Rect:grooved::63,37,400,200:",],
+   )
+end
+#===<<vib:end>>===	end of section maintained by vib

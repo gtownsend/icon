@@ -1,0 +1,94 @@
+############################################################################
+#
+#	File:     gftrace.icn
+#
+#	Subject:  Program for generating function tracing procedures
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     August 8, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#  
+#     This program writes a set of procedures to standard output.  Those
+#  procedures can be linked with an Icon program to enable the tracing of
+#  calls to built-in functions.  See the comments in the generated code
+#  for details.
+#
+#     The set of generated functions reflects the built-in functions of
+#  the version of Icon under which this generator is run.
+#  
+############################################################################
+
+
+procedure main()
+   local s
+
+   header()
+
+   write()
+   write("procedure _func(a[]); _func:=proc(\"proc\",0); ",
+      "proc:=_proc; return _func!a; end")
+   write("procedure _proc(a[]); static p; initial p:=_func(\"proc\",0); ",
+      "suspend p!a; end")
+   write()
+
+   every s := function() do
+      if s ~== "proc" then
+         write("procedure ", s, "(a[]); static p; initial p:=_func(\"",
+	    s, "\",0); suspend p!a; end")
+end
+
+
+procedure header()
+   local divider, date
+
+   divider := repl("#", 76)
+
+   &dateline ? {
+      tab(upto(',') + 1)
+      tab(many(' '))
+      date := tab(upto(',') + 6)
+      }
+
+   every write(![
+      divider,
+      "#",
+      "#\tFile:     ftrace.icn",
+      "#",
+      "#\tSubject:  Procedures for tracing calls to built-in functions",
+      "#",
+      "#\tAuthor:   Gregg M. Townsend",
+      "#",
+      "#\tDate:     " || date,
+      "#",
+      divider
+      ])
+
+   every write ("#  ", ![
+      "",
+      "   These procedures, when linked with an Icon program, cause calls of",
+      "built-in functions to be traced (along with calls of user procedures)",
+      "when &trace is nonzero.  This is accomplished by interposing a level of",
+      "Icon procedures between the user program and the built-in functions.",
+      "",
+      "   In the trace output, function arguments are shown as a list.  The",
+      "very first function call produces two extra trace lines showing a call",
+      "to \"_func\".  Calls to \"proc\" are reported as calls to \"_proc\".",
+      "",
+      "   If the user program overloads any built-in function, linking fails",
+      "due to an \"inconsistent redeclaration\".",
+      ""])
+
+   write(divider)
+   write("#")
+   write("#  Generated under:  ", &version)
+   write("#")
+   write(divider)
+
+   return
+end

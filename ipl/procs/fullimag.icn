@@ -1,0 +1,123 @@
+############################################################################
+#
+#	File:     fullimag.icn
+#
+#	Subject:  Procedures to produce complete image of structured data
+#
+#	Author:   Robert J. Alexander
+#
+#	Date:     May 23, 1996
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  fullimage() -- enhanced image()-type procedure that outputs all data
+#  contained in structured types.  The "level" argument tells it how far
+#  to descend into nested structures (defaults to unlimited).
+#
+############################################################################
+
+global fullimage_level,fullimage_maxlevel,fullimage_done,fullimage_used,
+      fullimage_indent
+
+procedure fullimage(x,indent,maxlevel)
+   local tr,s,t
+   #
+   #  Initialize
+   #
+   tr := &trace ; &trace := 0    # turn off trace till we're done
+   fullimage_level := 1
+   fullimage_indent := indent
+   fullimage_maxlevel := \maxlevel | 0
+   fullimage_done := table()
+   fullimage_used := set()
+   #
+   #  Call fullimage_() to do the work.
+   #
+   s := fullimage_(x)
+   #
+   #  Remove unreferenced tags from the result string, and even
+   #  renumber them.
+   #
+   fullimage_done := table()
+   s ? {
+      s := ""
+      while s ||:= tab(upto('\'"<')) do {
+	 case t := move(1) of {
+	    "\"" | "'": {
+	       s ||:= t
+	       while (s ||:= tab(find(t) + 1)) \ 1 & s[-2] ~== "\\"
+	       }
+	    "<": {
+	       t := +tab(find(">")) & move(1)
+	       if member(fullimage_used,t) then {
+		  /fullimage_done[t] := *fullimage_done + 1
+		  s ||:= "<" || fullimage_done[t] || ">"
+		  }
+	       }
+	    }
+	 }
+      s ||:= tab(0)
+      }
+   #
+   #  Clean up and return.
+   #
+   fullimage_done := fullimage_used := &null     # remove structures
+   &trace := tr                  # restore &trace
+   return s
+end
+
+
+procedure fullimage_(x,noindent)
+   local s,t,tr
+   t := type(x)
+   s := case t of {
+      "null" | "string" | "integer" | "real" | "co-expression" | "cset" |
+      "file" | "window" | "procedure" | "external": image(x)
+      default: fullimage_structure(x)
+      }
+   #
+   #  Return the result.
+   #
+   return (
+      if \fullimage_indent & not \noindent then
+	 "\n" || repl(fullimage_indent,fullimage_level - 1) || s
+      else
+	    s
+   )
+end
+
+procedure fullimage_structure(x)
+   local sep,s,t,tag,y
+   #
+   #  If this structure has already been output, just output its tag.
+   #
+   if \(tag := fullimage_done[x]) then {
+      insert(fullimage_used,tag)
+      return "<" || tag || ">"
+      }
+   #
+   #  If we've reached the max level, just output a normal image
+   #  enclosed in braces to indicate end of the line.
+   #
+   if fullimage_level = fullimage_maxlevel then
+	 return "{" || image(x) || "}"
+   #
+   #  Output the structure in a style indicative of its type.
+   #
+   fullimage_level +:= 1
+   fullimage_done[x] := tag := *fullimage_done + 1
+   if (t := type(x)) == ("table" | "set") then x := sort(x)
+   s := "<" || tag || ">" || if t == "list" then "[" else t || "("
+   sep := ""
+   if t == "table" then every y := !x do {
+      s ||:= sep || fullimage_(y[1]) || "->" || fullimage_(y[2],"noindent")
+      sep := ","
+      }
+   else every s ||:= sep || fullimage_(!x) do sep := ","
+   fullimage_level -:= 1
+   return s || if t == "list" then "]" else ")"
+end

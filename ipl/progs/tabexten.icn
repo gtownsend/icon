@@ -1,0 +1,45 @@
+############################################################################
+#
+#	File:     tabexten.icn
+#
+#	Subject:  Program to tabulate file extensions
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 10, 1998
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program tabulates the file name extensions -- what follows the
+#  last period in a file name.
+#
+#  It is designed handle output UNIX ls -R, but it will handle a list
+#  of file names, one per line.
+#  
+############################################################################
+
+procedure main()
+   local line, base, ext, dir
+
+   ext := table(0)
+
+   while line := read() do {
+      if *line = 0 then next			# skip blank lines
+      line ? {
+         if upto(':') then next
+         if not tab(upto('.')) then next
+         while tab(upto('.'))
+            do move(1)
+         if &pos > 1 then ext[tab(0)] +:= 1
+         }
+      }
+
+   ext := sort(ext, 3)
+
+   while write(left(get(ext), 20), right(get(ext), 6))
+
+end

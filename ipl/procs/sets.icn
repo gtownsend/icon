@@ -1,0 +1,111 @@
+############################################################################
+#
+#	File:     sets.icn
+#
+#	Subject:  Procedures for set manipulation
+#
+#	Author:   Alan Beale
+#
+#	Date:     February 18, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	Contributor:  Ralph E. Griswold
+#
+############################################################################
+#
+#	cset2set(c)	returns a set that contains the individual
+#			characters in cset c.
+#
+#	domain(T)	returns the domain of the function defined by the
+#			table T.
+#
+#	inverse(T, x)	returns the inverse of the function defined by the
+#			table T.  If x is null, it's the functional inverse.
+#			If x is an empty list, it's the relational inverse.
+#			If x is an empty set, it the relational inverse, but
+#			with each table member as a set instead of a list.
+#
+#	pairset(T)	converts the table T to an equivalent set of ordered
+#			pairs.
+#
+#	range(T)	returns the range of the function defined by the
+#			table T.
+#  
+#	seteq(S1, S2)	tests equivalence of sets S1 and S2.
+#
+#	setlt(S1, S2)	tests inclusion of set S1 in S2.
+#
+############################################################################
+
+procedure cset2set(cs)			#: set of characters
+   local result
+
+   result := set()
+   every insert(result, !cs)
+
+   return result
+
+end
+
+procedure pairset(T)			#: set of table pairs
+    return set(sort(T))
+end
+
+procedure domain(T)			#: domain of table
+    local dom
+
+    dom := set()
+    every insert(dom, key(T))
+    return dom
+end
+
+procedure range(T)			#: range of table
+    local ran
+
+    ran := set()
+    every insert(ran, !T)
+    return ran
+end
+
+procedure inverse(T, Default)		#: inverse of table function
+    local inv, delem, relem
+
+    inv := table(Default)
+    every delem := key(T) do {
+        if type(Default) == "list" then
+          if member(inv, relem := T[delem]) then
+            put(inv[relem], delem)
+          else inv[relem] := [delem]
+        else if type(Default) == "set" then
+          if member(inv, relem := T[delem]) then
+            insert(inv[relem], delem)
+          else inv[relem] := set([delem])
+        else inv[T[delem]] := delem
+    }
+    return inv
+end
+
+procedure seteq(set1, set2)		#: set equivalence
+   local x
+
+   if *set1 ~= *set2 then fail
+   every x := !set1 do
+      if not member(set2, x) then fail
+   return set2
+
+end
+
+procedure setlt(set1, set2)		#: set inclusion
+   local x
+
+   if *set1 >= *set2 then fail
+   every x := !set1 do
+      if not member(set2, x) then fail
+   return set2
+
+end

@@ -1,0 +1,86 @@
+############################################################################
+#
+#	File:     pfd2gmr.icn
+#
+#	Subject:  Program to convert weaving drafts to weaving grammars
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     June 16, 1999
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program converts pattern-form drafts (pfds) to weave pattern
+#  grammars (wpgs).
+#
+############################################################################
+#
+#  Links:  convert, weavutil
+#
+############################################################################
+
+link convert
+link weavutil
+
+procedure main()
+   local pfd, row, rows, unique, symbols, matrix, k, plan
+
+   pfd := readpfd() | stop("*** missing or malformed pattern-form draft")
+
+   plan := if \pfd.liftplan then martor(pfd.liftplan) else martor(pfd.tieup)
+
+   rows := plan[1]		# CRUDE; FIX IT
+   unique := plan[2]
+
+   write("name:", pfd.name)
+   write("comment: ex pfd2wpg ", &dateline)
+   write("axiom:@")
+   write("gener:1")
+   write("@->H.R.A.E.P.K.S.T.U.L")
+   write("H->", pfd.threading)
+   write("R->", pfd.treadling)
+   write("A->", pfd.warp_colors)
+   write("E->", pfd.weft_colors)
+   write("P->", pfd.palette)
+   write("K->", pfd.colors)
+   write("S->", pfd.shafts)
+   write("T->", pfd.treadles)
+   if \pfd.liftplan then write("L->", rows)
+   else write("U->", rows)
+   write("end:")
+   write("name:", pfd.name, "_toks")
+   
+   every k := key(unique) do
+      write(unique[k], "->", radcon(k, 2, 16))
+   
+   write("end:")
+
+end
+
+procedure martor(pat)
+   local matrix, unique, rows, symbols, row
+
+   matrix := pat2tier(pat).matrix
+
+   unique := table()
+
+   rows := ""
+
+   symbols := create !&lcase
+
+   every row := !matrix do {
+      if /unique[row] then unique[row] := @symbols | {
+         write(&errout, *unique)
+         write(&errout, rows)
+         stop("*** out of symbols")
+         }
+      rows ||:= unique[row]
+      }
+
+   return [rows, unique]
+
+end

@@ -1,0 +1,51 @@
+############################################################################
+#
+#	File:     splat.icn
+#
+#	Subject:  Program to drop paint splatters in a window
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     September 30, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  usage: splat [nspots [diameter]]
+#
+#     splat draws random circular spots in a window.  The number of spots
+#  and maximum diameter can be passed as command options.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: graphics, random
+#
+############################################################################
+
+link graphics
+link random
+
+procedure main(args)
+   local w, h, n, m, d
+
+   Window("size=800,500", args)
+   w := WAttrib("width")
+   h := WAttrib("height")
+   n := integer(args[1]) | 1000
+   m := integer(args[2]) | 100
+
+   randomize()
+   every 1 to n do {
+      Shade(RandomColor())
+      d := (?m * ?m * ?m) / (m * m)
+      FillArc(?(w - d - 1), ?(h - d - 1), d, d)
+      }
+   WDone()
+end

@@ -1,0 +1,247 @@
+############################################################################
+#
+#	File:     vhttp.icn
+#
+#	Subject:  Procedure for validating an HTTP URL
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     October 17, 1997
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	vhttp(url) validates a URL (a World Wide Web link) of HTTP: form
+#	by sending a request to the specified Web server.  It returns a
+#	string containing a status code and message.  If the URL is not 
+#	in the proper form, or if it does not specify the HTTP:	protocol, 
+#	vhttp fails.
+#
+############################################################################
+#
+#	vhttp(url) makes a TCP connection to the Web server specified by the
+#	URL and sends a HEAD request for the specified file.  A HEAD request
+#	asks the server to check the validity of a request without sending
+#	the file itself.
+#
+#	The response code from the remote server is returned.  This is
+#	a line containing a status code followed by a message.  Here are
+#	some typical responses:
+#
+#		200 OK
+#		200 Document follows
+#		301 Moved Permanently
+#		404 File Not Found
+#
+#	See the HTTP protocol spec for more details.  If a response cannot
+#	be obtained, vhttp() returns one of these invented codes:
+#
+#		551 Connection Failed
+#		558 No Response
+#		559 Empty Response
+#
+############################################################################
+#
+#	The request sent to the Web server can be parameterized by setting
+#	two global variables.
+#
+#	The global variable vhttp_agent is passed to the Web server as the
+#	"User-agent:" field of the HEAD request; the default value is
+#	"vhttp.icn".
+#
+#	The global variable vhttp_from is passed as the "From:" field of the
+#	HEAD request, if set; there is no default value.
+#
+############################################################################
+#
+#	vhttp() contains deliberate bottlenecks to prevent a naive program
+#	from causing annoyance or disruption to Web servers.  No remote
+#	host is connected more than once a second, and no individual file
+#	is actually requested more than once a day.
+#
+#	The request rate is limited to one per second by keeping a table
+#	of contacted hosts and delaying if necessary so that no host is
+#	contacted more than once in any particular wall-clock second.
+#
+#	Duplicate requests are prevented by using a very simple cache.
+#	The file $HOME/.urlhist is used to record responses, and these
+#	responses are reused throughout a single calendar day.  When the
+#	date changes, the cache is invalidated.
+#
+#	These mechanisms are crude, but they are effective good enough to
+#	avoid overloading remote Web servers.  In particular, a program
+#	that uses vhttp() can be run repeatedly with the same data without
+#	any effect after the first time on the Web servers referenced.
+#
+#	The cache file, of course, can be defeated by deleting or editing.
+#	The most likely reason for this would be to retry connections that
+#	failed to complete on the first attempt.
+#
+############################################################################
+#
+#  Links:  cfunc
+#
+############################################################################
+#
+#  Requires: Unix, dynamic loading
+#
+############################################################################
+
+#  To Do:
+#
+#  Distinguish timeout on connect from other failures (check &clock?)
+
+
+
+link cfunc
+
+global vhttp_agent			# User_agent:
+global vhttp_from			# From:
+
+$define HIST_FILE ".urlhist"		# history file in $HOME
+$define AGENT_NAME "vhttp.icn"		# default agent name
+
+$define MAX_WAIT 60			# maximum wait after connect (seconds)
+
+$define HTTP_PORT 80			# standard HTTP: port
+
+
+
+procedure vhttp(url)			#: validate HTTP: URL
+   local protocol, host, port, path, result
+   initial vhttp_inithist()
+
+   /vhttp_agent := AGENT_NAME
+   url ? {
+      protocol := map(tab(upto(':')))	| fail
+      protocol == "http"		| fail
+      ="://"				| fail
+      host := map(tab(upto('/:') | 0))	| fail
+      if =":" then
+         port := tab(many(&digits))	| fail
+      else
+         port := HTTP_PORT
+      if pos(0) then
+         path := "/"
+      else
+         path := tab(0)
+   }
+
+   if result := vhttp_histval(url) then
+      return result
+
+   result := vhttp_contact(host, port, path)
+   vhttp_addhist(url, result)
+   return result
+end
+
+
+
+#  vhttp_contact(host, port, path) -- internal procedure for contacting server
+
+procedure vhttp_contact(host, port, path)
+   local f, line, hostport
+   static deadhosts
+   initial deadhosts := set()
+
+   hostport := host || ":" || port
+
+   if member(deadhosts, hostport) then
+      return "551 Connection Failed"
+
+   vhttp_waitclock(host)
+   
+   if not (f := tconnect(host, port)) then {
+      insert(deadhosts, hostport)
+      return "551 Connection Failed"
+      }
+
+   write(f, "HEAD ", path, " HTTP/1.0")
+   write(f, "User-agent: ", \vhttp_agent)
+   write(f, "From: ", \vhttp_from)
+   write(f)
+   flush(f)
+   seek(f, 1)
+
+   if not fpoll(f, MAX_WAIT * 1000) then {
+      close(f)
+      return "558 No Response"
+      }
+
+   if not (line := read(f)) then {
+      close(f)
+      return "559 Empty Response"
+      }
+
+   close(f)
+   line ? {
+      tab(many(' '))
+      if ="HTTP/" then tab(many('12345.67890'))
+      tab(many(' '))
+      return trim(tab(0), ' \t\r\n\v\f')
+   }
+end
+
+
+
+#  vhttp_waitclock(host) -- internal throttling procedure
+
+procedure vhttp_waitclock(host)
+   static hclock, curclock
+   initial {
+      hclock := table()
+      curclock := &clock
+      }
+
+   if hclock[host] === curclock then {
+      curclock := &clock
+      if hclock[host] === curclock then {
+         delay(1000)
+         curclock := &clock
+         }
+      }
+
+   hclock[host] := curclock
+   return
+end
+
+
+
+#  internal history data and procedures
+
+global vhttp_htable, vhttp_hfile
+
+procedure vhttp_inithist()
+   local fname, line, key, val
+
+   vhttp_htable := table()
+   fname := (getenv("HOME") | "?noHOME?") || "/" || HIST_FILE
+   if (vhttp_hfile := open(fname, "b")) & (read(vhttp_hfile) == &date) then {
+      while line := read(vhttp_hfile) do line ? {
+         key := tab(upto(' ')) | next
+         move(1)
+         val := tab(0)
+         vhttp_htable[key] := val
+         }
+      seek(vhttp_hfile, 0)	# to allow switch to writing
+      }
+   else {
+      close(\vhttp_hfile)
+      vhttp_hfile := open(fname, "w") | stop("can't open " || fname)
+      write(vhttp_hfile, &date)
+      }
+   return
+end
+
+procedure vhttp_histval(key)
+   return \vhttp_htable[key]
+end
+
+procedure vhttp_addhist(key, val)
+   vhttp_htable[key] := val
+   write(vhttp_hfile, key, " ", val)
+   return val
+end

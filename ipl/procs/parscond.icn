@@ -1,0 +1,39 @@
+############################################################################
+#
+#	File:     parscond.icn
+#
+#	Subject:  Procedure to condense parse tree
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 31, 1992
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#     Procedure to condense a parse tree produced by the output of pargen.icn
+#  and produce the string that was parsed.
+#
+#     The necessary record declaration is provided by the program with which
+#  is linked.
+#
+############################################################################
+#
+#  See also:  parsgen.icn
+#
+############################################################################
+
+procedure parscond(R)
+   local result, x
+
+   result := ""
+
+   every x := !(R.alts) do
+     result ||:= string(x) | parscond(x)
+   
+   return result
+
+end

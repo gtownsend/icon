@@ -1,0 +1,117 @@
+############################################################################
+#
+#	File:     lindcomp.icn
+#
+#	Subject:  Program to compile 0L-systems
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     August 13, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program converts a 0L-system to an Icon program, which when
+#  executed, produces the corresponding drawing.
+#
+############################################################################
+#
+#  See also:  linden.icn
+#
+############################################################################
+
+global procs
+
+procedure main()
+   local line, sym, new, keyword, value, axiom, gener, angle, length
+   local replace
+
+   procs := table()			# table of procedures to generate
+
+   gener := 4				# defaults
+   length := 5
+   angle := 90.0
+
+   while line := read() do
+      line ? {
+         if sym := tab(find("->")) then {
+            move(2)
+            replace := tab(0)
+            procs[sym] := replace
+            }
+         else if keyword := tab(find(":")) then {
+            move(1)
+            value := tab(0)
+            case keyword of {
+               "axiom":   axiom := value
+               "gener":   gener := integer(value) |
+                     stop("*** invalid generation specification")
+               "angle":   angle := real(value) |
+                     stop("*** invalid angle: ", line)
+               "length": length := integer(value) |
+                     stop("*** invalid length: ", line)
+               "name":    &null			# ignore name
+               default:   stop("*** invalid keyword: ", line)
+               }
+            }
+         else stop("*** invalid specification: ", line)
+         }
+
+   # Write heading and main procedure
+
+   write("link turtle")
+   write()
+   write("$define Generations ", gener)
+   write("$define Angle ", angle)
+   write("$define Length ", length)
+   write()
+   write("procedure main()")
+   gencode(axiom, "Generations")
+   write("end")
+   write()
+
+   # Produce drawing procedures.
+
+   every sym := key(procs) do
+      genproc(sym, procs[sym])
+
+end
+
+procedure gencode(replace, arg)
+   local sym
+
+   every sym := !replace do {
+      case sym of {
+         "+":   write("      TRight(Angle)	# +")
+         "-":   write("      TLeft(Angle)	# -")
+         "[":   write("      TSave()		# [")
+         "]":   write("      TRestore()	# ]")
+         default:   if \procs[sym]
+            then write("      ", sym, "(", arg, ")	# ", sym)
+         }
+      }
+
+   return
+
+end
+
+procedure genproc(name, replace)
+
+   write("procedure ", name, "(gener)")
+   write("   if gener > 0 then {")
+   gencode(replace, "gener - 1")
+   write("      }")
+   case name of {
+      "F":   write("   else TDraw(Length)	# F")
+      "f":   write("   else TSkip(Length)	# f")
+      }
+   write("   return")
+   write("end")
+   write()
+
+   return
+
+end

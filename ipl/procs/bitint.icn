@@ -1,0 +1,43 @@
+############################################################################
+#
+#	File:     bitint.icn
+#
+#	Subject:  Procedures to convert integers and bit strings
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 25, 1994
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#   int2bit(i) produces a string with the bit representation of i.
+#
+#   bit2int(s) produces an integer corresponding to the bit representation i.
+#
+############################################################################
+
+procedure int2bit(i)
+   local s, sign
+
+   if i = 0 then return 0
+   if i < 0 then {
+      sign := "-"
+      i := -i
+      }
+   else sign := ""
+   s := ""
+   while i > 0 do {
+      s := (i % 2) || s
+      i /:= 2
+      }
+   return sign || s
+end
+
+procedure bit2int(s)
+   if s[1] == "-" then return "-" || integer("2r" || s[2:0])
+   else return integer("2r" || s)
+end

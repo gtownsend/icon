@@ -1,0 +1,56 @@
+############################################################################
+#
+#	File:     mapcolrs.icn
+#
+#	Subject:  Program to map colors in lists
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     May 21, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This program maps colors in lists.
+#
+#  This is a work in progress.
+#
+############################################################################
+#
+#  Links:  io
+############################################################################
+
+link io
+
+procedure main(args)
+
+   in_list := args[1] | stop("*** no input list specified")
+   to_list := args[2] | stop("*** no map list specified")
+
+   infile := dopen(in_list) | stop("*** cannot open ", in_list)
+   tofile := dopen(to_list) | stop("*** cannot open ", to_list)
+
+   in_list := []
+   write(read(infile))			# header
+   while put(in_list, read(infile))
+   to_list := []
+   while put(to_list, read(tofile))
+
+   colors := table(0)
+   every colors[!in_list] +:= 1
+   colors := sort(colors, 4)
+   map := table()
+   every i := 1 to *colors / 2 do {
+      pull(colors)
+      map[pull(colors)] := i
+      }
+
+   xdump(colors)
+   xdump(map)
+
+end
+
+link ximage

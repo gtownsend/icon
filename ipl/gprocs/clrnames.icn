@@ -1,0 +1,37 @@
+############################################################################
+#
+#	File:     clrnames.icn
+#
+#	Subject:  Procedure to generate color names
+#
+#	Author:   Ralph E. Griswold
+#
+#	Date:     March 4, 1995
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  This procedure generates all the color names in the Icon portable color
+#  naming system.  Not all names produce unique colors.
+#
+############################################################################
+
+procedure clrnames()
+   static lightness, saturation, hue1, hue2
+
+   hue2 := ["black", "gray", "white", "pink", "violet",
+      "brown", "red", "orange", "yellow", "green", "cyan",
+      "blue", "purple", "magenta"]
+   hue1 := hue2 ||| ["blackish", "grayish", "whitish", "pinkish",
+      "violetish", "brownish", "reddish", "orangish", "yellowish",
+      "greenish", "cyanish", "bluish", "purplish", "magentaish"]
+   saturation := ["weak", "moderate", "strong", "vivid"]
+   lightness := ["very light", "light", "medium", "dark", "very dark"]
+
+   suspend !lightness || " " || !saturation || " " || !hue2
+   suspend !lightness || " " || !saturation || " " || !hue1 || " " || !hue2
+
+end
