@@ -3,6 +3,5 @@
  */
 
 #define UNIX 1
-/* SysOpt not selected */
 /* LoadFunc not implemented */
 
