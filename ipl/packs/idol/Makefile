@@ -2,7 +2,7 @@
 # Sample makefile for compiling Idol
 #
 idol: idol.iol idolmain.u1 unix.u1 idolboot
-	idolboot idol unix.u1 idolmain.u1
+	./idolboot idol unix.u1 idolmain.u1
 
 idolboot: idolboot.icn unix.u1
 	icont -s idolboot unix.u1
