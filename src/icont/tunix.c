@@ -294,7 +294,7 @@ static void txrun(void (*func)(char*, char*), char *source, char *args[]) {
    c1 = abet[rand() % (sizeof(abet) - 1)];
    c2 = abet[rand() % (sizeof(abet) - 1)];
    sprintf(srcfile, "/tmp/i%d%c%c.icn", getpid(), c1, c2);
-   func(srcfile, optarg);
+   func(srcfile, source);
 
    /*
     * Derive other names and arrange for cleanup on exit.
