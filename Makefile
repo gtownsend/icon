@@ -1,6 +1,16 @@
+#  configuration parameters
+VER=9.4.d
+name=unspecified
+dest=/opt/icon
+
+# for old versions of "make"
 SHELL=/bin/sh
 MAKE=make
-name=unspecified
+
+##################################################################
+#
+# Default targets.
+#
 
 default:	Icon Ilib Ibin
 
@@ -72,7 +82,7 @@ Headers:
 
 ##################################################################
 #
-# Compilation and installation.
+# Compilation.
 #
 
 #
@@ -109,6 +119,40 @@ Ilib:		bin/icont
 
 Ibin:		bin/icont
 		cd ipl;			$(MAKE) Ibin
+
+##################################################################
+#
+# Installation and packaging.
+#
+
+#
+# Installation:  "make Install dest=new-parent-directory"
+#
+D=$(dest)
+Install:
+		test -d $D || mkdir $D
+		test -d $D/bin || mkdir $D/bin
+		test -d $D/lib || mkdir $D/lib
+		test -d $D/doc || mkdir $D/doc
+		test -d $D/man || mkdir $D/man
+		test -d $D/man/man1 || mkdir $D/man/man1
+		cp bin/[a-qs-z]* $D/bin
+		rm -f $D/bin/libXpm*
+		cp lib/*.* $D/lib
+		cp doc/*.* $D/doc
+		cp man/man1/icont.1 $D/man/man1
+
+#
+# Package for binary distribution.
+#
+DIR=icon.$(VER)
+Package:
+		rm -rf $(DIR)
+		umask 002; $(MAKE) Install dest=$(DIR)
+		tar cf - icon.$(VER) | gzip -9 >icon.$(VER).tgz
+		rm -rf $(DIR)
+		
+
 
 ##################################################################
 #
@@ -200,53 +244,17 @@ Benchmark-icont:
 # "make Pure"  also removes binaries, library, and configured files.
 
 Clean:
+		rm -rf icon.*
 		cd src;			$(MAKE) Clean
 		cd ipl;			$(MAKE) Clean
 		cd tests;		$(MAKE) Clean
 
 Pure:
-		rm -f bin/[a-z]* lib/[a-z]* NoRanlib
+		rm -f icon.* bin/[a-z]* lib/[a-z]* NoRanlib
 		cd ipl;			$(MAKE) Clean
 		cd src;			$(MAKE) Pure
 		cd tests;		$(MAKE) Clean
 
 Dist-Clean:
+		rm -f `find * -type d -name CVS`
 		rm -f `find * -type f | xargs grep -l '<<ARIZONA-ONLY>>'`
-		
-
-##################################################################
-#Entries beyond this point are for use at Arizona only.
-#   *** Do not delete the line above; it is used in trimming Makefiles
-#   for distribution ***
-
-Dist-clean:
-		rm -rf `gcomp \
-		   Makefile \
-		   README \
-		   config \
-		   src \
-		   tests`
-		mkdir bin
-		touch bin/.placeholder
-		-cd config;		$(MAKE) Dist-clean
-		-cd src;		$(MAKE) Dist-clean
-		-cd tests;		$(MAKE) Dist-clean
-		rm -rf config/unix/Ppdef
-
-Dist-dist:
-		cd src/preproc;		rm -f Makefile
-		cd config;		rm -f mac_lsc
-
-Dist-unix:
-		cd config/unix;		$(MAKE)
-		cd config;		rm -rf `gcomp Makefile unix`
-		cd src/runtime;		rm -f fx*.ri rmac*.ri rms*.ri rpm*.ri
-		cd src/h;		rm -f macgraph.h mswin.h pmwin.h
-
-Dist-vms:
-		-cd tests/general;	$(MAKE) Dist-vms
-		cd config/vms;		$(MAKE)
-		cd src/runtime;		rm -f fx*.ri rmac*.ri rms*.ri rpm*.ri
-		cd src/h;		rm -f macgraph.h mswin.h pmwin.h
-		rm -rf config
-		find . -name Makefile -exec rm {} \;
