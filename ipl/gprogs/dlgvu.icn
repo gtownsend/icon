@@ -41,7 +41,7 @@
 #	-p	    use slower, more precise coordinate conversion
 #	-q	    quiet mode: no commentary to stdout
 #	-t	    load only maps traversed by paths, ignoring others
-#	-w logfile  record right-mouse-click locations to this file
+#	-f logfile  record interactively-placed features to this file
 #
 #	-l abcd     display only layers a, b, c, d
 #	-x abcd     exclude layers a, b, c, d
@@ -93,9 +93,17 @@
 #	patient, and it will soon display the visible region.
 #
 #	To display the latitude / longitude of a location, and a
-#	scale bar, hold down the right mouse button.  If a log file
-#	was specified on the command line, the locations identified
-#	in this manner are written to the log file.
+#	scale bar, hold down the right mouse button.
+#
+#	To record a labeled feature, shift-click the left mouse button.
+#	Enter a name in the pop-up dialog box.  The location and name
+#	will be written to the log file and added to the feature layer
+#	of the map.  
+#
+#	To record an anonymous feature to the log file, shift-click with
+#	the right mouse button instead.  No dialog box appears.  A sequence
+#	of anonymous features functions as a path when read by a subsequent
+#	program run.
 #
 ############################################################################
 #
@@ -427,7 +435,7 @@ global pcolors				# list of path background colors
 
 global features				# list of feature records
 
-global logfile				# point log file
+global logfile				# feature log file, if any
 
 
 
@@ -448,13 +456,15 @@ procedure main(args)
    initattrib()
 
    # process command options
-   opts := options(args, "w:l:x:cdnpqt")
-   if \opts["w"] then {
-      if opts["w"] == "-" then
+   opts := options(args, "f:l:x:cdnpqt")
+   if \opts["f"] then {
+      if opts["f"] == "-" then
          logfile := &output
       else
-         logfile := open(opts["w"], "w") | stop("cannot write ", opts["w"])
+         logfile := open(opts["f"], "w") | stop("cannot write ", opts["f"])
       }
+   else
+      logfile := &output
 
    chosen := cset(\opts["l"]) | (&lcase -- 'n')  # start with explicit layers
    chosen ++:= 'go'			# add paths & other data, if loaded
@@ -559,6 +569,8 @@ procedure main(args)
 
    # process interactive commands
    repeat case e := Event() of {
+      &shift & &lpress:	{ logfeat(e) }
+      &shift & &rpress:	{ logfeat(e) }
       &rpress:		{ locate() }
       !"\n\r ":		{ mapgen() }
       !"pP" | Key_PrSc:	{ print(); Bg("white") }
@@ -1191,6 +1203,38 @@ end
 
 
 
+#  logfeat() -- record current location to log file
+
+procedure logfeat(e)
+   local ll, lat, lon, locn, label
+
+   until Event() === (&lrelease | &rrelease)		# wait for button up
+   ll := project(invp(mapproj()), [&x + 0.5, &y + 0.5])	# cvt coords to lat/lon
+   lon := get(ll) / DEGSCALE
+   lat := get(ll) / DEGSCALE
+   locn := frn(lat, 0, 6) || " " || frn(lon, 0, 6)
+   label := ""
+
+   if e === &lpress then {	# if named (not anonymous), ask for label
+      setdraw(attrib["DIALOG"])
+      VSetFont()
+      case TextDialog(
+         ["Enter label for", locn || ":"], , , 30, ["Okay", "Cancel"]) of {
+            "Okay":	label := " " || get(dialog_value)
+            "Cancel":	fail
+            }
+         put(features, feature(DEGSCALE * lat, DEGSCALE * lon, label[2:0]))
+         if any(chosen, "f") then
+            allfeats(mapproj(), Pending)	# redraw feats to display label
+      }
+
+   write(logfile, locn, label)
+   flush(logfile)
+   return
+end
+
+
+
 #  locate() -- display location while right button is held down
 
 $define BOXW 265		# popup box width
@@ -1221,12 +1265,6 @@ procedure locproc(wproj)
    dx := WAttrib("dx")			# get popup box coordinate system
    dy := WAttrib("dy")
 
-   # if log file exists, double space it, and display yellow background
-   if write(\logfile) then {
-      Bg("pale yellow")
-      EraseArea()
-      }
-
    #  compute a reasonably round length that works for a scale bar
    u := 90 * DEGSCALE / 1e7		# one meter, in latitude units
    m := sbsize(wproj, xmin, ymin, u, SMAX)
@@ -1254,14 +1292,11 @@ procedure locproc(wproj)
       WWrites("\n  ", dms(lat, "S", "N"), frn(lat, 13, 6))
       WWrites("\n  ", dms(lon, "W", "E"), frn(lon, 13, 6))
 
-      write(\logfile, frn(lat, 0, 6), " ", frn(lon, 0, 6))
-
       e := Event()	# get next event
       &x +:= dx		# remove effect of popup box coordinate system
       &y +:= dy
       }
 
-   flush(\logfile)
    return
 end
 
