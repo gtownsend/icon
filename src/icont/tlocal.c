@@ -116,12 +116,6 @@ char *flipname(char *name)
 }
 #endif					/* ARM */
 
-#if ATARI_ST
-
-unsigned long _STACK = 10240;   /*   MNEED ALSO, PLEASE */
-
-#endif					/* ATARI_ST */
-
 #if MACINTOSH
 #if MPW
 /* Routine to set file type and creator.

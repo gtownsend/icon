@@ -41,10 +41,6 @@ Global unsigned int lhsize	Init(128);	/* local hash table */
  */
 Global char *progname	Init("icont");	/* program name for diagnostics */
 
-#if ATARI_ST
-Global char *patharg	Init(0);	/* -p: path for finding iconx */
-#endif					/* ATARI_ST */
-
 #if MSDOS
 #if ZTC_386
 Global int makeExe	Init(0);	/* -I: create .icx instead of .exe */

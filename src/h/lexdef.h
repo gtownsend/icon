@@ -26,12 +26,7 @@ struct toktab {
    int  t_flags;		/* flags for semicolon insertion */
    };
 
-#ifdef CRAY
-   extern struct toktab toktab[35];	/* compiler bug workaround */
-#else					/* CRAY */
-   extern struct toktab toktab[];	/* token table */
-#endif					/* CRAY */
-
+extern struct toktab toktab[];	/* token table */
 extern struct toktab *restab[];	/* reserved word index */
 
 #define T_Ident		&toktab[0]

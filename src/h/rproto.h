@@ -172,10 +172,6 @@ void		xmfree		(void);
    int dup2(int h1, int h2);
 #endif					/* !HIGHC_386 */
 
-#if ATARI_ST
-   char	*sbrk(int incr);
-#endif                                  /* ATARI_ST */
-
 #if HIGHC_386
    int	brk(char *p);
 #endif					/* HIGHC_386 */

@@ -477,13 +477,7 @@ static void setfile()
    if (fnmfree >= &fnmtbl[fnmsize])
       fnmtbl = (struct ipc_fname *) trealloc(fnmtbl, &fnmfree,
          &fnmsize, sizeof(struct ipc_fname), 1, "file name table");
-
-#ifdef CRAY
-   fnmfree->ipc = pc/8;
-#else					/* CRAY */
    fnmfree->ipc = pc;
-#endif					/* CRAY */
-
    fnmfree->fname = getrest();
    fnmfree++;
    newline();

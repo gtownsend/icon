@@ -33,9 +33,9 @@ extern int chkbreak;
 #endif					/* LATTICE */
 #endif					/* AMIGA */
 
-#if ARM || ATARI_ST || MACINTOSH || MSDOS || MVS || OS2 || UNIX || VM || VMS
+#if ARM || MACINTOSH || MSDOS || MVS || OS2 || UNIX || VM || VMS
    /* nothing needed */
-#endif					/* ARM || ATARI_ST || ... */
+#endif					/* ARM || ... */
 
 /*
  * End of operating-system specific code.
@@ -191,9 +191,9 @@ word xnargs;
 Deliberate Syntax Error
 #endif					/* PORT */
 
-#if AMIGA || ARM || ATARI_ST || MACINTOSH || MVS || UNIX || VM || VMS
+#if AMIGA || ARM || MACINTOSH || MVS || UNIX || VM || VMS
 #define PushAVal(x) PushVal(x)
-#endif					/* AMIGA || ARM || ATARI_ST || ... */
+#endif					/* AMIGA || ARM || ... */
 
 #if MSDOS || OS2
 #if HIGHC_386 || ZTC_386 || INTEL_386 || WATCOM || BORLAND_386 || SCCX_MX
@@ -419,9 +419,9 @@ Deliberate Syntax Error
 #endif					/* LATTICE */
 #endif					/* AMIGA */
 
-#if ARM || ATARI_ST || MSDOS || MVS || OS2 || UNIX || VM || VMS
+#if ARM || MSDOS || MVS || OS2 || UNIX || VM || VMS
    /* nothing to do */
-#endif					/* ARM || ATARI_ST || ... */
+#endif					/* ARM || ... */
 
 #if MACINTOSH
 #if MPW
@@ -504,13 +504,7 @@ Deliberate Syntax Error
 	 case Op_Str:		/* string */
 	    PutOp(Op_Astr);
 	    PushVal(GetWord)
-
-#ifdef CRAY
-	    opnd = (word)(strcons + GetWord);
-#else					/* CRAY */
 	    opnd = (word)strcons + GetWord;
-#endif					/* CRAY */
-
 	    PutWord(opnd);
 	    PushAVal(opnd);
 	    break;
@@ -1568,13 +1562,7 @@ Pfail_uw:
 
 	 case Op_Init:		/* initial */
 	    *--ipc.op = Op_Goto;
-
-#ifdef CRAY
-	    opnd = (sizeof(*ipc.op) + sizeof(*rsp))/8;
-#else					/* CRAY */
 	    opnd = sizeof(*ipc.op) + sizeof(*rsp);
-#endif					/* CRAY */
-
 	    opnd += (word)ipc.opnd;
 	    ipc.opnd = (word *)opnd;
 	    break;
@@ -1824,9 +1812,9 @@ interp_quit:
 Deliberate Syntax Error
 #endif					/* PORT */
 
-#if AMIGA || ATARI_ST || MACINTOSH || MVS || VM || VMS
+#if AMIGA || MACINTOSH || MVS || VM || VMS
    /* not included */
-#endif					/* AMIGA || ATARI_ST || ... */
+#endif					/* AMIGA || ... */
 
 #if ARM
 void stkdump(op)

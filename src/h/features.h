@@ -26,10 +26,6 @@
    Feature(1, "_ACORN", "Acorn Archimedes")
 #endif					/* ARM */
 
-#if ATARI_ST
-   Feature(1, "_ATARI", "Atari ST")
-#endif					/* ATARI_ST */
-
 #if VM
    Feature(1, "_CMS", "CMS")
 #endif					/* VM */

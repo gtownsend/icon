@@ -20,10 +20,10 @@ Deliberate Syntax Error
 #define IsRelPath(fname) (strchr(fname, ':') == NULL)
 #endif					/* AMIGA */
 
-#if ATARI_ST || VM || MVS
+#if VM || MVS
    /* something may be needed */
 Deliberate Syntax Error
-#endif					/* ATARI_ST || ... */
+#endif					/* VM || MVS */
 
 #if MACINTOSH
 char *FileNameMacToUnix(char *fn);
@@ -86,10 +86,10 @@ Deliberate Syntax Error
    /* nothing is needed */
 #endif					/* AMIGA */
 
-#if ATARI_ST || VM || MVS
+#if VM || MVS
    /* something may be needed */
 Deliberate Syntax Error
-#endif					/* ATARI_ST || ... */
+#endif					/* VM || MVS */
 
 #if MACINTOSH
    fname = FileNameMacConvert(FileNameMacToUnix,fname);
@@ -317,10 +317,10 @@ Deliberate Syntax Error
    n_paths = 1;
 #endif					/* AMIGA */
 
-#if ATARI_ST || VM || MVS || (MACINTOSH && !MPW && !THINK_C)
+#if VM || MVS || (MACINTOSH && !MPW && !THINK_C)
    /* probably needs something */
 Deliberate Syntax Error
-#endif					/* ATARI_ST || ... */
+#endif					/* VM || ... */
 
 #if MACINTOSH
 #if THINK_C
@@ -508,11 +508,6 @@ Deliberate Syntax Error
    /* nothing is needed */
 #endif					/* AMIGA */
 
-#if ATARI_ST || VM || MVS
-   /* something may be needed */
-Deliberate Syntax Error
-#endif					/* ATARI_ST || ... */
-
 #if MSDOS
 #if MICROSOFT
    /*
@@ -628,11 +623,6 @@ Deliberate Syntax Error
    /* nothing is needed */
 #endif					/* AMIGA */
 
-#if ATARI_ST || VM || MVS
-   /* something might be needed */
-Deliberate Syntax Error
-#endif					/* ATARI_ST || ... */
-
 #if MACINTOSH
    s1 = FileNameMacConvert(FileNameMacToUnix,s);
 #endif					/* MACINTOSH */
@@ -677,10 +667,10 @@ Deliberate Syntax Error
    incl_search[n_paths - 1] = sysdir;
 #endif					/* AMIGA */
 
-#if ATARI_ST || VM || MVS
+#if VM || MVS
    /* probably needs something */
 Deliberate Syntax Error
-#endif					/* ATARI_ST || ... */
+#endif					/* VM || MVS */
 
 #if MSDOS
 #if MICROSOFT

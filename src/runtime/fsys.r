@@ -4,13 +4,10 @@
  *  [save], seek, stop, system, where, write, writes, [getch, getche, kbhit]
  */
 
-#if MICROSOFT || SCO_XENIX
+#if MICROSOFT
 #define BadCode
-#endif					/* MICROSOFT || SCO_XENIX */
+#endif					/* MICROSOFT */
 
-#ifdef XENIX_386
-#define register
-#endif					/* XENIX_386 */
 /*
  * The following code is operating-system dependent [@fsys.01]. Include
  *  system-dependent files and declarations.
@@ -35,9 +32,9 @@ extern FILE *popen(const char *, const char *);
 extern int pclose(FILE *);
 #endif AMIGA                            /* AMIGA */
 
-#if ATARI_ST || MSDOS || MVS || OS2 || UNIX || VM || VMS
+#if MSDOS || MVS || OS2 || UNIX || VM || VMS
    /* nothing to do */
-#endif					/* ATARI_ST || MSDOS ... */
+#endif					/* MSDOS ... */
 
 #if MACINTOSH && MPW
 extern int MPWFlush(FILE *f);
@@ -326,9 +323,9 @@ function{0,1} open(fname, spec)
 Deliberate Syntax Error
 #endif					/* PORT */
 
-#if AMIGA || ATARI_ST || MACINTOSH || MSDOS || MVS || OS2 || VM
+#if AMIGA || MACINTOSH || MSDOS || MVS || OS2 || VM
    /* nothing is needed */
-#endif					/* AMIGA || ATARI_ST || ... */
+#endif					/* AMIGA || ... */
 
 #if ARM
       extern FILE *popen(const char *, const char *);
@@ -461,14 +458,6 @@ Deliberate Syntax Error
       if ((status & (Fs_Read|Fs_Write)) == (Fs_Read|Fs_Write))
 	 mode[1] = '+';
 #endif					/* AMIGA || ARM || UNIX || VMS */
-
-#if ATARI_ST
-      if ((status & (Fs_Read|Fs_Write)) == (Fs_Read|Fs_Write)) {
-	 mode[1] = '+';
-	 mode[2] = ((status & Fs_Untrans) != 0) ? 'b' : 'a';
-	 }
-      else mode[1] = ((status & Fs_Untrans) != 0) ? 'b' : 'a';
-#endif					/* ATARI_ST */
 
 #if MACINTOSH
       /* nothing to do */
@@ -1500,7 +1489,7 @@ function{0,1} chdir(s)
       runerr(121);
 #endif					/* ARM || MACINTOSH ... */
 
-#if AMIGA || ATARI_ST || MSDOS || OS2 || UNIX || VMS
+#if AMIGA || MSDOS || OS2 || UNIX || VMS
    #if NT
       int nt_chdir(char *);
       if (nt_chdir(s) != 0)
@@ -1510,7 +1499,7 @@ function{0,1} chdir(s)
 	 fail;
    #endif					/* NT */
       return nulldesc;
-#endif					/* AMIGA || ATARI_ST || MSDOS || ... */
+#endif					/* AMIGA || MSDOS || ... */
 
 /*
  * End of operating-system specific code.

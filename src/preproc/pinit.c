@@ -20,11 +20,6 @@ Deliberate Syntax Error
    /* nothing is needed */
 #endif					/* AMIGA */
 
-#if ATARI_ST
-   /* something may be needed */
-Deliberate Syntax Error
-#endif					/* ATARI_ST */
-
 #if MACINTOSH
    /* nothing is needed */
 #endif					/* MACINTOSH */
@@ -124,11 +119,6 @@ Deliberate Syntax Error
    do_directive("#define LATTICE 0\n");
 #endif                                  /* __SASC */
 #endif					/* AMIGA */
-
-#if ATARI_ST
-   /* something may be needed */
-Deliberate Syntax Error
-#endif					/* ATARI_ST */
 
 #if MACINTOSH
    /* nothing is needed */
@@ -591,11 +581,6 @@ Deliberate Syntax Error
 #if AMIGA
    /* nothing is needed */
 #endif					/* AMIGA */
-
-#if ATARI_ST
-   /* something may be needed */
-Deliberate Syntax Error
-#endif					/* ATARI_ST */
 
 #if MACINTOSH
    /* nothing is needed */

@@ -41,7 +41,7 @@ char *p;
    /* cannot do this */
 #endif					/* ARM || MVS || VM */
 
-#if ATARI_ST || MSDOS || OS2 || VMS
+#if MSDOS || OS2 || VMS
    #if HIGHC_386 || NT
       /*
        * Don't like doing this, but it seems to work.
@@ -52,7 +52,7 @@ char *p;
    #else				/* HIGHC_386 || NT */
       dup2(fileno(stdout),fileno(stderr));
    #endif				/* HIGHC_386 || NT */
-#endif					/* ATARI_ST || MSDOS || OS2 ... */
+#endif					/* MSDOS || OS2 ... */
 
 #if MACINTOSH
    #if LSC

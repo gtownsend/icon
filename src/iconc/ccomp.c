@@ -22,7 +22,7 @@ extern char *refpath;
 Deliberate Syntax Error
 #endif						/* PORT */
 
-#if UNIX || AMIGA || ATARI_ST || MACINTOSH || MSDOS || MVS || VM || OS2
+#if UNIX || AMIGA || MACINTOSH || MSDOS || MVS || VM || OS2
 #define ExeFlag "-o"
 #define LinkLibs " -lm"
 #endif						/* UNIX ... */
@@ -70,7 +70,7 @@ char *libname;
 Deliberate Syntax Error
 #endif						/* PORT */
 
-#if UNIX || AMIGA || ATARI_ST || MACINTOSH || MSDOS || MVS || OS2 || VM
+#if UNIX || AMIGA || MACINTOSH || MSDOS || MVS || OS2 || VM
    l->libname = libname;
    l->nm_sz = strlen(libname);
 #endif						/* UNIX ... */
@@ -146,7 +146,7 @@ char *exename;
 Deliberate Syntax Error
 #endif						/* PORT */
 
-#if AMIGA || ATARI_ST || MACINTOSH || MSDOS || MVS || VM || OS2
+#if AMIGA || MACINTOSH || MSDOS || MVS || VM || OS2
    /* something may be needed */
 Deliberate Syntax Error
 #endif						/* AMIGA || ... */

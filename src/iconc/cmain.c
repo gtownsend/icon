@@ -278,11 +278,11 @@ Deliberate Syntax Error
          addlib(argv[optind]);		/* assume linker option */
 #endif					/* UNIX ... */
 
-#if AMIGA || ATARI_ST || MACINTOSH || MSDOS || MVS || OS2 || VM || VMS
+#if AMIGA || MACINTOSH || MSDOS || MVS || OS2 || VM || VMS
       /*
        * Linker options on command line not supported.
        */
-#endif					/* AMIGA || ATARI_ST || ... */
+#endif					/* AMIGA || ... */
 
 /*
  * End of operating-system specific code.
@@ -316,12 +316,12 @@ Deliberate Syntax Error
             addlib(argv[optind]);
 #endif					/* UNIX ... */
 
-#if AMIGA || ATARI_ST || MACINTOSH || MSDOS || MVS || OS2 || VM || VMS
+#if AMIGA || MACINTOSH || MSDOS || MVS || OS2 || VM || VMS
             /*
              * Pass no files to the linker.
              */
             quitf("bad argument %s",argv[optind]);
-#endif					/* AMIGA || ATARI_ST || ... */
+#endif					/* AMIGA || ... */
 
 /*
  * End of operating-system specific code.
@@ -490,9 +490,9 @@ Deliberate Syntax Error
 #endif					/* LATTICE */
 #endif					/* AMIGA */
 
-#if ATARI_ST || MACINTOSH
+#if MACINTOSH
       fprintf(stderr,"-x not supported\n"); fflush(stderr);
-#endif					/* ATARI_ST || ... */
+#endif					/* MACINTOSH */
 
 #if MSDOS
 #if MICROSOFT || TURBO || BORLAND_286 || BORLAND_386
@@ -543,9 +543,9 @@ char *s;
 Deliberate Syntax Error
 #endif					/* PORT */
 
-#if AMIGA || ATARI_ST || MSDOS || MVS || OS2 || UNIX || VM || VMS
+#if AMIGA || MSDOS || MVS || OS2 || UNIX || VM || VMS
    fprintf(stderr,"%s:\n",s);
-#endif					/* AMIGA || ATARI_ST || ... */
+#endif					/* AMIGA || ... */
 
 #if MACINTOSH
 #if MPW

@@ -32,10 +32,6 @@ static char *tryfile	(char *buf, char *dir, char *name, char *extn);
    #define DefPath "Icon: Lib:Icon."
 #endif					/* ARM */
 
-#if ATARI_ST
-   #define Prefix "/:\\"
-#endif					/* ATARI_ST */
-
 #if MSDOS || OS2
    #define Prefix "/:\\"
    #define DefPath ";"

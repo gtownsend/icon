@@ -4,10 +4,6 @@
  *   garbage collection, dump routines
  */
 
-#ifdef CRAY
-#include <malloc.h>
-#endif					/* CRAY */
-
 /*
  * Prototypes
  */
@@ -574,12 +570,7 @@ dptr dp;
    {
    char *newqual;
 
-#ifdef CRAY
-   if (strbase <= StrLoc(*dp) && StrLoc(*dp) < (strfree + 1)) {
-#else					/* CRAY */
    if (InRange(strbase,StrLoc(*dp),strfree + 1)) {
-#endif					/* CRAY */
-
       /*
        * The string is in the string space.  Add it to the string qualifier
        *  list, but before adding it, expand the string qualifier list if

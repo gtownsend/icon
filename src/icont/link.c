@@ -38,9 +38,9 @@ static	void	setexe	(char *fname);
    Deliberate Syntax Error
 #endif					/* PORT */
 
-#if AMIGA || ATARI_ST || MACINTOSH || VM || VMS
+#if AMIGA || MACINTOSH || VM || VMS
    /* nothing to do */
-#endif					/* AMIGA || ATARI_ST || ... */
+#endif					/* AMIGA || ... */
 
 #if ARM
    #include "kernel.h"
@@ -65,17 +65,8 @@ static	void	setexe	(char *fname);
 #endif					/* OS2 */
 
 #if UNIX
-   #ifdef CRAY
-      #define word word_fubar
-      #include <sys/types.h>
-      #include <sys/stat.h>
-      #undef word
-   #else				/* CRAY */
-      #ifndef XWindows
-         #include <sys/types.h>
-      #endif				/* XWindows */
-      #include <sys/stat.h>
-   #endif				/* CRAY */
+   #include <sys/types.h>
+   #include <sys/stat.h>
 #endif					/* UNIX */
 
 /*
@@ -182,9 +173,9 @@ char *outname;
    Deliberate Syntax Error
 #endif					/* PORT */
 
-#if AMIGA || ARM || ATARI_ST || MACINTOSH || MVS || UNIX || VM || VMS
+#if AMIGA || ARM || MACINTOSH || MVS || UNIX || VM || VMS
    /* nothing to do */
-#endif					/* AMIGA || ARM || ATARI_ST || ... */
+#endif					/* AMIGA || ARM || ... */
 
 #if MSDOS
    #if MICROSOFT || TURBO || BORLAND_286 || BORLAND_386
@@ -587,12 +578,12 @@ Deliberate Syntax Error
    }
 #endif					/* ARM */
 
-#if ATARI_ST || MSDOS || MVS || VM || VMS
+#if MSDOS || MVS || VM || VMS
    /*
     * can't be made executable
     * note: VMS files can't be made executable, but see "iexe.com" under VMS.
     */
-#endif					/* ATARI_ST || MSDOS || ... */
+#endif					/* MSDOS || ... */
 
 #if MACINTOSH
    #if MPW

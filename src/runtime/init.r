@@ -61,9 +61,9 @@ int use_resource = 0;			/* Set to TRUE if using a resource */
 int stubexe;				/* TRUE if resource attached to executable */
 #endif					/* OS2 */
 
-#if ARM || ATARI_ST || MACINTOSH || MVS || VM || UNIX || VMS
+#if ARM || MACINTOSH || MVS || VM || UNIX || VMS
    /* nothing needed */
-#endif					/* ARM || ATARI_ST || MACINTOSH ... */
+#endif					/* ARM || MACINTOSH ... */
 
 /*
  * End of operating-system specific code.
@@ -630,9 +630,6 @@ Deliberate Syntax Error
    signal(SIGSEGV, segvtrap);
 #endif					/* ARM */
 
-#if ATARI_ST
-#endif					/* ATARI_ST */
-
 #if MACINTOSH
 #if MPW
    {
@@ -666,19 +663,7 @@ Deliberate Syntax Error
 
 #if UNIX || VMS
    signal(SIGSEGV, segvtrap);
-#ifdef PYRAMID
-   {
-   struct sigvec a;
-
-   a.sv_handler = fpetrap;
-   a.sv_mask = 0;
-   a.sv_onstack = 0;
-   sigvec(SIGFPE, &a, 0);
-   sigsetmask(1 << SIGFPE);
-   }
-#else					/* PYRAMID */
    signal(SIGFPE, fpetrap);
-#endif					/* PYRAMID */
 #endif					/* UNIX || VMS */
 
 /*
@@ -741,20 +726,8 @@ Deliberate Syntax Error
     * Convert stack sizes from words to bytes.
     */
 
-#ifndef SCO_XENIX
    stksize *= WordSize;
    mstksize *= WordSize;
-#else					/* SCO_XENIX */
-   /*
-    * This is a work-around for bad generated code for *= (as above)
-    *  produced by the SCO XENIX C Compiler for the large memory model.
-    *  It relies on the fact that WordSize is 4.
-    */
-   stksize += stksize;
-   stksize += stksize;
-   mstksize += mstksize;
-   mstksize += mstksize;
-#endif					/* SCO_XENIX */
 
 #if IntBits == 16
    if (mstksize > MaxBlock)
@@ -974,7 +947,7 @@ Deliberate Syntax Error
    /* not done */
 #endif					/* AMIGA */
 
-#if ARM || ATARI_ST || MACINTOSH || UNIX || OS2 || VMS
+#if ARM || MACINTOSH || UNIX || OS2 || VMS
 
 
    if (noerrbuf)
@@ -987,7 +960,7 @@ Deliberate Syntax Error
 	 fatalerr(305, NULL);
       setbuf(stderr, buf);
       }
-#endif					/* ARM || ATARI_ST || MACINTOSH ... */
+#endif					/* ARM || MACINTOSH ... */
 
 #if MSDOS
 #if !HIGHC_386
@@ -1065,9 +1038,9 @@ Deliberate Syntax Error
    if (WBmstksize != 0 && WBmstksize <= (uword) MaxUnsigned) mstksize = WBmstksize;
 #endif					/* AMIGA */
 
-#if ARM || ATARI_ST || MACINTOSH || MSDOS || MVS || OS2 || UNIX || VM || VMS
+#if ARM || MACINTOSH || MSDOS || MVS || OS2 || UNIX || VM || VMS
    /* nothing to do */
-#endif					/* ARM || ATARI_ST || ... */
+#endif					/* ARM || ... */
 
 /*
  * End of operating-system specific code.
@@ -1085,9 +1058,9 @@ Deliberate Syntax Error
 Deliberate Syntax Error
 #endif					/* PORT */
 
-#if AMIGA || ATARI_ST || MACINTOSH
+#if AMIGA || MACINTOSH
    /* can't handle */
-#endif					/* AMIGA || ATARI_ST || ... */
+#endif					/* AMIGA || ... */
 
 #if ARM || OS2
       signal(SIGSEGV, SIG_DFL);

@@ -1569,9 +1569,9 @@ int c;
 Deliberate Syntax Error
 #endif					/* PORT */
 
-#if AMIGA || ATARI_ST || MSDOS || OS2 || UNIX || VMS
+#if AMIGA || MSDOS || OS2 || UNIX || VMS
    return (isascii(c) && isprint(c));
-#endif					/* AMIGA || ATARI_ST ... */
+#endif					/* AMIGA || ... */
 
 #if ARM
    return (c >= 0x00 && c <= 0x7F && isprint(c));
