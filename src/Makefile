@@ -5,7 +5,7 @@ what:
 
 Clean:
 		cd iconc; rm -f *.o iconc
-		cd common; rm -f *.o doincl
+		cd common; rm -f *.o doincl patchstr
 		cd preproc; rm -f *.o pp
 		cd rtt; rm -f *.o rtt
 		cd runtime; rm -f *.c *.o rt.db rt.a rttcur.lst\
@@ -43,7 +43,7 @@ Dist-clean:
 Force-rebuild: Clean
 	cd h; rm -f kdefs.h
 	cd common; rm -f *.o yacctok.h lextab.h icontype.h \
-		doincl fixgram mktoktab pscript typespec
+		doincl fixgram mktoktab patchstr pscript typespec
 	cd icont; rm -f *.o icont mkkwd trash \
 		hdr.h keyword.h tgram.g ttoken.h tparse.c
 	cd iconc; rm -f *.o iconc cgram.g ctoken.h cparse.h

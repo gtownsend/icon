@@ -4,11 +4,15 @@ OBJS=	long.o getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
 	munix.o literals.o rswitch.o alloc.o long.o getopt.o time.o\
 	save.o rswitch.o redirerr.o xwindow.o dlrgint.o ipp.o
 
-common:		doincl
+common:		doincl patchstr
 
 doincl:		doincl.o
 		$(CC) $(LDFLAGS) -o doincl doincl.o
 		-./doincl -o ../../bin/rt.h ../h/rt.h
+
+patchstr:	patchstr.o
+		$(CC) $(LDFLAGS) -o patchstr patchstr.o
+		cp patchstr ../../bin
 
 xpm:
 		cd ../xpm; $(MAKE) libXpm.a

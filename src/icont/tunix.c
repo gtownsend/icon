@@ -9,6 +9,8 @@
 static void execute (char *ofile, char *efile, char *args[]);
 static void usage (void);
 
+static char patchpath[MaxPath+18] = "%PatchStringHere->";
+
 /*
  * getopt() variables
  */
@@ -129,8 +131,12 @@ int main(int argc, char *argv[]) {
    /*
     * Initialize globals.
     */
-   iconxloc = relfile(argv[0], "/../iconx");	/* infer path to iconx */
-   initglob();
+   initglob();				/* general global initialization */
+
+   if (strlen(patchpath) > 18)
+      iconxloc = patchpath + 18;	/* use stated iconx path if patched */
+   else
+      iconxloc = relfile(argv[0], "/../iconx");		/* otherwise infer it */
 
    /*
     * Translate .icn files to make .u1 and .u2 files.
