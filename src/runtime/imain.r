@@ -22,13 +22,11 @@ int mterm = Op_Quit;
 #endif					/* MultiThread */
 
 
-/*
- * Initial icode sequence. This is used to invoke the main procedure with one
- *  argument.  If main returns, the Op_Quit is executed.
- */
-
 
 #ifdef MSWindows
+/*
+ * Special initialization under MS Windows.
+ */
 
 FILE *finredir, *fouredir, *ferredir;
 
@@ -235,6 +233,10 @@ int_PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 #define main iconx
 #endif					/* MSWindows */
 
+/*
+ * Initial icode sequence. This is used to invoke the main procedure with one
+ *  argument.  If main returns, the Op_Quit is executed.
+ */
 int main(argc, argv)
 int argc;
 char **argv;
@@ -461,15 +463,9 @@ int *ip;
       }
    #endif				/* NT */
 
-   #ifdef MaxLevel
-      maxilevel = 0;
-      maxplevel = 0;
-      maxsp = 0;
-   #endif				/* MaxLevel */
-
-/*
- * Handle command line options.
-*/
+   /*
+    * Handle command line options.
+    */
    while ( argv[1] != 0 && *argv[1] == '-' ) {
       switch ( *(argv[1]+1) ) {
 
