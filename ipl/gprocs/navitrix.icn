@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     December 22, 2001
+#	Date:     July 10, 2002
 #
 ############################################################################
 #
@@ -19,8 +19,7 @@
 #
 ############################################################################
 #
-#  At present, it is UNIX-specific.  See the preprocessor definitions
-#  for where platform-specific code is needed.
+#  The code is based on Unix but may work in other Unix-like environments.
 #
 #  Directories are shown with a trailing slash.  Clicking on a directory
 #  moves there.  Clicking on a file name selects it.  The text of the
@@ -155,15 +154,11 @@ procedure nav_files_cb(vidget, value)
       return
       }
 
-$ifdef _UNIX
    if value ?:= tab(upto('/')) then {
       chdir(value)
       nav_refresh()
       return
       }
-$else
-   Deliberate Syntax Error
-$endif
 
    nav_file := value
 
@@ -190,11 +185,7 @@ procedure nav_refresh()
       directory := ""
       }
 
-$ifdef _UNIX
    input := open("pwd", "p")
-$else
-   Deliberate Syntax Error
-$endif
 
    WAttrib( nav_window, "drawop=reverse")
    DrawString(nav_window, x, y, directory)
@@ -205,11 +196,7 @@ $endif
 
    file_list := []
 
-$ifdef _UNIX
    ls := open("ls -a -p .", "p")
-$else
-   Deliberate Syntax Error
-$endif
 
    every put(file_list, !ls)
 
