@@ -40,7 +40,6 @@ char *buf, *path, *name, *extn;
    {
    char *s;
    char pbuf[MaxPath];
-   char posix_s[_POSIX_PATH_MAX + 1];
 
    if (tryfile(buf, (char *)NULL, name, extn))	/* try curr directory first */
       return buf;

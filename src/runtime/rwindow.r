@@ -688,11 +688,12 @@ C_integer *bits;
 	 *bits++ = v;
 	 v = 0;
 
-	 if (len > 0)
+	 if (len > 0) {
 	    if (*s == ',') { len--; s++; }
 	    else {
 	       ReturnErrNum(205, Error);
 	       }
+	    }
 	 }
       }
    return Succeeded;

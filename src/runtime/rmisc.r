@@ -1053,7 +1053,6 @@ word *ipc;
 
 #ifndef MultiThread
    extern struct ipc_line *ilines, *elines;
-   extern word *records;
 #endif					/* MultiThread */
 
    static int two = 2;	/* some compilers generate bad code for division
@@ -1117,7 +1116,6 @@ word *ipc;
 
 #ifndef MultiThread
    extern struct ipc_fname *filenms, *efilenms;
-   extern word *records;
 #endif					/* MultiThread */
 
    if (!InRange(code,ipc,ecode))

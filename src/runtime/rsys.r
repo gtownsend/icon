@@ -39,9 +39,10 @@ struct b_file *fbp;
 	     ungetc(c, fd);		/* (put back if not \n) */
 	 break;
 	 }
-      if (c == EOF)
+      if (c == EOF) {
 	 if (l > 0) return l;
 	 else return -1;
+         }
       if (++l > maxi) {
 	 ungetc(c, fd);
 	 return -2;

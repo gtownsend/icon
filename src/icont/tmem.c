@@ -67,8 +67,6 @@ void tminit()
  */
 void tmfree()
    {
-   struct tgentry *gp, *gp1;
-
    free((char *) chash);   chash = NULL;
    free((char *) ghash);   ghash = NULL;
    free((char *) lhash);   lhash = NULL;
