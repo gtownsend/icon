@@ -19,11 +19,11 @@ Cfuncs:
 	mv cfuncs/libcfunc.so ../bin
 
 
-#  Make selected program binaries (platform-dependent icode) for ../bin,
-#  given that ../lib is ready
+#  Make selected graphics program binaries (platform-dependent icode)
+#  for ../bin, given that ../lib is ready
 
-Ibin:	../bin/ipatch
-../bin/ipatch:  ../bin/icont
+Ibin:	../bin/vib
+../bin/vib:  ../bin/icont
 	MAKE=$(MAKE) ./BuildBin
 
 

@@ -1,15 +1,13 @@
 #!/bin/sh
 #
-#  BuildBin -- build selected executables into ../bin
+#  BuildBin -- build selected graphics executables into ../bin
 
-#  Standard list of programs  ("ipatch" must be first)
-PROGS="ipatch"
+#  If not configured for graphics, quit immediately
+grep '#define *Graphics' ../src/h/define.h >/dev/null || exit 0
+
+#  Standard list of programs
 GPROGS="colrbook colrpick fontpick palette wevents xgamma"
 GPACKS="vib"
-
-#  Standard path embedded in Icon binaries
-#  (it shouldn't be used, but this is better than embedding a personal path)
-STDPATH=/opt/icon/bin/iconx
 
 #  Set paths
 TOP=`cd ..; pwd`
@@ -22,23 +20,10 @@ export PATH IPATH LPATH
 #  Figure out executable extension
 EXE=`grep ^EXE ../Makedefs | sed 's/.*= *//'`
 
-#  Always build progs
-cd progs
-for p in $PROGS; do
-    (set -x; icont -us $p)
-    ./ipatch $p$EXE $STDPATH 2>/dev/null
-    mv $p$EXE $BIN
-done
-cd ..
-
-#  If not configured for graphics, quit at this point
-grep '#define *Graphics' ../src/h/define.h >/dev/null || exit 0
-
 #  Build graphics programs
 cd gprogs
 for p in $GPROGS; do
-    (set -x; icont -us $p)
-    ipatch $p$EXE $STDPATH 2>/dev/null
+    (set -x; icont -usN $p)
     mv $p$EXE $BIN
 done
 cd ..
@@ -46,8 +31,7 @@ cd ..
 #  Build graphics packages
 for p in $GPACKS; do
     cd gpacks/$p
-    ${MAKE-make}
-    ipatch $p$EXE $STDPATH 2>/dev/null
+    ${MAKE-make} IFLAGS=-usN
     mv $p$EXE $BIN
     cd ../..
 done
