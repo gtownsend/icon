@@ -12,8 +12,8 @@ Clean:
 		  rttfull.lst iconx
 		cd icont; rm -f *.o icont
 		-cd xpm; rm -f *.o *.a
-# force full rebuild of runtime system
-		touch h/define.h
+# force full rebuild of runtime system by touching define.h if present
+		touch /dev/null `find h -name define.h`
 
 Pure:		Clean
 		rm -f common/rswitch.* h/path.h h/define.h */Makefile
