@@ -62,40 +62,14 @@ char **argv;
    char *incl_path;			/* path to header file */
    char *s, c1;
    char buf[MaxFileName];		/* file name construction buffer */
-
-#ifdef ExpTools
-   char Buf[MaxFileName];
-   char *tools;				/* patch and TOOLS string buffer */
-#endif					/* ExpTools */
-
    int c;
    int ret_code;
    struct fileparts *fp;
 
-#ifdef ExpTools
-   /* needs rewrite */
-   if (strlen(patchpath)>18) {
-      refpath = patchpath+18;
-      if(!strncmp(refpath,toolstr,strlen(toolstr))) {	/* Is it TOOLS   */
-         refpath = refpath+strlen(toolstr);		/* skip TOOLS    */
-         if ((tools = getenv("TOOLS")) == NULL) {
-            fprintf(stderr,
-              "patchstr begins with \"${TOOLS}\" but ${TOOLS} has no value\n");
-            fprintf(stderr, "patchstr=%s\ncompilation aborted\n", refpath);
-            exit(EXIT_FAILURE);
-           } else strcpy(Buf,tools);
-         strcat(Buf,refpath);			/* append name   */
-	 if (Buf[strlen(Buf)-1] != '/') strcat(Buf,"/");
-	 refpath = Buf;				/* use refpath   */
-  	 }
-      }
-   fprintf(stderr,"iconc library files found in %s\n",refpath);
-#else					/* ExpTools */
    if ((int)strlen(patchpath) > 18)
       refpath = patchpath+18;
    else
       refpath = relfile(argv[0], "/../");
-#endif					/* ExpTools */
 
    /*
     * Process options.
