@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     May 1, 2001
+#	Date:     March 10, 2004
 #
 ############################################################################
 #
@@ -22,8 +22,7 @@
 #  Unclog reads the output of "cvs log", as run without arguments in
 #  a directory maintained by CVS, and reformats it to correlate CVS
 #  changes that affected multiple files.  The log entries are produced
-#  in chronological order.  Portions crossing a one-minute clock boundary
-#  are not combined.
+#  in chronological order.
 #
 ############################################################################
 
@@ -77,13 +76,21 @@ procedure main(args)
 
    # output the mods in order, giving affected files first
    while text := get(mods) do {
-      write()
       files := get(mods)
-      if *files >= maxfiles then
-         write("file: [", *files, " files]")
-      else
-         every write("file: ", !sort(files))
-      write(text)
-      write()
+      if text[24:0] == mods[1][24:0] then {
+         # this entry differs from the next one only in timestamp details,
+         # so combine this entry with the next one
+         every put(mods[2], !files)
+         }
+      else {
+         # this is a unique entry
+         write()
+         if *files >= maxfiles then
+            write("file: [", *files, " files]")
+         else
+            every write("file: ", !sort(files))
+         write(text)
+         write()
+         }
       }
 end
