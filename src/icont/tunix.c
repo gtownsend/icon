@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
    char **lfiles, **lptr;		/* list of files to link */
    char **rptr;				/* list of files to remove */
    char *efile = NULL;			/* stderr file */
-   char buf[MaxFileName];		/* file name construction buffer */
+   char buf[MaxPath];			/* file name construction buffer */
    int c, n;
    char ch;
    struct fileparts *fp;
@@ -313,8 +313,8 @@ static void txrun(char *(*func)(FILE*, char*), char *source, char *args[]) {
    int omask;
    char c1, c2;
    char *flist[2], *progname;
-   char srcfile[MaxFileName], u1[MaxFileName], u2[MaxFileName];
-   char icode[MaxFileName], buf[MaxFileName + 20];
+   char srcfile[MaxPath], u1[MaxPath], u2[MaxPath];
+   char icode[MaxPath], buf[MaxPath + 20];
    static char abet[] = "abcdefghijklmnopqrstuvwxyz";
    FILE *f;
 

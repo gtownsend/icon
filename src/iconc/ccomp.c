@@ -53,7 +53,7 @@ char *srcname;
 char *exename;
    {
    struct lib *l;
-   char sbuf[MaxFileName];		/* file name construction buffer */
+   char sbuf[MaxPath];			/* file name construction buffer */
    char *buf;
    char *s;
    char *dlrgint;

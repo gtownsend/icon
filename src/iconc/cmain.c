@@ -56,7 +56,7 @@ char **argv;
    char *db_lst;			/* list of private data bases */
    char *incl_path;			/* path to header file */
    char *s, c1;
-   char buf[MaxFileName];		/* file name construction buffer */
+   char buf[MaxPath];			/* file name construction buffer */
    int c;
    int ret_code;
    struct fileparts *fp;
@@ -338,7 +338,7 @@ char *ofile, **args;
 
    int n;
    char **argv, **p;
-   char buf[MaxFileName];		/* file name construction buffer */
+   char buf[MaxPath];			/* file name construction buffer */
 
    ofile = salloc(makename(buf,"./",ofile,ExecSuffix));
 

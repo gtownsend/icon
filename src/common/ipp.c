@@ -603,7 +603,7 @@ static char *include(s)
 char *s;
    {
    char *fname;
-   char fullpath[MaxFileName];
+   char fullpath[MaxPath];
 
    s = getfnm(fname = s - 1, s);
    if (*fname == '\0')

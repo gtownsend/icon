@@ -3317,7 +3317,7 @@ struct node *n;
    FILE *f_save;
 
    char buf1[5];
-   char buf[MaxFileName];
+   char buf[MaxPath];
    char *cname;
    long min_result;
    long max_result;

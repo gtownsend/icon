@@ -1400,7 +1400,7 @@ struct node *n;
    char buf1[6];
 
    char *cname;
-   char buf[MaxFileName];
+   char buf[MaxPath];
 
    /*
     * Figure out the next character to use as the 3rd prefix for the

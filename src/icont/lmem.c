@@ -120,7 +120,7 @@ void alsolink(name)
 char *name;
    {
    struct lfile *nlf, *p;
-   char file[MaxFileName];
+   char file[MaxPath];
 
    if (!pathfind(file, ipath, name, U1Suffix))
      quitf("cannot resolve reference to file '%s'",name);

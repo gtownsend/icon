@@ -79,7 +79,7 @@ char **argv;
    {
    int c;
    int nopts;
-   char buf[MaxFileName];		/* file name construction buffer */
+   char buf[MaxPath];		/* file name construction buffer */
    struct fileparts *fp;
 
    /*
@@ -243,7 +243,7 @@ void trans(src_file)
 char *src_file;
    {
    char *cname;
-   char buf[MaxFileName];		/* file name construction buffer */
+   char buf[MaxPath];		/* file name construction buffer */
    char *buf_ptr;
    char *s;
    struct fileparts *fp;

@@ -156,7 +156,7 @@ char *name;
 {
    struct srcfile **pp;
    struct srcfile *p;
-   char buf[MaxFileName];
+   char buf[MaxPath];
 
    if (pathfind(buf, lpath, name, SourceSuffix))
       src_file(buf);

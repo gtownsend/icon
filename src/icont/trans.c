@@ -61,8 +61,8 @@ char *tgtdir;
 static void trans1(filename, tgtdir)
 char *filename, *tgtdir;
 {
-   char oname1[MaxFileName];	/* buffer for constructing file name */
-   char oname2[MaxFileName];	/* buffer for constructing file name */
+   char oname1[MaxPath];	/* buffer for constructing file name */
+   char oname2[MaxPath];	/* buffer for constructing file name */
 
    tfatals = 0;			/* reset error counts */
    nocode = 0;			/* allow code generation */

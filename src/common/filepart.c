@@ -30,7 +30,7 @@ static char *tryfile	(char *buf, char *dir, char *name, char *extn);
  *  that the file must be a readable simple text file.  pathfind
  *  returns buf if it finds a file or NULL if not.
  *
- *  buf[MaxFileName] is a buffer in which to put the constructed file name.
+ *  buf[MaxPath] is a buffer in which to put the constructed file name.
  *  path is the IPATH or LPATH value, or NULL if unset.
  *  name is the file name.
  *  extn is the file extension (.icn or .u1) to be appended, or NULL if none.
@@ -39,7 +39,7 @@ char *pathfind(buf, path, name, extn)
 char *buf, *path, *name, *extn;
    {
    char *s;
-   char pbuf[MaxFileName];
+   char pbuf[MaxPath];
    char posix_s[_POSIX_PATH_MAX + 1];
 
    if (tryfile(buf, (char *)NULL, name, extn))	/* try curr directory first */
@@ -119,7 +119,7 @@ char *buf, *dir, *name, *extn;
 struct fileparts *fparse(s)
 char *s;
    {
-   static char buf[MaxFileName+2];
+   static char buf[MaxPath+2];
    static struct fileparts fp;
    int n;
    char *p, *q;

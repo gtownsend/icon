@@ -21,14 +21,14 @@ FILE *outfile;				/* interpreter code output file */
 
 #ifdef DeBugLinker
    FILE *dbgfile;			/* debug file */
-   static char dbgname[MaxFileName];	/* debug file name */
+   static char dbgname[MaxPath];	/* debug file name */
 #endif					/* DeBugLinker */
 
 struct lfile *llfiles = NULL;		/* List of files to link */
 
-char inname[MaxFileName];		/* input file name */
+char inname[MaxPath];			/* input file name */
 
-char icnname[MaxFileName];		/* current icon source file name */
+char icnname[MaxPath];			/* current icon source file name */
 int colmno = 0;				/* current source column number */
 int lineno = 0;				/* current source line number */
 int fatals = 0;				/* number of errors encountered */

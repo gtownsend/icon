@@ -141,7 +141,7 @@
 #endif					/* MaxHdr */
 
 #ifndef MaxPath
-   #define MaxPath 200
+   #define MaxPath 256
 #endif					/* MaxPath */
 
 #ifndef SourceSuffix
@@ -197,8 +197,6 @@
 #ifndef AllocReg
    #define AllocReg(n) malloc(n)
 #endif					/* AllocReg */
-
-#define MaxFileName 256
 
 #ifndef RttSuffix
    #define RttSuffix ".r"

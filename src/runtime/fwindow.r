@@ -1725,7 +1725,7 @@ function{0,1} ReadImage(argv[argc])
       }
    body {
       wbp w;
-      char filename[MaxFileName + 1];
+      char filename[MaxPath + 1];
       tended char *tmp;
       int status, warg = 0;
       C_integer x, y;
@@ -1762,8 +1762,8 @@ function{0,1} ReadImage(argv[argc])
 
       x += w->context->dx;
       y += w->context->dy;
-      strncpy(filename, tmp, MaxFileName);   /* copy to loc that won't move*/
-      filename[MaxFileName] = '\0';
+      strncpy(filename, tmp, MaxPath);	/* copy to loc that won't move */
+      filename[MaxPath] = '\0';
 
       /*
        * First try to read as a GIF file.
