@@ -6,7 +6,7 @@
 #
 #	Author:   Richard L. Goerwitz
 #
-#	Date:	  March 3, 1996
+#	Date:	  August 3, 2000
 #
 ############################################################################
 #
@@ -385,11 +385,11 @@ procedure bnf_file_2_edges(f)
 	    if ="define" then {
 		tab(many('\t '))
 		old := tab(slshupto('\t ')) |
-		    oh_no("bnf_file_2_edges", 7, tab(0))
+		    stop("bnf_file_2_edges", 7, tab(0))
 		tab(many('\t '))
 		new := tab(0)
 		(!macro_list)[1] == old &
-		    oh_no("bnf_file_2_edges", 8, old)
+		    stop("bnf_file_2_edges", 8, old)
 		put(macro_list, [old, new])
 		next		# go back to main loop
 	    }
