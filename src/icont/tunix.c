@@ -277,7 +277,6 @@ static void txrun(void (*func)(char*, char*), char *source, char *args[]) {
    char *flist[2];
    char srcfile[MaxFileName], u1[MaxFileName], u2[MaxFileName];
    char icode[MaxFileName], buf[MaxFileName + 20];
-   char *rmlist[] = { srcfile, u1, u2, icode, NULL };
    static char abet[] = "abcdefghijklmnopqrstuvwxyz";
 
    silent = 1;			/* don't issue commentary while translating */
@@ -295,10 +294,12 @@ static void txrun(void (*func)(char*, char*), char *source, char *args[]) {
    /*
     * Derive other names and arrange for cleanup on exit.
     */
-   makename(u1, NULL, srcfile, U1Suffix);
-   makename(u2, NULL, srcfile, U2Suffix);
-   makename(icode, NULL, srcfile, IcodeSuffix);
-   rfiles = rmlist;
+   rfiles = alloc(5 * sizeof(char *));
+   rfiles[0] = srcfile;
+   makename(rfiles[1] = u1, NULL, srcfile, U1Suffix);
+   makename(rfiles[2] = u2, NULL, srcfile, U2Suffix);
+   makename(rfiles[3] = icode, NULL, srcfile, IcodeSuffix);
+   rfiles[4] = NULL;
    atexit(cleanup);
 
    /*
@@ -319,7 +320,7 @@ static void txrun(void (*func)(char*, char*), char *source, char *args[]) {
    /*
     * Execute the icode file.
     */
-   rmlist[3] = NULL;			/* don't delete icode yet */
+   rfiles[3] = NULL;			/* don't delete icode yet */
    cleanup();				/* but delete the others */
    sprintf(buf, "DELETE_ICODE_FILE=%s", icode);
    putenv(buf);				/* tell iconx to delete icode */
