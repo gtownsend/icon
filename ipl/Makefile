@@ -49,9 +49,22 @@ Check:
 	./CheckAll
 
 
+#  Make Zip files for separate distribution of the library
+
+ZipFiles:  Ilib
+	rm -rf ilib *.zip
+	mkdir ilib
+	cp ../lib/*.* ilib
+	zip -qrX9 ilib.zip ilib
+	zip -qrX9 bipl.zip docs incl procs progs packs data cfuncs
+	zip -qrX9 gipl.zip gdocs gincl gprocs gprogs gpacks gdata
+	zip -qrX9 mipl.zip mincl mprocs mprogs
+	rm -rf ilib
+
+
 #  Clean up.
 
 Clean Pure:
-	rm -rf iexe */*.u[12] */*.zip
+	rm -rf ilib iexe *.zip */*.u[12] */*.zip
 	-rm -f `find *procs *progs -type f -perm -100 -print`
 	for d in cfuncs *packs/[a-z]*; do (cd $$d; $(MAKE) Clean); done
