@@ -7,7 +7,6 @@ Ilib:	../bin/libcfunc.so
 	cp incl/*.icn gincl/*.icn mincl/*.icn cfuncs/icall.h ../lib
 	cd procs;  LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
 	cd gprocs; LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
-	cd mprocs; LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
 	cd cfuncs; LPATH= $(MAKE) ICONT=../../bin/icont
 	mv cfuncs/*.u? ../lib
 	mv cfuncs/libcfunc.so ../bin
