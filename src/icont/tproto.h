@@ -31,6 +31,7 @@ struct	gentry *glocate		(word id);
 void	gout			(FILE *fd);
 struct	node *i_str_leaf	(int type,struct node *loc_model,char *c,int d);
 int	ilink			(char * *ifiles,char *outname);
+void	initglob		(void);
 void	install			(char *name,int flag,int argcnt);
 word	instid			(char *s);
 struct	node *int_leaf		(int type,struct node *loc_model,int c);

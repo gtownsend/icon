@@ -86,8 +86,6 @@ static	void	setexe	(char *fname);
 FILE *infile;				/* input file (.u1 or .u2) */
 FILE *outfile;				/* interpreter code output file */
 
-extern char *ofile;			/* output file name */
-
 #ifdef DeBugLinker
    FILE *dbgfile;			/* debug file */
    static char dbgname[MaxFileName];	/* debug file name */

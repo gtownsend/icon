@@ -4,10 +4,11 @@ TRANS=		trans.o tcode.o tlex.o lnklist.o tparse.o tsym.o tmem.o tree.o
 
 LINKR=		link.o lglob.o lcode.o llex.o lmem.o lsym.o opcode.o
 
-OBJS=		tmain.o util.o tlocal.o $(TRANS) $(LINKR)
+OBJS=		tunix.o tglobals.o util.o tlocal.o $(TRANS) $(LINKR)
 
 COBJS=		../common/long.o ../common/getopt.o ../common/alloc.o \
-		   ../common/filepart.o ../common/strtbl.o ../common/ipp.o
+		   ../common/filepart.o ../common/strtbl.o ../common/ipp.o \
+		   ../common/munix.o
 
 ICOBJS=		long.o getopt.o alloc.o filepart.o strtbl.o ipp.o
 
@@ -29,7 +30,8 @@ $(OBJS):	../h/define.h ../h/config.h ../h/cpuconf.h ../h/gsupport.h \
 
 $(COBJS):	../h/mproto.h
 
-tmain.o:	tglobals.h ../h/path.h
+tunix.o:	tglobals.h ../h/path.h
+tglobals.o:	tglobals.h ../h/path.h
 util.o:		tglobals.h tree.h ../h/fdefs.h
 
 # translator files

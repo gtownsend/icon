@@ -79,5 +79,7 @@ Global int Dflag	Init(0);	/* -L: linker debug (write .ux file) */
 Global FILE *codefile	Init(0);	/* current ucode output file */
 Global FILE *globfile	Init(0);	/* current global table output file */
 
+Global char *ofile	Init(NULL);	/* name of linker output file */
+
 Global char *iconxloc;			/* path to iconx */
 Global long hdrsize;			/* size of iconx header */

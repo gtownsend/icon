@@ -12,11 +12,11 @@ POBJS = pout.o pchars.o  perr.o pmem.o  bldtok.o macro.o preproc.o\
 
 COBJS = ../common/getopt.o ../common/time.o ../common/filepart.o\
 	  ../common/identify.o ../common/strtbl.o\
-	  ../common/rtdb.o ../common/mlocal.o ../common/literals.o \
+	  ../common/rtdb.o ../common/munix.o ../common/literals.o \
 	  ../common/alloc.o
 
 ICOBJS=	getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
-	  mlocal.o literals.o alloc.o
+	  munix.o literals.o alloc.o
 
 OBJ = $(ROBJS) $(POBJS) $(COBJS)
 
