@@ -80,77 +80,6 @@ char **opt_args;
              */
             define_opt(opt_args[i], (int)strlen(opt_args[i]), one_tok);
             break;
-
-         /*
-          *  Check for system specific options from command line.
-          */
-
-         #if MSDOS
-         case 'A':
-            /*
-             * Memory model. Define corresponding identifiers after
-             *  after making sure all others are undefined.
-             */
-            switch (*opt_args[i]) {
-               case 'S':
-                  /*
-                   * -AS - small memory model.
-                   */
-                  do_directive(undef_model);
-                  do_directive("#define M_I86SM 1\n");
-                  break;
-               case 'C':
-                  /*
-                   * -AC - compact memory model.
-                   */
-                  do_directive(undef_model);
-                  do_directive("#define M_I86CM 1\n");
-                  break;
-               case 'M':
-                  /*
-                   * -AM - medium memory model.
-                   */
-                  do_directive(undef_model);
-                  do_directive("#define M_I86MM 1\n");
-                  break;
-               case 'L':
-                  /*
-                   * -AL - large memory model.
-                   */
-                  do_directive(undef_model);
-                  do_directive("#define M_I86LM 1\n");
-                  break;
-               case 'H':
-                  /*
-                   * -AH - huge memory model.
-                   */
-                  do_directive(undef_model);
-                  do_directive("#define M_I86LM 1\n");
-                  do_directive("#define M_I86HM 1\n");
-                  break;
-               default:
-                  fprintf(stderr, "invalid argument to -A option: %s\n",
-                     opt_args[i]);
-                  show_usage();
-               }
-            break;
-         case 'Z':
-            if (*opt_args[i] == 'a') {
-               do_directive("#undef NO_EXT_KEYS\n");
-               do_directive("#define NO_EXT_KEYS 1\n");
-               }
-            else {
-               fprintf(stderr, "invalid argument to -Z option: %s\n",
-                  opt_args[i]);
-               show_usage();
-            }
-            break;
-         case 'J':
-             do_directive("#undef _CHAR_UNSIGED\n");
-             do_directive("#define _CHAR_UNSIGNED 1\n");
-             break;
-         #endif				/* MSDOS */
-
          }
    }
 

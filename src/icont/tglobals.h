@@ -40,16 +40,6 @@ Global unsigned int lhsize	Init(128);	/* local hash table */
  * Variables related to command processing.
  */
 Global char *progname	Init("icont");	/* program name for diagnostics */
-
-#if MSDOS
-   Global int makeExe	Init(1);	/* -X: create .exe instead of .icx */
-   #ifndef Header
-      Global long fileOffsetOfStuffThatGoesInICX Init(0);
-					/* remains 0 -f -X is not used */
-   #endif				/* Header */
-#endif					/* MSDOS */
-
-					/* set in link.c; used in lcode.c */
 Global int silent	Init(0);	/* -s: suppress info messages? */
 Global int m4pre	Init(0);	/* -m: use m4 preprocessor? */
 Global int uwarn	Init(0);	/* -u: warn about undefined ids? */

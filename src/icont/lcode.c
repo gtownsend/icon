@@ -1346,11 +1346,7 @@ void gentables()
    #ifdef Header
       fseek(outfile, hdrsize, 0);
    #else				/* Header */
-      #if MSDOS
-         fseek(outfile, fileOffsetOfStuffThatGoesInICX, 0);
-      #else				/* MSDOS */
-         fseek(outfile, 0L, 0);
-      #endif				/* MSDOS */
+      fseek(outfile, 0L, 0);
    #endif				/* Header */
 
    if (longwrite((char *)&hdr, (long)sizeof(hdr), outfile) < 0)

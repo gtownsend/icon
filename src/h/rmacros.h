@@ -690,8 +690,3 @@
  * Address of word containing cset bit b (c is a struct descrip of type Cset).
  */
 #define CsetPtr(b,c)	(BlkLoc(c)->cset.bits + (((b)&0377) >> LogIntBits))
-
-#if MSDOS
-   #define ptr2word(x) (uword)x
-   #define word2ptr(x) ((char *)x)
-#endif					/* MSDOS */

@@ -10,11 +10,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#if MSDOS
-   #include <fcntl.h>
-   extern char pathToIconDOS[];
-#endif					/* MSDOS */
-
 #ifdef Header
    #ifndef ShellHeader
       #include "hdr.h"
@@ -97,67 +92,6 @@ char *outname;
       ofile = NULL;			/* so don't delete if it's there */
       quitf("cannot create %s",outname);
       }
-
-   #if MSDOS && (!NT)
-   if (makeExe) {
-
-      /*
-       * This prepends ixhdr.exe to outfile, so it'll be executable.
-       *
-       * I don't know what that #if Header stuff was about since my MSDOS
-       * distribution didn't include "hdr.h", but it looks very similar to
-       * what I'm doing, so I'll put my stuff here, & if somebody who
-       * understands all the multi-operating-system porting thinks my code could
-       * be folded into it, having it here should make it easy.
-       * -- Will Mengarini.
-       */
-
-      FILE *fIconDOS = fopen(pathToIconDOS, "rb");
-      char bytesThatBeginEveryExe[2] = {0,0}, oneChar;
-      unsigned short originalExeBytesMod512, originalExePages;
-      unsigned long originalExeBytes, byteCounter;
-
-      if (!fIconDOS)
-         quit("unable to find ixhdr.exe in same dir as icont");
-      if (setvbuf(fIconDOS, 0, _IOFBF, 4096))
-         if (setvbuf(fIconDOS, 0, _IOFBF, 128))
-            quit("setvbuf() failure");
-      fread (&bytesThatBeginEveryExe, 2, 1, fIconDOS);
-      if (bytesThatBeginEveryExe[0] != 'M' ||
-          bytesThatBeginEveryExe[1] != 'Z')
-         quit("ixhdr header is corrupt");
-      fread (&originalExeBytesMod512, sizeof originalExeBytesMod512,
-            1, fIconDOS);
-      fread (&originalExePages,       sizeof originalExePages,
-            1, fIconDOS);
-      originalExeBytes = (originalExePages - 1)*512 + originalExeBytesMod512;
-
-      if (ferror(fIconDOS) || feof(fIconDOS) || !originalExeBytes)
-         quit("ixhdr header is corrupt");
-      fseek (fIconDOS, 0, 0);
-
-      #ifdef MSWindows
-         for (oneChar=fgetc(fIconDOS);!feof(fIconDOS);oneChar=fgetc(fIconDOS)) {
-            if (ferror(fIconDOS) || ferror(outfile)) {
-               quit("Error copying ixhdr.exe");
-	       }
-            fputc (oneChar, outfile);
-            }
-      #else				/* MSWindows */
-
-         for (byteCounter = 0; byteCounter < originalExeBytes; byteCounter++) {
-            oneChar = fgetc (fIconDOS);
-            if (ferror(fIconDOS) || feof(fIconDOS) || ferror(outfile)) {
-               quit("Error copying ixhdr.exe");
-	       }
-            fputc (oneChar, outfile);
-            }
-      #endif				/* MSWindows */
-
-      fclose (fIconDOS);
-      fileOffsetOfStuffThatGoesInICX = ftell (outfile);
-      }
-   #endif				/* MSDOS && (!NT) */
 
    #ifdef Header
       /*
