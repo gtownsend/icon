@@ -1,0 +1,320 @@
+############################################################################
+#
+#	File:     mapnav.icn
+#
+#	Subject:  Procedures for navigating a map interactively
+#
+#	Authors:  Gregg M. Townsend
+#
+#	Date:     May 7, 2002
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	These procedures implement a user interface for browsing a map
+#	that is drawn using a simple rectangular projection.  The
+#	following interface actions are provided, if not overridden
+#	by the calling program:
+#	   The arrow keys pan the display.
+#	   Shifted arrows pan by a smaller amount.
+#	   The + and - keys zoom in and out.
+#	   The 0, 1, or HOME key resets the original display.
+#	   The q key causes an immediate exit.
+#	   Sweeping a region with the mouse zooms the display.
+#	   Resizing the window causes it to be redrawn.
+#
+#	The calling program provides the main loop and a drawing
+#	procedure; this module handles the interface and computes
+#	the output transformation.
+#
+#	mapinit(win, proc, arg, xleft, xright, ytop, ybottom, m) initializes.
+#	mapgen(win, proc, arg) generates the map by invoking the callback.
+#	mapevent(win, e) handles a window event, possibly invoking a callback.
+#	mapproj(win) returns the projection used in the window.
+#
+#	The win argument is optional in all procedures but can be used
+#	to supply the correct graphics context.  The window argument is
+#	always supplied to the callback procedure.
+#
+############################################################################
+#
+#	Typical use is like this:
+#
+#	procedure main(...)
+#	   ... initialize ...
+#	   ... load data ...
+#	   ... open window ...
+#	   mapinit(draw, ...)
+#	   mapgen()
+#	   case e := Event() of {
+#	      ... handle custom events ...
+#	      default: mapevent(e)
+#	      }
+#	end
+#
+#	procedure draw(win, p, arg)
+#	   ... create list of coordinates ...
+#	   ... L2 := project(p, L1) ...
+#	   ... draw map ...
+#	end
+#
+############################################################################
+#
+#	mapinit(win, proc, arg, xleft, xright, ytop, ybottom, m) configures
+#	the navigator.  proc is a drawing procedure to be called whenever
+#	the window needs to be redrawn.  arg is an arbitrary value to be
+#	passed to proc along with the transformation parameters.
+#
+#	xleft, xright, ytop, and ybottom specify the range of coordinates
+#	for the data that is to be displayed.  For both the x and y pairs,
+#	the values must differ but either can be the greater.
+#
+#	The value of m (default 1.0) specifies the aspect ratio of the
+#	input units.  If the input data is in units of latitude and
+#	longitude, choose a central latitude for projection and pass
+#	the cosine of that latitude as m.
+#
+############################################################################
+#
+#	mapgen(win, proc, arg) calls the drawing procedure proc to draw a
+#	map.  win is optional, and proc and arg default to the values
+#	registered by the last mapinit() call.
+#
+#	The drawing procedure is called as
+#	   proc(win, pj, arg)
+#       where pj the projection returned by mapproj(win).
+#
+#	The drawing procedure should project and display its data.
+#	It must ensure that the resulting coordinates lie inside
+#	the range -32768 <= v <=32767 before passing them to Icon
+#	drawing functions.  (See also clipping.icn.)
+#
+############################################################################
+#
+#	mapevent(win, e) handles a window event.  If e is recognized as
+#	an interface action, the map parameters are altered and mapgen()
+#	is called, resulting in a call to the drawing procedure.  For
+#	a panning action, the window contents are first shifted;
+#	otherwise, the window is first erased.  mapevent() fails if
+#	e is not recognized.
+#
+#	The calling program can intercept and override any action it does
+#	not want handled by the navigator.  This can be used to customize
+#	the interface -- for example, to use "0" for something other than
+#	"reset zooming".  However, any &resize event, even if handled by
+#	the caller, should be passed to the navigator to allow it to
+#	properly adjust its view of the world.
+#
+############################################################################
+#
+#	mapproj(win) returns a rectangular projection (see cartog.icn)
+#	that maximizes the display of the currently selected data range
+#	for viewing in the center of window win.  The "selected data range"
+#	is that passed to mapinit() and subsequently modified by any
+#	zooming or panning actions.
+#
+############################################################################
+#
+#   Links: graphics, cartog
+#
+############################################################################
+
+$include "keysyms.icn"
+
+link graphics
+link cartog
+
+$define MARGIN 16
+
+global mnv_proc			# registered drawing procedure
+global mnv_arg			# arbitrary argument for that procedure
+global mnv_aspr			# coordinate system aspect ratio
+
+global mnv_prjn			# current projection
+
+# map limits
+global mnv_mleft, mnv_mright, mnv_mtop, mnv_mbottom
+
+# viewport configuration
+global mnv_vleft, mnv_vright, mnv_vtop, mnv_vbottom
+
+procedure mapinit(win,p,a,xleft,xright,ytop,ybottom,m)	#: initialize navigator
+
+   if type(win) ~== "window" then	# handle missing optional win argument
+      return mapinit((\&window | runerr(140)),
+         win, p, a, xleft, xright, ytop, ybottom)
+
+   mnv_proc := p
+   mnv_arg := a
+   mnv_aspr := \m | 1.0
+
+   mnv_mleft := mnv_vleft := xleft
+   mnv_mright := mnv_vright := xright
+   mnv_mtop := mnv_vtop := ytop
+   mnv_mbottom := mnv_vbottom := ybottom
+
+   return
+end
+
+procedure mapgen(win, proc, arg)	#: invoke callback to redraw the map
+
+   if type(win) ~== "window" then {	# handle missing optional win argument
+      win :=: proc :=: arg
+      win := \&window | runerr(140)
+      }
+
+   /proc := mnv_proc
+   /arg := mnv_arg
+   return proc(win, mapproj(win), arg)
+end
+
+procedure mapproj(win)			#: compute map projection
+   local l, r, t, b, d, nx, ny, xmul, ymul
+
+   /win := \&window | runerr(140)	# handle missing optional win argument
+
+   l := \WAttrib(win, "clipx") | 0
+   t := \WAttrib(win, "clipy") | 0
+   r := l + \WAttrib(win, "clipw" | "width")
+   b := t + \WAttrib(win, "cliph" | "height")
+   nx := MARGIN
+   ny := MARGIN
+
+   xmul := real(r - l - 2 * nx) / (mnv_vright - mnv_vleft)
+   ymul := real(b - t - 2 * ny) / (mnv_vbottom - mnv_vtop)
+
+   d := abs(xmul / (ymul * mnv_aspr))
+   if d > 1.0 then {
+      xmul /:= d
+      nx := (r - l - xmul * (mnv_vright - mnv_vleft)) / 2
+      }
+   else {
+      ymul *:= d
+      ny := (b - t - ymul * (mnv_vbottom - mnv_vtop)) / 2
+      }
+
+   mnv_prjn := rectp(mnv_vleft, mnv_vtop, l + nx, t + ny, xmul, ymul)
+   return mnv_prjn
+end
+
+procedure mapevent(win, e)		#: navigate map as directed by action e
+   local win2, xywh, ltrb
+
+   if type(win) ~== "window" then {	# handle missing optional win argument
+      e := win
+      win := \&window | runerr(140)
+      }
+
+   case e of {
+
+      &resize: {
+         EraseArea(win)
+         mapgen(win)
+         }
+
+      &lpress: {
+         win2 := Clone(win, "linewidth=4", "linestyle=solid", "fg=orange")
+         xywh := Sweep(win2)
+         Uncouple(win2)
+         if xywh[3|4] < 10 then
+            return
+         xywh[3] +:= xywh[1]
+         xywh[4] +:= xywh[2]
+         ltrb := project(invp(mnv_prjn), xywh)
+
+         mnv_vleft := get(ltrb)
+         mnv_vtop := get(ltrb)
+         mnv_vright := get(ltrb)
+         mnv_vbottom := get(ltrb)
+         EraseArea(win)
+         mapgen(win)
+         }
+
+      !"01" | Key_Home: {
+         mnv_vleft := mnv_mleft
+         mnv_vright := mnv_mright
+         mnv_vtop := mnv_mtop
+         mnv_vbottom := mnv_mbottom
+         EraseArea(win)
+         mapgen(win)
+         }
+
+      Key_Up:    mnv_pan(win,  0, -1)
+      Key_Down:  mnv_pan(win,  0, +1)
+      Key_Left:  mnv_pan(win, -1,  0)
+      Key_Right: mnv_pan(win, +1,  0)
+
+      !"+=":  mnv_inout(win, -0.20)
+      !"-_":  mnv_inout(win, +0.25)
+
+      !"Qq":  exit()
+
+      default:	fail
+
+      }
+
+   return
+end
+
+procedure mnv_pan(win, px, py)		# process panning action
+   local n, l, r, t, b, w, h, nx, ny, dx, dy, xyxy
+
+   n := if &shift then 10 else 100
+   nx := n * px
+   ny := n * py
+
+   l := \WAttrib(win, "clipx") | 0
+   t := \WAttrib(win, "clipy") | 0
+   r := l + \WAttrib(win, "clipw" | "width")
+   b := t + \WAttrib(win, "cliph" | "height")
+   w := r - l - abs(nx)
+   h := b - t - abs(ny)
+
+   if nx > 0 then {
+      CopyArea(win, l + nx, t, w, h, l, t)
+      EraseArea(win, r - nx, t, nx, h)
+      }
+   else if nx < 0 then {
+      CopyArea(win, l, t, w, h, l - nx, t)
+      EraseArea(win, l, t, -nx, h)
+      }
+
+   if ny > 0 then {
+      CopyArea(win, l, t + ny, w, h, l, t)
+      EraseArea(win, l, b - ny, w, ny)
+      }
+   else if ny < 0 then {
+      CopyArea(win, l, t, w, h, l, t - ny)
+      EraseArea(win, l, t, w, -ny)
+      }
+
+   xyxy := project(invp(mnv_prjn), [l, t, l + nx, t + ny])
+   dx := xyxy[3] - xyxy[1]
+   dy := xyxy[4] - xyxy[2]
+   mnv_vleft +:= dx
+   mnv_vright +:= dx
+   mnv_vtop +:= dy
+   mnv_vbottom +:= dy
+   mapgen(win)
+
+   return
+end
+
+procedure mnv_inout(win, f)		# process zooming action
+   local xc, yc
+
+   xc := (mnv_vleft + mnv_vright) / 2
+   yc := (mnv_vtop + mnv_vbottom) / 2
+
+   mnv_vleft +:= f * (mnv_vleft - xc)
+   mnv_vright +:= f * (mnv_vright - xc)
+   mnv_vtop +:= f * (mnv_vtop - yc)
+   mnv_vbottom +:= f * (mnv_vbottom - yc)
+
+   EraseArea(win)
+   mapgen(win)
+   return
+end
