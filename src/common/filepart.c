@@ -200,17 +200,17 @@ FILE *pathOpen(fname, mode)
    char buf[_POSIX_PATH_MAX + 1];
    int i, use = 1;
 
-   for( i = 0; buf[i] = fname[i]; ++i)
-
+   for( i = 0; buf[i] = fname[i]; ++i) {
       /* find out if a path has been given in the file name */
       if (buf[i] == '/' || buf[i] == ':' || buf[i] == '\\')
          use = 0;
+      }
 
-      /* If a path has been given with the file name, don't bother to
-         use the PATH */
+   /* If a path has been given with the file name, don't bother to
+      use the PATH */
 
-      if (use && !pathfind(buf, getenv("PATH"), fname, NULL))
-         return 0;
+   if (use && !pathfind(buf, getenv("PATH"), fname, NULL))
+      return 0;
 
    return fopen(buf, mode);
    }
