@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+#  tgrstrip [file] -- remove details from line chain file
+#
+#  Filters a line chain file to remove hydrology (water), pipelines,
+#  powerlines, and minor roads, except when any of these coincides
+#  with a major boundary line.  The effect of this is to produce a
+#  much smaller file with less detail.
+
+sed '
+   /^[CEFH]..0/d
+   /^A[4-9].0/d
+' $*

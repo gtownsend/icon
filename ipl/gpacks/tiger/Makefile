@@ -10,7 +10,7 @@ SCRIPTS = tgrsort tgrstats tgrclean
 
 
 .SUFFIXES:	.icn
-.icn:		; IPATH="../procs $$IPATH" $(IC) $(IFLAGS) $<
+.icn:		; $(IC) $(IFLAGS) $<
 
 
 
@@ -22,9 +22,6 @@ test:
 
 install:	$(PROGS) $(SCRIPTS)
 		cp $(PROGS) $(SCRIPTS) $(DEST)
-
-
-$(PROGS):	../procs/built
 
 
 clean:		

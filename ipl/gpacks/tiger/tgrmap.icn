@@ -6,7 +6,7 @@
 #
 #	Authors:  Gregg M. Townsend and William S. Evans
 #
-#	Date:     July 28, 2000
+#	Date:     July 29, 2000
 #
 ############################################################################
 #
@@ -201,7 +201,7 @@ procedure main(args)
          else {
             hilightOnly := &null
          }
-         if TextDialog("Find feature named...", , litName) == "Okay" then {
+         if TextDialog("Find features named:", , litName) == "Okay" then {
             litName := map(dialog_value[1])
             if litName == "" then litName := &null
             drawmap(hilightOnly)
@@ -482,7 +482,10 @@ procedure drawmap(hilightOnly)
 
       while line := read(f) do line ? {
 
-         if *Pending() > 0 then return
+         if *Pending() > 0 then {
+	    WAttrib("pointer=cross" | "pointer=crosshair")
+	    return
+	 }
 
          w := \wintbl[class := move(2)] | next
          move(1)
@@ -566,6 +569,12 @@ procedure identify(x, y)
       read(f)		# skip maxima line
 
       while line := read(f) do line ? {
+
+         if *Pending() > 0 then {
+	    WAttrib("pointer=cross" | "pointer=crosshair")
+	    return
+	 }
+
          cfcc := move(3)
          bndry := move(1)
          if ="|" then {		# get feature name

@@ -16,16 +16,8 @@
 #
 #   2. Major category, largest (least significant) first
 #
-#   3. Pseudorandom location, using least signficant digits of coordinates
-#
 #   The feature class and category sorting is chosen so that more important
 #   chains are drawn later, obscuring lesser chains, instead of the reverse.
-#
-#   The "pseudorandom location" sort ensures a fairly thorough mixing of
-#   the elements of a particular class, with the effect that lines appear
-#   more or less continuously all over the map.  Without such mixing,
-#   the display of a zoomed-in region can seem to pause while skipping
-#   long sequences of lines that are outside the region.
 #
 #   Note that this sorting can reverse the positions of the first two lines
 #   of the file (the min/max lines), but tgrmap.icn can handle that.
@@ -35,5 +27,5 @@ TR2=JKLMNPQR
 
 cat $1 |
 tr $TR1 $TR2 |
-sort -t: +0.0 -0.1 +0.1r -0.2r +0.14 -0.15 +0.21 |
+sort -t: -k 1.1,1.1 -k 1.2,1.3r -k 1.4 |
 tr $TR2 $TR1

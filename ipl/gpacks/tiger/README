@@ -1,15 +1,15 @@
 Tiger README file
 Gregg M. Townsend and William S. Evans
-June 9, 2000
+July 31, 2000
 
 
 These programs draw road and street maps from the "TIGER/Line" data
 files (1994 or later) of the U.S. Census Bureau.  Two programs are key:
 
-   tgrprep.icn	reformats the data into smaller, more easily displayed
-		"line chain" files.
+   tgrprep.icn	reformats TIGER/Line data into smaller, more easily
+		displayed "line chain" files.
 
-   tgrmap.icn	reads a line chain file and displays a map.  Zooming
+   tgrmap.icn	reads line chain files and displays a map.  Zooming
 		and other features are provided.  A subset of the map
 		can be saved as either line chains or as a PostScript
 		file for printing.
@@ -20,6 +20,20 @@ Other programs are useful, though not necessary:
 		of the same data
 
    trgmerge.icn	merges data from multiple line chain files
+
+   tgrtrack.icn creates a line chain file from a GPS track log.
+
+   tgrquant.icn quantize line chain files to simulate a loss of precision.
+
+Four UNIX scripts also manipulate line chain files:
+
+   tgrsort	orders map data from least to most significant.
+
+   tgrstats	counts the occurrences of each type of feature.
+
+   tgrclean	removes insignificant features.
+
+   tgrstrip	removes even more features.
 
 There is a wealth of information in the TIGER files; only some of it is
 displayed.  In particular, street names are not displayed, and bounded
@@ -50,7 +64,7 @@ available from city or county planning offices and the like.
 
 The process of making a map goes something like this:
     * find the appropriate data file; there is one for every county
-    * unzip the county file, producing about 15 separate files
+    * unzip the county file, producing about 17 separate files
     * run tgrprep, using the first two of those files, to make a .lch file
     * run tgrmap, reading the .lch file
     * zoom in on the area of interest
