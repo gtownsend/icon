@@ -246,8 +246,7 @@ void report(char *s) {
    }
 
 /*
- * Print an error message if called incorrectly.  The message depends
- *  on the legal options for this system.
+ * Print a usage message and abort the run.
  */
 static void usage(void) {
    fprintf(stderr, "usage: %s %s\n",
