@@ -8,6 +8,7 @@
 
 IC=${IC-icont}
 IC=../../bin/$IC
+IX=../../bin/iconx
 
 unset ICONX IPATH LPATH FPATH
 unset BLKSIZE BLOCKSIZE HEAPSIZE STRSIZE
@@ -15,6 +16,10 @@ unset MSTKSIZE COEXPSIZE QLSIZE
 
 #  check that icont and iconx have been built
 ls $IC ../../bin/iconx >/dev/null || exit 0
+
+#  print their version numbers
+echo "icont:  `$IC -V 2>&1`"
+echo "iconx:  `$IX -V 2>&1`"
 
 #  if no files specified, run them all
 if [ $# = 0 ]; then

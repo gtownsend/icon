@@ -100,6 +100,8 @@ int main(int argc, char *argv[]) {
             break;			/*NOTREACHED*/
          case 'V':
             fprintf(stderr, "%s  (%s, %s)\n", Version, Config, __DATE__);
+            if (optind == argc)
+               exit(0);
             break;
          case 'X':			/* -X srcfile: execute single srcfile */
             txrun(copyfile, optarg, &argv[optind]);
