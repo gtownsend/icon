@@ -1,13 +1,14 @@
 #  a simple test of many of the core library procedures
 
 link core
+link options
 link rational
 
 $define LSIZE 16
 $define GENLIMIT 25
 
 procedure main()
-   local L, T, r1, r2, r3
+   local L, T, r1, r2, r3, argv
 
    L := [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
    T := table("0")
@@ -141,6 +142,17 @@ procedure main()
    gen(sum, 1, 1, 2, 3, 5, 8, 13, 21, 42)
    gen(trunc, &phi)
    gen(unroman, "MCMLXXIV")
+
+   write()
+   write("options:")			# options  (not part of core)
+   argv := ["-abc","-","-s","-v","-i","42","-r","98.6","--","-b","x","y"] 
+   tbl(options, copy(argv))
+   tbl(options, copy(argv), "scrivab")
+   tbl(options, copy(argv), "a:s:i:r:b:")
+   tbl(options, copy(argv), "a:s!v!i+r.b!")
+   tbl(options, copy(argv), "-abc: -s: irvb")
+   tbl(options, argv, "a:svi:r")
+   every writes(" ", "  argv        " | !argv | "\n")
 
    write()
    write("random:")			# random
