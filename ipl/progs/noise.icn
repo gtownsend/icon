@@ -1,0 +1,45 @@
+############################################################################
+#
+#	File:     noise.icn
+#
+#	Subject:  Program to generate random noise
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     November 3, 2003
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program generates random 8-bit bytes until killed.
+#  While it may not be cryptographically strong, it is 
+#  suitable for overwriting a disk or tape for disposal.
+#  
+############################################################################
+#
+#  Links:  random
+#
+############################################################################
+
+$define BUFSIZE 1000000			# working buffer size
+$define BLKSIZE 65536			# output block size
+
+link random
+
+procedure main()
+   local buf, cs
+
+   collect(2, 2 * BUFSIZE)		# ensure large memory region
+   randomize()				# different results every time
+
+   buf := ""
+   cs := string(&cset)
+   every 1 to BUFSIZE do
+      buf ||:= ?cs			# initialize buffer randomly
+
+   repeat	# write random transliterations of random subsets of buffer
+      writes(map(buf[?(BUFSIZE - BLKSIZE) +: BLKSIZE], cs, scramble(cs)))
+end
