@@ -4,7 +4,9 @@ OBJS=	long.o getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
 	munix.o literals.o rswitch.o alloc.o long.o getopt.o time.o\
 	save.o rswitch.o redirerr.o xwindow.o dlrgint.o ipp.o
 
-common:		doincl.o
+common:		doincl
+
+doincl:		doincl.o
 		$(CC) $(LDFLAGS) -o doincl doincl.o
 		-./doincl -o ../../bin/rt.h ../h/rt.h
 
