@@ -109,8 +109,8 @@ file(sed 's/^/=()= /' io.icn)
 > =()=    local L, f, m, n, t1, t2
 > =()= 
 > =()=    L := [&input, &output, &errout,
-> =()=    	m := open("/etc/motd"), n := open("/dev/null", "w")]
-> =()=    L := sort(L)
+> =()=    	m := open("/etc/motd") | stop("no /etc/motd"),
+> =()= 	n := open("/dev/null", "w") | stop("no /dev/null")]
 
 file(ls io.i?n io.d?t io.s?d)
 > io.dat

@@ -6,7 +6,8 @@ procedure main()
    local L, f, m, n, t1, t2
 
    L := [&input, &output, &errout,
-   	m := open("/etc/motd"), n := open("/dev/null", "w")]
+   	m := open("/etc/motd") | stop("no /etc/motd"),
+	n := open("/dev/null", "w") | stop("no /dev/null")]
    L := sort(L)
    every f := !L do
       write(type(f), ": ", image(f))
@@ -185,7 +186,7 @@ procedure tpipe()
 
    # check unclosed pipe
    write()
-   p := open("sed 's/^/=()= /' io.icn", "p") | stop("can't open od pipe")
+   p := open("sed 's/^/=()= /' io.icn", "p") | stop("can't open sed pipe")
    write(image(p))
    every 1 to 10 do write("> ", read(p))
    # p is deliberately left unclosed
