@@ -7,11 +7,15 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     May 31, 2001
+#	Date:     April 26, 2002
 #
 ############################################################################
 #
 #   This file is in the public domain.
+#
+############################################################################
+#
+#   Contributor: Kostas Oikonomou
 #
 ############################################################################
 #
@@ -52,12 +56,15 @@
 # 	StringAddr(d)	address of possibly unterminated string
 # 	StringLen(d)	length of string
 # 
+#	ListLen(d)	length of list
+# 
 #   These macros check the type of an argument, converting if necessary,
 #   and returning an error code if the argument is wrong:
 # 
 # 	ArgInteger(i)		check that argv[i] is an integer
 # 	ArgReal(i)		check that argv[i] is a real number
 # 	ArgString(i)		check that argv[i] is a string
+#	ArgList(i)		check that argv[i] is a list
 #
 #   Caveats:
 #      Allocation failure is not detected.
@@ -129,6 +136,8 @@ typedef long word;
 typedef struct { word dword, vword; } descriptor;
 typedef struct { word title; double rval; } realblock;
 typedef struct { word title; FILE *fp; word stat; descriptor fname; } fileblock;
+typedef struct { word title, size, id; void *head, *tail; } listblock;
+
 
 char *alcstr(char *s, word len);
 realblock *alcreal(double v);
@@ -154,6 +163,8 @@ extern descriptor nulldesc;		/* null descriptor */
 #define StringVal(d) \
 (*(char*)((d).vword+(d).dword) ? cnv_c_str(&(d),&(d)) : 0, (char*)((d).vword))
 
+#define ListLen(d) (((listblock *)((d).vword))->size)
+
 
 #define ArgInteger(i) do { if (argc < (i)) Error(101); \
 if (!cnv_int(&argv[i],&argv[i])) ArgError(i,101); } while (0)
@@ -163,6 +174,10 @@ if (!cnv_real(&argv[i],&argv[i])) ArgError(i,102); } while (0)
 
 #define ArgString(i) do { if (argc < (i)) Error(103); \
 if (!cnv_str(&argv[i],&argv[i])) ArgError(i,103); } while (0)
+
+#define ArgList(i) \
+do {if (argc < (i)) Error(108); \
+if (IconType(argv[i]) != 'L') ArgError(i,108); } while(0)
 
 
 #define RetArg(i) return (argv[0] = argv[i], 0)
