@@ -103,33 +103,9 @@
    } while (0)
 #enddef					/* EVValX */
 
-#if UNIX
-   #begdef EVTick()
-   /*
-    * EVTick() - record a Tick event reflecting a clock advance.
-    *
-    *  The interpreter main loop has detected a change in the profile counters.
-    *  This means that the system clock has ticked.  Record an event and update
-    *  the records.
-    */
-   do {
-      word sum, nticks;
-
-      oldtick = ticker.l[0] + ticker.l[1];
-      sum = ticker.s[0] + ticker.s[1] + ticker.s[2] + ticker.s[3];
-      nticks = sum - oldsum;
-      EVVal(nticks, E_Tick);
-      oldsum = sum;
-   } while (0)
-   #enddef				/* EVTick */
-#else					/* UNIX */
-   #define EVTick()
-#endif					/* UNIX */
-
 #define InterpEVVal(arg1,arg2)  { ExInterp; EVVal(arg1,arg2); EntInterp; }
 #define InterpEVValD(arg1,arg2) { ExInterp; EVValD(arg1,arg2); EntInterp; }
 #define InterpEVValX(arg1,arg2) { ExInterp; EVValX(arg1,arg2); EntInterp; }
-#define InterpEVTick()          { ExInterp; EVTick(); EntInterp; }
 
 /*
  * Macro with construction of event descriptor.
@@ -147,11 +123,9 @@
    #define EVVal(arg1,arg2)
    #define EVValD(arg1,arg2)
    #define EVValX(arg1,arg2)
-   #define EVTick()
    #define InterpEVVal(arg1,arg2)
    #define InterpEVValD(arg1,arg2)
    #define InterpEVValX(arg1,arg2)
-   #define InterpEVTick()
    #define Desc_EVValD(bp, code, type)
 #endif					/* EventMon */
 

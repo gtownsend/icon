@@ -470,7 +470,6 @@ struct header *hdr;
    /*
     * Catch floating-point traps and memory faults.
     */
-
    signal(SIGFPE, fpetrap);
    #if UNIX
       signal(SIGSEGV, segvtrap);
@@ -721,19 +720,14 @@ void envset()
    env_int("IXGROWTH", &memgrowth, 1, (uword)10000);	/* max 100x growth */
 
    if ((p = getenv(ICONCORE)) != NULL && *p != '\0') {
-
       /*
-       * Set trap to give dump on abnormal termination if ICONCORE is set.
+       * ICONCORE is set.  Reset traps to allow dump after abnormal termination.
        */
-      #if MSDOS
-         signal(SIGFPE, SIG_DFL);
-      #endif				/* MSDOS */
-
+      dodump++;
+      signal(SIGFPE, SIG_DFL);
       #if UNIX
          signal(SIGSEGV, SIG_DFL);
       #endif				/* UNIX */
-
-      dodump++;
       }
    }
 

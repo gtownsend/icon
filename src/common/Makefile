@@ -22,8 +22,8 @@ xpm:
 		cd ../xpm; $(MAKE) libXpm.a
 		cp ../xpm/libXpm.a ../../bin
 
-$(OBJS): ../h/define.h ../h/arch.h ../h/config.h ../h/cstructs.h ../h/mproto.h \
-	  ../h/typedefs.h ../h/proto.h ../h/cpuconf.h
+$(OBJS): ../h/define.h ../h/arch.h ../h/config.h ../h/cstructs.h \
+	  ../h/typedefs.h ../h/mproto.h ../h/cpuconf.h
 
 ../h/arch.h:	infer.c
 		$(CC) $(CFLAGS) -o infer infer.c

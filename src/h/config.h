@@ -9,19 +9,20 @@
 /*
  *  A number of symbols are defined here.  Some are specific to individual
  *  to operating systems.  Examples are:
- *
- *	MSDOS		MS-DOS for PCs
+ *	MSDOS		MS-DOS for PCs; includes MS Windows
  *	UNIX		any UNIX system; also set for BeOS or Mac (Darwin)
  *
- *  There also are definitions of symbols for specific computers and
- *  versions of operating systems.  These include:
- *
- *	MICROSOFT	code specific to the Microsoft C compiler for MS-DOS
+ *  Some definitions enable or disable certain Icon features, for example:
+ *	NoCoexpr	disables co-expressions
+ *	LargeInts	enables large integers
  *
  *  Other definitions may occur for different configurations. These include:
- *
  *	DeBug		debugging code
  *	MultiThread	support for multiple programs under the interpreter
+ *
+ *  Many definitions reflect remnants of past research projects.
+ *  Changing them to values not used in standard configurations
+ *  may result in an unbuildable or nonfunctioning system.
  */
 
 /*

@@ -11,7 +11,7 @@
 #include "../h/sys.h"
 #include "../h/typedefs.h"
 #include "../h/cstructs.h"
-#include "../h/proto.h"
+#include "../h/mproto.h"
 #include "../h/cpuconf.h"
 #include "../h/monitor.h"
 #include "../h/rmacros.h"

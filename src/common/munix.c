@@ -244,8 +244,4 @@ static char *canonize(char *path) {
    return path;				/* return result */
    }
 
-#else					/* UNIX */
-
-static char junk;		/* avoid empty module */
-
 #endif					/* UNIX */

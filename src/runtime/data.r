@@ -313,12 +313,6 @@ struct errtab errtab[] = {
    147, "window attribute cannot be read or written as requested",
 #endif					/* Graphics */
 
-#ifdef MSWindows
-#ifdef FAttrib
-   160, "bad file attribute",
-#endif					/* FAttrib */
-#endif					/* MSWindows */
-
    201, "division by zero",
    202, "remaindering by zero",
    203, "integer overflow",

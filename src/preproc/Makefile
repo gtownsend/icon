@@ -10,7 +10,7 @@ ICOBJS=	getopt.o time.o strtbl.o alloc.o
 OBJS= $(POBJS) $(COBJS)
 
 DOT_H = preproc.h pproto.h ptoken.h ../h/define.h ../h/config.h\
-        ../h/typedefs.h ../h/proto.h ../h/mproto.h
+        ../h/typedefs.h ../h/mproto.h
 
 common:
 	cd ../common; $(MAKE) $(ICOBJS)

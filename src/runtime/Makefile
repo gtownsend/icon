@@ -4,7 +4,7 @@ include ../../Makedefs
 
 
 HDRS = ../h/define.h ../h/config.h ../h/typedefs.h ../h/monitor.h\
-	  ../h/proto.h ../h/cstructs.h ../h/cpuconf.h ../h/grttin.h\
+	  ../h/cstructs.h ../h/cpuconf.h ../h/grttin.h\
 	  ../h/rmacros.h ../h/rexterns.h ../h/rstructs.h \
 	  ../h/rproto.h ../h/mproto.h ../h/sys.h
 

@@ -4,107 +4,6 @@
  *  [save], seek, stop, system, where, write, writes, [getch, getche, kbhit]
  */
 
-#if MICROSOFT
-#define BadCode
-#endif					/* MICROSOFT */
-
-
-
-#ifdef MSWindows
-#ifdef FAttrib
-
-"fattrib(str, att) - get the attribute of a file "
-
-function{*} fattrib (fname, att[argc])
-
-   if !cnv:C_string(fname) then
-        runerr(103, fname)
-
-   abstract {
-      return string ++ integer
-      }
-
-   body {
-      tended char *s;
-      struct stat fs;
-#if UNIX
-      struct passwd *pwnam;
-      struct group  *grnam;
-#endif					/* UNIX */
-#if NT
-      HFILE hf;
-      OFSTRUCT of;
-      FILETIME ft1,ft2,ft3;
-      SYSTEMTIME st;
-#endif					/* NT */
-      int fd, i;
-      char *retval;
-      char *temp;
-      long l;
-
-         if ( stat(fname, &fs) == -1 )
-            fail;
-	 for(i=0; i<argc; i++) {
-	    if (!cnv:C_string(att[i], s)) {
-	       runerr(103, att[i]);
-	       }
-         if ( !strcasecmp("size", s) ) {
-            suspend C_integer(fs.st_size);
-            }
-         else if ( !strcasecmp("status", s) ) {
-            temp = make_mode (fs.st_mode);
-	    l = strlen(temp);
-            Protect(retval = alcstr(temp,l), runerr(0));
-	    free(temp);
-            suspend string(l, retval);
-            }
-#if UNIX
-         else if ( !strcasecmp("owner", s) ) {
-            pwnam = getpwuid (fs.st_uid);
-	    temp = pwnam->pw_name;
-	    l = strlen(temp);
-	    Protect(temp = alcstr(temp, l), runerr(0));
-            suspend string (l, temp);
-            }
-         else if ( !strcasecmp("group", s) ) {
-            grnam = getgrgid (fs.st_gid);
-	    temp = grnam->gr_name;
-	    l = strlen(temp);
-	    Protect(temp = alcstr(temp, l), runerr(0));
-            suspend string (l, temp);
-            }
-#endif					/* UNIX */
-         else if ( !strcasecmp("m_time", s) ) {
-	    temp = ctime(&(fs.st_mtime));
-	    l = strlen(temp);
-	    if (temp[l-1] == '\n') l--;
-	    Protect(temp = alcstr(temp, l), runerr(0));
-            suspend string(l, temp);
-            }
-         else if ( !strcasecmp("a_time", s) ) {
-	    temp = ctime(&(fs.st_atime));
-	    l = strlen(temp);
-	    if (temp[l-1] == '\n') l--;
-	    Protect(temp = alcstr(temp, l), runerr(0));
-            suspend string(l, temp);
-            }
-         else if ( !strcasecmp("c_time", s) ) {
-	    temp = ctime(&(fs.st_ctime));
-	    l = strlen(temp);
-	    if (temp[l-1] == '\n') l--;
-	    Protect(temp = alcstr(temp, l), runerr(0));
-            suspend string(l, temp);
-            }
-         else {
-            runerr(160);
-            }
-      }
-      fail;
-   }
-end
-#endif					/* FAttrib */
-#endif					/* MSWindows */
-
 "close(f) - close file f."
 
 function{1} close(f)
@@ -1028,10 +927,6 @@ function {1} name(x[nargs])
         (ConsoleFlags & StdOutRedirect) ? k_output.status : Fs_Read | Fs_Write | Fs_Window;
 #endif					/* ConsoleWindow */
 #endif					/* terminate */
-
-#ifdef BadCode
-      struct descrip temp;
-#endif					/* BadCode */
       }
 
 #if terminate
@@ -1299,3 +1194,78 @@ function{1} flush(f)
       return f;
       }
 end
+
+#ifdef MSWindows
+#ifdef FAttrib
+
+"fattrib(str, att) - get the attribute of a file "
+
+function{*} fattrib (fname, att[argc])
+
+   if !cnv:C_string(fname) then
+        runerr(103, fname)
+
+   abstract {
+      return string ++ integer
+      }
+
+   body {
+      tended char *s;
+      struct stat fs;
+#if NT
+      HFILE hf;
+      OFSTRUCT of;
+      FILETIME ft1,ft2,ft3;
+      SYSTEMTIME st;
+#endif					/* NT */
+      int fd, i;
+      char *retval;
+      char *temp;
+      long l;
+
+         if ( stat(fname, &fs) == -1 )
+            fail;
+	 for(i=0; i<argc; i++) {
+	    if (!cnv:C_string(att[i], s)) {
+	       runerr(103, att[i]);
+	       }
+         if ( !strcasecmp("size", s) ) {
+            suspend C_integer(fs.st_size);
+            }
+         else if ( !strcasecmp("status", s) ) {
+            temp = make_mode (fs.st_mode);
+	    l = strlen(temp);
+            Protect(retval = alcstr(temp,l), runerr(0));
+	    free(temp);
+            suspend string(l, retval);
+            }
+         else if ( !strcasecmp("m_time", s) ) {
+	    temp = ctime(&(fs.st_mtime));
+	    l = strlen(temp);
+	    if (temp[l-1] == '\n') l--;
+	    Protect(temp = alcstr(temp, l), runerr(0));
+            suspend string(l, temp);
+            }
+         else if ( !strcasecmp("a_time", s) ) {
+	    temp = ctime(&(fs.st_atime));
+	    l = strlen(temp);
+	    if (temp[l-1] == '\n') l--;
+	    Protect(temp = alcstr(temp, l), runerr(0));
+            suspend string(l, temp);
+            }
+         else if ( !strcasecmp("c_time", s) ) {
+	    temp = ctime(&(fs.st_ctime));
+	    l = strlen(temp);
+	    if (temp[l-1] == '\n') l--;
+	    Protect(temp = alcstr(temp, l), runerr(0));
+            suspend string(l, temp);
+            }
+         else {
+            runerr(205, s);
+            }
+      }
+      fail;
+   }
+end
+#endif					/* FAttrib */
+#endif					/* MSWindows */

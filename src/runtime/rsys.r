@@ -265,18 +265,13 @@ int kbhit(void)
 #endif					/* UNIX */
 #endif					/* KeyboardFncs */
 
-#ifdef MSWindows
 #ifdef FAttrib
+#ifdef MSWindows
 /*
- * make_mode takes mode_t type (an integer) input and returns the file permission
- * in the format of a string.
+ * make_mode takes mode_t type (an integer) input and returns the
+ * file permission in the format of a string.
 */
-#if UNIX
-char *make_mode (mode_t st_mode)
-#endif					/* UNIX */
-#if MSDOS
 char *make_mode (unsigned short st_mode)
-#endif					/* MSDOS */
 {
    char *buf;
 
@@ -285,34 +280,6 @@ char *make_mode (unsigned short st_mode)
       return NULL;
    }
 
-#if UNIX
-   if ( st_mode & S_IFIFO )      buf[0] = 'f';
-   else if ( st_mode & S_IFCHR ) buf[0] = 'c';
-   else if ( st_mode & S_IFDIR ) buf[0] = 'd';
-   else if ( st_mode & S_IFBLK ) buf[0] = 'b';
-   else if ( st_mode & S_IFREG ) buf[0] = '-';
-   else			         buf[0] = '\?';
-
-   if (st_mode & S_IRUSR) buf[1] = 'r';
-   else    buf[1] = '-';
-   if (st_mode & S_IWUSR) buf[2] = 'w';
-   else    buf[2] = '-';
-   if (st_mode & S_IXUSR) buf[3] = 'x';
-   else    buf[3] = '-';
-   if (st_mode & S_IRGRP) buf[4] = 'r';
-   else    buf[4] = '-';
-   if (st_mode & S_IWGRP) buf[5] = 'w';
-   else    buf[5] = '-';
-   if (st_mode & S_IXGRP) buf[6] = 'x';
-   else    buf[6] = '-';
-   if (st_mode & S_IROTH) buf[7] = 'r';
-   else    buf[7] = '-';
-   if (st_mode & S_IWOTH) buf[8] = 'w';
-   else    buf[8] = '-';
-   if (st_mode & S_IXOTH) buf[9] = 'x';
-   else    buf[9] = '-';
-#endif					/* UNIX */
-#if MSDOS
    if ( st_mode & _S_IFIFO )      buf[0] = 'f';
    else if ( st_mode & _S_IFCHR ) buf[0] = 'c';
    else if ( st_mode & _S_IFDIR ) buf[0] = 'd';
@@ -337,12 +304,9 @@ char *make_mode (unsigned short st_mode)
    else    buf[8] = '-';
    if (st_mode & S_IEXEC) buf[9] = 'x';
    else    buf[9] = '-';
-#endif					/* MSDOS */
 
    buf[10] = '\0';
-
    return buf;
 }
-
-#endif					/* FAttrib */
 #endif					/* MSWindows */
+#endif					/* FAttrib */

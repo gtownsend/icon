@@ -4,7 +4,7 @@ include ../../Makedefs
 
 
 HFILES =	../h/define.h ../h/config.h ../h/cpuconf.h ../h/gsupport.h \
-		   ../h/proto.h ../h/mproto.h ../h/typedefs.h ../h/cstructs.h
+		   ../h/mproto.h ../h/typedefs.h ../h/cstructs.h
 
 TRANS =		trans.o tcode.o tlex.o lnklist.o tparse.o tsym.o tmem.o tree.o
 

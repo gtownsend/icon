@@ -15,24 +15,11 @@
 void mmrefresh		(void);
 
 #define evforget()
-
+
 
 char typech[MaxType+1];	/* output character for each type */
 
 int noMTevents;			/* don't produce events in EVAsgn */
-
-union {				/* clock ticker -- keep in sync w/ interp.r */
-   unsigned short s[16];	/* four counters */
-   unsigned long l[8];		/* two longs are easier to check */
-} ticker;
-unsigned long oldtick;		/* previous sum of the two longs */
-
-#if UNIX
-/*
- * Global state used by EVTick()
- */
-word oldsum = 0;
-#endif					/* UNIX */
 
 #ifdef MultiThread
 
@@ -258,26 +245,6 @@ void EVInit()
     *    in the static region: E_Free = free
     *    in the string region: E_String = string
     */
-
-#if UNIX
-   /*
-    * Call profil(2) to enable program counter profiling.  We use the smallest
-    *  allowable scale factor in order to minimize the number of counters;
-    *  we assume that the text of iconx does not exceed 256K and so we use
-    *  four bins.  One of these four bins will be incremented every system
-    *  clock tick (typically 4 to 20 ms).
-    *
-    *  Take your local profil(2) man page with a grain of salt.  All the systems
-    *  we tested really maintain 16-bit counters despite what the man pages say.
-    *  Some also say that a scale factor of two maps everything to one counter;
-    *  that is believed to be a no-longer-correct statement dating from the days
-    *  when the maximum program size was 64K.
-    *
-    *  The reference to EVInit below just obtains an arbitrary address within
-    *  the text segment.
-    */
-   profil(ticker.s, sizeof(ticker.s), (int) EVInit & ~0x3FFFF, 2);
-#endif					/* UNIX */
    }
 
 /*
