@@ -96,9 +96,7 @@ extern int over_flow;
 
 /* copied from rconv.c */
 
-#if !EBCDIC
 #define tonum(c)     (isdigit(c) ? (c)-'0' : 10+(((c)|(040))-'a'))
-#endif					/* !EBCDIC */
 
 /* copied from oref.c */
 

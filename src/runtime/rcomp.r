@@ -351,9 +351,8 @@ dptr dp1, dp2;
     */
    while (minlen--)
       if (*s1++ != *s2++)
+         return (*--s1 & 0377) > (*--s2 & 0377) ?  Greater : Less;
 
-         return (ToAscii(*--s1 & 0377) > ToAscii(*--s2 & 0377) ?
-                 Greater : Less);
    /*
     * The strings compared equal for the length of the shorter.
     */

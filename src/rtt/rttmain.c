@@ -86,15 +86,9 @@ char *rt_path = "../src/h/rt.h";
 
 static char *ostr = "+ECPD:I:U:d:cir:st:x";
 
-#if EBCDIC
-static char *options =
-   "<-E> <-C> <-P> <-Dname<=<text>>> <-Uname> <-Ipath> <-dfile>\n    \
-<-rpath> <-tname> <-x> <files>";
-#else                                   /* EBCDIC */
 static char *options =
    "[-E] [-C] [-P] [-Dname[=[text]]] [-Uname] [-Ipath] [-dfile]\n    \
 [-rpath] [-tname] [-x] [files]";
-#endif                                  /* EBCDIC */
 
 /*
  *  Note: rtt presently does not process system include files. If this

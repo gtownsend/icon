@@ -107,7 +107,7 @@ function{*} bal(c1,c2,c3,s,i,j)
        */
       cnt = 0;
       while (cnv_i < cnv_j) {
-         c = ToAscii(StrLoc(s)[cnv_i-1]);
+         c = StrLoc(s)[cnv_i-1];
          if (cnt == 0 && Testb(c, c1)) {
             suspend C_integer cnv_i;
             }
@@ -183,7 +183,7 @@ function{0,1} many(c,s,i,j)
        *  or the end of the string is reached.
        */
       while (cnv_i < cnv_j) {
-         if (!Testb(ToAscii(StrLoc(s)[cnv_i-1]), c))
+         if (!Testb(StrLoc(s)[cnv_i-1], c))
             break;
          cnv_i++;
          }
@@ -246,7 +246,7 @@ function{*} upto(c,s,i,j)
        * of a character in c.
        */
       while (cnv_i < cnv_j) {
-         tmp = (C_integer)ToAscii(StrLoc(s)[cnv_i-1]);
+         tmp = (C_integer)StrLoc(s)[cnv_i-1];
          if (Testb(tmp, c)) {
             suspend C_integer cnv_i;
             }

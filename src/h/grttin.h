@@ -79,7 +79,7 @@
 #begdef EVVal(value,event)
    do {
       if (is:null(curpstate->eventmask)) break;
-      else if (!Testb((word)ToAscii(event), curpstate->eventmask)) break;
+      else if (!Testb((word)event, curpstate->eventmask)) break;
       MakeInt(value, &(curpstate->parent->eventval));
       actparent(event);
    } while (0)
@@ -87,7 +87,7 @@
 #begdef EVValD(dp,event)
    do {
       if (is:null(curpstate->eventmask)) break;
-      else if (!Testb((word)ToAscii(event), curpstate->eventmask)) break;
+      else if (!Testb((word)event, curpstate->eventmask)) break;
       curpstate->parent->eventval = *(dp);
       actparent(event);
    } while (0)
@@ -96,7 +96,7 @@
    do {
       struct progstate *parent = curpstate->parent;
       if (is:null(curpstate->eventmask)) break;
-      else if (!Testb((word)ToAscii(event), curpstate->eventmask)) break;
+      else if (!Testb((word)event, curpstate->eventmask)) break;
       parent->eventval.dword = D_Coexpr;
       BlkLoc(parent->eventval) = (union block *)(bp);
       actparent(event);

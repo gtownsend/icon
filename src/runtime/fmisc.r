@@ -86,7 +86,7 @@ function{1} char(i)
          irunerr(205, i);
          errorfail;
          }
-      return string(1, (char *)&allchars[FromAscii(i) & 0xFF]);
+      return string(1, (char *)&allchars[i & 0xFF]);
       }
 end
 
@@ -578,7 +578,7 @@ function{1} ord(s)
    body {
       if (StrLen(s) != 1)
          runerr(205, s);
-      return C_integer ToAscii(*StrLoc(s) & 0xFF);
+      return C_integer (*StrLoc(s) & 0xFF);
       }
 end
 

@@ -243,7 +243,7 @@ operator{*} ! bang(underef x -> dx)
                 */
                for (i = 1; i <= StrLen(dx); i++) {
                   ch = *(StrLoc(dx) + i - 1);
-                  suspend string(1, (char *)&allchars[FromAscii(ch) & 0xFF]);
+                  suspend string(1, (char *)&allchars[ch & 0xFF]);
                   }
                }
             }
@@ -331,7 +331,7 @@ operator{0,1} ? random(underef x -> dx)
             rval = RandVal;
             rval *= val;
             ch = *(StrLoc(dx) + (word)rval);
-            return string(1, (char *)&allchars[FromAscii(ch) & 0xFF]);
+            return string(1, (char *)&allchars[ch & 0xFF]);
             }
          }
 
@@ -880,7 +880,7 @@ operator{0,1} [] subsc(underef x -> dx,y)
                 * character.
                 */
                ch = *(StrLoc(dx)+i-1);
-               return string(1, (char *)&allchars[FromAscii(ch) & 0xFF]);
+               return string(1, (char *)&allchars[ch & 0xFF]);
                }
             }
          }

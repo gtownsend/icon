@@ -12,9 +12,7 @@
 #define Abs(n) ((n) >= 0 ? (n) : -(n))
 #define Max(x,y) ((x)>(y)?(x):(y))
 
-#if !EBCDIC
 #define tonum(c)	(isdigit(c) ? (c - '0') : ((c & 037) + 9))
-#endif					/* !EBCDIC */
 
 /*
  * Hash tables must be a power of 2.

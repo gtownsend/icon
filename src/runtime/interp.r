@@ -333,8 +333,8 @@ dptr cargp;
     *  Further optimization here is planned.
     */
    if (!is:null(curpstate->eventmask) && (
-       Testb((word)ToAscii(E_Loc), curpstate->eventmask) ||
-       Testb((word)ToAscii(E_Line), curpstate->eventmask)
+       Testb((word)E_Loc, curpstate->eventmask) ||
+       Testb((word)E_Line, curpstate->eventmask)
        )) {
 
       if (InRange(code, ipc.opnd, ecode)) {
@@ -379,13 +379,13 @@ dptr cargp;
 	    linenum = current_line_ptr->line;
             temp_no = linenum & 65535;
             if ((lastline & 65535) != temp_no) {
-               if (Testb((word)ToAscii(E_Line), curpstate->eventmask))
+               if (Testb((word)E_Line, curpstate->eventmask))
                      if (temp_no)
                         InterpEVVal(temp_no, E_Line);
 	       }
 	    if (lastline != linenum) {
 	       lastline = linenum;
-	       if (Testb((word)ToAscii(E_Loc), curpstate->eventmask) &&
+	       if (Testb((word)E_Loc, curpstate->eventmask) &&
 		   current_line_ptr->line >> 16)
 		  InterpEVVal(current_line_ptr->line, E_Loc);
 	       }
@@ -447,9 +447,9 @@ Deliberate Syntax Error
        * generate an MT-style event.
        */
       if ((!is:null(curpstate->eventmask) &&
-	   Testb((word)ToAscii(E_Opcode), curpstate->eventmask)) &&
+	   Testb((word)E_Opcode, curpstate->eventmask)) &&
 	  (is:null(curpstate->opcodemask) ||
-	   Testb((word)ToAscii(lastop), curpstate->opcodemask))) {
+	   Testb((word)lastop, curpstate->opcodemask))) {
 	 ExInterp;
 	 MakeInt(lastop, &(curpstate->parent->eventval));
 	 actparent(E_Opcode);
@@ -2043,7 +2043,7 @@ int event;
    struct progstate *parent = curpstate->parent;
 
    StrLen(parent->eventcode) = 1;
-   StrLoc(parent->eventcode) = (char *)&allchars[FromAscii(event)&0xFF];
+   StrLoc(parent->eventcode) = (char *)&allchars[event & 0xFF];
    mt_activate(&(parent->eventcode), NULL,
 	       (struct b_coexpr *)curpstate->parent->Mainhead);
    }

@@ -74,11 +74,7 @@
    Feature(1, "_VMS", "VMS")
 #endif					/* VMS */
 
-#if EBCDIC != 1
    Feature(1, "_ASCII", "ASCII")
-#else					/* EBCDIC != 1 */
-   Feature(1, "_EBCDIC", "EBCDIC")
-#endif					/* EBCDIC */
 
 #ifdef Coexpr
    Feature(1, "_CO_EXPRESSIONS", "co-expressions")

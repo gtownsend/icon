@@ -101,11 +101,7 @@ int pnsize = (sizeof(pntab) / sizeof(struct pstrnm)) - 1;
 struct b_cset  blankcs = {
    T_Cset,
    1,
-#if !EBCDIC
    cset_display(0, 0, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-#else					/* EBCDIC */
-   cset_display(0, 0, 0, 0, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-#endif					/* EBCDIC */
    };
 
 /*
@@ -114,11 +110,7 @@ struct b_cset  blankcs = {
 struct b_cset  lparcs = {
    T_Cset,
    1,
-#if !EBCDIC
    cset_display(0, 0, 0400, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-#else					/* EBCDIC */
-   cset_display(0, 0, 0, 0, 0x2000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-#endif					/* EBCDIC */
    };
 
 /*
@@ -127,11 +119,7 @@ struct b_cset  lparcs = {
 struct b_cset  rparcs = {
    T_Cset,
    1,
-#if !EBCDIC
    cset_display(0, 0, 01000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-#else					/* EBCDIC */
-   cset_display(0, 0, 0, 0, 0, 0x2000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-#endif					/* EBCDIC */
    };
 
 /*
@@ -157,14 +145,8 @@ struct b_cset  k_digits = {
    T_Cset,
    10,
 
-#if EBCDIC != 1
    cset_display(0,  0,	0,  0x3ff, 0,  0, 0,  0,
 		0,  0,	0,  0,	 0,  0,	 0,  0)
-#else					/* EBCDIC != 1*/
-   cset_display(0,  0,	0,  0,	0,  0,	0,  0,
-		0,  0,	0,  0,  0,  0,  0,  0x3ff)
-#endif					/* EBCDIC != 1 */
-
    };
 
 /*
@@ -174,14 +156,8 @@ struct b_cset  k_lcase = {
    T_Cset,
    26,
 
-#if EBCDIC != 1
    cset_display(0,  0,	0,  0,	0,  0,	~01,  03777,
 		0,  0,	0,  0,	0,  0,	0,  0)
-#else					/* EBCDIC != 1 */
-   cset_display(0,  0,	0,  0,	0,  0,	0,  0,
-		0x3fe,	0x3fe,	0x3fc,	0,  0,	0,  0,	0)
-#endif					/* EBCDIC != 1 */
-
    };
 
 /*
@@ -191,14 +167,8 @@ struct b_cset  k_ucase = {
    T_Cset,
    26,
 
-#if EBCDIC != 1
    cset_display(0,  0,	0,  0,	~01,  03777, 0, 0,
 		0,  0,	0,  0,	0,  0,	0,  0)
-#else					/* EBCDIC != 1 */
-   cset_display(0,  0,	0,  0,	0,  0,	0,  0,
-		0,  0,	0,  0,	0x3fe,	0x3fe,	0x3fc,	0)
-#endif					/* EBCDIC != 1 */
-
    };
 
 /*
@@ -208,14 +178,8 @@ struct b_cset  k_letters = {
    T_Cset,
    52,
 
-#if EBCDIC != 1
    cset_display(0,  0,	0,  0,	~01,  03777, ~01, 03777,
 		0,  0,	0,  0,	0,  0,	0,  0)
-#else					/* EBCDIC != 1 */
-   cset_display(0,  0,	0,  0,	0,  0,	0,  0,
-		0x3fe,  0x3fe,	0x3fc,  0, 0x3fe, 0x3fe, 0x3fc,	0)
-#endif					/* EBCDIC != 1 */
-
    };
 #endif					/* COMPILER */
 

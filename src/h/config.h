@@ -281,15 +281,6 @@
 #endif					/* StackAlign */
 
 /*
- * EBCDIC == 0 corresponds to ASCII.
- * EBCDIC == 1 corresponds to EBCDIC collating sequence.
- * EBCDIC == 2 provides the ASCII collating sequence for EBCDIC systems.
- */
-#ifndef EBCDIC
-   #define EBCDIC 0
-#endif					/* EBCDIC */
-
-/*
  * Other defaults.
  */
 
@@ -370,12 +361,6 @@
 #ifndef TraceOut
    #define TraceOut(s) fprintf(stderr,s)
 #endif					/* TraceOut */
-
-#if EBCDIC
-   #define BackSlash "\xe0"
-#else					/* EBCDIC */
-   #define BackSlash "\\"
-#endif					/* EBCDIC */
 
 #ifndef WriteBinary
    #define WriteBinary "wb"

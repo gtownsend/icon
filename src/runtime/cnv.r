@@ -19,9 +19,7 @@
  * is defined.
  */
 
-#if !EBCDIC
 #define tonum(c)	(isdigit(c) ? (c)-'0' : 10+(((c)|(040))-'a'))
-#endif					/* EBCDIC */
 
 /*
  * Prototypes for static functions.
@@ -1175,7 +1173,7 @@ char *s;
       if (cs[i])
 	 for (j=i*IntBits, w=cs[i]; w; j++, w >>= 1)
 	    if (w & 01)
-	       *p++ = FromAscii((char)j);
+	       *p++ = (char)j;
       }
    *p = '\0';
 

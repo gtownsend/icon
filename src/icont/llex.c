@@ -16,11 +16,8 @@ int nlflag = 0;		/* newline last seen */
    #endif				/* MPW */
 #endif					/* MACINTOSH */
 
-#if !EBCDIC
-   #define tonum(c)	(isdigit(c) ? (c - '0') : ((c & 037) + 9))
-#endif					/* !EBCDIC */
+#define tonum(c)	(isdigit(c) ? (c - '0') : ((c & 037) + 9))
 
-#if !EBCDIC
 /*
  * getopc - get an opcode from infile, return the opcode number (via
  *  binary search of opcode table), and point id at the name of the opcode.
@@ -55,35 +52,6 @@ char **id;
    *id = s;
    return 0;
    }
-#else					/* !EBCDIC */
-/*
- * getopc - get an opcode from infile, return the opcode number (via
- * sequential search of opcode table) and point id at the name of the opcode.
- */
-
-int getopc(id)
-char **id;
-   {
-   register char *s;
-   register struct opentry *p;
-   register int test;
-   word indx;
-
-   indx = getstr();
-   if (indx == -1)
-      return EOF;
-   s = &lsspace[indx];
-   for(test=0;test < NOPCODES; test++) {
-       p = &optable[test];
-       if( strcmp(p->op_name, s) == 0) {
-           *id = p->op_name;
-           return (p->op_code);
-       }
-   }
-   *id = s;
-   return 0;
-   }
-#endif					/* !EBCDIC */
 
 /*
  * getid - get an identifier from infile, put it in the identifier

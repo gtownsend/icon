@@ -78,10 +78,6 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
    extern char *zptr;
 #endif					/* DosFncs */
 
-#if EBCDIC == 2
-   extern char ToEBCDIC[], FromEBCDIC[]; /* ASCII<->EBCDIC maps */
-#endif					/* EBCDIC == 2 */
-
 /*
  * Externals conditional on multithreading.
  */

@@ -628,7 +628,7 @@ void handle_keypress(wbp wb, UINT msg, WPARAM wp, LPARAM lp, int meta)
    int flags = 0;
    if (msg == WM_CHAR || msg == WM_SYSCHAR) {
       StrLen(d) = 1;
-      StrLoc(d) = (char *)&allchars[FromAscii(wp) & 0xFF];
+      StrLoc(d) = (char *)&allchars[wp & 0xFF];
       }
    else { /* WM_KEYDOWN or WM_SYSKEYDOWN */
       MakeInt(wp, &d);

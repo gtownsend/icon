@@ -17,7 +17,7 @@
 #ifdef EventMon
    body {
       if (!is:null(curpstate->eventmask) &&
-         Testb((word)ToAscii(E_Assign), curpstate->eventmask)) {
+         Testb((word)E_Assign, curpstate->eventmask)) {
             EVAsgn(&x);
 	    }
       }

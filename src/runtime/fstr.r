@@ -180,8 +180,8 @@ function{1} detab(s,i[n])
                tablst = i;  /* reset the list of remaining tab stops */
                last = 1;
                break;
-            case LineFeed:
-            case CarriageReturn:
+            case '\n':
+            case '\r':
                col = 1;
                tablst = i;  /* reset the list of remaining tab stops */
                last = 1;
@@ -285,8 +285,8 @@ function{1} entab(s,i[n])
             tablst = i;  /* reset the list of remaining tab stops */
             last = 1;
             break;
-         case LineFeed:
-         case CarriageReturn:
+         case '\n':
+         case '\r':
             col = 1;
             tablst = i;  /* reset the list of remaining tab stops */
             last = 1;
@@ -711,7 +711,7 @@ function{1} trim(s,c)
        */
       slen = StrLen(s);
       sloc = StrLoc(s) + slen - 1;
-      while (sloc >= StrLoc(s) && Testb(ToAscii(*sloc), c)) {
+      while (sloc >= StrLoc(s) && Testb(*sloc, c)) {
          sloc--;
          slen--;
          }

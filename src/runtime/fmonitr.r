@@ -154,7 +154,7 @@ function{0,1} EvGet(cs,flag)
 	 p->eventmask = cs;
 
 #ifdef Graphics
-      if (Testb((word)ToAscii(E_MXevent), cs) &&
+      if (Testb((word)E_MXevent, cs) &&
 	  is:file(kywd_xwin[XKey_Window])) {
 	 wbp _w_ = (wbp)BlkLoc(kywd_xwin[XKey_Window])->file.fd;
 	 pollctr = pollevent();
@@ -165,7 +165,7 @@ function{0,1} EvGet(cs,flag)
 	    if (c == 0) {
 	       StrLen(curpstate->eventcode) = 1;
 	       StrLoc(curpstate->eventcode) =
-		  (char *)&allchars[FromAscii(E_MXevent) & 0xFF];
+		  (char *)&allchars[E_MXevent & 0xFF];
 	       return curpstate->eventcode;
 	       }
 	    else if (c == -1)
@@ -294,7 +294,7 @@ void mmrefresh()
     * can handle these memory allocation "redraw" events.
     */
   if (!is:null(curpstate->eventmask) &&
-       Testb((word)ToAscii(E_EndCollect), curpstate->eventmask)) {
+       Testb((word)E_EndCollect, curpstate->eventmask)) {
       for (p = blkbase; p < blkfree; p += n) {
 	 n = BlkSize(p);
 	 EVVal(n, typech[(int)BlkType(p)]);	/* block region */

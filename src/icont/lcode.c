@@ -686,7 +686,7 @@ register int k;
       s = &lsspace[lctable[k].c_val.sval];
       i = lctable[k].c_length;
       while (i--) {
-         Setb(ToAscii(*s), csbuf);
+         Setb(*s, csbuf);
          s++;
          }
       j = 0;

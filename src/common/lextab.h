@@ -59,7 +59,6 @@ struct toktab toktab[] = {
  */
 
 struct toktab *restab[] = {
-#if !EBCDIC
    NULL,        &toktab[ 6], &toktab[ 8], &toktab[10], /* 61-64 abcd */
    &toktab[12], &toktab[15], &toktab[16], NULL,        /* 65-68 efgh */
    &toktab[17], NULL,        NULL,        &toktab[20], /* 69-6C ijkl */
@@ -67,19 +66,6 @@ struct toktab *restab[] = {
    NULL,        &toktab[26], &toktab[29], &toktab[31], /* 71-74 qrst */
    &toktab[33], NULL,        &toktab[34], NULL,        /* 75-78 uvwx */
    NULL,        NULL,                                  /* 79-7A yz */
-#else					/* EBCDIC */
-   NULL,        &toktab[ 6], &toktab[ 8], &toktab[10], /* 81-84 abcd */
-   &toktab[12], &toktab[15], &toktab[16], NULL,        /* 85-88 efgh */
-   &toktab[17], NULL,        NULL,        NULL,        /* 89-8C i... */
-   NULL,        NULL,        NULL,        NULL,        /* 8D-90 .... */
-   NULL,        NULL,        &toktab[20], NULL,        /* 91-94 jklm */
-   &toktab[22], &toktab[24], &toktab[25], NULL,        /* 95-98 nopq */
-   &toktab[26], NULL,        NULL,        NULL,        /* 99-9C r... */
-   NULL,        NULL,        NULL,        NULL,        /* 9D-A0 .... */
-   NULL,        &toktab[29], &toktab[31], &toktab[33], /* A1-A4 .stu */
-   NULL,        &toktab[34], NULL,        NULL,        /* A5-A8 vwxy */
-   NULL,                                               /* A9-A9 z */
-#endif					/* EBCDIC */
    };
 
 /*

@@ -165,7 +165,7 @@ LibDcl(mkrec,-1,"mkrec")
  */
 
 
-LibDcl(limit,2,BackSlash)
+LibDcl(limit,2,"\\")
    {
 
    C_integer tmp;

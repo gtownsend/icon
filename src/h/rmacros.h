@@ -89,16 +89,6 @@
 #define ParamName	2
 #define LocalName	3
 
-#undef ToAscii
-#undef FromAscii
-#if EBCDIC == 2
-   #define ToAscii(e) (FromEBCDIC[e])
-   #define FromAscii(e) (ToEBCDIC[e])
-#else					/* EBCDIC == 2 */
-   #define ToAscii(e) (e)
-   #define FromAscii(e) (e)
-#endif					/* EBCDIC == 2 */
-
 /*
  * Pointer to block.
  */
@@ -208,23 +198,6 @@
  */
 #define ElemCount(a) (sizeof(a)/sizeof(a[0]))
 #define ElemSize(a) (sizeof(a[0]))
-
-/*
- * Some C compilers take '\n' and '\r' to be the same, so the
- *  following definitions are used.
- */
-#if EBCDIC
-   /*
-    * Note that, in EBCDIC, "line feed" and "new line" are distinct
-    *  characters.  Icon's use of "line feed" is really "new line" in
-    *  C terms.
-    */
-   #define LineFeed '\n'	/* if really "line feed", that's 37 */
-   #define CarriageReturn '\r'
-#else					/* EBCDIC */
-   #define LineFeed  10
-   #define CarriageReturn 13
-#endif					/* EBCDIC */
 
 /*
  * Construct an integer descriptor.
