@@ -22,6 +22,8 @@
    #define MAXFONTWORD 40
 #endif					/* MAXFONTWORD */
 
+#define POLLSLEEP	20	 /* milliseconds sleep while awaiting event */
+
 #define DEFAULTFONTSIZE 14
 
 #define FONTATT_SPACING		0x01000000
@@ -434,8 +436,6 @@ typedef struct {
 #define A_Y		57
 
 #define NUMATTRIBS	57
-
-#define XICONSLEEP	20 /* milliseconds */
 
 /*
  * flags for ConsoleFlags
