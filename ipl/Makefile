@@ -18,7 +18,7 @@ Ilib:	../bin/libcfunc.so
 
 Ibin:	../bin/ipatch
 ../bin/ipatch:  ../bin/icont
-	./BuildBin
+	MAKE=$(MAKE) ./BuildBin
 
 
 #  Make a full set of program binaries (not usually done) in ./iexe,
@@ -26,7 +26,7 @@ Ibin:	../bin/ipatch
 
 Iexe:
 	rm -f iexe/*
-	./BuildExe
+	MAKE=$(MAKE) ./BuildExe
 
 
 #  Check for undefined identifiers in ../lib.

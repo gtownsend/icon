@@ -14,7 +14,7 @@ STDPATH=/opt/icon/bin/iconx
 #  Set paths
 TOP=`cd ..; pwd`
 BIN=$TOP/bin
-PATH=$BIN:.:$PATH
+PATH=$BIN:$PATH
 IPATH=$TOP/lib
 LPATH=$TOP/lib
 export PATH IPATH LPATH
@@ -35,7 +35,7 @@ grep '#define.*Graphics' ../src/h/define.h >/dev/null || exit 0
 cd gprogs
 for p in $GPROGS; do
     (set -x; icont -us $p)
-    ipatch $p $STDPATH 2>/dev/null
+    ./ipatch $p $STDPATH 2>/dev/null
     mv $p $BIN
 done
 cd ..
@@ -43,7 +43,7 @@ cd ..
 #  Build graphics packages
 for p in $GPACKS; do
     cd gpacks/$p
-    make
+    ${MAKE-make}
     ipatch $p $STDPATH 2>/dev/null
     mv $p $BIN
     cd ../..
