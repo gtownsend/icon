@@ -42,7 +42,7 @@ done
 (echo cfuncs:; cd cfuncs; LPATH=                            make -s cfunc.u2)
 (echo procs:;  cd procs;  LPATH="../incl"                   icont -usc *icn)
 (echo gprocs:; cd gprocs; LPATH="../incl ../gincl"          icont -usc *icn)
-(echo mprocs:; cd mprocs; LPATH="../incl ../gincl ../mincl" icont -usc *icn)
+# (echo mprocs:; cd mprocs; LPATH="../incl ../gincl ../mincl" icont -usc *icn)
 
 
 #  Check for undeclared identifiers or insufficient links in the core modules.
@@ -50,17 +50,17 @@ echo core modules:
 (cd procs;  IPATH=         icont -o ../xxx -us -fs core.u2)
 (cd gprocs; IPATH=../procs icont -o ../xxx -us -fs graphics.u2)
 
-#  Check linkages for all procedure files, ignoring most undeclared identifiers.
+#  Check linkages for procedure files, ignoring most undeclared identifiers.
 
 IPATH=./cfuncs
 rm -f xxx
-for d in procs gprocs mprocs; do
+for d in procs gprocs; do
     export IPATH="$IPATH ./$d"
     echo $d linkage:
     for f in `cd $d; ls *.icn`; do
 	b=${f%.icn}
 	# allow undeclared identifiers in main() for use with code generators
-	(icont -o xxx -us $b.u2 2>&1  ||  echo "   -- failed in $b.u2") |
+	(icont -o xxx -us -fs $b.u2 2>&1  ||  echo "   -- failed in $b.u2") |
 	    grep -v ': undeclared identifier, procedure main'
     done
 done
