@@ -2,19 +2,24 @@
 #  <<ARIZONA-ONLY>>
 
 
+MADE = icont.txt faq.txt
+
 HFAQ = /cs/www/icon/faq.htm
 TFAQ = /cs/www/icon/ftp/doc/faq.txt
 FFAQ = /cs/ftp/icon/doc/faq.txt
 
 
-default:  faq.txt
+default:  $(MADE)
+
+icont.txt: icont.1 clnroff.sed
+	nroff -man icont.1 | sed -f clnroff.sed | uniq >icont.txt
+
+faq.txt:  faq.htm
+	lynx -nolist -dump faq.htm >faq.txt
 
 lint:
 	weblint -x netscape *.htm
 	weblinks -t *.htm
-
-faq.txt:  faq.htm
-	lynx -nolist -dump faq.htm >faq.txt
 
 diff:
 	diff -c $(HFAQ) faq.htm
@@ -26,4 +31,4 @@ install:  faq.txt
 
 
 Clean clean:
-	rm -f faq.txt
+	rm -f $(MADE)
