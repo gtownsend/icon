@@ -19,12 +19,15 @@ IPATH=$TOP/lib
 LPATH=$TOP/lib
 export PATH IPATH LPATH
 
+#  Figure out executable extension
+EXE=`grep ^EXE ../Makedefs | sed 's/.*= *//'`
+
 #  Always build progs
 cd progs
 for p in $PROGS; do
     (set -x; icont -us $p)
-    ./ipatch $p $STDPATH 2>/dev/null
-    mv $p $BIN
+    ./ipatch $p$EXE $STDPATH 2>/dev/null
+    mv $p$EXE $BIN
 done
 cd ..
 
@@ -35,8 +38,8 @@ grep '#define *Graphics' ../src/h/define.h >/dev/null || exit 0
 cd gprogs
 for p in $GPROGS; do
     (set -x; icont -us $p)
-    ipatch $p $STDPATH 2>/dev/null
-    mv $p $BIN
+    ipatch $p$EXE $STDPATH 2>/dev/null
+    mv $p$EXE $BIN
 done
 cd ..
 
@@ -44,7 +47,7 @@ cd ..
 for p in $GPACKS; do
     cd gpacks/$p
     ${MAKE-make}
-    ipatch $p $STDPATH 2>/dev/null
-    mv $p $BIN
+    ipatch $p$EXE $STDPATH 2>/dev/null
+    mv $p$EXE $BIN
     cd ../..
 done
