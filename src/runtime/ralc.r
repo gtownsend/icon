@@ -136,12 +136,7 @@ struct b_coexpr *alccoexp()
    {
    struct b_coexpr *ep;
    static int serial = 2; /* main co-expression is allocated elsewhere */
-
-#ifdef ATTM32
-   ep = (struct b_coexpr *)coexp_salloc(); /* 3B2/15/4000 stack */
-#else                                   /* ATTM32 */
    ep = (struct b_coexpr *)malloc((msize)stksize);
-#endif                                  /* ATTM32 */
 
    /*
     * If malloc failed or if there have been too many co-expression allocations
@@ -149,15 +144,8 @@ struct b_coexpr *alccoexp()
     */
 
    if (ep == NULL || alcnum > AlcMax) {
-
       collect(Static);
-
-#ifdef ATTM32           /* not needed, but here to play it safe */
-      ep = (struct b_coexpr *)coexp_salloc(); /* 3B2/15/4000 stack */
-#else                                   /* ATTM32 */
       ep = (struct b_coexpr *)malloc((msize)stksize);
-#endif                                  /* ATTM32 */
-
       }
 
    if (ep == NULL)
@@ -196,24 +184,16 @@ struct b_coexpr *alccoexp()
 
 #ifdef MultiThread
    if (icodesize > 0) {
-#ifdef ATTM32
-Deliberate Syntax Error
-#else					/* ATTM32 */
       ep = (struct b_coexpr *)
 	calloc(1, (msize)(stacksize+
 		       icodesize+
 		       sizeof(struct progstate)+
 		       sizeof(struct b_coexpr)));
-#endif					/* ATTM32 */
       }
    else
 #endif					/* MultiThread */
 
-#ifdef ATTM32
-   ep = (struct b_coexpr *)coexp_salloc(); /* 3B2/15/4000 stack */
-#else                                   /* ATTM32 */
    ep = (struct b_coexpr *)malloc((msize)stksize);
-#endif                                  /* ATTM32 */
 
    /*
     * If malloc failed or if there have been too many co-expression allocations
@@ -226,21 +206,13 @@ Deliberate Syntax Error
 
 #ifdef MultiThread
       if (icodesize>0) {
-#ifdef ATTM32
-Deliberate Syntax Error
-#else					/* ATTM32 */
          ep = (struct b_coexpr *)
 	    malloc((msize)(mstksize+icodesize+sizeof(struct progstate)));
-#endif					/* ATTM32 */
          }
       else
 #endif					/* MultiThread */
 
-#ifdef ATTM32
-	 ep = (struct b_coexpr *)coexp_salloc(); /* 3B2/15/4000 stack */
-#else                                   /* ATTM32 */
          ep = (struct b_coexpr *)malloc((msize)stksize);
-#endif                                  /* ATTM32 */
       }
       if (ep == NULL)
          ReturnErrNum(305, NULL);

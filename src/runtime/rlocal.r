@@ -1231,26 +1231,6 @@ int kbhit(void)
 }
 #endif					/* KeyboardFncs */
 
-#ifdef ATTM32
-/*
- * coexp_salloc() - return pointer in legal stack space for start
- *                  of a coexpression stack on AT&T 3B2/15/400 systems.
- *
- * Legal stack region begins at 0xC0020000, and UNIX will grow stack space
- * up to 50 Megabytes. 0xC0030000 should provide plenty of room for
- * main C stack growth.  Each time coexpr_salloc() is called, it
- * adds mstksize (max main stack size) and returns a new address,
- * meaning each coexpression stack is potentially as large as the main stack.
- */
-pointer coexp_salloc()
-   {
-   static pointer sp = 0xC0030000 ;     /* pointer to stack region */
-
-   sp +=  mstksize;
-   return sp;
-}
-#endif					/* ATTM32 */
-
 #endif					/* UNIX */
 
 /*********************************** VMS ***********************************/
