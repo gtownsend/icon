@@ -1,0 +1,45 @@
+############################################################################
+#
+#	File:     shuffle.icn
+#
+#	Subject:  Program to randomly reorder the lines of a file
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     December 10, 2002
+#
+############################################################################
+#
+#  This file is in the public domain.
+#
+############################################################################
+#
+#  This program outputs in random order the lines of one or more files.
+#  The input data must fit in memory.
+#
+#  usage:  shuffle [file...]
+#
+############################################################################
+#
+#  Links:  random
+#
+############################################################################
+
+link random
+
+procedure main(args)
+   local data, fname, f
+
+   randomize()
+   data := []
+   if *args = 0 then
+      while put(data, read())
+   else
+      every fname := !args do {
+         f := open(fname, "u") | stop("cannot open ", fname)
+         while put(data, read(f))
+         close(f)
+      }
+   shuffle(data)
+   every write(!data)
+end
