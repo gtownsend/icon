@@ -16,7 +16,7 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 <BR> <SMALL> The University of Arizona </SMALL>
 
 <P> <SMALL> www.cs.arizona.edu/icon/v942/relnotes.htm
-<BR> Last updated April 9, 2003 </SMALL>
+<BR> Last updated October 9, 2003 </SMALL>
 <!-- $Id$ -->
 
 
@@ -190,12 +190,17 @@ literals are best kept outside of loops.
 in the length of the integer.
 Conversion of a very large integer may take a long time.
 
+<P> An "evaluation stack overflow" can occur when a procedure is called
+with a huge number (thousands or more) of arguments.
+The capacity can be increased by setting the environment variable
+<CODE>MSTKSIZE</CODE> or <CODE>COEXPSIZE</CODE>, as appropriate.
+
 <P> Stack overflow checking uses a heuristic that is not always effective.
 Stack overflow in a co-expression is especially likely to escape
 detection and cause a mysterious program malfunction. 
 
 <P> Pathologically nested structures can provoke a memory or segmentation
-fault during garbage collection because of stack overflow.
+fault during garbage collection by reaching the stack limit.
 The stack limit can be raised by the 
 <CODE>limit</CODE> or <CODE>ulimit</CODE> shell command.
 
