@@ -1,0 +1,141 @@
+############################################################################
+#
+#	File:     datmerge.icn
+#
+#	Subject:  Program to merge data files
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     November 16, 2001
+#
+############################################################################
+#
+#	This file is in the public domain.
+#
+############################################################################
+#
+#	Datmerge reads and combines arbitrary text-based data files that
+#	contain whitespace-separated data.  For each data field, a single
+#	value is written to standard output after applying a selected
+#	operator (such as median or minimum) to the corresponding values
+#	from all the input files.
+#
+#	Usage:  datmerge [-operator] filename...
+#
+#	Operators:
+#	    -min or -minimum
+#	    -max or -maximum
+#	    -med or -median   (this is the default)
+#	    -mean
+#
+#	Values convertible to numeric are treated as such.
+#	All others are treated as strings.
+#
+############################################################################
+#
+#  Links:  numbers, strings
+#
+############################################################################
+
+link numbers, strings
+
+
+
+procedure main(args)
+   local a, opr, files, lines
+
+   if args[1][1] == '-' then {
+      a := get(args)
+      opr := case a of {
+         "-min" | "-minimum":  minimum
+         "-max" | "-maximum":  maximum
+         "-med" | "-median":   median
+         "-mean":              mean
+         default:              stop(&progname, ": unrecognized operator: ", a)
+         }
+      }
+   else
+      opr := median
+
+   if *args < 1 then
+      stop("usage: ", &progname, " [-operator] filename...")
+
+   files := []
+   while a := get(args) do
+      put(files, open(a)) | stop("cannot open ", a)
+
+   repeat {
+      lines := []
+      every put(lines, read(!files))
+      if *lines = 0 then break
+      merge(lines, opr)
+      }
+
+end
+
+
+
+#  merge(lines, opr) -- output the result of merging a list of lines.
+
+procedure merge(lines, opr)
+   local a, s, w, fields, ws
+
+   fields := []
+   every s := !lines do {
+      put(fields, a := [])
+      every w := words(s) do
+         put(a, numeric(w) | w)
+      }
+
+   ws := ""
+   repeat {
+      a := []
+      every put(a, get(!fields))
+      if *a = 0 then break
+      writes(ws, opr(a))
+      ws := " "
+      }
+
+   write()
+end
+
+
+
+#  Operator Procedures
+#
+#  These procedures take a list and return a value.
+#  They must always return something regardless of the data.
+#  Those that involve arithmetic need to tolerate string data somehow.
+
+procedure minimum(a)
+   a := sort(a)
+   return a[1]
+end
+
+procedure maximum(a)
+   a := sort(a)
+   return a[-1]
+end
+
+procedure mean(a)
+   return (amean ! nsubset(a)) | median(a)
+end
+
+procedure median(a)
+   a := sort(a)
+   return a[(*a + 1) / 2]
+end
+
+
+
+#  nsubset(a) -- return subset of array a that contains numeric values
+
+procedure nsubset(a)
+   local b
+   b := []
+   every put(b, numeric(!a))
+   if *b > 0 then
+      return b
+   else
+      fail
+end
