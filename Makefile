@@ -100,8 +100,9 @@ Install:
 		mkdir $D
 		mkdir $D/bin $D/lib $D/doc $D/man $D/man/man1
 		cp README $D
-		cp bin/[abcdefghijklmnopqrstuvwxyz]* $D/bin
-		rm -f $D/bin/libI* $D/bin/rt* $D/bin/icon
+		cp bin/[cflpvwx]* $D/bin
+		cp bin/icon[tx]* $D/bin
+		rm -f $D/bin/libI*
 		(cd $D/bin; ln -s icont icon)
 		cp lib/*.* $D/lib
 		cp doc/*.* $D/doc
