@@ -6,7 +6,7 @@
 #
 #	Authors:  Gregg M. Townsend and William S. Evans
 #
-#	Date:     February 21, 2003
+#	Date:     February 27, 2003
 #
 ############################################################################
 #
@@ -34,14 +34,14 @@
 #
 #	Command options:
 #
-#	-c	display coverage map only, without loading data
-#	-d	print some debugging data
-#	-n	no display; just report statistics, and then quit
-#		(this still requires X-Windows, unfortunately)
-#	-p	use more precise, but slower, conversion from UTM coordinates
-#	-q	quiet mode: no commentary to stdout
-#
-#	-t	load only maps traversed by paths, ignoring others
+#	-c	    display coverage map only, without loading data
+#	-d	    print some debugging data
+#	-n	    no display; just report statistics, and then quit
+#		    (this still requires X-Windows, unfortunately)
+#	-p	    use slower, more precise coordinate conversion
+#	-q	    quiet mode: no commentary to stdout
+#	-t	    load only maps traversed by paths, ignoring others
+#	-w logfile  record right-mouse-click locations to this file
 #
 #	-l abcd     display only layers a, b, c, d
 #	-x abcd     exclude layers a, b, c, d
@@ -93,7 +93,9 @@
 #	patient, and it will soon display the visible region.
 #
 #	To display the latitude / longitude of a location, and a
-#	scale bar, hold down the right mouse button.
+#	scale bar, hold down the right mouse button.  If a log file
+#	was specified on the command line, the locations identified
+#	in this manner are written to the log file.
 #
 ############################################################################
 #
@@ -425,6 +427,8 @@ global pcolors				# list of path background colors
 
 global features				# list of feature records
 
+global logfile				# point log file
+
 
 
 #  main program
@@ -444,7 +448,14 @@ procedure main(args)
    initattrib()
 
    # process command options
-   opts := options(args, "l:x:cdnpqt")
+   opts := options(args, "w:l:x:cdnpqt")
+   if \opts["w"] then {
+      if opts["w"] == "-" then
+         logfile := &output
+      else
+         logfile := open(opts["w"], "w") | stop("cannot write ", opts["w"])
+      }
+
    chosen := cset(\opts["l"]) | (&lcase -- 'n')  # start with explicit layers
    chosen ++:= 'go'			# add paths & other data, if loaded
    chosen --:= cset(\opts["x"])		# now apply exclusions
@@ -1210,6 +1221,12 @@ procedure locproc(wproj)
    dx := WAttrib("dx")			# get popup box coordinate system
    dy := WAttrib("dy")
 
+   # if log file exists, double space it, and display yellow background
+   if write(\logfile) then {
+      Bg("pale yellow")
+      EraseArea()
+      }
+
    #  compute a reasonably round length that works for a scale bar
    u := 90 * DEGSCALE / 1e7		# one meter, in latitude units
    m := sbsize(wproj, xmin, ymin, u, SMAX)
@@ -1237,10 +1254,14 @@ procedure locproc(wproj)
       WWrites("\n  ", dms(lat, "S", "N"), frn(lat, 13, 6))
       WWrites("\n  ", dms(lon, "W", "E"), frn(lon, 13, 6))
 
+      write(\logfile, frn(lat, 0, 6), " ", frn(lon, 0, 6))
+
       e := Event()	# get next event
       &x +:= dx		# remove effect of popup box coordinate system
       &y +:= dy
       }
+
+   flush(\logfile)
    return
 end
 
