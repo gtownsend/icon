@@ -16,7 +16,7 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 <BR> <SMALL> The University of Arizona </SMALL>
 
 <P> <SMALL> www.cs.arizona.edu/icon/v942/relnotes.htm
-<BR> Last updated September 20, 2002 </SMALL>
+<BR> Last updated September 26, 2002 </SMALL>
 <!-- $Id$ -->
 
 
@@ -60,18 +60,22 @@ For more details see
 <P> As usual, several files in the Icon program library
 have been added, edited, or moved.
 The core library files, however, remain stable.
+Here is a summary, by file, of significant changes:
 
-<P> The <CODE>randomize()</CODE> function now uses <CODE>/dev/urandom</CODE>,
-if available, to initialize the random sequence.  Formerly, two programs
-started within the same clock second could produce the same random sequence.
+<PRE>
+procs/random		use /dev/random, if available, in randomize()
+procs/string		add procedures for finding common prefix or suffix
 
-<P> The map navigation GUI from the <CODE>dlgvu</CODE> program has been
-broken out into a separate <CODE>mapnav</CODE> procedure library.
-This libary is used by a new <CODE>trkvu</CODE> program,
-a simple viewer for GPS track logs.
+gprocs/mapnav		repackage the map navigation GUI from gprogs/dlgvu 
 
-<P> The new file <CODE>ipl/cfuncs/ilists.c</CODE> provides
-support code for loadable C functions that access arrays.
+progs/htget		send Host: spec for use with multi-domain servers
+
+gprogs/trkvu		new program for viewing GPS track logs
+
+cfuncs/ilists.c		new support code for array access by loadable functions
+</PRE>
+
+
 
 <H3> Minor changes </H3>
 
@@ -80,12 +84,15 @@ support code for loadable C functions that access arrays.
    <LI> The command "<CODE>icon &ndash; [args]</CODE>" can now be used to
 	execute a source program read from standard input.
 
-   <LI> The configuration directory structure has changed.
+   <LI> A new "<CODE>icont &ndash;N</CODE>" flag suppresses
+   	embedding of an <CODE>iconx</CODE> path in the generated executable
+
+   <LI> The configuration directory has been restructured.
 
    <LI> Several obsolete configurations have been removed.
 
-   <LI> "<CODE>make Install</CODE>" has been changed to not delete anything.
-   	You must now specify a target directory that does not yet exist.
+   <LI> "<CODE>make Install</CODE>" has been changed to never delete anything.
+   	It now creates a new directory rather than altering an existing one.
 
 </UL>
 
