@@ -88,10 +88,10 @@
 
 #ifdef Graphics
    #ifndef NoXpmFormat
-      #if UNIX
+      #ifndef MSWindows
          #undef HaveXpmFormat
          #define HaveXpmFormat
-      #endif				/* UNIX */
+      #endif				/* MSWindows */
    #endif				/* NoXpmFormat */
 
    #ifndef MSWindows
@@ -106,11 +106,11 @@
    #define Polling
 
    #ifndef ICONC_XLIB
-      #if CYGWIN
+      #ifdef MSWindows
          #define ICONC_XLIB "-luser32 -lgdi32 -lcomdlg32 -lwinmm"
-      #else				/* CYGWIN */
+      #else				/* MSWindows */
          #define ICONC_XLIB "-L/usr/X11R6/lib -lX11"
-      #endif				/* CYGWIN */
+      #endif				/* MSWindows */
    #endif				/* ICONC_XLIB */
 
 #endif					/* Graphics */

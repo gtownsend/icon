@@ -1,6 +1,6 @@
 /*
  * Intermediate program to convert iconx.hdr into a header file for inclusion
- * in icont.  This eliminates a compile-time file search on UNIX systems.
+ * in icont.  This eliminates a compile-time file search on Unix systems.
  * Definition of Header (without ShellHeader) activates the inclusion.
  */
 

@@ -7,10 +7,8 @@
 #include "tglobals.h"
 #include "../h/header.h"
 
-#if UNIX
-   #include <sys/types.h>
-   #include <sys/stat.h>
-#endif					/* UNIX */
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #if MSDOS
    #include <fcntl.h>
@@ -312,25 +310,17 @@ char *s1, *s2;
 static void setexe(fname)
 char *fname;
    {
-
-   #if MSDOS
-      chmod(fname,0755);	/* probably could be smarter... */
-   #endif				/* MSDOS */
-
-   #if UNIX
-      struct stat stbuf;
-      int u, r, m;
-      /*
-       * Set each of the three execute bits (owner,group,other) if allowed by
-       *  the current umask and if the corresponding read bit is set; do not
-       *  clear any bits already set.
-       */
-      umask(u = umask(0));		/* get and restore umask */
-      if (stat(fname,&stbuf) == 0)  {	/* must first read existing mode */
-         r = (stbuf.st_mode & 0444) >> 2;	/* get & position read bits */
-         m = stbuf.st_mode | (r & ~u);		/* set execute bits */
-         chmod(fname,m);		 /* change file mode */
-         }
-   #endif				/* UNIX */
-
+   struct stat stbuf;
+   int u, r, m;
+   /*
+    * Set each of the three execute bits (owner,group,other) if allowed by
+    *  the current umask and if the corresponding read bit is set; do not
+    *  clear any bits already set.
+    */
+   umask(u = umask(0));			/* get and restore umask */
+   if (stat(fname,&stbuf) == 0)  {	/* must first read existing mode */
+      r = (stbuf.st_mode & 0444) >> 2;	/* get & position read bits */
+      m = stbuf.st_mode | (r & ~u);	/* set execute bits */
+      chmod(fname,m);			/* change file mode */
+      }
    }

@@ -72,11 +72,10 @@ dptr res;
          #endif				/* MSWindows */
 	 if (pollevent() < 0)				/* poll all windows */
 	    break;					/* break on error */
-         #if UNIX
-            idelay(XICONSLEEP);
-         #endif				/* UNIX */
          #ifdef MSWindows
-	    Sleep(20);
+            Sleep(20);
+         #else				/* MSWindows */
+            idelay(XICONSLEEP);
          #endif				/* MSWindows */
 	 }
       }
@@ -204,9 +203,11 @@ wsp getactivewindow()
       /*
        * couldn't find a pending event - wait awhile
        */
-      #if UNIX
+      #ifdef MSWindows
+         Sleep(20);
+      #else				/* MSWindows */
          idelay(XICONSLEEP);
-      #endif					/* UNIX */
+      #endif				/* MSWindows */
       }
    }
 

@@ -163,7 +163,6 @@ int n;
    }
 
 #ifdef KeyboardFncs
-#if UNIX
 
 /*
  * Documentation notwithstanding, the Unix versions of the keyboard functions
@@ -239,7 +238,6 @@ int kbhit(void)
    return rv;				/* return result */
 }
 
-#endif					/* UNIX */
 #endif					/* KeyboardFncs */
 
 #ifdef FAttrib

@@ -191,7 +191,7 @@ char *s, *t;
       }
    }
 
-#if CYGWIN
+#if MSDOS
 
 FILE *pathOpen(fname, mode)
    char *fname;
@@ -215,4 +215,4 @@ FILE *pathOpen(fname, mode)
    return fopen(buf, mode);
    }
 
-#endif					/* CYGWIN */
+#endif					/* MSDOS */

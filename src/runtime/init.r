@@ -923,7 +923,6 @@ void datainit()
    StrLen(k_subject) = 0;
    StrLoc(k_subject) = "";
 
-#if CYGWIN
 #ifdef MSwindows
    if (i != EXIT_SUCCESS)
    {
@@ -933,7 +932,6 @@ void datainit()
       MessageBox(NULL, exit_msg, prog_name, MB_OK | MB_ICONSTOP);
    }
 #endif					/* defined(MSwindows) */
-#endif					/* CYGWIN */
 
    StrLen(blank) = 1;
    StrLoc(blank) = " ";

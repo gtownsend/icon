@@ -60,7 +60,7 @@ int iconx(int argc, char *argv[]) {
 
    ipc.opnd = NULL;
 
-   #if UNIX
+   #ifdef LoadFunc
       /*
        *  Append to FPATH the bin directory from which iconx was executed.
        */
@@ -71,7 +71,7 @@ int iconx(int argc, char *argv[]) {
          sprintf(buf, "FPATH=%s %s", (p ? p : "."), (q ? q : "."));
          putenv(buf);
          }
-   #endif
+   #endif				/* LoadFunc */
 
    /*
     * Setup Icon interface.  It's done this way to avoid duplication

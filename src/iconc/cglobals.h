@@ -24,7 +24,7 @@ Global int err_conv     Init(0);	/* -fe: support error conversion */
 #endif					/* LargeInts */
 
 Global int line_info	Init(0);	/* -fn, -fd, -t: generate line info */
-Global int m4pre	Init(0);	/* -m: use m4 preprocessor? [UNIX] */
+Global int m4pre	Init(0);	/* -m: use m4 preprocessor? */
 Global int str_inv	Init(0);	/* -fs: enable full string invocation */
 Global int trace	Init(0);	/* -t: initial &trace value */
 Global int uwarn	Init(0);	/* -u: warn about undefined ids? */

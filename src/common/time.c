@@ -13,7 +13,7 @@
  * For some unfathomable reason, the Open Group's "Single Unix Specification"
  *  requires that the ANSI C clock() function be defined in units of 1/1000000
  *  second.  This means that the result overflows a 32-bit signed clock_t
- *  value only about 35 minutes.  So, under UNIX, we use the POSIX standard
+ *  value only about 35 minutes.  So, preferably, we use the POSIX standard
  *  times() function instead.
  */
 
@@ -38,7 +38,7 @@ long millisec()
 #else					/* NoPosixTimes */
 
 /*
- * On anything other than UNIX, just use the ANSI C clock() function.
+ * On anything lacking times(), just use the ANSI C clock() function.
  */
 
 long millisec()

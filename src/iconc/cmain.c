@@ -124,7 +124,7 @@ char **argv;
                   }
                }
             break;
-         case 'm':			/* -m: preprocess using m4(1) [UNIX] */
+         case 'm':			/* -m: preprocess using m4(1) */
             m4pre = 1;
             break;
          case 'n':			/* -n: disable optimizations */

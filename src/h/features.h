@@ -28,7 +28,7 @@
 
 #if CYGWIN
    Feature(1, "_CYGWIN", "Cygwin")
-#endif					/* UNIX */
+#endif					/* CYGWIN */
 
 #if UNIX
    Feature(1, "_UNIX", "UNIX")
