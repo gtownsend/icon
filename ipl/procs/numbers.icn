@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     November 16, 2000
+#	Date:     May 1, 2001
 #
 ############################################################################
 #
@@ -200,34 +200,26 @@ procedure commas(s)		#: insert commas in number
 end
 
 procedure decimal(i, j)		#: decimal expansion of rational
-   local head, result, remainders, count
+   local head, tail, numers, count
 
    head := (i / j) || "."
-
-   result := ""
-
-   remainders := table()
+   tail := ""
+   numers := table()
 
    i %:= j
-   i *:= 10
-
    count := 0
 
    while i > 0 do {
-      count +:= 1
-      result ||:= i / j
-      i %:= j
-      if member(remainders, i) then {	# been here; done that
-         result ?:=  {
-            move(remainders[i] - 1) || "[" || tab(-1) || "]"
-            }
-         break
-         }
-      else insert(remainders, i, count)
+      numers[i] := count
       i *:= 10
+      tail ||:= i / j
+      i %:= j
+      if \numers[i] then	# been here; done that
+	 return head || (tail ? (move(numers[i]) || "[" || tab(0) || "]"))
+      count +:= 1
       }
 
-   return head || result
+   return head || tail
 
 end
 
