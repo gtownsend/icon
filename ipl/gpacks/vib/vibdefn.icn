@@ -41,21 +41,25 @@ $endif
 # file names and commands for prototyping
 
 $ifdef _UNIX
-$define EXECPROTO ("./" || PROTOEXE || " && rm -f " || PROTOEXE || " &")
+   $define EXECPROTO ("./" || PROTOEXE || " && rm -f " || PROTOEXE || " &")
+$endif
+
+$ifdef _CYGWIN
+   $define EXECPROTO ("./" || PROTOEXE || " && rm -f " || PROTOEXE || " &")
 $endif
 
 $ifdef _MS_WINDOWS
-$define PROTOEXE "vibproto.exe"
+   $define PROTOEXE "vibproto.exe"
 $endif
 
 # defaults used if not set above
 
 $ifndef PROTOFILE				# prototype file name
-$define PROTOFILE "vibproto.icn"
+   $define PROTOFILE "vibproto.icn"
 $endif
 
 $ifndef PROTOEXE				# executable file name
-$define PROTOEXE "vibproto"
+   $define PROTOEXE "vibproto"
 $endif
 
 $ifndef BUILDPROTO				# build command
@@ -67,5 +71,5 @@ $ifndef BUILDPROTO				# build command
 $endif
 
 $ifndef EXECPROTO				# execute command
-$define EXECPROTO PROTOEXE
+   $define EXECPROTO PROTOEXE
 $endif
