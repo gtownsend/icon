@@ -90,7 +90,7 @@ end
 procedure factorial(n)		#: factorial
    local i
 
-   n := integer(n) | fail
+   n := integer(n) | runerr(101, n)
 
    if n < 0 then fail
 
@@ -113,7 +113,7 @@ end
 procedure genfactors(i, j)		#: generate prime factors of integer
    local p
 
-   i := integer(i)
+   i := integer(i) | runerr(101, i)
    /j := i
 
    every p := prime() do {
@@ -131,7 +131,7 @@ end
 procedure gfactorial(n, i)		#: generalized factorial
    local j
 
-   n := integer(n) | fail
+   n := integer(n) | runerr(101, n)
    i := integer(i) | 1
 
    if n < 0 then fail
@@ -151,6 +151,7 @@ end
 procedure pfactors(i)		#: primes that divide integer
    local facts, p
 
+   i := integer(i) | runerr(101, i)
    facts := []
    every p := prime() do {
       if p > i then break
