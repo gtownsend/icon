@@ -21,6 +21,8 @@ static void	emitl		(char *s,int a);
 static void	emitlab		(int l);
 static void	emitn		(char *s,int a);
 static void	emits		(char *s,char *a);
+static void	emitfile	(nodeptr n);
+static void	emitline	(nodeptr n);
 static void	setloc		(nodeptr n);
 static int	traverse	(nodeptr t);
 static void	unopa		(int op, nodeptr t);
@@ -521,11 +523,12 @@ register nodeptr t;
 	 creatsp = creatstk;
 
 	 writecheck(fprintf(codefile, "proc %s\n", Str0(Tree0(t))));
-	 setloc(t);
+	 emitfile(t);
 	 lout(codefile);
 	 constout(codefile);
-
 	 emit("declend");
+	 emitline(t);
+
 	 if (TType(Tree1(t)) != N_Empty) {
 	    lab = alclab(1);
 	    emitl("init", lab);
@@ -987,16 +990,24 @@ int op;
    }
 
 /*
- * setloc emits "filen" and "line" directives for the source location of
- *  node n.  A directive is only emitted if the corresponding value
- *  has changed since the last time setloc was called.  Note:  File(n)
- *  reportedly occasionally points at uninitialized data, producing
- *  bogus results (as well as reams of filen commands).
+ * emitfile(n) emits "filen" directives for node n's source location.
+ * emitline(n) emits "line" and possibly "colm" directives.
+ * setloc(n) does both.
+ *  A directive is only emitted if the corresponding value
+ *  has changed since the previous call.
+ *
  */
 static char *lastfiln = NULL;
 static int lastlin = 0;
 
 static void setloc(n)
+nodeptr n;
+   {
+   emitfile(n);
+   emitline(n);
+   }
+
+static void emitfile(n)
 nodeptr n;
    {
    if ((n != NULL) &&
@@ -1006,7 +1017,11 @@ nodeptr n;
          lastfiln = File(n);
          emits("filen", lastfiln);
          }
+   }
 
+static void emitline(n)
+nodeptr n;
+   {
 #ifdef SrcColumnInfo
    /*
     * if either line or column has changed, emit location information
@@ -1025,9 +1040,8 @@ nodeptr n;
       emitn("line", lastlin);
       }
 #endif					/* SrcColumnInfo */
-
    }
-
+
 #ifdef MultipleRuns
 /*
  * Reinitialize last file name and line number for repeated runs.
