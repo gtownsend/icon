@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     June 26, 2000
+#	Date:     August 2, 2001
 #
 ############################################################################
 #
@@ -162,7 +162,7 @@ end
 #  tag name followed by the associated data values
 
 procedure ddfread(handle)		#: read DDF record
-   local h, p, dlist, code, data, drec, sublist, e
+   local h, p, dlist, code, data, drec, sublist, e, n
 
    h := handle.header
    if h.hcode ~== "R" then
@@ -174,11 +174,15 @@ procedure ddfread(handle)		#: read DDF record
       drec := \handle.dtable[code] | next	# ignore unregistered code
       put(dlist, sublist := [code])
       data ? {
-         while not pos(0) do {
-            every e := !drec.dlist do
+	 n := -1
+         while *sublist > n do {		# bail out when no more progress
+	    n := *sublist
+            every e := !drec.dlist do		# crack according to format
                every put(sublist, e.proc(e.arg))
-            if /drec.rep | (pos(-1) & =RecSep) then
-               break
+            if pos(-1) then
+	       =RecSep
+	    if pos(0) then			# quit more likely here
+	       break
             }
          }
       }
