@@ -56,10 +56,6 @@ static void	shortout	(short oint);
    /* defined in Globals.h, set in link.c, used below */
 #endif                                  /* MSDOS */
 
-#if MVS
-   extern char *routname;
-#endif					/* MVS */
-
 word pc = 0;		/* simulated program counter */
 
 #define outword(n)	wordout((word)(n))
@@ -812,10 +808,6 @@ void gentables()
    struct rentry *rp;
    struct header hdr;
 
-#if MVS
-   FILE *toutfile;		/* temporary file for icode output */
-#endif					/* MVS */
-
    /*
     * Output record constructor procedure blocks.
     */
@@ -1391,40 +1383,15 @@ void gentables()
 #ifdef Header
    fseek(outfile, hdrsize, 0);
 #else                                   /* Header */
-   #if MVS
-      /*
-       * This kind of backpatching cannot work on a PDS member, and that's
-       *  probably where the code is going.  So the code goes out first to
-       *  a temporary file, and then copied to the real icode file after
-       *  the header is written.
-       */
-      fseek(outfile, sizeof(hdr), SEEK_SET);
-      toutfile = outfile;
-      outfile = fopen(routname, WriteBinary);
-      if (outfile == NULL)
-         quitf("cannot create %s",routname);
-   #else
-      #if MSDOS
-         fseek(outfile, fileOffsetOfStuffThatGoesInICX, 0);
-      #else				/* MSDOS */
-         fseek(outfile, 0L, 0);
-      #endif				/* MSDOS */
-   #endif				/* MVS */
+   #if MSDOS
+      fseek(outfile, fileOffsetOfStuffThatGoesInICX, 0);
+   #else				/* MSDOS */
+      fseek(outfile, 0L, 0);
+   #endif				/* MSDOS */
 #endif                                  /* Header */
 
    if (longwrite((char *)&hdr, (long)sizeof(hdr), outfile) < 0)
       quit("cannot write icode file");
-
-#if MVS
-   {
-      char *allelse = malloc(hdr.hsize);
-      if (hdr.hsize != fread(allelse, 1, hdr.hsize, toutfile) ||
-          longwrite(allelse, hdr.hsize, outfile) < 0)
-            quit("cannot write icode file");
-      free(allelse);
-      fclose(toutfile);
-   }
-#endif					/* MVS */
 
    if (verbose >= 2) {
       word tsize = sizeof(hdr) + hdr.hsize;

@@ -20,11 +20,6 @@ Deliberate Syntax Error
 #define IsRelPath(fname) (strchr(fname, ':') == NULL)
 #endif					/* AMIGA */
 
-#if VM || MVS
-   /* something may be needed */
-Deliberate Syntax Error
-#endif					/* VM || MVS */
-
 #if MACINTOSH
 char *FileNameMacToUnix(char *fn);
 char *FileNameUnixToMac(char *fn);
@@ -85,11 +80,6 @@ Deliberate Syntax Error
 #if AMIGA
    /* nothing is needed */
 #endif					/* AMIGA */
-
-#if VM || MVS
-   /* something may be needed */
-Deliberate Syntax Error
-#endif					/* VM || MVS */
 
 #if MACINTOSH
    fname = FileNameMacConvert(FileNameMacToUnix,fname);
@@ -161,7 +151,6 @@ int system;
     */
    if (IsRelPath(fname)) {
       sbuf = get_sbuf();
-#if  !MVS && !VM					/* ??? */
       f = NULL;
       if (!system) {
          /*
@@ -228,38 +217,6 @@ int system;
          prefix = ++prefix;
          }
       rel_sbuf(sbuf);
-#else					/* !MVS && !VM */
-      if (system) {
-         for (s = "ddn:SYSLIB("; *s != '\0'; ++s)
-            AppChar(*sbuf, *s);
-         for (s = fname; *s != '\0' && *s != '.'; ++s)
-            AppChar(*sbuf, *s);
-         AppChar(*sbuf, ')');
-         }
-      else {
-         char *t;
-         for (s = "ddn:"; *s != '\0'; ++s)
-            AppChar(*sbuf, *s);
-         t = fname;
-         do {
-            for (s = t; *s != '/' && *s != '\0'; ++s);
-            if (*s != '\0') t = s+1;
-            } while (*s != '\0');
-         for (s = t; *s != '.' && *s != '\0'; ++s);
-         if (*s == '\0') {
-            AppChar(*sbuf, 'H');
-            }
-         else for (++s; *s != '\0'; ++s)
-            AppChar(*sbuf, *s);
-         AppChar(*sbuf, '(');
-         for (; *t != '.' && *t != '\0'; ++t)
-            AppChar(*sbuf, *t);
-         AppChar(*sbuf, ')');
-         }
-      path = str_install(sbuf);
-      f = fopen(path, "r");
-      rel_sbuf(sbuf);
-#endif					/* !MVS && !VM */
       }
    else {                               /* The path is absolute. */
       path = fname;
@@ -317,10 +274,10 @@ Deliberate Syntax Error
    n_paths = 1;
 #endif					/* AMIGA */
 
-#if VM || MVS || (MACINTOSH && !MPW && !THINK_C)
+#if MACINTOSH && !MPW && !THINK_C
    /* probably needs something */
 Deliberate Syntax Error
-#endif					/* VM || ... */
+#endif					/* MACINTOSH && ... */
 
 #if MACINTOSH
 #if THINK_C
@@ -666,11 +623,6 @@ Deliberate Syntax Error
 #if AMIGA
    incl_search[n_paths - 1] = sysdir;
 #endif					/* AMIGA */
-
-#if VM || MVS
-   /* probably needs something */
-Deliberate Syntax Error
-#endif					/* VM || MVS */
 
 #if MSDOS
 #if MICROSOFT

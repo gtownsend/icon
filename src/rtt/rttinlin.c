@@ -50,10 +50,6 @@ int rslt_loc;		/* flag: function passed addr of result descriptor */
 
 char prfx3;		/* 3rd prefix char; used for unique body func names */
 
-#if MVS
-extern char *src_file_nm;
-#endif                                  /* MVS */
-
 /*
  * in_line - place in the data base in-line code for an operation and
  *   produce C functions for body statements.
@@ -1404,12 +1400,7 @@ struct node *n;
    char buf1[6];
 
    char *cname;
-
-#if MVS
-   char buf1[MaxFileName];
-#else
    char buf[MaxFileName];
-#endif					/* MVS */
 
    /*
     * Figure out the next character to use as the 3rd prefix for the
@@ -1462,21 +1453,7 @@ struct node *n;
     * Use the letter indicating operation type along with body function
     *  prefixes to construct the name of the file to hold the C code.
     */
-
-#if MVS
-   {
-      struct fileparts *fp;
-      fp = fparse(src_file_nm);
-      if (*fp->member == '\0')
-         sprintf(buf1, "%c#%c%c%c", lc_letter, prfx1, prfx2, prfx3);
-      else
-         sprintf(buf1, "%s%s.ro.c(%c#%c%c%c)", fp->dir, fp->name,
-                 lc_letter, prfx1, prfx2, prfx3);
-      }
-#else                                   /* MVS */
    sprintf(buf1, "%c_%c%c%c", lc_letter, prfx1, prfx2, prfx3);
-#endif                                  /* MVS */
-
    cname = salloc(makename(buf, SourceDir, buf1, CSuffix));
    if ((out_file = fopen(cname, "w")) == NULL)
       err2("cannot open output file ", cname);

@@ -92,17 +92,6 @@
    #undef lst2
 #endif					/* MSDOS */
 
-#if MVS || VM
-   #ifdef RecordIO
-      #if SASC
-         #include <lcio.h>
-      #endif				/* SASC */
-   #endif				/* RecordIO */
-   #if SASC
-      #include <lcsignal.h>
-   #endif				/* SASC */
-#endif					/* MVS || VM */
-
 #if OS2
    #define INCL_DOS
    #define INCL_ERRORS

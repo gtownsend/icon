@@ -558,27 +558,14 @@ int l;
    int i;
 
    i = (int)strlen(f);
-
-#if MVS
-   while (i > 22) {
-#else					/* MVS */
    while (i > 13) {
-#endif					/* MVS */
       f++;
       i--;
       }
    if (l > 0)
-
-#if MVS
-      fprintf(stderr, "%-22s: %4d  ",f, l);
-   else
-      fprintf(stderr, "                      :      ");
-#else					/* MVS */
       fprintf(stderr, "%-13s: %4d  ",f, l);
    else
       fprintf(stderr, "             :       ");
-#endif					/* MVS */
-
    }
 
 /*

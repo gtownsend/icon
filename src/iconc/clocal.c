@@ -101,15 +101,12 @@ int _stack = (8 * 1024);
 
 #endif					/* MSDOS */
 
-#if MVS || VM
-#endif					/* MVS || VM */
-
 #if OS2
 #endif					/* OS2 */
-
+
 #if UNIX
 #endif					/* UNIX */
-
+
 #if VMS
 #endif					/* VMS */
 

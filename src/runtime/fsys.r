@@ -27,12 +27,12 @@ Deliberate Syntax Error
 #passthru #undef read
 #passthru #undef write
 #passthru #undef getenv
-#endif __SASC                           /* SASC  */
+#endif __SASC                           /* __SASC */
 extern FILE *popen(const char *, const char *);
 extern int pclose(FILE *);
 #endif AMIGA                            /* AMIGA */
 
-#if MSDOS || MVS || OS2 || UNIX || VM || VMS
+#if MSDOS || OS2 || UNIX || VMS
    /* nothing to do */
 #endif					/* MSDOS ... */
 
@@ -259,13 +259,8 @@ end
 " and attributes given in trailing arguments."
 function{0,1} open(fname, spec, attr[n])
 #else						/* Graphics */
-#ifdef OpenAttributes
-"open(fname, spec, attrstring) - open file fname with specification spec."
-function{0,1} open(fname, spec, attrstring)
-#else						/* OpenAttributes */
 "open(fname, spec) - open file fname with specification spec."
 function{0,1} open(fname, spec)
-#endif						/* OpenAttributes */
 #endif						/* Graphics */
    declare {
       tended struct descrip filename;
@@ -284,14 +279,6 @@ function{0,1} open(fname, spec)
     */
    if !def:tmp_string(spec, letr) then
       runerr(103, spec)
-
-#ifdef OpenAttributes
-   /*
-    * Convert attrstr to a string, defaulting to "".
-    */
-   if !def:C_string(attrstring, emptystr) then
-      runerr(103, attrstring)
-#endif					/* OpenAttributes */
 
    abstract {
       return file
@@ -323,7 +310,7 @@ function{0,1} open(fname, spec)
 Deliberate Syntax Error
 #endif					/* PORT */
 
-#if AMIGA || MACINTOSH || MSDOS || MVS || OS2 || VM
+#if AMIGA || MACINTOSH || MSDOS || OS2
    /* nothing is needed */
 #endif					/* AMIGA || ... */
 
@@ -376,29 +363,13 @@ Deliberate Syntax Error
 	    case 'W':
 	       status |= Fs_Write;
 	       continue;
-
-#ifdef RecordIO
-	    case 's':
-	    case 'S':
-	       status |= Fs_Untrans;
-	       status |= Fs_Record;
-	       continue;
-#endif					/* RecordIO */
-
 	    case 't':
 	    case 'T':
 	       status &= ~Fs_Untrans;
-#ifdef RecordIO
-               status &= ~Fs_Record;
-#endif                                  /* RecordIO */
 	       continue;
-
 	    case 'u':
 	    case 'U':
 	       status |= Fs_Untrans;
-#ifdef RecordIO
-	       status &= ~Fs_Record;
-#endif					/* RecordIO */
 	       continue;
 
 #if AMIGA || ARM || OS2 || UNIX || VMS
@@ -478,14 +449,6 @@ Deliberate Syntax Error
 #endif					/* CSET2 */
 #endif					/* MSDOS || OS2 */
 
-#if MVS || VM
-      if ((status & (Fs_Read|Fs_Write)) == (Fs_Read|Fs_Write)) {
-	 mode[1] = '+';
-	 mode[2] = ((status & Fs_Untrans) != 0) ? 'b' : 0;
-	 }
-      else mode[1] = ((status & Fs_Untrans) != 0) ? 'b' : 0;
-#endif					/* MVS || VM */
-
 /*
  * End of operating-system specific code.
  */
@@ -493,18 +456,6 @@ Deliberate Syntax Error
       /*
        * Open the file with fopen or popen.
        */
-
-#ifdef OpenAttributes
-#if SASC
-#ifdef RecordIO
-	 f = afopen(fnamestr, mode, status & Fs_Record ? "seq" : "",
-		    attrstring);
-#else					/* RecordIO */
-	 f = afopen(fnamestr, mode, "", attrstring);
-#endif					/* RecordIO */
-#endif					/* SASC */
-
-#else					/* OpenAttributes */
 
 #ifdef Graphics
       if (status & Fs_Window) {
@@ -559,7 +510,6 @@ Deliberate Syntax Error
 #endif					/* ReadDirectory */
             f = fopen(fnamestr, mode);
          }
-#endif					/* OpenAttributes */
 
       /*
        * Fail if the file cannot be opened.
@@ -728,14 +678,8 @@ function{0,1} read(f)
 	 else
 #endif					/* Graphics */
 
-#ifdef RecordIO
-	 if ((slen = (status & Fs_Record ? getrec(sbuf, MaxReadStr, fp) :
-				   getstrg(sbuf, MaxReadStr, &BlkLoc(f)->file)))
-	     == -1) fail;
-#else					/* RecordIO */
 	 if ((slen = getstrg(sbuf, MaxReadStr, &BlkLoc(f)->file)) == -1)
 	    fail;
-#endif					/* RecordIO */
 
 	 /*
 	  * Allocate the string read and make s a descriptor for it.
@@ -1184,10 +1128,7 @@ end
       wputc('\n',(wbp)f);
    else
 #endif					/* Graphics */
-#ifdef RecordIO
-      if (!(status & Fs_Record))
-#endif					/* RecordIO */
-	 putc('\n', f);
+      putc('\n', f);
 #endif					/* nl */
 
    /*
@@ -1196,11 +1137,6 @@ end
 #ifdef Graphics
    if (!(status & Fs_Window)) {
 #endif					/* Graphics */
-#ifdef RecordIO
-      if (status & Fs_Record)
-	 flushrec(f);
-#endif					/* RecordIO */
-
       if (ferror(f))
 	 runerr(214);
       fflush(f);
@@ -1326,14 +1262,7 @@ function {1} name(x[nargs])
 			  }
 		     else {
 #endif					/* Graphics */
-#ifdef RecordIO
-			if (status & Fs_Record)
-			   flushrec(f);
-			else
-#endif					/* RecordIO */
-
-			   putc('\n', f);
-
+			putc('\n', f);
 			if (ferror(f))
 			   runerr(214);
 			fflush(f);
@@ -1396,14 +1325,9 @@ function {1} name(x[nargs])
 		     wputstr((wbp)f, StrLoc(t), StrLen(t));
 		  else
 #endif					/* Graphics */
-#ifdef RecordIO
-		     if ((status & Fs_Record ? putrec(f, &t) :
-					     putstr(f, &t)) == Failed)
-#else					/* RecordIO */
-		     if (putstr(f, &t) == Failed) {
-#endif					/* RecordIO */
-			runerr(214, x[n]);
-			}
+		  if (putstr(f, &t) == Failed) {
+		     runerr(214, x[n]);
+		     }
 		  }
 	       }
 
@@ -1485,7 +1409,7 @@ function{0,1} chdir(s)
    Deliberate Syntax Error
 #endif					/* PORT */
 
-#if ARM || MACINTOSH || MVS || VM
+#if ARM || MACINTOSH
       runerr(121);
 #endif					/* ARM || MACINTOSH ... */
 

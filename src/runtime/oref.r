@@ -130,14 +130,7 @@ operator{*} ! bang(underef x -> dx)
                   else
 #endif					/* Graphics */
 
-#ifdef RecordIO
-                  if ((slen = (status & Fs_Record ?
-			getrec(sbuf, MaxCvtLen, fd) :
-			getstrg(sbuf, MaxCvtLen, &BlkLoc(dx)->file))) == -1)
-#else					/* RecordIO */
                   if ((slen = getstrg(sbuf,MaxCvtLen,&BlkLoc(dx)->file)) == -1)
-#endif                                  /* RecordIO */
-
                      fail;
                   rlen = slen < 0 ? (word)MaxCvtLen : slen;
 

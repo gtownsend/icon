@@ -61,13 +61,7 @@ function{1} abs(n)
          return real
          }
       inline {
-
-#if SASC
-         return C_double __builtin_fabs(n);
-#else
          return C_double Abs(n);
-#endif					/* SASC */
-
          }
       }
    else

@@ -33,7 +33,7 @@ extern int chkbreak;
 #endif					/* LATTICE */
 #endif					/* AMIGA */
 
-#if ARM || MACINTOSH || MSDOS || MVS || OS2 || UNIX || VM || VMS
+#if ARM || MACINTOSH || MSDOS || OS2 || UNIX || VMS
    /* nothing needed */
 #endif					/* ARM || ... */
 
@@ -191,7 +191,7 @@ word xnargs;
 Deliberate Syntax Error
 #endif					/* PORT */
 
-#if AMIGA || ARM || MACINTOSH || MVS || UNIX || VM || VMS
+#if AMIGA || ARM || MACINTOSH || UNIX || VMS
 #define PushAVal(x) PushVal(x)
 #endif					/* AMIGA || ARM || ... */
 
@@ -419,7 +419,7 @@ Deliberate Syntax Error
 #endif					/* LATTICE */
 #endif					/* AMIGA */
 
-#if ARM || MSDOS || MVS || OS2 || UNIX || VM || VMS
+#if ARM || MSDOS || OS2 || UNIX || VMS
    /* nothing to do */
 #endif					/* ARM || ... */
 
@@ -1812,7 +1812,7 @@ interp_quit:
 Deliberate Syntax Error
 #endif					/* PORT */
 
-#if AMIGA || MACINTOSH || MVS || VM || VMS
+#if AMIGA || MACINTOSH || VMS
    /* not included */
 #endif					/* AMIGA || ... */
 

@@ -94,38 +94,12 @@ char *filename, *tgtdir;
     * Form names for the .u1 and .u2 files and open them.
     *  Write the ucode version number to the .u2 file.
     */
-
    makename(oname1, tgtdir, filename, U1Suffix);
-
-#if MVS || VM
-/*
- * Even though the ucode data is all reasonable text characters, use
- *  of text I/O may cause problems if a line is larger than LRECL.
- *  This is likely to be true with any compiler, though the precise
- *  disaster which results may vary.
- *
- * On CMS (and sometimes on MVS), empty files are not readable later.
- *  Since the .U1 file may be empty, we start it off with an extra
- *  blank (thrown away on input) to make sure there's something there.
- */
-   codefile = fopen(oname1, WriteBinary);   /* avoid line splits */
-   if (codefile != NULL)
-      putc(' ', codefile);
-#else					/* MVS || VM */
    codefile = fopen(oname1, WriteText);
-#endif					/* MVS || VM */
-
    if (codefile == NULL)
       quitf("cannot create %s", oname1);
-
    makename(oname2, tgtdir, filename, U2Suffix);
-
-#if MVS || VM
-   globfile = fopen(oname2, WriteBinary);
-#else					/* MVS || VM */
    globfile = fopen(oname2, WriteText);
-#endif					/* MVS || VM */
-
    if (globfile == NULL)
       quitf("cannot create %s", oname2);
    writecheck(fprintf(globfile,"version\t%s\n",UVersion));

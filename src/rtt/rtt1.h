@@ -4,11 +4,7 @@
 #define IndentInc 3
 #define MaxCol 80
 
-#if (MVS || VM) && SASC
-#define Max(x,y)        __builtin_max(x,y)
-#else                                   /* SASC */
 #define Max(x,y)        ((x)>(y)?(x):(y))
-#endif                                  /* SASC */
 
 /*
  * cfile is used to create a list of cfiles created from a source file.

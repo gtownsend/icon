@@ -29,11 +29,6 @@ char patchpath[MaxPath+18] = "%PatchStringHere->";
    char *refpath = "";
 #endif					/* RefPath */
 
-#if MVS
-   char *src_file_nm;
-#endif                                  /* MVS */
-
-
 /*
  * The following code is operating-system dependent [@rttmain.02].
  * The relative path to grttin.h and rt.h depends on whether they are
@@ -61,15 +56,10 @@ char *grttin_path = "..\\h\\grttin.h";
 char *rt_path = "..\\h\\rt.h";
 #endif					/* MSDOS || OS2 */
 
-#if MVS
-char *grttin_path = "ddn:h(grttin)";  /* presented to source() */
-char *rt_path = "rt.h";  /* presented to compiler */
-#endif                                  /* MVS */
-
-#if VMS || VM
+#if VMS
 char *grttin_path = "grttin.h";
 char *rt_path = "rt.h";
-#endif                                  /* VMS || VM */
+#endif                                  /* VMS */
 
 #if UNIX
 char *grttin_path = "../src/h/grttin.h";
@@ -392,10 +382,6 @@ char **argv;
     */
    while (optind < argc)  {
 
-#if MVS
-      src_file_nm = argv[optind];
-#endif                                  /* MVS */
-
 #if PatternMatch
       FINDDATA_T fd;
 
@@ -506,20 +492,10 @@ char *src_file;
       if (!iconx_flg)
          clr_dpnd(cur_src);
       source(cur_src);  /* tell preprocessor to read source file */
+
       /*
        * For the interpreter prepend "x" to the file name for the .c file.
        */
-
-#if MVS
-      if (*fp->member != '\0') {
-         char buf2[MaxFileName];
-         sprintf(buf2, "%s%s%s(%s%s", fp->dir, fp->name, fp->ext,
-                 iconx_flg? "x": "", fp->member);
-         makename(buf, TargetDir, buf2, CSuffix);
-         }
-         else
-#endif                                  /* MVS */
-
       buf_ptr = buf;
       if (iconx_flg)
          *buf_ptr++ = 'x';
@@ -580,13 +556,6 @@ int keep;
    struct fileparts *fp;
 
    fp = fparse(fname);
-
-#if MVS
-   if (*fp->member)
-      fprintf(curlst, "%s(%s\n", fp->name, fp->member);
-   else
-#endif                                  /* MVS */
-
    fprintf(curlst, "%s\n", fp->name);
    if (keep)
       add_dpnd(src_lkup(cur_src), fname);

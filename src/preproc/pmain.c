@@ -48,13 +48,6 @@ static char *options =
 #endif					/* TURBO || BORLAND_286 ... */
 #endif					/* MSDOS */
 
-#if VM || MVS
-static char *ostr = "CPD:I:U:o:";
-static char *options =
-   "<-C> <-P> <-Dname<=<text>>> <-Uname> <-Ipath> <-ofile> <files>";
-   /* ??? may need more options */
-#endif                                  /* VM || MVS */
-
 #if UNIX || VMS
 static char *ostr = "+CPD:I:U:o:";
 static char *options =
@@ -159,10 +152,6 @@ Deliberate Syntax Error
    /* something is needed */
 #endif					/* HIGHC_386 || INTEL_386 || ... */
 #endif					/* MSDOS */
-
-#if MVS || VM
-   /* ??? we'll see */
-#endif					/* MVS || VM */
 
 #if UNIX || VMS
    /* nothing is needed */

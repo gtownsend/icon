@@ -26,10 +26,6 @@
    Feature(1, "_ACORN", "Acorn Archimedes")
 #endif					/* ARM */
 
-#if VM
-   Feature(1, "_CMS", "CMS")
-#endif					/* VM */
-
 #if MACINTOSH
    Feature(1, "_MACINTOSH", "Macintosh")
 #endif					/* MACINTOSH */
@@ -50,10 +46,6 @@
 #endif					/* INTEL_386 || HIGHC_386 ... */
 #endif					/* MSDOS */
 
-#if MVS
-   Feature(1, "_MVS", "MVS")
-#endif					/* MVS */
-
 #if OS2
    Feature(1, "_OS2", "OS/2")
 #endif					/* OS2 */
@@ -64,7 +56,7 @@
 
 #if UNIX
    Feature(1, "_UNIX", "UNIX")
-#endif					/* VM */
+#endif					/* UNIX */
 
 #if VMS
    Feature(1, "_VMS", "VMS")
@@ -105,10 +97,6 @@
 #ifdef Pipes
    Feature(1, "_PIPES", "pipes")
 #endif					/* Pipes */
-
-#ifdef RecordIO
-   Feature(1, "_RECORD_IO", "record I/O")
-#endif					/* RecordIO */
 
    Feature(1, "_SYSTEM_FUNCTION", "system function")
 

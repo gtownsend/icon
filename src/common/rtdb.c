@@ -71,13 +71,7 @@ char **lrgintflg;
    dbname = s;
    dbline = 0;
    *lrgintflg = NULL;
-
-#if MVS || VM
    db = fopen(dbname, "rb");
-#else                                   /* MVS || VM */
-   db = fopen(dbname, "r");
-#endif                                  /* MVS || VM */
-
    if (db == NULL)
       return 0;
    ++dbline;

@@ -62,10 +62,6 @@ static void untend        (int indent);
 
 extern char *progname;
 
-#if MVS
-extern char *src_file_nm;
-#endif                                  /* MVS */
-
 int op_type = OrdFunc;  /* type of operation */
 char lc_letter;         /* f = function, o = operator, k = keyword */
 char uc_letter;         /* F = function, O = operator, K = keyword */
@@ -3319,12 +3315,7 @@ struct node *n;
    struct node *n1;
    FILE *f_save;
 
-#if MVS
-   char buf1[MaxFileName];
-#else                                   /* MVS */
    char buf1[5];
-#endif                                  /* MVS */
-
    char buf[MaxFileName];
    char *cname;
    long min_result;
@@ -3371,20 +3362,7 @@ struct node *n;
       /*
        * Compute the file name in which to output the function.
        */
-#if MVS
-   {
-      struct fileparts *fp;
-      fp = fparse(src_file_nm);
-      if (*fp->member == '\0')
-         sprintf(buf1, "%c#%c%c", lc_letter, prfx1, prfx2);
-      else
-         sprintf(buf1, "%s%s.ro.c(%c#%c%c)", fp->dir, fp->name,
-                 lc_letter, prfx1, prfx2);
-      }
-#else                                   /* MVS */
       sprintf(buf1, "%c_%c%c", lc_letter, prfx1, prfx2);
-#endif                                  /* MVS */
-
       cname = salloc(makename(buf, SourceDir, buf1, CSuffix));
       if ((out_file = fopen(cname, "w")) == NULL)
          err2("cannot open output file", cname);

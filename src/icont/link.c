@@ -38,7 +38,7 @@ static	void	setexe	(char *fname);
    Deliberate Syntax Error
 #endif					/* PORT */
 
-#if AMIGA || MACINTOSH || VM || VMS
+#if AMIGA || MACINTOSH || VMS
    /* nothing to do */
 #endif					/* AMIGA || ... */
 
@@ -53,10 +53,6 @@ static	void	setexe	(char *fname);
       #include <fcntl.h>
    #endif				/* MICROSOFT || TURBO ... */
 #endif					/* MSDOS */
-
-#if MVS
-   char *routname;			/* real output file name */
-#endif					/* MVS */
 
 #if OS2
    #if MICROSOFT || CSET2
@@ -122,19 +118,7 @@ char *outname;
       filename = lf->lf_name;
       makename(inname, SourceDir, filename, U2Suffix);
       makename(icnname, TargetDir, filename, SourceSuffix);
-
-#if MVS || VM
-      /*
-       * Even though the ucode data is all reasonable text characters, use
-       *  of text I/O may cause problems if a line is larger than LRECL.
-       *  This is likely to be true with any compiler, though the precise
-       *  disaster which results may vary.
-       */
-      infile = fopen(inname, ReadBinary);
-#else					/* MVS || VM */
       infile = fopen(inname, ReadText);
-#endif					/* MVS || VM */
-
       if (infile == NULL)
          quitf("cannot open %s",inname);
       readglob();
@@ -150,18 +134,11 @@ char *outname;
    /*
     * Open the output file.
     */
-
-#if MVS
-   routname = outname;
-   outfile = tmpfile();         /* write icode to temporary file to
-                                   avoid fseek-PDS limitations */
-#else					/* MVS */
    #if AMIGA && __SASC
       outfile = fopen(outname, ReadWriteBinary);
    #else				/* AMIGA && __SASC */
       outfile = fopen(outname, WriteBinary);
    #endif				/* AMIGA && __SASC */
-#endif					/* MVS */
 
 /*
  * The following code is operating-system dependent [@link.02].  Set
@@ -173,7 +150,7 @@ char *outname;
    Deliberate Syntax Error
 #endif					/* PORT */
 
-#if AMIGA || ARM || MACINTOSH || MVS || UNIX || VM || VMS
+#if AMIGA || ARM || MACINTOSH || UNIX || VMS
    /* nothing to do */
 #endif					/* AMIGA || ARM || ... */
 
@@ -408,19 +385,10 @@ char *outname;
       filename = lf->lf_name;
       makename(inname, SourceDir, filename, U1Suffix);
       makename(icnname, TargetDir, filename, SourceSuffix);
-
-#if MVS || VM
-      infile = fopen(inname, ReadBinary);
-      if (infile != NULL)         /* discard the extra blank we had */
-         (void) getc(infile);     /* to write to make it non-empty  */
-#else                                   /* MVS || VM */
       infile = fopen(inname, ReadText);
-#endif                                  /* MVS || VM */
-
       if (infile == NULL)
          quitf("cannot open %s", inname);
       gencode();
-
       fclose(infile);
       }
 
@@ -578,7 +546,7 @@ Deliberate Syntax Error
    }
 #endif					/* ARM */
 
-#if MSDOS || MVS || VM || VMS
+#if MSDOS || VMS
    /*
     * can't be made executable
     * note: VMS files can't be made executable, but see "iexe.com" under VMS.

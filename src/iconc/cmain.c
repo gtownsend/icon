@@ -278,7 +278,7 @@ Deliberate Syntax Error
          addlib(argv[optind]);		/* assume linker option */
 #endif					/* UNIX ... */
 
-#if AMIGA || MACINTOSH || MSDOS || MVS || OS2 || VM || VMS
+#if AMIGA || MACINTOSH || MSDOS || OS2 || VMS
       /*
        * Linker options on command line not supported.
        */
@@ -316,7 +316,7 @@ Deliberate Syntax Error
             addlib(argv[optind]);
 #endif					/* UNIX ... */
 
-#if AMIGA || MACINTOSH || MSDOS || MVS || OS2 || VM || VMS
+#if AMIGA || MACINTOSH || MSDOS || OS2 || VMS
             /*
              * Pass no files to the linker.
              */
@@ -504,14 +504,6 @@ Deliberate Syntax Error
 #endif					/* HIGHC_386 || ... */
 #endif					/* MSDOS */
 
-#if MVS || VM
-#if SASC
-	  exit(sysexec(ofile, argv));
-#endif					/* SASC */
-      fprintf(stderr,"-x not supported\n");
-      fflush(stderr);
-#endif                                  /* MVS || VM */
-
 #if OS2 || UNIX || VMS
       execvp(ofile,argv);
 #endif					/* OS2 || UNIX || VMS */
@@ -543,7 +535,7 @@ char *s;
 Deliberate Syntax Error
 #endif					/* PORT */
 
-#if AMIGA || MSDOS || MVS || OS2 || UNIX || VM || VMS
+#if AMIGA || MSDOS || OS2 || UNIX || VMS
    fprintf(stderr,"%s:\n",s);
 #endif					/* AMIGA || ... */
 

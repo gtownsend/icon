@@ -282,73 +282,12 @@ int _stack = (8 * 1024);
 
 #endif					/* MSDOS */
 
-#if MVS || VM
-#if SASC
-#include <options.h>
-char _linkage = _OPTIMIZE;
-
-#if MVS                 /* expect dsnames, not DDnames, as file names */
-char *_style = "tso:";
-#define SYS_OSVS
-#else					/* MVS */
-#define SYS_CMS
-#endif					/* MVS */
-
-#define RES_IOUTIL
-#define RES_DSNAME
-
-#include <resident.h>
-
-#if VM
-#include <cmsexec.h>
-#endif					/* VM */
-/*
- * No execvp, so turn it into a call to system.  (Then caller can exit.)
- * In VM, put the ICONX command on the CMS stack, and someone else will
- * do it after we're gone.  (system would clobber the user area.)
- */
-int sysexec(cmd, argv)
-   char *cmd;
-   char **argv;
-   {
-#if MVS
-      char *prefix = "tso:";
-#else					/* MVS */
-      char *prefix = "";
-#endif					/* MVS */
-      int cmdlen = strlen(cmd) + strlen(prefix) + 1;
-      char **p;
-      char *cmdstr, *next;
-
-      for(p = argv+1; *p; ++p)
-         cmdlen += strlen(*p) + 1;
-      cmdstr = malloc(cmdlen);      /* blithely ignoring failure...  */
-      strcpy(cmdstr, prefix);
-      strcat(cmdstr, cmd);
-      next = cmdstr + strlen(prefix) + strlen(cmd);
-      for (p = argv+1; *p; ++p)
-         {
-             *next = ' ';
-             strcpy(next+1, *p);
-             next += strlen(*p) + 1;
-          }
-      *next = '\0';
-#if MVS
-      return(system(cmdstr));
-#else					/* MVS */
-      cmspush(cmdstr);
-      return EXIT_SUCCESS;
-#endif					/* MVS */
-   }
-#endif					/* SASC */
-#endif					/* MVS || VM */
-
 #if OS2
 #endif					/* OS2 */
-
+
 #if UNIX
 #endif					/* UNIX */
-
+
 #if VMS
 #endif					/* VMS */
 

@@ -61,7 +61,7 @@ int use_resource = 0;			/* Set to TRUE if using a resource */
 int stubexe;				/* TRUE if resource attached to executable */
 #endif					/* OS2 */
 
-#if ARM || MACINTOSH || MVS || VM || UNIX || VMS
+#if ARM || MACINTOSH || UNIX || VMS
    /* nothing needed */
 #endif					/* ARM || MACINTOSH ... */
 
@@ -306,21 +306,7 @@ struct header *hdr;
       if ((int)strlen(name) + 5 > 100)
 	 error(name, "icode file name too long");
       strcpy(tname,name);
-
-#if MVS
-   {
-      char *p;
-      if (p = strchr(name, '(')) {
-	 tname[p-name] = '\0';
-      }
-#endif					/* MVS */
-
       strcat(tname,IcodeSuffix);
-
-#if MVS
-      if (p) strcat(tname,p);
-   }
-#endif					/* MVS */
 
 #if MSDOS || OS2
       fname = pathOpen(tname,ReadBinary);	/* try to find path */
@@ -649,13 +635,6 @@ Deliberate Syntax Error
 #endif					/* MICROSOFT || TURBO || ZTC_386 || SCCX_MX */
 #endif					/* MSDOS */
 
-#if MVS || VM
-#if SASC
-   cosignal(SIGFPE, fpetrap);           /* catch in all coprocs */
-   cosignal(SIGSEGV, segvtrap);
-#endif					/* SASC */
-#endif					/* MVS || VM */
-
 #if OS2 || BORLAND_286 || BORLAND_386
    signal(SIGFPE, fpetrap);
    signal(SIGSEGV, segvtrap);
@@ -943,7 +922,7 @@ btinit:
 Deliberate Syntax Error
 #endif					/* PORT */
 
-#if AMIGA || MVS || VM
+#if AMIGA
    /* not done */
 #endif					/* AMIGA */
 
@@ -1038,7 +1017,7 @@ Deliberate Syntax Error
    if (WBmstksize != 0 && WBmstksize <= (uword) MaxUnsigned) mstksize = WBmstksize;
 #endif					/* AMIGA */
 
-#if ARM || MACINTOSH || MSDOS || MVS || OS2 || UNIX || VM || VMS
+#if ARM || MACINTOSH || MSDOS || OS2 || UNIX || VMS
    /* nothing to do */
 #endif					/* ARM || ... */
 
@@ -1072,10 +1051,6 @@ Deliberate Syntax Error
       signal(SIGFPE, SIG_DFL);
 #endif					/* TURBO || BORLAND_286 ... */
 #endif					/* MSDOS */
-
-#if MVS || VM
-      /* Really nothing to do. */
-#endif					/* MVS || VM */
 
 #if UNIX || VMS
       signal(SIGSEGV, SIG_DFL);
@@ -1173,13 +1148,6 @@ void segvtrap(int sig)
       exit(1);
       }
    n++;
-
-#if MVS || VM
-#if SASC
-   btrace(0);
-#endif					/* SASC */
-#endif					/* MVS || VM */
-
    fatalerr(302, NULL);
    exit(1);
    }

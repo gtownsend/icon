@@ -37,9 +37,9 @@ char *p;
    #endif				/* LATTICE || __SASC */
 #endif					/* AMIGA */
 
-#if ARM || MVS || VM
+#if ARM 
    /* cannot do this */
-#endif					/* ARM || MVS || VM */
+#endif					/* ARM */
 
 #if MSDOS || OS2 || VMS
    #if HIGHC_386 || NT

@@ -36,16 +36,6 @@ Deliberate Syntax Error
 #endif					/* TURBO || BORLAND_286 ... */
 #endif					/* MSDOS */
 
-#if MVS
-#if SASC
-char *_style = "tso:";
-#endif                                  /* SASC */
-#endif                                  /* MVS */
-
-#if VM
-   /* ??? */
-#endif					/* VM */
-
 #if UNIX || VMS
    /* nothing is needed */
 #endif					/* UNIX || VMS */
@@ -519,23 +509,6 @@ Deliberate Syntax Error
 #endif					/* HIGHC_386 || INTEL_386 || ... */
 #endif					/* MSDOS */
 
-#if MVS || VM
-#if SASC
-   do_directive("#define I370 1\n");
-   {
-      char sascbuf[sizeof("#define __SASC__ nnnn\n")];
-      sprintf(sascbuf, "#define __SASC__ %d\n", __SASC__);
-      do_directive(sascbuf);
-   }
-#if MVS
-   do_directive("#define OSVS 1\n");
-#endif                                  /* MVS */
-#if VM
-   do_directive("#define CMS 1\n");
-#endif                                  /* VM */
-#endif                                  /* SASC */
-#endif                                  /* MVS || VM */
-
 #if UNIX
    do_directive("#define unix 1\n");
    do_directive(PPInit);   /* defines that vary between Unix systems */
@@ -815,10 +788,6 @@ Deliberate Syntax Error
    /* something may be needed */
 #endif					/* HIGHC_386 || INTEL_386 || ZTC_386 */
 #endif					/* MSDOS */
-
-#if MVS || VM
-   /* ??? we'll see... */
-#endif                                  /* MVS || VM */
 
 #if UNIX || VMS
    /* nothing is needed */

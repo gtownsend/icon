@@ -917,34 +917,6 @@ extern unsigned _stklen = 16 * 1024;
 
 #endif					/* MSDOS */
 
-/********************************* MVS || VM ********************************/
-
-#if MVS || VM
-#if SASC
-#passthru #include <options.h>
-char _linkage = _OPTIMIZE;
-
-#if MVS
-char *_style = "tso:";          /* use dsnames as file names */
-#define SYS_OSVS
-#else                                   /* MVS */
-#define SYS_CMS
-#endif                                  /* MVS */
-
-#passthru #define RES_SIGNAL
-#passthru #define RES_COPROC
-#passthru #define RES_IOUTIL
-#passthru #define RES_DSNAME
-#passthru #define RES_FILEDEF
-#passthru #define RES_UNITREC
-#passthru #define RES_TSOENVVAR
-#passthru #define ALLOW_TRANSIENT /* temporary */
-
-#passthru #include <resident.h>
-
-#endif                                  /* SASC */
-#endif                                  /* MVS || VM */
-
 /*********************************** OS/2 ***********************************/
 
 #if OS2

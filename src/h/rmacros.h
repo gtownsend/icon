@@ -38,11 +38,6 @@
 #define Fs_Pipe		020	/* reading/writing on a pipe */
 #define Fs_Untrans    01000	/* untranslated mode file */
 #define Fs_Directory  02000	/* reading a directory */
-
-#ifdef RecordIO
-   #define Fs_Record    040	/* record structured file */
-#endif					/* RecordIO */
-
 #define Fs_Reading     0100     /* last file operation was read */
 #define Fs_Writing     0200     /* last file operation was write */
 
@@ -182,16 +177,11 @@
 
 /*
  * Absolute value, maximum, and minimum.
+ * N.B. UNSAFE MACROS: may evaluate arguments multiple times.
  */
-#if (MVS || VM) && SASC
-   #define Abs(x) __builtin_abs(x)
-   #define Max(x,y)     __builtin_max(x,y)
-   #define Min(x,y)     __builtin_min(x,y)
-#else					/* SASC */
-   #define Abs(x) (((x) < 0) ? (-(x)) : (x))
-   #define Max(x,y)        ((x)>(y)?(x):(y))
-   #define Min(x,y)        ((x)<(y)?(x):(y))
-#endif					/* SASC */
+#define Abs(x)		(((x) < 0) ? (-(x)) : (x))
+#define Max(x,y)        ((x)>(y)?(x):(y))
+#define Min(x,y)        ((x)<(y)?(x):(y))
 
 /*
  * Number of elements of a C array, and element size.
@@ -462,7 +452,7 @@
       Deliberate Syntax Error
    #endif				/* PORT */
 
-   #if AMIGA || ARM || MACINTOSH || MVS || UNIX || VM || VMS
+   #if AMIGA || ARM || MACINTOSH || UNIX || VMS
       #define PushAVal(x) PushVal(x)
    #endif				/* AMIGA || ARM || ... */
 

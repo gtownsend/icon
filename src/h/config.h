@@ -68,10 +68,6 @@
    #define SCCX_MX 0
 #endif					/* SCCX_MX */
 
-#ifndef MVS
-   #define MVS 0
-#endif					/* MVS */
-
 #ifndef OS2
    #define OS2 0
 #endif					/* OS2 */
@@ -83,10 +79,6 @@
 #ifndef UNIX
    #define UNIX 0
 #endif					/* UNIX */
-
-#ifndef VM
-   #define VM 0
-#endif					/* VM */
 
 #ifndef VMS
    #define VMS 0
@@ -398,7 +390,7 @@ Deliberate Syntax Error
    #define LibSuffix ".olb"
 #endif					/* VMS */
 
-#if AMIGA || ARM || MACINTOSH || MVS || VM
+#if AMIGA || ARM || MACINTOSH
 #endif					/* AMIGA || ARM || ... */
 
 #if MSDOS || OS2
@@ -471,26 +463,6 @@ Deliberate Syntax Error
       #define malloc mlalloc
    #endif				/* LSC */
 #endif					/* MACINTOSH */
-
-#if MVS || VM
-
-   /*
-    *  Define compiler-specific symbols to be zero if not already
-    *  defined.
-    */
-
-   #ifndef SASC
-      #define SASC 0
-   #endif				/* SASC */
-
-   #ifndef __SASC
-      #define __SASC 0
-   #endif				/* __SASC */
-
-   #ifndef WATERLOO_C_V3_0
-      #define WATERLOO_C_V3_0 0
-   #endif				/* WATERLOO_C_V3_0 */
-#endif					/* MVS || VM */
 
 #if MACINTOSH && MPW
    #ifndef NoHeader

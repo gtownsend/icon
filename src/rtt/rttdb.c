@@ -252,16 +252,7 @@ char *dbname;
    int ary_sz;
    int i;
 
-
-#if MVS
-   /*
-    * Avoid problems with MVS line length restrictions.
-    */
    db = fopen(dbname, "wb");
-#else                                   /* MVS */
-   db = fopen(dbname, "w");
-#endif                                  /* MVS */
-
    if (db == NULL)
       err2("cannot open data base for output:", dbname);
    if(newdb)
@@ -1218,13 +1209,6 @@ char *fname;
              * Remove the suffix from the name before printing.
              */
             fp = fparse(clst->name);
-
-#if MVS
-            if (*fp->member)
-               fprintf(f, "%s(%s\n", fp->name, fp->member);
-            else
-#endif                                  /* MVS */
-
             fprintf(f, "%s\n", fp->name);
             }
    if (fclose(f) != 0)

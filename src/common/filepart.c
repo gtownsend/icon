@@ -53,18 +53,6 @@ static char *tryfile	(char *buf, char *dir, char *name, char *extn);
    #endif				/* MPW */
 #endif					/* MACINTOSH */
 
-#if MVS
-   #define Prefix ""
-   #define FileSep '('
-   #if SASC
-      #define DefPath "iconlib ddn:::lib"
-   #endif				/* SASC */
-#endif					/* MVS */
-
-#if VM
-   #define Prefix ""
-#endif					/* VM */
-
 #if UNIX
    #define Prefix "/"
    #define FileSep '/'
@@ -306,19 +294,6 @@ char *s;
 
 #else					/* ARM */
 
-#if MVS
-   static char extbuf [MaxFileName+2] ;
-
-   p = strchr(s, '(');
-   if (p) {
-      fp.member = p+1;
-      memcpy(extbuf, s, p-s);
-      extbuf [p-s]  = '\0';
-      s = extbuf;
-   }
-   else fp.member = s + strlen(s);
-#endif					/* MVS */
-
    q = s;
    fp.ext = p = s + strlen(s);
    while (--p >= s) {
@@ -375,25 +350,7 @@ char *dest, *d, *name, *e;
       char *p = (*fp.ext ? fp.ext + 1 : "");
       sprintf(dest, "%s%s%s%s", fp.dir, p, (*p ? "." : ""), fp.name);
    }
-
 #else					/* ARM */
-
-#if MVS
-#if SASC
-   {
-      char *colons;
-      colons = strstr(fp.name, ":::");
-      if (colons) {
-         memcpy(colons+1, e+1, 2);
-         fp.ext = "";
-      }
-   }
-#endif					/* SASC */
-   if (*fp.member)
-      sprintf(dest,"%s%s%s(%s", fp.dir, fp.name, fp.ext, fp.member);
-   else
-#endif					/* MVS */
-
    sprintf(dest,"%s%s%s",fp.dir,fp.name,fp.ext);
 #endif					/* ARM */
 

@@ -301,15 +301,7 @@ char *filename;
    struct gentry *gp, **rp;
 
    makename(inname, SourceDir, filename, U1Suffix);
-
-   #if MVS || VM
-      infile = fopen(inname, ReadBinary);
-      if (infile != NULL)		/* discard the extra blank we had */
-         (void)getc(infile);		/* to write to make it non-empty  */
-   #else				/* MVS || VM */
-      infile = fopen(inname, ReadText);
-   #endif				/* MVS || VM */
-
+   infile = fopen(inname, ReadText);
    if (infile == NULL)
       quitf("cannot open %s", inname);
 
