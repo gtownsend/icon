@@ -21,7 +21,8 @@ xpm:
 		cd ../xpm; $(MAKE) libXpm.a
 		cp ../xpm/libXpm.a ../../bin/libIgpx.a
 
-wincap:		cd ../wincap; $(MAKE) libWincap.a
+wincap:		
+		cd ../wincap; $(MAKE) libWincap.a
 		cp -u ../wincap/libWincap.a ../../bin/libIgpx.a
 
 $(OBJS): ../h/define.h ../h/arch.h ../h/config.h ../h/cstructs.h \
