@@ -72,6 +72,7 @@ int is_iconcolor;
    r = color.red;
    g = color.green;
    b = color.blue;
+   h = (503 * r + 509 * g + 499 * b) % ElemCount(rgbhash);
 
    /*
     * Search for the color in w's display
@@ -80,7 +81,6 @@ int is_iconcolor;
       /*
        * TrueColor entries are linked on hash chains.
        */
-      h = (503 * r + 509 * g + 499 * b) % ElemCount(rgbhash);
       i = rgbhash[h];
       while (i != 0 && !CMATCH(wd->colrptrs[i],r,g,b))
          i = wd->colrptrs[i]->next;
