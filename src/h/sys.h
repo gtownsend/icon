@@ -34,24 +34,24 @@
  * Operating-system-dependent includes.
  */
 
-#if MSDOS
+#if MSWIN
    #include <windows.h>
    #include <sys/cygwin.h>
    #include <sys/select.h>
    
-   #ifdef MSWindows
+   #ifdef WinGraphics
       #define int_PASCAL int PASCAL
       #define LRESULT_CALLBACK LRESULT CALLBACK
       #define BOOL_CALLBACK BOOL CALLBACK
       #include <mmsystem.h>
       #include <process.h>
       #include "../wincap/dibutil.h"
-   #endif				/* MSWindows */
+   #endif				/* WinGraphics */
 
    #undef Type
    #undef lst1
    #undef lst2
-#endif					/* MSDOS */
+#endif					/* MSWIN */
 
 /*
  * Window-system-dependent includes.

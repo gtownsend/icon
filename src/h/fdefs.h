@@ -195,7 +195,7 @@ FncDefV(writes)
    FncDefV(WFlush)
    FncDef(WSync,1)
    FncDefV(WriteImage)
-   #ifdef MSWindows
+   #ifdef WinGraphics
       FncDefV(WinPlayMedia)
       FncDefV(WinEditRegion)
       FncDefV(WinButton)
@@ -206,7 +206,7 @@ FncDefV(writes)
       FncDefV(WinOpenDialog)
       FncDefV(WinSaveDialog)
       FncDefV(WinSelectDialog)
-   #endif				/* MSWindows */
+   #endif				/* WinGraphics */
 #endif					/* Graphics */
 
       #ifdef FAttrib

@@ -191,7 +191,7 @@ char *s, *t;
       }
    }
 
-#if MSDOS
+#if MSWIN
 
 FILE *pathOpen(fname, mode)
    char *fname;
@@ -215,4 +215,4 @@ FILE *pathOpen(fname, mode)
    return fopen(buf, mode);
    }
 
-#endif					/* MSDOS */
+#endif					/* MSWIN */

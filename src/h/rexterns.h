@@ -219,9 +219,9 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
       extern stringint cursorsyms[];
    #endif				/* XWindows */
 
-   #ifdef MSWindows
+   #ifdef WinGraphics
       extern HINSTANCE mswinInstance;
       extern int ncmdShow;
-   #endif				/* MSWindows */
+   #endif				/* WinGraphics */
 
 #endif					/* Graphics */

@@ -6,9 +6,9 @@
    #include "../h/xwin.h"
 #endif					/* XWindows */
 
-#ifdef MSWindows
+#ifdef WinGraphics
    #include "../h/mswin.h"
-#endif					/* MSWindows */
+#endif					/* WinGraphics */
 
 #ifndef MAXXOBJS
    #define MAXXOBJS 256
@@ -116,11 +116,11 @@
    #define CLRZOMBIE(w)    ((w)->window->bits &= ~1)
 #endif					/* XWindows */
 
-#ifdef MSWindows
+#ifdef WinGraphics
    #define ISTOBEHIDDEN(ws)  ((ws)->bits & 4096)
    #define SETTOBEHIDDEN(ws) ((ws)->bits |= 4096)
    #define CLRTOBEHIDDEN(ws) ((ws)->bits &= ~4096)
-#endif					/* MSWindows */
+#endif					/* WinGraphics */
 
 /*
  * Window Resources
@@ -145,13 +145,13 @@ typedef struct _wfont {
       XFontStruct *fsp;			/* X font pointer */
    #endif				/* XWindows */
 
-   #ifdef MSWindows
+   #ifdef WinGraphics
       HFONT	font;
       LONG	ascent;
       LONG	descent;
       LONG	charwidth;
       LONG	height;
-   #endif				/* MSWindows */
+   #endif				/* WinGraphics */
 
    } wfont, *wfp;
 
@@ -182,9 +182,9 @@ struct imgmem {
       XImage *im;
    #endif					/* XWindows */
 
-   #ifdef MSWindows
+   #ifdef WinGraphics
       COLORREF *crp;
-   #endif					/* MSWindows */
+   #endif					/* WinGraphics */
    };
 
 #define TCH1 '~'			/* usual transparent character */
@@ -246,7 +246,7 @@ typedef struct _wcontext {
       int	leading;		/* inter-line leading */
    #endif				/* XWindows */
 
-   #ifdef MSWindows
+   #ifdef WinGraphics
       LOGPEN	pen;
       LOGPEN	bgpen;
       LOGBRUSH	brush;
@@ -256,7 +256,7 @@ typedef struct _wcontext {
       SysColor	fg, bg;
       char	*fgname, *bgname;
       int	leading, bkmode;
-   #endif				/* MSWindows*/
+   #endif				/* WinGraphics*/
 
    } wcontext, *wcp;
 
@@ -264,7 +264,7 @@ typedef struct _wcontext {
  * Native facilities include the following child controls (windows) that
  * persist on the canvas and intercept various events.
  */
-#ifdef MSWindows
+#ifdef WinGraphics
    #define CHILD_BUTTON 0
    #define CHILD_SCROLLBAR 1
    #define CHILD_EDIT 2
@@ -274,7 +274,7 @@ typedef struct _wcontext {
       HFONT font;
       char *id;				/* child window string id */
       } childcontrol;
-#endif					/* MSWindows */
+#endif					/* WinGraphics */
 
 /*
  * "Window state" includes the actual X window and references to a large
@@ -325,7 +325,7 @@ typedef struct _wstate {
       long	wmhintflags;		/* window manager hints */
    #endif				/* XWindows */
 
-   #ifdef MSWindows
+   #ifdef WinGraphics
       HWND	win;			/* client window */
       HWND	iconwin;		/* client window when iconic */
       HBITMAP	pix;			/* backing bitmap */
@@ -341,7 +341,7 @@ typedef struct _wstate {
       HWND	focusChild;
       int	nChildren;
       childcontrol *child;
-   #endif				/* MSWindows */
+   #endif				/* WinGraphics */
 
    } wstate, *wsp;
 

@@ -18,13 +18,9 @@
 
    Feature(1, "_V9", 0)			/* Version 9 (unconditional) */
 
-#if MSDOS
-   #if NT
-      Feature(1, "_MS_WINDOWS_NT", "MS Windows NT")
-   #else				/* NT */
-      Feature(1, "_MSDOS", "MS-DOS")
-   #endif				/* NT */
-#endif					/* MSDOS */
+#if MSWIN
+   Feature(1, "_MS_WINDOWS", "MS Windows")
+#endif					/* MSWIN */
 
 #if CYGWIN
    Feature(1, "_CYGWIN", "Cygwin")
@@ -79,8 +75,3 @@
 #ifdef XWindows
    Feature(1, "_X_WINDOW_SYSTEM", "X Windows")
 #endif					/* XWindows */
-
-#ifdef MSWindows
-   Feature(1, "_MS_WINDOWS", "MS Windows")
-   Feature(1, "_WIN32", "Win32")
-#endif					/* MSWindows */

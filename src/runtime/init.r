@@ -37,9 +37,9 @@ FILE		*pathOpen       (char *fname, char *mode);
    #undef OpDef
 #endif					/* !COMPILER */
 
-#ifdef MSWindows
+#ifdef WinGraphics
    static void MSStartup(HINSTANCE hInstance, HINSTANCE hPrevInstance);
-#endif					/* MSWindows */
+#endif					/* WinGraphics */
 
 /*
  * A number of important variables follow.
@@ -207,20 +207,20 @@ struct header *hdr;
       strcat(ext,IcodeSuffix);
       makename(tname,NULL,name,ext);
 
-      #if MSDOS
+      #if MSWIN
 	  fname = pathOpen(tname,"rb");	/* try to find path */
-      #else					/* MSDOS */
+      #else					/* MSWIN */
 	  fname = fopen(tname, "rb");
-      #endif					/* MSDOS */
+      #endif					/* MSWIN */
 
       }
 
    if (fname == NULL)			/* try the name as given */
-      #if MSDOS
+      #if MSWIN
          fname = pathOpen(name, "rb");
-      #else					/* MSDOS */
+      #else					/* MSWIN */
          fname = fopen(name, "rb");
-      #endif					/* MSDOS */
+      #endif					/* MSWIN */
 
    if (fname == NULL)
       return NULL;
@@ -236,13 +236,13 @@ struct header *hdr;
    for (;;) {
       if (fgets(buf, sizeof buf-1, fname) == NULL)
 	 error(name, errmsg);
-      #if NT
+      #if MSWIN
          if (strncmp(buf, "rem [executable Icon binary follows]", 36) == 0)
             break;
-      #else					/* NT */
+      #else					/* MSWIN */
          if (strncmp(buf, "[executable Icon binary follows]", 32) == 0)
             break;
-      #endif					/* NT */
+      #endif					/* MSWIN */
       }
 
    while ((n = getc(fname)) != EOF && n != '\f')	/* read thru \f\n\0 */
@@ -293,7 +293,7 @@ struct header *hdr;
 
    prog_name = name;			/* Set icode file name */
 
-#ifdef MSWindows
+#ifdef WinGraphics
    {
    STARTUPINFO si;
 
@@ -308,7 +308,7 @@ struct header *hdr;
    mswinInstance = GetModuleHandle( NULL );
    MSStartup( mswinInstance, NULL );
    }
-#endif                                        /* MSWindows */
+#endif                                        /* WinGraphics */
 
 
    /*
@@ -820,10 +820,10 @@ int i;
       xdisp(pfp,glbl_argp,k_level,stderr);
       }
 
-#ifdef MSWindows
+#ifdef WinGraphics
    PostQuitMessage(0);
    while (wstates != NULL) pollevent();
-#endif					/* MSWindows */
+#endif					/* WinGraphics */
 
    exit(i);
 
@@ -865,9 +865,9 @@ struct pstrnm *a, *b;
  */
 void datainit()
    {
-#ifdef MSWindows
+#ifdef WinGraphics
    extern FILE *finredir, *fouredir, *ferredir;
-#endif					/* MSWindows */
+#endif					/* WinGraphics */
 
    /*
     * Initializations that cannot be performed statically (at least for
@@ -880,32 +880,32 @@ void datainit()
    k_output.title = T_File;
 #endif					/* MultiThread */
 
-#ifdef MSWindows
+#ifdef WinGraphics
    if (ferredir != NULL)
       k_errout.fd = ferredir;
    else
-#endif					/* MSWindows */
+#endif					/* WinGraphics */
    k_errout.fd = stderr;
    StrLen(k_errout.fname) = 7;
    StrLoc(k_errout.fname) = "&errout";
    k_errout.status = Fs_Write;
 
-#ifdef MSWindows
+#ifdef WinGraphics
    if (finredir != NULL)
       k_input.fd = finredir;
    else
-#endif					/* MSWindows */
+#endif					/* WinGraphics */
    if (k_input.fd == NULL)
       k_input.fd = stdin;
    StrLen(k_input.fname) = 6;
    StrLoc(k_input.fname) = "&input";
    k_input.status = Fs_Read;
 
-#ifdef MSWindows
+#ifdef WinGraphics
    if (fouredir != NULL)
       k_output.fd = fouredir;
    else
-#endif					/* MSWindows */
+#endif					/* WinGraphics */
    if (k_output.fd == NULL)
       k_output.fd = stdout;
    StrLen(k_output.fname) = 7;
@@ -1154,7 +1154,7 @@ C_integer bs, ss, stk;
    }
 #endif					/* MultiThread */
 
-#ifdef MSWindows
+#ifdef WinGraphics
 static void MSStartup(HINSTANCE hInstance, HINSTANCE hPrevInstance)
    {
    WNDCLASS wc;
@@ -1172,4 +1172,4 @@ static void MSStartup(HINSTANCE hInstance, HINSTANCE hPrevInstance)
       RegisterClass(&wc);
       }
    }
-#endif                                        /* MSWindows */
+#endif                                        /* WinGraphics */

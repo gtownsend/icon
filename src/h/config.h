@@ -75,24 +75,23 @@
 /*
  * Graphics definitions.
  */
-
-#ifdef MSWindows
-   #undef Graphics
-   #define Graphics 1
-#endif					/* MSWindows */
-
 #ifdef Graphics
+
+   #ifndef XWindows
+      #ifdef MSWIN
+         #undef WinGraphics
+         #define WinGraphics 1
+      #else				/* Graphics */
+         #define XWindows 1
+      #endif				/* Graphics */
+   #endif				/* XWindows */
+
    #ifndef NoXpmFormat
-      #ifndef MSWindows
+      #ifdef XWindows
          #undef HaveXpmFormat
          #define HaveXpmFormat
-      #endif				/* MSWindows */
+      #endif				/* XWindows */
    #endif				/* NoXpmFormat */
-
-   #ifndef MSWindows
-      #undef XWindows
-      #define XWindows 1
-   #endif				/* MSWindows */
 
    #undef LineCodes
    #define LineCodes
@@ -101,11 +100,11 @@
    #define Polling
 
    #ifndef ICONC_XLIB
-      #ifdef MSWindows
+      #ifdef WinGraphics
          #define ICONC_XLIB "-luser32 -lgdi32 -lcomdlg32 -lwinmm"
-      #else				/* MSWindows */
+      #else				/* WinGraphics */
          #define ICONC_XLIB "-L/usr/X11R6/lib -lX11"
-      #endif				/* MSWindows */
+      #endif				/* WinGraphics */
    #endif				/* ICONC_XLIB */
 
 #endif					/* Graphics */

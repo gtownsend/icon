@@ -312,7 +312,7 @@ function{0,1} open(fname, spec)
        * Fail if the file cannot be opened.
        */
       if (f == NULL) {
-#ifdef MSWindows
+#ifdef WinGraphics
 
 #ifndef _S_IFDIR
    #define _S_IFDIR S_IFDIR
@@ -356,9 +356,9 @@ function{0,1} open(fname, spec)
             fseek(f, 0, SEEK_SET);
             if (f == NULL) fail;
 	    }
-#else					/* MSWindows */
+#else					/* WinGraphics */
 	 fail;
-#endif					/* MSWindows */
+#endif					/* WinGraphics */
 	 }
 
       /*

@@ -60,10 +60,10 @@ char **argv;
     */
    if (index(name, '/'))
       doiconx(argv, name);
-#if MSDOS
+#if MSWIN
    else if (chkcmd(name))
       doiconx(argv, name);
-#endif					/* MSDOS */
+#endif					/* MSWIN */
    else if (findcmd(fullpath, name, "PATH"))
       doiconx(argv, fullpath);
    else

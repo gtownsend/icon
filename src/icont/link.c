@@ -102,9 +102,9 @@ char *outname;
           * Pad header to a multiple of 8 characters.
           */
 
-         #if NT
+         #if MSWIN
             /*
-             * The NT and Win95 direct execution batch file turns echoing off,
+             * The Windows direct execution batch file turns echoing off,
              * launches iconx, attempts to terminate softly via noop.bat,
              * and terminates the hard way (by exiting the DOS shell) if that
              * fails, rather than fall through and start executing machine code
@@ -123,7 +123,7 @@ char *outname;
             hdrsize = strlen(script) + 1;	/* length includes \0 at end */
             fwrite(script, hdrsize, 1, outfile);	/* write header */
 	    }
-         #else				/* NT */
+         #else				/* MSWIN */
             /*
              *  Generate a shell header that searches for iconx in this order:
              *     a.  location specified by ICONX environment variable
@@ -152,7 +152,7 @@ char *outname;
             hdrsize = strlen(script) + 1;	/* length includes \0 at end */
             fwrite(script, hdrsize, 1, outfile);	/* write header */
 	    }
-         #endif				/* NT */
+         #endif				/* MSWIN */
 
       #else				/* ShellHeader */
          /*

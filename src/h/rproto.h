@@ -340,7 +340,7 @@ void		xmfree		(void);
       void	wflushall		(void);
    #endif				/* XWindows */
 
-   #ifdef MSWindows
+   #ifdef WinGraphics
       /*
        * Implementation routines specific to MS Windows
        */
@@ -377,7 +377,7 @@ void		xmfree		(void);
       void drawstrng(wbinding *wb, int x, int y, char *s, int slen);
       void unsetclip(wbp w);
 
-   #endif				/* MSWindows */
+   #endif				/* WinGraphics */
 
 #endif					/* Graphics */
 

@@ -60,7 +60,7 @@ dptr res;
    if (wstates != NULL && wstates->next != NULL		/* if multiple windows*/
    && (BlkLoc(w->window->listp)->list.size == 0)) {	/* & queue is empty */
       while (BlkLoc(w->window->listp)->list.size == 0) {
-         #ifdef MSWindows
+         #ifdef WinGraphics
 	    if (ISCURSORON(w) && w->window->hasCaret == 0) {
 	       wsp ws = w->window;
 	       CreateCaret(ws->iconwin, NULL, FWIDTH(w), FHEIGHT(w));
@@ -69,7 +69,7 @@ dptr res;
 	       ShowCaret(ws->iconwin);
 	       ws->hasCaret = 1;
 	       }
-         #endif				/* MSWindows */
+         #endif				/* WinGraphics */
 	 if (pollevent() < 0)				/* poll all windows */
 	    break;					/* break on error */
          idelay(POLLSLEEP);
@@ -125,9 +125,9 @@ dptr res;
       if (i != 0)
 	 return i;
       if (is:string(*res)) {
-#ifdef MSWindows
+#ifdef WinGraphics
          if (*StrLoc(*res) == '\032') return -3; /* control-Z gives EOF */
-#endif					/* MSWindows */
+#endif					/* WinGraphics */
          return 1;
 	 }
       }
@@ -475,7 +475,7 @@ int len;
       /*
        * find a chunk of printable text
        */
-#ifdef MSWindows
+#ifdef WinGraphics
       while (len > 0) {
 	 if (IsDBCSLeadByte(*s2)) {
 	    s2++; s2++; len--; len--;
@@ -485,11 +485,11 @@ int len;
 	    }
 	 else break;
 	 }
-#else					/* MSWindows */
+#else					/* WinGraphics */
       while (isprint(*s2) && len > 0) {
 	 s2++; len--;
 	 }
-#endif					/* MSWindows */
+#endif					/* WinGraphics */
       /*
        * if a chunk was parsed, write it out
        */

@@ -158,7 +158,7 @@ typedef int clock_t, time_t, fd_set;
       typedef int WidgetClass, XImage, XpmAttributes;
    #endif				/* XWindows */
 
-   #ifdef MSWindows
+   #ifdef WinGraphics
       typedef int clock_t, jmp_buf, MINMAXINFO, OSVERSIONINFO, BOOL_CALLBACK;
       typedef int int_PASCAL, LRESULT_CALLBACK, MSG, BYTE, WORD, DWORD;
       typedef int HINSTANCE, LPSTR, HBITMAP, WNDCLASS, PAINTSTRUCT, POINT, RECT;
@@ -170,7 +170,7 @@ typedef int clock_t, time_t, fd_set;
       typedef int CHOOSEFONT, CHOOSECOLOR, OPENFILENAME, HMENU, LPBITMAPINFO;
       typedef int childcontrol, CPINFO, BITMAPINFO, BITMAPINFOHEADER, RGBQUAD;
       typedef int BOOL, LPMSG, STARTUPINFO;
-   #endif				/* MSWindows */
+   #endif				/* WinGraphics */
 
    /*
     * Convenience macros to make up for RTL's long-windedness.

@@ -2109,7 +2109,7 @@ function{0,1} WriteImage(argv[argc])
       }
 end
 
-#ifdef MSWindows
+#ifdef WinGraphics
 
 "WinPlayMedia(w,x[]) - play a multimedia resource"
 
@@ -2715,6 +2715,6 @@ function{0,1} WinSaveDialog(argv[argc])
       return result;
       }
 end
-#endif					/* MSWindows */
+#endif					/* WinGraphics */
 
 #endif					/* Graphics */

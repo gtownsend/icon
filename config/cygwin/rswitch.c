@@ -1,5 +1,5 @@
 /*
- * Coswitch for NT using Visual C++.
+ * Coswitch for Windows using Visual C++.
  *
  * Written by Frank J. Lhota, based on an assembly version
  * authored by Robert Goldberg and modified for OS/2 2.0 by Mark
@@ -9,7 +9,7 @@
 #include "../h/rt.h"
 
 /*
- * The NT co-expression context consists of 5 words. The
+ * The Windows co-expression context consists of 5 words. The
  * following constants define the byte offsets for each of the
  * registers stored in the context.
  */

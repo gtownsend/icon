@@ -1,20 +1,13 @@
 /*
  * Icon configuration file for Cygwin environment on Microsoft Windows
  */
+#define MSWIN 1
 #define CYGWIN 1
-#define NT 1
-#define MSDOS 1
 
 #define FAttrib
 
 #define CComp "gcc"
 #define ExecSuffix ".exe"
-
-#ifdef Graphics
-   #define MSWindows
-#else					/* Graphics */
-   #undef MSWindows
-#endif					/* Graphics */
 
 /*
  * Header is used in winnt.h; careful how we define it here

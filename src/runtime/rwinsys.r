@@ -10,8 +10,8 @@
       #include "rxwin.ri"
    #endif				/* XWindows */
 
-   #ifdef MSWindows
+   #ifdef WinGraphics
       #include "rmswin.ri"
-   #endif				/* MSWindows */
+   #endif				/* WinGraphics */
 
 #endif					/* Graphics */

@@ -216,7 +216,7 @@ int *ip;
          }
    #endif				/* ExecImages */
 
-   #if NT
+   #if MSWIN
       /*
        * if we didn't start with iconx.exe, backup one
        * so that our icode filename is argv[1].
@@ -255,7 +255,7 @@ int *ip;
          (*ip)--;
          }
       }
-   #endif				/* NT */
+   #endif				/* MSWIN */
 
    /*
     * Handle command line options.
