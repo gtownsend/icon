@@ -23,7 +23,7 @@ export PATH IPATH LPATH
 cd progs
 for p in $PROGS; do
     (set -x; icont -us $p)
-    ipatch $p $STDPATH 2>/dev/null
+    ./ipatch $p $STDPATH 2>/dev/null
     mv $p $BIN
 done
 cd ..
@@ -35,7 +35,7 @@ grep '#define.*Graphics' ../src/h/define.h >/dev/null || exit 0
 cd gprogs
 for p in $GPROGS; do
     (set -x; icont -us $p)
-    ./ipatch $p $STDPATH 2>/dev/null
+    ipatch $p $STDPATH 2>/dev/null
     mv $p $BIN
 done
 cd ..
