@@ -807,11 +807,6 @@ int i;
       xdisp(pfp,glbl_argp,k_level,stderr);
       }
 
-#ifdef WinGraphics
-   PostQuitMessage(0);
-   while (wstates != NULL) pollevent();
-#endif					/* WinGraphics */
-
    exit(i);
 
 }
