@@ -6,7 +6,7 @@
 #
 #	Authors:  William S. Evans and Gregg M. Townsend
 #
-#	Date:     June 30, 2000
+#	Date:     July 31, 2000
 #
 ############################################################################
 #
@@ -148,8 +148,9 @@ procedure nadcon(f, t)		#: define NAD data conversion
    d.inv := gdt_nadcon_inv
    case ft of {
       "NAD27-NAD83"|"NAD83-NAD27":
+         # more specific grids should precede less specific ones
          d.grids := gdt_nadcon_initGrids(
-            ["conus","hawaii","prvi","stlrnc", "stgeorge","stpaul","alaska"])
+            ["hawaii","prvi","stlrnc", "stgeorge","stpaul","alaska","conus"])
       "NAD83-HPGN"|"HPGN-NAD83":
          d.grids := gdt_nadcon_initGrids(
             ["alhpgn","azhpgn","cnhpgn","cohpgn","cshpgn","emhpgn","ethpgn",
