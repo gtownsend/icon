@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     October 17, 1997
+#	Date:     May 15, 2002
 #
 ############################################################################
 #
@@ -159,10 +159,11 @@ procedure vhttp_contact(host, port, path)
       return "551 Connection Failed"
       }
 
-   write(f, "HEAD ", path, " HTTP/1.0")
-   write(f, "User-agent: ", \vhttp_agent)
-   write(f, "From: ", \vhttp_from)
-   write(f)
+   writes(f, "HEAD ", path, " HTTP/1.0\r\n")
+   writes(f, "User-agent: ", \vhttp_agent, "\r\n")
+   writes(f, "From: ", \vhttp_from, "\r\n")
+   writes(f, "Host: ", host, "\r\n")
+   writes(f, "\r\n")
    flush(f)
    seek(f, 1)
 
