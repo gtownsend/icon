@@ -1,0 +1,169 @@
+<!doctype html public "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>File Organization in Version 9.4 of Icon</TITLE>
+    <LINK REL="STYLESHEET" TYPE="text/css" HREF="istyle.css">
+</HEAD>
+<BODY>
+
+<IMG SRC="cube128.gif" WIDTH=128 HEIGHT=128 ALT="" ALIGN=RIGHT>
+<H1> File Organization in Version 9.4 of Icon </H1>
+
+<P> Version 9.4 of Icon contains several changes in the organization
+of Icon's files under Unix and the methods for finding them.
+These changes simplify the installation and use of Icon.
+
+<P> This page describes the details of those changes.
+It will be of most interest to those who have installed Icon
+in the past and wish to better understand what has changed.
+
+<H2> Library procedures now part of Icon </H2>
+
+<P> As Icon evolved, the procedures from the Icon program library have
+become more important to basic Icon programs, and vital to graphics
+programs; yet the IPL has been treated as a separate product.
+A complete Icon system required two downloads and two installation
+efforts, with proper coordination.
+
+<P> With Icon 9.4, the complete set of basic and graphics library 
+procedures is included with every Icon distribution.
+Also included are the associated <CODE>$include</CODE> files
+and a selected few programs from the library --
+notably VIB, the visual interface builder.
+
+<P> Source distributions of Icon 9.4 include the full library,
+which also continues to be available separately.
+
+<H2> File organization </H2> 
+
+<P> An Icon binary distribution unpacks to produce an <CODE>icon</CODE>
+directory containing <CODE>bin</CODE>, <CODE>lib</CODE>, and <CODE>doc</CODE>
+subdirectories.
+Building Icon from source produces these same directories.
+
+<P> The <CODE>bin</CODE> directory contains executables of
+<CODE>icont</CODE>, the Icon translator;
+<CODE>iconx</CODE>, the Icon interpreter;
+a few library programs including <CODE>vib</CODE>;
+and <CODE>libcfunc.so</CODE>, the loadable C functions.
+This directory is system dependent.
+
+<P> The <CODE>lib</CODE> directory holds <CODE>$include</CODE> files
+and "icode" files (<CODE>.u1</CODE>/<CODE>.u2</CODE> files of
+program library procedures.
+This directory is system independent.
+
+<P> The <CODE>doc</CODE> directory holds documentation,
+mostly in the form of HTML files (<CODE>.htm</CODE>),
+and is also system independent.
+
+<P> This structure is similar to that of binary distributions of Icon 9.3. 
+The main difference is that the <CODE>lib</CODE> directory is no
+longer a subset of the procedure collection, and the few files from
+the former <CODE>include</CODE> directory have moved into <CODE>lib</CODE>.
+
+<H2> Installation location </H2> 
+
+<P> The <CODE>icon</CODE> directory can be installed in any public or
+private area as long as its internal structure is preserved.
+When upgrading an existing Icon installation, replacing the previous
+Icon directory with the new one may provide the smoothest transition.
+Old Icon binaries will continue to function correctly with the new
+interpreter.
+
+<P> In order to consider packaging Icon binaries in Linux RPM files,
+or other similar packages, it is necessary to define a "canonical"
+location for installing Icon.
+The suggested canonical system installation location for Icon is
+<CODE>/opt/icon</CODE>.  
+The <CODE>/opt</CODE> directory is present today on most Unix systems and is
+the location recommended by the emerging File Hierarchy Standard (FHS),
+<A HREF="http://www.pathname.com/fhs/">http://www.pathname.com/fhs</A>.
+
+<P> For convenience of use it may be desirable to provide symbolic
+links from a directory such as /opt/bin or /usr/local/bin
+to programs in the Icon <CODE>bin</CODE> directory.
+If this is done, the list should include at least
+<CODE>icont</CODE>, <CODE>iconx</CODE>, and <CODE>vib</CODE>.
+
+<H2> Automatic inference of <CODE>iconx</CODE> location </H2>
+
+<P> Past versions of <CODE>icont</CODE> were configured to know
+the location of <CODE>iconx</CODE> in order to embed this in
+generated binaries.
+The <CODE>iconx</CODE> location was configured by editing
+<CODE>src/h/path.h</CODE> in source builds or by using the
+<CODE>patchstr</CODE> utility to edit the <CODE>icont</CODE>
+executable when installing a binary distribution.
+
+<P> In version 9.4, <CODE>icont</CODE> determines its own location,
+and from this it infers the location of <CODE>iconx</CODE>
+in the same directory.
+No configuration of <CODE>icont</CODE> is needed, and the correct
+path is embedded automatically, requiring only that
+<CODE>icont</CODE> and <CODE>iconx</CODE> reside in the same directory.
+
+<P> It is still possible to configure a fixed path in
+<CODE>icont</CODE> using the <CODE>patchstr</CODE> utility.
+If this is done, the configured path is used instead of the
+inferred path.
+
+<H2> Automatic search for iconx at execution </H2>
+
+<P> The path that <CODE>icont</CODE> embeds in an Icon executable makes
+binary distributions of Icon programs difficult because the embedded
+path must be edited to match the installed location of <CODE>iconx</CODE>.
+The <CODE>ipatch</CODE> utility performed this task when installing
+binary distributions of Icon 9.3.
+
+<P> Icon 9.4 implements a simple search in the shell script that
+heads each generated Icon executable.
+The new header script searches for <CODE>iconx</CODE>
+in these places:
+
+<OL>
+    <LI> in the location specified by the ICONX environment variable
+    <LI> in the same directory as executing binary
+    <LI> in a location specified in the script itself
+    	 (as generated by <CODE>icont</CODE> or as patched later)
+    <LI> in the command search path ($PATH)
+</OL>
+
+<P> The second item is the key:  If there is a copy of <CODE>iconx</CODE>
+in the same directory as the executing program, it is found automatically
+and used as the interpreter.
+
+<P> Note that it now becomes possible to distribute an Icon program
+in binary form simply by including an <CODE>iconx</CODE> executable
+in the same directory as the program executable.
+
+<P> The <CODE>ipatch</CODE> utility has been modified to recognize
+both old and new headers, and can still be used to edit the path
+embedded in an Icon executable.
+
+<H2> Automatic library access </H2>
+
+<P> The ability to figure out its own location also lets
+<CODE>icont</CODE> provide automatic access to library procedures.
+The inferred location of the <CODE>lib</CODE> directory is implicitly
+appended to the paths, if any, specified by LPATH and IPATH
+environment variables.
+To use only the standard library files, no environment variables
+need be set.
+
+<P> In a similar manner, <CODE>iconx</CODE> creates or alters the
+FPATH environment variable before begining execution of an Icon
+program.  This provides transparent access to the library's
+loadable C functions without requiring explicit user action.
+
+<H2> No Setup step </H2>
+
+<P> With the changes above, the executable files in an Icon binary
+distribution are ready for use without modification.
+The annoying and error-prone Setup step that was necessary
+with previous versions is no longer required.
+With Icon 9.4, installation can be as simple as just unpacking the
+tar file and adding its <CODE>bin</CODE> directory to the search path.
+
+</BODY>
+</HTML>
