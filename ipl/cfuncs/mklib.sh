@@ -25,6 +25,8 @@ case "$SYS" in
       gcc -shared -o $LIBNAME "$@";;
    FreeBSD*)
       ld -Bshareable -o $LIBNAME "$@" -lc;;
+   BSD/OS*)
+      gcc -shared -o $LIBNAME "$@";;
    *)
       set -
       echo 1>&2 "don't know how to make libraries under $SYS"
