@@ -1,4 +1,5 @@
-MAKE=make
+SHELL = /bin/sh
+MAKE = make
 
 HDRS = ../h/define.h ../h/config.h ../h/typedefs.h ../h/monitor.h\
 	  ../h/proto.h ../h/cstructs.h ../h/cpuconf.h ../h/grttin.h\
@@ -7,7 +8,7 @@ HDRS = ../h/define.h ../h/config.h ../h/typedefs.h ../h/monitor.h\
 
 GRAPHICSHDRS = ../h/graphics.h ../h/xwin.h
 
-COBJS=	../common/long.o ../common/time.o ../common/save.o \
+COBJS =	../common/long.o ../common/time.o ../common/save.o \
 	../common/rswitch.o ../common/redirerr.o ../common/xwindow.o \
 	../common/alloc.o ../common/munix.o
 
@@ -24,7 +25,7 @@ $(COBJS):
 # Make entries for iconx
 #
 
-XOBJS=	xcnv.o xdata.o xdef.o xerrmsg.o xextcall.o xfconv.o xfload.o xfmath.o\
+XOBJS =	xcnv.o xdata.o xdef.o xerrmsg.o xextcall.o xfconv.o xfload.o xfmath.o\
 	xfmisc.o xfmonitr.o xfscan.o xfstr.o xfstranl.o xfstruct.o xfsys.o\
 	xfwindow.o ximain.o ximisc.o xinit.o xinterp.o xinvoke.o\
 	xkeyword.o xlmisc.o xoarith.o xoasgn.o xocat.o xocomp.o\
@@ -32,7 +33,7 @@ XOBJS=	xcnv.o xdata.o xdef.o xerrmsg.o xextcall.o xfconv.o xfload.o xfmath.o\
 	xrdebug.o xrlocal.o xrlrgint.o xrmemmgt.o xrmisc.o xrstruct.o xrsys.o\
 	xrwinrsc.o xrgfxsys.o xrwinsys.o xrwindow.o xfxtra.o
 
-OBJS=	$(XOBJS) $(COBJS)
+OBJS =	$(XOBJS) $(COBJS)
 
 iconx: $(OBJS)
 	cd ../common; $(MAKE) $(XPM)

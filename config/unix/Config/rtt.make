@@ -1,3 +1,4 @@
+SHELL = /bin/sh
 MAKE = make
 
 ROBJS = rttparse.o rttmain.o rttlex.o rttsym.o rttnode.o rttout.o rttmisc.o\

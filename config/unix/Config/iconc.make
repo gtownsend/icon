@@ -1,11 +1,12 @@
-MAKE=make
+SHELL = /bin/sh
+MAKE = make
 
-OBJS=		cmain.o clocal.o ctrans.o dbase.o clex.o\
+OBJS =		cmain.o clocal.o ctrans.o dbase.o clex.o\
 		cparse.o csym.o cmem.o ctree.o ccode.o ccomp.o\
                 ivalues.o codegen.o fixcode.o inline.o chkinv.o\
 		typinfer.o types.o lifetime.o incheck.o
 
-COBJS=		../common/long.o ../common/getopt.o ../common/time.o\
+COBJS =		../common/long.o ../common/getopt.o ../common/time.o\
 		  ../common/filepart.o ../common/identify.o ../common/munix.o\
 		  ../common/strtbl.o ../common/rtdb.o ../common/literals.o \
 		  ../common/alloc.o ../common/redirerr.o ../common/ipp.o

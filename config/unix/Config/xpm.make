@@ -4,12 +4,13 @@
 # This file is a simplification of XPM's standard Makefile
 #
 
+SHELL = /bin/sh
 MAKE = make
 RM = rm -f
 
 ## if your system doesn't provide strcasecmp add -DNEED_STRCASECMP
 ## if your system doesn't provide pipe remove -DZPIPE
-AR=ar qc
+AR = ar qc
 OBJS1 = data.o create.o misc.o rgb.o scan.o parse.o hashtable.o \
 	  XpmWrFFrP.o XpmRdFToP.o XpmCrPFData.o XpmCrDataFP.o \
 	  XpmWrFFrI.o XpmRdFToI.o XpmCrIFData.o XpmCrDataFI.o

@@ -1,11 +1,12 @@
+SHELL = /bin/sh
 MAKE = make
 
 POBJS = pout.o pchars.o perr.o pmem.o bldtok.o macro.o preproc.o evaluate.o\
 	files.o gettok.o pinit.o
 
-COBJS= ../common/getopt.o ../common/time.o ../common/strtbl.o ../common/alloc.o
+COBJS = ../common/getopt.o ../common/time.o ../common/strtbl.o ../common/alloc.o
 
-OBJS= $(POBJS) $(COBJS)
+OBJS = $(POBJS) $(COBJS)
 
 DOT_H = preproc.h pproto.h ptoken.h ../h/define.h ../h/config.h\
         ../h/typedefs.h ../h/proto.h ../h/mproto.h
