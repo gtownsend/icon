@@ -439,19 +439,6 @@ function{0,1} read(f)
          }
 #endif					/* ReadDirectory */
 
-#ifdef ConsoleWindow
-      /*
-       * if file is &input, then make sure our console is open and read
-       * from it, unless input redirected
-       */
-      if (fp == stdin
-           && !(ConsoleFlags & StdInRedirect)
-           ) {
-        fp = OpenConsole();
-        status = Fs_Window | Fs_Read | Fs_Write;
-        }
-
-#endif					/* ConsoleWindow */
       /*
        * Use getstrg to read a line from the file, failing if getstrg
        *  encounters end of file. [[ What about -2?]]
@@ -540,19 +527,6 @@ function{0,1} reads(f,i)
 	 BlkLoc(f)->file.status &= ~Fs_Writing;
 	 }
       BlkLoc(f)->file.status |= Fs_Reading;
-
-#ifdef ConsoleWindow
-      /*
-       * if file is &input, then make sure our console is open and read
-       * from it, unless input redirected
-       */
-      if (fp == stdin
-          && !(ConsoleFlags & StdInRedirect)
-          ) {
-        fp = OpenConsole();
-        status = Fs_Read | Fs_Write | Fs_Window;
-        }
-#endif					/* ConsoleWindow */
 
       /*
        * Be sure that a positive number of bytes is to be read.
@@ -846,21 +820,13 @@ end
       if ((k_errout.status & Fs_Write) == 0)
 	 runerr(213);
       else {
-#ifndef ConsoleWindow
 	 f = k_errout.fd;
-#else					/* ConsoleWindow */
-         f = (ConsoleFlags & StdErrRedirect) ? k_errout.fd : OpenConsole();
-#endif					/* ConsoleWindow */
 	 }
 #else					/* error_out */
       if ((k_output.status & Fs_Write) == 0)
 	 runerr(213);
       else {
-#ifndef ConsoleWindow
 	 f = k_output.fd;
-#else					/* ConsoleWindow */
-         f = (ConsoleFlags & StdOutRedirect) ? k_output.fd : OpenConsole();
-#endif					/* ConsoleWindow */
 	 }
 #endif					/* error_out */
       }
@@ -922,20 +888,7 @@ function {1} name(x[nargs])
 
    declare {
       FILE *f = NULL;
-      word status =
-#if terminate
-#ifndef ConsoleWindow
-	k_errout.status;
-#else					/* ConsoleWindow */
-        (ConsoleFlags & StdErrRedirect) ? k_errout.status : Fs_Read | Fs_Write | Fs_Window;
-#endif					/* ConsoleWindow */
-#else					/* terminate */
-#ifndef ConsoleWindow
-	k_output.status;
-#else					/* ConsoleWindow */
-        (ConsoleFlags & StdOutRedirect) ? k_output.status : Fs_Read | Fs_Write | Fs_Window;
-#endif					/* ConsoleWindow */
-#endif					/* terminate */
+      word status = k_errout.status;
       }
 
 #if terminate
@@ -1015,13 +968,6 @@ function {1} name(x[nargs])
 		  if ((status & Fs_Write) == 0)
 		     runerr(213, x[n]);
 		  f = BlkLoc(x[n])->file.fd;
-#ifdef ConsoleWindow
-                  if ((f == stdout && !(ConsoleFlags & StdOutRedirect)) ||
-                      (f == stderr && !(ConsoleFlags & StdErrRedirect))) {
-                     f = OpenConsole();
-                     status = Fs_Read | Fs_Write | Fs_Window;
-                     }
-#endif					/* ConsoleWindow */
 		  }
 	       else {
 		  /*

@@ -224,11 +224,4 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
       extern int ncmdShow;
    #endif				/* MSWindows */
 
-   #ifdef ConsoleWindow
-      extern FILE *ConsoleBinding, *flog;
-      extern unsigned long ConsoleFlags;
-      extern char ConsoleStringBuf[];
-      extern char *ConsoleStringBufPtr;
-   #endif				/* ConsoleWindow */
-
 #endif					/* Graphics */

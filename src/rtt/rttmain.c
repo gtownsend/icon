@@ -82,98 +82,6 @@ extern int optind;		/* index into parent argv vector */
 extern int optopt;		/* character checked for validity */
 extern char *optarg;		/* argument associated with option */
 
-#ifdef ConsoleWindow
-   int ConsolePause = 1;
-#endif					/* ConsoleWindow */
-
-#ifndef NTConsole
-   #ifdef MSWindows
-      int rtt(int argc, char **argv);
-      #define int_PASCAL int PASCAL
-      #define LRESULT_CALLBACK LRESULT CALLBACK
-      #undef Reset
-      #include <windows.h>
-      #include "../wincap/dibutil.h"
-
-      int CmdParamToArgv(char *s, char ***avp)
-         {
-         char *t, *t2;
-         int rv=0;
-         t = salloc(s);
-         t2 = t;
-         while (*t2) {
-            while (*t2 && isspace(*t2)) t2++;
-            if (!*t2) break;
-            rv++;
-            while (*t2 && !isspace(*t2)) t2++;
-            }
-         rv++; /* make room for "iconx" at front */
-         *avp = (char **)alloc(rv * sizeof(char *));
-         rv = 0;
-         (*avp)[rv++] = salloc("iconx.exe");
-         t2 = t;
-         while (*t2) {
-            while (*t2 && isspace(*t2)) t2++;
-            if (!*t2) break;
-            (*avp)[rv++] = t2;
-            while (*t2 && !isspace(*t2)) t2++;
-            if (*t2) *t2++ = '\0';
-            }
-         return rv;
-         }
-      
-      LRESULT_CALLBACK WndProc	(HWND, UINT, WPARAM, LPARAM);
-      
-      void MSStartup(int argc, char **argv,
-      HINSTANCE hInstance, HINSTANCE hPrevInstance)
-         {
-         WNDCLASS wc;
-         if (!hPrevInstance) {
-            #if NT
-               wc.style = CS_HREDRAW | CS_VREDRAW;
-            #else			/* NT */
-               wc.style = 0;
-            #endif			/* NT */
-            #ifdef NTConsole
-               wc.lpfnWndProc = DefWindowProc;
-            #else			/* NTConsole */
-               wc.lpfnWndProc = WndProc;
-            #endif			/* NTConsole */
-            wc.cbClsExtra = 0;
-            wc.cbWndExtra = 0;
-            wc.hInstance  = hInstance;
-            wc.hIcon      = NULL;
-            wc.hCursor    = LoadCursor(NULL, IDC_ARROW);
-            wc.hbrBackground = GetStockObject(WHITE_BRUSH);
-            wc.lpszMenuName = NULL;
-            wc.lpszClassName = "iconx";
-            RegisterClass(&wc);
-            }
-         }
-      
-      HANDLE mswinInstance;
-      int ncmdShow;
-      
-      
-      int_PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
-                         LPSTR lpszCmdParam, int nCmdShow)
-         {
-         int argc;
-         char **argv;
-      
-         mswinInstance = hInstance;
-         ncmdShow = nCmdShow;
-         argc = CmdParamToArgv(lpszCmdParam, &argv);
-         MSStartup(argc, argv, hInstance, hPrevInstance);
-         (void)rtt(argc, argv);
-         fclose(stderr);
-         fclose(fopen("icont.fin","w"));
-      }
-      
-      #define main rtt
-   #endif				/* MSWindows */
-#endif					/* NTConsole */
-
 int main(argc, argv)
 int argc;
 char **argv;
@@ -235,13 +143,6 @@ char **argv;
           case 'd': /* -d name: name of data base */
             dbname = optarg;
             break;
-
-         #ifdef ConsoleWindow
-            case 'q':
-               ConsolePause = 0;
-               break;
-         #endif				/* ConsoleWindow */
-
          case 'r':  /* -r path: location of include files */
             refpath = optarg;
             break;

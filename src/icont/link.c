@@ -278,27 +278,12 @@ char *outname;
    return 0;
    }
 
-#ifdef ConsoleWindow
-   extern FILE *flog;
-#endif					/* ConsoleWindow */
-
 /*
  * lwarn - issue a linker warning message.
  */
 void lwarn(s1, s2, s3)
 char *s1, *s2, *s3;
    {
-
-   #ifdef ConsoleWindow
-      if (flog != NULL) {
-         fprintf(flog, "%s: ", icnname);
-         if (lineno)
-            fprintf(flog, "Line %d # :", lineno);
-         fprintf(flog, "\"%s\": %s%s\n", s1, s2, s3);
-         fflush(flog);
-         return;
-         }
-   #endif				/* ConsoleWindow */
    fprintf(stderr, "%s: ", icnname);
    if (lineno)
       fprintf(stderr, "Line %d # :", lineno);
@@ -313,17 +298,7 @@ char *s1, *s2, *s3;
 void lfatal(s1, s2)
 char *s1, *s2;
    {
-
    fatals++;
-   #ifdef ConsoleWindow
-      if (flog != NULL) {
-         fprintf(flog, "%s: ", icnname);
-         if (lineno)
-            fprintf(flog, "Line %d # : ", lineno);
-         fprintf(flog, "\"%s\": %s\n", s1, s2);
-         return;
-         }
-   #endif				/* ConsoleWindow */
    fprintf(stderr, "%s: ", icnname);
    if (lineno)
       fprintf(stderr, "Line %d # : ", lineno);

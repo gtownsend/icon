@@ -84,9 +84,6 @@
 #ifdef MSWindows
    #undef Graphics
    #define Graphics 1
-   #ifndef NTConsole
-      #define ConsoleWindow 1
-   #endif				/* NTConsole */
 #endif					/* MSWindows */
 
 #ifdef Graphics
@@ -115,23 +112,6 @@
          #define ICONC_XLIB "-L/usr/X11R6/lib -lX11"
       #endif				/* CYGWIN */
    #endif				/* ICONC_XLIB */
-
-   #ifdef ConsoleWindow
-      /*
-       * knock out fprintf and putc; these are here so that consoles may be used
-       * in icont and rtt, not just iconx
-       */
-      #undef fprintf
-      #define fprintf Consolefprintf
-      #undef putc
-      #define putc Consoleputc
-      #undef fflush
-      #define fflush Consolefflush
-      #undef printf
-      #define printf Consoleprintf
-      #undef exit
-      #define exit c_exit
-   #endif				/* Console Window */
 
 #endif					/* Graphics */
 

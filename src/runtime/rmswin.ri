@@ -621,13 +621,7 @@ LRESULT_CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
       if ((ws->win == hwnd) || (ws->iconwin == hwnd)) break;
       }
    if (msg == WM_QUIT) {
-#ifdef ConsoleWindow
-      extern void closelogfile();
-#endif					/* ConsoleWindow */
       wfreersc();
-#ifdef ConsoleWindow
-      closelogfile();
-#endif					/* ConsoleWindow */
       }
    else if (!wb) {
       /*
@@ -830,9 +824,6 @@ LRESULT_CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
       if (ws->iconwin == hwnd)
 	 ws->iconwin = NULL;
       if (ws->refcount > 0) {
-#ifdef ConsoleWindow
-         closelogfile();
-#endif					/* ConsoleWindow */
 	 PostQuitMessage(0);
 	 return 0;
 	 }
@@ -1604,12 +1595,7 @@ int check_and_get_msg( MSG *pMsg )
    BOOL result;
    if ((result = GetMessage(pMsg, NULL, 0, 0)) <= 0)
    {
-#ifdef ConsoleWindow
-      extern jmp_buf mark_sj;
-      longjmp(mark_sj, -1);
-#else					/* ConsoleWindow */
       return (result < 0) ? -1 : 0;
-#endif					/* ConsoleWindow */
    }
    return 1;
 }

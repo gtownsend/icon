@@ -306,13 +306,6 @@ void		xmfree		(void);
    #endif				/* wsync */
    void	xdis		(wbp w, char *s, int n);
 
-   #ifdef ConsoleWindow
-      FILE* OpenConsole		(void);
-      int   Consolefprintf	(FILE *file, char *format, ...);
-      int   Consoleputc		(int c, FILE *file);
-      int   Consolefflush	(FILE *file);
-   #endif				/* ConsoleWindow */
-
    #ifdef XWindows
       /*
        * Implementation routines specific to X-Windows

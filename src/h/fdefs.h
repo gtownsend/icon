@@ -2,8 +2,6 @@
  * Definitions of functions.
  */
 
-#undef exit		/* may be defined under ConsoleWindow */
-
 FncDef(abs,1)
 FncDef(acos,1)
 FncDef(any,4)

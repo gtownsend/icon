@@ -26,18 +26,12 @@ nodeptr lval;
    {
    register struct errmsg *p;
    int line;
-   #ifdef ConsoleWindow
-      extern int silent;
-   #endif				/* ConsoleWindow */
 
    if (lval == NULL)
       line = 0;
    else
       line = Line(lval);
 
-#ifdef ConsoleWindow
-   if (!silent) {
-#endif					/* ConsoleWindow */
    if (tok_loc.n_file)
       fprintf(stderr, "File %s; ", tok_loc.n_file);
    if (tok == EOFX)   /* special case end of file */
@@ -49,22 +43,6 @@ nodeptr lval;
       for (p = errtab; p->e_state != state && p->e_state >= 0; p++) ;
       fprintf(stderr, "%s\n", p->e_mesg);
       }
-#ifdef ConsoleWindow
-      }
-   else if (flog != NULL) {
-   if (tok_loc.n_file)
-      fprintf(flog, "File %s; ", tok_loc.n_file);
-   if (tok == EOFX)   /* special case end of file */
-      fprintf(flog, "unexpected end of file\n");
-   else {
-      fprintf(flog, "Line %d # ", line);
-      if (Col(lval))
-         fprintf(flog, "\"%s\": ", mapterm(tok,lval));
-      for (p = errtab; p->e_state != state && p->e_state >= 0; p++) ;
-      fprintf(flog, "%s\n", p->e_mesg);
-      }
-      }
-#endif					/* ConsoleWindow */
    tfatals++;
    nocode++;
    }

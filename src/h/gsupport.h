@@ -11,11 +11,3 @@
 #include "../h/cstructs.h"
 #include "../h/mproto.h"
 #include "../h/cpuconf.h"
-
-#ifdef ConsoleWindow
-   #include "../h/rmacros.h"
-   #include "../h/rstructs.h"
-   #include "../h/graphics.h"
-   #include "../h/rexterns.h"
-   #include "../h/rproto.h"
-#endif					/* ConsoleWindow */

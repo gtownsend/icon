@@ -12,7 +12,6 @@
 
 #ifdef Graphics
    #define MSWindows
-   #define NTConsole
 #else					/* Graphics */
    #undef MSWindows
 #endif					/* Graphics */

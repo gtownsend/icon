@@ -57,16 +57,6 @@
 /*
  * Window-system-dependent includes.
  */
-#ifdef ConsoleWindow
-   #include <stdarg.h>
-   #undef printf
-   #undef fprintf
-   #undef fflush
-   #define printf Consoleprintf
-   #define fprintf Consolefprintf
-   #define fflush Consolefflush
-#endif					/* ConsoleWindow */
-
 #ifdef XWindows
    #ifdef HaveXpmFormat
       #include "../xpm/xpm.h"

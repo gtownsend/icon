@@ -298,7 +298,6 @@ struct header *hdr;
    prog_name = name;			/* Set icode file name */
 
 #ifdef MSWindows
-#ifdef NTConsole
    {
    STARTUPINFO si;
 
@@ -313,7 +312,6 @@ struct header *hdr;
    mswinInstance = GetModuleHandle( NULL );
    MSStartup( mswinInstance, NULL );
    }
-#endif                                        /* NTConsole */
 #endif                                        /* MSWindows */
 
 
@@ -780,49 +778,19 @@ char *s;
    c_exit(EXIT_FAILURE);
    }
 
-#ifdef ConsoleWindow
-void closelogfile()
-{
-   if (flog) {
-      extern char *lognam;
-      extern char tmplognam[];
-      FILE *flog2;
-      int i;
-      fclose(flog);
-
-      /*
-       * copy to the permanent file name
-       */
-      if ((flog = fopen(tmplognam, "r")) &&
-	  (flog2 = fopen(lognam, "w"))) {
-	 while ((i = getc(flog)) != EOF)
-	    putc(i, flog2);
-	 fclose(flog);
-	 fclose(flog2);
-	 remove(tmplognam);
-	 }
-
-      free(lognam);
-      flog = NULL;
-      }
-}
-#endif					/* ConsoleWindow */
-
 /*
  * c_exit(i) - flush all buffers and exit with status i.
  */
 void c_exit(i)
 int i;
 {
-#ifdef ConsoleWindow
-   char *msg = "Strike any key to close console...";
-#endif					/* ConsoleWindow */
 
 #ifdef EventMon
    if (curpstate != NULL) {
       EVVal((word)i, E_Exit);
       }
 #endif					/* EventMon */
+
 #ifdef MultiThread
    if (curpstate != NULL && curpstate->parent != NULL) {
       /* might want to get to the lterm somehow, instead */
@@ -855,32 +823,6 @@ int i;
       fflush(stderr);
       xdisp(pfp,glbl_argp,k_level,stderr);
       }
-
-#ifdef ConsoleWindow
-   /*
-    * if the console was used for anything, pause it
-    */
-   if (ConsoleBinding) {
-      char label[256], tossanswer[256];
-      struct descrip answer;
-
-      wputstr((wbp)ConsoleBinding, msg, strlen(msg));
-
-      strcpy(tossanswer, "label=");
-      strncpy(tossanswer+6, StrLoc(kywd_prog), StrLen(kywd_prog));
-      tossanswer[ 6 + StrLen(kywd_prog) ] = '\0';
-      strcat(tossanswer, " - execution terminated");
-      wattrib((wbp)ConsoleBinding, tossanswer, strlen(tossanswer),
-              &answer, tossanswer);
-      waitkey(ConsoleBinding);
-      }
-/* undo the #define exit c_exit */
-#undef exit
-#passthru #undef exit
-
-   closelogfile();
-
-#endif					/* ConsoleWindow */
 
 #ifdef MSWindows
    PostQuitMessage(0);
@@ -1222,30 +1164,8 @@ C_integer bs, ss, stk;
 static void MSStartup(HINSTANCE hInstance, HINSTANCE hPrevInstance)
    {
    WNDCLASS wc;
-   #ifdef ConsoleWindow
-      extern FILE *flog;
-   
-      /*
-       * Select log file name.  Might make this a command-line option.
-       * Default to "WICON.LOG".  The log file is used by Wi to report
-       * translation errors and jump to the offending source code line.
-       */
-      if ((lognam = getenv("WICONLOG")) == NULL)
-         lognam = "WICON.LOG";
-      remove(lognam);
-      lognam = strdup(lognam);
-      flog = fopen(tmpnam(tmplognam), "w");
-   
-      if (flog == NULL) {
-         syserr("unable to open logfile");
-         }
-   #endif                             /* ConsoleWindow */
    if (!hPrevInstance) {
-      #if NT
-         wc.style = CS_HREDRAW | CS_VREDRAW;
-      #else                           /* NT */
-         wc.style = 0;
-      #endif                          /* NT */
+      wc.style = CS_HREDRAW | CS_VREDRAW;
       wc.lpfnWndProc = WndProc;
       wc.cbClsExtra = 0;
       wc.cbWndExtra = 0;

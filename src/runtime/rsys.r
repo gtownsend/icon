@@ -138,18 +138,6 @@ dptr d;
    if (l == 0)
       return  Succeeded;
    s = StrLoc(*d);
-
-#ifdef MSWindows
-#ifdef ConsoleWindow
-   if ((f == stdout && !(ConsoleFlags & StdOutRedirect)) ||
-	(f == stderr && !(ConsoleFlags & StdErrRedirect))) {
-      if (ConsoleBinding == NULL)
-         ConsoleBinding = OpenConsole();
-      { int i; for(i=0;i<l;i++) Consoleputc(s[i], f); }
-      return Succeeded;
-      }
-#endif					/* ConsoleWindow */
-#endif					/* MSWindows */
    if (longwrite(s,l,f) < 0)
       return Failed;
    else

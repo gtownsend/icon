@@ -5,12 +5,6 @@
 
 #ifdef Graphics
 
-#ifdef ConsoleWindow
-   #undef fprintf
-   #undef putc
-   #define putc fputc
-#endif					/* ConsoleWindow */
-
 #define GifSeparator	0x2C	/* (',') beginning of image */
 #define GifTerminator	0x3B	/* (';') end of image */
 #define GifExtension	0x21	/* ('!') extension block */
