@@ -257,5 +257,5 @@ Pure:
 		cd tests;		$(MAKE) Clean
 
 Dist-Clean:
-		rm -f `find * -type d -name CVS`
-		rm -f `find * -type f | xargs grep -l '<<ARIZONA-ONLY>>'`
+		rm -rf `find * -type d -name CVS`
+		rm -f `find * -type f | xargs grep -l '<<ARIZONA-[O]NLY>>'`
