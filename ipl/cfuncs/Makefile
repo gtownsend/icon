@@ -16,6 +16,7 @@ CFLAGS = -O -w
 
 FUNCS = bitcount.o files.o fpoll.o internal.o lgconv.o osf.o \
 	pack.o ppm.o process.o tconnect.o
+CSRC = $(FUNCS:.o=.c)
 
 
 default:	cfunc.u2 $(FUNCLIB)
@@ -28,7 +29,7 @@ $(FUNCS):	icall.h
 # Icon interface
 cfunc.u2:	cfunc.icn
 		$(ITRAN) -c cfunc.icn
-cfunc.icn:	$(FUNCS) mkfunc.sh
+cfunc.icn:	$(CSRC) mkfunc.sh
 		sh mkfunc.sh $(FUNCLIB) $(FUNCS) >cfunc.icn
 
 
