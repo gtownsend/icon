@@ -10,11 +10,6 @@
 #define SysOpt
 #define ExecImages
 
-#define IntBits 32
-#define WordBits 64
-#define Double
-#define StackAlign 8
-
 #define MaxStatSize 20480
 
 #define CComp "gcc"

@@ -10,7 +10,6 @@
 
 /* CPU architecture */
 #define Double
-#define StackAlign 8
 
 /* use clcc to compile generated code */
 #define CComp "clcc"

@@ -136,7 +136,6 @@
 
 #if UNIX
    #include <dirent.h>
-   #include <limits.h>
    #include <unistd.h>
    #include <sys/stat.h>
    #include <sys/time.h>

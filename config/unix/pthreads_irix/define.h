@@ -8,10 +8,6 @@
 #define LoadFunc
 #define SysOpt
 
-/* CPU architecture */
-#define Double
-#define StackAlign 8
-
 /* Irix */
 #define CComp "c89"
 #define COpts "-Wf,-XNd10000"

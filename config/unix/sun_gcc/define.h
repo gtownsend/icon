@@ -10,7 +10,6 @@
 
 /* CPU architecture */
 #define Double
-#define StackAlign 8
 
 /* use gcc to compile generated code */
 #define CComp "gcc"

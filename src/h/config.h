@@ -2,6 +2,8 @@
  * Icon configuration.
  */
 
+#include <limits.h>
+
 /*
  * System-specific definitions are in define.h, which is loaded first.
  */
@@ -280,19 +282,33 @@
  * Data sizes and alignment.
  */
 
-#ifndef WordBits
-   #define WordBits 32
-#endif					/* WordBits */
-
 #ifndef IntBits
-   #define IntBits WordBits
+   #if INT_MAX < 2147483647L
+      #define IntBits 16
+   #elif INT_MAX == 2147483647L
+      #define IntBits 32
+   #else
+      #define IntBits 64
+   #endif
 #endif					/* IntBits */
+
+#ifndef WordBits
+   #if LONG_MAX == 2147483647L
+      #define WordBits 32
+   #else
+      #define WordBits 64
+   #endif
+#endif					/* WordBits */
 
 #define WordSize sizeof(word)
 
 #ifndef StackAlign
-   #define StackAlign 2
+   #define StackAlign 8
 #endif					/* StackAlign */
+
+#if WordBits == 64 && !defined(Double)
+   #define Double
+#endif					/* Wordbits 64 && !Double */
 
 /*
  * EBCDIC == 0 corresponds to ASCII.

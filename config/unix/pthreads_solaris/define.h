@@ -10,7 +10,6 @@
 
 /* CPU architecture */
 #define Double
-#define StackAlign 8
 
 /* Solaris and Sun C */
 #define SUN

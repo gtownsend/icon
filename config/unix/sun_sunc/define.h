@@ -10,7 +10,6 @@
 
 /* CPU architecture */
 #define Double
-#define StackAlign 8
 
 #define CComp "cc"
 #define COpts "-I/usr/openwin/include -ldl"
