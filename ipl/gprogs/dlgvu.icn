@@ -6,7 +6,7 @@
 #
 #	Authors:  Gregg M. Townsend and William S. Evans
 #
-#	Date:     February 19, 2003
+#	Date:     February 21, 2003
 #
 ############################################################################
 #
@@ -18,24 +18,14 @@
 #
 ############################################################################
 #
-#	Dlgvu displays USGS digital map data.
+#	Dlgvu displays and prints USGS digital map data.
 #
 #	usage:  dlgvu [options] file...
 #
 #	Each file argument is one of:
 #	    a directory containing DLG files in SDTS format
 #	    a ZIP format archive of such files  (requires "unzip" utility)
-#	    a file containing paths of latitude/longitude coordinates
-#
-#	In directories and archives, only files with names ending in .ddf
-#	or .DDF are read; others are ignored.  These files must be in SDTS
-#	(Spatial Data Transfer Standard) format, which is used by the USGS
-#	for all new DLG files.
-#
-#	Path files are text files of coordinates such as those uploaded
-#	from GPS receivers.  Lines ending with two decimal values are
-#	interpreted as specifying latitude and longitude in that order.
-#	Lines without data indicate breaks between paths.
+#	    a text file containing coordinates of paths and features
 #
 #	All interaction is via mouse actions and keyboard shortcuts.
 #	The display window may be resized as desired.
@@ -62,7 +52,8 @@
 #		b  boundaries		(BD: boundaries)
 #		c  contour lines	(HP: hypsography)
 #		d  sand, gravel, lava	(NV: nonvegetative features)
-#		g  GPS path
+#		f  feature labels	read from text files
+#		g  GPS paths		read from text files
 #		l  land sections	(PL: public lands)
 #		m  markers		(SM: survey markers)
 #		n  file names
@@ -126,6 +117,31 @@
 #	The file produced by PrntScrn is an Encapsulated PostScript file
 #	suitable either for direct printing ("lpr file.ps") or for import
 #	into another document.
+#
+############################################################################
+#
+#	Input files:
+#
+#	In directories and archives, only files with names ending in .ddf
+#	or .DDF are read; others are ignored.  These files must be in SDTS
+#	(Spatial Data Transfer Standard) format, which is used by the USGS
+#	for all new DLG files.
+#
+#	Text files supply coordinates for features or paths.  GPS receivers
+#	are one possible source for such data.  A text file can supply
+#	paths, features, or both.
+#
+#	Paths are specified by sequences of lines that end with two decimal
+#	values.  The values are interpreted as latitude and longitude, in
+#	that order.  An interruption in the sequence (such as a blank line)
+#	indicates a break between paths.
+#
+#	Features, or waypoints, are given by lines that *begin* with two
+#	decimal values.  The rest of the line is taken as a label, which
+#	must not be empty and must not end with two decimal values.
+#
+#	Any other line in a text file breaks a path sequence but is
+#	otherwise ignored.
 #
 ############################################################################
 #
@@ -197,6 +213,7 @@
 #
 #		b  boundaries		gold
 #		c  contour lines	tan
+#		f  feature labels	black
 #		g  GPS path		bold pink over "highlighter"
 #		l  land sections	pale red
 #		m  survey markers	blue
@@ -247,9 +264,10 @@
 #	If display of a file is suppressed by the "-t" option, an X
 #	prefixes the line.
 #
-#	For paths, a notation such as "3:489" replaces layer indicators,
-#	giving the number of continuous segments and total points.  Paths
-#	are assumed to use the WGS 1984 ("W84") datum and ellipsoid.
+#	For text files, a notation such as "3:489+0" replaces layer
+#	indicators, counting continuous segments, total points, and
+#	feature labels.  Coordinate values are assumed to use the
+#	WGS 1984 ("W84") datum and ellipsoid.
 #
 #	The display appears during the longer second loading phase.  For
 #	each layer of each input file, bounds are drawn and a progress bar
@@ -357,7 +375,7 @@ $define PSLWI 120			# linewidth scaling factor
 
 record arg (		# command-line argument, excluding options
    name,		# file or directory name
-   type,		# "dir", "zip", or "pth"
+   type,		# "dir", "zip", or "txt"
    wanted,		# if a wanted layer (null if suppresed by -t option)
    ltable,		# table of layer records, indexed by layer code
    pcount		# progress bar counter
@@ -386,6 +404,12 @@ record attrec (		# line drawing attributes:
    segs			# list of segments (list of paths)
    )
 
+record feature (	# feature or waypoint
+   lat,			# latitude
+   lon,			# longitude
+   label		# label
+   )
+
 
 
 global arglist				# list of arg records
@@ -398,6 +422,8 @@ global aspect				# input coordinate aspect ratio
 global attrib				# attribute style table
 global slist				# list of style records w/ seg lists
 global pcolors				# list of path background colors
+
+global features				# list of feature records
 
 
 
@@ -435,18 +461,18 @@ procedure main(args)
       else if iszip(s) then
          t := "zip"
       else
-         t := "pth"
+         t := "txt"
       put(arglist, arg(s, t, 1))
       }
 
-   # scan paths first, because we haven't really done any validation
-   # (any unrecognized file is classified as a path)
-   every (a := !arglist) & (a.type == "pth") do {
-      rtescan(a)
-      }
+   # scan text files first, because we haven't really done any validation
+   # (any unrecognized file is classified as a text file)
+   features := []
+   every (a := !arglist) & (a.type == "txt") do
+      rdtext(a)
 
    # take inventory of DLG directories and files, and load XREF/NPnn info
-   every (a := !arglist) & (a.type ~== "pth") do {
+   every (a := !arglist) & (a.type ~== "txt") do {
       inventory(a)
       every r := !a.ltable do {
          loadref(r)
@@ -546,10 +572,10 @@ end
 
 
 
-#  rtescan(arg) -- scan a file presumed to be a path
+#  rdtext(arg) -- read a text file of paths and features
 
-procedure rtescan(arg)
-   local f, i, n, r, s, t, w, line, lat, lon, segs, points, nsegs, npts
+procedure rdtext(arg)
+   local f, i, n, r, s, t, w, line, lat, lon, segs, points, nsegs, npts, nfeat
    local xmn, xmx, ymn, ymx
    static npaths
    initial npaths := 0
@@ -561,12 +587,14 @@ procedure rtescan(arg)
    segs := attrib[s].segs
    nsegs := *segs
    npts := 0
+   nfeat := 0
    xmn := ymn := +180 * DEGSCALE
    xmx := ymx := -180 * DEGSCALE
 
    points := []
    while line := read(f) do {			# read line
       every put(w := [], words(line))		# break into fields
+      # check first for path entry
       if (lat := real(w[-2])) & (lon := real(w[-1])) &
             (-90. <= lat <= 90.) & (-180. <= lon <= 180.) then {
          npts +:= 1
@@ -578,16 +606,33 @@ procedure rtescan(arg)
          xmx <:= lon
          ymx <:= lat
          }
-      else if *points > 0 then {
-         put(segs, points)
-         points := []
+      else {
+         # interrupt path sequence
+         if *points > 0 then {
+            put(segs, points)
+            points := []
+            }
+         # check for feature (waypoint) label
+         if (lat := real(get(w))) & (lon := real(get(w))) &
+               (-90. <= lat <= 90.) & (-180. <= lon <= 180.) then {
+            nfeat +:= 1
+            lon *:= DEGSCALE
+            lat *:= DEGSCALE
+            xmn >:= lon
+            ymn >:= lat
+            xmx <:= lon
+            ymx <:= lat
+            s := ""
+            while s ||:= " " || get(w)
+            put(features, feature(lat, lon, s[2:0]))
+            }
          }
       }
    if *points > 0 then
       put(segs, points)
 
    nsegs := *segs - nsegs
-   if nsegs = 0 then
+   if nsegs = 0 & nfeat = 0 then
       stop("no data: ", arg.name)
 
    r := layer("g", arg)
@@ -602,7 +647,7 @@ procedure rtescan(arg)
    n := 0
    every n +:= *segs[-nsegs to -1]
    if /opts["q"] then
-      write(right(nsegs || ":" || npts, 11), " ", lsumm(r))
+      write(right(nsegs || ":" || npts || "+" || nfeat, 14), " ", lsumm(r))
 
    close(f)
    return
@@ -1238,6 +1283,10 @@ procedure draw(win, pjn)
          }
       }
 
+   # draw feature (waypoint) labels
+   if any(chosen, "f") then
+      allfeats(pjn, Pending)
+
    # draw pseudo-layer "n"
    if any(chosen, "n") then
       alllabels(Pending)
@@ -1268,20 +1317,58 @@ end
 
 
 
-#  alllabels(f) -- draw labels for all layers in standard color
+#  allfeats(pjn, p) -- draw feature labels
 #
-#  f is Pending procedure, if to check and quit early
+#  p is Pending procedure, if to check and quit early
 
-procedure alllabels(f)
+procedure allfeats(pjn, p)
+   local f, x, y, xy, xy2
+
+   xy := []
+   every f := !features do
+      put(xy, f.lon, f.lat)
+   xy := project(pjn, xy)
+   xy2 := copy(xy)
+
+   Font("sans, bold, 10")
+   setdraw(attrib["f"])
+   Fg("white")				# draw offset backgrounds in white
+   every f := !features do {
+      DrawString(get(xy2) + 4, get(xy2) + 5, f.label)
+      if *(\p)() > 0 then
+         break
+      }
+
+   setdraw(attrib["f"])			# draw labels in black
+   every f := !features do {
+      x := get(xy)
+      y := get(xy)
+      FillRectangle(x - 1, y - 1, 3, 3)
+      DrawString(x + 5, y + 4, f.label)
+      if *(\p)() > 0 then
+         break
+      }
+
+   return
+end
+
+
+
+#  alllabels(p) -- draw labels for all layers in standard color
+#
+#  p is Pending procedure, if to check and quit early
+
+procedure alllabels(p)
    local a, r
 
    setdraw(attrib["n"])
    every a := !arglist do {
       if \a.wanted then
          drawlabel(!a.ltable)		# pick any layer
-      if *(\f)() > 0 then
+      if *(\p)() > 0 then
          break
       }
+   return
 end
 
 
@@ -1411,7 +1498,7 @@ end
 
 procedure writeps(psfile, projn, wwidth, wheight)
    local arec, color, style, width, ptoff, xmax, ymax, xmul, ymul
-   local a, b, m, w, h, pj, d, s, u, v, x, y, dx, dy, fx, fy, ll
+   local a, b, f, m, w, h, pj, d, s, u, v, x, y, dx, dy, fx, fy, ll
 
    b := project(invp(projn), [0, 0, wwidth, wheight])
    xmax := PSSCALE * wwidth
@@ -1436,6 +1523,7 @@ procedure writeps(psfile, projn, wwidth, wheight)
       "/r { rlineto } bind def",
       "/s { rlineto stroke } bind def",
       "/p { moveto" || s || " fill } bind def",
+      "/f { 2 copy p moveto 48 -36 rmoveto show } bind def",
       ])
 
    every (arec := !slist) & any(chosen, arec.lcode) do {
@@ -1471,6 +1559,21 @@ procedure writeps(psfile, projn, wwidth, wheight)
                }
             write(psfile, fx - x, " ", fy - y, " s")
             }
+         }
+      }
+
+   # write features
+   if *features > 0 & any(chosen, "f") then {
+      write(psfile)
+      write(psfile, "/Times-Roman findfont 120 scalefont setfont")
+      write(psfile, "0 0 0 color")
+      every f := !features do {
+         a := project(pj, [f.lon, f.lat])
+         x := integer(get(a))
+         y := integer(get(a))
+         if (0 <= x <= xmax) & (0 <= y <= ymax) then
+            write(psfile, "(", psprotect(f.label), ") ",
+               x - ptoff, " ", y - ptoff, " f")
          }
       }
 
@@ -1630,6 +1733,9 @@ $define UTILITY "strong purple-magenta"
    deflayer("m", "blue")		# survey markers
    def("m-", , "pale weak blue")	# deemphasize unattributed lines
    def("m")
+
+   deflayer("f", "black")		# feature labels
+   def("f")
 
    deflayer("n", "deep green")		# file labels
    def("n")
