@@ -266,12 +266,12 @@ procedure lst(p, a[])			#: test a procedure that returns a list
 end
 
 procedure tbl(p, a[])			#: test a procedure that returns a table
-   local k, T
+   local k, T, L
 
    writes(left(image(p)[11:0] | "", LSIZE - 1))
    if T := (p ! a) then {
-      every k := key(T) do
-         writes(" ", k, ":", T[k])
+      L := sort(T, 3)
+      while writes(" ", get(L), ":", get(L))
       write()
       }
    else
