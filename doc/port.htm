@@ -17,7 +17,7 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 <BR> <SMALL> The University of Arizona </SMALL>
 
 <P> <SMALL> www.cs.arizona.edu/icon/v942/port.htm
-<BR> Last updated January 6, 2004 </SMALL>
+<BR> Last updated September 14, 2004 </SMALL>
 <!-- $Id$ -->
 
 <H2> Introduction </H2>
@@ -42,7 +42,7 @@ Icon is build using Makefiles and shell scripts, as defined by
 POSIX.2 (IEEE 1003.2-1992).
 Additionally, Icon uses Makefile <DFN>includes</DFN>,
 which are provided by nearly all modern Unix systems
-although they are not part of the official standard.
+although they are not part of the 1992 standard.
 
 
 <H3>C Compiler</H3>
@@ -87,7 +87,7 @@ from the <CODE>posix</CODE> configuration directory.
 <P> The porting process involves repeating these steps until
 the system is working:
 <OL>
-    <LI> Edit the configuration files.
+    <LI> Edit the configuration files as described below.
     <LI> Configure:
     	<CODE>make Configure name=</CODE><VAR>newdirectory</VAR>
     <LI> Build: <CODE>make</CODE>
@@ -97,7 +97,7 @@ If a configuration parameter is changed it is necessary to
 reconfigure and rebuild from the beginning.
 
 <P> The Icon source code has proven to be robust and portable.
-Most problems are related to command options and library locations,
+Most porting problems are related to command options and library locations,
 the things that are configured in the <CODE>Makedefs</CODE> file.
 
 <P> If the system builds smoothly, but problems are revealed by
@@ -118,6 +118,8 @@ enable dynamic loading as described in a later section.
 Icon is set up by editing three files in the configuration directory
 of a particular platform.
 You can examine the files in other directories to see working examples.
+After a configuration file is changed, Icon must be reconfigured
+and rebuilt from the beginning (step 2 above).
 
 
 <H3> <CODE>define.h</CODE> </H3>
@@ -217,7 +219,8 @@ of the <CODE>Makedefs</CODE> parameters
 Please let us know if you complete a port to a new platform.
 Review the <CODE>status</CODE> file one last time and make
 sure it is correct.
-Send the files from the new configuration directory to
+Send the files from the new configuration directory
+(and also <CODE>mklib.sh</CODE>, if changed) to
 <A HREF="mailto:icon-project@cs.arizona.edu">icon-project@cs.arizona.edu</A>.
 Please also tell us the values reported on that platform by the
 <CODE>uname -p</CODE> and <CODE>uname -m</CODE> commands.
