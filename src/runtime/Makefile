@@ -11,7 +11,7 @@ HDRS = ../h/define.h ../h/config.h ../h/typedefs.h ../h/monitor.h\
 GRAPHICSHDRS = ../h/graphics.h ../h/xwin.h ../h/mswin.h
 
 COBJS =	../common/long.o ../common/time.o ../common/save.o \
-	../common/rswitch.o ../common/redirerr.o ../common/xwindow.o \
+	../common/rswitch.o ../common/xwindow.o \
 	../common/alloc.o ../common/filepart.o ../common/munix.o
 
 

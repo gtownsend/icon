@@ -11,7 +11,7 @@
 /*
  * Prototypes.
  */
-static void execute (char *ofile, char *efile, char **args);
+static void execute (char *ofile, char **args);
 static FILE  *open_out (char *fname);
 static void rmfile  (char *fname);
 static void report  (char *s);
@@ -48,7 +48,6 @@ char **argv;
    char *cfile = NULL;			/* name of C file - primary */
    char *hfile = NULL;			/* name of C file - include */
    char *ofile = NULL;			/* name of executable result */
-   char *efile = NULL;			/* stderr file */
 
    char *db_name = "rt.db";		/* data base name */
    char *incl_file = "rt.h";		/* header file name */
@@ -70,7 +69,7 @@ char **argv;
    /*
     * Process options.
     */
-   while ((c = getopt(argc,argv,"+C:ELS:Tce:f:mn:o:p:r:stuv:x")) != EOF)
+   while ((c = getopt(argc,argv,"+C:ELS:Tcf:mn:o:p:r:stuv:x")) != EOF)
       switch (c) {
          case 'C':			/* -C C-comp: C compiler*/
             c_comp = optarg;
@@ -88,9 +87,6 @@ char **argv;
 	    break;
          case 'c':			/* -c: produce C file only */
             no_c_comp = 1;
-            break;
-         case 'e':			/* -e file: redirect stderr */
-            efile = optarg;
             break;
          case 'f':			/* -f: enable features */
             for (s = optarg; *s != '\0'; ++s) {
@@ -327,7 +323,7 @@ char **argv;
    if (ret_code == EXIT_SUCCESS && optind < argc)  {
       if (verbose > 0)
          report("Executing");
-      execute (ofile, efile, argv+optind+1);
+      execute (ofile, argv+optind+1);
       }
 
    return ret_code;
@@ -336,8 +332,8 @@ char **argv;
 /*
  * execute - execute compiled Icon program
  */
-static void execute(ofile,efile,args)
-char *ofile, *efile, **args;
+static void execute(ofile,args)
+char *ofile, **args;
    {
 
    int n;
@@ -354,13 +350,7 @@ char *ofile, *efile, **args;
 
    while (*p++ = *args++)		/* copy args into argument vector */
       ;
-
    *p = NULL;
-
-   if (efile != NULL && !redirerr(efile)) {
-      fprintf(stderr, "Unable to redirect &errout\n");
-      fflush(stderr);
-      }
 
    execvp(ofile,argv);
    quitf("could not run %s",ofile);

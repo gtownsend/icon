@@ -13,7 +13,7 @@ OBJS =		cmain.o ctrans.o dbase.o clex.o\
 COBJS =		../common/long.o ../common/getopt.o ../common/time.o\
 		  ../common/filepart.o ../common/identify.o ../common/munix.o\
 		  ../common/strtbl.o ../common/rtdb.o ../common/literals.o \
-		  ../common/alloc.o ../common/redirerr.o ../common/ipp.o
+		  ../common/alloc.o ../common/ipp.o
 
 
 
