@@ -1,0 +1,20 @@
+#  prime number generation using co-expressions
+
+procedure main(args)
+   local s, n, x
+
+   n := integer(get(args)) | 100
+   s := create (2 to n)
+   while (x := @s) do {
+      write(x)
+      s := create sieve(x, s)
+   }
+end
+
+procedure sieve(x, s)
+   local t
+
+   while t := @s do {
+      if t % x ~= 0 then suspend t
+   }
+end
