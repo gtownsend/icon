@@ -10,6 +10,16 @@ static void execute (char *ofile, char *efile, char *args[]);
 static void usage (void);
 static char *libpath (char *prog, char *envname);
 
+static void txrun(void (*func)(char*, char*), char *source, char *args[]);
+static void copyfile(char *dstfile, char *srcfile);
+static void savefile(char *dstfile, char *srcprog);
+static void cleanup(void);
+
+static char **rfiles;		/* list of files removed by cleanup() */
+
+/*
+ * for old method of hardwiring iconx path; not normally used.
+ */
 static char patchpath[MaxPath+18] = "%PatchStringHere->";
 
 /*
@@ -27,18 +37,29 @@ int main(int argc, char *argv[]) {
    int errors = 0;			/* translator and linker errors */
    char **tfiles, **tptr;		/* list of files to translate */
    char **lfiles, **lptr;		/* list of files to link */
-   char **rfiles, **rptr;		/* list of files to remove */
+   char **rptr;				/* list of files to remove */
    char *efile = NULL;			/* stderr file */
    char buf[MaxFileName];		/* file name construction buffer */
    int c, n;
-   char ch, **p;
+   char ch;
    struct fileparts *fp;
 
    /*
-    * Process options.  NOTE: Keep Usage definition in sync with getopt() call.
+    * Initialize globals.
     */
-   #define Usage "[-cstuE] [-f s] [-o ofile] [-v i]"	/* omit -e from doc */
-   while ((c = getopt(argc, argv, "ce:f:o:stuv:EL")) != EOF)
+   initglob();				/* general global initialization */
+   ipath = libpath(argv[0], "IPATH");	/* set library search paths */
+   lpath = libpath(argv[0], "LPATH");
+   if (strlen(patchpath) > 18)
+      iconxloc = patchpath + 18;	/* use stated iconx path if patched */
+   else
+      iconxloc = relfile(argv[0], "/../iconx");	/* otherwise infer it */
+
+   /*
+    * Process options. 
+    * IMPORTANT:  When making changes here, also update usage() function.
+    */
+   while ((c = getopt(argc, argv, "ce:f:o:stuv:ELP:X:")) != EOF)
       switch (c) {
          case 'c':			/* -c: compile only (no linking) */
             nolink = 1;
@@ -73,6 +94,12 @@ int main(int argc, char *argv[]) {
             pponly = 1;
             nolink = 1;
             break;
+         case 'P':			/* -P program: execute from argument */
+            txrun(savefile, optarg, &argv[optind]);
+            break;			/*NOTREACHED*/
+         case 'X':			/* -X srcfile: execute single srcfile */
+            txrun(copyfile, optarg, &argv[optind]);
+            break;			/*NOTREACHED*/
 
 #ifdef DeBugLinker
          case 'L':			/* -L: enable linker debugging */
@@ -130,25 +157,12 @@ int main(int argc, char *argv[]) {
       usage();				/* error -- no files named */
 
    /*
-    * Initialize globals.
-    */
-   initglob();				/* general global initialization */
-
-   ipath = libpath(argv[0], "IPATH");	/* set library search paths */
-   lpath = libpath(argv[0], "LPATH");
-
-   if (strlen(patchpath) > 18)
-      iconxloc = patchpath + 18;	/* use stated iconx path if patched */
-   else
-      iconxloc = relfile(argv[0], "/../iconx");		/* otherwise infer it */
-
-   /*
     * Translate .icn files to make .u1 and .u2 files.
     */
    if (tptr > tfiles) {
       if (!pponly)
          report("Translating");
-      errors = trans(tfiles);
+      errors = trans(tfiles, TargetDir);
       if (errors > 0)			/* exit if errors seen */
          exit(EXIT_FAILURE);
       }
@@ -175,8 +189,7 @@ int main(int argc, char *argv[]) {
     * Finish by removing intermediate files.
     *  Execute the linked program if so requested and if there were no errors.
     */
-   for (p = rfiles; *p; p++)		/* delete intermediate files */
-      remove(*p);			
+   cleanup();				/* delete intermediate files */
    if (errors > 0) {			/* exit if linker errors seen */
       remove(ofile);
       exit(EXIT_FAILURE);
@@ -231,7 +244,10 @@ void report(char *s) {
  *  on the legal options for this system.
  */
 static void usage(void) {
-   fprintf(stderr, "usage: %s %s file ... [-x args]\n", progname, Usage);
+   fprintf(stderr, "usage: %s %s\n",
+      progname, "[-cstuE] [-f s] [-o ofile] [-v i] file ... [-x args]");
+   fprintf(stderr, "       %s -X sourcefile [args]\n", progname);
+   fprintf(stderr, "       %s -P 'program'  [args]\n", progname);
    exit(EXIT_FAILURE);
    }
 
@@ -250,3 +266,103 @@ static char *libpath(char *prog, char *envname) {
    strcat(buf, relfile(prog, "/../../lib"));
    return salloc(buf);
    }
+
+/*
+ * Translate, link, and execute a source file.
+ * Does not return under any circumstances.
+ */
+static void txrun(void (*func)(char*, char*), char *source, char *args[]) {
+   int omask;
+   char c1, c2;
+   char *flist[2];
+   char srcfile[MaxFileName], u1[MaxFileName], u2[MaxFileName];
+   char icode[MaxFileName], buf[MaxFileName + 20];
+   char *rmlist[] = { srcfile, u1, u2, icode, NULL };
+   static char abet[] = "abcdefghijklmnopqrstuvwxyz";
+
+   silent = 1;			/* don't issue commentary while translating */
+   omask = umask(0077);		/* remember umask; keep /tmp files private */
+
+   /*
+    * Invent a file named /tmp/innnnnxx.icn and copy the source code there.
+    */
+   srand(time(NULL));
+   c1 = abet[rand() % (sizeof(abet) - 1)];
+   c2 = abet[rand() % (sizeof(abet) - 1)];
+   sprintf(srcfile, "/tmp/i%d%c%c.icn", getpid(), c1, c2);
+   func(srcfile, optarg);
+
+   /*
+    * Derive other names and arrange for cleanup on exit.
+    */
+   makename(u1, NULL, srcfile, U1Suffix);
+   makename(u2, NULL, srcfile, U2Suffix);
+   makename(icode, NULL, srcfile, IcodeSuffix);
+   rfiles = rmlist;
+   atexit(cleanup);
+
+   /*
+    * Translate to produce .u1 and .u2 files.
+    */
+   flist[0] = srcfile;
+   flist[1] = NULL;
+   if (trans(flist, SourceDir) > 0)
+      exit(EXIT_FAILURE);
+
+   /*
+    * Link to make an icode file.
+    */
+   flist[0] = u1;
+   if (ilink(flist, icode) > 0)
+      exit(EXIT_FAILURE);
+
+   /*
+    * Execute the icode file.
+    */
+   rmlist[3] = NULL;			/* don't delete icode yet */
+   cleanup();				/* but delete the others */
+   sprintf(buf, "DELETE_ICODE_FILE=%s", icode);
+   putenv(buf);				/* tell iconx to delete icode */
+   umask(omask);			/* reset original umask */
+   execute(icode, NULL, args);		/* execute the program */
+   quitf("could not execute %s", icode);
+   }
+
+/*
+ * Dump a string to a file, prefixed by  $line 0 "[inline]".
+ */
+static void savefile(char *dstfile, char *srcprog) {
+   FILE *f = fopen(dstfile, "w");
+   if (f == NULL)
+      quitf("cannot open for writing: %s", dstfile);
+   fprintf(f, "$line 0 \"[inline]\"\n");
+   fwrite(srcprog, 1, strlen(srcprog), f);
+   fclose(f);
+   }
+
+/*
+ * Copy a source file for later translation, adding  $line 0 "filename".
+ */
+static void copyfile(char *dstfile, char *srcfile) {
+   int c;
+   FILE *e = fopen(srcfile, "r");
+   FILE *f = fopen(dstfile, "w");
+   if (e == NULL)
+      quitf("cannot open: %s", srcfile);
+   if (f == NULL)
+      quitf("cannot open for writing: %s", dstfile);
+   fprintf(f, "$line 0 \"%s\"\n", srcfile);
+   while ((c = getc(e)) != EOF)
+      putc(c, f);
+   fclose(f);
+   }
+
+/*
+ * Deletes the files listed in rfiles[].
+ */
+static void cleanup(void) {
+   char **p;
+
+   for (p = rfiles; *p; p++)
+      remove(*p);			
+}

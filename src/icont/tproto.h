@@ -72,7 +72,7 @@ void	tfatal			(char *s1,char *s2);
 void	tmalloc			(void);
 void	tmfree			(void);
 void	tminit			(void);
-int	trans			(char * *ifiles);
+int	trans			(char * *ifiles, char *tgtdir);
 pointer trealloc		(pointer table, pointer tblfree,
                                   unsigned int *size, int unit_size,
                                   int min_units, char *tbl_name);

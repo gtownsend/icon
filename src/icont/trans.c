@@ -14,7 +14,7 @@
  * Prototypes.
  */
 
-static	void	trans1		(char *filename);
+static	void	trans1		(char *filename, char *tgtdir);
 
 int tfatals;			/* number of fatal errors in file */
 int afatals;			/* total number of fatal errors */
@@ -26,8 +26,9 @@ int peekc;			/* one-character look ahead */
 /*
  * translate a number of files, returning an error count
  */
-int trans(ifiles)
+int trans(ifiles, tgtdir)
 char **ifiles;
+char *tgtdir;
    {
    tmalloc();			/* allocate memory for translation */
 
@@ -39,7 +40,7 @@ char **ifiles;
 #endif					/* Multiple Runs */
 
    while (*ifiles) {
-      trans1(*ifiles++);	/* translate each file in turn */
+      trans1(*ifiles++, tgtdir);	/* translate each file in turn */
       afatals += tfatals;
       }
    tmfree();			/* free memory used for translation */
@@ -63,8 +64,8 @@ char **ifiles;
 /*
  * translate one file.
  */
-static void trans1(filename)
-char *filename;
+static void trans1(filename, tgtdir)
+char *filename, *tgtdir;
 {
    char oname1[MaxFileName];	/* buffer for constructing file name */
    char oname2[MaxFileName];	/* buffer for constructing file name */
@@ -94,7 +95,7 @@ char *filename;
     *  Write the ucode version number to the .u2 file.
     */
 
-   makename(oname1, TargetDir, filename, U1Suffix);
+   makename(oname1, tgtdir, filename, U1Suffix);
 
 #if MVS || VM
 /*
@@ -117,7 +118,7 @@ char *filename;
    if (codefile == NULL)
       quitf("cannot create %s", oname1);
 
-   makename(oname2, TargetDir, filename, U2Suffix);
+   makename(oname2, tgtdir, filename, U2Suffix);
 
 #if MVS || VM
    globfile = fopen(oname2, WriteBinary);

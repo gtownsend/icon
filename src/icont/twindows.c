@@ -518,7 +518,7 @@ char **argv;
    if (tptr > tfiles) {
       if (!pponly)
          report("Translating");
-      errors = trans(tfiles);
+      errors = trans(tfiles, TargetDir);
       if (errors > 0) {			/* exit if errors seen */
          exit(EXIT_FAILURE);
 	 }

@@ -882,6 +882,18 @@ Deliberate Syntax Error
    fclose(fname);
 #endif					/* OS2 */
 
+#if UNIX
+   /*
+    * Delete the icode file if requested by environment variable.
+    * (This is used with Unix "#!" script files written in Icon.)
+    */
+   {
+      char *dname = getenv("DELETE_ICODE_FILE");
+      if (dname != NULL && strcmp(dname, name) == 0)
+         remove(dname);
+      }
+#endif					/* UNIX */
+
 /*
  * Make sure the version number of the icode matches the interpreter version.
  */

@@ -1,8 +1,12 @@
-.TH ICONT 1 "25 May 2001" "University of Arizona"
+.TH ICONT 1 "28 November 2001" "University of Arizona"
 .SH NAME
 icont \- translate Icon program
 .SH SYNOPSIS
 \fBicont\fP [ option ... ] file ... [ \fB\-x\fP arg ... ]
+.br
+\fBicont \-P\fP 'program' [ arg ... ]
+.br
+\fBicont \-X\fP sourcefile [ arg ... ]
 .SH DESCRIPTION
 Icont translates and links programs written in the Icon language.
 Translation produces \fIucode\fP files, suffixed \fB.u1\fP and \fB.u2\fP,
@@ -26,6 +30,17 @@ Ucode files produced by translation are normally deleted after linking.
 If the \fB\-c\fP option is given, processing stops after translation
 and the ucode files are left behind.
 A directory of such files functions as a linkable library.
+.PP
+Two special forms facilitate embedding Icon programs in shell scripts.
+The \fBicont \-P\fP form can be used to "inline" a small source program
+inside a shell script.
+Alternatively, an Icon source file can be made directly executable
+by beginning it with a comment such as
+.in +.5i
+\fB#!/bin/icont \-X\fP
+.in
+(depending on the local path to \fBicont\fP)
+and setting the execute permission bit.
 .SH OPTIONS
 The following options are recognized by \fIicont\fP:
 .TP 4

@@ -21,7 +21,13 @@ Samples-iconc:
 		IC=iconc sh Test-icon $(SAMPLES)
 
 
+# test various command options
+
+Test-options:
+		sh Test-opts >options.out
+		cmp options.ok options.out
+
 
 Clean:
 		-rm -f *.u? foo.baz *.out
-		-rm -f `find * -type f -perm -100 ! -name Test-icon -print`
+		-rm -f `find * -type f -perm -100 ! -name 'Test-*' -print`

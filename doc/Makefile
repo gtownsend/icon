@@ -49,8 +49,9 @@ install:  faq.txt
 	cp faq.htm $(HFAQ)
 	cp faq.txt $(TFAQ)
 	cp -p $(TFAQ) $(FFAQ)
-	cp *.css *.gif *.jpg *.txt $(RLSDIR)
-	cp `ls *.htm | grep -v index` $(RLSDIR)
+	: OTHER REVISED FILES NOT INSTALLED ON WEBSITE:
+	: cp *.css *.gif *.jpg *.txt $(RLSDIR)
+	: cp `ls *.htm | grep -v index` $(RLSDIR)
 
 
 #  remove built files to force a rebuild.
