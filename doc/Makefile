@@ -1,5 +1,10 @@
 #  Makefile for FAQ/doc installation and webpage validation
 #  <<ARIZONA-ONLY>>
+#
+#  This Makefile is for Icon maintenance and FAQ installation at Arizona.
+#  Because of that it is targeted for the Icon development environment
+#  (Red Hat Linux and some specialized tools) and is less portable than
+#  other Makefiles.
 
 
 MADE = icont.txt faq.txt
@@ -13,6 +18,8 @@ RLSDIR = /cs/www/icon/v940
 MANPAGE = ../man/man1/icont.1
 
 
+#  (default:) rebuild icont.txt and faq.txt from nroff/html sources.
+
 default:  $(MADE)
 
 icont.txt: $(MANPAGE) clnroff.sed
@@ -21,13 +28,23 @@ icont.txt: $(MANPAGE) clnroff.sed
 faq.txt:  faq.htm
 	lynx -nolist -dump -justify=off faq.htm >faq.txt
 
+
+#  check integrity of HTML files.
+#  n.b. weblinks generates some false negatives.
+
 lint:
 	weblint -x netscape *.htm
 	weblinks -t *.htm
 
+
+#  compare FAQ with currently installed version.
+
 diff:
 	diff -c $(HFAQ) faq.htm
-	
+
+
+#  install updated files on Icon web and FTP sites.
+
 install:  faq.txt
 	cp faq.htm $(HFAQ)
 	cp faq.txt $(TFAQ)
@@ -35,6 +52,9 @@ install:  faq.txt
 	cp *.css *.gif *.jpg *.txt $(RLSDIR)
 	cp `ls *.htm | grep -v index` $(RLSDIR)
 
+
+#  remove built files to force a rebuild.
+#  do NOT do this before preparing an Icon distribution.
 
 Clean clean:
 	rm -f $(MADE)
