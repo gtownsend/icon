@@ -6,7 +6,7 @@
 #
 #	Authors:  Ralph E. Griswold and Gregg M. Townsend
 #
-#	Date:     November 16, 2000
+#	Date:     October 24, 2002
 #
 ############################################################################
 #
@@ -14,9 +14,16 @@
 #
 ############################################################################
 #
+#  Contributor:  Paul Abrahams
+#
+############################################################################
+#
 #  field(R, i)	returns the name of the ith field of R.
 #
 #  fieldnum(R, s)  returns the index of the field named s in record R.
+#
+#  movecorr(R1, R2) copies values from the fields of record R1 into
+#  fields of the same names (if any) in record R2, and returns R2.
 #
 ############################################################################
 
@@ -36,4 +43,12 @@ procedure fieldnum(R, s)		#: return index of field R.s
    every i := 1 to *R do
       R[i] := i
    return R[s]
+end
+
+procedure movecorr(R1, R2)		#: move corresponding record fields
+   local s
+
+   every s := (name(!R1) ? (tab(upto('.') + 1) & tab(0))) do
+      R2[s] := R1[s]
+   return R2
 end
