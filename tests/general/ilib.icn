@@ -8,9 +8,10 @@ $define LSIZE 16
 $define GENLIMIT 25
 
 procedure main()
-   local L, T, r1, r2, r3, argv
+   local L, LR, T, r1, r2, r3, argv
 
    L := [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
+   LR := lreverse(L)
    T := table("0")
    T["one"] := 101
    T["two"] := 22
@@ -70,11 +71,18 @@ procedure main()
 
    write()
    write("lists:")			# lists
+   lst(lcollate, L, LR)
+   lst(lcompact, L)
+   lst(lclose, [3, 1, 4, 1])
    lst(ldelete, copy(L), 3)
+   lst(ldupl, L, 2)
    lst(lequiv, L, copy(L))
    lst(lextend, L, 20)
+   lst(lfliph, L)
+   lst(lflipv, L)
    lst(limage, L)
-   lst(linterl, L, lreverse(L))
+   lst(linterl, L, LR)
+   lst(llayer, L, L)
    lst(llpad, L, 14, 0)
    lst(lltrim, L, set([3]))
    lst(lpalin, L)
@@ -82,10 +90,14 @@ procedure main()
    lst(lreflect, L)
    lst(lremvals, L, 1, 5)
    lst(lrepl, L, 2)
+   lst(lresidue, L, 3)
    lst(lreverse, L)
    lst(lrotate, L, 4)
    lst(lrpad, L, 14, 0)
    lst(lrtrim, L, set([3, 5]))
+   lst(lrundown, L, LR)
+   lst(lrunup, L, LR)
+   lst(lshift, L, 3)
    lst(lswap, L)
    lst(lunique, L)
    lst(lmaxlen, L, integer)
@@ -177,6 +189,8 @@ procedure main()
    rat(subrat, r1, r3)
    rat(mpyrat, r1, r2)
    rat(divrat, r1, r3)
+   rat(medrat, rational(2,5,1), rational(11,7,1))
+   rat(medrat, rational(5,13,1), rational(4,5,1))
    trat()
 
    write()
