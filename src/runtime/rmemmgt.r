@@ -478,7 +478,7 @@ int region;
    { struct region *br;
    for (br = curblock->Gnext; br; br = br->Gnext) {
       char *source = br->base, *free = br->free;
-      uword NoMark = ~F_Mark;
+      uword NoMark = (uword) ~F_Mark;
       while (source < free) {
 	 BlkType(source) &= NoMark;
          source += BlkSize(source);
@@ -486,7 +486,7 @@ int region;
       }
    for (br = curblock->Gprev; br; br = br->Gprev) {
       char *source = br->base, *free = br->free;
-      uword NoMark = ~F_Mark;
+      uword NoMark = (uword) ~F_Mark;
       while (source < free) {
 	 BlkType(source) &= NoMark;
          source += BlkSize(source);

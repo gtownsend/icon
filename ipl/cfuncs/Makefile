@@ -5,7 +5,6 @@
 
 
 include ../../Makedefs
-CFLAGS = $(CFCOMM)
 
 ICONT = icont
 IFLAGS = -us
