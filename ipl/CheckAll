@@ -2,28 +2,47 @@
 #
 #  Test-build all IPL components and run other sanity checks
 
+
 #  Set minimal path needed.  Not all systems have all these directories
 V9BIN=`cd ../bin; echo $PWD`
 export PATH=$V9BIN:/usr/xpg4/bin:/usr/ccs/bin:/bin:/usr/bin
 
 #  List timestamp of icont we'll be using
-ls -lg $V9BIN/icont
+ls -l $V9BIN/icont
 
 #  Use default Icon options
 unset BLKSIZE STRSIZE MSTKSIZE COEXPSIZE TRACE NOERRBUF FPATH IPATH LPATH
 
-#  Define function for silent program compile, echoing name only on error
-function compile { icont -us $1 || echo "         -- failed in $1"; }
-
 #  Clean out old versions of compiled procedures
 rm -f */*.u[12]
 
-#  Start with procedures, including cfuncs, needed by programs
+
+#  Start by building procedures, including cfuncs, needed by programs
 #  Use only include-files guaranteed to be present with each part of library
+
 (echo cfuncs:; cd cfuncs; LPATH=                            make -s cfunc.u2)
 (echo procs:;  cd procs;  LPATH="../incl"                   icont -usc *icn)
 (echo gprocs:; cd gprocs; LPATH="../incl ../gincl"          icont -usc *icn)
 (echo mprocs:; cd mprocs; LPATH="../incl ../gincl ../mincl" icont -usc *icn)
+
+
+#  Check that link directives are sufficient for each procedure file
+
+IPATH=./cfunc
+rm -f xxx
+for d in procs gprocs mprocs; do
+    export IPATH="$IPATH ./$d"
+    echo checking $d linkage: IPATH='"'$IPATH'"'
+    for f in `cd $d; ls *.icn`; do
+	b=${f%.icn}
+	icont -o xxx -us $b.u2  ||  echo "                -- failed in $b.u2"
+    done
+done
+rm -f xxx
+
+
+#  Define function for silent compilation, echoing name only on error
+function compile {  icont -us $1  ||  echo "         -- failed in $1";  }
 
 #  Build programs from "bipl" portion, using only "bipl" library
 export LPATH="../incl"
@@ -40,7 +59,9 @@ export IPATH="../procs ../cfuncs ../gprocs"
 # export IPATH="../procs ../cfuncs ../gprocs ../mprocs"
 # (echo mprogs:; cd mprogs;  for f in *.icn; do compile $f; done)
 
+
 #  Try at least some of the packages
+
 export LPATH="../../incl  ../../gincl"
 export IPATH="../../procs ../../cfuncs ../../gprocs"
 
