@@ -50,6 +50,9 @@ link io
 \$define LIB "$LIB"
 ENDHDR
 
+LC_ALL=POSIX
+export LC_ALL
+
 for i
 do
    FNAME=`basename $i .o`

@@ -67,4 +67,5 @@ ZipFiles:  Ilib
 Clean Pure:
 	rm -rf ilib iexe *.zip */*.u[12] */*.zip
 	-rm -f `find *procs *progs -type f -perm -100 -print`
-	for d in cfuncs *packs/[a-z]*; do (cd $$d; $(MAKE) Clean); done
+	for d in cfuncs *packs/[abcdefghijklmnopqrstuvwxyz]*; do \
+	    (cd $$d; $(MAKE) Clean); done

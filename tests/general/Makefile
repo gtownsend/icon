@@ -24,4 +24,4 @@ Samples-iconc:
 
 Clean:
 		-rm -f *.u? foo.baz *.out
-		-rm -f `find [a-z]* -type f -perm -100 -print`
+		-rm -f `find * -type f -perm -100 ! -name Test-icon -print`

@@ -25,7 +25,7 @@ config/unix/$(name)/status src/h/define.h:
 	:
 	: where xxxx is one of
 	:
-	@cd config/unix; ls -d [a-z]*
+	@cd config/unix; ls -d [abcdefghijklmnopqrstuvwxyz]*
 	:
 	@exit 1
 
@@ -104,8 +104,8 @@ Install:
 		test -d $D/man || mkdir $D/man
 		test -d $D/man/man1 || mkdir $D/man/man1
 		cp README $D
-		cp bin/[a-qs-z]* $D/bin
-		rm -f $D/bin/libXpm*
+		cp bin/[abcdefghijklmnopqrstuvwxyz]* $D/bin
+		rm -f $D/bin/libXpm* $D/bin/rt*
 		cp lib/*.* $D/lib
 		cp doc/*.* $D/doc
 		cp man/man1/icont.1 $D/man/man1
@@ -162,7 +162,9 @@ Clean:
 
 Pure:
 		touch Makedefs
-		rm -rf icon.* bin/[a-z]* lib/[a-z]*
+		rm -rf icon.*
+		rm -rf bin/[abcdefghijklmnopqrstuvwxyz]*
+		rm -rf lib/[abcdefghijklmnopqrstuvwxyz]*
 		cd ipl;			$(MAKE) Pure
 		cd src;			$(MAKE) Pure
 		cd tests;		$(MAKE) Pure
