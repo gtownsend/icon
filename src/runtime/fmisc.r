@@ -268,27 +268,6 @@ function{1} copy(x)
          }
 
       default: body {
-#if Never
-         if (Type(x) == T_External) {
-            word n;
-            tended union block *op, *bp;
-
-            /*
-             * Duplicate the block.  Recover number of data words in block,
-             * then allocate new block and copy the data.
-             */
-            op = BlkLoc(x);
-            n = (op->externl.blksize - (sizeof(struct b_external) -
-                 sizeof(word))) / sizeof(word);
-            Protect(bp = (union block *)alcextrnl(n), runerr(0));
-            while (n--)
-               bp->externl.exdata[n] = op->externl.exdata[n];
-            result.dword = D_External;
-            BlkLoc(result) = bp;
-	    return result;
-            }
-         else
-#endif					/* Never */
             runerr(123,x);
          }
          }
