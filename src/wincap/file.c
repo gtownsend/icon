@@ -279,9 +279,9 @@ HANDLE ReadDIBFile(MYHFILE hFile)
 
 #ifdef WIN32
    dwBitsSize = GetFileSize(hFile, NULL);
-#else                                   /* WIN32 */
+#else					/* WIN32 */
    dwBitsSize = filelength(hFile);
-#endif                                  /* WIN32 */
+#endif					/* WIN32 */
 
    /*
     * Go read the DIB file header and check if it's valid.
@@ -345,7 +345,7 @@ BOOL MyRead(MYHFILE hFile, LPSTR lpBuffer, DWORD dwSize)
    if(!ReadFile(hFile, (LPVOID)lpBuffer, dwSize, &dwNumberOfBytesRead, NULL))
       return FALSE;
    return (dwNumberOfBytesRead == dwSize);
-#else                                   /* WIN32 */
+#else					/* WIN32 */
    char huge *lpInBuf = (char huge *)lpBuffer;
    int nBytes;
 
@@ -363,7 +363,7 @@ BOOL MyRead(MYHFILE hFile, LPSTR lpBuffer, DWORD dwSize)
       lpInBuf += nBytes;
    }
    return TRUE;
-#endif                                  /* WIN32 */
+#endif					/* WIN32 */
 }
 
 
@@ -387,7 +387,7 @@ DWORD PASCAL MyWrite(MYHFILE iFileHandle, VOID FAR *lpBuffer, DWORD dwBytes)
 #ifdef WIN32
    if(!WriteFile(iFileHandle, (LPCVOID)lpBuffer, dwBytes, &dwBytesTmp, NULL))
       return 0;
-#else                                   /* WIN32 */
+#else					/* WIN32 */
    BYTE huge *hpBuffer = lpBuffer;   // make a huge pointer to the data
 
    /*
@@ -405,6 +405,6 @@ DWORD PASCAL MyWrite(MYHFILE iFileHandle, VOID FAR *lpBuffer, DWORD dwBytes)
    /* Write out the last chunk (which is < 32767 bytes) */
    if (_lwrite(iFileHandle, (LPSTR)hpBuffer, (WORD)dwBytes) != (WORD)dwBytes)
       return 0;
-#endif                                  /* WIN32 */
+#endif					/* WIN32 */
    return dwBytesTmp;
 }

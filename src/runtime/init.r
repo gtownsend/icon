@@ -61,7 +61,7 @@ int k_level = 0;		/* &level */
 
 #ifndef MultiThread
    struct descrip k_main;	/* &main */
-#endif				/* MultiThread */
+#endif					/* MultiThread */
 
 int ixinited = 0;		/* set-up switch */
 
@@ -77,7 +77,7 @@ uword stattotal = 0;		/* cumulative total static allocation */
 #ifndef MultiThread
    uword strtotal = 0;		/* cumulative total string allocation */
    uword blktotal = 0;		/* cumulative total block allocation */
-#endif				/* MultiThread */
+#endif					/* MultiThread */
 
 int dodump;			/* if nonzero, core dump on error */
 int noerrbuf;			/* if nonzero, do not buffer stderr */
@@ -94,7 +94,7 @@ struct descrip maps3;		/* third cached argument of map */
    int t_errornumber = 0;	/* tentative k_errornumber value */
    int t_have_val = 0;		/* tentative have_errval flag */
    struct descrip t_errorvalue;	/* tentative k_errorvalue value */
-#endif				/* MultiThread */
+#endif					/* MultiThread */
 
 struct b_coexpr *stklist;	/* base of co-expression block list */
 
@@ -209,18 +209,18 @@ struct header *hdr;
 
       #if MSWIN
 	  fname = pathOpen(tname,"rb");	/* try to find path */
-      #else					/* MSWIN */
+      #else				/* MSWIN */
 	  fname = fopen(tname, "rb");
-      #endif					/* MSWIN */
+      #endif				/* MSWIN */
 
       }
 
    if (fname == NULL)			/* try the name as given */
       #if MSWIN
          fname = pathOpen(name, "rb");
-      #else					/* MSWIN */
+      #else				/* MSWIN */
          fname = fopen(name, "rb");
-      #endif					/* MSWIN */
+      #endif				/* MSWIN */
 
    if (fname == NULL)
       return NULL;
@@ -239,10 +239,10 @@ struct header *hdr;
       #if MSWIN
          if (strncmp(buf, "rem [executable Icon binary follows]", 36) == 0)
             break;
-      #else					/* MSWIN */
+      #else				/* MSWIN */
          if (strncmp(buf, "[executable Icon binary follows]", 32) == 0)
             break;
-      #endif					/* MSWIN */
+      #endif				/* MSWIN */
       }
 
    while ((n = getc(fname)) != EOF && n != '\f')	/* read thru \f\n\0 */
@@ -308,7 +308,7 @@ struct header *hdr;
    mswinInstance = GetModuleHandle( NULL );
    MSStartup( mswinInstance, NULL );
    }
-#endif                                        /* WinGraphics */
+#endif					/* WinGraphics */
 
 
    /*
@@ -1018,7 +1018,7 @@ C_integer bs, ss, stk;
 
 #ifdef EventMon
    pstate->Linenum = pstate->Column = pstate->Lastline = pstate->Lastcol = 0;
-#endif						/* EventMon */
+#endif					/* EventMon */
    pstate->Lastop = 0;
    /*
     * might want to override from TRACE environment variable here.
@@ -1172,4 +1172,4 @@ static void MSStartup(HINSTANCE hInstance, HINSTANCE hPrevInstance)
       RegisterClass(&wc);
       }
    }
-#endif                                        /* WinGraphics */
+#endif					/* WinGraphics */

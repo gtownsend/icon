@@ -180,11 +180,11 @@ struct imgmem {
 
    #ifdef XWindows
       XImage *im;
-   #endif					/* XWindows */
+   #endif				/* XWindows */
 
    #ifdef WinGraphics
       COLORREF *crp;
-   #endif					/* WinGraphics */
+   #endif				/* WinGraphics */
    };
 
 #define TCH1 '~'			/* usual transparent character */

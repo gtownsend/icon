@@ -759,7 +759,7 @@ struct token *interp_dir()
 
    #define TokSrc interp_dir
 
-#else      /*  '\a' == Bell  */
+#else					/* '\a' == Bell */
 
    #define TokSrc check_bell
 
@@ -825,7 +825,7 @@ struct token *interp_dir()
       return t;
       }
 
-#endif     /*  '\a' == Bell  */
+#endif					/* '\a' == Bell */
 
 /*
  * preproc - return the next fully preprocessed token.

@@ -336,9 +336,9 @@ int get_name(dp1,dp0)
                default:		/* none of the above */
 #ifdef EventMon
                   *dp0 = emptystr;
-#else                                   /* EventMon */
+#else					/* EventMon */
                   syserr("name: invalid structure reference");
-#endif                                  /* EventMon */
+#endif					/* EventMon */
 
                }
            }

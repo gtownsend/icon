@@ -186,7 +186,7 @@ continuation succ_cont;
    RunErr(status, &r);			/* error, with value */
    }
 
-#else						/* COMPILER */
+#else					/* COMPILER */
 
 int glue(argc, dargv)
 int argc;
@@ -216,6 +216,6 @@ dptr dargv;
    RunErr(status, &r);			/* error, with value */
    }
 
-#endif						/* COMPILER */
+#endif					/* COMPILER */
 
-#endif						/* LoadFunc */
+#endif					/* LoadFunc */

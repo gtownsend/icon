@@ -47,7 +47,7 @@ function{1} close(f)
 	    BlkLoc(f)->file.status = 0;
 	    return f;
 	    }
-      #endif					/* ReadDirectory */
+      #endif				/* ReadDirectory */
       
       #ifdef Pipes
          if (BlkLoc(f)->file.status & Fs_Pipe) {
@@ -115,10 +115,10 @@ end
 "open(s1, s2, ...) - open file named s1 with options s2"
 " and attributes given in trailing arguments."
 function{0,1} open(fname, spec, attr[n])
-#else						/* Graphics */
+#else					/* Graphics */
 "open(fname, spec) - open file fname with specification spec."
 function{0,1} open(fname, spec)
-#endif						/* Graphics */
+#endif					/* Graphics */
    declare {
       tended struct descrip filename;
       }

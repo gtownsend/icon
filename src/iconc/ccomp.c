@@ -79,7 +79,7 @@ char *exename;
              strlen(refpath) +
 	     strlen(" -lIgpx ");
    lib_sz += strlen(ICONC_XLIB);
-#endif						/* Graphics */
+#endif					/* Graphics */
 
    buf = alloc((unsigned int)cmd_sz + opt_sz + flg_sz + exe_sz + src_sz +
 			     lib_sz + 5);
@@ -114,7 +114,7 @@ char *exename;
    strcat(s," -lIgpx ");
    strcat(s, ICONC_XLIB);
    s += strlen(s);
-#endif						/* Graphics */
+#endif					/* Graphics */
 
    strcpy(s, LinkLibs);
 

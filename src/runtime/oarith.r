@@ -76,9 +76,9 @@ end
       if (bigdiv(&lx,&ly,&result) == Error) /* alcbignum failed */
 	 runerr(0);
       return result;
-#else                                   /* LargeInts */
+#else					/* LargeInts */
       runerr(203);
-#endif                                  /* LargeInts */
+#endif					/* LargeInts */
       }
    else return C_integer irslt;
 }

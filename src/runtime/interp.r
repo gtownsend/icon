@@ -287,7 +287,7 @@ dptr cargp;
 	       if (pollctr == -1) fatalerr(141, NULL);
 	       }
 #endif					/* Polling */
-#endif				/* LineCodes */
+#endif					/* LineCodes */
 
 
 	    if(current_line_ptr &&
@@ -566,7 +566,7 @@ dptr cargp;
 #endif					/* Polling */
 
 
-#endif				/* LineCodes */
+#endif					/* LineCodes */
 
             break;
 
@@ -597,7 +597,7 @@ dptr cargp;
 #endif					/* Polling */
 
 
-#endif				/* LineCodes */
+#endif					/* LineCodes */
 
 #ifdef EventMon
             linenum = GetWord;
@@ -1531,7 +1531,7 @@ Pfail_uw:
 #ifndef Coexpr
             err_msg(401, NULL);
             goto efail;
-#else                                        /* Coexpr */
+#else					/* Coexpr */
             struct b_coexpr *ncp;
             dptr dp;
 
@@ -1561,7 +1561,7 @@ Pfail_uw:
 
 #ifndef Coexpr
             syserr("co-expression return, but co-expressions not implemented");
-#else                                        /* Coexpr */
+#else					/* Coexpr */
             struct b_coexpr *ncp;
 
             ExInterp;
@@ -1579,7 +1579,7 @@ Pfail_uw:
 
 #ifndef Coexpr
             syserr("co-expression failure, but co-expressions not implemented");
-#else                                        /* Coexpr */
+#else					/* Coexpr */
             struct b_coexpr *ncp;
 
             ExInterp;

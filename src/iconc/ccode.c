@@ -41,7 +41,7 @@ static int alc_tmp 		(int n, struct tmplftm *lifetm_ary);
 #ifdef	OptimizePoll
    static int analyze_poll 	(void);
    static void remove_poll 	(void);
-#endif					/*	OptimizePoll	*/
+#endif					/* OptimizePoll */
 
 #ifdef	OptimizeLit
    static int instr		(const	char *str, int chr);
@@ -52,7 +52,7 @@ static int alc_tmp 		(int n, struct tmplftm *lifetm_ary);
    static void free_tbl		(void);
    static struct lit_tbl *alc_tbl (void);
    static void tbl_add		(truct lit_tbl *add);
-#endif					/*	OptimizeLit	*/
+#endif					/* OptimizeLit */
 
 static struct code *asgn_null	(struct val_loc *loc1);
 static struct val_loc *bound	(struct node *n, struct val_loc *rslt,

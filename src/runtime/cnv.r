@@ -327,7 +327,7 @@ dptr s, d;
          d->dword = D_Lrgint;
 	 BlkLoc(*d) = (union block *)numrc.big;
          return 1;
-#endif				/* LargeInts */
+#endif					/* LargeInts */
 
       default:
          return 0;

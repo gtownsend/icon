@@ -21,7 +21,7 @@ struct header {
       word Nfields;		/* number of field names */
       word Fo;			/* The start of the Fo array */
       word Bm;			/* The start of the Bm array */
-   #endif			/* FieldTableCompression */
+   #endif				/* FieldTableCompression */
 
    word linenums;		/* location of ipc/line number table */
    word config[16];		/* icode version */

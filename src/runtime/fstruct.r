@@ -458,7 +458,7 @@ dptr val;
 
 #ifdef EventMon		/* initialize i so it's 0 if first list-element */
    i = 0;			/* block isn't full */
-#endif				/* EventMon */
+#endif					/* EventMon */
 
    /*
     * If the first list-element block is full, allocate a new
@@ -555,7 +555,7 @@ function{1} push(x, vals[n])
 
 #ifdef EventMon		/* initialize i so it's 0 if first list-element */
 	 i = 0;			/* block isn't full */
-#endif				/* EventMon */
+#endif					/* EventMon */
 
 	 /*
 	  * If the first list-element block is full, allocate a new
@@ -639,7 +639,7 @@ struct descrip *val;
 
 #ifdef EventMon		/* initialize i so it's 0 if last list-element */
    i = 0;			/* block isn't full */
-#endif				/* EventMon */
+#endif					/* EventMon */
 
    /*
     * If the last list-element block is full, allocate a new
@@ -735,7 +735,7 @@ function{1} put(x, vals[n])
 
 #ifdef EventMon		/* initialize i so it's 0 if last list-element */
 	 i = 0;			/* block isn't full */
-#endif				/* EventMon */
+#endif					/* EventMon */
 
 	 /*
 	  * If the last list-element block is full, allocate a new

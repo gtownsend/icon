@@ -450,7 +450,7 @@ function{1} map(s1,s2,s3)
       runerr(103,s2)
    if !def:string(s3, lcase) then
       runerr(103,s3)
-#endif						/* COMPILER */
+#endif					/* COMPILER */
 
    abstract {
       return string

@@ -227,7 +227,7 @@ function{0,1} proc(x,i)
 	    }
 
 	 ENTERPSTATE(prog);
-#endif						/* MultiThread */
+#endif					/* MultiThread */
 
          /*
           * Attempt to convert Arg0 to a procedure descriptor using i to
@@ -242,7 +242,7 @@ function{0,1} proc(x,i)
 
 #ifdef MultiThread
 	 ENTERPSTATE(savedprog);
-#endif						/* MultiThread */
+#endif					/* MultiThread */
          if (prc == NULL)
             fail;
          else

@@ -401,9 +401,9 @@ double val;
      *rp++ = *rq++;
      *rp   = *rq;
    }
-#else                                   /* Double */
+#else					/* Double */
    blk->realval = val;
-#endif                                  /* Double */
+#endif					/* Double */
 
    return blk;
    }

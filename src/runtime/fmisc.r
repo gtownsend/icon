@@ -306,7 +306,7 @@ function{1} display(i,f)
          ce = (struct b_coexpr *)BlkLoc(c);
       savedprog = curpstate;
       }
-#endif						/* MultiThread */
+#endif					/* MultiThread */
 
    abstract {
       return null
@@ -348,7 +348,7 @@ function{1} display(i,f)
 	 ENTERPSTATE(savedprog);
        }
       else
-#endif						/* MultiThread */
+#endif					/* MultiThread */
          r = xdisp(pfp, glbl_argp, (int)i, std_f);
       if (r == Failed)
          runerr(305);
@@ -569,9 +569,9 @@ function{1} name(underef v, c)
    declare {
       struct progstate *prog, *savedprog;
       }
-#else						/* MultiThread */
+#else					/* MultiThread */
 function{1} name(underef v)
-#endif						/* MultiThread */
+#endif					/* MultiThread */
    /*
     * v must be a variable
     */
@@ -600,12 +600,12 @@ function{1} name(underef v)
          }
 
       ENTERPSTATE(prog);
-#endif						/* MultiThread */
+#endif					/* MultiThread */
       i = get_name(&v, &result);		/* return val ? #%#% */
 
 #ifdef MultiThread
       ENTERPSTATE(savedprog);
-#endif						/* MultiThread */
+#endif					/* MultiThread */
 
       if (i == Error)
          runerr(0);
@@ -1404,7 +1404,7 @@ function{0,1} variable(s)
 	 glbl_argp = pfp->pf_argp;
 	 pfp = pfp->pf_pfp;
          }
-#endif						/* MultiThread */
+#endif					/* MultiThread */
 
       rv = getvar(s, &result);
 
@@ -1418,7 +1418,7 @@ function{0,1} variable(s)
 	    Deref(result);
 	    }
 	 }
-#endif						/* MultiThread */
+#endif					/* MultiThread */
 
       if (rv != Failed)
          return result;

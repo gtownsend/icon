@@ -111,6 +111,13 @@ FncDefV(writes)
 #endif					/* LoadFunc */
 
 /*
+ * External functions.
+ */
+#ifdef ExternalFunctions
+   FncDefV(callout)
+#endif					/* ExternalFunctions */
+
+/*
  * Executable images.
  */
 #ifdef ExecImages
@@ -118,11 +125,11 @@ FncDefV(writes)
 #endif					/* ExecImages */
 
 /*
- * External functions.
+ * File attribute function.
  */
-#ifdef ExternalFunctions
-   FncDefV(callout)
-#endif					/* ExternalFunctions */
+#ifdef FAttrib
+   FncDefV(fattrib)
+#endif					/* FAttrib */
 
 /*
  * Keyboard Functions
@@ -195,7 +202,10 @@ FncDefV(writes)
    FncDefV(WFlush)
    FncDef(WSync,1)
    FncDefV(WriteImage)
-   #ifdef WinGraphics
+   /*
+    * Native function extensions for Windows
+    */
+   #ifdef WinExtns
       FncDefV(WinPlayMedia)
       FncDefV(WinEditRegion)
       FncDefV(WinButton)
@@ -206,16 +216,12 @@ FncDefV(writes)
       FncDefV(WinOpenDialog)
       FncDefV(WinSaveDialog)
       FncDefV(WinSelectDialog)
-   #endif				/* WinGraphics */
+   #endif				/* WinExtns */
 #endif					/* Graphics */
-
-      #ifdef FAttrib
-         FncDefV(fattrib)
-      #endif				/* FAttrib */
 
 #ifdef MultiThread
    /*
-    * These functions are under MultiThread for no good reason.
+    * These functions are part of the MultiThread extensions.
     */
    FncDef(cofail,1)
    FncDef(globalnames,1)

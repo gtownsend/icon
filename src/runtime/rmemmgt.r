@@ -33,7 +33,7 @@ word coll_stat = 0;             /* collections in static region */
 word coll_str = 0;              /* collections in string region */
 word coll_blk = 0;              /* collections in block region */
 word coll_tot = 0;              /* total collections */
-#endif				/* MultiThread */
+#endif					/* MultiThread */
 word alcnum = 0;                /* co-expressions allocated since g.c. */
 
 dptr *quallist;                 /* string qualifier list */
@@ -92,9 +92,9 @@ int firstd[] = {
 
 #ifdef MultiThread
      8*WordSize,              /* T_Proc (6), procedure block */
-#else				/* MultiThread */
+#else					/* MultiThread */
      7*WordSize,              /* T_Proc (6), procedure block */
-#endif				/* MultiThread */
+#endif					/* MultiThread */
 
      4*WordSize,              /* T_Record (7), record block */
      0,                       /* T_List (8), list header block */
@@ -109,9 +109,9 @@ int firstd[] = {
 
 #if COMPILER
      2*WordSize,              /* T_Refresh (17), refresh block */
-#else				/* COMPILER */
+#else					/* COMPILER */
      (4+Wsizeof(struct pf_marker))*WordSize, /* T_Refresh (17), refresh block */
-#endif				/* COMPILER */
+#endif					/* COMPILER */
 
     -1,                       /* T_Coexpr (18), co-expression block */
      0,                       /* T_External (19), external block */
@@ -723,7 +723,7 @@ dptr dp;
          }
       if(BlkLoc(cp->freshblk) != NULL)
          markblock(&((struct b_coexpr *)block)->freshblk);
-#endif                                  /* Coexpr */
+#endif					/* Coexpr */
       }
 
    else {
@@ -1120,9 +1120,9 @@ static void cofree()
 
 #ifdef MultiThread
    rootpstate.Mainhead->title = T_Coexpr;
-#else				/* MultiThread */
+#else					/* MultiThread */
    BlkLoc(k_main)->coexpr.title = T_Coexpr;
-#endif				/* MultiThread */
+#endif					/* MultiThread */
 
    /*
     * The co-expression blocks are linked together through their
@@ -1147,7 +1147,7 @@ static void cofree()
             }
          #ifdef CoClean
 	    coclean(xep->cstate);
-         #endif			/* CoClean */
+         #endif				/* CoClean */
          free((pointer)xep);
          }
       else {
@@ -1456,4 +1456,4 @@ void blkdump()
       }
    fprintf(stderr,"end of block region.\n");
    }
-#endif                                  /* DeBugIconx */
+#endif					/* DeBugIconx */

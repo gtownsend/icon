@@ -275,4 +275,4 @@ typedef int clock_t, time_t, fd_set;
 #ifdef FAttrib
    typedef unsigned long mode_t;
    typedef int HFILE, OFSTRUCT, FILETIME, SYSTEMTIME;
-#endif				/* FAttrib */
+#endif					/* FAttrib */
