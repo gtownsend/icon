@@ -6,7 +6,7 @@
 #
 #	Authors:  Ralph E. Griswold and Gregg M. Townsend
 #
-#	Date:     May 15, 2000
+#	Date:     May 3, 2002
 #
 ############################################################################
 #
@@ -31,8 +31,8 @@
 #	rand_int(i)	produces a randomly selected integer in the range 1
 #			to i.  It models ?i for positive i.
 #
-#	randomize()	sets &random to a "random" value, based on the time
-#			of day and the date.
+#	randomize()	sets &random to a "random" value, using /dev/urandom
+#			if available, otherwise based on the data and time.
 #
 #	randrange(min, max)
 #			produces random number in the range min <= i <= max.
@@ -77,7 +77,7 @@ end
 
 procedure rand_int(i)			#: model ?i
    static scale
-	
+
    initial scale := 1.0 / (2 ^ 31 - 1)
 
    (i := (0 < integer(i))) | runerr(205, i)
@@ -87,11 +87,21 @@ procedure rand_int(i)			#: model ?i
 end
 
 procedure randomize()			#: randomize
+   local f, s
    static ncalls
-
    initial ncalls := 0
 
    ncalls +:= 1
+
+   if f := open("/dev/urandom", "ru") then {
+      s := reads(f, 3)
+      close(f)
+      if *\s > 0 then {
+         &random := ncalls % 113
+         every &random := 256 * &random + ord(!s)
+         return
+         }
+      }
 
    &random := map("sSmMhH", "Hh:Mm:Ss", &clock) +
       map("YyXxMmDd", "YyXx/Mm/Dd", &date) + &time + 1009 * ncalls
