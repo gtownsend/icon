@@ -7,7 +7,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     April 26, 2002
+#	Date:     May 7, 2002
 #
 ############################################################################
 #
@@ -39,7 +39,8 @@
 ############################################################################
 #
 #   IconType(d) returns one of the characters {cfinprsCILRST} indicating
-#   the type of a value according to the key on page 247 of the Red Book.
+#   the type of a value according to the key on page 247 of the Red Book
+#   or page 273 of the Blue Book (The Icon Programming Language).
 #   The character I indicates a large (multiprecision) integer.
 #
 #   Only a few of these types (i, r, f, s) are easily manipulated in C.
