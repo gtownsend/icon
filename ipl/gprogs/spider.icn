@@ -6,7 +6,7 @@
 #
 #	Author:   William S. Evans
 #
-#	Date:     December 18, 2001
+#	Date:     December 19, 2001
 #
 ############################################################################
 #
@@ -143,12 +143,16 @@ procedure initialize(args)
     randomize()
 
     ymargin := 10
-    xmargin := 0
+    xmargin := 16
     xgap := xmargin / 2
     lap := 5			# how much facedown cards overlap in pile
 
-    WOpen("width="||(10 * cardw + 9 * xgap),"height=500",
+    WOpen("width="||(10 * cardw + 9 * xgap + 2 * xmargin),"height=500",
 	  "bg=deep moderate green","fg=white")
+    if WAttrib("displaywidth") < 900 then {
+	xmargin := xgap := 0;
+	WAttrib("width=800")
+    }
     Font("serif")
     height := WAttrib("height")
     width  := WAttrib("width")
