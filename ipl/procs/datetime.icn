@@ -6,7 +6,7 @@
 #
 #	Author:   Robert J. Alexander and Ralph E. Griswold
 #
-#	Date:     November 6, 1998
+#	Date:     August 9, 2000
 #
 ############################################################################
 #
@@ -65,7 +65,8 @@
 #	date()	natural date in English.
 #
 #	dayoweek(day, month, year)
-#		produces the day of the week for the given date
+#		produces the day of the week for the given date.
+#		Note carefully the parameter order.
 #
 #	full13th(year1, year2)
 #		generates records giving the days on which a full moon occurs
@@ -376,11 +377,13 @@ procedure date()			#: date in natural English
       }
 
 end
-#
-#
-#  The method used was adapted from a Web page by Mark Dettinger.
 
 procedure dayoweek(day, month, year)	#: day of the week
+#
+#  The method used was adapted from a Web page by Mark Dettinger.
+#  URL as of 7 August 2000 was:
+#  http://www.informatik.uni-ulm.de/pm/mitarbeiter/mark/day_of_week.html
+#
    static d_code, c_code, m_code, ml_code, y, C, M, Y
 
    initial {
@@ -394,26 +397,22 @@ procedure dayoweek(day, month, year)	#: day of the week
       c_code[19] := c_code[23] := 2
 
       m_code := table()
-      m_code["January"] := m_code["October"] := 1
-      m_code[1] := m_code[10] := 1
-      m_code["February"] := m_code["March"]:=  m_code["November"] := 4
-      m_code[2] := m_code[3]:=  m_code[11] := 4
-      m_code["April"] := m_code["July"] := 0
-      m_code[4] := m_code[7] := 0
-      m_code["May"] := 2
-      m_code[2] := 2
-      m_code[5] := 5
-      m_code["June"] := 5
-      m_code[6] := 5
-      m_code["August"] := 3
-      m_code[8] := 3
-      m_code["September"] := m_code["December"] := 6
-      m_code[9] := m_code[12] := 6
+      m_code[1] := m_code["January"] := 1
+      m_code[2] := m_code["February"] := 4
+      m_code[3] := m_code["March"] := 4
+      m_code[4] := m_code["April"] := 0
+      m_code[5] := m_code["May"] := 2
+      m_code[6] := m_code["June"] := 5
+      m_code[7] := m_code["July"] := 0
+      m_code[8] := m_code["August"] := 3
+      m_code[9] := m_code["September"] := 6
+      m_code[10] := m_code["October"] := 1
+      m_code[11] := m_code["November"] := 4
+      m_code[12] := m_code["December"] := 6
 
       ml_code := copy(m_code)
-      ml_code["January"] := 0
-      ml_code[1] := 0
-      ml_code[2] := 3
+      ml_code[1] := m_code["January"] := 0
+      ml_code[2] := m_code["February"] := 3
       }
 
    #  This can be fixed to go back to October 15, 1582.
