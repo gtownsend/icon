@@ -298,6 +298,7 @@ static void txrun(char *(*func)(FILE*, char*), char *source, char *args[]) {
    FILE *f;
 
    silent = 1;			/* don't issue commentary while translating */
+   uwarn = 1;			/* do diagnose undeclared identifiers */
    omask = umask(0077);		/* remember umask; keep /tmp files private */
 
    /*
