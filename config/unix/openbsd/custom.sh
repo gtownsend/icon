@@ -10,3 +10,7 @@ if [ -f rswitch.$ARCH ]; then
 else
 	echo "#define NoCoexpr" >>$SRC/h/define.h
 fi
+
+if [ -f define.$ARCH ]; then
+        cat define.$ARCH >>$SRC/h/define.h
+fi
