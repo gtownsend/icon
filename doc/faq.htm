@@ -32,6 +32,7 @@ http://www.cs.arizona.edu/icon/faq.htm</A>
 <A HREF="#evread">E1. Why doesn't <CODE>read()</CODE> work with <CODE>every</CODE>?</A><BR>
 <A HREF="#strinv">E2. Why doesn't string invocation such as <CODE>"foo"()</CODE> work?</A><BR>
 <A HREF="#callc">E3. How can I call a C function?</A><BR>
+<A HREF="#rwpipe">E4. Can I open a bidirectional pipe?</A><BR>
 
 <P><HR><H2>Learning about Icon</H2>
 
@@ -324,6 +325,17 @@ http://www.cs.arizona.edu/icon/docs/ipd240.htm</A>.
 <P>
 The <A HREF="http://www.cs.arizona.edu/icon/jcon/">Jcon</A> implementation
 allows Icon programs to call Java code that is written to Jcon specifications.
+
+<H3><A NAME="rwpipe">E4.</A> Can I open a bidirectional pipe?</H3>
+<P>
+No, this is not possible.
+Although the concept is simple -- 
+write a line to a program via a pipe, then read that program's output
+-- it probably wouldn't work.
+Most I/O libraries don't write anything to a pipe until
+they've filled a buffer, and the most likely consequence would be
+a deadlock, with each program waiting for the other to send more data.
+
 <P><HR>
 <SMALL>
 This FAQ is the work of Ralph Griswold and Gregg Townsend,
