@@ -209,8 +209,12 @@ Pure:
 		cd src;			$(MAKE) Pure
 		cd tests;		$(MAKE) Clean
 
+Dist-Clean:
+		rm -f `find * -type f | xargs grep -l '<<ARIZONA-ONLY>>'`
+		
+
 ##################################################################
-# Entries beyond this point are for use at Arizona only.
+#Entries beyond this point are for use at Arizona only.
 #   *** Do not delete the line above; it is used in trimming Makefiles
 #   for distribution ***
 
