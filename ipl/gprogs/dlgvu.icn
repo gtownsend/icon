@@ -6,7 +6,7 @@
 #
 #	Authors:  Gregg M. Townsend and William S. Evans
 #
-#	Date:     July 27, 2000
+#	Date:     January 9, 2001
 #
 ############################################################################
 #
@@ -1345,7 +1345,7 @@ procedure draw()
 
    # draw pseudo-layer "n"
    if any(chosen, "n") then
-      alllabels()
+      alllabels(Pending)
 
    collect()			# do this now, while awaiting input
    return
@@ -1396,15 +1396,20 @@ end
 
 
 
-#  alllabels() -- draw labels for all layers in standard color
+#  alllabels(f) -- draw labels for all layers in standard color
+#
+#  f is Pending procedure, if to check and quit early
 
-procedure alllabels()
+procedure alllabels(f)
    local a, r
 
    setdraw(attrib["n"])
-   every a := !arglist do
+   every a := !arglist do {
       if \a.wanted then
          drawlabel(!a.ltable)		# pick any layer
+      if *(\f)() > 0 then
+         break
+      }
 end
 
 
