@@ -1043,12 +1043,7 @@ function{0,1} seek(f,o)
 #endif					/* Graphics */
 
       if (o > 0) {
-/* fseek returns a non-zero value on error for CSET2, not -1 */
-#if CSET2
-	 if (fseek(fd, o - 1, SEEK_SET))
-#else
-	 if (fseek(fd, o - 1, SEEK_SET) == -1)
-#endif					/* CSET2 */
+	 if (fseek(fd, o - 1, SEEK_SET) != 0)
 	    fail;
 	 }
       else {
@@ -1070,7 +1065,7 @@ function{0,1} seek(f,o)
 	   fail;
 	   }  /* End of if - seek failed, reset position */
 #else
-	 if (fseek(fd, o, SEEK_END) == -1)
+	 if (fseek(fd, o, SEEK_END) != 0)
 	    fail;
 #endif					/* CSET2 */
 	 }
