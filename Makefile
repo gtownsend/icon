@@ -2,7 +2,7 @@
 
 
 #  configuration parameters
-VERSION=9.4.0.b1
+VERSION=v940b2
 name=unspecified
 dest=/must/specify/dest/
 
