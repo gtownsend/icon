@@ -15,7 +15,7 @@ export LC_ALL=POSIX
 #  (and arrange to move it back on exit)
 V9=`cd ..; pwd`
 mv $V9/lib $V9/libsave
-trap "mv $V9/libsave $V9/lib" 0 1 2 15
+trap 'mv $V9/libsave $V9/lib; exit' 0 1 2 15
 
 #  Set minimal path needed.  (Not all systems have all these directories.)
 export PATH=$V9/bin:/usr/xpg4/bin:/usr/ccs/bin:/bin:/usr/bin
