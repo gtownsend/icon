@@ -1,6 +1,6 @@
 #  Makefile for cleaning up after setup.sh
 
-TOP = ../..
+TOP = ..
 SRC = $(TOP)/src
 
 

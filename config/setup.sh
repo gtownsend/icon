@@ -7,7 +7,7 @@ USAGE="usage: setup.sh configname [No]Graphics [pthreads]"
 NAME=$1
 GPX=$2
 CSW=$3
-TOP=../..
+TOP=..
 SRC=$TOP/src
 
 # check parameters
@@ -66,7 +66,7 @@ echo ""						>> $SRC/h/define.h
 cat  $NAME/define.h				>> $SRC/h/define.h
 
 # build the "Makedefs" file
-echo "#  from config/unix/$NAME"		 > $TOP/Makedefs
+echo "#  from config/$NAME"			 > $TOP/Makedefs
 echo ""						>> $TOP/Makedefs
 cat $NAME/Makedefs				>> $TOP/Makedefs
 echo ""						>> $TOP/Makedefs

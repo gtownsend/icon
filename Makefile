@@ -17,7 +17,7 @@ dest=/must/specify/dest/
 
 All:	Icont Ilib Ibin
 
-config/unix/$(name)/status src/h/define.h:
+config/$(name)/status src/h/define.h:
 	:
 	: To configure Icon, run either
 	:
@@ -26,7 +26,7 @@ config/unix/$(name)/status src/h/define.h:
 	:
 	: where xxxx is one of
 	:
-	@cd config/unix; ls -d `find * -type d -prune -print`
+	@cd config; ls -d `find * -type d -prune -print`
 	:
 	@exit 1
 
@@ -38,19 +38,19 @@ config/unix/$(name)/status src/h/define.h:
 
 # Configure the code for a specific system.
 
-Configure:	config/unix/$(name)/status
+Configure:	config/$(name)/status
 		$(MAKE) Pure >/dev/null
-		cd config/unix; sh setup.sh $(name) NoGraphics $(csw)
+		cd config; sh setup.sh $(name) NoGraphics $(csw)
 
-X-Configure:	config/unix/$(name)/status
+X-Configure:	config/$(name)/status
 		$(MAKE) Pure >/dev/null
-		cd config/unix; sh setup.sh $(name) Graphics $(csw)
+		cd config; sh setup.sh $(name) Graphics $(csw)
 
 
 # Get the status information for a specific system.
 
 Status:
-		@cat config/unix/$(name)/status
+		@cat config/$(name)/status
 
 
 ##################################################################
@@ -172,7 +172,7 @@ Pure:
 		cd ipl;			$(MAKE) Pure
 		cd src;			$(MAKE) Pure
 		cd tests;		$(MAKE) Pure
-		cd config/unix; 	$(MAKE) Pure
+		cd config; 		$(MAKE) Pure
 
 
 
