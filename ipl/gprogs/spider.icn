@@ -482,8 +482,8 @@ procedure saveFile()
     local output
 
     repeat {
-	case SaveDialog("Save game as:",currentFile) of {
-	    "Yes": {
+	case OpenDialog("Save game as:",currentFile) of {
+	    "Okay": {
 		if output := open(dialog_value,"w") then {
 		    currentFile := dialog_value
 		    write(output,SPIDER_VERSION)
@@ -495,7 +495,7 @@ procedure saveFile()
 		    Notice("Cannot open file for writing.")
 		}
 	    }
-	    "No" | "Cancel" : fail
+	    "Cancel" : fail
 	}
     }
 end
