@@ -21,7 +21,7 @@ Setup-NoGraphics: Setup-Common
 
 Setup-Graphics:  Setup-Common
 	echo '# Graphics enabled'		>> $(TOP)/Makedefs
-	echo 'XL = -L../../bin -lXpm $$(XLINK)'	>> $(TOP)/Makedefs
+	echo 'XL = -L../../bin -lXpm $$(XLIBS)'	>> $(TOP)/Makedefs
 	echo '#define Graphics 1'		>> $(SRC)/h/define.h
 
 
