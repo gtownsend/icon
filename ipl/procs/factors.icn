@@ -72,13 +72,21 @@
 link io
 link numbers
 
-procedure divisors(i)         #: divisors
-   local j
+procedure divisors(n)         #: divisors
+   local d, dlist
 
-   every j := 1 to i / 2 do
-      if i % j = 0 then
-	 suspend j
-   suspend i
+   dlist := []
+   every d := seq() do {
+      if d * d >= n then
+         break
+      if n % d = 0 then {
+         push(dlist, d)
+         suspend d
+         }
+      }
+   if d * d = n then
+      suspend d
+   suspend n / !dlist
 
 end
 
@@ -152,9 +160,9 @@ procedure pfactors(i)		#: primes that divide integer
       if p > i then break
       if i % p = 0 then {
          put(facts, p)
-	 while i % p = 0 do
-	    i /:= p
-	 }
+         while i % p = 0 do
+            i /:= p
+         }
       }
 
    return facts
