@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 static char *findexe(char *name, char *buf, size_t len);
@@ -90,6 +92,7 @@ static char *findexe(char *name, char *buf, size_t len) {
 static char *findonpath(char *name, char *buf, size_t len) {
    int nlen, plen;
    char *path, *next, *sep, *end;
+   struct stat status;
 
    nlen = strlen(name);
    path = getenv("PATH");
@@ -110,8 +113,10 @@ static char *findonpath(char *name, char *buf, size_t len) {
       memcpy(buf, next, plen);
       buf[plen] = '/';
       strcpy(buf + plen + 1, name);
-      if (access(buf, X_OK) == 0)
-         return buf;
+      if (access(buf, X_OK) == 0) {
+         if (stat(buf, &status) == 0 && S_ISREG(status.st_mode))
+            return buf;
+         }
       }
    return NULL;
    }
