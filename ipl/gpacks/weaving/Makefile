@@ -4,7 +4,7 @@
 
 
 PROCS = cells.u2 tdialog.u2 tieutils.u2 tpath.u2 \
-   weavegif.u2 weaving.u2 weavutil.u2 wifcvt.u2
+   weavegif.u2 weavutil.u2 wifcvt.u2
 
 PROGS = comb draw2gmr drawdown drawup gif2geom gif2html heddle lindpath \
    mtrxedit pfd2gif pfd2gmr pfd2ill pfd2wif plexity randweav \
