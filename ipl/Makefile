@@ -25,3 +25,6 @@ Clean:
 	rm -rf ilib */*.u? */*.zip
 	rm -f `find *progs -type f -perm -100`
 	cd cfuncs; $(MAKE) Clean
+	cd gpacks/vib; $(MAKE) Clean
+	cd gpacks/tiger; $(MAKE) clean
+	# need to be more thorough in cleaning up various packs
