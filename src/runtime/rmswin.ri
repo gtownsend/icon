@@ -2267,100 +2267,30 @@ SysColor * imqsearch (SysColor key, SysColor *base, int nel)
 }
 
 /*
- * getimstr -- get an image as a string.
+ * capture -- get an image region.
  *
- * Stores the specified subimage in data, one pixel per byte, and sets
- * entries in paltbl corresponding to the pixel values that were used.
+ * Stores the specified subimage in data as 15-bit color.
  */
-#error need to replace this with capture() function
-int getimstr(w, xx, yy, width, height, paltbl, data)
+int capture(w, xx, yy, width, height, data)
 wbp w;
 int xx, yy, width, height;
-struct palentry paltbl[GIFMAX];
-unsigned char *data;
+short *data;
    {
-   SysColor px, lastpx, *clist, *lp;
-   int i, ncolors, x, y, wd = xx + width, ht = yy + height, nclist;
+   SysColor px;
+   int r, g, b, x, y;
+   int wd = xx + width;
+   int ht = yy + height;
    STDLOCALS(w);
 
-   clist = malloc(GIFMAX * sizeof (SysColor));
-   nclist = GIFMAX;
-   /*
-    * Make a sorted list of the pixel values of the colors that are in
-    * use.  Search this list for every pixel and store the resulting
-    * list index as the color index.
-    */
-   ncolors = 1;
-   clist[0] = lastpx = GetPixel(pixdc, xx, yy);
    for (y = yy; y < ht; y++) {
-#if 0
-      /* want to do pollevent here, but can't inside a STDLOCALS declaration */
-      if (y & 1) { /* how often to process window events? */
-	 pollevent();
-	 }
-#endif
       for (x = xx; x < wd; x++) {
 	 px = GetPixel(pixdc, x, y);
-	 if (px != lastpx) {
-	    lastpx = px;
-	    lp = imqsearch(px, clist, ncolors);
-	    if (*lp != px) {
-	       i = ncolors++;
-               if (ncolors >= nclist) {
-		 nclist = nclist * 1.5;
-		 clist = realloc(clist, nclist * sizeof (SysColor));
-		 }
-	       while (clist + i != lp) {
-		  clist[i] = clist[i-1];
-		  i--;
-		  }
-	       clist[i] = px;
-	       }
-	    }
+	 r = RED(px) >> 3;
+	 g = GREEN(px) >> 3;
+	 b = BLUE(px) >> 3;
+	 *data++ = (r << 10) | (g << 5) | b;
 	 }
       }
-
-   /*
-    * if ncolors is greater than GIFMAX, then fail rather than
-    * overwriting the paltbl.
-    */
-   if (ncolors > GIFMAX) {
-      free(clist);
-      return 0;
-      }
-
-   lastpx = GetPixel(pixdc, xx, yy) + 1;
-   for (y = yy; y < height; y++) {
-#if 0
-      /* want to do pollevent here, but can't inside a STDLOCALS declaration */
-      if (y & 1 == 0) {
-	 pollevent();
-	 }
-#endif
-      for (x = xx; x < width; x++) {
-	 px = GetPixel(pixdc, x, y);
-	 if (px != lastpx) {
-	    lastpx = px;
-	    lp = imqsearch(px, clist, ncolors);
-	    if (*lp == px)
-	       i = lp - clist;
-	    else {
-	       FREE_STDLOCALS(w);
-	       free(clist);
-	       return 0;
-	       }
-	    }
-	 *data++ = i;
-	 if (!paltbl[i].used) {
-	    paltbl[i].used = 1;
-	    paltbl[i].clr.red = RED(px) * 257;
-	    paltbl[i].clr.green = GREEN(px) * 257;
-	    paltbl[i].clr.blue = BLUE(px) * 257;
-	    paltbl[i].valid = 1;
-	    }
-	 }
-      }
-   free(clist);
    FREE_STDLOCALS(w);
    return 1;
    }
