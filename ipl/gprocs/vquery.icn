@@ -6,7 +6,7 @@
 #
 #	Author:   Jon Lipp
 #
-#	Date:     October 11, 1994
+#	Date:     May 2, 2001
 #
 ############################################################################
 #
@@ -32,6 +32,7 @@ link vtext
 
 procedure Vchoice(str, buttons[])
 local win, root, t, u, w, b, i, x, y, rv
+local button_pos, def_button, old, event
 static wpad, hwpad
 static temp, PAD, WINX, WINY
 initial {
@@ -100,6 +101,8 @@ record xywh_rec(x, y, w, h)
 
 procedure Vinput(str, def_value)
 local win, root, t, u, w, b, i, x, y, rv
+local buttons, v, input_vidget, ok, cancel
+local button_pos, def_button, old, lrv, event
 static temp, PAD, WINX, WINY, FW, VTEXT_W
 static wpad, hwpad, ID_OK, ID_CANCEL
 initial {

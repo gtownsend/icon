@@ -6,7 +6,7 @@
 #
 #	Authors:  Ralph E. Griswold and Robert J. Alexander
 #
-#	Date:     February 29, 2000
+#	Date:     May 2, 2001
 #
 ############################################################################
 #
@@ -107,6 +107,7 @@
 #
 #   PeriodPDCO{e, i}	generates the periodic part of e; i values are
 #			used to find the period
+#
 #   PermutePDCO{e1,e2}	permutes each n-subsequence of e1 by the
 #   		  	n positional values in lists from e2.  If a list does
 #			not consist of all the integers in the range 1 to
@@ -646,6 +647,28 @@ procedure PeriodPDCO(L)		#: PDCO for periodic part of sequence
    result := repeater(result)
 
    suspend !result[2]
+
+end
+
+record sequence(pre, rep)
+
+procedure repeater(seq)		#: find repeat in sequence
+   local init, i, prefix, results, segment, span
+
+   results := copy(seq)
+
+   prefix := []
+
+   repeat {
+      span := *results / 2
+      every i := 1 to span do {
+         segment := results[1+:i] | next
+         if lequiv(lextend(segment, *results), results) then
+            return sequence(prefix, segment)
+         }
+      put(prefix, get(results)) |		# first term to prefix
+         return sequence(prefix, results)
+      }
 
 end
    

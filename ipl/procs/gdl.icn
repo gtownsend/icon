@@ -6,7 +6,7 @@
 #
 #	Author:   Richard L. Goerwitz
 #
-#	Date:	  March 3, 1996
+#	Date:	  May 2, 2001
 #
 ############################################################################
 #
@@ -32,6 +32,7 @@
 
 procedure gdl(dir)
 
+    local getdir
     getdir := set_getdir_by_os()
     return getdir(dir)
 
@@ -65,7 +66,7 @@ procedure msdos_get_dir(dir)
     # value of the environment variable TEMPDIR to an appropriate
     # directory name.
 
-    local in_dir, filename_list, line
+    local in_dir, filename_list, line, temp_name, filename
     static temp_dir
     initial {
         temp_dir := 
@@ -109,6 +110,7 @@ end
 
 
 procedure get_dos_tempname(dir)
+    local temp_name, temp_file
 
     # Don't clobber existing files.  Get a unique temp file name for
     # use as a temporary storage site.
@@ -124,6 +126,7 @@ end
 
 
 procedure unix_get_dir(dir)
+    local filename_list, in_dir, filename
 
     dir := trim(dir, '/') || "/"
     filename_list := list()

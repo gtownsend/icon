@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     July 18, 1995
+#	Date:     May 2, 2001
 #
 ############################################################################
 #
@@ -22,11 +22,13 @@
 #
 ############################################################################
 #
-#  Links: dsetup
+#  Links: colrlist, dsetup, interact
 #
 ############################################################################
 
-link dsetup
+link colrlist, dsetup, interact
+
+global save_colortbl_name
 
 $define	CellSize	16
 $define	ColorCols	16
@@ -104,7 +106,7 @@ procedure color_palette()
    EraseArea(pal_win)
    WClose(color_win)
 
-   if *colors_tmp = 0 then return notice("Empty palette")
+   if *colors_tmp = 0 then return Notice("Empty palette")
 
    colors := colors_tmp
 
@@ -147,7 +149,7 @@ procedure palette_win(label, xoff, yoff)
       CellSize), "label=" || label, "bg=black", "fg=white",
       "posx=" || (WAttrib("posx") + xoff),
       "posy=" || (WAttrib("posy") + yoff)) |
-         return notice("Cannot open window for palette selection")
+         return Notice("Cannot open window for palette selection")
 
    WAttrib(win, "fillstyle=textured")
    Pattern(win, "checkers")
@@ -179,7 +181,7 @@ procedure get_list(i)
       "Cancel" then fail
 
    n := (0 < integer(dialog_value[1])) |
-      return notice("Invalid number specification")
+      return Notice("Invalid number specification")
 
    if Dialog("Values", , list(n, ""), ColorField, ["Okay", "Cancel"]) ==
       "Cancel" then fail
@@ -189,14 +191,14 @@ procedure get_list(i)
    every x := !dialog_value do {
       if *x = 0 then next				# skip empty fields
       case i of {
-         0:  put(list_tmp, integer(x)) | return notice("Invalid width")
-         1:  put(list_tmp, ColorValue(x)) | return notice("Invalid color")
+         0:  put(list_tmp, integer(x)) | return Notice("Invalid width")
+         1:  put(list_tmp, ColorValue(x)) | return Notice("Invalid color")
          2:  put(list_tmp, ColorValue(x) | (\x & integer(x))) |
-            return notice("Invalid blend value:", x)
+            return Notice("Invalid blend value:", x)
          }
       }
  
-   if *list_tmp = 0 then return notice("Empty list")
+   if *list_tmp = 0 then return Notice("Empty list")
 
    return list_tmp
 

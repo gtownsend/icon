@@ -6,7 +6,7 @@
 #
 #	Author:   Robert J. Alexander
 #
-#	Date:     August 14, 1996
+#	Date:     May 2, 2001
 #
 ############################################################################
 #
@@ -45,7 +45,7 @@
 #
 ############################################################################
 #
-#  Links: bkutil
+#  Links: bkutil, pbkform
 #
 ############################################################################
 #
@@ -53,7 +53,7 @@
 #
 ############################################################################
 
-link bkutil
+link bkutil, pbkform
 
 # HP 95LX Appointment Book File Format
 # 
@@ -84,8 +84,8 @@ end
 record abk_id(releaseNum,filetype)
 
 procedure abk_read_id(f)
-   pbk_read_int(f) = 16rffff | fail
-   return pbk_id(pbk_read_int(f),ord(reads(f)))
+   bk_read_int(f) = 16rffff | fail
+   return pbk_id(bk_read_int(f),ord(reads(f)))
 end
 
 # 
@@ -105,8 +105,8 @@ end
 record abk_settings(startTime,granularity,alarmEnable,leadTime,carryForward)
 
 procedure abk_write_settings(f,data)
-   return writes(f,bk_int(startTime),bk_int(granularity),char(alarmEnable),
-	 char(leadTime),char(carryForward))
+   return writes(f,bk_int(data.startTime),bk_int(data.granularity),
+      char(data.alarmEnable), char(data.leadTime),char(data.carryForward))
 end
 
 procedure abk_read_settings(f)
@@ -480,7 +480,7 @@ record abk_todo(carryForward,checkOff,priority,startYear,startMonth,
 
 procedure abk_write_todo(f,data)
       writes(char(ior((\data.carryForward,1) | 0,(\data.checkOff,2) | 0)),
-	    char(priority),
+	    char(data.priority),
 	    char(data.startYear),
 	    char(data.startMonth),char(data.startDay),
 	    char(data.checkOffYear),
@@ -502,13 +502,13 @@ procedure abk_read_todo(f)
    startYear := ord(reads(f)) &
    startMonth := ord(reads(f)) &
    startDay := ord(reads(f)) &
-   checkOffYear := ord(reads(f)) &
-   checkOffMonth := ord(reads(f)) &
-   checkOffDay := ord(reads(f)) &
+   CheckOffYear := ord(reads(f)) &
+   CheckOffMonth := ord(reads(f)) &
+   CheckOffDay := ord(reads(f)) &
    toDoLength := ord(reads(f)) &
    noteLength := bk_read_int(f) &
    toDoText := reads(f,toDoLength) &
-   noteText := reads(f,noteLength)) | fail
+   toDoNote := reads(f,noteLength)) | fail
    return abk_daily(carryForward,checkOff,priority,startYear,startMonth,
 	 startDay,CheckOffYear,CheckOffMonth,CheckOffDay,toDoText,toDoNote)
 end
@@ -521,12 +521,12 @@ end
 # 0                RecordType      char     50 (32h)
 # 1                RecordLength    int      0 (00h, 00h)
 #
-procedure pbk_write_end(f)
+procedure abk_write_end(f)
    writes(f,"\x32\x00\x00")
    return
 end
 
-procedure pbk_read_end(f,id)
+procedure abk_read_end(f,id)
    (reads(f) == "\x32" & reads(f,2)) | fail
    return
 end

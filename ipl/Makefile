@@ -25,7 +25,8 @@ Iexe:
 	./BuildExe
 
 # check for undefined identifiers in ../lib
-# (outside the core modules, there are many of these)
+# (a few are expected: to Mp, program, init, goal)
+
 Undef:
 	cd ../lib; for f in *.u2; do (echo $$f; icont -us -fs $$f); done
 
