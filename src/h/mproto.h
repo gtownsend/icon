@@ -33,7 +33,7 @@ char	*pathfind	(char *buf, char *path, char *name, char *extn);
 int	ppch		(void);
 void	ppdef		(char *name, char *value);
 void	ppecho		(void);
-int	ppinit		(char *fname, int m4flag);
+int	ppinit		(char *fname, char *inclpath, int m4flag);
 int	prt_i_str	(FILE *f, char *s, int len);
 int	redirerr	(char *p);
 char	*salloc		(char *s);

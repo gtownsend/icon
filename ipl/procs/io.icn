@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     June 17, 2000.
+#	Date:     October 6, 2000.
 #
 ############################################################################
 #
@@ -103,17 +103,17 @@
 #			Both fail if the file is not found.
 #
 #	pathfind(fname, path)
-#		returns the full path of fname if found along the space-
-#		separated list of directories "path", else fails.  If no path
-#		is given, getenv("DPATH") is the default.  As is customary in
-#		Icon path searching, "." is prepended to the path.
+#		returns the full path of fname if found along the list of
+#		directories in "path", else fails.  If no path is given,
+#		getenv("DPATH") is the default.  As is customary in Icon
+#		path searching, "." is prepended to the path.
 #
 #	pathload(fname, entry)
 #		calls loadfunc() to load entry from the file fname found on the
 #		function path.  If the file or entry point cannot be found, the
 #		program is aborted.  The function path consists of the current
-#		directory, then getenv("FPATH"), and finally any additional
-#		directories configured in the code.
+#		directory, then getenv("FPATH"), to which iconx automatically
+#		appends the directory containing the standard libcfunc.so file.
 #
 ############################################################################
 #
@@ -678,6 +678,12 @@ $endif
 procedure pathfind(fname, path)		#: find file on path
    local f, dir, fullname
 
+   $ifdef _UNIX
+      $define PSEP ' :' 
+   $else
+      $define PSEP ' ' 
+   $endif
+
    fname ? {
       if ="/" & close(open(fname)) then
          return fname			# full absolute path works
@@ -689,23 +695,19 @@ procedure pathfind(fname, path)		#: find file on path
    /path := ""
    path := ". " || path
    path ? while not pos(0) do {
-      dir := tab(upto(' ') | 0)
+      dir := tab(upto(PSEP) | 0)
       fullname := trim(dir, '/') || "/" || fname
       if close(open(fullname)) then
          return fullname
-      tab(many(' '))
+      tab(many(PSEP))
       }
    fail
 end
 
-# default path configuration to try after getenv("FPATH")
-
-$define FUNCPATH "/usr/local/lib/icon"
-
 procedure pathload(fname, entry)	#: load C function from $FPATH
    local path, found
 
-   path := (getenv("FPATH") | "") || " " || FUNCPATH
+   path := getenv("FPATH") | "."
    found := pathfind(fname, path)
 
    if /found then

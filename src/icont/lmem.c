@@ -45,8 +45,6 @@ struct fentry *lflast;		/* last field table entry */
 struct gentry *lgfirst;		/* first global table entry */
 struct gentry *lglast;		/* last global table entry */
 
-static char *ipath;		/* path for iconx */
-
 #ifdef MultipleRuns
    extern word pc;
    extern int fatals;
@@ -65,8 +63,6 @@ void linit()
    struct fentry **fp;
 
    llfiles = NULL;		/* Zero queue of files to link. */
-
-   ipath = getenv(IPATH);	/* remains null if unspecified */
 
    /*
     * Allocate the various data structures that are used by the linker.

@@ -8,6 +8,7 @@
 
 static void execute (char *ofile, char *efile, char *args[]);
 static void usage (void);
+static char *libpath (char *prog, char *envname);
 
 static char patchpath[MaxPath+18] = "%PatchStringHere->";
 
@@ -133,6 +134,9 @@ int main(int argc, char *argv[]) {
     */
    initglob();				/* general global initialization */
 
+   ipath = libpath(argv[0], "IPATH");	/* set library search paths */
+   lpath = libpath(argv[0], "LPATH");
+
    if (strlen(patchpath) > 18)
       iconxloc = patchpath + 18;	/* use stated iconx path if patched */
    else
@@ -229,4 +233,20 @@ void report(char *s) {
 static void usage(void) {
    fprintf(stderr, "usage: %s %s file ... [-x args]\n", progname, Usage);
    exit(EXIT_FAILURE);
+   }
+
+/*
+ * Return path after appending lib directory.
+ */
+static char *libpath(char *prog, char *envname) {
+   char buf[1000], *s;
+
+   s = getenv(envname);
+   if (s != NULL)
+      strcpy(buf, s);
+   else
+      strcpy(buf, ".");
+   strcat(buf, ":");
+   strcat(buf, relfile(prog, "/../../lib"));
+   return salloc(buf);
    }

@@ -275,6 +275,19 @@ char **argv;
 
    ipc.opnd = NULL;
 
+#if UNIX
+   /*
+    *  Append to FPATH the bin directory from which iconx was executed.
+    */
+   {
+      char *p, *q, buf[1000];
+      p = getenv("FPATH");
+      q = relfile(argv[0], "/..");
+      sprintf(buf, "FPATH=%s %s", (p ? p : "."), (q ? q : "."));
+      putenv(buf);
+      }
+#endif
+
    /*
     * Setup Icon interface.  It's done this way to avoid duplication
     *  of code, since the same thing has to be done if calling Icon

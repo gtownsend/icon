@@ -1,26 +1,27 @@
 #  make library distribution (portable ucode and include files)
-Ilib ilib/.complete:
-	test -d ilib || mkdir ilib
-	rm -f ilib/* ilib/.complete
-	cp incl/*icn gincl/*icn mincl/*icn ilib
-	cd cfuncs; LPATH= make ICONT=../../bin/icont cfunc.u2; mv *.u? ../ilib
-	cd procs;  LPATH=../ilib ../../bin/icont -usc *icn; mv *.u? ../ilib
-	cd gprocs; LPATH=../ilib ../../bin/icont -usc *icn; mv *.u? ../ilib
-	cd mprocs; LPATH=../ilib ../../bin/icont -usc *icn; mv *.u? ../ilib
-	touch ilib/.complete
+Ilib:	.ldone
+.ldone:
+	cp incl/*.icn gincl/*.icn mincl/*.icn ../lib
+	cd procs;  LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
+	cd gprocs; LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
+	cd mprocs; LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
+	cd cfuncs; LPATH= $(MAKE) ICONT=../../bin/icont
+	mv cfuncs/*.u? ../lib
+	mv cfuncs/libcfunc.so ../bin
+	touch .ldone
 
-# make program binaries (platform-dependent icode), given that ilib is ready
-Iexe iexe/.complete:  ilib/.complete
-	test -d iexe || mkdir iexe
-	rm -f iexe/* iexe/.complete
+# make program binaries (platform-dependent icode), given that ../lib is ready
+Iexe:	.xdone
+.xdone:	.ldone
+	rm -f .xdone iexe/*
 	./BuildExe
-	touch iexe/.complete
+	touch .xdone
 	
 
-# check for undefined identifiers in ilib
-# (many of these are known to exist outside the core modules)
+# check for undefined identifiers in ../lib
+# (outside the core modules, there are many of these)
 Undef:
-	cd ilib; for f in *.u2; do (echo $$f; icont -us -fs $$f); done
+	cd ../lib; for f in *.u2; do (echo $$f; icont -us -fs $$f); done
 
 # check for stray files
 Strays:
@@ -34,6 +35,6 @@ Check:
 
 # clean up
 Clean:
-	rm -rf ilib iexe */*.u[12] */*.zip
+	rm -rf .ldone .xdone iexe */*.u[12] */*.zip
 	rm -f `find *procs *progs -type f -perm -100`
 	for d in cfuncs *packs/[a-z]*; do (cd $$d; make Clean); done

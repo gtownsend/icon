@@ -2,7 +2,7 @@ SHELL=/bin/sh
 MAKE=make
 name=unspecified
 
-default:	Icon
+default:	Icon Ilib
 
 src/h/define.h:
 	:
@@ -78,7 +78,7 @@ Headers:
 # The interpreter: icont and iconx.
 #
 
-Icon Icon-icont: Common
+Icon Icon-icont bin/icont: Common
 		cd src/icont;		$(MAKE)
 		cd src/runtime;		$(MAKE) 
 
@@ -98,6 +98,13 @@ Icon-iconc:	Common
 Common:		src/h/define.h
 		cd src/common;		$(MAKE)
 		cd src/rtt;		$(MAKE)
+
+#
+# Library.
+#
+
+Ilib:		bin/icont
+		cd ipl;			$(MAKE)
 
 ##################################################################
 #
@@ -185,8 +192,8 @@ Benchmark-icont:
 #
 # Clean-up.
 #
-# "make Clean" removes intermediate files, leaving executables.
-# "make Pure"  also removes executable binaries and configured files.
+# "make Clean" removes intermediate files, leaving executables and library.
+# "make Pure"  also removes binaries, library, and configured files.
 
 Clean:
 		cd src;			$(MAKE) Clean
@@ -194,7 +201,7 @@ Clean:
 		cd tests;		$(MAKE) Clean
 
 Pure:
-		rm -f bin/[a-z]* NoRanlib
+		rm -f bin/[a-z]* lib/[a-z]* NoRanlib
 		cd ipl;			$(MAKE) Clean
 		cd src;			$(MAKE) Pure
 		cd tests;		$(MAKE) Clean

@@ -13,7 +13,7 @@ static char *tryfile	(char *buf, char *dir, char *name, char *extn);
  *  1. Prefix: the characters that terminate a file name prefix
  *  2. FileSep: the char to insert after a dir name, if any
  *  2. DefPath: the default IPATH/LPATH, if not null
- *  3. PathSep: the IPATH/LPATH separator, if not blank
+ *  3. PathSep: allowable IPATH/LPATH separators, if not just " "
  */
 
 #if PORT
@@ -53,7 +53,7 @@ static char *tryfile	(char *buf, char *dir, char *name, char *extn);
       #define DefPath ":"
    #endif				/* MPW || LSC */
    #if MPW
-      #define PathSep ','
+      #define PathSep ","
    #endif				/* MPW */
 #endif					/* MACINTOSH */
 
@@ -72,6 +72,7 @@ static char *tryfile	(char *buf, char *dir, char *name, char *extn);
 #if UNIX
    #define Prefix "/"
    #define FileSep '/'
+   #define PathSep " :"
 #endif					/* UNIX */
 
 #if VMS
@@ -87,7 +88,7 @@ static char *tryfile	(char *buf, char *dir, char *name, char *extn);
 #endif					/* DefPath */
 
 #ifndef PathSep
-   #define PathSep ' '
+   #define PathSep " "
 #endif					/* PathSep */
 
 /*
@@ -131,11 +132,11 @@ char *s, *buf;
    {
    char c;
 
-   while (*s == PathSep)
+   while ((c = *s) != '\0' && strchr(PathSep, c))
       s++;
    if (!*s)
       return NULL;
-   while ((c = *s) != '\0' && c != PathSep) {
+   while ((c = *s) != '\0' && !strchr(PathSep, c)) {
       *buf++ = c;
       s++;
       }

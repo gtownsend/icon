@@ -76,6 +76,9 @@ Global int Dflag	Init(0);	/* -L: linker debug (write .ux file) */
 /*
  * Files and related globals.
  */
+Global char *lpath;			/* search path for $include */
+Global char *ipath;			/* search path for linking */
+
 Global FILE *codefile	Init(0);	/* current ucode output file */
 Global FILE *globfile	Init(0);	/* current global table output file */
 

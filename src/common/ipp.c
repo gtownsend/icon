@@ -15,7 +15,7 @@
  *	$error [text]
  *
  *  Entry points are
- *	ppinit(fname,m4flag) -- open input file
+ *	ppinit(fname,inclpath,m4flag) -- open input file
  *	ppdef(s,v) -- "$define s v", or "$undef s" if v is a null pointer
  *	ppch() -- return next preprocessed character
  *	ppecho() -- preprocess to stdout (for icont/iconc -E)
@@ -118,12 +118,13 @@ static int ifdepth;			/* depth of $if nesting */
 extern int tfatals, nocode;		/* provided by icont, iconc */
 
 /*
- * ppinit(fname, m4) -- initialize preprocessor to read from fname.
+ * ppinit(fname, inclpath, m4) -- initialize preprocessor to read from fname.
  *
  *  Returns 1 if successful, 0 if open failed.
  */
-int ppinit(fname, m4)
+int ppinit(fname, inclpath, m4)
 char *fname;
+char *inclpath;
 int m4;
    {
    int i;
@@ -149,7 +150,7 @@ int m4;
    /*
     * initialize variables and open source file 
     */
-   lpath = getenv("LPATH");
+   lpath = inclpath;
    curfile = &nofile;			/* init file struct pointer */
    return ppopen(fname, m4);		/* open main source file */
    }

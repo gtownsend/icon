@@ -3,8 +3,6 @@
 #  If building with the compiler (instead of the interpreter)
 #  use the "-fs" option to avoid problems.
 
-SHELL = /bin/sh
-
 FUNCLIB = libcfunc.so
 
 ICONT = icont
@@ -35,4 +33,4 @@ cfunc.icn:	$(CSRC) mkfunc.sh
 
 # cleanup
 clean Clean:
-	-rm -f $(FUNCLIB) *.o *.u? *.so so_locations cfunc.icn
+		rm -f $(FUNCLIB) *.o *.u? *.so so_locations cfunc.icn
