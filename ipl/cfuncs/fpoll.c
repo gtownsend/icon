@@ -62,6 +62,9 @@ int fpoll(int argc, descriptor *argv)	/*: await data from file */
 #ifdef __linux
    if (f->_IO_read_ptr < f->_IO_read_end)
       RetArg(1);
+#elif __bsdi__
+   if (f->_r > 0)
+      RetArg(1);
 #else
    if (f->_cnt > 0)
       RetArg(1);
