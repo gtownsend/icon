@@ -2,12 +2,11 @@
 #
 #       File:     dijkstra.icn
 #
-#       Subject:  Icon implementation the control structures from
-#                 Dijkstra's book, "A Discipline of Programming"
+#       Subject:  Procedures for Dijkstra's "Discipline" control structures
 #
 #       Author:   Frank J. Lhota
 #
-#       Date:     November 21, 2003
+#       Date:     December 9, 2003
 #
 ############################################################################
 #
@@ -21,11 +20,11 @@
 # delay implementation details, such as the order in which tests are
 # performed.
 #
-# Note: this programming language uses two non-ASCII characters, a box and a
-# right arrow. In the following discussion, the box and right arrow
+# Dijkstra's programming language uses two non-ASCII characters, a box and
+# a right arrow. In the following discussion, the box and right arrow
 # characters are represented as "[]" and "->" respectively.
 #
-# The "if ... fi" control structure is similar to multibrach "if" statements
+# The "if ... fi" control structure is similar to multi-branch "if" statements
 # found in many languages, including the Bourne shell (i.e. the
 # "if / elif / fi" construct). The major difference is that in Dijkstra's
 # notation, there is no specified order in which the "if / elif" tests are
@@ -47,10 +46,10 @@
 # When this "if ... fi" statement is performed, the guard expressions are
 # evaluated, in some order not specified by the language, until one of the
 # guard expressions evaluates to true. Once a true guard is found, the list
-# of statements following the guard is evaluated. NOTE: It is a fatal error
+# of statements following the guard is evaluated.  It is a fatal error
 # for none of the guards in an "if ... fi" statement to be true.
 #
-# The "do ... od" control is a "while" loop structure, but with mupltiple
+# The "do ... od" control is a "while" loop structure, but with multiple
 # loop conditions, in style similar to "if ... fi". The form of a Dijkstra
 # "do" statement is
 #
@@ -79,7 +78,7 @@
 # The procedures if_fi{} and do_od{} implement Dijkstra's "if ... fi" and
 # "do ... od" control structures respectively. In keeping with Icon
 # conventions, the guard expressions are arbitrary Icon expressions. A guard
-# is considered to be true precisely when it succeeds. Simiarly, a statement
+# is considered to be true precisely when it succeeds. Similarly, a statement
 # list can be represented by a single Icon expression. The Icon call
 #
 #       if_fi{
@@ -90,7 +89,7 @@
 #          }
 #
 # suspends with each result produced by the expression following the true
-# guard. If none of the guards succeed, stop() is called with an appropriate
+# guard. If none of the guards succeed, runerr() is called with an appropriate
 # message.
 #
 # Similarly, the Icon call
@@ -122,22 +121,22 @@
 # Produces a set of the indices of all the guard expressions in exp.
 #
 ############################################################################
-procedure __Dijkstra_guard_index_set( exp )
+procedure __Dijkstra_guard_index_set(exp)
    local result
 
    result := set()
-   every insert( result, 1 to *exp by 2 )
+   every insert(result, 1 to *exp by 2)
    return result
 
 end     # __Dijkstra_guard_index_set
 
 ############################################################################
 
-procedure do_od( exp )
+procedure do_od(exp)			#: Dijkstra's do_od construct
 
    local all_guards, curr_guard
 
-   all_guards := __Dijkstra_guard_index_set( exp )
+   all_guards := __Dijkstra_guard_index_set(exp)
 
    # Remember to use refreshed co-expressions so that they can be evaluated
    # more than once!
@@ -148,16 +147,16 @@ end     # do_od
 
 ############################################################################
 
-procedure if_fi( exp )
+procedure if_fi(exp)			#: Dijkstra's if_fi construct
 
    local all_guards, curr_guard
 
-   all_guards := __Dijkstra_guard_index_set( exp )
+   all_guards := __Dijkstra_guard_index_set(exp)
 
    if @exp[ curr_guard := !all_guards ] then
       suspend | @exp[ curr_guard + 1 ]
    else
-      stop( "if_fi: no guards succeeded" )
+      runerr(500, "if_fi: no guards succeeded")
 
 end     # if_fi
 
@@ -170,7 +169,7 @@ $ifdef TEST
 ############################################################################
 procedure gcd(x, y)
 
-   # Use static variables so that coexpressions can share them
+   # Use static variables so that co-expressions can share them
    static lx, ly
 
    lx := abs(x)
@@ -194,7 +193,7 @@ procedure main(arg)
 
    a := integer(arg[1]) | 1836311903
    b := integer(arg[2]) | 1134903170
-   return write( "gcd(",a,",",b,")=",gcd(a, b) )
+   return write("gcd(", a, ",", b,")=",gcd(a, b))
 
 end     # main
 
