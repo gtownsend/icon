@@ -695,6 +695,7 @@ oneop:
    if (ipc.opnd != NULL)
       fprintf(stderr, " from line %d in %s", findline(ipc.opnd),
          findfile(ipc.opnd));
+   putc('\n', stderr);
    fflush(stderr);
    }
 
