@@ -10,9 +10,6 @@ SRC = $(TOP)/src
 Setup-Common:
 	cp $(name)/define.h $(SRC)/h
 	cp $(name)/rswitch.[cs] $(SRC)/common
-	-if grep NoRanlib $(name)/define.h >/dev/null; \
-	   then touch $(TOP)/NoRanlib; \
-	   else rm -f $(TOP)/NoRanlib; fi
 	cp $(name)/Makedefs $(TOP)
 	echo ''					>> $(TOP)/Makedefs
 
@@ -32,4 +29,3 @@ Pure:
 	rm -f $(TOP)/Makedefs
 	rm -f $(SRC)/h/define.h
 	rm -f $(SRC)/common/rswitch.[csS]
-	rm -f $(TOP)/NoRanlib

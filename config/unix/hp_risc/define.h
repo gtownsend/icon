@@ -3,7 +3,6 @@
  */
 #define UNIX 1
 #define SysOpt
-#define NoRanlib
 
 #define CStateSize 20
 #define StackSize 10000

@@ -29,7 +29,6 @@ rtt:	$(OBJ)
 library:	$(OBJ)
 		rm -rf rtt.a
 		ar qc rtt.a $(OBJ)
-		-(test -f ../../NoRanlib) || (ranlib rtt.a)
 
 $(COBJS):
 	cd ../common; $(MAKE)

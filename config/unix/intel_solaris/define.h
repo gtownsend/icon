@@ -6,7 +6,6 @@
 #define SUN 1
 
 #define SysOpt
-#define NoRanlib
 
 #define COpts "-I/usr/openwin/include"
 

@@ -577,10 +577,6 @@ Deliberate Syntax Error
    #define PPDirectives {"passthru", PpKeep},
 #endif					/* PPDirectives */
 
-#ifndef NoRanlib
-   #define Ranlib
-#endif					/* NoRanlib */
-
 #ifndef EventMon
    #if IntBits == 16
       #define NoSrcColumnInfo

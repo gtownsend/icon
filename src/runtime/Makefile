@@ -311,7 +311,6 @@ rt.a: ../common/rswitch.o ../common/long.o ../common/time.o\
 	    ../common/long.o ../common/time.o\
 	    ../common/xwindow.o ../common/alloc.o
 	cp rt.a rt.db ../common/dlrgint.o ../../bin
-	-(test -f ../../NoRanlib) || (ranlib ../../bin/rt.a)
 
 cnv.o: cnv.r $(HDRS)
 	../../bin/rtt cnv.r

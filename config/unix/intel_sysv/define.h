@@ -6,7 +6,6 @@
 
 #define SigFncCast
 
-#define NoRanlib
 #define COpts "-O"
 
 #define NoIconify

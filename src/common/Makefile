@@ -21,7 +21,6 @@ xpmaybe:
 xpm:
 		cd ../xpm; $(MAKE) libXpm.a
 		cp ../xpm/libXpm.a ../../bin
-		-(test -f ../../NoRanlib) || (ranlib ../../bin/libXpm.a)
 
 $(OBJS): ../h/define.h ../h/config.h ../h/cstructs.h ../h/mproto.h \
 	  ../h/typedefs.h ../h/proto.h ../h/cpuconf.h

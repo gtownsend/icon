@@ -7,7 +7,6 @@
 
 #define LoadFunc
 #define SysOpt
-#define NoRanlib
 
 /* CPU architecture */
 #define Double

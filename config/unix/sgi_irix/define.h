@@ -10,7 +10,6 @@
 #define CStateSize 32		/* anything >= 26 should actually do */
 #define Double
 
-#define NoRanlib
 #ifdef NoCoexpr
    #define MaxStatSize 9000
 #endif				/* NoCoexpr */
