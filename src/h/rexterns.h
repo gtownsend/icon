@@ -149,10 +149,6 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
    extern struct pstrnm pntab[];
    extern int pnsize;
 
-   #ifdef ExecImages
-      extern int dumped;		/* the interpreter has been dumped */
-   #endif				/* ExecImages */
-
    #ifdef MultiThread
       extern struct progstate *curpstate;
       extern struct progstate rootpstate;

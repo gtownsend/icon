@@ -166,10 +166,6 @@ struct region rootstring, rootblock;
       int tallyopt = 0;		/* want tally results output? */
    #endif				/* TallyOpt */
 
-   #ifdef ExecImages
-      int dumped = 0;		/* non-zero if reloaded from dump */
-   #endif				/* ExecImages */
-
    word *stack;			/* Interpreter stack */
    word *stackend;		/* End of interpreter stack */
 
@@ -393,17 +389,6 @@ struct header *hdr;
    signal(SIGFPE, fpetrap);
    signal(SIGSEGV, segvtrap);
 
-#if !COMPILER
-#ifdef ExecImages
-   /*
-    * If reloading from a dumped out executable, skip most of init and
-    *  just set up the buffer for stderr and do the timing initializations.
-    */
-   if (dumped)
-      goto btinit;
-#endif					/* ExecImages */
-#endif					/* COMPILER */
-
    /*
     * Initialize data that can't be initialized statically.
     */
@@ -571,12 +556,6 @@ struct header *hdr;
 #else					/* MultiThread */
    resolve();
 #endif					/* MultiThread */
-#endif					/* COMPILER */
-
-#if !COMPILER
-#ifdef ExecImages
-btinit:
-#endif					/* ExecImages */
 #endif					/* COMPILER */
 
    /*

@@ -198,24 +198,6 @@ int *ip;
 
    *ip = 0;			/* number of arguments processed */
 
-   #ifdef ExecImages
-      if (dumped) {
-         /*
-          * This is a restart of a dumped interpreter.  Normally, argv[0] is
-          *  iconx, argv[1] is the icode file, and argv[2:(argc-1)] are the
-          *  arguments to pass as a list to main().  For a dumped interpreter
-          *  however, argv[0] is the executable binary, and the first argument
-          *  for main() is argv[1].  The simplest way to handle this is to
-          *  back up argv to point at argv[-1] and increment argc, giving the
-          *  illusion of an additional argument at the head of the list.  Note
-          *  that this argument is never referenced.
-          */
-         argv--;
-         argc++;
-         (*ip)--;
-         }
-   #endif				/* ExecImages */
-
    #if MSWIN
       /*
        * if we didn't start with iconx.exe, backup one

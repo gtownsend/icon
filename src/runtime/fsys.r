@@ -1,7 +1,7 @@
 /*
  * File: fsys.r
  *  Contents: close, chdir, exit, getenv, open, read, reads, remove, rename,
- *  [save], seek, stop, system, where, write, writes, [getch, getche, kbhit]
+ *  seek, stop, system, where, write, writes, [getch, getche, kbhit]
  */
 
 "close(f) - close file f."
@@ -591,46 +591,6 @@ function{0,1} rename(s1,s2)
       return nulldesc;
       }
 end
-
-#ifdef ExecImages
-
-"save(s) - save the run-time system in file s"
-
-function{0,1} save(s)
-
-   if !cnv:C_string(s) then
-      runerr(103,s)
-
-   abstract {
-      return integer
-      }
-
-   body {
-      char sbuf[MaxCvtLen];
-      int f, fsz;
-
-      dumped = 1;
-
-      /*
-       * Open the file for the executable image.
-       */
-      f = creat(s, 0777);
-      if (f == -1)
-	 fail;
-      fsz = wrtexec(f);
-      /*
-       * It happens that most wrtexecs don't check the system call return
-       *  codes and thus they'll never return -1.  Nonetheless...
-       */
-      if (fsz == -1)
-	 fail;
-      /*
-       * Return the size of the data space.
-       */
-      return C_integer fsz;
-      }
-end
-#endif					/* ExecImages */
 
 
 "seek(f,i) - seek to offset i in file f."

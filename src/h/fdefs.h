@@ -118,13 +118,6 @@ FncDefV(writes)
 #endif					/* ExternalFunctions */
 
 /*
- * Executable images.
- */
-#ifdef ExecImages
-   FncDef(save,1)
-#endif					/* ExecImages */
-
-/*
  * File attribute function.
  */
 #ifdef FAttrib

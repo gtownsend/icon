@@ -259,7 +259,6 @@
     */
    #undef MultiThread		/* no way -- interpreter only */
    #undef EventMon		/* presently not supported in the compiler */
-   #undef ExecImages		/* interpreter only */
 
 #else					/* COMPILER */
 
