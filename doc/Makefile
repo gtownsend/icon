@@ -13,7 +13,7 @@ HFAQ = /cs/www/icon/faq.htm
 TFAQ = /cs/www/icon/ftp/doc/faq.txt
 FFAQ = /cs/ftp/icon/doc/faq.txt
 
-RLSDIR = /cs/www/icon/v941
+RLSDIR = /cs/www/icon/v942
 
 
 #  (default:) rebuild icon.txt, icont.txt, and faq.txt from nroff/html sources.
@@ -48,13 +48,14 @@ diff:
 
 #  install updated files on Icon web and FTP sites.
 
-install:  faq.txt
+install-faq:  faq.txt
 	cp faq.htm $(HFAQ)
 	cp faq.txt $(TFAQ)
 	cp -p $(TFAQ) $(FFAQ)
-	: OTHER REVISED FILES NOT INSTALLED ON WEBSITE:
-	: cp *.css *.gif *.jpg *.txt $(RLSDIR)
-	: cp `ls *.htm | grep -v index` $(RLSDIR)
+
+install-other: icon.txt icont.txt
+	cp *.css *.gif *.jpg *.txt $(RLSDIR)
+	cp `ls *.htm | grep -v index` $(RLSDIR)
 
 
 #  remove built files to force a rebuild.

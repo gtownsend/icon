@@ -2,10 +2,11 @@
  * pthreads.c -- Icon context switch code using POSIX threads and semaphores
  *
  * This code implements co-expression context switching on any system that
- * provides POSIX threads and semaphores.  It requires Icon 9.4.1 built
- * with "#define CoClean" in order to free threads and semaphores when
- * co-expressions are collected.  It is typically much slower than
- * platform-specific custom code, but of course it is much more portable.
+ * provides POSIX threads and semaphores.  It requires Icon 9.4.1 or later
+ * built with "#define CoClean" in order to free threads and semaphores when
+ * co-expressions are collected.  It is typically much slower when called
+ * than platform-specific custom code, but of course it is much more portable,
+ * and it is typically used infrequently.
  */
 
 #include <pthread.h>
@@ -32,7 +33,7 @@ typedef struct {
  * Treat an Icon "cstate" array as an array of context pointers.
  * cstate[0] is used by Icon code that thinks it's setting a stack pointer.
  * We use cstate[1] to point to the actual context struct.
- * (Both of these are initialized to NULL by Icon 9.4.1.)
+ * (Both of these are initialized to NULL by Icon 9.4.1 or later.)
  */
 typedef context **cstate;
 
