@@ -1,16 +1,15 @@
 #  Makefile for programs illustrating dynamic loading of C functions from Icon
 #
-#  It is assumed that the standard C functions exist on $FPATH
+#  It is assumed that the standard C functions will be found by iconx.
 
+include ../../../Makedefs
+CFLAGS = -O $(CFDYN) -I../../cfuncs 
 
-CC = cc
-CFLAGS = -O -I../../cfuncs
-
-IC = icont
+ICONT = icont
 IFLAGS = -us
 
 .SUFFIXES: 	.icn
-.icn:		; $(IC) $(IFLAGS) $<
+.icn:		; $(ICONT) $(IFLAGS) $<
 
 MKLIB = ../../cfuncs/mklib.sh
 

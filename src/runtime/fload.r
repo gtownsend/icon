@@ -60,6 +60,7 @@ function{0,1} loadfunc(filename,funcname)
       int (*func)();
       static char *curfile;
       static void *handle;
+      char *funcname2;
    
       /*
        * Get a library handle, reusing it over successive calls.
@@ -73,8 +74,22 @@ function{0,1} loadfunc(filename,funcname)
       /*
        * Load the function.  Diagnose both library and function errors here.
        */
-      if (handle)
+      if (handle) {
          func = (int (*)())dlsym(handle, funcname);
+         if (!func) {
+            /*
+             * If no function, try again by prepending an underscore.
+             * (for OpenBSD and similar systems.)
+             */
+            funcname2 = malloc(strlen(funcname) + 2);
+            if (funcname2) {
+               *funcname2 = '_';
+               strcpy(funcname2 + 1, funcname);
+               func = (int (*)())dlsym(handle, funcname2);
+               free(funcname2);
+               }
+            }
+         }
       if (!handle || !func) {
          fprintf(stderr, "\nloadfunc(\"%s\",\"%s\"): %s\n",
             filename, funcname, dlerror());
