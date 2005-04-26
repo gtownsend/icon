@@ -320,7 +320,8 @@ procedure canpath(path)			#: put path in canonical form
 
    # remove "dir/../"
    while path ?:=
-      (tab(1 | (upto('/') + 1))) || (tab(many(notslash)) & ="/../" & tab(0))
+      (tab(1 | (upto('/') + 1))) || 
+         ((tab(many(notslash)) ~== "..") & ="/../" & tab(0))
    
    # remove leading "./"
    while path ?:= (="./" & tab(0))
