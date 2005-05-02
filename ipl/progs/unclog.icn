@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     March 10, 2004
+#	Date:     May 2, 2005
 #
 ############################################################################
 #
@@ -77,7 +77,7 @@ procedure main(args)
    # output the mods in order, giving affected files first
    while text := get(mods) do {
       files := get(mods)
-      if text[24:0] == mods[1][24:0] then {
+      if same(text, mods[1]) then {
          # this entry differs from the next one only in timestamp details,
          # so combine this entry with the next one
          every put(mods[2], !files)
@@ -93,4 +93,17 @@ procedure main(args)
          write()
          }
       }
+end
+
+
+
+#  same(text1,text2) -- succeed if two mods are "the same",
+#  meaning that have identical nontrivial log messages
+
+procedure same(text1, text2)
+
+   if text1 ? find("*** empty log message ***") then
+      fail
+   else
+      return text1[24:0] == text2[24:0] 
 end
