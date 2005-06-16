@@ -1,5 +1,5 @@
 /*
- * Icon configuration file for NetBSD
+ * Icon configuration file for BSD
  */
 
 #define UNIX 1
