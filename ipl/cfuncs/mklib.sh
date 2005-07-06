@@ -7,26 +7,22 @@ CC=${CC-cc}
 LIBNAME=${1?"usage: $0 libname obj..."}
 shift
 
-SYS=`uname -sr | sed 's/ //'`
+SYS=`uname -s`
 set -x
 case "$SYS" in
-   SunOS4*)
-      ld -o $LIBNAME "$@";;
-   SunOS5*)
+   Linux*|*BSD*|GNU*)
+      gcc -shared -o $LIBNAME -fPIC "$@";;
+   SunOS*)
       $CC $CFLAGS -G -o $LIBNAME "$@" -lc -lsocket;;
-   AIX*)
-      # this may not be quite right; it doesn't seem to work yet...
-      ld -bM:SRE -berok -bexpall -bnoentry -bnox -bnogc -brtl -o $LIBNAME "$@";;
+   HP-UX*)
+      ld -b -o $LIBNAME "$@";;
    IRIX*)
       ld -shared -o $LIBNAME "$@";;
    OSF*)
       ld -shared -expect_unresolved '*' -o $LIBNAME "$@" -lc;;
-   Linux*|BSD/OS*|OpenBSD*|NetBSD*|GNU*)
-      gcc -shared -o $LIBNAME -fPIC "$@";;
-   FreeBSD*)
-      ld -Bshareable -o $LIBNAME "$@" -lc;;
-   HP-UX*)
-      ld -b -o $LIBNAME "$@";;
+   AIX*)
+      # this may not be quite right; it doesn't seem to work yet...
+      ld -bM:SRE -berok -bexpall -bnoentry -bnox -bnogc -brtl -o $LIBNAME "$@";;
    *)
       set -
       echo 1>&2 "don't know how to make libraries under $SYS"
