@@ -41,7 +41,7 @@ iconx: $(OBJS)
 	cd ../common; $(MAKE)
 	$(CC) $(RLINK) -o iconx  $(OBJS) $(XL) $(RLIBS) $(TL)
 	cp iconx ../../bin
-	strip ../../bin/iconx$(EXE)
+	strip $(SFLAGS) ../../bin/iconx$(EXE)
 
 xcnv.o: cnv.r $(HDRS)
 	../../bin/rtt -x cnv.r

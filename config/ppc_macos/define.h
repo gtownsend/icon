@@ -1,7 +1,6 @@
 /*
- * Icon configuration file for PPC running Darwin 1.4 or newer.
+ * Icon configuration file for Macintosh
  */
 
 #define UNIX 1
-/* LoadFunc not implemented */
-
+#define LoadFunc 

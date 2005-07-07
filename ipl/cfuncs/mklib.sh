@@ -12,6 +12,8 @@ set -x
 case "$SYS" in
    Linux*|*BSD*|GNU*)
       gcc -shared -o $LIBNAME -fPIC "$@";;
+   Darwin*)
+      cc -bundle -undefined suppress -flat_namespace -o $LIBNAME "$@";;
    SunOS*)
       $CC $CFLAGS -G -o $LIBNAME "$@" -lc -lsocket;;
    HP-UX*)
