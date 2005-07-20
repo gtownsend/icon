@@ -5,51 +5,30 @@
  *  from the function's first call. The granularity of the time is
  *  generally larger than one millisecond and on some systems it may
  *  only be accurate to the second.
- */
-
-#ifndef NoPosixTimes
-
-/*
+ *
  * For some unfathomable reason, the Open Group's "Single Unix Specification"
  *  requires that the ANSI C clock() function be defined in units of 1/1000000
  *  second.  This means that the result overflows a 32-bit signed clock_t
- *  value only about 35 minutes.  So, preferably, we use the POSIX standard
+ *  value only about 35 minutes.  Consequently, we use the POSIX standard
  *  times() function instead.
  */
 
-static long cptime()
+long millisec()
    {
+   static long clockres = 0;
+   static long starttime = 0;
+   long curtime;
    struct tms tp;
+
    times(&tp);
-   return (long) (tp.tms_utime + tp.tms_stime);
+   curtime = tp.tms_utime + tp.tms_stime;
+   if (clockres == 0) {
+      #ifdef CLK_TCK
+         clockres = CLK_TCK;
+      #else
+         clockres = sysconf(_SC_CLK_TCK);
+      #endif
+      starttime = curtime;
+      }
+   return (long) ((1000.0 / clockres) * (curtime - starttime));
    }
-
-long millisec()
-   {
-   static long starttime = -2;
-   long t;
-
-   t = cptime();
-   if (starttime == -2)
-      starttime = t;
-   return (long) ((1000.0 / CLK_TCK) * (t - starttime));
-   }
-
-#else					/* NoPosixTimes */
-
-/*
- * On anything lacking times(), just use the ANSI C clock() function.
- */
-
-long millisec()
-   {
-   static clock_t starttime = -2;
-   clock_t t;
-
-   t = clock();
-   if (starttime == -2)
-      starttime = t;
-   return (long) ((1000.0 / CLOCKS_PER_SEC) * (t - starttime));
-   }
-
-#endif					/* NoPosixTimes */
