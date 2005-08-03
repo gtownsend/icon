@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     October 10, 2002
+#	Date:     August 3, 2005
 #
 ############################################################################
 #
@@ -82,6 +82,7 @@ $define MinWidth 32		# minimum width if auto-scaled
 $define MinHeight 32		# minimum height if auto-scaled
 
 
+record imrec(win, fullw, fullh)
 record area(fname, x, y, w, h, iw, ih)
 
 global opts			# command options
@@ -96,7 +97,7 @@ global areas			# areas used for display
 
 procedure main(args)
    local cw, ch, bigh, bigw, x, y, w, h, gg, aspr, aspmax, horz
-   local fname, label, f, tw, s, nchars, nlines, imwin, e
+   local fname, label, f, tw, s, nchars, nlines, img, imwin, e
 
    # generate a random name for the temporary file
    randomize()
@@ -152,8 +153,9 @@ procedure main(args)
          { write(&errout, fname, ": can't open"); next }
 
       # Read the image, full sized, into a scratch canvas
-      if not (imwin := rdimage(fname, f)) then
+      if not (img := rdimage(fname, f, maxw, maxh)) then
          { write(&errout, fname, ": can't decode"); next }
+      imwin := img.win
 
       # Scale the image to the desired size
       w := WAttrib(imwin, "width")
@@ -222,7 +224,7 @@ procedure main(args)
 
       # Record the space it occupies
       put(areas, area(fname, x - Gap / 2, y - Gap / 2, w + Gap, h + fh + Gap,
-         WAttrib(imwin, "width"), WAttrib(imwin, "height")))
+         img.fullw, img.fullh))
 
       # Move on to next position.
       if /opts["r"] then
@@ -347,11 +349,11 @@ procedure popinfo(a, e, w, h)
    seek(f, 0)
    n := where(f)
    seek(f, 1)
-   i := rdimage(a.fname, f) | fail
+   i := rdimage(a.fname, f, w, h) | fail
 
    x := (WAttrib("clipw") - w) / 2
    y := InfoMargin
-   Zoom(i, &window, , , , , x, y, w, h)
+   Zoom(i.win, &window, , , , , x, y, w, h)
 
    Font("sans,bold,12")
    WAttrib("leading=16")
@@ -368,7 +370,7 @@ procedure popinfo(a, e, w, h)
       until Event() === &lrelease | !" \n\r"	# wait for dismissal
    }
 
-   WClose(i)
+   WClose(i.win)
    return
 end
 
@@ -400,18 +402,22 @@ end
 
 
 
-## rdimage(fname, f) -- read image into scratch window
+## rdimage(fname, f, maxw, maxh) -- read image into scratch window
 
-procedure rdimage(fname, f)
-   return case iformat(f) of {
-      "GIF" | "XPM":		load(fname)
-      "PNG":			convert(fname, "pngtopnm")
-      "JPEG":			jpegread(fname)
-      "TIFF":			convert(fname, "tifftopnm")
-      "PBM" | "PGM" | "PPM":	convert(fname, "cat")
-      "RLE":			convert(fname, "rletopnm")
-      "BMP":			convert(fname, "bmptoppm")
+procedure rdimage(fname, f, maxw, maxh)
+   local iwin
+
+   case iformat(f) of {
+      "GIF" | "XPM":		iwin := load(fname)
+      "PNG":			iwin := convert(fname, "pngtopnm")
+      "TIFF":			iwin := convert(fname, "tifftopnm")
+      "PBM" | "PGM" | "PPM":	iwin := convert(fname, "cat")
+      "RLE":			iwin := convert(fname, "rletopnm")
+      "BMP":			iwin := convert(fname, "bmptoppm")
+      "JPEG":			return jpegread(fname, maxw, maxh)
       }
+
+   return imrec(\iwin, WAttrib(iwin, "width"), WAttrib(iwin, "height"))
 end
 
 
@@ -448,18 +454,70 @@ end
 
 
 
-## jpegread(fname) -- read JPEG image
+## jpegread(fname, maxw, maxh) -- read JPEG image
 
-procedure jpegread(fname)
+procedure jpegread(fname, maxw, maxh)
+   local scale, iwin, irec
 
    $ifdef _JAVA
-      return load(fname)
+      iwin := load(fname)
+      return imrec(\iwin, WAttrib(iwin, "width"), WAttrib(iwin, "height"))
    $else
       needprog("djpeg") | fail
-      return mkgif("djpeg -g 2>/dev/null", fname)
+      irec := imrec()
+      if jsize(irec, fname) then
+         scale := jscale(irec, \maxw, \maxh) | ""
+      else
+         scale := ""
+      irec.win := mkgif("djpeg " || scale || " -g 2>/dev/null", fname) | fail
+      /irec.fullw := WAttrib(iwin, "width")
+      /irec.fullh := WAttrib(iwin, "height")
+      return irec
    $endif
 
+
 end
+
+
+
+## jsize(irec, fname) -- set fullw and fullh fields for JPEG image
+
+procedure jsize(irec, fname)
+   local s, p, line, w, h
+
+   s := ""
+   p := open("rdjpgcom -verbose " || fname, "p") | fail
+   while line := read(p) do line ? {
+      ="JPEG image is "				| next
+      w := tab(many(&digits))			| next
+      ="w * "					| next
+      h := tab(many(&digits))			| next
+      ="h, "					| next
+      close(p)
+      irec.fullw := integer(w)
+      irec.fullh := integer(h)
+      return
+      }
+   close(p)
+   fail
+end
+
+
+
+## jscale(irec, maxw, maxh) -- determine scaling for faster JPEG reading
+
+procedure jscale(irec, maxw, maxh)
+   local m
+
+   m := irec.fullw / maxw
+   m <:= irec.fullh / maxh
+   if m >= 8 then return "-scale 1/8"
+   if m >= 4 then return "-scale 1/4"
+   if m >= 2 then return "-scale 1/2"
+   return ""
+end
+
+
 
 
 
