@@ -1,7 +1,7 @@
 <!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN">
 <HTML>
 <HEAD>
-    <TITLE>Release Notes for Version 9.4.2 of Icon</TITLE>
+    <TITLE>Release Notes for Version 9.4.3 of Icon</TITLE>
     <LINK REL="STYLESHEET" TYPE="text/css" HREF="istyle.css">
     <LINK REL="SHORTCUT ICON" HREF="shortcut.gif">
 </HEAD>
@@ -10,117 +10,81 @@
 <P><A HREF="http://www.cs.arizona.edu/icon/"> <IMG SRC="wwwcube.gif"
 ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 
-<H1> Release Notes for Version 9.4.2 of Icon </H1>
+<H1> Release Notes for Version 9.4.3 of Icon </H1>
 
 <P> Gregg M. Townsend
 <BR> <SMALL> Department of Computer Science </SMALL>
 <BR> <SMALL> The University of Arizona </SMALL>
 
-<P> <SMALL> www.cs.arizona.edu/icon/v942/relnotes.htm
-<BR> Last updated October 9, 2003 </SMALL>
+<P> <SMALL> www.cs.arizona.edu/icon/v943/relnotes.htm
+<BR> Last updated August 9, 2005 </SMALL>
 <!-- $Id$ -->
 
 
 <H2> Introduction </H2>
 
-<P> Version 9.4.2 of Icon is a minor update to version 9.4.1 of Icon. 
-The 256-color graphics limit has been removed,
-and a configuration for Cygwin (on Windows) has been added.
+<P> Version 9.4.3 of Icon is a minor update to version 9.4.2 of Icon. 
+It incorporates configuration, documentation, and library updates.
 Some minor bugs have been fixed.
 
 <P> The Icon language is unchanged, and this Unix implementation
 remains compatible at the source level with Icon 9.3 for Windows.
 
 
-<H2> Changes in version 9.4.2 </H2>
+<H2> Changes in version 9.4.3 </H2>
 
 <P> Notable changes in this latest version are listed here.
 Some code cleanup work and documentation editing
 has also been done.
 
-<H3> 256-color limit removed </H3>
+<H3> Configurations </H3>
 
-<P> Icon's X-windows interface previously limited each window
-to 256 colors at one time.
-This limitation has been removed for the TrueColor displays
-provided by most modern computers.
-Median-cut quantization is used to select 256 image colors
-when <CODE>WriteImage()</CODE> is called to write a GIF file.
+<P> The system-specific Icon configurations have been reorganized and renamed;
+new names focus on operating systems rather than CPU architectures.
+The several BSD configurations have been merged into one.
 
-<H3> Cygwin configuration </H3>
+<P> The <CODE>macintosh</CODE> configuration now supports the
+<CODE>loadfunc</CODE> function.  This configuration has also been
+revised to anticipate Apple's announced change to x86-based systems.
 
-<P> A new configuration allows Icon to be built on the
-<A HREF="http://www.cygwin.com/">Cygwin</A> Unix environment for
-Microsoft Windows.
-For more details see 
-<A HREF=cygwin.htm>Icon on Cygwin</A>.
-
+<P> A new <A HREF=port.htm>porting guide</A> has been written, and a new
+"posix" configuration has been introduced as a starting point for new ports.
 
 <H3> Library changes </H3>
 
 <P> As usual, several files in the Icon program library have been
 added or edited.  The core library files, however, remain stable.
-
-<P>
-Many changes were made to the pattern and weaving packages.
-Other notable changes include:
+Notable changes include:
 
 <PRE>
-procs/cartog		add sbsize() for creating scale bars
-procs/pscript		add psprotect() for escaping PostScript strings
-procs/lists		add lst2str() to convert list to string
-procs/pdco		add an "undulant" PDCO
-procs/random		use /dev/random, if available, in randomize()
-procs/records		add "move corresponding" procedure mvcorr(R1, R2)
-procs/seqops		add sconcatp() and splacep()
-procs/string		add procedures for finding common prefix or suffix
+procs/dijkstra		new procedures implement Dijkstra's control structures
+procs/html		add procedure for canonicalization of paths
+procs/printf		add %e format and fix a rounding problem
 
-gprocs/mapnav		repackage the map navigation GUI from gprogs/dlgvu 
-gprocs/vtext		don't let PgUp etc. insert garbage in text fields
+progs/noise		new program for producing a random bitstream
+progs/unclog		improve logic for combining adjacent entries
 
-progs/htget		send Host: spec for use with multi-domain servers
-progs/shuffle		new utility for reordering lines of a file
-
-gprogs/dlgvu		read labels; write locations; add PostScript scalebar
-gprogs/gallery		better coloring, more formats, snapshot command
-gprogs/histo		save histogram image to a GIF file
-gprogs/trkvu		new program for viewing GPS track logs
-
-cfuncs/ilists.c		new support code for array access by loadable functions
+gprogs/dlgvu		better placement of quadrangle labels
+gprogs/gallery		faster thumbnail loading for JPEG images
+gprogs/img		many new features
+gprogs/sier		better color choices
 </PRE>
 
+The undocumented <CODE>save</CODE> function, which only worked
+on a few platforms, has been removed.
 
 
-<H3> Minor changes </H3>
-
-<UL>
-
-   <LI> The command "<CODE>icon &ndash; [<VAR>args</VAR>]</CODE>"
-   	can now be used to execute a source program read from standard input.
-
-   <LI> A new "<CODE>icont &ndash;N</CODE>" flag suppresses
-   	embedding of an <CODE>iconx</CODE> path in the generated executable
-
-   <LI> The configuration directory has been restructured.
-
-   <LI> Several obsolete configurations have been removed.
-
-   <LI> The environment variables <CODE>HEAPSIZE</CODE> and
-   	<CODE>BLOCKSIZE</CODE> no longer function as
-	undocumented alternatives to <CODE>BLKSIZE</CODE>.
-	The GNU <CODE>ls</CODE> utility uses <CODE>BLOCKSIZE</CODE>
-	for other purposes, leading to confusion.
-
-   <LI> "<CODE>make Install</CODE>" has been changed to never delete anything.
-   	It now creates a new directory rather than altering an existing one.
-
-</UL>
-
-
-<H2> Other recent feature additions </H2>
+<H2> Earlier feature additions </H2>
 
 <P> New features added since the publication of the Icon books
 are described below.
+
+<H3> Millions of colors </H3>
+<SMALL> (new with version 9.4.2 of Icon) </SMALL>
+
+<P> Icon's X-windows interface no longer limits each window to
+256 colors at one time.
+Median-cut quantization selects image colors when writing a GIF file.
 
 <H3> Scriptable source files </H3>
 <SMALL> (new with version 9.4.1 of Icon) </SMALL>
@@ -206,8 +170,7 @@ The stack limit can be raised by the
 <CODE>limit</CODE> or <CODE>ulimit</CODE> shell command.
 
 
-<P> If an expression such as 
-    <CODE> x := create <VAR>expr</VAR></CODE>
+<P> If an expression such as <CODE> x := create <VAR>expr</VAR></CODE>
 is used in a loop, and <CODE>x</CODE> is not a global variable,
 uncollectable co-expressions accumulate with each iteration.
 This problem can be circumvented by making <CODE>x</CODE>
@@ -235,11 +198,10 @@ for an overview of the available Icon documentation.
 <H2> Acknowledgments </H2>
 
 <P>
-Frank Lhota contributed the Cygwin port.
-Ralph Griswold contributed a large number of program library changes.
-Frank Glandorf contributed <CODE>dlgvu</CODE> modifications.
-Kostas Oikonomou contributed the array support code.
-Christian Hudon helped with testing.
+Frank Lhota contributed the <CODE>dijkstra</CODE> library.
+Nolan Clayton contributed revisions to the <CODE>img</CODE> program.
+Michael Glass contributed revisions to the <CODE>printf</CODE> procedure.
+Chris Tenaglia and Andreas Almroth contributed configuration files.
 
 <P> <HR>
 
