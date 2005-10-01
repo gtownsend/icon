@@ -6,7 +6,7 @@
 #
 #	Authors:  Gregg M. Townsend and William S. Evans
 #
-#	Date:     January 5, 2005
+#	Date:     October 2, 2005
 #
 ############################################################################
 #
@@ -597,7 +597,8 @@ end
 #  rdtext(arg) -- read a text file of paths and features
 
 procedure rdtext(arg)
-   local f, i, n, r, s, t, w, line, lat, lon, segs, points, nsegs, npts, nfeat
+   local f, i, n, r, s, t, w, line
+   local lat, lon, alt, segs, points, nsegs, npts, nfeat
    local xmn, xmx, ymn, ymx
    static npaths
    initial npaths := 0
@@ -617,7 +618,18 @@ procedure rdtext(arg)
    while line := read(f) do {			# read line
       every put(w := [], words(line))		# break into fields
       # check first for path entry
-      if (lat := real(w[-2])) & (lon := real(w[-1])) &
+      if (lat:=real(w[-3])) & (lon:=real(w[-2])) & (alt:=real(w[-1])) &
+            (-90.<=lat<=90.) & (-180.<=lon<=180.) & (-1400<alt<30000) then {
+         npts +:= 1
+         lon *:= DEGSCALE
+         lat *:= DEGSCALE
+         put(points, integer(lon), integer(lat))
+         xmn >:= lon
+         ymn >:= lat
+         xmx <:= lon
+         ymx <:= lat
+         }
+      else if (lat := real(w[-2])) & (lon := real(w[-1])) &
             (-90. <= lat <= 90.) & (-180. <= lon <= 180.) then {
          npts +:= 1
          lon *:= DEGSCALE

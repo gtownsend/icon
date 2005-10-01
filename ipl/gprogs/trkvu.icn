@@ -6,7 +6,7 @@
 #
 #	Authors:  Gregg M. Townsend
 #
-#	Date:     May 8, 2002
+#	Date:     October 1, 2005
 #
 ############################################################################
 #
@@ -22,8 +22,9 @@
 #	usage:  trkvu file...
 #
 #	Each file argument is a track log uploaded from a GPS receiver.
-#	Lines that end in two decimal values specify latitude and longitude
-#	in that order.  Lines without data indicate breaks between segments. 
+#	Lines that end in three decimal values specify latitude, longutude,
+#	and altitude in that order.  Lines with just two values omit the
+#	altitude.  Lines without data indicate breaks between segments. 
 #
 #	Some colorings use timestamps from the track logs.  A timestamp
 #	has the form "mm/dd/yyyy hh:mm:ss" or "yyyy/mm/dd hh:mm:ss" and
@@ -206,7 +207,7 @@ end
 #  ========================= Input =========================
 
 procedure load(fname)			# load data from one file
-   local f, h, p, w, t, x, y, line, ptlist
+   local f, h, p, w, t, x, y, a, line, ptlist
    static n
    initial n := 0
 
@@ -216,6 +217,8 @@ procedure load(fname)			# load data from one file
    put(fhlist, h)
    while line := read(f) do {
       every put(w := [], words(line))
+      if -90.0 <= numeric(w[-3]) <= 90.0 then
+         a := pull(w)			# altitude
       if x := numeric(w[-1]) & y := numeric(w[-2]) then {
          t := tcrack(w[-4], w[-3]) | &null
          /ptlist := []
