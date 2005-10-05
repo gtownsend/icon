@@ -7,7 +7,12 @@ SAMPLES = btrees diffwrds kross meander prefix recogn roman sieve wordcnt
 
 # default is to run all tests, using icont
 
-Test Test-icont:
+Test Test-icont:  Test-programs Test-preproc Test-options
+
+
+# test programs
+
+Programs Programs-icont Test-programs:
 		IC=icont sh Test-icon
 
 Samples Samples-icont:
@@ -27,6 +32,7 @@ Test-preproc:
 		../../bin/icont -E tpp.icn tpp9.icn >tpp.out 2>tpp.err || :
 		cat tpp.err tpp.out >tpp.all
 		cmp tpp.ok tpp.all
+		: preprocessor test passed
 
 
 # test various command options
@@ -34,6 +40,7 @@ Test-preproc:
 Test-options:
 		sh Test-opts >options.out
 		cmp options.ok options.out
+		: options test passed
 
 
 Clean:
