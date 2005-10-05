@@ -1,22 +1,32 @@
 #!/bin/sh
 #
 #  Test-opts -- test some Icon command options
+#
+#  Tests a few Icon command options, and especially tests various ways
+#  to accomplish directly executable source files.
+#
+#  If this script aborts, rerun by "sh -x Test-opts" to see what's occurring.
+
+#  check that Icon has been built
+ls ../../bin/icon  >/dev/null || exit 1
+ls ../../bin/icont >/dev/null || exit 1
 
 #  prepend Icon binary directory to path
 PATH=../../bin:$PATH
+export PATH
 
 #  merge stdin and stderr
 exec 2>&1
 
-#  remove files if left over from before
+#  unprotect and remove files that might be left from a previous run
 test -f olleh    && chmod +rw olleh
 test -f hello    && chmod +rw hello
 test -f hello.u1 && chmod +rw hello.u1
 test -f hello.u2 && chmod +rw hello.u2
 rm -f hello hello.u? olleh
 
-#  stop on errors
-set -e -x
+#  stop on subsequent errors
+set -e
 
 #  simple compile and execute, with no arguments
 icont hello -x
@@ -36,7 +46,7 @@ icont -u -s hello.u -x west
 
 #  make sure that these files all exist
 #  and that subsequent commands don't touch them
-chmod -rwx hello.u? hello
+chmod -rwx hello.u1 hello.u2 hello
 
 #  icont direct execution
 icont -X hello.icn Tucson
