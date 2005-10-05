@@ -1,0 +1,315 @@
+# tpp.icn -- test file for Icon preprocessor
+#
+# generates lots of deliberate errors
+# includes tpp1.icn, tpp2.icn, tpp3.icn
+
+# force out #lines to test that this file is called "stdin"
+$include "/dev/null"
+
+# following should be legal
+#line 11 "a.b.c"
+#line 22 defgh
+#line 33"ijklm"#
+#line 44
+#line 55xyzzy#comment
+
+#line 0 "bad #lines"
+# following should be illegal but ignored
+#line 
+#line 91 not.quoted
+#line 92 extra stuff
+#line 93 "extra" stuff
+#line 94 extra+
+# line 95 "passed through unrecognized"
+#line 96 "unterminated
+#line 97 "unterminated\
+#line 98 ""
+
+# following should be legal
+$line 11 "a.b.c"
+  $  line  22  defgh
+$line 33"ijklm"#comment
+$line 44
+$line 55xyzzy#comment
+$( digraphs for EBCDIC $)
+
+$line 0 "bad.ppdirs"
+# following should be illegal and diagnosed
+$line
+$line 91 not.quoted
+$line 92 extra stuff
+$line 93 "extra" stuff
+$line 94 extra+
+$line 96 "unterminated
+$line 97 "unterminated\
+$line 98""
+$unknown/preprocessing/directive
+
+$line 0 "include.tests"
+=a=
+$include "/dev/null"
+=b=
+    $ 	 include    "/dev/null"    		# comment
+=c=
+$include"abc\def\"ghi#jkl\#mno\\pqr stu"	# lots of escapes
+=d=
+$include					# no name (two ways)
+=e=
+$include			
+=f=
+$include "unterminated
+=g=
+$include "unterminated\
+=h=
+$include nonexistent
+=i=
+$include extra+
+=j=
+$include "more extra stuff" dafslkjasfd
+=k=
+$include "tpp1.icn"	# should get circularity error
+=l=
+$include"tpp3.icn"#likewise
+=m=
+
+$line 0 "predef.tst"
+#== predef test ==
+should be defined as 1:  _UNIX  _ASCII  _PIPES  _SYSTEM_FUNCTION
+should not be defined:  _MACINTOSH  _VMS  _EBCDIC  _DOS_FUNCTIONS
+it depends: _COMPILED _INTERPRETED
+$undef _PIPES
+$undef _ASCII
+$define _ASCII 128
+$define _EBCDIC 0
+bogus:  pipes:_PIPES  ascii:_ASCII  ebcdic:_EBCDIC
+
+$line 0 "define.tst"
+#== define test ==
+
+#= illegal =
+$define
+$define 12
+$define "fred" 93
+$define b1 "
+$define b2 'dsfkjlfasd\'
+$define f(x) (x^2+2*x+1)
+
+#= null =
+$define n1
+$define n2    	# also null
+a=n1=b=n2=c
+
+#= simple =
+$define one 1
+$define pi 3.14159
+$define plus +
+$define twine "string"
+$define vowels 'aeiou'
+$define expr ((sqrt(5) + 1) / 2)	#phi
+$define xy_47_Hike "fffrtb"
+$undef nothing
+
+one pi plus twine vowels expr xy_47_Hike
+one+pi,plus/twine,vowels\expr?xy_47_Hike!	# one pi plus etc
+one"pi"plus"twine"vowels"expr"xy_47_Hike
+'one'pi'plus'twine'vowels'expr'xy_47_Hike'
+
+#= redefinition =
+$define pi 2.7183
+pi
+$undef pi
+$define pi 2.7183
+pi
+
+#= deferred interpretation =
+$define aaa bbb
+$define bbb 42
+aaa bbb
+
+$define yyy xxx
+$define xxx 47
+xxx yyy
+
+#= dubious pasting=
+$define X e3
+$define Y 456e
+123X  Y+3
+
+#= recursion =
+$define r r
+r
+$define rr rr rr
+rr
+$define a b b b
+$define b c c c
+$define c a a a
+a
+b
+c
+
+= context =
+$define _ <%>
+123_abc+_+123_+abc_+_"_"_+36rX_+123e10_+12.e+5_+e7_+_#_
+
+$line 0 "error.tst"
+#= $error =
+$error
+   $error		
+$error	# no text, just comment
+   $    error     this program does not work
+
+$line 0 "if.tst"
+#= conditional compilation =
+
+$define isdef
+
+# $ifdef & $ifndef both true and false, with and without $else
+
+$ifdef isdef
+   "isdef is defined"
+$endif
+
+$ifdef notdef
+   "notdef is defined"
+$endif
+
+$ifndef isdef
+   "isdef is not defined"
+$endif
+
+$ifndef notdef
+   "notdef is not defined"
+$endif
+
+$ifdef isdef
+   "isdef is defined"
+$else
+   "isdef is not defined"
+$endif
+
+$ifdef notdef
+   "notdef is defined"
+$else
+   "notdef is not defined"
+$endif
+
+# nesting without $else
+
+$ifdef isdef
+   (true...)
+   $ifndef isdef
+       (wrong...)
+       $ifdef isdef
+	   (yes, but skipped)
+       $endif
+       (...wrong)
+   $endif
+   (...true)
+$endif
+
+# full nesting, with some nonstandard spacing
+
+$ifdef isdef	# meaningless comment
+   (begin true branch)
+   $ ifdef isdef
+      "isdef is defined"
+   $ else	# else
+      "isdef is not defined"
+   $ endif	# endif
+   (end true branch)
+  $  else	#isdef not defined
+   (begin else branch)
+   $ ifdef notdef
+      "notdef is defined"
+   $ else
+      "notdef is not defined"
+   $ endif
+   (end true branch)
+  $ endif	# end test
+
+# test all paths through four nested ifs
+$include "tpp4.icn"
+$define id4 *4*
+$include "tpp4.icn"
+$define id3 *3*
+$include "tpp4.icn"
+$undef id4
+$include "tpp4.icn"
+$define id2 *2*
+$include "tpp4.icn"
+$define id4 *4*
+$include "tpp4.icn"
+$undef id3
+$include "tpp4.icn"
+$undef id4
+$include "tpp4.icn"
+$define id1 *1*
+$include "tpp4.icn"
+$define id4 *4*
+$include "tpp4.icn"
+$define id3 *3*
+$include "tpp4.icn"
+$undef id4
+$include "tpp4.icn"
+$undef id2
+$include "tpp4.icn"
+$define id4 *4*
+$include "tpp4.icn"
+$undef id3
+$include "tpp4.icn"
+$undef id4
+$include "tpp4.icn"
+$undef id1
+
+# make sure it accepts anything resembling an $if when skipping
+
+$ifdef notdef
+   <skipped>
+   $bogus	# should be no problem when skipped
+   <skipped>
+   $ifread "/usr/icon/v9/include/lib.icn"
+      $include "/usr/icon/v9/include/lib.icn"
+   $endif  #ifexists
+   <should still be skipping>
+$endif
+<should pass this line>
+
+# test diagnostics for missing args
+$ifdef
+$endif
+$ifndef		# missing here too
+$endif
+
+# test diagnostics for extraneous args
+$ifdef notdef
+$else notdef
+$endif notdef
+$ifndef notdef
+$else notdef
+$endif notdef
+
+# test else/endif out of place
+$endif			# wrong place -- should get error
+$else			# wrong place -- should get error
+$include "tpp5.icn"	# includes unterminated $ifdef
+$else			# should <not> match $if in tpp5.icn
+$endif			# should <not> match $if in tpp5.icn
+# now try again when unterminated $if succeeds
+$define id5
+$include "tpp5.icn"	# includes unterminated $ifdef
+$else			# should <not> match $if in tpp5.icn
+$endif			# should <not> match $if in tpp5.icn
+
+# test line directives encountered while skipping
+
+$ifdef notdef
+...
+#line 111 "invented"
+...
+$endif (& show line)
+
+$ifdef notdef
+...
+  $   line    222    "invented"
+...
+$endif (& show line)

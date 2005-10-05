@@ -21,6 +21,14 @@ Samples-iconc:
 		IC=iconc sh Test-icon $(SAMPLES)
 
 
+# test preprocessor
+
+Test-preproc:
+		../../bin/icont -E tpp.icn tpp9.icn >tpp.out 2>tpp.err || :
+		cat tpp.err tpp.out >tpp.all
+		cmp tpp.ok tpp.all
+
+
 # test various command options
 
 Test-options:
@@ -29,5 +37,5 @@ Test-options:
 
 
 Clean:
-		-rm -f *.u? *.c *.h foo.baz tmp1 tmp2 *.out
+		-rm -f *.u? *.c *.h foo.baz tmp1 tmp2 *.out *.err *.all
 		-rm -f xx `find * -type f -perm -100 ! -name 'Test-*' -print`

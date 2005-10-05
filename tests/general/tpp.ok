@@ -1,0 +1,565 @@
+tpp.icn:
+File bad.ppdirs; Line 2 # $line: no line number
+File bad.ppdirs; Line 3 # $line: too many arguments
+File bad.ppdirs; Line 4 # $line: too many arguments
+File bad.ppdirs; Line 5 # $line: too many arguments
+File bad.ppdirs; Line 6 # $line: too many arguments
+File bad.ppdirs; Line 7 # $line: invalid file name
+File bad.ppdirs; Line 8 # $line: invalid file name
+File bad.ppdirs; Line 9 # $line: invalid file name
+File bad.ppdirs; Line 10 # "unknown": invalid preprocessing directive
+File include.tests; Line 6 # "abcdef"ghi#jkl#mno\pqr stu": cannot open
+File include.tests; Line 8 # $include: invalid file name
+File include.tests; Line 10 # $include: invalid file name
+File include.tests; Line 12 # $include: invalid file name
+File include.tests; Line 14 # $include: invalid file name
+File include.tests; Line 16 # "nonexistent": cannot open
+File include.tests; Line 18 # $include: too many arguments
+File include.tests; Line 20 # $include: too many arguments
+File tpp3.icn; Line 3 # "tpp1.icn": circular include
+File tpp2.icn; Line 3 # "tpp3.icn": circular include
+File define.tst; Line 4 # $define: missing name
+File define.tst; Line 5 # $define: missing name
+File define.tst; Line 6 # $define: missing name
+File define.tst; Line 7 # $define: unterminated literal
+File define.tst; Line 8 # $define: unterminated literal
+File define.tst; Line 9 # $define: "(" after name requires preceding space
+File define.tst; Line 32 # "pi": value redefined
+File error.tst; Line 2 # explicit $error
+File error.tst; Line 3 # explicit $error
+File error.tst; Line 4 # explicit $error
+File error.tst; Line 5 # "this program does not work": explicit $error
+File if.tst; Line 117 # $ifdef/$ifndef: missing name
+File if.tst; Line 119 # $ifdef/$ifndef: missing name
+File if.tst; Line 124 # "notdef": extraneous arguments on $else/$endif
+File if.tst; Line 125 # "notdef": extraneous arguments on $else/$endif
+File if.tst; Line 127 # "notdef": extraneous arguments on $else/$endif
+File if.tst; Line 128 # "notdef": extraneous arguments on $else/$endif
+File if.tst; Line 131 # unexpected $endif
+File if.tst; Line 132 # unexpected $else
+File tpp5.icn; Line 3 # unexpected $endif
+File tpp5.icn; Line 5 # unexpected $else
+File tpp5.icn; Line 12 # unterminated $if
+File if.tst; Line 134 # unexpected $else
+File if.tst; Line 135 # unexpected $endif
+File tpp5.icn; Line 3 # unexpected $endif
+File tpp5.icn; Line 5 # unexpected $else
+File tpp5.icn; Line 12 # unterminated $if
+File if.tst; Line 139 # unexpected $else
+File if.tst; Line 140 # unexpected $endif
+File invented; Line 113 # "(& show line)": extraneous arguments on $else/$endif
+File invented; Line 224 # "(& show line)": extraneous arguments on $else/$endif
+tpp9.icn:
+50 errors
+#line 0 "tpp.icn"
+# tpp.icn -- test file for Icon preprocessor
+#
+# generates lots of deliberate errors
+# includes tpp1.icn, tpp2.icn, tpp3.icn
+
+# force out #lines to test that this file is called "stdin"
+#line 0 "/dev/null"
+#line 7 "tpp.icn"
+
+# following should be legal
+#line 11 "a.b.c"
+#line 22 "defgh"
+#line 33 "ijklm"
+#line 44 "ijklm"
+#line 55 "xyzzy"
+
+#line 0 "bad #lines"
+# following should be illegal but ignored
+
+
+
+
+
+# line 95 "passed through unrecognized"
+
+
+
+
+# following should be legal
+#line 11 "a.b.c"
+#line 22 "defgh"
+#line 33 "ijklm"
+#line 44 "ijklm"
+#line 55 "xyzzy"
+$( digraphs for EBCDIC $)
+
+#line 0 "bad.ppdirs"
+# following should be illegal and diagnosed
+
+
+
+
+
+
+
+
+
+
+#line 0 "include.tests"
+=a=
+#line 0 "/dev/null"
+#line 2 "include.tests"
+=b=
+#line 0 "/dev/null"
+#line 4 "include.tests"
+=c=
+
+=d=
+
+=e=
+
+=f=
+
+=g=
+
+=h=
+
+=i=
+
+=j=
+
+=k=
+#line 0 "tpp1.icn"
+#  tpp1.icn: part 1 of circular include test
+   =1=
+#line 0 "tpp2.icn"
+#  tpp2.icn: part 1 of circular include test
+      =2=
+#line 0 "tpp3.icn"
+#  tpp3.icn: part 1 of circular include test
+         =3=
+
+         =3=
+#line 3 "tpp2.icn"
+      =2=
+#line 3 "tpp1.icn"
+   =1=
+#line 22 "include.tests"
+=l=
+#line 0 "tpp3.icn"
+#  tpp3.icn: part 1 of circular include test
+         =3=
+#line 0 "tpp1.icn"
+#  tpp1.icn: part 1 of circular include test
+   =1=
+#line 0 "tpp2.icn"
+#  tpp2.icn: part 1 of circular include test
+      =2=
+
+      =2=
+#line 3 "tpp1.icn"
+   =1=
+#line 3 "tpp3.icn"
+         =3=
+#line 24 "include.tests"
+=m=
+
+#line 0 "predef.tst"
+#== predef test ==
+should be defined as 1:  1  1  1  1
+should not be defined:  _MACINTOSH  _VMS  _EBCDIC  _DOS_FUNCTIONS
+it depends: _COMPILED _INTERPRETED
+
+
+
+
+bogus:  pipes:_PIPES  ascii:128  ebcdic:0
+
+#line 0 "define.tst"
+#== define test ==
+
+#= illegal =
+
+
+
+
+
+
+
+#= null =
+
+
+a==b==c
+
+#= simple =
+
+
+
+
+
+
+
+
+
+1 3.14159 + "string" 'aeiou' ((sqrt(5) + 1) / 2) "fffrtb"
+1+3.14159,+/"string",'aeiou'\((sqrt(5) + 1) / 2)?"fffrtb"!	# one pi plus etc
+1"pi"+"twine"'aeiou'"expr""fffrtb"
+'one'3.14159'plus'"string"'vowels'((sqrt(5) + 1) / 2)'xy_47_Hike'
+
+#= redefinition =
+
+3.14159
+
+
+2.7183
+
+#= deferred interpretation =
+
+
+42 42
+
+
+
+47 47
+
+#= dubious pasting=
+
+
+123e3  456e+3
+
+#= recursion =
+
+r
+
+rr rr
+
+
+
+a a a a a a a a a a a a a a a a a a a a a a a a a a a
+b b b b b b b b b b b b b b b b b b b b b b b b b b b
+c c c c c c c c c c c c c c c c c c c c c c c c c c c
+
+= context =
+
+123_abc+<%>+123<%>+abc_+<%>"_"<%>+36rX<%>+123e10<%>+12.e+5<%>+e7_+<%>#_
+
+#line 0 "error.tst"
+#= $error =
+
+
+
+
+
+#line 0 "if.tst"
+#= conditional compilation =
+
+
+
+# $ifdef & $ifndef both true and false, with and without $else
+
+
+   "isdef is defined"
+
+
+#line 13 "if.tst"
+
+#line 17 "if.tst"
+
+
+   "notdef is not defined"
+
+
+
+   "isdef is defined"
+#line 27 "if.tst"
+
+#line 31 "if.tst"
+   "notdef is not defined"
+
+
+# nesting without $else
+
+
+   (true...)
+#line 45 "if.tst"
+   (...true)
+
+
+# full nesting, with some nonstandard spacing
+
+
+   (begin true branch)
+
+      "isdef is defined"
+#line 57 "if.tst"
+   (end true branch)
+#line 67 "if.tst"
+
+# test all paths through four nested ifs
+#line 0 "tpp4.icn"
+#  tpp4.icn: nested $if test
+#line 32 "tpp4.icn"
+#line 47 "tpp4.icn"
+#line 54 "tpp4.icn"
+#line 57 "tpp4.icn"
+	    - - - - : id1 id2 id3 id4
+
+
+
+
+#line 70 "if.tst"
+
+#line 0 "tpp4.icn"
+#  tpp4.icn: nested $if test
+#line 32 "tpp4.icn"
+#line 47 "tpp4.icn"
+#line 54 "tpp4.icn"
+
+	    - - - + : id1 id2 id3 *4*
+#line 59 "tpp4.icn"
+
+
+
+#line 72 "if.tst"
+
+#line 0 "tpp4.icn"
+#  tpp4.icn: nested $if test
+#line 32 "tpp4.icn"
+#line 47 "tpp4.icn"
+
+
+	    - - + + : id1 id2 *3* *4*
+#line 53 "tpp4.icn"
+#line 60 "tpp4.icn"
+
+
+#line 74 "if.tst"
+
+#line 0 "tpp4.icn"
+#  tpp4.icn: nested $if test
+#line 32 "tpp4.icn"
+#line 47 "tpp4.icn"
+
+#line 51 "tpp4.icn"
+	    - - + - : id1 id2 *3* id4
+
+#line 60 "tpp4.icn"
+
+
+#line 76 "if.tst"
+
+#line 0 "tpp4.icn"
+#  tpp4.icn: nested $if test
+#line 32 "tpp4.icn"
+
+
+#line 37 "tpp4.icn"
+	    - + + - : id1 *2* *3* id4
+
+#line 46 "tpp4.icn"
+#line 61 "tpp4.icn"
+
+#line 78 "if.tst"
+
+#line 0 "tpp4.icn"
+#  tpp4.icn: nested $if test
+#line 32 "tpp4.icn"
+
+
+
+	    - + + + : id1 *2* *3* *4*
+#line 39 "tpp4.icn"
+#line 46 "tpp4.icn"
+#line 61 "tpp4.icn"
+
+#line 80 "if.tst"
+
+#line 0 "tpp4.icn"
+#  tpp4.icn: nested $if test
+#line 32 "tpp4.icn"
+
+#line 40 "tpp4.icn"
+
+	    - + - + : id1 *2* id3 *4*
+#line 45 "tpp4.icn"
+
+#line 61 "tpp4.icn"
+
+#line 82 "if.tst"
+
+#line 0 "tpp4.icn"
+#  tpp4.icn: nested $if test
+#line 32 "tpp4.icn"
+
+#line 40 "tpp4.icn"
+#line 43 "tpp4.icn"
+	    - + - - : id1 *2* id3 id4
+
+
+#line 61 "tpp4.icn"
+
+#line 84 "if.tst"
+
+#line 0 "tpp4.icn"
+#  tpp4.icn: nested $if test
+
+
+#line 10 "tpp4.icn"
+#line 13 "tpp4.icn"
+	    + + - - : *1* *2* id3 id4
+
+
+#line 31 "tpp4.icn"
+#line 62 "tpp4.icn"
+#line 86 "if.tst"
+
+#line 0 "tpp4.icn"
+#  tpp4.icn: nested $if test
+
+
+#line 10 "tpp4.icn"
+
+	    + + - + : *1* *2* id3 *4*
+#line 15 "tpp4.icn"
+
+#line 31 "tpp4.icn"
+#line 62 "tpp4.icn"
+#line 88 "if.tst"
+
+#line 0 "tpp4.icn"
+#  tpp4.icn: nested $if test
+
+
+
+
+	    + + + + : *1* *2* *3* *4*
+#line 9 "tpp4.icn"
+#line 16 "tpp4.icn"
+#line 31 "tpp4.icn"
+#line 62 "tpp4.icn"
+#line 90 "if.tst"
+
+#line 0 "tpp4.icn"
+#  tpp4.icn: nested $if test
+
+
+
+#line 7 "tpp4.icn"
+	    + + + - : *1* *2* *3* id4
+
+#line 16 "tpp4.icn"
+#line 31 "tpp4.icn"
+#line 62 "tpp4.icn"
+#line 92 "if.tst"
+
+#line 0 "tpp4.icn"
+#  tpp4.icn: nested $if test
+
+#line 17 "tpp4.icn"
+
+#line 21 "tpp4.icn"
+	    + - + - : *1* id2 *3* id4
+
+#line 30 "tpp4.icn"
+
+#line 62 "tpp4.icn"
+#line 94 "if.tst"
+
+#line 0 "tpp4.icn"
+#  tpp4.icn: nested $if test
+
+#line 17 "tpp4.icn"
+
+
+	    + - + + : *1* id2 *3* *4*
+#line 23 "tpp4.icn"
+#line 30 "tpp4.icn"
+
+#line 62 "tpp4.icn"
+#line 96 "if.tst"
+
+#line 0 "tpp4.icn"
+#  tpp4.icn: nested $if test
+
+#line 17 "tpp4.icn"
+#line 24 "tpp4.icn"
+
+	    + - - + : *1* id2 id3 *4*
+#line 29 "tpp4.icn"
+
+
+#line 62 "tpp4.icn"
+#line 98 "if.tst"
+
+#line 0 "tpp4.icn"
+#  tpp4.icn: nested $if test
+
+#line 17 "tpp4.icn"
+#line 24 "tpp4.icn"
+#line 27 "tpp4.icn"
+	    + - - - : *1* id2 id3 id4
+
+
+
+#line 62 "tpp4.icn"
+#line 100 "if.tst"
+
+
+# make sure it accepts anything resembling an $if when skipping
+
+#line 113 "if.tst"
+<should pass this line>
+
+# test diagnostics for missing args
+
+
+
+
+
+# test diagnostics for extraneous args
+#line 124 "if.tst"
+
+
+#line 128 "if.tst"
+
+# test else/endif out of place
+
+
+#line 0 "tpp5.icn"
+# tpp5.icn: test for unterminated $if
+
+
+
+
+
+
+#line 133 "if.tst"
+
+
+# now try again when unterminated $if succeeds
+
+#line 0 "tpp5.icn"
+# tpp5.icn: test for unterminated $if
+
+
+
+
+
+
+#line 9 "tpp5.icn"
+
+
+#outer unterminated $ifdef should get error
+#line 138 "if.tst"
+
+
+
+# test line directives encountered while skipping
+
+#line 113 "invented"
+
+#line 224 "invented"
+#line 0 "tpp9.icn"
+# tpp9.icn: test that predefined symbols revert
+# to correct values with the start of a new file
+
+pipes:1  ascii:1  ebcdic:_EBCDIC   # were redefined in tpp.icn
+
+should be defined as 1:  1  1  1  1
+should not be defined:  _MACINTOSH  _VMS  _EBCDIC  _DOS_FUNCTIONS
+it depends: _COMPILED _INTERPRETED
