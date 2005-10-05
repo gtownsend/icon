@@ -617,7 +617,7 @@ _XReverse_Bytes(bpt, nb)
 	*bpt = _reverse_byte[*bpt];
 	bpt++;
     } while (--nb > 0);
-    return;
+    return 0;
 }
 
 

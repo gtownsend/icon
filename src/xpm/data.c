@@ -76,7 +76,7 @@ ParseComment(mdata)
 	/* put characters back in the order that we got them */
 	for (a = n; a > 0; a--, s--)
 	    ungetc(*s, file);
-	return;
+	return 0;
     }
 
     /* store comment */

@@ -122,7 +122,7 @@ int system;
             AppChar(*sbuf, *s);
          path = str_install(sbuf);
          f = fopen(path, "r");
-         prefix = ++prefix;
+         ++prefix;
          }
       rel_sbuf(sbuf);
       }
