@@ -1,36 +1,38 @@
-######################################################################
+############################################################################
 #
-#       File:     nestlist.icn
+#	File:     nestlist.icn
 #
-#       Subject:  Procedures to interconvert strings and nested lists
+#	Subject:  Procedures to interconvert strings and nested lists
 #
-#       Author:   Arthur C. Eschenlauer
+#	Author:   Arthur C. Eschenlauer
 #
-#       Date:     October 22, 2005
+#	Date:     November 1, 2005
 #
-######################################################################
+############################################################################
 #
 #   This file is in the public domain.
 #
-######################################################################
+############################################################################
 #
-#  Procedure s_list(L) produces a string-representation of a nested
-#  list.
+#   Procedure s_list(L) produces a string-representation of a nested
+#   list.
 #
-#  Procedure l_list(s) produces a nested list from s, its string
-#  representation.
+#   Procedure l_list(s) produces a nested list from s, its string
+#   representation.
 #
-######################################################################
-# # demo for reading nested numeric array from a string, e.g.,
-# #   [1,[2,3,[4]],[[5]]]
-# procedure main( )
-#   local line, m, i
-#   while line := read( )
-#     do
-#       if m := l_list( line )
-#         then write( s_list( m ) )
-# end
-######################################################################
+############################################################################
+#
+#  # demo for reading nested numeric array from a string, e.g.,
+#  #   [1,[2,3,[4]],[[5]]]
+#  procedure main( )
+#    local line, m, i
+#    while line := read( )
+#      do
+#        if m := l_list( line )
+#          then write( s_list( m ) )
+#  end
+#
+############################################################################
 
 # s_list - produce a string from a nested list
 procedure s_list( L )
@@ -48,23 +50,24 @@ end
 # l_listall( ) ::= ="["  l_terms( )  ="]"
 # l_terms( )   ::= l_term( )  =","  l_terms( )  |  l_term( )
 # l_term( )    ::= l_listall( ) | tab(many(&cset--'[,]'))
+
 procedure l_list( s )
   s ? return 1(l_listall( ), pos(0))
 end
+
 procedure l_listall( )
   every suspend 2( ="[", l_terms( ), ="]" )
 end
+
 procedure l_terms( )
   local a1, a2
   every suspend 4( a1:=l_term( ) , =","
                  , a2:=l_terms( ), a1 ||| a2 ) | 
                 l_term( )
 end
+
 procedure l_term( )
   static noend, convert
   initial noend := &cset -- '[,]'
   suspend [ l_listall( ) | tab( many( noend ) ) ]
 end
-
-# vim:set ts=2 sw=2 expandtab :
-# end of file nestlist.icn
