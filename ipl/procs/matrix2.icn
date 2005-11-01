@@ -1,0 +1,303 @@
+############################################################################
+#
+#  File:     matrix2.icn
+#
+#  Subject:  Procedures for matrix transposition and scalar multiplication.
+#
+#  Authors:  Arthur C. Eschenlauer
+#
+#  Date:     October 22, 2005
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+# transpose_matrix(M) : L  - produces a matrix R that is the transpose of M:
+#                               R[j][i] = M[i][j]
+#
+# numeric_matrix(M) : L    - produces a matrix R that is a copy of M except
+#                            each element has been subjected to the
+#                            numeric(x) function; if numeric fails for any
+#                            element, numeric_matrix fails:
+#                               R[i][j] = numeric(M[i][j])
+#
+# scale_matrix(M,mult) : L - produces a new matrix R each of whose elements
+#                            is mult times larger than its peer in M:
+#                                R[i][j] := mult * M[i][j]
+# scale_matrix(mult,M) : L - is a synonym for scale_matrix(M,mult).
+#
+# floor_matrix(M,min) : L  - produces a matrix R that is a copy of M except 
+#                            each element is increased to min if necessary:
+#                                R[i][j] := min <= M[i][j] | min
+# floor_matrix(min,M) : L  - is a synonym for floor_matrix(M,min).
+#
+# ceil_matrix(M,max) : L   - produces a matrix R that is a copy of M except 
+#                            each element is increased to max if necessary:
+#                                R[i][j] := max <= M[i][j] | max
+# ceil_matrix(max,M) : L   - is a synonym for ceil_matrix(M,max).
+#
+# sumsquares_matrix(M) : n - produces the sum of the squares
+#                            of all terms in a matrix
+#                                sum(for every i,j) (M[i][j])^2
+#
+# sumsquaresdiff_matrix(M1,M2) : n - produces the sum of the squares of all
+#                            terms in the difference between two matrices
+#                                sum(for every i,j) (M1[i][j] - M2[i][j])^2
+#
+# normalize_rows(M,t) : L  - produce a row-scaled matrix such that, 
+#                            for every row i, the sum of the values in
+#                            all columns is 1
+#                                R[i][j] /:= sum(for every J) M[i][J]
+#                            t is a required minimum magnitude
+#                            for row sums to avoid divide-by-zero errors
+# normalize_rows(t,M) : L  - synonym for normalize_rows(M,t) 
+#
+# normalize_columns(M,t) : L - produce a column-scaled matrix such that, 
+#                              for every column i, the sum of the values
+#                              in all rows is 1
+#                              such that their sum is 1
+#                                R[i][j] /:= sum(for every I) M[I][j]
+#                              t is a required minimum magnitude for
+#                              column sums to avoid divide-by-zero errors
+# normalize_columns(t,M) : L - synonym for normalize_columns(M,t) 
+#
+# sprintf_matrix(f,M)      - produces a matrix R of strings whose elements
+#                            are formatted (by the IPL sprintf routine)
+#                            from the elements of M:
+#                                R[i][j] := sprintf(f,M[i,j])
+#
+############################################################################
+#
+#  Links: matrix, printf
+#
+############################################################################
+link matrix
+link printf
+
+# transpose_matrix(M)  - produces a new matrix R that is the transpose of M:
+#                          R[j][i] = M[i][j]
+procedure transpose_matrix(M)
+  local R, row, rowcnt, colcnt, i, j
+  # sanity checks
+  type(M) == "list"      | fail
+  type(M[1]) == "list"   | fail
+  rowcnt := *M           | fail
+  colcnt := *M[1]        | fail
+  every i := 2 to rowcnt
+    do *M[i] = colcnt    | fail
+  R := list( )                # create list of rows
+  every i := 1 to colcnt do {
+    put( R, row := list( ) )  # create list of column values
+    every j := 1 to rowcnt do # populate column values
+      put( row, M[j][i] )
+  }
+  return R
+end
+
+# numeric_matrix(M)    - produces a new matrix R that is a copy of M except
+#                        each element has been subjected to the numeric(x)
+#                        function; if numeric fails for any element, 
+#                        numeric_matrix fails:
+#                          R[i][j] = numeric(M[i][j])
+procedure numeric_matrix(M)
+  local R, row, rowcnt, colcnt, i, j
+  # sanity checks
+  type(M) == "list"      | fail
+  type(M[1]) == "list"   | fail
+  rowcnt := *M           | fail
+  colcnt := *M[1]        | fail
+  every i := 2 to rowcnt
+    do *M[i] = colcnt    | fail
+  R := list( )                # create list of rows
+  every i := 1 to rowcnt do {
+    put( R, row := list( ) )  # create list of column values
+    every j := 1 to colcnt do # populate column values
+      put( row, numeric(M[i][j]) | fail )
+  }
+  return R
+end
+
+# scale_matrix(M,mult) - produces a new matrix R each of whose elements is
+#                        mult times larger than its peer in M:
+#                          R[i][j] := mult * M[i][j]
+# scale_matrix(mult,M) - is a synonym for scale_matrix(M,mult).
+procedure scale_matrix(mult,M)
+  local R, i, j
+  # handle synonymous invocation
+  if numeric(M) & type(mult) == "list" then M :=: mult
+  # sanity checks
+  mult := numeric(mult) | fail
+  type(M) == "list"     | fail
+  type(M[1]) == "list"  | fail
+  R := copy_matrix(M)   | fail # create a copy of input matrix
+  every i := 1 to *R do        # for each row
+    every j := 1 to *R[1] do   #   for each column
+                               #     scale the column value
+      R[i][j] := numeric(R[i][j]) * mult | fail
+  return R
+end
+
+# floor_matrix(M,min)  - produces a new matrix R that is a copy of M except 
+#                        each element is increased to min if necessary:
+#                          R[i][j] := min <= M[i][j] | min
+procedure floor_matrix(min,M)
+  local R, i, j, r
+  # handle synonymous invocation
+  if numeric(M) & type(min) == "list" then M :=: min
+  # sanity checks
+  min := numeric(min)  | fail
+  type(M) == "list"    | fail
+  type(M[1]) == "list" | fail
+  R := copy_matrix(M)  | fail  # create copy of input matrix
+  every i := 1 to *R do        # for each row
+    every j := 1 to *R[1] do { #   for each column
+                               #     adjust column value if less than min
+      r := numeric(R[i][j]) | fail
+      R[i][j] := r < min | r
+    }
+  return R
+end
+# floor_matrix(min,M)  - is a synonym for floor_matrix(M,min).
+
+# ceil_matrix(M,max)  - produces a new matrix R that is a copy of M except 
+#                        each element is increased to max if necessary:
+#                          R[i][j] := max <= M[i][j] | max
+procedure ceil_matrix(max,M)
+  local R, i, j
+  # handle synonymous invocation
+  if numeric(M) & type(max) == "list" then M :=: max
+  # sanity checks
+  max := numeric(max)  | fail
+  type(M) == "list"    | fail
+  type(M[1]) == "list" | fail
+  R := copy_matrix(M)  | fail  # create copy of input matrix
+  every i := 1 to *R do        # for each row
+    every j := 1 to *R[1] do { #   for each column
+                               #     adjust column value if less than max
+      r := numeric(R[i][j]) | fail
+      R[i][j] := r > max | r
+    }
+  return R
+end
+# ceil_matrix(max,M)  - is a synonym for ceil_matrix(M,max).
+
+# sumsquares_matrix(M) - produces the sum of the squares
+#   of all terms in a matrix
+#       sum( for every i,j ) (M[i][j])^2
+procedure sumsquares_matrix(M)
+  local r, r1, i, j
+  # sanity checks
+  type(M)    == "list"  | fail
+  type(M[1]) == "list"  | fail
+  # compute the sum of squares
+  r := 0
+  every i := 1 to *M do        # for each row
+    every j := 1 to *M[1] do { #   for each column
+                               #     sumsquare the column value
+      r1 := M[i][j]
+      r +:= r1 * r1
+    }
+  return r
+end
+
+# sumsquaresdiff_matrix(M1,M2) - produces the sum of the squares
+#   of all terms in the difference between two matrices
+#       sum( for every i,j ) (M1[i][j] - M2[i][j])^2
+procedure sumsquaresdiff_matrix(M1,M2)
+  local r, r1, r2, i, j, scratch
+  # sanity checks
+  type(M1)    == type(M2)    == "list"  | fail
+  type(M1[1]) == type(M2[1]) == "list"  | fail
+  ( *M1 = *M2, *M1[1] = *M2[1] )        | fail
+  # compute the sum of squares
+  r := 0
+  every i := 1 to *M1 do        # for each row
+    every j := 1 to *M1[1] do { #   for each column
+                                #     sumsquare the column value
+      r1 := M1[i][j] ; r2 := r1 - M2[i][j]
+      r +:= r2 * r2
+    }
+  return r
+end
+
+# normalize_rows(M,t) : L  - produce a row-scaled matrix such that, 
+#                            for every row i, the sum of the values in
+#                            all columns is 1
+#                                R[i][j] /:= sum(for every J) M[i][J]
+#                            t is a required minimum magnitude
+#                            for row sums to avoid divide-by-zero errors
+# normalize_rows(t,M) : L  - synonym for normalize_rows(M,t) 
+procedure normalize_rows(M,threshold)
+  local R, rowsum, rowcnt, colcnt, i, j
+  # handle synonymous invocation
+  if numeric(M) & type(threshold) == "list" then M :=: threshold
+  # sanity checks
+  type(M)    == "list"  | fail
+  type(M[1]) == "list"  | fail
+  \threshold            | fail
+  R := copy_matrix( M ) | fail
+  rowcnt := *R
+  colcnt := *R[1]
+  every i := 1 to rowcnt do { # for each column
+    rowsum := 0
+    every j := 1 to colcnt do rowsum +:= R[i][j]
+    if not -threshold < rowsum < threshold
+      then
+        every j := 1 to colcnt do R[i][j] /:= rowsum
+  }
+  return R
+end
+
+# normalize_columns(M,t) : L - produce a column-scaled matrix such that, 
+#                              for every column i, the sum of the values
+#                              in all rows is 1
+#                              such that their sum is 1
+#                                R[i][j] /:= sum(for every I) M[I][j]
+#                              t is a required minimum magnitude for
+#                              column sums to avoid divide-by-zero errors
+# normalize_columns(t,M) : L - synonym for normalize_columns(M,T) 
+procedure normalize_columns(M,threshold)
+  local R, colsum, rowcnt, colcnt, i, j
+  # handle synonymous invocation
+  if numeric(M) & type(threshold) == "list" then M :=: threshold
+  # sanity checks
+  type(M)    == "list"  | fail
+  type(M[1]) == "list"  | fail
+  \threshold            | fail
+  R := copy_matrix( M ) | fail
+  rowcnt := *R
+  colcnt := *R[1]
+  every j := 1 to colcnt do { # for each column
+    colsum := 0
+    every i := 1 to rowcnt do colsum +:= R[i][j]
+    if not -threshold < colsum < threshold
+      then
+        every i := 1 to rowcnt do R[i][j] /:= colsum
+  }
+  return R
+end
+
+# sprintf_matrix(format,M) - produces a matrix R of strings formatted
+#                            by sprintf
+procedure sprintf_matrix( fmt, M )
+  local R, row, rowcnt, colcnt, i, j
+  # sanity checks
+  type(M) == "list"      | fail
+  type(M[1]) == "list"   | fail
+  rowcnt := *M           | fail
+  colcnt := *M[1]        | fail
+  every i := 2 to rowcnt
+    do *M[i] = colcnt    | fail
+  R := list( )                # create list of rows
+  every i := 1 to rowcnt do {
+    put( R, row := list( ) )  # create list of column values
+    every j := 1 to colcnt do # populate column values
+      put( row, sprintf( fmt, M[i][j] ) | fail )
+  }
+  return R
+end
+
+# vim:set ts=2 sw=2 expandtab :
+#end of file matrix2.icn
