@@ -13,7 +13,7 @@ HFAQ = /cs/www/icon/faq.htm
 TFAQ = /cs/www/icon/ftp/doc/faq.txt
 FFAQ = /cs/ftp/icon/doc/faq.txt
 
-RLSDIR = /cs/www/icon/v942
+RLSDIR = /cs/www/icon/v943
 
 
 #  (default:) rebuild icon.txt, icont.txt, and faq.txt from nroff/html sources.
