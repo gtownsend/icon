@@ -4,4 +4,5 @@
 /^ICONT/d
 /^University/d
 s/.//g
+s/’/'/g
 
