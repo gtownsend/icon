@@ -1,5 +1,5 @@
 /*
- *  Icon configuration file for HP-UX.
+ *  Icon configuration file for HP-UX
  */
 #define UNIX 1
 

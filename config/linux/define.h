@@ -1,4 +1,4 @@
-/*  
+/*
  * Icon configuration file for Linux
  */
 
@@ -6,4 +6,4 @@
 #define LoadFunc
 
 #define CComp "gcc"
-#define COpts "-O2 -fomit-frame-pointer"
+#define COpts "-O -fomit-frame-pointer"
