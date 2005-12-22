@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     August 3, 2005
+#	Date:     December 21, 2005
 #
 ############################################################################
 #
@@ -35,11 +35,10 @@
 #  The right mouse button activates the same popup momentarily until
 #  the button is released.
 #
-#  -wnnn sets the maximum width for displaying an image;
-#  -hnnn sets the maximum height.  -snnn sets both.
-#  By default, sizes are chosen automatically, subject to a minimum
-#  size of 32x32, to allow all images to fit in a single window.
-#
+#  -wnnn sets the minimum thumbnail width.  The default is 32.
+#  -hnnn sets the minimum thumbnail height.  The default is 32.
+#  -snnn sets the minimum height and width together.
+#  
 #  -r arranges images in rows instead of columns.
 #  -m maximizes the window size before displaying images.
 #  -t trims file names of leading path components and extensions.
@@ -124,13 +123,11 @@ procedure main(args)
    else
       fh := WAttrib("fheight")
    fw := WAttrib("fwidth")
-   maxw := \opts["w"] | \opts["s"] | 2 * \opts["h"]
-   maxh := \opts["h"] | \opts["s"] | 2 * \opts["w"]
 
-   # If no image size specified, try to guess to fill the window
-   if /maxw then
-      layout(*args)
-
+   # Determine thumbnail sizes.
+   layout(*args)
+   maxw <:= \opts["w"] | \opts["s"] | 2 * \opts["h"]
+   maxh <:= \opts["h"] | \opts["s"] | 2 * \opts["w"]
    aspmax := real(maxw) / real(maxh)
 
    # Display the files.
