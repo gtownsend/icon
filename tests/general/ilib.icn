@@ -1,14 +1,16 @@
 #  a simple test of many of the core library procedures
+#  (and a few things outside the core)
 
 link core
 link options
+link printf
 link rational
 
 $define LSIZE 16
 $define GENLIMIT 25
 
 procedure main()
-   local L, LR, T, r1, r2, r3, argv, SL
+   local L, LR, T, r1, r2, r3, argv, SL, vlist, v
 
    L := [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
    LR := lreverse(L)
@@ -168,6 +170,15 @@ procedure main()
    tbl(options, copy(argv), "-abc: -s: irvb")
    tbl(options, argv, "a:svi:r")
    every writes(" ", "  argv        " | !argv | "\n")
+
+   write()
+   write("printf:")			# printf  (not part of core)
+   vlist := [
+      "-1234.5678", -654.3209, -12.34567, -7.0486, -5, -3.9999,
+      -0.7032, -0.0028, -0.0009, -0.0003, 0.0, 0, 0.003, 0.0058,
+      0.1234, 0.5678, &phi, &e, &pi, 718.93, 123456, 4.97e8 ]
+   every v := !vlist do
+      printf("%8.3d  %06o  %5x  %8.3e  %8.3r  %.3r\n", v, v, v, v, v, v)
 
    write()
    write("random:")			# random
