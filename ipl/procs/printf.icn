@@ -178,7 +178,8 @@ procedure fixnum(x, prec)
 	else
 		frac ?:= (tab(upto('.')) & move(1) & tab(0))
         frac := adjustfracprec(frac, prec)
-        int +:= if int >= 0 then frac[2] else -frac[2]
+        int +:= if x >= 0 then frac[2] else -frac[2]
+        if int = 0 & x < 0 then int := "-0"
 	return int || "." || frac[1]
 end
 
