@@ -6,7 +6,7 @@
 #
 #	Author:   William H. Mitchell
 #
-#	Date:     February 11, 2006
+#	Date:     February 13, 2006
 #
 ############################################################################
 #
@@ -14,7 +14,8 @@
 #
 ############################################################################
 #
-#	Contributors:   Cheyenne Wills, Phillip Lee Thomas, Michael Glass
+#	Contributors:   Cheyenne Wills, Phillip Lee Thomas,
+#			Michael Glass, Gregg M. Townsend
 #
 ############################################################################
 #
@@ -165,13 +166,15 @@ procedure fixnum(x, prec)
 	x := real(x) | return image(x)
 	int := integer(x) | return image(x)
 	frac := image(x - int)
-	if find("e", frac) then {
+	if upto('e', frac) then {
 		frac ?:= {
-			f1 := tab(upto('.')) &
-			move(1) &
-			f2 := tab(upto('e')) &
-			move(1) &
-			p10 := -integer(tab(0)) &
+			f1 := tab(upto('.e'))
+			if ="." then
+			    f2 := tab(upto('e'))
+			else
+			    f2 := 0
+			move(1)
+			p10 := -integer(tab(0))
 			repl("0",p10-1) || f1 || f2
 			}
 		}
