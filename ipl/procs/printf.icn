@@ -89,62 +89,33 @@ procedure _doprnt(format, args)
 end
 
 procedure hexstr(n)
-   local h, neg
-   static BigNeg, hexdigs, hexfix
-
-	initial {
-		BigNeg := -2147483647-1
-		hexdigs := "0123456789abcdef"
-		hexfix := "89abcdef"
-		}
-
-	n := integer(n)
-	if n = BigNeg then
-		return "80000000"
-	h := ""
-	if n < 0 then {
-		n := -(BigNeg - n)
-		neg := 1
-		}
-	repeat {
-		h := hexdigs[n%16+1]||h
-		if (n /:= 16) = 0 then
-			break
-		}
-	if \neg then {
-		h := right(h,8,"0")
-		h[1] := hexfix[h[1]+1]
-		}
-	return h
+   return _basestr(n, 4)
 end
+
 procedure octstr(n)
-   local h, neg
-   static BigNeg, octdigs, octfix
+   return _basestr(n, 3)
+end
 
-	initial {
-		BigNeg := -2147483647-1
-		octdigs := "01234567"
-		octfix := "23"
-		}
+procedure _basestr(n, b)
+   local s, mask
 
-	n := integer(n)
-	if n = BigNeg then
-		return "20000000000"
-	h := ""
-	if n < 0 then {
-		n := -(BigNeg - n)
-		neg := 1
+	n := integer(n) | return image(n)
+
+	if n = 0 then
+		return "0"
+
+	# backwards compatibility hack
+	# treat 31-bit negative integers as positive values
+	if -16r80000000 <= n <= -1 then
+		n +:= 16r100000000
+
+	s := ""
+	mask := ishift(1, b) - 1
+	while n ~= 0 & n ~= -1 do {
+		s := "0123456789abcdef" [1 + iand(n, mask)] || s
+		n := ishift(n, -b)
 		}
-	repeat {
-		h := octdigs[n%8+1]||h
-		if (n /:= 8) = 0 then
-			break
-		}
-	if \neg then {
-		h := right(h,11,"0")
-		h[1] := octfix[h[1]+1]
-		}
-	return h
+	return s
 end
 
 procedure fixnum(x, prec)
