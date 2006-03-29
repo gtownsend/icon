@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     September 27, 2001
+#	Date:     March 29, 2006
 #
 ############################################################################
 #
@@ -62,6 +62,8 @@
 #	-s	report successes as well as problems
 #
 #	-v	report tracing and successes, if selected, more verbosely
+#
+#	-i	invert output (sort by referencing page, not by status)
 #
 #	-r root
 #		specify starting point for file names beginning with "/"
@@ -120,7 +122,6 @@
 #	allow longer history persistence
 #	history is clumsy -- hard to recheck a connection that failed
 #	  add option to retry failed entries (but believe cached successes)
-#	add option to sort report by referencing page
 
 
 $define URLCOLS 56	# number of columns allotted for tracing URLs
@@ -137,6 +138,7 @@ global home
 global prune
 global bounds
 
+global invert
 global recurse
 global trace
 global verbose
@@ -166,7 +168,8 @@ procedure main(args)
 
    # process command line
 
-   opts := options(args, "b:p:r:h:Rstv")
+   opts := options(args, "b:p:r:h:iRstv")
+   invert := opts["i"]
    recurse := opts["R"]
    successes := opts["s"]
    trace := opts["t"]
@@ -339,14 +342,29 @@ procedure check(url)
 end
 
 procedure report()
-   local l, url, stat
+   local l, url, stat, s, t, u
 
    l := sort(done, 4)
+   t := table()
    while (url := get(l)) & (stat := get(l)) do {
       if \successes | (any('3456789', stat) & stat ~== "302 Found") then {
-         write(pad(stat || ":", STATCOLS), "  ", url)
-         if \verbose | any('3456789', stat) then
-            every write("   referenced by:\t", !sort(refto[url]))
+         s := pad(stat || ":", STATCOLS) || "  " || url
+         if \invert then
+            every u := !refto[url] do
+               put(\t[u] | (t[u] := []), s)
+         else {
+            write(s)
+            if \verbose | any('3456789', stat) then
+               every write("   referenced by:\t", !sort(refto[url]))
+            }
+         }
+      }
+
+   if \invert then {
+      l := sort(t, 3)
+      while (url := get(l)) & (stat := get(l)) do {
+         write(url)
+         every write("   ", !stat)
          }
       }
 
