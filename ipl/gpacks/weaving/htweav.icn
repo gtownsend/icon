@@ -1,0 +1,396 @@
+############################################################################
+#
+#	File:     htweav.icn
+#
+#	Subject:  Program to display images as weavable halftones
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     March 20, 2006
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#  Usage:  htweav [winoptions] imagefile...
+#
+#  Htweav reads one or more images and displays modified grayscale versions
+#  that are "weavable" in the sense that warp and weft colors are assignable
+#  as in the unravel.icn program.
+#
+#  The display is a fixed 4 x 3 grid of twelve copies of an input image.
+#  One copy is a dithered, grayscale version of the original.  The others
+#  are weavable patterns based on the dithered image.
+#
+#  The program is controlled by keypresses in the display window.
+#  Keyboard commands are as follows:
+#
+#	0 to 9
+#	   sets the amount of dithering, from none (0) to maximum (9)
+#
+#	R or r
+#	   selects randomized dithering
+#
+#	G or g
+#	   selects "golden" dithering, a regular dithering involving
+#	   use of the golden ratio
+#
+#	S or s
+#	   brings up a dialog box for saving the displayed results
+#	   as a family of GIF files named by extending the entered string
+#
+#	<SPACE> or <ENTER>
+#	   advances to the next input image, if more than one was given
+#
+#	<BS> or <DEL>
+#	   goes back to the previous input image
+#	
+#	Q or q
+#	   exits the program
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links: graphics
+#
+############################################################################
+
+#  TO DO:
+#
+#  The choices of warp and weft threads should be controllable somehow
+#  without having to edit and recompile the source code.
+#
+#  The hardwired layout of 4 x 3 images should also be adjustable.
+#
+#  There might be other dithering approaches that would work better.
+#  In particular, consider dithering with error diffusion.
+#
+#  Some sort of dithering that takes the varying thread colors into
+#  account might do better yet.
+#
+#  Dithering should be done in a linear color space, not a gamma=2.2
+#  colorspace.  This is tricky because the code is already working
+#  around Icon's assumption that an input image has a gamma of 1.0
+#  instead of the 2.2 that has become nearly universal today.
+
+
+link graphics
+
+
+$define DEFPROC "r"	# default dithering procedure
+$define DEFNOISE 4	# default dithering level (empirical)
+
+#  display layout
+$define NWIDE 4
+$define NHIGH 3
+$define MARGIN 3
+
+#  program constants (some are not easily changed)
+$define ALPHABET "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"	# weaving alphabet
+$define IPALETTE "g256"					# input palette
+$define OPALETTE "g64"					# output palette
+
+
+#  general globals
+
+global dchar		# current dithering procedure selection character
+global noise		# current noise factor
+
+global texth		# text height for labeling
+global row, col		# current position for next image to exhibit
+
+global svname		# basename for file saving, if requested
+
+
+#  current image globals
+
+global iname		# current image name
+global istring		# current image string
+global iwidth, iheight	# current image height
+global tmpwin		# temporary scratch window, sized for current image
+
+
+
+#  main procedure
+
+procedure main(args)
+   local e
+
+   Window("fg=black", "bg=white", "gamma=1.0", "font=sans,10", 
+      args, "canvas=hidden")
+   if *args = 0 then stop("usage: ", &progname, " file.gif...")
+
+   dchar := DEFPROC
+   noise := DEFNOISE
+
+   texth := WAttrib("ascent")
+
+   load(!args)
+   exhibit()
+
+   while e := Event() do case e of {
+      QuitEvents():	{ break }
+      !"\n\r ":		{ put(args, get(args));   load(!args); exhibit(); }
+      !"\b\d":		{ push(args, pull(args)); load(!args); exhibit(); }
+      !"0123456789":	{ noise := ord(e) - ord(0); exhibit(); }
+      !"sS":		{ save() }
+      !"gGrR":		{ dchar := map(e); exhibit(); }
+      }
+end
+
+
+#  load(fname) -- read image and set global variables
+
+procedure load(fname)
+   WClose(\tmpwin)
+   tmpwin := WOpen("image=" || fname, "gamma=1.0", "canvas=hidden") |
+      stop("cannot open ", fname)
+   iname := fname
+   istring := Capture(tmpwin, IPALETTE)
+   iwidth := WAttrib(tmpwin, "width")
+   iheight := WAttrib(tmpwin, "height")
+   return
+end
+
+
+#  save() -- save results as a family of GIF images
+#
+#  Gets a basename using a dialog box.
+#  Saves each image with a different suffix reflecting its parameters.
+#  Actual work is done as a side effect of draw() calls from exhibit().
+
+procedure save()
+   dialog_value := ""
+   while *dialog_value = 0 do
+      case SaveDialog("Save to file names beginning with") of {
+         "Yes":	{
+            svname := dialog_value
+            write(&errout, "  Saving to ",
+               svname, ".warp.weft.", dchar, noise, ".gif")
+            EraseArea()
+            exhibit()
+            svname := &null
+            }
+         "No":
+            return
+         "Cancel":
+            fail
+         }
+end
+
+
+#  exhibit() -- build a windowful of images
+#
+#  Runs through a hardwired sequence of parameter sets,
+#  displaying all variations.  
+
+procedure exhibit()
+   local dstring, label
+
+   # configure the display window
+   WAttrib("width=" || (MARGIN + NWIDE * (iwidth + MARGIN)),
+      "height=" || (MARGIN + NHIGH * (iheight + texth + MARGIN)))
+   WAttrib("canvas=normal")	# keep this separate (work around iconx bug)
+   label := iname || "   " || dchar || noise	# make a label
+   WAttrib("label=" || label)			# label the window
+   row := col := 0				# initialize posn in window
+
+   # dither the grayscale image
+   case dchar of {
+      "g": dstring := goldither(istring)
+      "r": dstring := randither(istring)
+   }
+
+   # first row
+   draw(dstring, label) 			# original grayscale image
+   drawweave(dstring, "01", "23")		# 2x2 dark x light
+   drawweave(dstring, "03", "12")		# 2x2 interleaved
+   drawweave(dstring, "0", "1")			# simple binary threshold
+
+   # second row
+   drawweave(dstring, "475869", "ADBECF")	# 6x6 dark x light
+   drawweave(dstring, "012", "345")		# 3x3 dark x light
+   drawweave(dstring, "024", "135")		# 3x3 interleaved
+   drawweave(dstring, "123", "123")		# 3x3 all x all
+
+   # third row
+   drawweave(dstring, "0213", "4657")		# 4x4 dark x light
+   drawweave(dstring, "0102", "5453")		# 4x4 alt extremes
+   drawweave(dstring, "010203", "646566")	# 6x6 alt extremes
+   drawweave(dstring, "14253", "06")		# 5x2 mids x extremes
+
+   # not currently displayed
+   # drawweave(dstring, "0426", "1537")		# 4x4 interleaved
+   # drawweave(dstring, "02413", "57968")	# 5x5 dark x light
+   # drawweave(dstring, "04826", "15937")	# 5x5 interleaved
+
+   return
+end
+
+
+#  drawweave(dstring, warp, weft) -- weave, draw, and label
+
+procedure drawweave(dstring, warp, weft)
+   draw(weave(dstring, warp, weft), warp || "." || weft)
+   return
+end
+
+
+#  goldither(istring) -- apply golden dithering to image string
+#
+#  Dithering d changes from one pixel to the next by approximately
+#	d := fractpart(d + &phi)
+#
+#  The actual amount is very slightly different so that the offset
+#  from one row to the text is independent of the row length.
+#  Empirically, an offset angle that is arctan(7) seems to work best.
+
+procedure goldither(istring)
+   local s, c, i, v, dv
+
+   dv := (integer(iwidth * &phi) + (1./7.)) / iwidth	# 7 is relatively prime
+   istring ? {
+      s := tab(upto(',') + 1) || tab(upto(',') + 1)	# width and palette
+      v := 0.0
+      while c := move(1) do {
+            v := v + dv
+            v := v - integer(v)
+            i := ord(c) + 16 * noise * (v - 0.5)
+            i <:= 0
+            i >:= 255
+            s ||:= char(i)
+         }
+      return s
+      }
+end
+
+
+#  randither(istring) -- apply random dithering to image string
+
+procedure randither(istring)
+   local s, c, i
+
+   istring ? {
+      s := tab(upto(',') + 1) || tab(upto(',') + 1)	# width and palette
+      while c := move(1) do {
+            i := ord(c) + 16 * noise * (?0 - 0.5)
+            i <:= 0
+            i >:= 255
+            s ||:= char(i)
+         }
+      return s
+      }
+end
+
+
+#  draw(istring, label) -- draw image at next open position
+
+procedure draw(istring, label)
+   local x, y
+
+   x := MARGIN + col * (iwidth + MARGIN)
+   y := MARGIN + row * (iheight + MARGIN + texth)
+   EraseArea(x + iwidth, y, MARGIN, iheight + MARGIN)
+   EraseArea(x, y + iheight, iwidth + MARGIN, texth + MARGIN)
+   DrawImage(x, y, istring)
+   DrawString(x, y + iheight + texth, \label)
+   col +:= 1
+   if col >= NWIDE then {
+      col := 0
+      row +:= 1
+      }
+   return
+end
+
+
+#  weave(istring, warp, weft) -- produce a weavable version of an image string
+#
+#  The warp and weft arguments are implicitly replicated as needed to match
+#  the width and height of the image.  Each is a string from the alphabet
+#	0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ
+#  where the smallest and largest characters used by either string are
+#  taken to stand for black and white respectively, with uniform gradation
+#  for any characters between.
+
+procedure weave(istring, warp, weft)
+   local maps, row, m, i, s, n, svfile
+
+   warp := map(warp, &lcase, &ucase)
+   weft := map(weft, &lcase, &ucase)
+   maps := mappings(warp, weft)
+   n := *(warp ++ weft)
+
+   s := iwidth || "," || OPALETTE || ","
+   istring ? {
+      tab(upto(',') + 1)	# skip width
+      tab(upto(',') + 1)	# skip palette
+      while row := move(iwidth) do {
+         put(maps, m := get(maps))		# rotate mappings to next row
+         every i := 1 to *row do
+            s ||:= m[(i - 1) % *m + 1][ord(row[i]) + 1]
+         }
+      }
+
+   if \svname then {
+      svfile := svname ||
+         "." || warp || "." || weft || "." || dchar || noise || ".gif"
+      DrawImage(tmpwin, 0, 0, s)
+      WriteImage(tmpwin, svfile)
+      }
+
+   return s
+end
+
+
+#  mappings(warp, weft) -- produce mappings to output characters
+#
+#  Returns a 2-D list of mappings that translate input indexes from the
+#  g256 palette to output palette (OPALETTE=g64) indexes.
+
+procedure mappings(warp, weft)
+   local pmap, all, mlist, row, c
+
+   all := warp ++ weft
+   mlist := []
+   every c := !weft do {
+      put(mlist, row := [])
+      every put(row, onemap(all, !warp, c))
+      }
+   return mlist
+end
+
+
+#  onemap(all, warpc, weftc) -- produce one mapping to warpc and weftc.
+#
+#  Generates a mapping from input graylevel to one of two output graylevels,
+#  warpc and weftc, which are chosen from the range in the first argument.
+
+procedure onemap(all, warpc, weftc)
+   local c1, c2, g1, g2, n, s
+
+   g1 := grayval(all, warpc)
+   g2 := grayval(all, weftc)
+   if g1 > g2 then g1 :=: g2
+   c1 := PaletteKey(OPALETTE, g1 || "," || g1 || "," || g1)
+   c2 := PaletteKey(OPALETTE, g2 || "," || g2 || "," || g2)
+   n := (g1 + g2) / 512
+   s := repl(c1, n) || repl(c2, 256 - n)
+   return s
+end
+
+
+#  grayval(all, c) -- return value of c in the range specified by all.
+
+procedure grayval(all, c)
+   local a, b
+
+   a := find(all[1], ALPHABET)
+   b := find(all[-1], ALPHABET)
+   c := find(c, ALPHABET)
+   return integer(65535 * (c - a) / real(b - a) + 0.5)
+end
