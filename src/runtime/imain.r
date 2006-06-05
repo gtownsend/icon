@@ -69,7 +69,7 @@ int iconx(int argc, char *argv[]) {
          p = getenv("FPATH");
          q = relfile(argv[0], "/..");
          sprintf(buf, "FPATH=%s %s", (p ? p : "."), (q ? q : "."));
-         putenv(buf);
+         putenv(salloc(buf));
          }
    #endif				/* LoadFunc */
 
