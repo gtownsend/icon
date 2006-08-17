@@ -1,8 +1,8 @@
 /*
- * Icon configuration file for Macintosh
+ * Icon configuration file for Macintosh with Xcode 2.4 build tools
  */
 
 #define UNIX 1
 #define LoadFunc 
 
-#define NamedSemaphores	    /* unnamed sempahores not implemented by OS 10.4 */
+/* older Macintosh versions required: #define NamedSemaphores */
