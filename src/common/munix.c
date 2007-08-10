@@ -102,14 +102,6 @@ char *findonpath(char *name, char *buf, size_t len) {
 
    if (path == NULL || *path == '\0')
       path = ".";
-   #if CYGWIN
-      else {
-         char *posix_path;
-         posix_path = alloca(cygwin_win32_to_posix_path_list_buf_size(path));
-         cygwin_win32_to_posix_path_list(path, posix_path);
-         path = posix_path;
-         }
-   #endif				/* CYGWIN */
 
    end = path + strlen(path);
    for (next = path; next <= end; next = sep + 1) {
