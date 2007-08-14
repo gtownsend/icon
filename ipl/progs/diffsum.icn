@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     May 31, 1994
+#	Date:     August 14, 2007
 #
 ############################################################################
 #
@@ -26,7 +26,7 @@
 #
 ############################################################################
 
-global oldname, newname
+global oldname, newname, ixname, ixprev
 global added, deleted, chgadd, chgdel
 
 procedure main(args)
@@ -42,9 +42,13 @@ procedure main(args)
    chgadd := chgdel := 0
 
    while line := read(f) do line ? {
-      if =" " then
+      if any(' @') then
          next
-      else if ="***" then {
+      else if ="Index: " then {
+         ixprev := ixname
+         ixname := tab(0)
+         }
+      else if =("+++" | "***")then {
          chgadd := 0
          chgdel := +1
          }
@@ -71,12 +75,15 @@ procedure main(args)
       else if ="Only " then
          only()
       }
+   ixprev := ixname
    report()
 end
 
 procedure report()
    local net
 
+   if oldname := \ixprev then
+      newname := ""
    if added > 0 | deleted > 0 then {
       net := string(added - deleted)
       if net > 0 then
@@ -85,6 +92,7 @@ procedure report()
       }
    added := deleted := 0
    chgadd := chgdel := 0
+   ixprev := &null
    return
 end
 
