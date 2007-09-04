@@ -38,22 +38,14 @@ static char *tryfile	(char *buf, char *dir, char *name, char *extn);
 char *pathfind(buf, path, name, extn)
 char *buf, *path, *name, *extn;
    {
-   char *s;
    char pbuf[MaxPath];
 
    if (tryfile(buf, (char *)NULL, name, extn))	/* try curr directory first */
       return buf;
-   if (!path)				/* if no path, use default */
+   if (!path)					/* if no path, use default */
       path = DefPath;
 
-   #if CYGWIN
-      s = alloca(cygwin_win32_to_posix_path_list_buf_size(path));
-      cygwin_win32_to_posix_path_list(path, s);
-   #else				/* CYGWIN */
-      s = path;
-   #endif				/* CYGWIN */
-
-   while ((s = pathelem(s, pbuf)) != 0)		/* for each path element */
+   while ((path = pathelem(path, pbuf)) != 0)	/* for each path element */
       if (tryfile(buf, pbuf, name, extn))	/* look for file */
          return buf;
    return NULL;				/* return NULL if no file found */
