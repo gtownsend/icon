@@ -3,6 +3,7 @@
  */
 #define MSWIN 1		/* this configuration is for Microsoft Windows */
 #define CYGWIN 1	/* this configuration uses Cygwin API */
+#define LoadFunc 1
 
 #define FAttrib		/* enable fattrib() extension */
 #define WinExtns	/* enable native Windows functions */
@@ -13,4 +14,4 @@
 #define IcodeSuffix ".exe"
 
 #define BinaryHeader
-#define MaxHdr 16384 
+#define MaxHdr 16384

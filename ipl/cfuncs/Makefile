@@ -25,7 +25,8 @@ default:	cfunc.u2 $(FUNCLIB)
 # library
 
 $(FUNCLIB):	$(FUNCS) mklib.sh
-		CC="$(CC)" CFLAGS="$(CFLAGS)" sh mklib.sh $(FUNCLIB) $(FUNCS)
+		CC="$(CC)" CFLAGS="$(CFLAGS)" BIN="../../bin" \
+		    sh mklib.sh $(FUNCLIB) $(FUNCS)
 $(FUNCS):	icall.h
 
 

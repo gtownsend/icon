@@ -3,7 +3,7 @@
 #  It is assumed that the standard C functions will be found by iconx.
 
 include ../../../Makedefs
-CFLAGS = -O $(CFDYN) -I../../cfuncs 
+CFLAGS = -O $(CFDYN) -I../../cfuncs
 
 ICONT = icont
 IFLAGS = -us
@@ -28,7 +28,8 @@ libnames.icn:	Makefile
 		echo '$$define FUNCLIB "./$(FUNCLIB)"'	>libnames.icn
 
 $(FUNCLIB):	$(FUNCS)
-		CC="$(CC)" CFLAGS="$(CFLAGS)" sh $(MKLIB) $(FUNCLIB) $(FUNCS)
+		CC="$(CC)" CFLAGS="$(CFLAGS)" BIN="../../../bin" \
+			sh $(MKLIB) $(FUNCLIB) $(FUNCS)
 
 
 #  Copy progs to ../../iexe:

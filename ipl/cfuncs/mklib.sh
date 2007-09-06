@@ -3,6 +3,7 @@
 #  mklib libname.so obj.o ...
 
 CC=${CC-cc}
+BIN=${BIN-../../bin}
 
 LIBNAME=${1?"usage: $0 libname obj..."}
 shift
@@ -12,6 +13,11 @@ set -x
 case "$SYS" in
    Linux*|*BSD*|GNU*)
       gcc -shared -o $LIBNAME -fPIC "$@";;
+   CYGWIN*)
+      # copy iconx to make a DLL file; see "direct linking to a DLL"
+      # in the "ld and WIN32" section of the GNU ld manual
+      cp $BIN/iconx.exe $BIN/iconx.exe.dll
+      gcc -shared -o $LIBNAME "$@" -L$BIN -liconx.exe;;
    Darwin*)
       cc -bundle -undefined suppress -flat_namespace -o $LIBNAME "$@";;
    SunOS*)
