@@ -69,7 +69,7 @@ function{0,1} loadfunc(filename,funcname)
          if (curfile)
             free((pointer)curfile);	/* free the old file name */
          curfile = salloc(filename);	/* save the new name */
-         handle = dlopen(filename, RTLD_LAZY);	/* get the handle */
+         handle = dlopen(filename, RTLD_LAZY | RTLD_GLOBAL);	/* get handle */
          }
       /*
        * Load the function.  Diagnose both library and function errors here.
