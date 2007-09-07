@@ -29,12 +29,6 @@ char *relfile(char *prog, char *mod) {
 
    if (baseloc[0] == 0) {		/* if argv[0] not already found */
 
-      #if CYGWIN
-         char posix_prog[_POSIX_PATH_MAX + 1];
-         cygwin_conv_to_posix_path(prog, posix_prog);
-         prog = posix_prog;
-      #endif				/* CYGWIN */
-
       if (findexe(prog, baseloc, sizeof(baseloc)) == NULL) {
          fprintf(stderr, "cannot find location of %s\n", prog);
          exit(EXIT_FAILURE);

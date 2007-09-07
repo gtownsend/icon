@@ -206,10 +206,6 @@
    #define DBSuffix ".db"
 #endif					/* DBSuffix */
 
-#ifndef PPInit
-   #define PPInit ""
-#endif					/* PPInit */
-
 #ifndef PPDirectives
    #define PPDirectives {"passthru", PpKeep},
 #endif					/* PPDirectives */

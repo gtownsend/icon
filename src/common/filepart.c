@@ -115,12 +115,6 @@ char *s;
    int n;
    char *p, *q;
 
-   #if CYGWIN
-      char posix_s[_POSIX_PATH_MAX + 1];
-      cygwin_conv_to_posix_path(s, posix_s);
-      s = posix_s;
-   #endif				/* CYGWIN */
-
    q = s;
    fp.ext = p = s + strlen(s);
    while (--p >= s) {

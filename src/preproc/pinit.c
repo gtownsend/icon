@@ -47,22 +47,6 @@ char **opt_args;
    int i;
 
    /*
-    *  Establish predefined macros.
-    */
-   #if CYGWIN
-      do_directive("#define __CYGWIN32__\n");
-      do_directive("#define __CYGWIN__\n");
-      do_directive("#define __unix__\n");
-      do_directive("#define __unix\n");
-      do_directive("#define _WIN32\n");
-      do_directive("#define __WIN32\n");
-      do_directive("#define __WIN32__\n");
-   #else				/* CYGWIN */
-      do_directive("#define unix 1\n");
-      do_directive(PPInit);   /* defines that vary between Unix systems */
-   #endif				/* CYGWIN*/
-
-   /*
     * look for options that affect macro definitions (-U, -D, etc).
     */
    for (i = 0; opt_lst[i] != '\0'; ++i)
