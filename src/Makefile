@@ -5,14 +5,14 @@ what:
 	@echo "What do you want to make?"
 
 Clean Pure:
-	cd iconc;	rm -f *.o iconc
-	cd common;	rm -f *.o doincl patchstr infer
-	cd preproc;	rm -f *.o pp
-	cd rtt;		rm -f *.o rtt
-	cd runtime;	rm -f *.o *.c rt.db rt.a rttcur.lst rttfull.lst iconx
-	cd icont;	rm -f *.o icont hdr.h ixhdr.hdr newhdr
-	cd wincap;	rm -f *.o *.a
-	cd xpm;		rm -f *.o *.a
+	cd iconc;	rm -f *.o *.exe iconc
+	cd common;	rm -f *.o *.exe doincl patchstr infer
+	cd preproc;	rm -f *.o *.exe pp
+	cd rtt;		rm -f *.o *.exe rtt
+	cd runtime;	rm -f *.o *.exe *.c rt.db rt.a rtt*.lst iconx
+	cd icont;	rm -f *.o *.exe icont hdr.h ixhdr.hdr newhdr
+	cd wincap;	rm -f *.o *.exe *.a
+	cd xpm;		rm -f *.o *.exe *.a
 # force full runtime system rebuild
 	touch h/define.h
 	rm -f h/arch.h
