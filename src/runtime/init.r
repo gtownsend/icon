@@ -273,6 +273,7 @@ struct header *hdr;
 #endif					/* COMPILER */
 
    {
+   char *itval;
    int delete_icode = 0;
 #if !COMPILER
    FILE *fname = NULL;
@@ -303,13 +304,11 @@ struct header *hdr;
     * from icont to delete icode file xxxxx and to use yyyyy for &progname.
     * (This is used with Unix "#!" script files written in Icon.)
     */
-   {
-      char *itval = getenv("ICODE_TEMP");
-      int nlen = strlen(name);
-      if (itval != NULL && itval[nlen] == ':' && strncmp(name,itval,nlen)==0) {
-         delete_icode = 1;
-         prog_name = itval + nlen + 1;
-         }
+   itval = getenv("ICODE_TEMP");
+   if (itval != NULL && strncmp(name, itval, strlen(name)) == 0) {
+      delete_icode = 1;
+      prog_name = strchr(itval, ':') + 1;
+      prog_name[-1] = '\0';
       }
 
 #if COMPILER
@@ -526,7 +525,7 @@ struct header *hdr;
       }
    fclose(fname);
    if (delete_icode)		/* delete icode file if flag set earlier */
-      remove(name);
+      remove(itval);
 
 /*
  * Make sure the version number of the icode matches the interpreter version.
