@@ -248,7 +248,7 @@ xrwinrsc.o: rwinrsc.r $(HDRS) $(GRAPHICSHDRS) rxrsc.ri
 	$(CC) -c $(CFLAGS) xrwinrsc.c
 	rm xrwinrsc.c
 
-xrwinsys.o: rwinsys.r $(HDRS) $(GRAPHICSHDRS) rxwin.ri
+xrwinsys.o: rwinsys.r $(HDRS) $(GRAPHICSHDRS) rxwin.ri rmswin.ri
 	../../bin/rtt -x rwinsys.r
 	$(CC) -c $(CFLAGS) xrwinsys.c
 	rm xrwinsys.c
