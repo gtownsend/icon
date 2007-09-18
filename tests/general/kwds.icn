@@ -27,8 +27,9 @@ procedure main()
    every kw("fail", &fail | "[failed]")
 
    every insert(f := set(), &features)
-   every delete(f, "UNIX" | "MS Windows" | "Cygwin")	         # platform ID
-   every delete(f, "dynamic loading" | "graphics" | "X Windows") # may be absent
+   every delete(f, "UNIX" | "MS Windows" | "Cygwin")		# platform ID
+   every delete(f, "dynamic loading" | "external values")	# may be absent
+   every delete(f, "graphics" | "X Windows")			# may be absent
    every kw("features", member(f, &features))
 
    every kw("input", &input | "[failed]")

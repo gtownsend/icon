@@ -1339,7 +1339,8 @@ function{1} type(x)
          inline {
 #if !COMPILER
             if (!Qual(x) && (Type(x)==T_External)) {
-               return C_string "external";
+	       extlname(&x, &result);
+	       return result;
                }
             else
 #endif					/* !COMPILER */

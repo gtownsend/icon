@@ -17,7 +17,6 @@ struct errtab {
 /*
  * Descriptor
  */
-
 struct descrip {		/* descriptor */
    word dword;			/*   type field */
    union {
@@ -32,6 +31,10 @@ struct sdescrip {
    word length;			/*   length of string */
    char *string;		/*   pointer to string */
    };
+
+/*
+ * Heap Blocks
+ */
 
 #ifdef LargeInts
 struct b_bignum {		/* large integer block */
@@ -178,7 +181,9 @@ struct b_tvtbl {		/* table element trapped variable block */
 struct b_external {		/* external block */
    word title;			/*   T_External */
    word blksize;		/*   size of block */
-   word exdata[1];		/*   words of external data */
+   word id;			/*   identification number */
+   struct b_extlfuns *funcs;	/*   dispatch table; distinguishes extl types */
+   word data[1];		/*   actual external data */
    };
 
 struct astkblk {		  /* co-expression activator-stack block */
@@ -225,6 +230,21 @@ struct dpair {
    };
 
 /*
+ * Structure for dispatching to user-provided C functions associated with
+ * external data.  Note that any entry can be null.
+ */
+struct b_extlfuns {
+   long (*extlcmp) (struct b_external *eblock1, struct b_external *eblock2);
+   struct descrip (*extlcopy)	(struct b_external *eblock);
+   struct descrip (*extlname)	(struct b_external *eblock);
+   struct descrip (*extlimage)	(struct b_external *eblock);
+   struct descrip (*future1)	(struct b_external *eblock);
+   struct descrip (*future2)	(struct b_external *eblock);
+   struct descrip (*future3)	(struct b_external *eblock);
+   struct descrip (*future4)	(struct b_external *eblock);
+   };
+
+/*
  * Allocated memory region structure.  Each program has linked lists of
  * string and block regions.
  */
@@ -247,10 +267,9 @@ struct region {
 #endif					/* Double */
 
 #if COMPILER
-
-/*
- * Structures for the compiler.
- */
+   /*
+    * Structures for the compiler.
+    */
    struct p_frame {
       struct p_frame *old_pfp;
       struct descrip *old_argp;
@@ -258,7 +277,7 @@ struct region {
       continuation succ_cont;
       struct tend_desc tend;
       };
-   #endif				/* COMPILER */
+#endif				/* COMPILER */
 
 /*
  * when debugging is enabled a debug struct is placed after the tended
@@ -391,6 +410,7 @@ struct progstate {
    #endif				/* EventMon */
 
    word Coexp_ser;			/* this program's serial numbers */
+   word Extl_ser;
    word List_ser;
    word Set_ser;
    word Table_ser;

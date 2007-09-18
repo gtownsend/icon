@@ -7,7 +7,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     November 17, 2004
+#	Date:     September 17, 2007
 #
 ############################################################################
 #
@@ -15,7 +15,7 @@
 #
 ############################################################################
 #
-#   Contributor: Kostas Oikonomou
+#   Contributors: Kostas Oikonomou, Carl Sturtivant
 #
 ############################################################################
 #
@@ -38,14 +38,14 @@
 #
 ############################################################################
 #
-#   IconType(d) returns one of the characters {cfinprsCILRST} indicating
-#   the type of a value according to the key on page 247 of the Red Book
-#   or page 273 of the Blue Book (The Icon Programming Language).
+#   IconType(d) returns one of the characters {cfinprsCEILRST} indicating
+#   the type of a value based on the key on page 273 of the Blue Book (The
+#   Icon Programming Language).  The character E indicates external data;
 #   The character I indicates a large (multiprecision) integer.
 #
-#   Only a few of these types (i, r, f, s) are easily manipulated in C.
+#   Only a few of these types (i, r, f, s, E) are easily manipulated in C.
 #   Given that the type has been verified, the following macros return
-#   the value of a descriptor in C terms:
+#   a value from a descriptor in C terms:
 #
 #	IntegerVal(d)	value of a integer (type 'i') as a C long
 #	RealVal(d)	value of a real (type 'r') as a C double
@@ -58,6 +58,7 @@
 #	StringLen(d)	length of string
 #
 #	ListLen(d)	length of list
+#	ExternalBlock(d) address of heap block for external data
 #
 #   These macros check the type of an argument, converting if necessary,
 #   and returning an error code if the argument is wrong:
@@ -66,6 +67,7 @@
 #	ArgReal(i)		check that argv[i] is a real number
 #	ArgString(i)		check that argv[i] is a string
 #	ArgList(i)		check that argv[i] is a list
+#	ArgExternal(i,f)	check that argv[i] is an external w/ funcblock f
 #
 #   Caveats:
 #      Allocation failure is not detected.
@@ -80,6 +82,7 @@
 #	RetInteger(i)		return integer value i
 #	RetReal(v)		return real value v
 #	RetFile(fp,status,name)	return (newly opened) file
+#	RetExternal(e)		return block at addr e made by alcexternal()
 #	RetString(s)		return null-terminated string s
 #	RetStringN(s, n)	return string s whose length is n
 #	RetAlcString(s, n)	return already-allocated string
@@ -121,11 +124,13 @@
 #define T_Integer	 1		/* integer */
 #define T_Real		 3		/* real number */
 #define T_File		 5		/* file, including window */
+#define T_External	19		/* externally defined data */
 
 #define D_Null		(T_Null     | D_Typecode)
 #define D_Integer	(T_Integer  | D_Typecode)
 #define D_Real		(T_Real     | D_Typecode | F_Ptr)
 #define D_File		(T_File     | D_Typecode | F_Ptr)
+#define D_External	(T_External | D_Typecode | F_Ptr)
 
 #define Fs_Read		0001		/* file open for reading */
 #define Fs_Write	0002		/* file open for writing */
@@ -139,10 +144,29 @@ typedef struct { word title; double rval; } realblock;
 typedef struct { word title; FILE *fp; word stat; descriptor fname; } fileblock;
 typedef struct { word title, size, id; void *head, *tail; } listblock;
 
+typedef struct externalblock {
+   word title, size, id;
+   struct funclist *funcs;
+   word data[1];
+} externalblock;
+
+typedef struct funclist {
+   long		(*extlcmp)	(externalblock *eb1, externalblock *eb2);
+   descriptor	(*extlcopy)	(externalblock *eb);
+   descriptor	(*extlname)	(externalblock *eb);
+   descriptor	(*extlimage)	(externalblock *eb);
+   descriptor	(*future1)	(externalblock *eb);	/* ??? */
+   descriptor	(*future2)	(externalblock *eb);	/* ??? */
+   descriptor	(*future3)	(externalblock *eb);	/* ??? */
+   descriptor	(*future4)	(externalblock *eb);	/* ??? */
+} funclist;
+
 
 char *alcstr(char *s, word len);
 realblock *alcreal(double v);
 fileblock *alcfile(FILE *fp, int stat, descriptor *name);
+externalblock *alcexternal(long nbytes, funclist *f, long data);
+
 int cnv_c_str(descriptor *s, descriptor *d);
 int cnv_int(descriptor *s, descriptor *d);
 int cnv_real(descriptor *s, descriptor *d);
@@ -152,7 +176,7 @@ double getdbl(descriptor *d);
 extern descriptor nulldesc;		/* null descriptor */
 
 
-#define IconType(d) ((d).dword>=0 ? 's' : "niIrcfpRL.S.T.....C"[(d).dword&31])
+#define IconType(d) ((d).dword>=0 ? 's' : "niIrcfpRL.S.T.....CE"[(d).dword&31])
 
 
 #define IntegerVal(d) ((d).vword)
@@ -170,6 +194,8 @@ extern descriptor nulldesc;		/* null descriptor */
 
 #define ListLen(d) (((listblock *)((d).vword))->size)
 
+#define ExternalBlock(d) ((externalblock *)(d).vword)
+
 
 #define ArgInteger(i) do { if (argc < (i)) Error(101); \
 if (!cnv_int(&argv[i],&argv[i])) ArgError(i,101); } while (0)
@@ -184,6 +210,12 @@ if (!cnv_str(&argv[i],&argv[i])) ArgError(i,103); } while (0)
 do {if (argc < (i)) Error(108); \
 if (IconType(argv[i]) != 'L') ArgError(i,108); } while(0)
 
+#define ArgExternal(i,f) \
+do {if (argc < (i)) Error(131); \
+if (IconType(argv[i]) != 'E') ArgError(i,131); \
+if (ExternalBlock(argv[i])->funclist != (f)) ArgError(i,132); \
+} while(0)
+
 
 #define RetArg(i) return (argv[0] = argv[i], 0)
 
@@ -197,6 +229,8 @@ if (IconType(argv[i]) != 'L') ArgError(i,108); } while(0)
 do { descriptor dd; dd.vword = (word)alcstr(name, dd.dword = strlen(name)); \
    argv->dword = D_File; argv->vword = (word)alcfile(fp, stat, &dd); \
    return 0; } while (0)
+
+#define RetExternal(e) return (argv->dword=D_External, argv->vword=(word)(e), 0)
 
 #define RetString(s) \
 do { word n = strlen(s); \

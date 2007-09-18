@@ -385,7 +385,7 @@ void		xmfree		(void);
  * Prototypes for the run-time system.
  */
 
-struct b_external *alcextrnl	(int n);
+struct b_external *alcexternal	(long nbytes, struct b_extlfuns *f, word data);
 struct b_record *alcrecd	(int nflds,union block *recptr);
 struct b_tvsubs *alcsubs	(word len,word pos,dptr var);
 int	bfunc		(void);
@@ -401,6 +401,10 @@ int	cvcset		(dptr dp,int * *cs,int *csbuf);
 int	cvnum		(dptr dp,union numeric *result);
 int	cvreal		(dptr dp,double *r);
 void	deref		(dptr dp1, dptr dp2);
+void	extlcopy	(dptr dp1, dptr dp2);
+int	extlcmp		(dptr dp1, dptr dp2);
+int	extlimage	(dptr dp1, dptr dp2);
+void	extlname	(dptr dp1, dptr dp2);
 void	envset		(void);
 int	eq		(dptr dp1,dptr dp2);
 int	get_name	(dptr dp1, dptr dp2);

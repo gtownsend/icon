@@ -38,6 +38,7 @@
 
 #ifdef LoadFunc
    Feature(1, "_DYNAMIC_LOADING", "dynamic loading")
+   Feature(1, "_EXTERNAL_DATA", "external values")
 #endif					/* LoadFunc */
 
    Feature(1, "", "environment variables")

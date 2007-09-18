@@ -13,6 +13,7 @@ extern word alcnum;
 
 #ifndef MultiThread
 word coexp_ser = 2;	/* serial numbers for co-expressions; &main is 1 */
+word extl_ser = 1;	/* serial numbers for externals */
 word list_ser = 1;	/* serial numbers for lists */
 word set_ser = 1;	/* serial numbers for sets */
 word table_ser = 1;	/* serial numbers for tables */
@@ -270,6 +271,36 @@ struct b_cset *alccset()
     */
    for (i = 0; i < CsetSize; i++)
      blk->bits[i] = 0;
+   return blk;
+   }
+
+/*
+ * alcexternal - allocate an external data block in the block region.
+ *
+ * nbytes is total struct size including header, or zero to use default
+ * f is dispatch table of user C functions; also differentiates external types
+ * data is initial value for first (or only) data word
+ *
+ * May cause a garbage collection.  Returns null if still unsuccessful.
+ */
+
+struct b_external *alcexternal(long nbytes, struct b_extlfuns *f, word data)
+   {
+   register struct b_external *blk;
+   static struct b_extlfuns fdefault; 	/* default dispatch table, all empty */
+
+   if (nbytes == 0)
+      nbytes = sizeof(struct b_external);
+   else if (nbytes < sizeof(struct b_external) || (nbytes % sizeof(word)) != 0)
+      syserr("alcexternal: invalid bytecount");
+   if (f == NULL)
+      f = &fdefault;
+
+   AlcBlk(blk, b_external, T_External, nbytes);
+   blk->blksize = nbytes;
+   blk->id = extl_ser++;
+   blk->funcs = f;
+   blk->data[0] = data;
    return blk;
    }
 

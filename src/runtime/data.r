@@ -303,6 +303,12 @@ struct errtab errtab[] = {
    125, "list, record, or set expected",
    126, "list or record expected",
 
+   /* general messages for use by code dealing with external data */
+   131, "external expected",		/* not an external */
+   132, "incorrect external type",	/* external of wrong flavor */
+   133, "invalid external value",	/* right flavor in wrong context */
+   134, "malformed external value",	/* data bogus, not just inappropriate */
+
 #ifdef Graphics
    140, "window expected",
    141, "program terminated by window manager",

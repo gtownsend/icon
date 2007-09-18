@@ -616,6 +616,7 @@
       #endif				/* EventMon */
 
       #define coexp_ser (curpstate->Coexp_ser)
+      #define extl_ser  (curpstate->Extl_ser)
       #define list_ser  (curpstate->List_ser)
       #define set_ser   (curpstate->Set_ser)
       #define table_ser (curpstate->Table_ser)

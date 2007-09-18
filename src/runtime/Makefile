@@ -32,8 +32,8 @@ XOBJS =	xcnv.o xdata.o xdef.o xerrmsg.o xextcall.o xfconv.o xfload.o xfmath.o\
 	xfwindow.o ximain.o ximisc.o xinit.o xinterp.o xinvoke.o\
 	xkeyword.o xlmisc.o xoarith.o xoasgn.o xocat.o xocomp.o\
 	xomisc.o xoref.o xoset.o xovalue.o xralc.o xrcoexpr.o xrcomp.o\
-	xrdebug.o xrlrgint.o xrmemmgt.o xrmisc.o xrstruct.o xrsys.o\
-	xrwinrsc.o xrwinsys.o xrwindow.o xrcolor.o xrimage.o
+	xrdebug.o xrexternal.o xrlrgint.o xrmemmgt.o xrmisc.o xrstruct.o \
+	xrsys.o xrwinrsc.o xrwinsys.o xrwindow.o xrcolor.o xrimage.o
 
 OBJS =	$(XOBJS) $(COBJS)
 
@@ -217,6 +217,11 @@ xrdebug.o: rdebug.r $(HDRS)
 	../../bin/rtt -x rdebug.r
 	$(CC) -c $(CFLAGS) xrdebug.c
 	rm xrdebug.c
+
+xrexternal.o: rexternal.r $(HDRS)
+	../../bin/rtt -x rexternal.r
+	$(CC) -c $(CFLAGS) xrexternal.c
+	rm xrexternal.c
 
 xrlrgint.o: rlrgint.r $(HDRS)
 	../../bin/rtt -x rlrgint.r
