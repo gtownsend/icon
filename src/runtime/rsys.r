@@ -126,16 +126,11 @@ dptr d;
 int idelay(n)
 int n;
    {
-   #if MSWIN
-      Sleep(n);
-      return Succeeded;
-   #else				/* MSWIN */
-      struct timeval t;
-      t.tv_sec = n / 1000;
-      t.tv_usec = (n % 1000) * 1000;
-      select(1, NULL, NULL, NULL, &t);
-      return Succeeded;
-   #endif				/* MSWIN */
+   struct timeval t;
+   t.tv_sec = n / 1000;
+   t.tv_usec = (n % 1000) * 1000;
+   select(1, NULL, NULL, NULL, &t);
+   return Succeeded;
    }
 
 #ifdef KeyboardFncs

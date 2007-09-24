@@ -22,7 +22,7 @@ icont:		$(OBJS) $(COBJS)
 		$(CC) $(CFLAGS) $(LDFLAGS) -o icont $(OBJS) $(COBJS)
 		cp icont ../../bin
 		strip ../../bin/icont$(EXE)
-		(cd ../../bin; rm -f icon; ln -s icont icon)
+		(cd ../../bin; rm -f icon icon.exe; ln -s icont icon)
 
 $(OBJS):	$(HFILES) tproto.h
 

@@ -200,7 +200,7 @@ int *ip;
 
    #if MSWIN
       /*
-       * if we didn't start with iconx.exe, backup one
+       * if we didn't start with iconx.exe, back up one
        * so that our icode filename is argv[1].
        */
       {

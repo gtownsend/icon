@@ -107,6 +107,9 @@
       #endif				/* WinGraphics */
    #endif				/* ICONC_XLIB */
 
+#else					/* Graphics */
+   #undef XWindows
+   #undef WinGraphics
 #endif					/* Graphics */
 
 /*
