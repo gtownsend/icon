@@ -1,0 +1,38 @@
+#   Check and report configuration options
+#   as reported by preprocessor symbols and &features
+#
+#   Compile WITHOUT using -u
+
+global error
+
+procedure main()
+   write("Features found:")
+   ckfeat(_UNIX, "UNIX")
+   ckfeat(_MACINTOSH, "Macintosh")
+   ckfeat(_MS_WINDOWS, "MS Windows")
+   ckfeat(_CYGWIN, "Cygwin")
+   ckfeat(_GRAPHICS, "graphics")
+   ckfeat(_X_WINDOW_SYSTEM, "X Windows")
+   ckfeat(_CO_EXPRESSIONS, "co-expressions")
+   ckfeat(_DYNAMIC_LOADING, "dynamic loading")
+   ckfeat(_EXTERNAL_DATA, "external values")
+   if \error then exit(1)
+end
+
+procedure ckfeat(ppval, fstring)
+   if ppval === 1 then
+      if &features == fstring then
+         write("   ", fstring)
+      else
+         error := write("   ", fstring, " (PREPROCESSOR SYMBOL ONLY)")
+   else if \ppval then
+      if &features == fstring then
+         error := write("   ", fstring, " (WITH BOGUS PREPROCESSOR SYMBOL: ",
+            image(ppval), ")")
+      else
+         error := write("   ", fstring, " (ONLY BOGUS PREPROCESSOR SYMBOL: ",
+            image(ppval), ")")
+   else if &features == fstring then
+      error := write("   ", fstring, " (WITHOUT PREPROCESSOR SYMBOL)")
+   return
+end
