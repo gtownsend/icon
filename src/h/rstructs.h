@@ -230,18 +230,18 @@ struct dpair {
    };
 
 /*
- * Structure for dispatching to user-provided C functions associated with
- * external data.  Note that any entry can be null.
+ * Structure for dispatching to user-provided C functions
+ * associated with external data.  Any entry can be null.
  */
 struct b_extlfuns {
-   long (*extlcmp) (struct b_external *eblock1, struct b_external *eblock2);
-   struct descrip (*extlcopy)	(struct b_external *eblock);
-   struct descrip (*extlname)	(struct b_external *eblock);
-   struct descrip (*extlimage)	(struct b_external *eblock);
-   struct descrip (*future1)	(struct b_external *eblock);
-   struct descrip (*future2)	(struct b_external *eblock);
-   struct descrip (*future3)	(struct b_external *eblock);
-   struct descrip (*future4)	(struct b_external *eblock);
+   int (*extlcmp)  (int argc, dptr argv);
+   int (*extlcopy) (int argc, dptr argv);
+   int (*extlname) (int argc, dptr argv);
+   int (*extlimage)(int argc, dptr argv);
+   int (*future1)  (int argc, dptr argv);
+   int (*future2)  (int argc, dptr argv);
+   int (*future3)  (int argc, dptr argv);
+   int (*future4)  (int argc, dptr argv);
    };
 
 /*

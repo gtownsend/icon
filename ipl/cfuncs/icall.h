@@ -151,14 +151,14 @@ typedef struct externalblock {
 } externalblock;
 
 typedef struct funclist {
-   long		(*extlcmp)	(externalblock *eb1, externalblock *eb2);
-   descriptor	(*extlcopy)	(externalblock *eb);
-   descriptor	(*extlname)	(externalblock *eb);
-   descriptor	(*extlimage)	(externalblock *eb);
-   descriptor	(*future1)	(externalblock *eb);	/* ??? */
-   descriptor	(*future2)	(externalblock *eb);	/* ??? */
-   descriptor	(*future3)	(externalblock *eb);	/* ??? */
-   descriptor	(*future4)	(externalblock *eb);	/* ??? */
+   int (*extlcmp)  (int argc, descriptor argv[]);
+   int (*extlcopy) (int argc, descriptor argv[]);
+   int (*extlname) (int argc, descriptor argv[]);
+   int (*extlimage)(int argc, descriptor argv[]);
+   int (*future1)  (int argc, descriptor argv[]);    /* ??? */
+   int (*future2)  (int argc, descriptor argv[]);    /* ??? */
+   int (*future3)  (int argc, descriptor argv[]);    /* ??? */
+   int (*future4)  (int argc, descriptor argv[]);    /* ??? */
 } funclist;
 
 

@@ -51,29 +51,34 @@ typedef struct myblock {
    } myblock;
 
 /* comparison function for sorting */
-static long mycmp(externalblock *eb1, externalblock *eb2) {
-   long d = ((myblock*)eb1)->v1 - ((myblock*)eb2)->v1;
+
+static int mycmp(int argc, descriptor argv[]) {
+   myblock *eb1 = (myblock*)ExternalBlock(argv[1]),
+           *eb2 = (myblock*)ExternalBlock(argv[2]);
+   long d = eb1->v1 - eb2->v1;
    if (d == 0)
-      d = ((myblock*)eb1)->v2 - ((myblock*)eb2)->v2;
-   return d;
+      d = eb1->v2 - eb2->v2;
+   RetInteger(d);
    }
 
 /* type name of "custom" */
-static descriptor myname(externalblock *eb) {
+static int myname(int argc, descriptor argv[]) {
    static descriptor d = { 6, (long)"custom" };
-   return d;
+   argv[0] = d;
+   Return;
    }
 
 /* custom formatting of image(e) */
-static descriptor myimage(externalblock *eb) {
-   myblock *b = (myblock*)eb;
+static int myimage(int argc, descriptor argv[]) {
+   myblock *b = (myblock*)ExternalBlock(argv[1]);
    char buffer[100];
    int n = sprintf(buffer, "custom(%ld,%ld)", b->v1, b->v2);
    static descriptor d;
-   
+
    d.dword = n;
    d.vword = (long)alcstr(buffer, n);
-   return d;
+   argv[0] = d;
+   Return;
    }
 
 /* list of custom functions for constructor */

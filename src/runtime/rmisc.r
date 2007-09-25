@@ -683,7 +683,7 @@ int noimage;
             putc(')', f);
             }
          else if (Type(*dp) == T_External) {
-            extlimage(dp, &q);			/* get image as a string */
+            q = callextfunc(&extlimage, dp, NULL); /* get image as a string */
             i = StrLen(q);
             s = StrLoc(q);
             while (i-- > 0)
@@ -1478,7 +1478,7 @@ dptr dp1, dp2;
 
       default:
          if (Type(*dp1) == T_External) {
-            return extlimage(dp1, dp2);
+            *dp2 = callextfunc(&extlimage, dp1, NULL);
             }
          else {
 	    ReturnErrVal(123, source, Error);

@@ -267,9 +267,13 @@ function{1} copy(x)
             }
          }
 
-      default: body {
-            runerr(123,x);
-         }
+      default:
+         body {
+            if (Type(x) == T_External)
+               return callextfunc(&extlcopy, &x, NULL);
+            else
+               runerr(123,x);
+            }
          }
 end
 
@@ -724,8 +728,12 @@ function {0,1} serial(x)
 	    }
          }
 #endif					/* Graphics */
-      default:
-         inline { fail; }
+      default: inline {
+         if (Type(x) == T_External)
+            return C_integer BlkLoc(x)->externl.id;
+         else
+            fail;
+         }
       }
 end
 
@@ -1337,13 +1345,9 @@ function{1} type(x)
       coexpr:   inline { return C_string "co-expression"; }
       default:
          inline {
-#if !COMPILER
-            if (!Qual(x) && (Type(x)==T_External)) {
-	       extlname(&x, &result);
-	       return result;
-               }
+            if (!Qual(x) && (Type(x) == T_External))
+               return callextfunc(&extlname, &x, NULL);
             else
-#endif					/* !COMPILER */
                runerr(123,x);
 	    }
       }

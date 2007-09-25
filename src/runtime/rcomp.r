@@ -171,14 +171,15 @@ dptr dp1, dp2;
          return ((lresult > 0) ? Greater : Less);
 
       case T_External:
-	 /*
-          * Collate these values according to the relative positions of
-          *  their blocks in the heap.
-	  */
-         lresult = ((long)BlkLoc(*dp1) - (long)BlkLoc(*dp2));
-         if (lresult == 0)
-            return Equal;
-         return ((lresult > 0) ? Greater : Less);
+         /*
+          * Call associated collation function.
+          */
+         {
+         struct descrip result = callextfunc(&extlcmp, dp1, dp2);
+         long ans = result.vword.integr;
+         if (ans == 0) return Equal;
+         return ans > 0 ? Greater : Less;
+         }
 
       default:
 	 syserr("anycmp: unknown datatype.");
