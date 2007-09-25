@@ -18,6 +18,14 @@
 
    Feature(1, "_V9", 0)			/* Version 9 (unconditional) */
 
+#if UNIX
+   Feature(1, "_UNIX", "UNIX")
+#endif					/* UNIX */
+
+#if MACINTOSH
+   Feature(1, "_MACINTOSH", "Macintosh")
+#endif					/* MACINTOSH */
+
 #if MSWIN
    Feature(1, "_MS_WINDOWS", "MS Windows")
 #endif					/* MSWIN */
@@ -25,10 +33,6 @@
 #if CYGWIN
    Feature(1, "_CYGWIN", "Cygwin")
 #endif					/* CYGWIN */
-
-#if UNIX
-   Feature(1, "_UNIX", "UNIX")
-#endif					/* UNIX */
 
    Feature(1, "_ASCII", "ASCII")
 
@@ -38,7 +42,6 @@
 
 #ifdef LoadFunc
    Feature(1, "_DYNAMIC_LOADING", "dynamic loading")
-   Feature(1, "_EXTERNAL_DATA", "external values")
 #endif					/* LoadFunc */
 
    Feature(1, "", "environment variables")
@@ -50,6 +53,10 @@
 #ifdef ExternalFunctions
    Feature(1, "_EXTERNAL_FUNCTIONS", "external functions")
 #endif					/* ExternalFunctions */
+
+#ifdef LoadFunc
+   Feature(1, "_EXTERNAL_VALUES", "external values")
+#endif					/* LoadFunc */
 
 #ifdef KeyboardFncs
    Feature(1, "_KEYBOARD_FUNCTIONS", "keyboard functions")
