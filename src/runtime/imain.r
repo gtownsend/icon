@@ -198,47 +198,6 @@ int *ip;
 
    *ip = 0;			/* number of arguments processed */
 
-   #if MSWIN
-      /*
-       * if we didn't start with iconx.exe, back up one
-       * so that our icode filename is argv[1].
-       */
-      {
-      char tmp[256], *t2, *basename, *ext;
-      int len = 0;
-      strcpy(tmp, argv[0]);
-      for (t2 = tmp; *t2; t2++) {
-         switch (*t2) {
-	    case ':':
-	    case '/':
-	    case '\\':
-	       basename = t2 + 1;
-	       ext = NULL;
-	       break;
-	    case '.':
-	       ext = t2;
-	       break;
-	    default:
-         *t2 = tolower(*t2);
-	       break;
-	    }
-         }
-      /* If present, cut the ".exe" extension. */
-      if (ext != NULL && !strcmp(ext, ".exe"))
-         *ext = 0;
-
-      /*
-       * if argv[0] is not a reference to our interpreter, take it as the
-       * name of the icode file, and back up for it.
-       */
-      if (strcmp(basename, "iconx")) {
-         argv--;
-         argc++;
-         (*ip)--;
-         }
-      }
-   #endif				/* MSWIN */
-
    /*
     * Handle command line options.
     */
