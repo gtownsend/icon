@@ -28,6 +28,7 @@ Last updated September 25, 2007 </SMALL>
 
 <H2> Introduction </H2>
 
+
 <P> Icon's <a href="loadfunc.htm">dynamic loading facility</a>
 provided through the Icon function <CODE>loadfunc</CODE>, enables C 
 functions external to Icon that subscribe to a particular interface to be 
@@ -82,18 +83,21 @@ internals. The default behavior follows.
 
 <BLOCKQUOTE><DL>
 <DT><CODE>type(E)</CODE>
-	<DD>returns the string "external"
+	<DD>returns the string <CODE>"external"</CODE>
 <DT><CODE>image(E)</CODE>
-	<DD>returns a string indicating the type, serial number, and an external
-hexadecimal address unique to that value, e.g. "external_3(67A04F35)"
+	<DD>returns a string indicating the type, serial number,
+	and the hexadecimal vlue of the first or only data word
+	e.g. <CODE>"external_3(67A04F35)"</CODE>
 <DT><CODE>copy(E)</CODE>
-	<DD>returns ext itself without copying
-<DT><CODE>sorting order</CODE>
+	<DD>returns <CODE>E</CODE> itself without copying
+<DT><CODE>sort()</CODE>
 	<DD>external values sort first by type name and then by serial number
-<DT><CODE>E===E2</CODE>	
-	<DD>produces ext2 when ext and ext2 are one and the same, otherwise fails
-<DT><CODE>E~===E2</CODE>
-	<DD>fails when ext and ext2 are one and the same, otherwise produces ext2
+<DT><CODE>E1 === E2</CODE>	
+	<DD>produces <CODE>E1</CODE> when <CODE>E1</CODE> and <CODE>E2</CODE>
+	are the same external object; otherwise fails
+<DT><CODE>E1 ~=== E2</CODE>
+	<DD>produces null when <CODE>E1</CODE> and <CODE>E2</CODE>
+	are distinct; otherwise fails
 </DL></BLOCKQUOTE>
 	
 	
