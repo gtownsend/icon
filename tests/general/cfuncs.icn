@@ -1,26 +1,42 @@
-#  A simple test of a few standard C functions
-#  for Unix platforms that implement loadfunc().
+#  test dynamic loading, some standard cfuncs, and external values
 
 link cfunc
+
+record complex(r, i)
 
 procedure main()
    local e, i, l
 
    every i := 500 to 513 do
       gen(bitcount, i)
+
+   write()
    gen(vword, 314159)
-   gen(lgconv, 10^30)
+   gen(lgconv, 10 ^ 30)
    gen(unpack, "abcd")
    gen(pack, 1684234849)
 
    # test external values
-   l := [ extvtest1(23, 45), extvtest0(), 0, extvtest1(78, 13),
-      "s", extvtest0(), extvtest1(23, 8), extvtest1(39, 91), ]
-   l := sort(l)
+   l := [
+      extv1(6.6),
+      extv0(),
+      extv1(3.3),
+      extv0(),
+      extv1(1.1),
+      extv0(),
+      extv1(4.4),
+      extv0(),
+      extv1(2.2),
+      extv0(),
+      extv1(5.5),
+      complex(1, -1),
+      ]
    write()
-   every e := !l do {
-      write(type(e), ": ", image(e))
-      }
+   every e := !sort(l) do {
+      writes(left(type(e) || ":", 10), image(e))
+      writes(" => ", image(e ~===:= copy(e)))
+      write()
+   }
 end
 
 procedure gen(p, a)

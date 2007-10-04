@@ -7,7 +7,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     September 17, 2007
+#	Date:     October 3, 2007
 #
 ############################################################################
 #
@@ -15,11 +15,10 @@
 #
 ############################################################################
 #
-#  These functions demonstrate the use of external values
-#  and are also used in testing Icon.
+#  These functions demonstrate the use of external values.
 #
-#  extvtest0()		creates a minimal external type
-#  extvtest1(i,j)	creates a custom external type
+#  extv0()	creates a minimal external type
+#  extv1(r)	creates a fully customized external type
 #
 ############################################################################
 #
@@ -31,14 +30,13 @@
 #include "icall.h"
 
 /*
- * minimal external
+ * minimal external type with no parameters
  */
-
-int extvtest0(int argc, descriptor argv[])	/*: create minimal external */
+int extv0(int argc, descriptor argv[])	/*: create minimal external value */
    {
-   RetExternal(alcexternal(0, 0, 314159));
+   RetExternal(alcexternal(0, 0, 0x112358));
    }
-
+
 /*
  * custom external with lots of trimmings
  */
@@ -46,58 +44,56 @@ int extvtest0(int argc, descriptor argv[])	/*: create minimal external */
 /* custom external data block extends the standard block */
 typedef struct myblock {
    externalblock eb;
-   long v1;
-   long v2;
+   float value;
    } myblock;
 
 /* comparison function for sorting */
-
 static int mycmp(int argc, descriptor argv[]) {
-   myblock *eb1 = (myblock*)ExternalBlock(argv[1]),
-           *eb2 = (myblock*)ExternalBlock(argv[2]);
-   long d = eb1->v1 - eb2->v1;
-   if (d == 0)
-      d = eb1->v2 - eb2->v2;
-   RetInteger(d);
+   myblock *eb1 = (myblock*)ExternalBlock(argv[1]);
+   myblock *eb2 = (myblock*)ExternalBlock(argv[2]);
+   if (eb1->value < eb2->value) RetInteger(-1);
+   if (eb1->value > eb2->value) RetInteger(+1);
+   if (eb1->eb.id < eb2->eb.id) RetInteger(-1);
+   if (eb1->eb.id > eb2->eb.id) RetInteger(+1);
+   RetInteger(0);
    }
 
-/* type name of "custom" */
+/* copy function duplicates block, getting new serial number */
+static int mycopy(int argc, descriptor argv[]) {
+   externalblock *b = ExternalBlock(argv[1]);
+   myblock *old = (myblock*)b;
+   myblock *new = (myblock *)alcexternal(sizeof(myblock), b->funcs, 0);
+   new->value = old->value;
+   RetExternal((externalblock*)new);
+   }
+
+/* type name returns "custom" */
 static int myname(int argc, descriptor argv[]) {
-   static descriptor d = { 6, (long)"custom" };
-   argv[0] = d;
-   Return;
+   RetConstStringN("custom", 6);
    }
 
-/* custom formatting of image(e) */
+/* image returns "custom_N(V)" */
 static int myimage(int argc, descriptor argv[]) {
    myblock *b = (myblock*)ExternalBlock(argv[1]);
    char buffer[100];
-   int n = sprintf(buffer, "custom(%ld,%ld)", b->v1, b->v2);
-   static descriptor d;
-
-   d.dword = n;
-   d.vword = (long)alcstr(buffer, n);
-   argv[0] = d;
-   Return;
+   RetStringN(buffer, sprintf(buffer, "custom_%ld(%.1f)", b->eb.id, b->value));
    }
 
 /* list of custom functions for constructor */
 static funclist myfuncs = {
    mycmp,	/* cmp */
-   0,		/* copy */
+   mycopy,	/* copy */
    myname,	/* name */
    myimage,	/* image */
    };
 
-/* finally, the exported constructor function, extvtest1(i,j) */
-int extvtest1(int argc, descriptor argv[])	/*: create custom external */
+/* finally, the exported constructor function, extv1(r) */
+int extv1(int argc, descriptor argv[])	/*: create custom external */
    {
-   myblock *b;
+   myblock *new;
 
-   ArgInteger(1);
-   ArgInteger(2);
-   b = (myblock *)alcexternal(sizeof(myblock), &myfuncs, 0);
-   b->v1 = IntegerVal(argv[1]);
-   b->v2 = IntegerVal(argv[2]);
-   RetExternal((externalblock*)b);
+   ArgReal(1);
+   new = (myblock *)alcexternal(sizeof(myblock), &myfuncs, 0);
+   new->value = RealVal(argv[1]);
+   RetExternal((externalblock*)new);
    }
