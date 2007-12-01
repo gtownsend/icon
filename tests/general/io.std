@@ -2,7 +2,6 @@ file: &errout
 file: &input
 file: &output
 file: file(/dev/null)
-file: file(/etc/motd)
 
 aaa
 bbbb
@@ -12,11 +11,6 @@ eeeeeee
 ffffffff
 ggggggggg
 hhhhhhhhhh
-
-flush /etc/motd: file(/etc/motd)
-close /etc/motd: file(/etc/motd)
-close /etc/motd: file(/etc/motd)
-flush /etc/motd: file(/etc/motd)
 
 flush /dev/null: file(/dev/null)
 close /dev/null: file(/dev/null)
@@ -106,11 +100,11 @@ file(sed 's/^/=()= /' io.icn)
 > =()= #  I/O test -- writes ./tmp1 and ./tmp2 as well as stdout
 > =()= 
 > =()= procedure main()
-> =()=    local L, f, m, n, t1, t2
+> =()=    local L, f, n, t1, t2
 > =()= 
 > =()=    L := [&input, &output, &errout,
-> =()=    	m := open("/etc/motd") | stop("no /etc/motd"),
-> =()= 	n := open("/dev/null", "w") | stop("no /dev/null")]
+> =()=          n := open("/dev/null", "w") | stop("no /dev/null")]
+> =()=    L := sort(L)
 
 file(ls io.i?n io.d?t io.s?d)
 > io.dat

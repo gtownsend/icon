@@ -3,11 +3,10 @@
 #  I/O test -- writes ./tmp1 and ./tmp2 as well as stdout
 
 procedure main()
-   local L, f, m, n, t1, t2
+   local L, f, n, t1, t2
 
    L := [&input, &output, &errout,
-   	m := open("/etc/motd") | stop("no /etc/motd"),
-	n := open("/dev/null", "w") | stop("no /dev/null")]
+         n := open("/dev/null", "w") | stop("no /dev/null")]
    L := sort(L)
    every f := !L do
       write(type(f), ": ", image(f))
@@ -19,12 +18,6 @@ procedure main()
    write(!&input)
    every write(!&input \ 2)
    every write(!&input) \ 2
-
-   write()
-   write("flush /etc/motd: ", image(flush(m)) | "FAILED")
-   write("close /etc/motd: ", image(close(m)) | "FAILED")
-   write("close /etc/motd: ", image(close(m)) | "FAILED")
-   write("flush /etc/motd: ", image(flush(m)) | "FAILED")
 
    write()
    write("flush /dev/null: ", image(flush(n)) | "FAILED")
@@ -103,8 +96,8 @@ procedure wfile(name, mode, s)
       writes(s)
       tab(many(' '))
       while not pos(0) do {
-	 write(f, tab(upto(' ') | 0))
-	 tab(many(' '))
+         write(f, tab(upto(' ') | 0))
+         tab(many(' '))
          }
       write(" : ", where(f))
       flush(f)
