@@ -319,21 +319,15 @@ static void txrun(char *(*func)(FILE*, char*), char *source, char *args[]) {
    omask = umask(0077);		/* remember umask; keep /tmp files private */
 
    /*
-    * Invent a file named /tmp/innnnnxx.icn.
+    * Create a temporary file named /tmp/innnnnxx.icn.
     */
    srand(time(NULL));
    c1 = abet[rand() % (sizeof(abet) - 1)];
    c2 = abet[rand() % (sizeof(abet) - 1)];
    sprintf(srcfile, "/tmp/i%d%c%c.icn", getpid(), c1, c2);
-
-   /*
-    * Copy the source code to the temporary file.
-    */
    f = fopen(srcfile, "w");
    if (f == NULL)
       quitf("cannot open for writing: %s", srcfile);
-   progname = func(f, source);
-   fclose(f);
 
    /*
     * Derive other names and arrange for cleanup on exit.
@@ -347,8 +341,10 @@ static void txrun(char *(*func)(FILE*, char*), char *source, char *args[]) {
    atexit(cleanup);
 
    /*
-    * Translate to produce .u1 and .u2 files.
+    * Copy the source file, then translate to produce .u1 and .u2 files.
     */
+   progname = func(f, source);
+   fclose(f);
    flist[0] = srcfile;
    flist[1] = NULL;
    if (trans(flist, SourceDir) > 0)
