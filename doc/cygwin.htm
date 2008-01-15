@@ -18,7 +18,7 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 
 <P> <SMALL> www.cs.arizona.edu/icon/v943/cygwin.htm
 <BR> 
-Last updated November 8, 2005 </SMALL>
+Last updated January 15, 2008</SMALL>
 <!-- $Id$ -->
 
 
@@ -55,17 +55,13 @@ in the <CODE>gcc-core</CODE> and <CODE>make</CODE> packages.
 The <CODE>xorg</CODE> family of packages is also needed
 to build Icon with graphics enabled.
 
-<P> Icon is built in a Cygwin shell window.
-The process is the same as on other platforms
-and uses either the configuration named <CODE>cygwin</CODE>,
-or the configuration named <CODE>xcygwin</CODE>. 
-See the <A HREF=build.htm>installation documentation</A>
-for instructions on building Icon. If the <CODE>xcygwin</CODE>
-configuration is used, then Icon graphics will use X-windows,
-as opposed to using Microsoft Windows graphics directly as when the
-<CODE>cygwin</CODE> configuration is used. 
-Thus <CODE>xcygwin</CODE> provides the most faithful port of Icon
-to Microsoft Windows.
+<P> Icon is built in a Cygwin shell window using the same process as on
+on other platforms.
+See the <A HREF=build.htm>installation documentation</A> for instructions.
+The <CODE>cygwin</CODE> configuration uses the native Windows graphics system;
+the <CODE>xcygwin</CODE> configuration uses the X window system and thus
+is closer to other Unix implementations of Icon.
+
 
 <H2> Running Icon programs </H2>
 
@@ -78,7 +74,8 @@ The Unix-style "man pages" for <A HREF=icon.txt><CODE>icon</CODE></A>
 and <A HREF=icont.txt><CODE>icont</CODE></A>
 describe the command options in a traditionally cryptic manner.
 
-<H2> Interpreter path and Environment</H2>
+
+<H2> Interpreter path and environment</H2>
 
 <P> Icon programs require an interpreter for execution.
 On Windows, the path of the interpreter is not embedded
@@ -86,42 +83,38 @@ in an executable program.
 The program must be able to find
 <CODE>iconx.exe</CODE> in the search path.
 
-<P> In addition, if Icon has been built with the <CODE>xcygwin</CODE>
-configuration, Icon graphics will need the cygwin X-windows server 
-to be running before the program executes, and for the
-<CODE>DISPLAY</CODE> environment variable to have the value '127.0.0.1:0'.
+<P> The Cygwin X server must be running, with a correct <CODE>DISPLAY</CODE>
+variable in the environment, to execute graphics programs built by the
+<CODE>xcygwin</CODE> configuration of Icon.
 
-<P> A compiled Icon program may be run by double clicking on its icon
-(as well as from the cygwin shell), provided that the above environment 
-variables are set in Microsoft Windows 
-(rather than say .bashrc or .bash_profile), 
-and in addition the path to the cygwin bin directory containing cygwin1.dll
-is also a part of the Microsoft Windows path.
+<P> When the environment is correctly set,
+with <CODE>cygwin1.dll</CODE> in the Windows path,
+a compiled Icon program may be run from the Cygwin shell or by
+double-clicking its graphical icon.
+
 
 <H2> Extra built-in functions </H2>
 
 <P> For compatibility with an earlier port of Icon to Windows,
-the implementation built with the <CODE>cygwin</CODE> configuration
-includes some extra built-in functions.
-The functions are described in section 6.2 of
+the <CODE>cygwin</CODE> configuration includes some extra built-in functions.
+These are described in section 6.2 of
 <A HREF="http://www.cs.arizona.edu/icon/docs/ipd271.htm">IPD271</A>,
 which documents that earlier port.
 
 <P> These unsupported functions are not part of Icon on other platforms,
-so their use renders a program non-portable. Specifically Icon built using
-the <CODE>xcygwin</CODE> configuration does not support these functions.
+nor of the <CODE>xcygwin</CODE> configuration,
+so their use renders a program non-portable.
 
 
 <H2> Feature test symbols </H2>
 
 <P> The symbols <CODE>_MS_WINDOWS</CODE> and <CODE>_CYGWIN</CODE>
 are defined by the Icon preprocessor.
+The symbol <CODE>_UNIX</CODE> is not defined.
 The symbol <CODE>_GRAPHICS</CODE> is defined if Icon is built with
-graphics enabled.
-The symbols <CODE>_UNIX</CODE> is not defined.
-The symol <CODE>_X_WINDOW_SYSTEM</CODE> is not defined for Icon
-built with the <CODE>cygwin</CODE> configuration, but is defined
-for Icon built with the <CODE>xcygwin</CODE> configuration.
+graphics enabled;
+the symbol <CODE>_X_WINDOW_SYSTEM</CODE> is also defined
+in the <CODE>xcygwin</CODE> configuration.
 The corresponding strings are produced or omitted, as appropriate,
 by the <CODE>&amp;features</CODE> keyword.
 
