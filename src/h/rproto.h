@@ -46,7 +46,7 @@ void		coclean		(word *old);
 void		coacttrace	(struct b_coexpr *ccp,struct b_coexpr *ncp);
 void		cofailtrace	(struct b_coexpr *ccp,struct b_coexpr *ncp);
 void		corettrace	(struct b_coexpr *ccp,struct b_coexpr *ncp);
-int		coswitch	(word *old, word *new, int first);
+int		coswitch	(word *oldctx, word *newctx, int firsttime);
 int		cplist		(dptr dp1,dptr dp2,word i,word j);
 int		cpset		(dptr dp1,dptr dp2,word size);
 void		cpslots		(dptr dp1,dptr slotptr,word i, word j);
