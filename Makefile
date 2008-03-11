@@ -111,11 +111,11 @@ Install:
 
 # Bundle up for binary distribution.
 
-DIR=icon.$(VERSION)
+DIR=icon-$(VERSION)
 Package:
 		rm -rf $(DIR)
 		umask 002; $(MAKE) Install dest=$(DIR)
-		tar cf - icon.$(VERSION) | gzip -9 >icon.$(VERSION).tgz
+		tar cf - $(DIR) | gzip -9 >$(DIR).tgz
 		rm -rf $(DIR)
 
 
