@@ -1,10 +1,10 @@
-#  Makefile for Version 9.4 of Icon
+#  Makefile for Version 9.5 of Icon
 #
 #  See doc/install.htm for instructions.
 
 
 #  configuration parameters
-VERSION=v943
+VERSION=v95x
 name=unspecified
 csw=custom
 dest=/must/specify/dest/
