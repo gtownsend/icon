@@ -19,7 +19,7 @@
   <SMALL>The University of Arizona</SMALL></P>
 
   <P><SMALL>www.cs.arizona.edu/icon/v943/macintosh.htm<BR>
-  Last updated November 9, 2005</SMALL>
+  Last updated March 11, 2008</SMALL>
   <!-- $Id$ --></P>
 
   <H2>Introduction</H2>
@@ -39,31 +39,33 @@
   <CITE>cc</CITE> command, supports multiple files, separate
   compilation, and other features.</P>
 
+  <H2>Co-Expressions</H2>
+
+  <P>On Intel Macintosh platforms, Icon uses POSIX threads to implement
+  co-expressions;
+  and because Apple did not implement anonymous semaphores,
+  each co-expression creates an open file.
+  Programs with hundreds of active co-expressions may
+  abort with a <CODE>cannot create semaphore</CODE> system error.
+  The open file limit can be raised from the typical default of 256
+  using a <CODE>limit descriptors <I>n</I></CODE> or
+  <CODE>ulimit -nS <I>n</I></CODE> command, depending on the shell.
+
+
   <H2>Graphics</H2>
 
-  <P>For graphics, Icon uses the X Window System, generally called
-  <A href="http://www.apple.com/macosx/features/x11/">X11</A> in
-  Macintosh documentation. X11 is not normally installed as part of
-  OS X; it must be selected as part of a custom installation.
-  Alternatively, it can be
-  <A HREF="http://www.apple.com/support/downloads/x11formacosx.html">
-  downloaded</A> from Apple.</P>
-
-  <P>The X window system does not start automatically. To run an
-  Icon graphics program, you must first start the X11 application
-  and leave it running. The environment variable DISPLAY must be
-  set in the shell that runs an Icon graphics program. For
-  example:</P>
-
-  <BLOCKQUOTE>
-    <P><CODE>setenv DISPLAY :0.0</CODE></P>
-  </BLOCKQUOTE>
+  <P>For graphics, Icon uses the X Window System, generally called X11 in
+  Macintosh documentation.
+  Beginning with Mac OS 10.5 (Leopard), X11 starts automatically
+  when needed, and no advance preparations are needed.
+  An X11 icon appears in the dock when an Icon graphics program
+  is run and persists innocuously afterward.
 
   <H2>Building Icon</H2>
 
   <P>Building Icon from source requires the <A href=
-  "http://www.apple.com/macosx/features/xcode/">Xcode</A> toolbox.
-  This comes in an extra folder on the OS X installation disc.
+  "http://www.apple.com/macosx/developertools/xcode.html">Xcode</A> toolbox,
+  which comes on the OS X installation disc.
   When installing XCode, be sure to select a custom
   installation and add X11 to the default set.</P>
 
