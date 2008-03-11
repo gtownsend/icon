@@ -1,7 +1,7 @@
 <!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN">
 <HTML>
 <HEAD>
-    <TITLE>Release Notes for Version 9.4.3 of Icon</TITLE>
+    <TITLE>Release Notes for Version 9.5 of Icon</TITLE>
     <LINK REL="STYLESHEET" TYPE="text/css" HREF="istyle.css">
     <LINK REL="SHORTCUT ICON" HREF="shortcut.gif">
 </HEAD>
@@ -10,78 +10,82 @@
 <P><A HREF="http://www.cs.arizona.edu/icon/"> <IMG SRC="wwwcube.gif"
 ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 
-<H1> Release Notes for Version 9.4.3 of Icon </H1>
+<H1> Release Notes for Version 9.5 of Icon </H1>
 
 <P> Gregg M. Townsend
 <BR> <SMALL> Department of Computer Science </SMALL>
 <BR> <SMALL> The University of Arizona </SMALL>
 
-<P> <SMALL> www.cs.arizona.edu/icon/v943/relnotes.htm
-<BR> Last updated November 10, 2005 </SMALL>
+<P> <SMALL> www.cs.arizona.edu/icon/v950/relnotes.htm
+<BR> Last updated March 11, 2008</SMALL>
 <!-- $Id$ -->
+
+
+<P><B><I>These notes are preliminary and incomplete.</I></B>
 
 
 <H2> Introduction </H2>
 
-<P> Version 9.4.3 of Icon is a minor update to version 9.4.2 of Icon. 
-It incorporates configuration, documentation, and library updates.
+<P> Version 9.5.0 of Icon is an update of version 9.4.3 of Icon. 
+It incorporates configuration, documentation, and library changes.
 Some minor bugs have been fixed.
+Support has been added for "external values" created by
+user C functions.
 
-<P> The Icon language is unchanged, and this Unix implementation
-remains compatible at the source level with Icon 9.3 for Windows.
 
-
-<H2> Changes in version 9.4.3 </H2>
+<H2> Changes in version 9.5 </H2>
 
 <P> Notable changes in this latest version are listed here.
 Some code cleanup work and documentation editing
 has also been done.
 
-<H3> Configurations </H3>
+<H3> External Values </H3>
 
-<P> The system-specific Icon configurations have been reorganized and renamed;
-new names focus on operating systems rather than CPU architectures.
-The several BSD configurations have been merged into one.
+<P> External code incorporated by <CODE>loadfunc()</CODE> can now create
+and return to Icon code opaque values that can be stored and passed
+on subsequent calls.
+This is similar to a feature of the early Macintosh ProIcon implementation.
+See <A HREF=extlvals.htm>External Values</A> for more information.
 
-<P> The <CODE>macintosh</CODE> configuration now supports the
-<CODE>loadfunc</CODE> function.  This configuration has also been
-revised to anticipate Apple's announced migration to the x86 architecture.
+<H3> Cygwin Configuration </H3>
 
-<P> A new <A HREF=port.htm>porting guide</A> has been written, and a new
-<CODE>posix</CODE> configuration has been added
-as a starting point in constructing new ports.
+<P> The <CODE>cygwin</CODE> configuration has improved, partially through
+removeal of unneeded special cases now that Cygwin better approximates Unix.
+External functions can now be loaded using <CODE>loadfunc()</CODE>.
+
+<P> While the <CODE>cygwin</CODE> configuration uses Windows graphics, a new
+<CODE>xcygwin</CODE> configuration uses the X window system.
+
+<H3> Minor Fixes </H3>
+
+<P> The <CODE>loadfunc()</CODE> implementation has been fixed to specify
+to the system that C globals are to be shared with and among loaded functions.
+
+<P> The command <CODE>icon nonexistent.icn</CODE> no longer leaves debris
+in the /tmp directory.
 
 <H3> Library changes </H3>
 
-<P> As usual, several files in the Icon program library have been
-added or edited.  The core library files, however, remain stable.
+<P> As usual, some files in the Icon program library have been
+added or edited, but the core library files remain stable.
 Notable changes include:
 
 <PRE>
-procs/dijkstra		new procedures implement Dijkstra's control structures
-procs/html		add procedure for canonicalization of paths
-procs/matrix2		new procedures for matrix manipulation
-procs/nestlist		new procedures for representing nested lists as strings
-procs/printf		add %e format and fix a rounding problem
+procs/printf	Rewrite parts to fix several bugs, and add test.
 
-progs/noise		new program for producing a random bitstream
-progs/unclog		improve logic for combining adjacent entries
+progs/diffsum	Handle output of "cvs diff".
+progs/unclog	Handle branches; fix indentation.
+progs/weblinks	Add option to sort output by referencing page.
 
-gprogs/dlgvu		improve coverage map; allow altitude in GPS data
-gprogs/gallery		faster thumbnail loading for JPEG images
-gprogs/img		many new features
-gprogs/sier		better color choices
-gprogs/trkvu		accept GPS track logs with altitude as the last field
+gprogs/gallery	Treat -wnnn and -hnnn options as *minimums*.
+gpacks/weaving	Add "halftone" weaving program htweav.icn.
 </PRE>
-
-The undocumented <CODE>save</CODE> function, which only worked
-on a few platforms, has been removed.
 
 
 <H2> Earlier feature additions </H2>
 
-<P> These features appeared in earlier releases of Icon that followed
-publication of the Icon books.
+<P> These features appeared in earlier releases of Icon
+but subsequent to publication of the Icon books.
 
 <H3> Millions of colors </H3>
 <SMALL> (new with version 9.4.2 of Icon) </SMALL>
@@ -102,7 +106,7 @@ which in another form allows a small Icon program to be embedded
 within a shell script.
 See the <A HREF="icon.txt">man page</A> for details.
 The traditional <A HREF="icont.txt"><CODE>icont</CODE></A> command
-remains available for less specialized purposes.
+remains available when more flexibility is needed.
 
 <H3> Path searching </H3>
 <SMALL> (new with version 9.4.0 of Icon) </SMALL>
@@ -201,13 +205,9 @@ for an overview of the available Icon documentation.
 
 <H2> Acknowledgments </H2>
 
-<P>
-Arthur Eschenlauer contributed the <CODE>matrix2</CODE>
-and <CODE>nestlist</CODE> libraries.
-Frank Lhota contributed the <CODE>dijkstra</CODE> library.
-Nolan Clayton contributed revisions to the <CODE>img</CODE> program.
-Michael Glass contributed revisions to the <CODE>printf</CODE> procedure.
-Chris Tenaglia and Andreas Almroth contributed configuration files.
+<P> Carl Sturtivant inspired and participated in the development
+of external values.
+Carl Sturtivant and Steve Waldo provided the Cygwin improvements.
 
 <P> <HR>
 
