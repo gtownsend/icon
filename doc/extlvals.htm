@@ -22,7 +22,7 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 
 <P> <SMALL> www.cs.arizona.edu/icon/v943/extlvals.htm
 <BR> 
-Last updated February 1, 2008</SMALL>
+Last updated March 14, 2008</SMALL>
 <!-- $Id$ -->
 
 
@@ -183,6 +183,29 @@ values associated with this function list, and argc is 1 or 2 respectively.
 
 <BLOCKQUOTE>
 <DL>
+
+<DT>
+descriptor extcmp(int argc, descriptor *argv)	
+</DT><DD>
+<CODE>extcmp</CODE> returns an Icon integer
+for use in sorting two external values that both have this function list
+and are therefore considered to be of the same external subtype.
+The function result should be negative if the first external value is
+deemed less than the second, zero if they are deemed equal, and positive
+if the first is deemed greater than the second.
+This overrides the default behavior of the <CODE>sort</CODE> function
+which compares serial numbers.
+</DD>
+
+<DT>
+descriptor extcopy(int argc, descriptor *argv)
+</DT><DD>
+<CODE>extcopy</CODE> returns an external value defined
+as a copy of its argument. 
+This overrides the default behavior of the <CODE>copy</CODE> function,
+which is to return another reference to the external value without copying.
+</DD>
+
 <DT>
 descriptor extname(int argc, descriptor *argv)
 </DT><DD>
@@ -199,27 +222,6 @@ returns an Icon string to serve as the image of the external value.
 This overrides the default behavior of the <CODE>image</CODE> function.
 </DD>
 
-<DT>
-descriptor extcopy(int argc, descriptor *argv)
-</DT><DD>
-<CODE>extcopy</CODE> returns an external value defined
-as a copy of its argument. 
-This overrides the default behavior of the <CODE>copy</CODE> function,
-which is to return another reference to the external value without copying.
-</DD>
-
-<DT>
-descriptor extcmp(int argc, descriptor *argv)	
-</DT><DD>
-<CODE>extcmp</CODE> returns an Icon integer
-for use in sorting two external values that both have this function list
-and are therefore considered to be of the same external subtype.
-The function result should be negative if the first external value is
-deemed less than the second, zero if they are deemed equal, and positive
-if the first is deemed greater than the second.
-This overrides the default behavior of the <CODE>sort</CODE> function
-which compares serial numbers.
-</DD>
 </DL>
 </BLOCKQUOTE>
 	
@@ -240,10 +242,10 @@ follows. The types word and descriptor are defined in ipl/cfuncs/icall.h.
 	
 <PRE>
 typedef struct function_list { /* list of user defined callbacks */
+	descriptor (*extcmp)   (int argc, descriptor *argv);
+	descriptor (*extcopy)  (int argc, descriptor *argv);
 	descriptor (*extname)  (int argc, descriptor *argv);
 	descriptor (*extimage) (int argc, descriptor *argv);
-	descriptor (*extcopy)  (int argc, descriptor *argv);
-	descriptor (*extcmp)   (int argc, descriptor *argv);
 } function_block;	
 
 typedef struct b_external {
