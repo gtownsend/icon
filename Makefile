@@ -153,14 +153,14 @@ Benchmark-icont:
 
 Clean:
 		touch Makedefs
-		rm -rf icon.*
+		rm -rf icon-*
 		cd src;			$(MAKE) Clean
 		cd ipl;			$(MAKE) Clean
 		cd tests;		$(MAKE) Clean
 
 Pure:
 		touch Makedefs
-		rm -rf icon.*
+		rm -rf icon-*
 		rm -rf bin/[abcdefghijklmnopqrstuvwxyz]*
 		rm -rf lib/[abcdefghijklmnopqrstuvwxyz]*
 		cd ipl;			$(MAKE) Pure
