@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     December 21, 2005
+#	Date:     May 27, 2008
 #
 ############################################################################
 #
@@ -146,7 +146,7 @@ procedure main(args)
             return
 
       # Get the next file and translate its image.
-      f := open(fname) |
+      f := open(fname, "ru") |
          { write(&errout, fname, ": can't open"); next }
 
       # Read the image, full sized, into a scratch canvas
@@ -342,7 +342,7 @@ end
 procedure popinfo(a, e, w, h)
    local f, i, n, x, y
 
-   f := open(a.fname)
+   f := open(a.fname, "ru")
    seek(f, 0)
    n := where(f)
    seek(f, 1)
@@ -442,7 +442,7 @@ procedure mkgif(cmd, fname)
    if \opts["d"] then
       write(&errout, "+ ", cmd)
    system(cmd)
-   f := open(tempname) | fail
+   f := open(tempname, "ru") | fail
    win := load(tempname)
    close(f)
    remove(tempname)
@@ -483,7 +483,7 @@ procedure jsize(irec, fname)
    local s, p, line, w, h
 
    s := ""
-   p := open("rdjpgcom -verbose " || fname, "p") | fail
+   p := open("rdjpgcom -verbose \"" || fname || "\"", "p") | fail
    while line := read(p) do line ? {
       ="JPEG image is "				| next
       w := tab(many(&digits))			| next
