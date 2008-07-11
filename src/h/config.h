@@ -144,7 +144,7 @@
 #endif					/* MaxHdr */
 
 #ifndef MaxPath
-   #define MaxPath 256
+   #define MaxPath 512
 #endif					/* MaxPath */
 
 #ifndef SourceSuffix
