@@ -16,17 +16,21 @@ case "$GPX" in
    NoGraphics)	XL= ;;
    *)		echo "$USAGE" 1>&2; exit 1;;
 esac
-case "$CSW" in
-   custom | "")	;;
-   pthreads)	;;
-   *)		echo "$USAGE" 1>&2; exit 1;;
-esac
 
 # check that configuration exists
 if [ ! -d "$NAME" ]; then
    echo "no configuration directory for $NAME" 1>&2 
    exit 1
 fi
+
+case "$CSW" in
+   custom | "") ;;
+   pthreads)    ;;
+   *)      if [ ! -f "$NAME/$CSW" ]; then 
+                echo "$USAGE" 1>&2
+                exit 1 
+           fi ;
+esac
 
 # find and copy the context switch code.
 # use pthreads version if specified, or as a last resort.
@@ -38,6 +42,9 @@ fi
 if [ "$CSW" = "pthreads" ]; then
    RSW=pthreads.c
    COCLEAN="#define CoClean"
+elif [ -f "$NAME/$CSW" ]; then
+   RSW="$NAME/$CSW"
+   COCLEAN=
 elif [ -f "$NAME/$ARCH.c" ]; then
    RSW="$NAME/$ARCH.c"
    COCLEAN=
