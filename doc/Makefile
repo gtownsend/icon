@@ -29,7 +29,7 @@ icont.txt: ../man/man1/icont.1 clnroff.sed
 	    sed -f clnroff.sed | uniq >icont.txt
 
 faq.txt:  faq.htm
-	lynx -nolist -dump -justify=off faq.htm >faq.txt
+	lynx -nolist -dump -justify=off -width=79 faq.htm >faq.txt
 
 
 #  check integrity of HTML files.
