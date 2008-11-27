@@ -249,8 +249,10 @@ static void execute(char *ofile, char *efile, char *args[]) {
     */
    if (efile != NULL) {
       close(fileno(stderr));
-      if (strcmp(efile, "-") == 0)
-         dup(fileno(stdout));
+      if (strcmp(efile, "-") == 0) {
+         if (dup(fileno(stdout)) < 0)
+	    quit("could not merge standard output with standard error\n");
+	 }
       else if (freopen(efile, "w", stderr) == NULL)
          quitf("could not redirect stderr to %s\n", efile);
       }

@@ -436,7 +436,7 @@ int noimage;
 	  * Check for a predefined cset; use keyword name if found.
 	  */
 	 if ((csn = csname(dp)) != NULL) {
-	    fprintf(f, csn);
+	    fprintf(f, "%s", csn);
 	    return;
 	    }
          /*
