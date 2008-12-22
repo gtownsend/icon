@@ -16,7 +16,9 @@ case "$SYS" in
    CYGWIN*)
       # move the win32 import library for iconx.exe callbacks
       # created when iconx.exe was built
-      mv $BIN/../src/runtime/iconx.a $BIN
+      if [ -e $BIN/../src/runtime/iconx.a ]; then
+         mv $BIN/../src/runtime/iconx.a $BIN
+      fi
       gcc -shared -Wl,--enable-auto-import -o $LIBNAME "$@" $BIN/iconx.a;;
    Darwin*)
       cc -bundle -undefined suppress -flat_namespace -o $LIBNAME "$@";;
