@@ -25,7 +25,7 @@ void readglob()
    {
    register word id;
    register int n, op;
-   int k;
+   int i, k;
    int implicit;
    char *name;
    struct gentry *gp;
@@ -111,7 +111,8 @@ void readglob()
             break;
 
          case Op_Link:		/* link the named file */
-            name = &lsspace[getrest()];	/* get the name and */
+            i = getrest();  /* get name offset -- can move lsspace */
+            name = &lsspace[i];	/* get pointer to name string */
             alsolink(name);	/*  put it on the list of files to link */
             newline();
             break;
