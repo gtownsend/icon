@@ -195,7 +195,10 @@ function{1} copy(x)
                runerr(0);
             dst->table.size = src->table.size;
             dst->table.mask = src->table.mask;
-            dst->table.defvalue = src->table.defvalue;
+            /* dst->table.defvalue = src->table.defvalue; */
+            /* to avoid gcc 4.2.2 bug on Sparc, do instead: */
+            memcpy(&dst->table.defvalue, &src->table.defvalue,
+	           sizeof(struct descrip));
             for (i = 0; i < HSegs && src->table.hdir[i] != NULL; i++)
                memcpy((char *)dst->table.hdir[i], (char *)src->table.hdir[i],
                   src->table.hdir[i]->blksize);
