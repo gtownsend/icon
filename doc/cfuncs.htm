@@ -1,0 +1,451 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Icon External Values</TITLE>
+    <LINK REL="STYLESHEET" TYPE="text/css" HREF="istyle.css">
+    <LINK REL="SHORTCUT ICON" HREF="shortcut.gif">
+</HEAD>
+<BODY>
+
+<P> <A HREF="http://www.cs.arizona.edu/icon/"> <IMG SRC="wwwcube.gif"
+ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
+
+
+<H1> Loading C Functions Dynamically </H1>
+
+<P> Gregg M. Townsend
+<BR> <SMALL> Department of Computer Science </SMALL>
+<BR> <SMALL> The University of Arizona </SMALL>
+
+<P> <SMALL> www.cs.arizona.edu/icon/v950/cfuncs.htm
+<BR> Adapted from
+<A HREF="http://www.cs.arizona.edu/icon/analyst/backiss/IA36.pdf">
+<CITE>Icon Analyst 36</CITE></A>
+<BR> Last updated May 28, 2009 </SMALL>
+<!-- $Id$ -->
+
+
+<P> Dynamic loading allows Icon programs to use functions coded in C
+without modifying the Icon system itself. The C code is
+compiled and placed in a library, then loaded
+from the library when the Icon program runs.
+Here is a discussion the use and construction of such functions.
+
+
+<H2> Program library functions </H2>
+
+<P> The
+<A HREF="http://www.cs.arizona.edu/icon/library/ipl.htm">Icon
+program library</A>
+includes an assortment of loadable Unix
+interfaces and special-purpose functions.
+Some are there for their general utility,
+some for illustration, and some to fill specialized needs.
+Here is a sampling:
+<BLOCKQUOTE>
+<CODE>bitcount(i)</CODE> &mdash; count the bits set in an integer
+<BR><CODE>chmod(s, i)</CODE> &mdash; change the permissions of a file
+<BR><CODE>fpoll(f, i)</CODE> &mdash; poll a file for input, with timeout
+<BR><CODE>getpid()</CODE> &mdash; return the process identification number
+<BR><CODE>kill(i1, i2)</CODE> &mdash; send a signal to a process
+<BR><CODE>lgconv(i)</CODE> &mdash; convert a large integer to a string
+<BR><CODE>tconnect(s, i)</CODE> &mdash; connect a file to a TCP port
+<BR><CODE>umask(i)</CODE> &mdash; change the process permission mask
+</BLOCKQUOTE>
+
+<P> The full set of functions can be found in the
+library's <CODE>cfuncs</CODE> directory.
+Documentation and code are also
+<A HREF="http://www.cs.arizona.edu/icon/library/fcfuncs.htm">available
+on line</A>.
+These functions are available automatically to an Icon program
+that includes <CODE>link cfunc</CODE>.
+The <CODE>bitcount()</CODE> function
+is a good example for detailed examination.
+
+
+<H2> Loading a function </H2>
+
+<P> The built-in Icon function <CODE>loadfunc(libname, funcname)</CODE>
+loads the C function <CODE>funcname()</CODE> from
+the library file <CODE>libname</CODE> and returns a procedure
+value. If the function cannot be loaded, the program is terminated.
+
+<P> If <CODE>loadfunc(libname, "myfunc")</CODE> produces <CODE>p</CODE>,
+then
+<UL>
+<LI><CODE>p(</CODE>arguments<CODE>)</CODE> calls <CODE>myfunc()</CODE>
+    with a list of arguments
+<LI><CODE>type(p)</CODE> returns <CODE>"procedure"</CODE>
+<LI><CODE>image(p)</CODE> returns <CODE>"function myfunc"</CODE>
+<LI><CODE>proc("myfunc")</CODE> returns <CODE>p</CODE>
+<LI><CODE>proc("myfunc", 0)</CODE> fails
+</UL>
+
+<P> The following program loads the function
+<CODE>bitcount()</CODE> and assigns it to a global variable of the
+same name. Assigning it to a global variable makes
+it available to other procedures, although that's not
+needed here. The <CODE>bitcount()</CODE> function returns the
+number of bits that are set in the binary representation of an integer.
+<BLOCKQUOTE><PRE>
+$define Library "/icon/bin/libcfunc.so"
+global bitcount
+
+procedure main()
+   local i
+   bitcount := loadfunc(Library, "bitcount")
+   every i := 250 to 260 do
+      write(i, " ", bitcount(i))
+end
+</PRE></BLOCKQUOTE>
+
+<P> When this program is run, it lists the integers
+from 250 to 260 along with their bit counts:
+<BLOCKQUOTE><PRE>
+250  6
+251  7
+252  6
+253  7
+254  7
+255  8
+256  1
+257  2
+258  2
+259  3
+260  2
+</PRE></BLOCKQUOTE>
+
+
+<H2> Loading from a path </H2>
+
+<P> Embedding a file name such as <CODE>/icon/bin/libcfunc.so</CODE>
+in the program is undesirable. An alternative is for the
+program to find the library file
+using information from the program environment.
+
+<P> The Icon library procedure
+<CODE>pathload(libname, funcname)</CODE>
+searches the set of directories given by
+the <CODE>FPATH</CODE> environment variable to find <CODE>libname</CODE>
+and load <CODE>funcname</CODE>.
+As is usual in Icon path searching, the current
+directory is searched first. If the
+function cannot be loaded, the program is terminated.
+
+<P> The <CODE>pathload()</CODE> procedure is included
+by linking <CODE>pathfind</CODE> from the Icon program library. Using
+<CODE>pathload()</CODE>, the example program becomes:
+<BLOCKQUOTE><PRE>
+$define Library "libcfunc.so"
+link pathfind
+global bitcount
+
+procedure main()
+   local i
+   bitcount := pathload(Library, "bitcount")
+   every i := 250 to 260 do
+      write(i, " ", bitcount(i))
+end
+</PRE></BLOCKQUOTE>
+
+<P> The default <CODE>FPATH</CODE> includes the current directory
+and the installed Icon program library directory.
+To find a library located elsewhere,
+<CODE>FPATH</CODE> must be set explicitly before the program is run.
+
+
+<H2> Implicit function loading </H2>
+
+<P> It is possible to encapsulate the loading process so that the body of
+an Icon program is unaware
+that it is calling a C function. Consider this example:
+<BLOCKQUOTE><PRE>
+$define Library "libcfunc.so"
+link pathfind
+
+procedure main()
+   local i
+   every i := 250 to 260 do
+      write(i, " ", bitcount(i))
+end
+
+procedure bitcount(n)
+   bitcount := pathload(Library, "bitcount")
+   return bitcount(n)
+end
+</PRE></BLOCKQUOTE>
+
+<P> First of all, notice that there is no longer a
+global declaration for <CODE>bitcount</CODE>, and that the main
+procedure no longer calls <CODE>pathload()</CODE>. As far as the
+main procedure is concerned, <CODE>bitcount()</CODE> is just
+another procedure to call, with no special requirements. This is a nice
+simplification.
+
+<P> The new <CODE>bitcount()</CODE> procedure is a bit tricky,
+though. To understand it, you must know that an
+Icon procedure declaration creates a global variable with an initial
+value of that procedure. A
+global variable is subject to assignment.
+
+<P> When <CODE>main()</CODE> calls <CODE>bitcount()</CODE> for the first time,
+the <CODE>bitcount()</CODE> procedure loads the <CODE>bitcount()</CODE>
+C function from the library. The result is assigned to the
+global variable <CODE>bitcount</CODE>, replacing the current procedure value.
+Consequently, all subsequent calls
+to <CODE>bitcount()</CODE> use the loaded function.
+
+<P> The first call to <CODE>bitcount()</CODE> remains incomplete
+after loading the function; the bits of <CODE>n</CODE> still must be
+counted. So, following loading, the procedure calls
+<CODE>bitcount(n)</CODE>. Although this looks like a recursive
+call, it isn't &mdash; the call uses the current value of the
+global variable <CODE>bitcount</CODE>, and so it calls the loaded C
+function. The bits of <CODE>n</CODE> are counted and returned,
+completing the first call.
+
+<P> After the first time, calls to <CODE>bitcount()</CODE>
+go directly to the loaded code. The Icon procedure
+<CODE>bitcount()</CODE> is no longer accessible.
+
+
+<H2> Implicit library loading </H2>
+
+<P> The Icon program library provides an implicit loading procedure for
+each of the C functions
+in the library. Small procedures like the <CODE>bitcount()</CODE>
+procedure shown above are included by linking
+<CODE>cfunc</CODE>. Using the library interface procedure, our
+example now can be simplified to this:
+<BLOCKQUOTE><PRE>
+link cfunc
+
+procedure main()
+   local i
+   every i := 250 to 260 do
+      write(i, " ", bitcount(i))
+end
+</PRE></BLOCKQUOTE>
+
+<P> The <CODE>link cfunc</CODE> declaration is the only hint that
+<CODE>bitcount()</CODE> is written in C.
+
+
+<H2> Making connections </H2>
+
+<P> The bit counting example doesn't really illustrate the full potential
+of using C functions in an
+Icon program. Bit counting, after all, can be done in
+Icon. Here's something that can't.
+
+<P> The library function
+<CODE>tconnect(host, port)</CODE> establishes a TCP connection
+to a specified port
+number on an Internet host. TCP is a communication protocol used by
+telnet programs, news servers, web servers, and many other network
+services.
+
+<P> The following program makes a connection
+to the Icon web server and writes the contents of
+the Icon home page &mdash; in its original HTML markup
+language, of course.
+<BLOCKQUOTE><PRE>
+link cfunc
+
+procedure main()
+   local f
+   f := tconnect("www.cs.arizona.edu", 80)
+   writes(f, "GET /icon/ HTTP/1.0\n\n")
+   flush(f)
+   seek(f, 1)
+   while write(read(f))
+end
+</PRE></BLOCKQUOTE>
+
+<P> The <CODE>tconnect()</CODE> call establishes the connection
+and returns a file that is open for both input and
+output. The internet host <CODE>www.cs.arizona.edu</CODE> is
+the web server for the University of Arizona's
+Department of Computer Science.
+(Port 80 is the standard web server port number.)
+The program then transmits a request for the
+<CODE>/icon/</CODE> web page. The details of the request string
+are specified by the
+<A HREF="http://www.w3.org/Protocols/rfc2616/rfc2616.html">Hypertext
+Transfer Protocol</A>, not discussed here.
+
+<P> The <CODE>flush()</CODE> call ensures that all the data is
+actually sent, and then the <CODE>seek()</CODE> call resets the file
+in preparation for a switch from output to input. In
+this situation <CODE>seek()</CODE> does not actually reposition
+the file, but it's required when switching modes.
+
+<P> Finally, lines are read and echoed until an
+end-of-file is received.
+
+
+<H2> Writing loadable C functions </H2>
+
+<P> Now consider the construction of library functions.
+Because the Icon system expects C functions
+to implement a certain interface, dynamic loading
+usually requires specially written C functions. In
+general, it is not possible to use an existing C
+function without writing an intermediate "glue"
+function.
+
+<P> C functions must deal with the data types
+used by the Icon run-time system, notably the
+"descriptors" that represent all Icon values. While
+an understanding of
+<A HREF="http://www.cs.arizona.edu/icon/ibsale.htm">the
+Icon run-time system</A> is helpful,
+it is possible to create useful functions by
+modeling them after existing library functions.
+Integer and string values are most easily handled.
+
+<P> A loadable C function has the prototype
+<BLOCKQUOTE><CODE>int funcname(int argc, descriptor *argv)</CODE></BLOCKQUOTE>
+where <CODE>argc</CODE> is the number of arguments and <CODE>argv</CODE> is
+an array of argument descriptors.
+The first element, <CODE>argv[0]</CODE>, is used to return an Icon value, and
+is initialized to a descriptor for the null value. This
+element is not included in the count <CODE>argc</CODE>. The
+actual arguments begin with <CODE>argv[1]</CODE>.
+
+<P> If the C function returns zero, the call from
+Icon succeeds. A negative value indicates failure. If
+a positive value is returned, it is interpreted as an
+error number and a fatal error with that number is
+signalled. In this case, if <CODE>argv[0]</CODE> is non-null, it is
+reported as the "offending value". There is no way
+for a C function to suspend, and no way to indicate
+a null value as an offending value in the case of an
+error.
+
+
+<H2> Interface macros </H2>
+
+<P> The C file <CODE>icall.h</CODE> contains a set of macros for
+use in writing loadable functions. Documentation
+is included as comments. This file can be found in the
+<CODE>cfuncs</CODE> directory in the source code of the Icon
+program library. Alternatively, it can be loaded
+<A HREF="http://www.cs.arizona.edu/icon/library/src/cfuncs/icall.h">from
+the web</A>.  Macros are provided for:
+<UL>
+<LI>inspecting the type of an Icon value
+<LI>validating the type of an argument
+<LI>converting an Icon value into a C value
+<LI>returning a C value in Icon form
+<LI>failing or signaling an error
+</UL>
+
+<P> Most macros deal with integers or strings.
+Some support also is provided for handling real
+and file values.
+The macros expect the C arguments to be declared with the
+names of <CODE>argc</CODE> and <CODE>argv</CODE>.
+
+
+<H2> Counting bits, again </H2>
+
+<P> For a concrete example of a C function, consider the source code
+of the <CODE>bitcount()</CODE> function used earlier:
+<BLOCKQUOTE><PRE>
+#include "icall.h"
+
+int bitcount(int argc, descriptor *argv)
+{
+   unsigned long v;
+   int n;
+   ArgInteger(1);
+   v = IntegerVal(argv[1]);
+   n = 0;
+   while (v != 0) {
+      n += v & 1;
+      v &gt;&gt;= 1;
+      }
+   RetInteger(n);
+}
+</PRE></BLOCKQUOTE>
+
+<P> Like all loadable functions, <CODE>bitcount()</CODE> is an
+integer function with two parameters, <CODE>argc</CODE> and
+<CODE>argv</CODE>.
+
+<P> The <CODE>ArgInteger</CODE> macro call verifies that argument 1 is a simple
+integer. (Large integers are
+typically rejected by C functions because of the
+extra work involved.) If argument 1 is missing or
+has the wrong type, <CODE>ArgInteger</CODE> makes the function
+return error code 101 (integer expected or out of
+range).
+
+<P> The <CODE>IntegerVal</CODE> macro call extracts the value
+of the first argument.
+
+<P> In each pass through the <CODE>while</CODE> loop, the low order bit of
+<CODE>v</CODE> is
+extracted (<CODE>v & 1</CODE>), added to <CODE>n</CODE>, and
+shifted off (<CODE>v &gt;&gt;= 1</CODE>). When no more nonzero bits
+are left, the loop exits. Note that <CODE>v</CODE> is declared
+unsigned to ensure that only zero bits are inserted
+by the shift operation.
+
+<P> The <CODE>RetInteger</CODE> macro call returns the value
+of <CODE>n</CODE> as an Icon integer.
+
+
+<H2> Preparing a library </H2>
+
+<P> To be used in an Icon program, a C function
+must be built and installed in a library. Compilation comes first,
+usually involving a command such as
+<BLOCKQUOTE><CODE>cc &ndash;c bitcount.c</CODE></BLOCKQUOTE>
+to produce an object file <CODE>bitcount.o</CODE>.
+The <CODE>&ndash;c</CODE> option causes a relocatable object file
+to be produced instead of a stand-alone executable program.
+If <CODE>icall.h</CODE> is not in the current directory,
+an additional option may be needed to specify its location.
+Other options, such as optimization options, also could be specified.
+
+<P> A C function can be loaded only from a "shared library".
+Even if there is just one function, it must be placed in a library.
+Library names conventionally end with a <CODE>.so</CODE> suffix.
+
+<P> It seems that every system has a different
+way to create libraries, usually involving special
+flags to <CODE>cc</CODE> or <CODE>ld</CODE>.
+The shell script <CODE>mklib.sh</CODE>
+embodies our understanding of shared library creation.
+It takes one argument naming the library to be created and one or more
+additional arguments listing object file names.
+For example, the command
+<BLOCKQUOTE><CODE>mklib.sh mylib.so bitcount.o</CODE></BLOCKQUOTE>
+creates a file <CODE>mylib.so</CODE> containing the functions read
+from <CODE>bitcount.o</CODE>.
+Like <CODE>icall.h</CODE>, <CODE>mklib.sh</CODE> is available in
+the program library source code or
+<A HREF="http://www.cs.arizona.edu/icon/library/src/cfuncs/mklib.sh">from
+the web</A>.
+
+
+<H2> Summary </H2>
+
+<P>
+<UL>
+<LI> Icon programs can load and call functions written in C.
+<LI> The C functions must be tailored to Icon's requirements.
+<LI> Each function must be loaded before it can be called.
+<LI> A simple Icon procedure can be used to hide the loading details.
+<LI> <CODE>pathload()</CODE> searches <CODE>FPATH</CODE>
+     to find a function library.
+<LI> Some useful functions are provided in the Icon program library.
+</UL>
+
+<P> <HR>
+
+</BODY>
+</HTML>
