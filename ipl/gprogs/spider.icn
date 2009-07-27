@@ -6,7 +6,9 @@
 #
 #	Author:   William S. Evans
 #
-#	Date:     February 19, 2002
+#       Contributor:  Gregg M. Townsend
+#
+#	Date:     July 27, 2009 
 #
 ############################################################################
 #
@@ -45,6 +47,7 @@
 #	's'	Save the current game to a file.
 #	'r'	Read a game from a file.
 #	'1234567890'	Move run from indicated pile.
+#	'bcfghvwxyz'	Move run from indicated pile.
 #
 ############################################################################
 #
@@ -112,7 +115,8 @@ procedure main(args)
 	    saveFile()
 	    WAttrib("bg=deep moderate green","fg=white")
 	}
-	!"1234567890": {
+	!"1234567890bcfghvwxyz": {
+            e := map(e, "bcfghvwxyz", "1234567890")
 	    p := 0 < ord(e)-ord("0") | 10
 	    click(13,p,p) | beep()
 	}
@@ -210,6 +214,9 @@ end
 
 procedure drawPiles(p[])
     local i,j,n,x,y,ht,mlap,upstart,yposns
+    static hdrs
+    initial hdrs := ["b 1", "c 2", "f 3", "g 4", "h 5",
+                     "v 6", "w 7", "x 8", "y 9", "z 0"]
 
     if readingGame = 0 then {
 	every i := 1 <= 10 >= !p do {
@@ -219,8 +226,8 @@ procedure drawPiles(p[])
 	    yoff[i] := yposns := list(0)
 	    x := xmargin + (i-1) * (cardw + xgap)
 	    EraseArea(x,ymargin,cardw,height-2*ymargin)
-	    GotoXY(x+cardw/2,ymargin-descent)
-	    WWrites(10 > i | 0)
+	    GotoXY(x+cardw/2-10,ymargin-descent)
+	    WWrites(hdrs[i])
 	    n := *(pile[i])
 	    mlap := lap
 	    if n > 1 then
