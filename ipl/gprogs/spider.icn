@@ -49,21 +49,27 @@
 #	'1234567890'	Move run from indicated pile.
 #	'bcfghvwxyz'	Move run from indicated pile.
 #
+#   If $HOME/.spdhist exists and is writable at the start of the run, a
+#   single history record is written to it for each 'n' or 'q' or 'r'
+#   command, unless no cards have been moved.
+#
 ############################################################################
 #
 #  Requires:  Version 9 graphics
 #
 ############################################################################
 #
-#  Links:  drawcard, graphics, random
+#  Links:  datetime, drawcard, graphics, random
 #
 ############################################################################
 
+link datetime
 link drawcard
 link graphics
 link random
 
 $define SPIDER_VERSION "spider-0.3"	# version of spider
+$define HISTORY_FILE ".spdhist"         # name of history file in $HOME
 
 global cardw, cardh			# card width and height
 global ymargin, xmargin, xgap		# margins, gap between cards
@@ -77,6 +83,8 @@ global nextCard		# an integer
 global undoStack	# list of integers
 global currentFile	# filename to store/retrieve a game
 global readingGame	# =1 if reading game from file =0 o.w.
+global startTime        # start time of this game
+global histfile         # appendable history file, if any, else null
 
 procedure main(args)
     local fromPile,maxCards,e,p
@@ -85,6 +93,7 @@ procedure main(args)
     newgame()
     repeat case e := Event() of {
 	!"qQ": {
+            writeHistory()
 	    exit()
 	}
 	"d": {
@@ -97,18 +106,21 @@ procedure main(args)
 	   message(hiddenNames(1+(&x-xmargin+xgap/2)/(cardw+xgap)))
 	}
 	"n": {
+            writeHistory()
 	    newgame()
 	}
 	"u": {
 	    undo() | beep()
 	}
 	"r": {
+            writeHistory()
 	    readingGame := 1
 	    WAttrib("bg=pale gray","fg=black")
 	    readFile()
 	    readingGame := 0
 	    WAttrib("bg=deep moderate green","fg=white")
 	    drawBoard()
+            startTime := &null          # unknown original start time
 	}
 	"s": {
 	    WAttrib("bg=pale gray","fg=black")
@@ -142,6 +154,7 @@ procedure main(args)
 end
 
 procedure initialize(args)
+    local hfname
 
     currentFile := "game1.spd"
     readingGame := 0
@@ -174,6 +187,10 @@ procedure initialize(args)
     descent:= WAttrib("descent")
 
     ymargin <:= fheight
+
+    hfname := (getenv("HOME") | "?noHOME?") || "/" || HISTORY_FILE
+    if close(open(hfname)) then         # if file already exists
+        histfile := open(hfname, "wa")  # may fail leaving null if not writable
 
     return
 end
@@ -209,6 +226,8 @@ procedure newgame(initialDeck)
    up[11] := 0
 
    drawBoard()
+
+   startTime := &clock
    return
 end
 
@@ -570,5 +589,33 @@ procedure doAll()
 	}
 	i -:= 4
     }
+    return
+end
+
+procedure writeHistory()
+    local i, u, s, stopTime, elapsed
+
+    if /histfile | (*undoStack = 0) then return
+
+    stopTime := &clock
+    elapsed := ClockToSec(stopTime,0) - (ClockToSec(\startTime,0)|-1)
+    if elapsed < 0 then elapsed +:= 24 * 60 * 60
+    elapsed >:= 9999
+
+    writes(histfile, &date, " ", stopTime[1+:5])        # date and time at quit
+    writes(histfile, right(elapsed, 5), "s")            # elapsed time in sec
+    writes(histfile, right(*undoStack/3, 4), "m")       # moves made
+    writes(histfile, right(104-nextCard+1, 3), "c")     # undealt cards
+
+    every i := 1 to 10 do {
+        s := pile[i]
+        u := up[i]
+        if *s = 0 then
+            writes(histfile, " -")
+        else
+            writes(histfile, " ", s[1+:u], repl("?", *s-u))
+    }
+
+    write(histfile)
     return
 end
