@@ -8,7 +8,7 @@
 #
 #       Contributor:  Gregg M. Townsend
 #
-#	Date:     July 27, 2009 
+#	Date:     August 13, 2009 
 #
 ############################################################################
 #
@@ -93,7 +93,7 @@ procedure main(args)
     newgame()
     repeat case e := Event() of {
 	!"qQ": {
-            writeHistory()
+            report()
 	    exit()
 	}
 	"d": {
@@ -106,14 +106,14 @@ procedure main(args)
 	   message(hiddenNames(1+(&x-xmargin+xgap/2)/(cardw+xgap)))
 	}
 	"n": {
-            writeHistory()
+            report()
 	    newgame()
 	}
 	"u": {
 	    undo() | beep()
 	}
 	"r": {
-            writeHistory()
+            report()
 	    readingGame := 1
 	    WAttrib("bg=pale gray","fg=black")
 	    readFile()
@@ -450,8 +450,8 @@ procedure succ(c)
 end
 
 procedure beep()
-    writes("\^g")
-    flush(&output)
+    writes(&errout, "\^g")
+    flush(&errout)
     return
 end
 
@@ -531,6 +531,7 @@ procedure saveFile()
 		    write(output,deck)
 		    every writes(output,!undoStack," ")
 		    write(output,"")
+		    close(output)
 		    return
 		} else {
 		    Notice("Cannot open file for writing.")
@@ -592,20 +593,30 @@ procedure doAll()
     return
 end
 
-procedure writeHistory()
-    local i, u, s, stopTime, elapsed
+procedure report()
+    local i, u, s, stopTime, elapsed, nmoves, undealt, cardsleft
 
-    if /histfile | (*undoStack = 0) then return
+    if *undoStack = 0 then return       # don't report if no moves made
 
     stopTime := &clock
     elapsed := ClockToSec(stopTime,0) - (ClockToSec(\startTime,0)|-1)
-    if elapsed < 0 then elapsed +:= 24 * 60 * 60
-    elapsed >:= 9999
+    if elapsed < 0 then         # if wraparound crossing midnight
+        elapsed +:= 24 * 60 * 60
+    elapsed >:= 9999            # 9999 sec means unknown or bogus time
 
-    writes(histfile, &date, " ", stopTime[1+:5])        # date and time at quit
-    writes(histfile, right(elapsed, 5), "s")            # elapsed time in sec
-    writes(histfile, right(*undoStack/3, 4), "m")       # moves made
-    writes(histfile, right(104-nextCard+1, 3), "c")     # undealt cards
+    nmoves := *undoStack/3
+    undealt := 104 - nextCard + 1
+    cardsleft := 0
+    every cardsleft +:= *pile[1 to 10]
+    write(nmoves, " moves in ", elapsed, " seconds, leaving ",
+        cardsleft + undealt, " cards")
+
+    if /histfile then return        # if no history file, nothing more to do
+
+    writes(histfile, &date, " ", stopTime[1+:5])    # date and time at quit
+    writes(histfile, right(elapsed, 5), "s")        # elapsed time in sec
+    writes(histfile, right(nmoves, 4), "m")         # moves made
+    writes(histfile, right(undealt, 3), "c")        # undealt cards
 
     every i := 1 to 10 do {
         s := pile[i]
