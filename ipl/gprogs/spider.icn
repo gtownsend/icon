@@ -47,7 +47,7 @@
 #	's'	Save the current game to a file.
 #	'r'	Read a game from a file.
 #	'1234567890'	Move run from indicated pile.
-#	'bcfghvwxyz'	Move run from indicated pile.
+#	'bfhptvwxyz'	Move run from indicated pile.
 #
 #   If $HOME/.spdhist exists and is writable at the start of the run, a
 #   single history record is written to it for each 'n' or 'q' or 'r'
@@ -70,6 +70,9 @@ link random
 
 $define SPIDER_VERSION "spider-0.3"	# version of spider
 $define HISTORY_FILE ".spdhist"         # name of history file in $HOME
+
+$define NUM_LABELS "1234567890"         # numeric column labels
+$define LTR_LABELS "bfhptvwxyz"         # alphabetic column labels
 
 global cardw, cardh			# card width and height
 global ymargin, xmargin, xgap		# margins, gap between cards
@@ -127,9 +130,8 @@ procedure main(args)
 	    saveFile()
 	    WAttrib("bg=deep moderate green","fg=white")
 	}
-	!"1234567890bcfghvwxyz": {
-            e := map(e, "bcfghvwxyz", "1234567890")
-	    p := 0 < ord(e)-ord("0") | 10
+	!(NUM_LABELS | LTR_LABELS): {
+	    p := find(e, NUM_LABELS | LTR_LABELS)
 	    click(13,p,p) | beep()
 	}
 	&lpress | &rpress: {
@@ -233,9 +235,6 @@ end
 
 procedure drawPiles(p[])
     local i,j,n,x,y,ht,mlap,upstart,yposns
-    static hdrs
-    initial hdrs := ["b 1", "c 2", "f 3", "g 4", "h 5",
-                     "v 6", "w 7", "x 8", "y 9", "z 0"]
 
     if readingGame = 0 then {
 	every i := 1 <= 10 >= !p do {
@@ -246,7 +245,7 @@ procedure drawPiles(p[])
 	    x := xmargin + (i-1) * (cardw + xgap)
 	    EraseArea(x,ymargin,cardw,height-2*ymargin)
 	    GotoXY(x+cardw/2-10,ymargin-descent)
-	    WWrites(hdrs[i])
+	    WWrites(LTR_LABELS[i], " ", NUM_LABELS[i])
 	    n := *(pile[i])
 	    mlap := lap
 	    if n > 1 then
