@@ -8,7 +8,7 @@
 #
 #       Contributor:  Gregg M. Townsend
 #
-#	Date:     August 13, 2009 
+#	Date:     September 6, 2009
 #
 ############################################################################
 #
@@ -236,6 +236,11 @@ end
 procedure drawPiles(p[])
     local i,j,n,x,y,ht,mlap,upstart,yposns
 
+    if *pile[11] = 104 then {
+        drawWin()
+        return
+    }
+
     if readingGame = 0 then {
 	every i := 1 <= 10 >= !p do {
 
@@ -272,9 +277,28 @@ procedure drawPiles(p[])
     return
 end
 
+procedure drawWin()
+    local i, j, s, x, y, suits
+
+    EraseArea()
+    suits := [
+        "MLKJIHGFEDCBA", "mlkjihgfedcba", "zyxwvutsrqpon", "ZYXWVUTSRQPON" ]
+    every i := 1 to 4 do {
+        s := suits[i]
+        y := 125 * (i - 1)
+        every x := 20 | 400 do {
+            every j := 1 to 13 do {
+                drawcard(x + 24 * j, y, s[j])
+                WDelay(5)
+            }
+        }
+    }
+    return
+end
 
 procedure drawBoard()
     if readingGame = 0 then {
+        EraseArea()
 	WAttrib("label=Spider Deck "||104-nextCard+1)
 	drawPiles(1,2,3,4,5,6,7,8,9,10)
     }
