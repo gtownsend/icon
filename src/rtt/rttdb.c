@@ -542,7 +542,7 @@ struct il_code *il;
          fprintf(db, "%d ", num_cases);
          indx = 1;
          for (i = 0; i < num_cases; ++i) {
-            fprintf(db, "\n%d ", il->u[indx++].n);    /* selection number */
+            fprintf(db, "\n%ld ", (long)il->u[indx++].n);/* selection number */
             put_inlin(db, il->u[indx++].fld);        /* action */
             }
          fprintf(db, "\n");
@@ -567,14 +567,14 @@ struct il_code *il;
           * runerr with no value argument.
           */
          fprintf(db, "runerr1 ");
-         fprintf(db, "%d ", il->u[0].n);      /* error number */
+         fprintf(db, "%ld ", (long)il->u[0].n);      /* error number */
          break;
       case IL_Err2:
          /*
           * runerr with a value argument.
           */
          fprintf(db, "runerr2 ");
-         fprintf(db, "%d ", il->u[0].n);      /* error number */
+         fprintf(db, "%ld ", (long)il->u[0].n);      /* error number */
          put_inlin(db, il->u[1].fld);          /* variable */
          break;
       case IL_Lst:
@@ -649,15 +649,15 @@ struct il_code *il;
          /*
           * A variable.
           */
-         fprintf(db, "%d ", il->u[0].n);    /* symbol table index */
+         fprintf(db, "%ld ", (long)il->u[0].n);    /* symbol table index */
          break;
       case IL_Subscr:
          /*
           * A subscripted variable.
           */
          fprintf(db, "[ ");
-         fprintf(db, "%d ", il->u[0].n);    /* symbol table index */
-         fprintf(db, "%d ", il->u[1].n);    /* subscripting index */
+         fprintf(db, "%ld ", (long)il->u[0].n);    /* symbol table index */
+         fprintf(db, "%ld ", (long)il->u[1].n);    /* subscripting index */
          break;
       case IL_Block:
          /*
@@ -671,7 +671,7 @@ struct il_code *il;
           /*
            * Output a symbol table of tended variables.
            */
-         fprintf(db, "%d ", il->u[1].n);    /* number of local tended */
+         fprintf(db, "%ld ", (long)il->u[1].n);    /* number of local tended */
          for (i = 2; i - 2 < il->u[1].n; ++i)
              switch (il->u[i].n) {
                 case TndDesc:
@@ -733,8 +733,8 @@ struct il_code *il;
          else
             fprintf(db, "f ");
 
-         fprintf(db, "%d ", il->u[5].n);    /* num string bufs */
-         fprintf(db, "%d ", il->u[6].n);    /* num cset bufs */
+         fprintf(db, "%ld ", (long)il->u[5].n);    /* num string bufs */
+         fprintf(db, "%ld ", (long)il->u[6].n);    /* num cset bufs */
          i = il->u[7].n;
          fprintf(db, "%d ", i);             /* num args */
          indx = 8;
@@ -961,15 +961,15 @@ struct il_c *ilc;
             fprintf(db, "$efail ");  /* errorfail statement */
             break;
          case ILC_Goto:
-            fprintf(db, "$goto %d ", ilc->n);  /* goto label */
+            fprintf(db, "$goto %ld ", (long)ilc->n);  /* goto label */
             break;
          case ILC_CGto:
             fprintf(db, "$cgoto ");            /* conditional goto */
             put_ilc(db, ilc->code[0]);         /* condition (with $c $e) */
-            fprintf(db, "%d ", ilc->n);        /* label */
+            fprintf(db, "%ld ", (long)ilc->n);        /* label */
             break;
          case ILC_Lbl:
-            fprintf(db, "$lbl %d ", ilc->n);   /* label */
+            fprintf(db, "$lbl %ld ", (long)ilc->n);   /* label */
             break;
          case ILC_LBrc:
             fprintf(db, "${ ");                /* start of C block with dcls */
@@ -1000,7 +1000,7 @@ struct il_c *ilc;
    if (ilc->n == RsltIndx)
       fprintf(db, "r ");          /* this is "result" */
    else
-      fprintf(db, "%d ", ilc->n); /* offset into a symbol table */
+      fprintf(db, "%ld ", (long)ilc->n); /* offset into a symbol table */
    }
 
 /*

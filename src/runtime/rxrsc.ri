@@ -685,7 +685,7 @@ int size, flags;
     */
    p = xlfd_field(fontlist[champ], XLFD_Size);
    if (p[0] == '0' && p[1] == '-')
-      sprintf(fontspec, "%.*s%d%s", p - fontlist[champ],
+      sprintf(fontspec, "%.*s%d%s", (int) (p - fontlist[champ]),
          fontlist[champ], bestsize, p + 1);
    else
       strcpy(fontspec, fontlist[champ]);
