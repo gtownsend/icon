@@ -19,7 +19,7 @@ case "$SYS" in
       if [ -e $BIN/../src/runtime/iconx.a ]; then
          mv $BIN/../src/runtime/iconx.a $BIN
       fi
-      gcc -shared -Wl,--enable-auto-import -o $LIBNAME "$@" $BIN/iconx.a;;
+      $CC -shared -Wl,--enable-auto-import -o $LIBNAME "$@" $BIN/iconx.a;;
    Darwin*)
       $CC -bundle -undefined suppress -flat_namespace -o $LIBNAME "$@";;
    SunOS*)
