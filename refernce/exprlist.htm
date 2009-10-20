@@ -1,0 +1,114 @@
+<!doctype html public "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Icon Programming Language Expressions</TITLE>
+    <LINK REL="STYLESHEET" TYPE="text/css" HREF="../istyle.css">
+</HEAD>
+<BODY>
+<H2><A NAME="expressions"></A>Expressions </H2>
+<H6><A HREF="ref.htm">[Back to contents page]</A></H6>
+Expressions shown in order of decreasing precedence. Items in groups (as
+separated by empty lines) have equal precedence. 
+<PRE>
+High Precedence Expressions
+
+        (expr)                          # grouping
+        {expr1;expr2;...}               # compound
+        x(expr1,expr2,...)              # <A HREF="infix3.htm#invoke">process argument list</A>
+        x{expr1,expr2,...}              # <A HREF="infix3.htm#invoke_coexpr">process argument list</A>
+        [expr1,expr2,...]               # <A HREF="infix2.htm#create_list">list</A>
+        expr.F                          # <A HREF="infix1.htm#field">field reference</A>
+        expr1[expr2]                    # <A HREF="infix2.htm#subscript">subscript</A>
+        expr1[expr2:expr3]              # <A HREF="infix2.htm#section">section</A>
+        expr1[expr2+:expr3]             # <A HREF="infix2.htm#section_plus">section</A>
+        expr1[expr2-:expr3]             # <A HREF="infix2.htm#section_minus">section</A>
+
+Prefix Expressions
+
+        not expr                        # <A HREF="infix3.htm#not">success/failure reversal</A>
+        | expr                          # <A HREF="infix3.htm#repeat_alternate">repeated alternation</A>
+        ! expr                          # <A HREF="prefix.htm#values">element generation</A>
+        * expr                          # <A HREF="prefix.htm#size">size</A>
+        + expr                          # <A HREF="prefix.htm#positive">numeric value</A>
+        - expr                          # <A HREF="prefix.htm#negative">negative</A>
+        . expr                          # <A HREF="prefix.htm#dereference">value (dereference)</A>
+        / expr                          # <A HREF="prefix.htm#null">null</A>
+        \ expr                          # <A HREF="prefix.htm#nonnull">non-null</A>
+        = expr                          # <A HREF="prefix.htm#tab_match">match and tab</A>
+        ? expr                          # <A HREF="prefix.htm#random">random value</A>
+        ~ expr                          # <A HREF="prefix.htm#complement">cset complement</A>
+        @ expr                          # <A HREF="prefix.htm#activate">activation</A>
+        ^ expr                          # <A HREF="prefix.htm#refresh">refresh</A>
+
+Infix Expressions
+
+        expr1 \ expr2                   # <A HREF="infix3.htm#limit">limitation</A>
+        expr1 @ expr2                   # <A HREF="infix1.htm#transmit">transmission</A>
+        expr1 ! expr2                   # <A HREF="infix3.htm#invoke_list">invocation</A>
+
+        expr1 ^ expr2                   # <A HREF="infix1.htm#exponential">power</A>
+
+        expr1 * expr2                   # <A HREF="infix1.htm#product">product</A>
+        expr1 / expr2                   # <A HREF="infix1.htm#quotient">quotient</A>
+        expr1 % expr2                   # <A HREF="infix1.htm#remainder">remainder</A>
+        expr1 ** expr2                  # <A HREF="infix1.htm#intersection">intersection</A>
+
+        expr1 + expr2                   # <A HREF="infix1.htm#sum">sum</A>
+        expr1 - expr2                   # <A HREF="infix1.htm#difference">numeric difference</A>
+
+        expr1 ++ expr2                  # <A HREF="infix1.htm#union">union</A>
+        expr1 -- expr2                  # <A HREF="infix1.htm#set_difference">cset or set difference</A>
+
+        expr1 || expr2                  # <A HREF="infix1.htm#concatenation">string concatenation</A>
+        expr1 ||| expr2                 # <A HREF="infix1.htm#list_concatenation">list concatenation</A>
+
+        expr1 &lt; expr2                   # <A HREF="infix1.htm#num_lt">numeric comparison</A>
+        expr1 &lt;= expr2                  # <A HREF="infix1.htm#num_le">numeric comparison</A>
+        expr1 = expr2                   # <A HREF="infix1.htm#num_eq">numeric comparison</A>
+        expr1 &gt;= expr2                  # <A HREF="infix1.htm#num_ge">numeric comparison</A>
+        expr1 &gt; expr2                   # <A HREF="infix1.htm#num_gt">numeric comparison</A>
+        expr1 ~= expr2                  # <A HREF="infix1.htm#num_ne">numeric comparison</A>
+        expr1 &lt;&lt; expr2                  # <A HREF="infix1.htm#str_lt">string comparison</A>
+        expr1 &lt;&lt;= expr2                 # <A HREF="infix1.htm#str_le">string comparison</A>
+        expr1 == expr2                  # <A HREF="infix1.htm#str_eq">string comparison</A>
+        expr1 &gt;&gt;= expr2                 # <A HREF="infix1.htm#str_ge">string comparison</A>
+        expr1 &gt;&gt; expr2                  # <A HREF="infix1.htm#str_gt">string comparison</A>
+        expr1 ~== expr2                 # <A HREF="infix1.htm#str_ne">string comparison</A>
+        expr1 === expr2                 # <A HREF="infix1.htm#val_eq">value comparison</A>
+        expr1 ~=== expr2                # <A HREF="infix1.htm#val_ne">value comparison</A>
+
+        expr1 | expr2                   # <A HREF="infix3.htm#alternate">alternation</A>
+
+        expr1 to expr2 by expr3         # <A HREF="infix2.htm#to_by">integer generation</A>
+
+        expr1 := expr2                  # <A HREF="infix2.htm#assign">assignment</A>
+        expr1 &lt;- expr2                  # <A HREF="infix2.htm#rev_assign">reversible assignment</A>
+        expr1 :=: expr2                 # <A HREF="infix2.htm#exchange">exchange</A>
+        expr1 &lt;-&gt; expr2                 # <A HREF="infix2.htm#rev_exchange">reversible exchange</A>
+        expr1 op:= expr2                # <A HREF="infix2.htm#aug_assign">(augmented assignments)</A>
+
+        expr1 ? expr2                   # <A HREF="infix3.htm#scan">string scanning</A>
+
+        expr1 &amp; expr2                   # <A HREF="infix1.htm#conjunction">conjunction</A>
+
+Low Precedence Expressions
+
+        break [expr]                    # <A HREF="infix3.htm#break">break from loop</A>
+        case expr0 of {                 # <A HREF="infix3.htm#case">case selection</A>
+           expr1:expr2
+           ...
+           [default:exprn]
+           }
+        create expr                     # <A HREF="infix3.htm#create">co-expression creation</A>
+        every expr1 [do expr2]          # <A HREF="infix3.htm#every">iterate over generated values</A>
+        fail                            # <A HREF="infix3.htm#fail">failure of procedure</A>
+        if expr1 then exp2 [else exp3]  # <A HREF="infix3.htm#if">if-then-else</A>
+        next                            # <A HREF="infix3.htm#next">go to top of loop</A>
+        repeat expr                     # <A HREF="infix3.htm#repeat">loop</A>
+        return expr                     # <A HREF="infix3.htm#return">return from procedure</A>
+        suspend expr1 [do expr2]        # <A HREF="infix3.htm#suspend">suspension of procedure</A>
+        until expr1 [do expr2]          # <A HREF="infix3.htm#until">until-loop</A>
+        while expr1 [do expr2]          # <A HREF="infix3.htm#while">while-loop</A></PRE>
+<H6><A HREF="ref.htm">[Back to contents page]</A></H6>
+</BODY>
+</HTML>

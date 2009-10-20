@@ -1,0 +1,57 @@
+<!doctype html public "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Icon Programming Language Executables</TITLE>
+    <LINK REL="STYLESHEET" TYPE="text/css" HREF="../istyle.css">
+</HEAD>
+<BODY>
+<H2>Icon Programming Language Executables</H2>
+<H6><A HREF="ref.htm">[Back to contents page]</A></H6>
+<H2><A NAME="icont"></A>icont -- Icon translator and linker </H2>
+Usage: <CODE>icont </CODE>[option...] file... 
+<H3>Options</H3>
+<PRE>
+-c        translate only, without linking
+-fs       prevent removal of all unreferenced declarations
+          (same as &quot;invocable all&quot;)
+-o file   name the icode output file <VAR>file</VAR>
+-s        suppress progress messages
+-t        give &amp;trace an initial value of -1
+-u        issue warnings for undeclared identifiers
+-v n      set verbosity of output, where n = 
+             0   suppress non-error output (same as -s)
+             1   list procedure names (the default)
+             2   also report the sizes of icode sections
+                 (procedures, strings, and so forth)
+             3   also list discarded globals</PRE>
+<H3>Environment variables recognized by icont </H3>
+<PRE>
+Name         Default    Description
+--------     -------    -----------------------
+IPATH        none       search path for link directives
+LPATH        none       search path for $include directives</PRE>
+Search paths are blank-separated lists of directories. The current directory
+is searched before a search path is used. <BR>
+<BR>
+See also: <A HREF="#iconx">iconx -- Icon interpreter </A><HR>
+<H2><A NAME="iconx"></A>iconx -- Icon interpreter </H2>
+The Icon interpreter is normally invoked automatically when the name of
+an Icon program is entered as a command, but it can also be invoked explicitly:
+<BLOCKQUOTE><CODE>iconx </CODE>icode-file-name [arguments for Icon program]
+</BLOCKQUOTE>
+<H3>Environment variables recognized at runtime </H3>
+<PRE>
+Name         Default    Description
+--------     -------    -----------------------
+TRACE              0    Initial value for &amp;trace.
+NOERRBUF   undefined    If set, &amp;errout is not buffered.
+STRSIZE       500000    Initial size (bytes) of string region (strings).
+BLKSIZE       500000    Initial size (bytes) of block region (most objects).
+COEXPSIZE       2000    Size (long words) of co-expression blocks.
+MSTKSIZE       10000    Size (long words) of main interpreter stack.</PRE>
+Default sizes may differ on some platforms. <BR>
+<BR>
+See also: <A HREF="#icont">icont -- Icon translator and linker </A>
+<H6><A HREF="ref.htm">[Back to contents page]</A></H6>
+</BODY>
+</HTML>
