@@ -1,0 +1,200 @@
+<!doctype html public "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML><HEAD>
+<TITLE>Icon Programming Language Functions (K - O)</TITLE>
+<LINK REL="STYLESHEET" TYPE="text/css" HREF="../istyle.css">
+</HEAD><BODY>
+<H2>Details of Icon Functions K through O</H2>
+<H6><A HREF = "ref.htm">[Back to contents page]</A></H6>
+<HR>
+<H3><A NAME = "kbhit">
+kbhit () : n -- check for keyboard character
+</A></H3>
+
+Succeeds if a character is available for getch() or getche() but fails
+otherwise.
+<PRE>
+See also: <A HREF = "funcej.htm#getch">getch()</A> and <A HREF = "funcej.htm#getche">getche()</A>
+</PRE>
+<HR>
+<H3><A NAME = "key">
+key (T) : x1,x2,...,xn -- generate keys from table
+</A></H3>
+
+Generates the keys in table T.
+<HR>
+<H3><A NAME = "left">
+left (s1,i,s2) : s3  -- position string at left
+</A></H3>
+
+Produces a string of size i in which s1 is positioned at the left, with
+s2 used for padding on the right as necessary.
+
+<PRE>
+Defaults:
+i       1
+s2      &quot; &quot; (blank)
+
+See also: <A HREF = "funcad.htm#center">center()</A> and <A HREF = "funcpr.htm#right">right()</A>
+</PRE>
+<HR>
+<H3><A NAME = "list">
+list (i,x) : L -- create list
+</A></H3>
+
+Produces a list of size i in which each value is x.
+
+<PRE>
+Defaults:
+i       0
+x       &amp;null
+</PRE>
+<HR>
+<H3><A NAME = "loadfunc">
+loadfunc (s1,s2) : p -- load external function
+</A></H3>
+
+Loads the function named s2 from the library file s1.  s2 must be a C or
+compatible function that provides a particular interface expected by
+loadfunc().
+<HR>
+<H3><A NAME = "log">
+log (r1,r2) : r3 -- compute logarithm
+</A></H3>
+
+Produces the logarithm of r1 to the base r2.
+
+<PRE>
+Default:
+r2      e
+
+See also: <A HREF = "funcej.htm#exp">exp()</A>
+</PRE>
+<HR>
+<H3><A NAME = "many">
+many (c,s,i1,i2) : i3 -- locate many characters
+</A></H3>
+
+Succeeds and produces the position in s after the longest initial sequence
+of characters in c in s[i1:i2].  It fails if s[i1] is not in c.
+
+<PRE>
+Defaults:
+s       &amp;subject
+i1      &amp;pos if s defaulted, otherwise 1
+i2      0
+
+See also: <A HREF = "funcad.htm#any">any()</A> and <A HREF = "#match">match()</A>
+</PRE>
+<HR>
+<H3><A NAME = "map">
+map (s1,s2,s3) : s4  -- map characters
+</A></H3>
+
+Produces a string of size *s1 obtained by mapping characters of s1 that
+occur in s2 into corresponding characters in s3.
+
+<PRE>
+Defaults:
+s2      string(&amp;ucase)
+s3      string(&amp;lcase)
+</PRE>
+<HR>
+<H3><A NAME = "match">
+match (s1,s2,i1,i2) : i3 -- match initial string
+</A></H3>
+
+Produces i1 + *s1 if s1 == s2[i1+:*s1], but fails otherwise.
+
+<PRE>
+Defaults:
+s2      &amp;subject
+i1      &amp;pos if s2 defaulted, otherwise 1
+i2      0
+
+See also: <A HREF = "prefix.htm#tab_match">=s</A>, <A HREF = "funcad.htm#any">any()</A>, and <A HREF = "#many">many()</A>
+</PRE>
+<HR>
+<H3><A NAME = "member">
+member (X,x) : x -- test for membership
+</A></H3>
+
+If X is a set, succeeds if x is a member of X, but fails otherwise.  If
+X is a table, succeeds if x is a key of an element in X, but fails
+otherwise.      Produces x if it succeeds.
+<PRE>
+See also: <A HREF = "funcad.htm#delete">delete()</A> and <A HREF = "funcej.htm#insert">insert()</A>
+</PRE>
+<HR>
+<H3><A NAME = "move">
+move (i) : s -- move scanning position
+</A></H3>
+
+Produces &amp;subject[&amp;pos:&amp;pos + i] and assigns i + &amp;pos to &amp;pos, but
+fails if i is out of range; reverses assignment to &amp;pos if resumed.
+<PRE>
+See also: <A HREF = "funcsz.htm#tab">tab()</A>
+</PRE>
+<HR>
+<H3><A NAME = "name">
+name (x) : s -- produce name
+</A></H3>
+
+Produces the name of the variable x.  If x is an identifier or a
+keyword that is a variable, the name of the identifier or keyword is
+produced.  If x is a record field reference, the record name and field
+name are produced with a separating period.  If x is a string, the name
+of the string and the subscript range are shown.  If x is a subscripted
+list or table, the type name followed by the subscripting expression is
+produced.
+<PRE>
+See also: <A HREF = "funcsz.htm#variable">variable()</A>
+</PRE>
+<HR>
+<H3><A NAME = "numeric">
+numeric (x) : N  -- convert to numeric
+</A></H3>
+
+Produces an integer or real number resulting from converting x, but
+fails if the conversion is not possible.
+<PRE>
+See also: <A HREF = "funcej.htm#integer">integer()</A> and <A HREF = "funcpr.htm#real">real()</A>
+</PRE>
+<HR>
+<H3><A NAME = "open">
+open (s1,s2) : f -- open file
+</A></H3>
+
+Produces a file resulting from opening s1 according to options in s2,
+but fails if the file cannot be opened.  The options are:
+<PRE>
+        &quot;r&quot;   open for reading
+        &quot;w&quot;   open for writing
+        &quot;a&quot;   open for writing in append mode
+        &quot;b&quot;   open for reading and writing
+        &quot;c&quot;   create
+        &quot;t&quot;   translate line termination sequences to linefeeds
+        &quot;u&quot;   do not translate line termination sequences to linefeeds
+        &quot;p&quot;   pipe to/from a command -- UNIX
+</PRE>
+The default mode is to translate line termination sequences to
+linefeeds on input and conversely on output.  The untranslated mode
+should be used when reading and writing binary files.
+
+<PRE>
+Default:
+s2      &quot;rt&quot;
+
+See also: <A HREF = "funcad.htm#close">close()</A>
+</PRE>
+<HR>
+<H3><A NAME = "ord">
+ord (s) : i  -- produce ordinal
+</A></H3>
+
+Produces an integer (ordinal) between 0 and 255 that is the internal
+representation of the single character in s.
+<PRE>
+See also: <A HREF = "funcad.htm#char">char()</A>
+</PRE>
+<H6><A HREF = "ref.htm">[Back to contents page]</A></H6>
+</BODY></HTML>

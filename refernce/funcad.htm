@@ -1,0 +1,247 @@
+<!doctype html public "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML><HEAD>
+<TITLE>Icon Programming Language Functions (A - D)</TITLE>
+<LINK REL="STYLESHEET" TYPE="text/css" HREF="../istyle.css">
+</HEAD><BODY>
+<H2>Details of Icon Functions A through D</H2>
+<H6><A HREF = "ref.htm">[Back to contents page]</A></H6>
+<HR>
+<H3><A NAME = "abs">
+abs (N) : N  -- compute absolute value
+</A></H3>
+
+Produces the absolute value of N.
+<HR>
+<H3><A NAME = "acos">
+acos (r1) : r2 -- compute arc cosine
+</A></H3>
+
+Produces the arc cosine of r1 in the range of 0 to pi for r1 in the
+range of -1 to 1.
+<PRE>
+See also: <A HREF = "#cos">cos()</A>
+</PRE>
+<HR>
+<H3><A NAME = "any">
+any (c,s,i1,i2) : i3 -- locate initial character
+</A></H3>
+
+Succeeds and produces i1 + 1 if s[i1] is in c and i2 &gt; i1, but fails
+otherwise.
+<PRE>
+Defaults:
+s       &amp;subject
+i1      &amp;pos if s defaulted, otherwise 1
+i2      0
+
+See also: <A HREF = "funcko.htm#many">many()</A> and <A HREF = "funcko.htm#match">match()</A>
+</PRE>
+<HR>
+
+<H3><A NAME = "args">
+args (p) : i -- get number of procedure arguments
+</A></H3>
+
+Produces the number of arguments for procedure p.  For built-in
+procedures with a variable number of arguments, the value produced is
+ -1.  For declared procedures with a variable number of arguments, the
+value returned is the negative of the number of formal parameters.
+<PRE>
+See also: <A HREF = "funcpr.htm#proc">proc()</A>
+</PRE>
+<HR>
+<H3><A NAME = "asin">
+asin (r1) : r2 -- compute arc sine
+</A></H3>
+
+Produces the arc sine of r1 in the range of -pi/2 to +pi/2 for r1 in
+the range of -1 to 1.
+<PRE>
+See also: <A HREF = "funcsz.htm#sin">sin()</A>
+</PRE>
+<HR>
+<H3><A NAME = "atan">
+atan (r1,r2) : r3 -- compute arc tangent
+</A></H3>
+
+Produces the arc tangent of r1/r2 in the range -pi/2 to pi/2 with the
+sign of r1.
+
+<PRE>
+Default:
+r2      1.0
+
+See also: <A HREF = "funcsz.htm#tan">tan()</A>
+</PRE>
+<HR>
+<H3><A NAME = "bal">
+bal (c1,c2,c3,s,i1,i2) : i3,i4,...,in -- locate balanced characters
+</A></H3>
+
+Generates the sequence of integer positions in s preceding a character
+of c1 in s[i1:i2] that is balanced with respect to the characters of c2
+and c3, but fails if there is no such position.
+
+<PRE>
+Defaults:
+c1      &amp;cset
+c2      '('
+c3      ')'
+s       &amp;subject
+i1      &amp;pos if s defaulted, otherwise 1
+i2      0
+
+See also: <A HREF = "funcej.htm#find">find()</A> and <A HREF = "funcsz.htm#upto">upto()</A>
+</PRE>
+<HR>
+<H3><A NAME = "callout">
+callout (x,x1,x2,...,xn) : xm -- call external function
+</A></H3>
+
+Calls the external function specified by x with arguments x1, x2, ...,
+xn.  The mechanism for locating the function specified by x is system
+dependent.
+<HR>
+<H3><A NAME = "center">
+center (s1,i,s2) : s3 -- position string at center
+</A></H3>
+
+Produces a string of size i in which s1 is centered, with s2 used for
+padding at left and right as necessary.
+
+<PRE>
+Defaults:
+i       1
+s2      &quot; &quot; (blank)
+
+See also: <A HREF = "funcko.htm#left">left()</A> and <A HREF = "funcpr.htm#right">right()</A>
+</PRE>
+<HR>
+<H3><A NAME = "char">
+char (i) : s -- produce character
+</A></H3>
+
+Produces a string of length 1 consisting of the character whose
+internal representation is i.
+<PRE>
+See also: <A HREF = "funcko.htm#ord">ord()</A>
+</PRE>
+<HR>
+<H3><A NAME = "chdir">
+chdir (s) : n -- change directory
+</A></H3>
+
+Changes the directory to s but fails if there is no such directory
+or if the change cannot be made.
+<HR>
+<H3><A NAME = "close">
+close (f) : f -- close file
+</A></H3>
+
+Produces f after closing it unless f was opened with the pipe (&quot;p&quot;)
+option, in which case the integer exit status of the command is
+returned.
+<PRE>
+See also: <A HREF = "funcko.htm#open">open()</A>
+</PRE>
+<HR>
+<H3><A NAME = "collect">
+collect (i1,i2) : n  -- perform garbage collection
+</A></H3>
+
+Causes a garbage collection in region i1, requesting i2 bytes of space
+in that region.  It fails if the requested space is not available.      The
+regions are identified as follows:
+<PRE>
+                1               Static region
+                2               String region
+                3               Block region
+</PRE>
+If i1 is 0, a collection is done, but no region is identified and i2
+has no effect.  The value of i2 is ignored for the static region.
+
+<PRE>
+Defaults:
+i1      0
+i2      0
+</PRE>
+<HR>
+<H3><A NAME = "copy">
+copy (x1) : x2 -- copy value
+</A></H3>
+
+Produces a copy of x1 if x1 is a structure; otherwise it produces x1.
+<HR>
+<H3><A NAME = "cos">
+cos (r1) : r2 -- compute cosine
+</A></H3>
+
+Produces the cosine of r1 in radians.
+<PRE>
+See also: <A HREF = "#acos">acos()</A>
+</PRE>
+<HR>
+<H3><A NAME = "cset">
+cset (x) -- convert to cset
+</A></H3>
+
+Produces a cset resulting from converting x, but fails if the
+conversion is not possible.
+<HR>
+<H3><A NAME = "delay">
+delay (i) : n -- delay execution
+</A></H3>
+
+Delays execution i milliseconds.
+<HR>
+<H3><A NAME = "delete">
+delete (X,x) : X -- delete element
+</A></H3>
+
+If X is a set, deletes x from X.  If X is a table, deletes the element
+for key x from X.  Produces X.
+<PRE>
+See also: <A HREF = "funcej.htm#insert">insert()</A> and <A HREF = "funcko.htm#member">member()</A>
+</PRE>
+<HR>
+<H3><A NAME = "detab">
+detab (s1,i1,i2,...,in) : s2 -- remove tabs
+</A></H3>
+
+Produces a string based on s1 in which each tab character is replaced
+by one or more blanks.  Tab stops are at i1, i2, ..., in, with
+additional stops obtained by repeating the last interval.
+
+<PRE>
+Default:
+i1      9
+
+See also: <A HREF = "funcej.htm#entab">entab()</A>
+</PRE>
+<HR>
+<H3><A NAME = "display">
+display (i,f) : n -- display variables
+</A></H3>
+
+Writes the image of the current co-expression and the values of the
+local variables in the current procedure call.  If i &gt; 0, the local
+variables in the i preceding procedure calls are displayed as well.
+After all local variables are displayed, the values of global variables
+are displayed.  Output is written to f.
+
+<PRE>
+Defaults:
+i       &amp;level
+f       &amp;errout
+</PRE>
+<HR>
+<H3><A NAME = "dtor">
+dtor (r1) : r2 -- convert degrees to radians
+</A></H3>
+
+Produces the radian equivalent of r1 given in degrees.
+<PRE>
+See also: <A HREF = "funcpr.htm#rtod">rtod()</A>
+</PRE>
+<H6><A HREF = "ref.htm">[Back to contents page]</A></H6>
+</BODY></HTML>
