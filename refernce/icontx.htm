@@ -1,13 +1,29 @@
 <!doctype html public "-//W3C//DTD HTML 4.0 Transitional//EN">
 <HTML>
 <HEAD>
-    <TITLE>Icon Programming Language Executables</TITLE>
+    <TITLE>Icon Shell Commands</TITLE>
     <LINK REL="STYLESHEET" TYPE="text/css" HREF="istyle.css">
     <LINK REL="SHORTCUT ICON" HREF="shortcut.gif">
 </HEAD>
 <BODY>
-<H2>Icon Programming Language Executables</H2>
-<H2><A NAME="icont">icont -- Icon translator and linker </A></H2>
+<H1>Icon Shell Commands</H1>
+
+<H2><A NAME="icon">icon &mdash; Icon simplified execution </A></H2>
+Usage: <CODE>icon </CODE> sourcefile [arg...]
+<BR>
+Usage: <CODE>icon &ndash;P </CODE> 'program' [arg...]
+
+<P> Without <CODE>&ndash;P</CODE>, a single source file is read and executed
+with the given arguments.
+With <CODE>&ndash;P</CODE>, the program is given as a multi-line quoted string.
+Environment variables of <CODE>icont</CODE> and <CODE>iconx</CODE> (see below) are used if present.
+<P> An Icon source file can be made directly executable
+by making its first line be
+<PRE>    #!/usr/bin/env icon</PRE>
+and setting its execute bit (<CODE>chmod +x</CODE> filename).
+
+
+<H2><A NAME="icont">icont &mdash; Icon translator and linker </A></H2>
 Usage: <CODE>icont </CODE>[option...] file... 
 <H3>Options</H3>
 <PRE>
@@ -23,16 +39,21 @@ Usage: <CODE>icont </CODE>[option...] file...
              1   list procedure names (the default)
              2   also report the sizes of icode sections
                  (procedures, strings, and so forth)
-             3   also list discarded globals</PRE>
+             3   also list discarded globals
+-E         preprocess only
+-N         make executable more portable by omitting iconx path
+-V         announce version and configuration information
+</PRE>
 <H3>Environment variables recognized by icont </H3>
 <PRE>
 Name         Default    Description
 --------     -------    -----------------------
 IPATH        none       search path for link directives
 LPATH        none       search path for $include directives</PRE>
-Search paths are blank-separated lists of directories. The current directory
-is searched before a search path is used. <BR>
-<H2><A NAME="iconx">iconx -- Icon interpreter </A></H2>
+Search paths are blank- or colon-separated lists of directories.
+The current directory is searched before a search path is used.
+
+<H2><A NAME="iconx">iconx &mdash; Icon interpreter </A></H2>
 The Icon interpreter is normally invoked automatically when the name of
 an Icon program is entered as a command, but it can also be invoked explicitly:
 <BLOCKQUOTE><CODE>iconx </CODE>icode-file-name [arguments for Icon program]
@@ -47,6 +68,5 @@ STRSIZE       500000    Initial size (bytes) of string region (strings).
 BLKSIZE       500000    Initial size (bytes) of block region (most objects).
 COEXPSIZE       2000    Size (long words) of co-expression blocks.
 MSTKSIZE       10000    Size (long words) of main interpreter stack.</PRE>
-Default sizes may differ on some platforms. <BR>
 </BODY>
 </HTML>
