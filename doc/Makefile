@@ -13,6 +13,7 @@ HFAQ = /cs/www/icon/faq.htm
 TFAQ = /cs/www/icon/ftp/doc/faq.txt
 FFAQ = /cs/ftp/icon/doc/faq.txt
 
+SERVER = york.cs.arizona.edu
 RLSDIR = /cs/www/icon/v943
 
 
@@ -49,13 +50,13 @@ diff:
 #  install updated files on Icon web and FTP sites.
 
 install-faq:  faq.txt
-	cp faq.htm $(HFAQ)
-	cp faq.txt $(TFAQ)
-	cp -p $(TFAQ) $(FFAQ)
+	scp faq.htm $(SERVER):$(HFAQ)
+	scp faq.txt $(SERVER):$(TFAQ)
+	scp -p faq.txt $(SERVER):$(FFAQ)
 
 install-other: icon.txt icont.txt
-	cp *.css *.gif *.jpg *.txt $(RLSDIR)
-	cp `ls *.htm | grep -v index` $(RLSDIR)
+	scp *.css *.gif *.jpg *.txt $(SERVER):$(RLSDIR)
+	scp `ls *.htm | grep -v index` $(SERVER):$(RLSDIR)
 
 
 #  remove built files to force a rebuild.
