@@ -22,7 +22,7 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 
 <P> <SMALL> www.cs.arizona.edu/icon/v950/extlvals.htm
 <BR> 
-Last updated October 26, 2009</SMALL>
+Last updated October 27, 2009</SMALL>
 <!-- $Id$ -->
 
 
@@ -33,7 +33,7 @@ Last updated October 26, 2009</SMALL>
 <A HREF="cfuncs.htm">dynamically loaded C functions</A>
 to create and return opaque data structures to an Icon program.
 This allows state to be maintained across multiple calls of
-external functions.
+loaded functions.
 
 <P> The creation of an external value in C defines 
 not just the data itself but also some related attributes.
@@ -43,7 +43,7 @@ similar to those of lists, sets, and tables.
 
 <P> The specification of attributes effectively creates a number
 of distinct types.
-Each external library can define the types it needs for its own purposes.
+Each loadable library can define the types it needs for its own purposes.
 From an object-oriented perspective, these can be seen as subtypes
 of a common <CODE>external</CODE> type.
 
@@ -62,7 +62,7 @@ described below.
 
 <P> In what follows let <CODE>E</CODE>, <CODE>E1</CODE>, and <CODE>E2</CODE>
 be external values
-produced by some external function or functions. Icon prescribes the following 
+produced by some loaded function or functions. Icon prescribes the following 
 default behavior of such values, which is exhibited if the functions that 
 created them did not override such at the time of creation. Otherwise behavior 
 in the following contexts is determined by the external values' creators.
@@ -99,7 +99,7 @@ internals. The default behavior follows.
 <H2> Creating and Using External Values in C </H2>
 
 <P>These next sections describe the C interface for a reader who is
-familiar with the use of external functions.
+familiar with the use of loadable functions.
 
 <P> An Icon external value is implemented by a descriptor that points
 to an external block containing several components.
@@ -125,13 +125,13 @@ values with different function lists behave as values of distinct type.
 <BLOCKQUOTE>
 <DL>
 <DT>
-external_block *alcexternal(size_t size, word *data, function_list *funcs)
+external_block *alcexternal(size_t size, function_list *funcs, word *data)
 </DT><DD>
 	Allocates and returns a pointer to an external block where size 
 specifies the number of bytes in the entire external block (and by implication 
 the number of words in the data block inside it) and funcs specifies the 
 location of the function list (described in detail in the next section).
-If funcs is NULL, the external value will exhibit default behavior.
+If funcs is NULL, the external value exhibits default behavior.
 </DD></DL>
 </BLOCKQUOTE>
 
@@ -139,7 +139,7 @@ If funcs is NULL, the external value will exhibit default behavior.
 words pointed to by data are successively copied into the data block until the 
 latter is full. This might typically be called as
 <BLOCKQUOTE>
-    blk = alcexternal(sizeof(external_block) + n * sizeof(word), data, funcs); 
+    blk = alcexternal(sizeof(external_block) + n * sizeof(word), funcs, data); 
 </BLOCKQUOTE>
 The result is returned to Icon by the macro call
 <CODE>RetExternal(</CODE><VAR>blk</VAR><CODE>)</CODE>.
@@ -162,8 +162,8 @@ and shared among many Icon external values of the same kind ("class" or "type").
 behavior, then there may be no function block, represented by passing NULL to 
 alcexternal. If the programmer desires not to override a particular behavior, 
 then a NULL may be incorporated into the function list in the appropriate place 
-instead of a valid function pointer. The Icon run-time system will then 
-automatically call the corresponding default function when necessary.
+instead of a valid function pointer; the Icon run-time system then 
+calls the corresponding default function when necessary.
 	
 <P> The type function_list is a struct with entries for pointers to functions 
 of the following prototypes. These programmer-defined functions
