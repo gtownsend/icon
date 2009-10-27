@@ -5,6 +5,9 @@
 #include <sys/asm_linkage.h>
 #include <sys/trap.h>
 
+void new_context(int fsig, void *cargp);
+void syserr(char *msg);
+
 int coswitch(old_cs, new_cs, first)
 int *old_cs, *new_cs;
 int first;
