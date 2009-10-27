@@ -5,8 +5,23 @@ link cfunc
 record complex(r, i)
 
 procedure main()
-   local e, l
+   local e, l, v1, v2, v3, v4
 
+   # test simple creation, type(), copy(), ===, ~===
+   v1 := extv0()
+   v2 := extv0()
+   v3 := v1
+   v4 := copy(v1)
+   write("v1: ", type(v1), ": ", image(v1))
+   write(image(v1 === v2)  | "v1 === v2 failed correctly")
+   write(image(v1 ~=== v2) | "v1 ~=== v2 failed correctly")
+   write(image(v1 === v3)  | "v1 === v3 failed incorrectly")
+   write(image(v1 ~=== v3) | "v1 ~=== v3 failed correctly")
+   write(image(v1 === v4)  | "v1 === v4 failed incorrectly")
+   write(image(v1 ~=== v4) | "v1 ~=== v4 failed correctly")
+   write()
+
+   # test sorting
    l := [
       extv1(6.6),
       extv0(),
