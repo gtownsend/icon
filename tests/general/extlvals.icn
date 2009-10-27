@@ -1,0 +1,34 @@
+#  Test use of external values with dynamic loading, using demo cfunc.
+
+link cfunc
+
+record complex(r, i)
+
+procedure main()
+   local e, l
+
+   l := [
+      extv1(6.6),
+      extv0(),
+      extv1(3.3),
+      extv0(),
+      extv1(1.1),
+      extv0(),
+      extv1(4.4),
+      extv0(),
+      extv1(2.2),
+      extv0(),
+      extv1(5.5),
+      complex(1, -1),
+      ]
+   every e := !sort(l) do {
+      writes(left(type(e) || ":", 10), image(e))
+      writes(" => ", image(e ~===:= copy(e)))
+      write()
+   }
+end
+
+procedure gen(p, a)
+   write(image(p), "(", image(a), ") = ", p(a) | "[failed]")
+   return
+end

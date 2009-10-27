@@ -1,11 +1,9 @@
-#  test dynamic loading, some standard cfuncs, and external values
+#  Test dynamic loading with a few standard cfuncs.
 
 link cfunc
 
-record complex(r, i)
-
 procedure main()
-   local e, i, l
+   local i
 
    every i := 500 to 513 do
       gen(bitcount, i)
@@ -15,28 +13,6 @@ procedure main()
    gen(lgconv, 10 ^ 30)
    gen(unpack, "abcd")
    gen(pack, 1684234849)
-
-   # test external values
-   l := [
-      extv1(6.6),
-      extv0(),
-      extv1(3.3),
-      extv0(),
-      extv1(1.1),
-      extv0(),
-      extv1(4.4),
-      extv0(),
-      extv1(2.2),
-      extv0(),
-      extv1(5.5),
-      complex(1, -1),
-      ]
-   write()
-   every e := !sort(l) do {
-      writes(left(type(e) || ":", 10), image(e))
-      writes(" => ", image(e ~===:= copy(e)))
-      write()
-   }
 end
 
 procedure gen(p, a)
