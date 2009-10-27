@@ -3,5 +3,5 @@
  */
 
 #define UNIX 1
-/* LoadFunc not implemented */
+#define LoadFunc
 
