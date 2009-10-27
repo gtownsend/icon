@@ -7,7 +7,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     November 27, 2001
+#	Date:     October 27, 2009
 #
 ############################################################################
 #
@@ -29,6 +29,7 @@
 */
 
 #include <stdio.h>
+#include <string.h>	/* for memset call from FD_ZERO (solaris gcc) */
 #include <sys/types.h>
 #include <sys/time.h>
 
