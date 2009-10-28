@@ -7,7 +7,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     September 17, 2007
+#	Date:     October 28, 2009
 #
 ############################################################################
 #
@@ -155,17 +155,13 @@ typedef struct funclist {
    int (*extlcopy) (int argc, descriptor argv[]);
    int (*extlname) (int argc, descriptor argv[]);
    int (*extlimage)(int argc, descriptor argv[]);
-   int (*future1)  (int argc, descriptor argv[]);    /* ??? */
-   int (*future2)  (int argc, descriptor argv[]);    /* ??? */
-   int (*future3)  (int argc, descriptor argv[]);    /* ??? */
-   int (*future4)  (int argc, descriptor argv[]);    /* ??? */
 } funclist;
 
 
 char *alcstr(char *s, word len);
 realblock *alcreal(double v);
 fileblock *alcfile(FILE *fp, int stat, descriptor *name);
-externalblock *alcexternal(long nbytes, funclist *f, long data);
+externalblock *alcexternal(long nbytes, funclist *f, word data);
 
 int cnv_c_str(descriptor *s, descriptor *d);
 int cnv_int(descriptor *s, descriptor *d);

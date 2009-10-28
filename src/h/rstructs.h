@@ -238,10 +238,6 @@ struct b_extlfuns {
    int (*extlcopy) (int argc, dptr argv);
    int (*extlname) (int argc, dptr argv);
    int (*extlimage)(int argc, dptr argv);
-   int (*future1)  (int argc, dptr argv);
-   int (*future2)  (int argc, dptr argv);
-   int (*future3)  (int argc, dptr argv);
-   int (*future4)  (int argc, dptr argv);
    };
 
 /*

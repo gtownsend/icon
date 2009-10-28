@@ -22,7 +22,7 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 
 <P> <SMALL> www.cs.arizona.edu/icon/v950/extlvals.htm
 <BR> 
-Last updated October 27, 2009</SMALL>
+Last updated October 28, 2009</SMALL>
 <!-- $Id$ -->
 
 
@@ -125,7 +125,7 @@ values with different function lists behave as values of distinct type.
 <BLOCKQUOTE>
 <DL>
 <DT>
-external_block *alcexternal(size_t size, function_list *funcs, word *data)
+externalblock *alcexternal(long size, funclist *funcs, word *data)
 </DT><DD>
 	Allocates and returns a pointer to an external block where size 
 specifies the number of bytes in the entire external block (and by implication 
@@ -139,12 +139,24 @@ If funcs is NULL, the external value exhibits default behavior.
 words pointed to by data are successively copied into the data block until the 
 latter is full. This might typically be called as
 <BLOCKQUOTE>
-    blk = alcexternal(sizeof(external_block) + n * sizeof(word), funcs, data); 
+    blk = alcexternal(sizeof(externalblock) + (n-1)*sizeof(word), funcs, data); 
 </BLOCKQUOTE>
+where <VAR>n</VAR> is the number of data words to be used.
 The result is returned to Icon by the macro call
 <CODE>RetExternal(</CODE><VAR>blk</VAR><CODE>)</CODE>.
 The block may eventually be freed by garbage collection if it
 is not saved or if it later becomes inaccessable to the Icon program.
+
+<P> A loadable function that accepts an external value as an argument can call
+<BLOCKQUOTE>
+    ArgExternal(i,f);
+</BLOCKQUOTE>
+to validate argv[i] as an external value of the type associated
+with function list f, and can then call
+<BLOCKQUOTE>
+    blk = ExternalBlock(i);
+</BLOCKQUOTE>
+to get the address of the associated external block.
 
 <P>A more complete example is found in the file
 <CODE>ipl/cfuncs/external.c</CODE>.
@@ -152,32 +164,34 @@ is not saved or if it later becomes inaccessable to the Icon program.
 	
 <H2> The Function List Passed to alcexternal </H2>
 
-<P> The function list is reminiscent of a "dispatch table" or "class pointer" 
+<P> The function list associated with an external value is a struct
+containing pointers to C functions.
+It is reminiscent of a "dispatch table" or "class pointer" 
 for dynamic method calls in an implementation of an object oriented programming 
 language. Indeed an Icon external value is very much like a traditional object 
 with its own data and methods. Typically such a function list would be static 
 and shared among many Icon external values of the same kind ("class" or "type").
 
-<P> If the programmer does not wish to override any of the default Icon 
-behavior, then there may be no function block, represented by passing NULL to 
-alcexternal. If the programmer desires not to override a particular behavior, 
-then a NULL may be incorporated into the function list in the appropriate place 
-instead of a valid function pointer; the Icon run-time system then 
-calls the corresponding default function when necessary.
-	
-<P> The type function_list is a struct with entries for pointers to functions 
-of the following prototypes. These programmer-defined functions
-replace the default behavior described earlier in this document.
-In all cases argv is a pointer to one (usually) or two (for extcmp) external
-values associated with this function list, and argc is 1 or 2 respectively.
+<P> Every external value has a function list; a default list is supplied
+if NULL is passed to alcexternal.  A null entry within a function list
+produces the default behavior for the associated action.
+
+<P> Functions in the list use the same interface as loadable C functions.
+Incoming arguments are passed beginning at argv[1].
+A result is produced by storing it in argv[0]
+and returning 0 as the outcome of the function.
+When extlcmp is called, argc has a value of 2;
+for the other functions, argc is 1.
+
+<P> The possible custom functions are as follows:
 
 <BLOCKQUOTE>
 <DL>
 
 <DT>
-descriptor extcmp(int argc, descriptor *argv)	
+<CODE>int extlcmp</CODE>(int argc, descriptor *argv)	
 </DT><DD>
-<CODE>extcmp</CODE> returns an Icon integer
+returns an Icon integer
 for use in sorting two external values that both have this function list
 and are therefore considered to be of the same external subtype.
 The function result should be negative if the first external value is
@@ -188,26 +202,24 @@ which compares serial numbers.
 </DD>
 
 <DT>
-descriptor extcopy(int argc, descriptor *argv)
+<CODE>int extlcopy</CODE>(int argc, descriptor *argv)
 </DT><DD>
-<CODE>extcopy</CODE> returns an external value defined
-as a copy of its argument. 
+returns an external value defined as a copy of its argument. 
 This overrides the default behavior of the <CODE>copy</CODE> function,
 which is to return another reference to the external value without copying.
 </DD>
 
 <DT>
-descriptor extname(int argc, descriptor *argv)
+<CODE>int extlname</CODE>(int argc, descriptor *argv)
 </DT><DD>
-<CODE>extname</CODE> returns an Icon string naming the type of the external value.
+returns an Icon string naming the type of the external value.
 This overrides the default behavior of the <CODE>type</CODE> function, and thus
 also affects the ordering relative to other external values when sorting.
 </DD>
 
 <DT>
-descriptor extimage(int argc, descriptor *argv)
+<CODE>int extlimage</CODE>(int argc, descriptor *argv)
 </DT><DD>
-<CODE>extimage</CODE>
 returns an Icon string to serve as the image of the external value.
 This overrides the default behavior of the <CODE>image</CODE> function.
 </DD>
@@ -222,36 +234,37 @@ This overrides the default behavior of the <CODE>image</CODE> function.
 <A HREF="http://www.cs.arizona.edu/icon/ibsale.htm">
 implementation book</A>.</SMALL>
 
-<P> A descriptor of the external type has a vword containing the bit pattern 
-D_External which contains the bits T_External indicating the external type, 
+<P> A descriptor for an external value has a vword containing the bit pattern 
+D_External which contains the value T_External indicating the external type, 
 along with the bit F_Nqual indicating that the value is not a string and the 
 bit F_Ptr indicating to the garbage collector that the dword is a pointer that 
-needs tending. The dword contains a pointer to an external_block. This block is 
-implemented as a C struct with a pointer to a function_block C struct as 
-follows. The types word and descriptor are defined in ipl/cfuncs/icall.h.
+needs tending. The dword contains a pointer to an external block. This block is 
+implemented as a C struct with a pointer to a function block C struct as 
+follows. The structs below, along with types word and descriptor,
+are defined in ipl/cfuncs/icall.h.
 	
 <PRE>
-typedef struct function_list { /* list of user defined callbacks */
-	descriptor (*extcmp)   (int argc, descriptor *argv);
-	descriptor (*extcopy)  (int argc, descriptor *argv);
-	descriptor (*extname)  (int argc, descriptor *argv);
-	descriptor (*extimage) (int argc, descriptor *argv);
-} function_block;	
+typedef struct funclist {	 /* list of user defined callbacks */
+	int (*extlcmp)   (int argc, descriptor *argv);	/* compare */
+	int (*extlcopy)  (int argc, descriptor *argv);	/* copy */
+	int (*extlname)  (int argc, descriptor *argv);	/* type name */
+	int (*extlimage) (int argc, descriptor *argv);	/* image */
+} funclist;	
 
-typedef struct b_external {
-	word header;		/* the block type */
-	size_t size;		/* the number of bytes in the block */
-	long id;		/* the serial number */
-	function_list *funcs;	/* pointer to the callback list */
+typedef struct externalblock {
+	word title;		/* the block header, including type */
+	word size;		/* the number of bytes in the block */
+	word id;		/* the serial number */
+	funclist *funcs;	/* pointer to the callback list */
 	word data[1];		/* words of custom data, may be more than 1 */
-} external_block;
+} externalblock;
 </PRE>
 
 <P> A call of alcexternal initializes all fields of an external block.
 Data is copied without interpretation, and the function
 list pointer is stored.  The header is assigned an appropriate constant for the 
 garbage collector, and the size is set. alcexternal maintains a static 
-count of the number of external_blocks allocated, and this is incremented and 
+count of the number of external blocks allocated, and this is incremented and 
 assigned to id.
 
 <P> The following error code numbers are assigned for use with external values:

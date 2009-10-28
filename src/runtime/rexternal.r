@@ -22,7 +22,8 @@ struct descrip callextfunc(int (*func)(int, dptr), dptr dp1, dptr dp2) {
       stack[2] = *dp2;
       nargs = 2;
       }
-   func(nargs, stack);
+   if (func(nargs, stack) != 0)
+      syserr("external value helper function did not succeed");
    return stack[0];
    }
 
