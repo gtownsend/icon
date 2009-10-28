@@ -75,6 +75,8 @@ Iconc bin/iconc: Common
 # Common components.
 
 Common:		src/h/define.h
+		uname -a
+		pwd
 		cd src/common;		$(MAKE)
 		cd src/rtt;		$(MAKE)
 
