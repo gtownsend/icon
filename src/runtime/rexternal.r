@@ -58,6 +58,7 @@ int extlimage(int argc, dptr argv)
    struct b_external *block = (struct b_external *)BlkLoc(argv[1]);
    struct b_extlfuns *funcs = block->funcs;
    word len;
+   int nwords;
 
    if (funcs->extlimage != NULL) {
       funcs->extlimage(1, argv);	/* call custom image function */
@@ -71,10 +72,10 @@ int extlimage(int argc, dptr argv)
    Protect(reserve(Strings, len + 30), return Error);
    Protect(StrLoc(argv[0]) = alcstr(StrLoc(argv[0]), len), return Error);
    /*
-    * to type name append "_<id>(<hexvalue>)"
+    * to type name append "_<id>(nwords)"
     */
-   len += sprintf(StrLoc(argv[0]) + len, "_%ld(%lX)",
-      (long)block->id, (long)block->data[0]);
+   nwords = ((char*)block + block->blksize - (char*)block->data) / sizeof(word);
+   len += sprintf(StrLoc(argv[0]) + len, "_%ld(%d)", (long)block->id, nwords);
    StrLen(argv[0]) = len;
    return 0;
    }

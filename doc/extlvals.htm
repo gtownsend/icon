@@ -67,8 +67,8 @@ default behavior of such values, which is exhibited if the functions that
 created them did not override such at the time of creation. Otherwise behavior 
 in the following contexts is determined by the external values' creators.
 
-<P> External values always sort after values of all other types, and this 
-cannot be overridden by the creators of such values. Within themselves external 
+<P> External values always sort after values of all other types.
+Within themselves external 
 values are first sorted by type name (which is a set by the creator, is 
 returned by the Icon function 'type' and specifies a subtype of the external 
 type). The default sort within such a subtype is by serial number. Only sorting 
@@ -81,8 +81,8 @@ internals. The default behavior follows.
 	<DD>returns the string <CODE>"external"</CODE>
 <DT><CODE>image(E)</CODE>
 	<DD>returns a string indicating the type, serial number,
-	and the hexadecimal value of the first or only data word
-	<I>e.g.</I> <CODE>"external_3(67A04F35)"</CODE>
+	and the number of data words,
+	<I>e.g.</I> <CODE>"external_12(3)"</CODE>
 <DT><CODE>copy(E)</CODE>
 	<DD>returns <CODE>E</CODE> itself without copying
 <DT><CODE>sort()</CODE>
@@ -107,9 +107,8 @@ The data area and the function list are the most important of these.
 
 <P> An integer word count indicates the size of the data area.
 This is specified when the external block is created.
-Often external data is a single pointer (handle) and so only one word is 
-required. The content of the first word of the data block is used in the 
-default image, as described in the previous section.
+Often external data is a single pointer to other data (a handle)
+and so only one word is required.
 
 <P> The function list allows the programmer to override,
 at the granularity of each individual data value,
@@ -125,9 +124,9 @@ values with different function lists behave as values of distinct type.
 <BLOCKQUOTE>
 <DL>
 <DT>
-externalblock *alcexternal(long size, funclist *funcs, word *data)
+<CODE>externalblock *alcexternal</CODE>(long size, funclist *funcs, word *data)
 </DT><DD>
-	Allocates and returns a pointer to an external block where size 
+	allocates and returns a pointer to an external block where size 
 specifies the number of bytes in the entire external block (and by implication 
 the number of words in the data block inside it) and funcs specifies the 
 location of the function list (described in detail in the next section).
