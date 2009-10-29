@@ -111,13 +111,6 @@ FncDefV(writes)
 #endif					/* LoadFunc */
 
 /*
- * External functions.
- */
-#ifdef ExternalFunctions
-   FncDefV(callout)
-#endif					/* ExternalFunctions */
-
-/*
  * File attribute function.
  */
 #ifdef FAttrib

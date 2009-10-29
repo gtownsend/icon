@@ -27,7 +27,7 @@ $(COBJS):
 # Make entries for iconx
 #
 
-XOBJS =	xcnv.o xdata.o xdef.o xerrmsg.o xextcall.o xfconv.o xfload.o xfmath.o\
+XOBJS =	xcnv.o xdata.o xdef.o xerrmsg.o xfconv.o xfload.o xfmath.o\
 	xfmisc.o xfmonitr.o xfscan.o xfstr.o xfstranl.o xfstruct.o xfsys.o\
 	xfwindow.o ximain.o ximisc.o xinit.o xinterp.o xinvoke.o\
 	xkeyword.o xlmisc.o xoarith.o xoasgn.o xocat.o xocomp.o\
@@ -62,11 +62,6 @@ xerrmsg.o: errmsg.r $(HDRS)
 	../../bin/rtt -x errmsg.r
 	$(CC) -c $(CFLAGS) xerrmsg.c
 	rm xerrmsg.c
-
-xextcall.o: extcall.r $(HDRS)
-	../../bin/rtt -x extcall.r
-	$(CC) -c $(CFLAGS) xextcall.c
-	rm xextcall.c
 
 xfconv.o: fconv.r $(HDRS)
 	../../bin/rtt -x fconv.r

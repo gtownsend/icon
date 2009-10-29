@@ -50,10 +50,6 @@
    Feature(1, "_EVENT_MONITOR", "event monitoring")
 #endif					/* EventMon */
 
-#ifdef ExternalFunctions
-   Feature(1, "_EXTERNAL_FUNCTIONS", "external functions")
-#endif					/* ExternalFunctions */
-
 #ifdef LoadFunc
    Feature(1, "_EXTERNAL_VALUES", "external values")
 #endif					/* LoadFunc */

@@ -24,53 +24,6 @@ function{1} args(x)
       }
 end
 
-#if !COMPILER
-#ifdef ExternalFunctions
-
-/*
- * callout - call a C library routine (or any C routine that doesn't call Icon)
- *   with an argument count and a list of descriptors.  This routine
- *   doesn't build a procedure frame to prepare for calling Icon back.
- */
-function{1} callout(x[nargs])
-   body {
-      dptr retval;
-      int signal;
-
-      /*
-       * Little cheat here.  Although this is a var-arg procedure, we need
-       *  at least one argument to get started: pretend there is a null on
-       *  the stack.  NOTE:  Actually, at present, varargs functions always
-       *  have at least one argument, so this doesn't plug the hole.
-       */
-      if (nargs < 1)
-         runerr(103, nulldesc);
-
-      /*
-       * Call the 'C routine caller' with a pointer to an array of descriptors.
-       *  Note that these are being left on the stack. We are passing
-       *  the name of the routine as part of the convention of calling
-       *  routines with an argc/argv technique.
-       */
-      signal = -1;			/* presume successful completiong */
-      retval = extcall(x, nargs, &signal);
-      if (signal >= 0) {
-         if (retval == NULL)
-            runerr(signal);
-         else
-            runerr(signal, *retval);
-         }
-      if (retval != NULL) {
-         return *retval;
-         }
-      else
-         fail;
-      }
-end
-
-#endif					/* ExternalFunctions */
-#endif					/* !COMPILER */
-
 
 "char(i) - produce a string consisting of character i."
 

@@ -139,10 +139,6 @@ void		xmfree		(void);
    void EVAsgn	(dptr dx);
 #endif					/* EventMon */
 
-#ifdef ExternalFunctions
-   dptr	extcall			(dptr x, int nargs, int *signal);
-#endif					/* ExternalFunctions */
-
 #ifdef LargeInts
    struct b_bignum *alcbignum	(word n);
    word		bigradix	(int sign, int r, char *s, char *x,
