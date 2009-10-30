@@ -7,7 +7,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     October 28, 2009
+#	Date:     October 29, 2009
 #
 ############################################################################
 #
@@ -147,7 +147,7 @@ typedef struct { word title, size, id; void *head, *tail; } listblock;
 typedef struct externalblock {
    word title, size, id;
    struct funclist *funcs;
-   word data[1];
+   word data[];
 } externalblock;
 
 typedef struct funclist {
@@ -161,7 +161,7 @@ typedef struct funclist {
 char *alcstr(char *s, word len);
 realblock *alcreal(double v);
 fileblock *alcfile(FILE *fp, int stat, descriptor *name);
-externalblock *alcexternal(long nbytes, funclist *f, word data);
+externalblock *alcexternal(long nbytes, funclist *f, void *data);
 
 int cnv_c_str(descriptor *s, descriptor *d);
 int cnv_int(descriptor *s, descriptor *d);

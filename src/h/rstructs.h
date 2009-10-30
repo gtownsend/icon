@@ -183,7 +183,7 @@ struct b_external {		/* external block */
    word blksize;		/*   size of block */
    word id;			/*   identification number */
    struct b_extlfuns *funcs;	/*   dispatch table; distinguishes extl types */
-   word data[1];		/*   actual external data */
+   word data[];			/*   actual external data */
    };
 
 struct astkblk {		  /* co-expression activator-stack block */

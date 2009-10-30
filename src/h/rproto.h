@@ -381,7 +381,7 @@ void		xmfree		(void);
  * Prototypes for the run-time system.
  */
 
-struct b_external *alcexternal	(long nbytes, struct b_extlfuns *f, word data);
+struct b_external *alcexternal	(long nbytes, struct b_extlfuns *f, void *data);
 struct b_record *alcrecd	(int nflds,union block *recptr);
 struct b_tvsubs *alcsubs	(word len,word pos,dptr var);
 int	bfunc		(void);

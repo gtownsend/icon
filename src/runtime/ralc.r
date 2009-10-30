@@ -279,20 +279,29 @@ struct b_cset *alccset()
  *
  * nbytes is total struct size including header, or zero to use default
  * f is dispatch table of user C functions; also differentiates external types
- * data is initial value for first (or only) data word
+ * data is copied in to initialize the data block.
+ * Any of these can be zero/null for default behavior.
  *
  * May cause a garbage collection.  Returns null if still unsuccessful.
  */
 
-struct b_external *alcexternal(long nbytes, struct b_extlfuns *f, word data)
+struct b_external *alcexternal(long nbytes, struct b_extlfuns *f, void *data)
    {
    register struct b_external *blk;
+   long datasize;
    static struct b_extlfuns fdefault; 	/* default dispatch table, all empty */
 
    if (nbytes == 0)
       nbytes = sizeof(struct b_external);
-   else if (nbytes < sizeof(struct b_external) || (nbytes % sizeof(word)) != 0)
-      syserr("alcexternal: invalid bytecount");
+
+   /* datasize = nbytes - offsetof(struct b_external, data); */
+   datasize = nbytes - ((char*)blk->data - (char*)blk);
+   if (datasize < 0)
+      syserr("alcexternal: invalid size");
+
+   /* now, after calculating datasize, round up nbytes to a word multiple */
+   nbytes = (nbytes + sizeof(word) - 1) & ~(sizeof(word) - 1);
+
    if (f == NULL)
       f = &fdefault;
 
@@ -300,7 +309,8 @@ struct b_external *alcexternal(long nbytes, struct b_extlfuns *f, word data)
    blk->blksize = nbytes;
    blk->id = extl_ser++;
    blk->funcs = f;
-   blk->data[0] = data;
+   if (data != NULL)
+      memcpy(blk->data, data, datasize);
    return blk;
    }
 

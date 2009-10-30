@@ -6,44 +6,66 @@ record complex(r, i)
 
 procedure main()
    local e, l, v1, v2, v3, v4
+   local r1,r2,r3,r4, s1, s2, s3, s4
 
-   # test simple creation, type(), copy(), ===, ~===
-   v1 := extv0()
-   v2 := extv0()
-   v3 := v1
-   v4 := copy(v1)
-   write("v1: ", type(v1), ": ", image(v1))
-   write(image(v1 === v2)  | "v1 === v2 failed correctly")
-   write(image(v1 ~=== v2) | "v1 ~=== v2 failed correctly")
-   write(image(v1 === v3)  | "v1 === v3 failed incorrectly")
-   write(image(v1 ~=== v3) | "v1 ~=== v3 failed correctly")
-   write(image(v1 === v4)  | "v1 === v4 failed incorrectly")
-   write(image(v1 ~=== v4) | "v1 ~=== v4 failed correctly")
-   write()
+   # test simple creation, type(), copy()
+   xwrite("v1", v1 := extxmin())
+   xwrite("v2", v2 := extxmin())
+   xwrite("v3", v3 := v1)
+   xwrite("v4", v4 := copy(v1))
+
+   # test string-based external example
+   xwrite("s1", s1 := extxstr("bite"))
+   xwrite("s2", s2 := extxstr("the"))
+   xwrite("s3", s3 := extxstr("wax"))
+   xwrite("s4", s4 := extxstr("tadpole"))
+
+   # test real-based external example
+   xwrite("r1", r1 := extxreal(111.1))
+   xwrite("r2", r2 := extxreal(222.2))
+   xwrite("r3", r3 := extxreal(333.3))
+   xwrite("r4", r4 := copy(r1))
+
+   # test === and ~===
+   teqv(v1, v3, v2)
+   teqv(v1, v4, v2)
+   teqv(s2, copy(s2), s3)
+   teqv(r1, r1, copy(r1))
+   teqv(s1, s1, s3)
+   teqv(r2, r2, r4)
+   teqv(s3, s3, r3)
 
    # test sorting
-   l := [
-      extv1(6.6),
-      extv0(),
-      extv1(3.3),
-      extv0(),
-      extv1(1.1),
-      extv0(),
-      extv1(4.4),
-      extv0(),
-      extv1(2.2),
-      extv0(),
-      extv1(5.5),
-      complex(1, -1),
-      ]
-   every e := !sort(l) do {
-      writes(left(type(e) || ":", 10), image(e))
-      writes(" => ", image(e ~===:= copy(e)))
-      write()
-   }
+   l := [ v1, s2, r3, v4, s1, r2, complex(8,9), v3, s4, r1, v2, s3, r4 ]
+   write()
+   every xwrite("before", !l)
+   write()
+   every xwrite("sorted", !sort(l))
+
 end
 
-procedure gen(p, a)
-   write(image(p), "(", image(a), ") = ", p(a) | "[failed]")
+
+#  write label, type(xval), image(xval)
+
+procedure xwrite(label, xval)
+   write(label, ": ", type(xval), ": ",image(xval))
+   return
+end
+
+
+#  test equivalence of id1 and id2, and nonequivalence of diff
+
+procedure teqv(id1, id2, diff)
+   if id1 ~=== id2 then
+      write("nonequivalent: ", image(id1), " and ", image(id2))
+   if id2 ~=== id1 then
+      write("nonequivalent: ", image(id2), " and ", image(id1))
+   if not (id1 === id2) then
+      write("not equivalent: ", image(id1), " and ", image(id2))
+
+   if id1 === diff then
+      write("false equivalence: ", image(id1), " and ", image(diff))
+   if id2 === diff then
+      write("false equivalence: ", image(id2), " and ", image(diff))
    return
 end

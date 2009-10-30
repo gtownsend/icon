@@ -22,7 +22,7 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 
 <P> <SMALL> www.cs.arizona.edu/icon/v950/extlvals.htm
 <BR> 
-Last updated October 28, 2009</SMALL>
+Last updated October 29, 2009</SMALL>
 <!-- $Id$ -->
 
 
@@ -124,25 +124,26 @@ values with different function lists behave as values of distinct type.
 <BLOCKQUOTE>
 <DL>
 <DT>
-<CODE>externalblock *alcexternal</CODE>(long size, funclist *funcs, word *data)
+<CODE>externalblock *alcexternal</CODE>(long size, funclist *funcs, void *data)
 </DT><DD>
-	allocates and returns a pointer to an external block where size 
-specifies the number of bytes in the entire external block (and by implication 
-the number of words in the data block inside it) and funcs specifies the 
-location of the function list (described in detail in the next section).
-If funcs is NULL, the external value exhibits default behavior.
+    allocates and returns a pointer to an external block.
+    <BR><VAR>size</VAR> specifies the number of bytes
+    in the entire external block (and by implication 
+    the size of the data block inside it).
+    <BR><VAR>funcs</VAR>, if not null, specifies a list of functions to
+    override the default behavior.  See the next section.
+    <BR><VAR>data</VAR>, if not null, specifies the location of data
+    that is copied in to initialize the data block (until it is full).
 </DD></DL>
 </BLOCKQUOTE>
 
-<P> The 
-words pointed to by data are successively copied into the data block until the 
-latter is full. This might typically be called as
+<P>
+A typical call might be
 <BLOCKQUOTE>
-    blk = alcexternal(sizeof(externalblock) + (n-1)*sizeof(word), funcs, data); 
+    blk = alcexternal(sizeof(externalblock) + sizeof(mydata), funcs, &mydata); 
 </BLOCKQUOTE>
-where <VAR>n</VAR> is the number of data words to be used.
 The result is returned to Icon by the macro call
-<CODE>RetExternal(</CODE><VAR>blk</VAR><CODE>)</CODE>.
+<CODE>RetExternal(</CODE>blk<CODE>)</CODE>.
 The block may eventually be freed by garbage collection if it
 is not saved or if it later becomes inaccessable to the Icon program.
 
@@ -155,7 +156,8 @@ with function list f, and can then call
 <BLOCKQUOTE>
     blk = ExternalBlock(i);
 </BLOCKQUOTE>
-to get the address of the associated external block.
+to get the address of the associated external block;
+the associated data is at blk&ndash;>data.
 
 <P>A more complete example is found in the file
 <CODE>ipl/cfuncs/external.c</CODE>.
