@@ -41,26 +41,12 @@
 
    #define UVersion "U9.0.00"
 
-   #ifdef FieldTableCompression
+   #if IntBits == 32
+      #define IVersion "I9.0.00/32"
+   #endif				/* IntBits == 32 */
 
-      #if IntBits == 32
-         #define IVersion "I9.2.00FT/32"
-      #endif				/* IntBits == 32 */
-
-      #if IntBits == 64
-         #define IVersion "I9.2.00FT/64"
-      #endif				/* IntBits == 64 */
-
-   #else				/* FieldTableCompression */
-
-      #if IntBits == 32
-         #define IVersion "I9.0.00/32"
-      #endif				/* IntBits == 32 */
-
-      #if IntBits == 64
-         #define IVersion "I9.0.00/64"
-      #endif				/* IntBits == 64 */
-
-   #endif				/* FieldTableCompression */
+   #if IntBits == 64
+      #define IVersion "I9.0.00/64"
+   #endif				/* IntBits == 64 */
 
 #endif					/* COMPILER */

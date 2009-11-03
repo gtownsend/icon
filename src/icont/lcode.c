@@ -38,11 +38,6 @@ static void	outblock	(char *addr,int count);
 static void	setfile		(void);
 static void	wordout		(word oword);
 
-#ifdef FieldTableCompression
-   static void	charout		(unsigned char oint);
-   static void	shortout	(short oint);
-#endif					/* FieldTableCompression */
-
 #ifdef DeBugLinker
    static void	dumpblock	(char *addr,int count);
 #endif					/* DeBugLinker */
@@ -872,8 +867,6 @@ void gentables()
          }
       }
 
-   #ifndef FieldTableCompression
-
       /*
        * Output record/field table (not compressed).
        */
@@ -914,222 +907,6 @@ void gentables()
             #endif			/* DeBugLinker */
             }
          }
-
-   #else				/* FieldTableCompression */
-
-      /*
-       * Output record/field table (compressed).
-       * This code has not been tested recently.
-       */
-      {
-      int counter = 0, f_num, first, begin, end, entries;
-      int *f_fo, *f_row, *f_tabp;
-      char *f_bm;
-      int pointer, first_avail = 0, inserted, bytes;
-      hdr.Fo = pc;
-
-      /*
-       * Compute the field width required for this binary;
-       * it is determined by the maximum # of fields in any one record.
-       */
-      long ct = 0;
-      for (gp = lgfirst; gp != NULL; gp = gp->g_next)
-         if ((gp->g_flag & F_Record) && gp->g_procid > 0)
-            if (gp->g_nargs > ct) ct=gp->g_nargs;
-      if (ct > 65535L) hdr.FtabWidth = 4;
-      else if (ct > 254) hdr.FtabWidth = 2; /* 255 is (not present) */
-      else hdr.FtabWidth = 1;
-
-      /* Find out how many field names there are. */
-      hdr.Nfields = 0;
-      for (fp = lffirst; fp != NULL; fp = fp->f_nextentry)
-         hdr.Nfields++;
-
-      entries = hdr.Nfields * nrecords / 4 + 1;
-      f_tabp = malloc (entries * sizeof (int));
-      for (i = 0; i < entries; i++)
-         f_tabp[i] = -1;
-      f_fo = malloc (hdr.Nfields * sizeof (int));
-   
-      bytes = nrecords / 8;
-      if (nrecords % 8 != 0)
-         bytes++;
-      f_bm = calloc (hdr.Nfields, bytes);
-      f_row = malloc (nrecords * sizeof (int));
-      f_num = 0;
-
-      for (fp = lffirst; fp != NULL; fp = fp->f_nextentry) {
-         rp = fp->f_rlist;
-         first = 1;
-         for (i = 0; i < nrecords; i++) {
-            while (rp != NULL && rp->r_gp->g_procid < 0)
-   	    rp = rp->r_link;		/* skip unreferenced constructor */
-            if (rp != NULL && rp->r_gp->g_procid == i + 1) {
-               if (first) {
-                  first = 0;
-                  begin = end = i;
-                  }
-               else
-                  end = i;
-               f_row[i] = rp->r_fnum;
-               rp = rp->r_link;
-   	       }
-            else {
-               f_row[i] = -1;
-               }
-            }
-
-         inserted = 0;
-         pointer = first_avail;
-         while (!inserted) {
-            inserted = 1;
-            for (i = begin; i <= end; i++) {
-               if (pointer + (end - begin) >= entries) {
-                  int j;
-                  int old_entries = entries;
-                  entries *= 2;
-                  f_tabp = realloc (f_tabp, entries * sizeof (int));
-                  for (j = old_entries; j < entries; j++)
-                     f_tabp[j] = -1;
-                  }
-               if (f_row[i] != -1)
-                  if (f_tabp[pointer + (i - begin)] != -1) {
-                     inserted = 0;
-                     break;
-                     }
-               }
-            pointer++;
-            }
-         pointer--;
-
-         /* Create bitmap */
-         for (i = 0; i < nrecords; i++) {
-            int index = f_num * bytes + i / 8;
-   				/* Picks out byte within bitmap row */
-            if (f_row[i] != -1) {
-               f_bm[index] |= 01;
-   	       }
-            if (i % 8 != 7)
-               f_bm [index] <<= 1;
-   	    }
-
-         if (nrecords%8)
-            f_bm[(f_num + 1) * bytes - 1] <<= 7 - (nrecords % 8);
-
-         f_fo[f_num++] = pointer - begin;
-         /* So that f_fo[] points to the first bit */
-
-         for (i = begin; i <= end; i++)
-            if (f_row[i] != -1)
-               f_tabp[pointer + (i - begin)] = f_row[i];
-         if (pointer + (end - begin) >= counter)
-            counter = pointer + (end - begin + 1);
-         while ((f_tabp[first_avail] != -1) && (first_avail <= counter))
-            first_avail++;
-         }
-
-         /* Write out the arrays. */
-         #ifdef DeBugLinker
-            if (Dflag)
-            fprintf (dbgfile, "\n%ld:\t\t\t\t\t# field offset array\n",
-	       (long)pc);
-         #endif				/* DeBugLinker */
-
-         /*
-          * Compute largest value stored in fo array
-          */
-         {
-	 word maxfo = 0;
-         for (i = 0; i < hdr.Nfields; i++) {
-            if (f_fo[i] > maxfo) maxfo = f_fo[i];
-            }
-         if (maxfo < 254)
-            hdr.FoffWidth = 1;
-         else if (maxfo < 65535L)
-            hdr.FoffWidth = 2;
-         else
-            hdr.FoffWidth = 4;
-         }
-
-         for (i = 0; i < hdr.Nfields; i++) {
-            #ifdef DeBugLinker
-               if (Dflag)
-                  fprintf (dbgfile, "\t%d\n", f_fo[i]);
-            #endif			/* DeBugLinker */
-            if (hdr.FoffWidth == 1) {
-	       outchar(f_fo[i]);
-	       }
-            else if (hdr.FoffWidth == 2)
-	       outshort(f_fo[i]);
-            else
-            outop (f_fo[i]);
-            }
-
-         #ifdef DeBugLinker
-            if (Dflag)
-               fprintf (dbgfile, "\n%ld:\t\t\t\t\t# Bit maps array\n",
-	          (long)pc);
-         #endif				/* DeBugLinker */
-
-         for (i = 0; i < hdr.Nfields; i++) {
-            #ifdef DeBugLinker
-               if (Dflag) {
-                  int ct, index = i * bytes;
-                  unsigned char this_bit = 0200;
-
-                  fprintf (dbgfile, "\t");
-                  for (ct = 0; ct < nrecords; ct++) {
-                     if ((f_bm[index] | this_bit) == f_bm[index])
-                        fprintf (dbgfile, "1");
-                     else
-                        fprintf (dbgfile, "0");
-
-                     if (ct % 8 == 7) {
-                        fprintf (dbgfile, " ");
-                        index++;
-                        this_bit = 0200;
-                        }
-                     else
-                        this_bit >>= 1;
-                     }
-                  fprintf (dbgfile, "\n");
-                  }
-            #endif			/* DeBugLinker */
-            for (pointer = i * bytes; pointer < (i + 1) * bytes; pointer++) {
-               outchar (f_bm[pointer]);
-	       }
-            }
-
-         align();
-
-         #ifdef DeBugLinker
-            if (Dflag)
-               fprintf (dbgfile, "\n%ld:\t\t\t\t\t# record/field array\n",
-	          (long)pc);
-         #endif				/* DeBugLinker */
-
-         hdr.Ftab = pc;
-         for (i = 0; i < counter; i++) {
-            #ifdef DeBugLinker
-               if (Dflag)
-                  fprintf (dbgfile, "\t%d\t%d\n", i, f_tabp[i]);
-            #endif			/* DeBugLinker */
-            if (hdr.FtabWidth == 1)
-               outchar(f_tabp[i]);
-            else if (hdr.FtabWidth == 2)
-               outshort(f_tabp[i]);
-            else
-               outop (f_tabp[i]);
-            }
-
-         /* Free memory allocated by Jigsaw. */
-         free (f_fo);
-         free (f_bm);
-         free (f_tabp);
-         free (f_row);
-         }
-
-      #endif				/* FieldTableCompression */
 
    /*
     * Output descriptors for field names.
@@ -1394,40 +1171,6 @@ int oint;
    codep += IntBits/ByteBits;
    pc += IntBits/ByteBits;
    }
-
-#ifdef FieldTableCompression
-/*
- * charout(i) outputs i as an unsigned char that is used by the runtime system
- */
-static void charout(unsigned char ochar)
-   {
-   CodeCheck(1);
-   *codep++ = (unsigned char)ochar;
-   pc++;
-   }
-/*
- * shortout(i) outputs i as a short that is used by the runtime system
- *  IntBits/ByteBits bytes must be moved from &word[0] to &codep[0].
- */
-static void shortout(short oint)
-   {
-   int i;
-   union {
-      short i;
-      char c[2];
-      } u;
-
-   CodeCheck(2);
-   u.i = oint;
-
-   for (i = 0; i < 2; i++)
-      codep[i] = u.c[i];
-
-   codep += 2;
-   pc += 2;
-   }
-#endif					/* FieldTableCompression */
-
 
 /*
  * wordout(i) outputs i as a word that is used by the runtime system

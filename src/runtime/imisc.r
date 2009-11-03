@@ -15,12 +15,6 @@ LibDcl(field,2,".")
    register dptr dp;
 
    extern int *ftabp;
-   #ifdef FieldTableCompression
-      extern int *fo;
-      extern unsigned char *focp;
-      extern short *fosp;
-      extern char *bm;
-   #endif				/* FieldTableCompression */
    extern word *records;
 
    Deref(Arg1);
@@ -37,45 +31,11 @@ LibDcl(field,2,".")
     * Map the field number into a field number for the record x.
     */
    rp = (struct b_record *) BlkLoc(Arg1);
-
-#ifdef FieldTableCompression
-#define FO(i) ((foffwidth==1)?focp[i]:((foffwidth==2)?fosp[i]:fo[i]))
-#define FTAB(i) ((ftabwidth==1)?ftabcp[i]:((ftabwidth==2)?ftabsp[i]:ftabp[i]))
-#else					/* FieldTableCompression */
-#define FO(i) fo[i]
-#define FTAB(i) ftabp[i]
-#endif					/* FieldTableCompression */
-
-#ifdef FieldTableCompression
-      fnum = FTAB(FO(IntVal(Arg2)) + (rp->recdesc->proc.recnum - 1));
-#else					/* FieldTableCompression */
-      fnum = FTAB(IntVal(Arg2) * *records + rp->recdesc->proc.recnum - 1);
-#endif					/* FieldTableCompression */
+   fnum = ftabp[IntVal(Arg2) * *records + rp->recdesc->proc.recnum - 1];
 
    /*
     * If fnum < 0, x doesn't contain the specified field.
     */
-
-#ifdef FieldTableCompression
-{
-   int bytes, index;
-   unsigned char this_bit = 0200;
-
-   bytes = *records >> 3;
-   if ((*records & 07) != 0)
-      bytes++;
-   index = IntVal(Arg2) * bytes + (rp->recdesc->proc.recnum - 1) / 8;
-   this_bit = this_bit >> (rp->recdesc->proc.recnum - 1) % 8;
-   if ((bm[index] | this_bit) != bm[index])
-      RunErr(207, &Arg1);
-}
-
-   if (ftabwidth == 1) {
-      if (fnum == 255)
-         RunErr(207, &Arg1);
-      }
-   else
-#endif					/* FieldTableCompression */
    if (fnum < 0)
       RunErr(207, &Arg1);
 

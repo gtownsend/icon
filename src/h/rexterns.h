@@ -145,11 +145,6 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
       extern dptr efnames;		/* end of field names */
       extern word *records;
       extern int *ftabp;		/* field table pointer */
-      #ifdef FieldTableCompression
-         extern word ftabwidth, foffwidth;
-         extern unsigned char *ftabcp;
-         extern short *ftabsp;
-      #endif				/* FieldTableCompression */
       extern dptr xargp;
       extern word xnargs;
 

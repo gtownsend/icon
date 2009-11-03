@@ -127,19 +127,7 @@ struct region *curstring, *curblock;
       char *code;		/* interpreter code buffer */
       char *ecode;		/* end of interpreter code buffer */
       word *records;		/* pointer to record procedure blocks */
-
       int *ftabp;		/* pointer to record/field table */
-
-      #ifdef FieldTableCompression
-         word ftabwidth;		/* field table entry width */
-         word foffwidth;		/* field offset entry width */
-         unsigned char *ftabcp, *focp;	/* pointers to record/field table */
-         short *ftabsp, *fosp;		/* pointers to record/field table */
-
-         int *fo;		/* field offset (row in field table) */
-         char *bm;		/* bitmap array of valid field bits */
-      #endif				/* FieldTableCompression */
-
       dptr fnames, efnames;	/* pointer to field names */
       dptr statics;		/* pointer to static variables */
       char *strcons;		/* pointer to string constant table */
@@ -365,24 +353,6 @@ struct header *hdr;
    ecode = code + hdr.Records;
    records = (word *)ecode;
    ftabp = (int *)(code + hdr.Ftab);
-#ifdef FieldTableCompression
-   fo = (int *)(code + hdr.Fo);
-   focp = (unsigned char *)(fo);
-   fosp = (short *)(fo);
-   if (hdr.FoffWidth == 1) {
-      bm = (char *)(focp + hdr.Nfields);
-      }
-   else if (hdr.FoffWidth == 2) {
-      bm = (char *)(fosp + hdr.Nfields);
-      }
-   else
-      bm = (char *)(fo + hdr.Nfields);
-
-   ftabwidth = hdr.FtabWidth;
-   foffwidth = hdr.FoffWidth;
-   ftabcp = (unsigned char *)(code + hdr.Ftab);
-   ftabsp = (short *)(code + hdr.Ftab);
-#endif					/* FieldTableCompression */
    fnames = (dptr)(code + hdr.Fnames);
    globals = efnames = (dptr)(code + hdr.Globals);
    gnames = eglobals = (dptr)(code + hdr.Gnames);
