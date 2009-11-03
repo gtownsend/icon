@@ -1393,29 +1393,9 @@ int brace;
                 *  is returned.
                 */
                if (iconx_flg) {
-                  #ifdef EventMon
-		  switch (op_type) {
-		     case TokFunction:
-		        prt_str(
-		        "if ((signal = interp(G_Fsusp, r_args)) != A_Resume) {",
-		           indent);
-		        break;
-		     case Operator:
-		     case Keyword:
-		        prt_str(
-		        "if ((signal = interp(G_Osusp, r_args)) != A_Resume) {",
-		           indent);
-		        break;
-		     default:
-		        prt_str(
-		        "if ((signal = interp(G_Csusp, r_args)) != A_Resume) {",
-			   indent);
-		     }
-                  #else			/* EventMon */
-		     prt_str(
-		        "if ((signal = interp(G_Csusp, r_args)) != A_Resume) {",
-		           indent);
-                  #endif		/* EventMon */
+		  prt_str(
+		     "if ((signal = interp(G_Csusp, r_args)) != A_Resume) {",
+		        indent);
 		  }
                else {
                   prt_str("if (r_s_cont == (continuation)NULL) {", indent);

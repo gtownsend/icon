@@ -38,8 +38,6 @@ dptr v;
          break;
          }
 
-   EVVal((word)k_errornumber,E_Error);
-
    if (pfp != NULL) {
       if (IntVal(kywd_err) == 0 || !err_conv) {
          fprintf(stderr, "\nRun-time error %d\n", k_errornumber);

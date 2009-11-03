@@ -216,21 +216,6 @@ int get_name(dp1,dp0)
             syserr("name: unknown integer keyword variable");
 
       kywdevent:
-#ifdef MultiThread
-         if (VarLoc(*dp1) == &curpstate->eventsource) {
-            StrLen(*dp0) = 12;
-            StrLoc(*dp0) = "&eventsource";
-            }
-         else if (VarLoc(*dp1) == &curpstate->eventval) {
-            StrLen(*dp0) = 11;
-            StrLoc(*dp0) = "&eventvalue";
-            }
-         else if (VarLoc(*dp1) == &curpstate->eventcode) {
-            StrLen(*dp0) = 10;
-            StrLoc(*dp0) = "&eventcode";
-            }
-         else
-#endif					/* MultiThread */
             syserr("name: unknown event keyword variable");
 
       kywdwin: {
@@ -334,12 +319,7 @@ int get_name(dp1,dp0)
                       return Error;
                   break;
                default:		/* none of the above */
-#ifdef EventMon
-                  *dp0 = emptystr;
-#else					/* EventMon */
                   syserr("name: invalid structure reference");
-#endif					/* EventMon */
-
                }
            }
       }

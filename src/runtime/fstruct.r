@@ -34,8 +34,6 @@ function{1} delete(s,x)
                (BlkLoc(s)->set.size)--;
                }
 
-            EVValD(&s, E_Sdelete);
-            EVValD(&x, E_Sval);
             return s;
 	    }
       table:
@@ -54,8 +52,6 @@ function{1} delete(s,x)
                (BlkLoc(s)->table.size)--;
                }
 
-            EVValD(&s, E_Tdelete);
-            EVValD(&x, E_Tsub);
             return s;
             }
       default:
@@ -131,7 +127,6 @@ function{0,1} get_or_pop(x)
       }
 
    body {
-      EVValD(&x, E_Lget);
       if (!c_get((struct b_list *)BlkLoc(x), &result)) fail;
       return result;
       }
@@ -156,10 +151,8 @@ function{*} key(t)
       tended union block *ep;
       struct hgstate state;
 
-      EVValD(&t, E_Tkey);
       for (ep = hgfirst(BlkLoc(t), &state); ep != 0;
 	 ep = hgnext(BlkLoc(t), &state, ep)) {
-            EVValD(&ep->telem.tref, E_Tsub);
             suspend ep->telem.tref;
             }
       fail;
@@ -215,8 +208,6 @@ function{1} insert(s, x, y)
 	    else
 	       deallocate((union block *)se);
 
-            EVValD(&s, E_Sinsert);
-            EVValD(&x, E_Sval);
             return s;
             }
          }
@@ -264,8 +255,6 @@ function{1} insert(s, x, y)
                te->tval = y;
                }
 
-            EVValD(&s, E_Tinsert);
-            EVValD(&x, E_Tsub);
             return s;
             }
          }
@@ -323,8 +312,6 @@ function{1} list(n, x)
       for (i = 0; i < size; i++)
          bp->lslots[i] = x;
 
-      Desc_EVValD(hp, E_Lcreate, D_List);
-
       /*
        * Return the new list.
        */
@@ -347,9 +334,6 @@ function{0,1} member(s, x)
             int res;
             register uword hn;
 
-            EVValD(&s, E_Smember);
-            EVValD(&x, E_Sval);
-
             hn = hash(&x);
             memb(BlkLoc(s), &x, hn, &res);
             if (res==1)
@@ -365,9 +349,6 @@ function{0,1} member(s, x)
          inline {
             int res;
             register uword hn;
-
-            EVValD(&s, E_Tmember);
-            EVValD(&x, E_Tsub);
 
             hn = hash(&x);
             memb(BlkLoc(s), &x, hn, &res);
@@ -399,8 +380,6 @@ function{0,1} pull(x)
       register word i;
       register struct b_list *hp;
       register struct b_lelem *bp;
-
-      EVValD(&x, E_Lpull);
 
       /*
        * Point at list header block and fail if the list is empty.
@@ -455,10 +434,6 @@ dptr val;
     * Point bp at the first list-element block.
     */
    bp = (struct b_lelem *) BlkLoc(*l)->list.listhead;
-
-#ifdef EventMon		/* initialize i so it's 0 if first list-element */
-   i = 0;			/* block isn't full */
-#endif					/* EventMon */
 
    /*
     * If the first list-element block is full, allocate a new
@@ -553,10 +528,6 @@ function{1} push(x, vals[n])
 	 hp = (struct b_list *) BlkLoc(x);
 	 bp = (struct b_lelem *) hp->listhead;
 
-#ifdef EventMon		/* initialize i so it's 0 if first list-element */
-	 i = 0;			/* block isn't full */
-#endif					/* EventMon */
-
 	 /*
 	  * If the first list-element block is full, allocate a new
 	  *  list-element block, make it the first list-element block,
@@ -610,8 +581,6 @@ function{1} push(x, vals[n])
 	 hp->size++;
 	 }
 
-      EVValD(&x, E_Lpush);
-
       /*
        * Return the list.
        */
@@ -636,10 +605,6 @@ struct descrip *val;
     *  list-element block.
     */
    bp = (struct b_lelem *) BlkLoc(*l)->list.listtail;
-
-#ifdef EventMon		/* initialize i so it's 0 if last list-element */
-   i = 0;			/* block isn't full */
-#endif					/* EventMon */
 
    /*
     * If the last list-element block is full, allocate a new
@@ -733,10 +698,6 @@ function{1} put(x, vals[n])
 	 hp = (struct b_list *)BlkLoc(x);
 	 bp = (struct b_lelem *) hp->listtail;
 
-#ifdef EventMon		/* initialize i so it's 0 if last list-element */
-	 i = 0;			/* block isn't full */
-#endif					/* EventMon */
-
 	 /*
 	  * If the last list-element block is full, allocate a new
 	  *  list-element block, make it the last list-element block,
@@ -789,8 +750,6 @@ function{1} put(x, vals[n])
 
 	 }
 
-      EVValD(&x, E_Lput);
-
       /*
        * Return the list.
        */
@@ -815,7 +774,6 @@ function{1} set(l)
             ps = hmake(T_Set, (word)0, (word)0);
             if (ps == NULL)
                runerr(0);
-            Desc_EVValD(ps, E_Screate, D_Set);
             return set(ps);
             }
          }
@@ -876,7 +834,6 @@ function{1} set(l)
                   }
                }
 	    deallocate((union block *)ne);
-            Desc_EVValD(ps, E_Screate, D_Set);
             return set(ps);
             }
          }
@@ -900,7 +857,6 @@ function{1} table(x)
       if (bp == NULL)
          runerr(0);
       bp->table.defvalue = x;
-      Desc_EVValD(bp, E_Tcreate, D_Table);
       return table(bp);
       }
 end

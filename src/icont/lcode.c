@@ -281,20 +281,7 @@ void gencode()
                lnfree++;
             #endif			/* SrcColumnInfo */
 
-            /*
-             * Could generate an Op_Line for monitoring, but don't anymore:
-             *
-             * lemitn(op, (word)lineno, name);
-             */
-
             newline();
-
-            #ifdef LineCodes
-               #ifndef EventMon
-                  lemit(Op_Noop,"noop");
-               #endif			/* EventMon */
-            #endif			/* LineCodes */
-
             break;
 
          case Op_Colm:			/* always recognize, maybe ignore */

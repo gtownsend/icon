@@ -34,7 +34,6 @@ function{0,1+} move(i)
        * Set new &pos.
        */
       k_pos += i;
-      EVVal(k_pos, E_Spos);
 
       /*
        * Make sure i >= 0.
@@ -56,7 +55,6 @@ function{0,1+} move(i)
          runerr(205, kywd_pos);
       else {
          k_pos = oldpos;
-         EVVal(k_pos, E_Spos);
          }
 
       fail;
@@ -116,7 +114,6 @@ function{0,1+} tab(i)
        * Set new &pos.
        */
       k_pos = i;
-      EVVal(k_pos, E_Spos);
 
       /*
        *  Make i the length of the substring &subject[i:j]
@@ -141,7 +138,6 @@ function{0,1+} tab(i)
          runerr(205, kywd_pos);
       else {
          k_pos = oldpos;
-         EVVal(k_pos, E_Spos);
          }
 
       fail;

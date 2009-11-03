@@ -14,15 +14,6 @@
  */
 #begdef GeneralAsgn(x, y)
 
-#ifdef EventMon
-   body {
-      if (!is:null(curpstate->eventmask) &&
-         Testb((word)E_Assign, curpstate->eventmask)) {
-            EVAsgn(&x);
-	    }
-      }
-#endif					/* EventMon */
-
    type_case x of {
       tvsubs: {
         abstract {
@@ -85,18 +76,10 @@
 
             if (!cnv:C_integer(y, i))
                runerr(101, y);
-
-#ifdef MultiThread
-	    i = cvpos((long)i, StrLen(*(VarLoc(x)+1)));
-#else					/* MultiThread */
             i = cvpos((long)i, StrLen(k_subject));
-#endif					/* MultiThread */
-
             if (i == CvtFail)
                fail;
 	    IntVal(*VarLoc(x)) = i;
-
-            EVVal(k_pos, E_Spos);
             }
          }
       kywdsubj: {
@@ -107,12 +90,7 @@
          if !cnv:string(y, *VarLoc(x)) then
             runerr(103, y);
          inline {
-#ifdef MultiThread
-	    IntVal(*(VarLoc(x)-1)) = 1;
-#else					/* MultiThread */
             k_pos = 1;
-#endif					/* MultiThread */
-            EVVal(k_pos, E_Spos);
             }
          }
       kywdstr: {
@@ -131,12 +109,6 @@
             }
          }
       }
-
-#ifdef EventMon
-   body {
-      EVValD(&y, E_Value);
-      }
-#endif					/* EventMon */
 
 #enddef
 
@@ -460,8 +432,6 @@ const dptr src;
          }
       }
    tvsub->sslen = StrLen(srcstr);
-
-   EVVal(tvsub->sslen, E_Ssasgn);
    return Succeeded;
    }
 

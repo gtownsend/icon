@@ -20,6 +20,7 @@ FncDef(cset,1)
 FncDef(delay,1)
 FncDef(delete,2)
 FncDefV(detab)
+FncDef(display,2)
 FncDef(dtor,1)
 FncDefV(entab)
 FncDef(errorclear,0)
@@ -47,10 +48,12 @@ FncDef(map,3)
 FncDef(match,4)
 FncDef(member,1)
 FncDef(move,1)
+FncDef(name,1)
 FncDef(numeric,1)
 FncDef(ord,1)
 FncDef(pop,1)
 FncDef(pos,1)
+FncDef(proc,2)
 FncDef(pull,1)
 FncDefV(push)
 FncDefV(put)
@@ -81,6 +84,7 @@ FncDef(tan,1)
 FncDef(trim,2)
 FncDef(type,1)
 FncDef(upto,4)
+FncDef(variable,1)
 FncDef(where,1)
 FncDefV(write)
 FncDefV(writes)
@@ -90,18 +94,6 @@ FncDefV(writes)
 #else					/* Graphics */
    FncDef(open,3)
 #endif					/* Graphics */
-
-#ifdef MultiThread
-   FncDef(display,3)
-   FncDef(name,2)
-   FncDef(proc,3)
-   FncDef(variable,3)
-#else					/* MultiThread */
-   FncDef(display,2)
-   FncDef(name,1)
-   FncDef(proc,2)
-   FncDef(variable,1)
-#endif					/* MultiThread */
 
 /*
  * Dynamic loading.
@@ -125,16 +117,6 @@ FncDefV(writes)
    FncDef(getche,0)
    FncDef(kbhit,0)
 #endif					/* KeyboardFncs */
-
-/*
- * Event processing functions.
- */
-#ifdef EventMon
-   FncDef(EvGet,2)
-   FncDef(event,3)
-   FncDef(eventmask,2)
-   FncDef(opmask,2)
-#endif					/* EventMon */
 
 /*
  * Graphics functions.
@@ -204,22 +186,3 @@ FncDefV(writes)
       FncDefV(WinSelectDialog)
    #endif				/* WinExtns */
 #endif					/* Graphics */
-
-#ifdef MultiThread
-   /*
-    * These functions are part of the MultiThread extensions.
-    */
-   FncDef(cofail,1)
-   FncDef(globalnames,1)
-   FncDef(fieldnames,1)
-   FncDef(localnames,2)
-   FncDef(staticnames,2)
-   FncDef(paramnames,2)
-   FncDef(structure,1)
-   /*
-    * These functions are inherent to MultiThread and multiple Icon programs
-    */
-   FncDefV(load)
-   FncDef(parent,1)
-   FncDef(keyword,2)
-#endif					/* MultiThread */

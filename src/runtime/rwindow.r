@@ -10,7 +10,6 @@ static	int	sicmp		(siptr sip1, siptr sip2);
 
 int canvas_serial, context_serial;
 
-#ifndef MultiThread
 struct descrip amperX = {D_Integer};
 struct descrip amperY = {D_Integer};
 struct descrip amperCol = {D_Integer};
@@ -19,8 +18,6 @@ struct descrip amperInterval = {D_Integer};
 struct descrip lastEventWin = {D_Null};
 int lastEvFWidth = 0, lastEvLeading = 0, lastEvAscent = 0;
 uword xmod_control, xmod_shift, xmod_meta;
-#endif					/* MultiThread */
-
 
 /*
  * subscript the already-processed-events "queue" to index i.

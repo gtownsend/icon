@@ -161,39 +161,6 @@ int first;
 
    ccp = (struct b_coexpr *)BlkLoc(k_current);
 
-#if !COMPILER
-#ifdef EventMon
-   switch(swtch_typ) {
-      /*
-       * A_MTEvent does not generate an event.
-       */
-      case A_MTEvent:
-	 break;
-      case A_Coact:
-         EVValX(ncp,E_Coact);
-	 if (!is:null(curpstate->eventmask)) {
-	    curpstate->parent->eventsource.dword = D_Coexpr;
-	    BlkLoc(curpstate->parent->eventsource) = (union block *)ncp;
-	    }
-	 break;
-      case A_Coret:
-         EVValX(ncp,E_Coret);
-	 if (!is:null(curpstate->eventmask)) {
-	    curpstate->parent->eventsource.dword = D_Coexpr;
-	    BlkLoc(curpstate->parent->eventsource) = (union block *)ncp;
-	    }
-	 break;
-      case A_Cofail:
-         EVValX(ncp,E_Cofail);
-	 if (!is:null(curpstate->eventmask) && ncp->program == curpstate) {
-	    curpstate->parent->eventsource.dword = D_Coexpr;
-	    BlkLoc(curpstate->parent->eventsource) = (union block *)ncp;
-	    }
-	 break;
-      }
-#endif					/* EventMon */
-#endif					/* COMPILER */
-
    /*
     * Determine if we need to transmit a value.
     */
@@ -241,9 +208,6 @@ int first;
    if (debug_info)
 #endif					/* COMPILER */
       if (k_trace)
-#ifdef EventMon
-	 if (swtch_typ != A_MTEvent)
-#endif					/* EventMon */
          cotrace(ccp, ncp, swtch_typ, valloc);
 
    /*
@@ -260,29 +224,12 @@ int first;
    ilevel = (int)ncp->es_ilevel;
 #endif					/* COMPILER */
 
-#if !COMPILER
-#ifdef MultiThread
-   /*
-    * Enter the program state of the co-expression being activated
-    */
-   ENTERPSTATE(ncp->program);
-#endif					/* MultiThread */
-#endif					/* COMPILER */
-
    glbl_argp = ncp->es_argp;
    BlkLoc(k_current) = (union block *)ncp;
 
 #if COMPILER
    coexpr_fnc = ncp->fnc;
 #endif					/* COMPILER */
-
-#ifdef EventMon
-   /*
-    * From here on out, A_MTEvent looks like a A_Coact.
-    */
-   if (swtch_typ == A_MTEvent)
-      swtch_typ = A_Coact;
-#endif					/* EventMon */
 
    coexp_act = swtch_typ;
    coswitch(ccp->cstate, ncp->cstate,first);

@@ -14,9 +14,6 @@ LibDcl(field,2,".")
    register struct b_record *rp;
    register dptr dp;
 
-#ifdef MultiThread
-   register union block *bptr;
-#else					/* MultiThread */
    extern int *ftabp;
    #ifdef FieldTableCompression
       extern int *fo;
@@ -25,7 +22,6 @@ LibDcl(field,2,".")
       extern char *bm;
    #endif				/* FieldTableCompression */
    extern word *records;
-#endif					/* MultiThread */
 
    Deref(Arg1);
 
@@ -41,29 +37,6 @@ LibDcl(field,2,".")
     * Map the field number into a field number for the record x.
     */
    rp = (struct b_record *) BlkLoc(Arg1);
-
-#ifdef MultiThread
-   bptr = rp->recdesc;
-   if (!InRange(curpstate->Records, bptr, curpstate->Ftabp)) {
-      int i;
-      int nfields = bptr->proc.nfields;
-      /*
-       * Look up the field number by a brute force search through
-       * the record constructor's field names.
-       */
-      Arg0 = fnames[IntVal(Arg2)];
-      fprintf(stderr,"looking up interprogram field %.*s\n", StrLen(Arg0),
-         StrLoc(Arg0));
-      for (i=0;i<nfields;i++){
-	 if ((StrLen(Arg0) == StrLen(bptr->proc.lnames[i])) &&
-	     !strncmp(StrLoc(Arg0), StrLoc(bptr->proc.lnames[i]),StrLen(Arg0)))
-	   break;
-         }
-      if (i<nfields) fnum = i;
-      else fnum = -1;
-      }
-   else
-#endif					/* MultiThread */
 
 #ifdef FieldTableCompression
 #define FO(i) ((foffwidth==1)?focp[i]:((foffwidth==2)?fosp[i]:fo[i]))
@@ -105,9 +78,6 @@ LibDcl(field,2,".")
 #endif					/* FieldTableCompression */
    if (fnum < 0)
       RunErr(207, &Arg1);
-
-   EVValD(&Arg1, E_Rref);
-   EVVal(fnum + 1, E_Rsub);
 
    /*
     * Return a pointer to the descriptor for the appropriate field.
@@ -156,7 +126,6 @@ LibDcl(mkrec,-1,"mkrec")
 
    ArgType(0) = D_Record;
    Arg0.vword.bptr = (union block *)rp;
-   EVValD(&Arg0, E_Rcreate);
    Return;
    }
 
@@ -215,8 +184,6 @@ LibDcl(bscan,2,"?")
    if (!cnv:string(Arg0,Arg0))
       RunErr(103, &Arg0);
 
-   EVValD(&Arg0, E_Snew);
-
    /*
     * Establish a new &subject value and set &pos to 1.
     */
@@ -237,13 +204,6 @@ LibDcl(bscan,2,"?")
    VarLoc(Arg0) = &Arg1;
 
    rc = interp(G_Csusp,cargp);
-
-#ifdef EventMon
-   if (rc != A_Resume)
-      EVValD(&Arg1, E_Srem);
-   else
-      EVValD(&Arg1, E_Sfail);
-#endif					/* EventMon */
 
    if (pfp != cur_pfp)
       return rc;
@@ -326,8 +286,6 @@ LibDcl(escan,1,"escan")
     * Suspend with the value of the scanning expression.
     */
 
-   EVValD(&k_subject, E_Ssusp);
-
    rc = interp(G_Csusp,cargp);
    if (pfp != cur_pfp)
       return rc;
@@ -339,11 +297,6 @@ LibDcl(escan,1,"escan")
    tmp = k_subject;
    k_subject = *VarLoc(Arg1);
    *VarLoc(Arg1) = tmp;
-
-#ifdef EventMon
-   if (rc == A_Resume)
-      EVValD(&k_subject, E_Sresum);
-#endif					/* EventMon */
 
    tmp = *(VarLoc(Arg1) + 1);
    IntVal(*(VarLoc(Arg1) + 1)) = k_pos;

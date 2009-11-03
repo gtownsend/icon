@@ -112,9 +112,6 @@ operator{1} ||| lconcat(x, y)
       cpslots(&y, lp1->lslots + size1, (word)1, size2 + 1);
 
       BlkLoc(x) = (union block *)bp1;
-
-      EVValD(&x, E_Lcreate);
-
       return x;
       }
 end

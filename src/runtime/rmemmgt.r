@@ -20,20 +20,13 @@ static void adjust		(char *source, char *dest);
 static void compact		(char *source);
 static void mvc		(uword n, char *src, char *dest);
 
-#ifdef MultiThread
-static void markprogram	(struct progstate *pstate);
-#endif					/*MultiThread*/
-
 /*
  * Variables
  */
-
-#ifndef MultiThread
 word coll_stat = 0;             /* collections in static region */
 word coll_str = 0;              /* collections in string region */
 word coll_blk = 0;              /* collections in block region */
 word coll_tot = 0;              /* total collections */
-#endif					/* MultiThread */
 word alcnum = 0;                /* co-expressions allocated since g.c. */
 
 dptr *quallist;                 /* string qualifier list */
@@ -89,13 +82,7 @@ int firstd[] = {
      0,                       /* T_Real (3), real number */
      0,                       /* T_Cset (4), cset */
      3*WordSize,              /* T_File (5), file block */
-
-#ifdef MultiThread
-     8*WordSize,              /* T_Proc (6), procedure block */
-#else					/* MultiThread */
      7*WordSize,              /* T_Proc (6), procedure block */
-#endif					/* MultiThread */
-
      4*WordSize,              /* T_Record (7), record block */
      0,                       /* T_List (8), list header block */
      7*WordSize,              /* T_Lelem (9), list element block */
@@ -257,26 +244,15 @@ void initalloc()
    {
 
 #else					/* COMPILER */
-#ifdef MultiThread
-void initalloc(codesize,p)
-struct progstate *p;
-#else					/* MultiThread */
 void initalloc(codesize)
-#endif					/* MultiThread */
 word codesize;
    {
-#ifdef MultiThread
-   struct region *ps, *pb;
-#endif
 
    if ((uword)codesize > (unsigned)MaxBlock)
       error(NULL, "icode file too large");
    /*
     * Allocate icode region
     */
-#ifdef MultiThread
-   if (codesize)
-#endif					/* MultiThread */
    if ((code = (char *)AllocReg(codesize)) == NULL)
       error(NULL,
 	 "insufficient memory, corrupted icode file, or wrong platform");
@@ -290,25 +266,6 @@ word codesize;
     *	Qualifier list
     */
 
-#ifdef MultiThread
-   ps = p->stringregion;
-   ps->free = ps->base = (char *)AllocReg(ps->size);
-   if (ps->free == NULL)
-      error(NULL, "insufficient memory for string region");
-   ps->end = ps->base + ps->size;
-
-   pb = p->blockregion;
-   pb->free = pb->base = (char *)AllocReg(pb->size);
-   if (pb->free == NULL)
-      error(NULL, "insufficient memory for block region");
-   pb->end = pb->base + pb->size;
-
-   if (p == &rootpstate) {
-      if ((quallist = (dptr *)malloc(qualsize)) == NULL)
-         error(NULL, "insufficient memory for qualifier list");
-      equallist = (dptr *)((char *)quallist + qualsize);
-      }
-#else					/* MultiThread */
    {
    uword t1, t2;
    t1 = ssize;
@@ -331,7 +288,6 @@ word codesize;
    if ((quallist = (dptr *)malloc(qualsize)) == NULL)
       error(NULL, "insufficient memory for qualifier list");
    equallist = (dptr *)((char *)quallist + qualsize);
-#endif					/* MultiThread */
    }
 
 /*
@@ -342,11 +298,6 @@ int collect(region)
 int region;
    {
    struct b_coexpr *cp;
-
-#ifdef EventMon
-   if (!noMTevents)
-      EVVal((word)region,E_Collect);
-#endif					/* EventMon */
 
    switch (region) {
       case Static:
@@ -395,18 +346,13 @@ int region;
    /*
     * Mark the stacks for &main and the current co-expression.
     */
-#ifdef MultiThread
-   markprogram(&rootpstate);
-#endif					/* MultiThread */
    markblock(&k_main);
    markblock(&k_current);
    /*
     * Mark &subject and the cached s2 and s3 strings for map.
     */
-#ifndef MultiThread
    postqual(&k_subject);
    postqual(&kywd_prog);
-#endif					/* MultiThread */
    if (Qual(maps2))                     /*  caution: the cached arguments of */
       postqual(&maps2);                 /*  map may not be strings. */
    else if (Pointer(maps2))
@@ -436,7 +382,6 @@ int region;
     * Mark the globals and the statics.
     */
 
-#ifndef MultiThread
    { register struct descrip *dp;
    for (dp = globals; dp < eglobals; dp++)
       if (Qual(*dp))
@@ -457,7 +402,6 @@ int region;
    if (is:file(lastEventWin))
       markblock(&(lastEventWin));
 #endif					/* Graphics */
-#endif					/* MultiThread */
 
    reclaim();
 
@@ -483,73 +427,8 @@ int region;
       }
    }
 
-#ifdef EventMon
-   if (!noMTevents) {
-      mmrefresh();
-      EVValD(&nulldesc, E_EndCollect);
-      }
-#endif					/* EventMon */
-
    return 1;
    }
-
-/*
- * markprogram - traverse pointers out of a program state structure
- */
-
-#ifdef MultiThread
-#define PostDescrip(d) \
-   if (Qual(d)) \
-      postqual(&(d)); \
-   else if (Pointer(d))\
-      markblock(&(d));
-
-static void markprogram(pstate)
-struct progstate *pstate;
-   {
-   struct descrip *dp;
-
-   PostDescrip(pstate->parentdesc);
-   PostDescrip(pstate->eventmask);
-   PostDescrip(pstate->opcodemask);
-   PostDescrip(pstate->eventcode);
-   PostDescrip(pstate->eventval);
-   PostDescrip(pstate->eventsource);
-
-   /* Kywd_err, &error, always an integer */
-   /* Kywd_pos, &pos, always an integer */
-   postqual(&(pstate->ksub));
-   postqual(&(pstate->Kywd_prog));
-   /* Kywd_ran, &random, always an integer */
-   /* Kywd_trc, &trace, always an integer */
-
-   /*
-    * Mark the globals and the statics.
-    */
-   for (dp = pstate->Globals; dp < pstate->Eglobals; dp++)
-      if (Qual(*dp))
-	 postqual(dp);
-      else if (Pointer(*dp))
-	 markblock(dp);
-
-   for (dp = pstate->Statics; dp < pstate->Estatics; dp++)
-      if (Qual(*dp))
-	 postqual(dp);
-      else if (Pointer(*dp))
-	 markblock(dp);
-
-   /*
-    * no marking for &x, &y, &row, &col, &interval, all integers
-    */
-#ifdef Graphics
-   PostDescrip(pstate->LastEventWin);	/* last Event() win */
-   PostDescrip(pstate->Kywd_xwin[XKey_Window]);	/* &window */
-#endif					/* Graphics */
-
-   PostDescrip(pstate->K_errorvalue);
-   PostDescrip(pstate->T_errorvalue);
-   }
-#endif					/* MultiThread */
 
 /*
  * postqual - mark a string qualifier.  Strings outside the string space
@@ -692,16 +571,6 @@ dptr dp;
        */
       BlkType(block) = (uword)dp;
       sweep((struct b_coexpr *)block);
-
-#ifdef MultiThread
-      if (((struct b_coexpr *)block)+1 ==
-         (struct b_coexpr *)((struct b_coexpr *)block)->program){
-         /*
-          * This coexpr is an &main; traverse its roots
-          */
-         markprogram(((struct b_coexpr *)block)->program);
-         }
-#endif					/* MultiThread */
 
 #ifdef Coexpr
       /*
@@ -992,19 +861,6 @@ struct b_coexpr *ce;
    s_sp =  ce->es_sp;
    nargs = 0;                           /* Nargs counter is 0 initially. */
 
-#ifdef MultiThread
-   if (fp == 0) {
-      if (is:list(* (dptr) (s_sp - 1))) {
-	 /*
-	  * this is the argument list of an un-started task
-	  */
-         if (Pointer(*((dptr)(&s_sp[-1])))) {
-            markblock((dptr)&s_sp[-1]);
-	    }
-	 }
-      }
-#endif					/* MultiThread */
-
    while ((fp != 0 || nargs)) {         /* Keep going until current fp is
                                             0 and no arguments are left. */
       if (s_sp == (word *)fp + Vwsizeof(*pfp) - 1) {
@@ -1118,11 +974,7 @@ static void cofree()
     * Reset the type for &main.
     */
 
-#ifdef MultiThread
-   rootpstate.Mainhead->title = T_Coexpr;
-#else					/* MultiThread */
    BlkLoc(k_main)->coexpr.title = T_Coexpr;
-#endif					/* MultiThread */
 
    /*
     * The co-expression blocks are linked together through their

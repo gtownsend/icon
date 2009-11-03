@@ -342,106 +342,6 @@ struct ipc_line {
    int line;		/* line number */
    };
 
-#ifdef MultiThread
-/*
- * Program state encapsulation.  This consists of the VARIABLE parts of
- * many global structures.
- */
-struct progstate {
-   long hsize;				/* size of the icode */
-   struct progstate *parent;
-   struct descrip parentdesc;		/* implicit "&parent" */
-   struct descrip eventmask;		/* implicit "&eventmask" */
-   struct descrip opcodemask;		/* implicit "&opcodemask" */
-   struct descrip eventcode;		/* &eventcode */
-   struct descrip eventval;		/* &eventval */
-   struct descrip eventsource;		/* &eventsource */
-   dptr Glbl_argp;			/* global argp */
-
-   /*
-    * trapped variable keywords' values
-    */
-   struct descrip Kywd_err;
-   struct descrip Kywd_pos;
-   struct descrip ksub;
-   struct descrip Kywd_prog;
-   struct descrip Kywd_ran;
-   struct descrip Kywd_trc;
-   struct b_coexpr *Mainhead;
-   char *Code;
-   char *Ecode;
-   word *Records;
-   int *Ftabp;
-   #ifdef FieldTableCompression
-      short Ftabwidth, Foffwidth;
-      unsigned char *Ftabcp, *Focp;
-      short *Ftabsp, *Fosp;
-      int *Fo;
-      char *Bm;
-   #endif				/* FieldTableCompression */
-   dptr Fnames, Efnames;
-   dptr Globals, Eglobals;
-   dptr Gnames, Egnames;
-   dptr Statics, Estatics;
-   int NGlobals, NStatics;
-   char *Strcons;
-   struct ipc_fname *Filenms, *Efilenms;
-   struct ipc_line *Ilines, *Elines;
-   struct ipc_line * Current_line_ptr;
-
-   #ifdef Graphics
-      struct descrip AmperX, AmperY, AmperRow, AmperCol;/* &x, &y, &row, &col */
-      struct descrip AmperInterval;			/* &interval */
-      struct descrip LastEventWin;			/* last Event() win */
-      int LastEvFWidth;
-      int LastEvLeading;
-      int LastEvAscent;
-      uword PrevTimeStamp;				/* previous timestamp */
-      uword Xmod_Control, Xmod_Shift, Xmod_Meta;	/* control,shift,meta */
-      struct descrip Kywd_xwin[2];			/* &window + ... */
-   #endif				/* Graphics */
-
-   #ifdef EventMon
-      word Linenum, Column, Lastline, Lastcol;
-   #endif				/* EventMon */
-
-   word Coexp_ser;			/* this program's serial numbers */
-   word Extl_ser;
-   word List_ser;
-   word Set_ser;
-   word Table_ser;
-
-   uword stringtotal;			/* cumulative total allocation */
-   uword blocktotal;			/* cumulative total allocation */
-   word colltot;			/* total number of collections */
-   word collstat;			/* number of static collect requests */
-   word collstr;			/* number of string collect requests */
-   word collblk;			/* number of block collect requests */
-   struct region *stringregion;
-   struct region *blockregion;
-
-   word Lastop;
-
-   dptr Xargp;
-   word Xnargs;
-
-   struct descrip K_current;
-   int K_errornumber;
-   char *K_errortext;
-   struct descrip K_errorvalue;
-   int Have_errval;
-   int T_errornumber;
-   int T_have_val;
-   struct descrip T_errorvalue;
-
-   struct descrip K_main;
-   struct b_file K_errout;
-   struct b_file K_input;
-   struct b_file K_output;
-   };
-
-#endif					/* MultiThread */
-
 /*
  * Frame markers
  */
@@ -461,11 +361,6 @@ struct pf_marker {		/* procedure frame marker */
    inst pf_ipc;			/*   saved ipc */
    word pf_ilevel;		/*   saved ilevel */
    dptr pf_scan;		/*   saved scanning environment */
-
-   #ifdef MultiThread
-      struct progstate *pf_prog;/*   saved program state pointer */
-   #endif				/* MultiThread */
-
    struct descrip pf_locals[1];	/*   descriptors for locals */
    };
 
@@ -527,11 +422,6 @@ struct b_coexpr {		/* co-expression stack block */
    dptr tvalloc;		/*   where to place transmitted value */
    struct descrip freshblk;	/*   refresh block pointer */
    struct astkblk *es_actstk;	/*   pointer to activation stack structure */
-
-   #ifdef MultiThread
-      struct progstate *program;
-   #endif				/* MultiThread */
-
    word cstate[CStateSize];	/*   C state information */
    };
 

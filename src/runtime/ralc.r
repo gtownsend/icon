@@ -11,13 +11,11 @@ static struct region *newregion	(word nbytes, word stdsize);
 
 extern word alcnum;
 
-#ifndef MultiThread
 word coexp_ser = 2;	/* serial numbers for co-expressions; &main is 1 */
 word extl_ser = 1;	/* serial numbers for externals */
 word list_ser = 1;	/* serial numbers for lists */
 word set_ser = 1;	/* serial numbers for sets */
 word table_ser = 1;	/* serial numbers for tables */
-#endif					/* MultiThread */
 
 
 /*
@@ -25,22 +23,11 @@ word table_ser = 1;	/* serial numbers for tables */
  */
 #begdef AlcBlk(var, struct_nm, t_code, nbytes)
 {
-#ifdef MultiThread
-   EVVal((word)nbytes, typech[t_code]);
-#endif					/* MultiThread */
-
    /*
     * Ensure that there is enough room in the block region.
     */
    if (DiffPtrs(blkend,blkfree) < nbytes && !reserve(Blocks, nbytes))
       return NULL;
-
-   /*
-    * If monitoring, show the allocation.
-    */
-#ifndef MultiThread
-   EVVal((word)nbytes, typech[t_code]);
-#endif
 
    /*
     * Decrement the free space in the block region by the number of bytes
@@ -65,11 +52,7 @@ word table_ser = 1;	/* serial numbers for tables */
  */
 #begdef AlcVarBlk(var, struct_nm, t_code, n_desc)
    {
-#ifdef EventMon
-   uword size;
-#else					/* EventMon */
    register uword size;
-#endif					/* EventMon */
 
    /*
     * Variable size blocks are declared with one descriptor, thus
@@ -169,32 +152,10 @@ struct b_coexpr *alccoexp()
    return ep;
    }
 #else					/* COMPILER */
-#ifdef MultiThread
-/*
- * If this is a new program being loaded, an icodesize>0 gives the
- * hdr.hsize and a stacksize to use; allocate
- * sizeof(progstate) + icodesize + mstksize
- * Otherwise (icodesize==0), allocate a normal stksize...
- */
-struct b_coexpr *alccoexp(icodesize, stacksize)
-long icodesize, stacksize;
-#else					/* MultiThread */
-struct b_coexpr *alccoexp()
-#endif					/* MultiThread */
 
+struct b_coexpr *alccoexp()
    {
    struct b_coexpr *ep;
-
-#ifdef MultiThread
-   if (icodesize > 0) {
-      ep = (struct b_coexpr *)
-	calloc(1, stacksize+
-		       icodesize+
-		       sizeof(struct progstate)+
-		       sizeof(struct b_coexpr));
-      }
-   else
-#endif					/* MultiThread */
 
    ep = (struct b_coexpr *)malloc(stksize);
 
@@ -204,50 +165,22 @@ struct b_coexpr *alccoexp()
     */
 
    if (ep == NULL || alcnum > AlcMax) {
-
       collect(Static);
-
-#ifdef MultiThread
-      if (icodesize>0) {
-         ep = (struct b_coexpr *)
-	    malloc(mstksize+icodesize+sizeof(struct progstate));
-         }
-      else
-#endif					/* MultiThread */
-
-         ep = (struct b_coexpr *)malloc(stksize);
-      }
-      if (ep == NULL)
-         ReturnErrNum(305, NULL);
+      ep = (struct b_coexpr *)malloc(stksize);
+   }
+   if (ep == NULL)
+      ReturnErrNum(305, NULL);
 
    alcnum++;		/* increment allocation count since last g.c. */
 
    ep->title = T_Coexpr;
    ep->es_actstk = NULL;
    ep->size = 0;
-#ifdef MultiThread
-   ep->es_pfp = NULL;
-   ep->es_gfp = NULL;
-   ep->es_argp = NULL;
-   ep->tvalloc = NULL;
-
-   if (icodesize > 0)
-      ep->id = 1;
-   else
-#endif					/* MultiThread */
    ep->id = coexp_ser++;
    ep->nextstk = stklist;
    ep->es_tend = NULL;
    ep->cstate[0] = 0;		/* zero the first two cstate words as a flag */
    ep->cstate[1] = 0;
-
-#ifdef MultiThread
-   /*
-    * Initialize program state to self for &main; curpstate for others.
-    */
-   if(icodesize>0) ep->program = (struct progstate *)(ep+1);
-   else ep->program = curpstate;
-#endif					/* MultiThread */
 
    stklist = ep;
    return ep;
@@ -531,16 +464,6 @@ register word slen;
    register char *d;
    char *ofree;
 
-#ifdef MultiThread
-   StrLen(ts) = slen;
-   StrLoc(ts) = s;
-#ifdef EventMon
-   if (!noMTevents)
-#endif					/* EventMon */
-      EVVal(slen, E_String);
-   s = StrLoc(ts);
-#endif					/* MultiThread */
-
    /*
     * Make sure there is enough room in the string space.
     */
@@ -647,7 +570,6 @@ union block *bp;
       syserr ("deallocation botch");
    rp->free = (char *)bp;
    blktotal -= nbytes;
-   EVVal(nbytes, E_BlkDeAlc);
 }
 
 /*
@@ -732,16 +654,6 @@ word nbytes;
       if (curr->Gprev) curr->Gprev->Gnext = rp;
       curr->Gprev = rp;
       *pcurr = rp;
-#ifdef EventMon
-      if (!noMTevents) {
-         if (region == Strings) {
-            EVVal(rp->size, E_TenureString);
-            }
-         else {
-            EVVal(rp->size, E_TenureBlock);
-            }
-         }
-#endif					/* EventMon */
       return rp->free;
       }
 

@@ -58,10 +58,7 @@ word mstksize = MStackSize;	/* initial size of main stack */
 word stksize = StackSize;	/* co-expression stack size */
 
 int k_level = 0;		/* &level */
-
-#ifndef MultiThread
-   struct descrip k_main;	/* &main */
-#endif					/* MultiThread */
+struct descrip k_main;		/* &main */
 
 int ixinited = 0;		/* set-up switch */
 
@@ -74,10 +71,8 @@ word memcushion = RegionCushion;  /* memory region cushion factor */
 word memgrowth = RegionGrowth;	  /* memory region growth factor */
 
 uword stattotal = 0;		/* cumulative total static allocation */
-#ifndef MultiThread
-   uword strtotal = 0;		/* cumulative total string allocation */
-   uword blktotal = 0;		/* cumulative total block allocation */
-#endif					/* MultiThread */
+uword strtotal = 0;		/* cumulative total string allocation */
+uword blktotal = 0;		/* cumulative total block allocation */
 
 int dodump;			/* if nonzero, core dump on error */
 int noerrbuf;			/* if nonzero, do not buffer stderr */
@@ -85,16 +80,14 @@ int noerrbuf;			/* if nonzero, do not buffer stderr */
 struct descrip maps2;		/* second cached argument of map */
 struct descrip maps3;		/* third cached argument of map */
 
-#ifndef MultiThread
-   struct descrip k_current;	/* current expression stack pointer */
-   int k_errornumber = 0;	/* &errornumber */
-   char *k_errortext = "";	/* &errortext */
-   struct descrip k_errorvalue;	/* &errorvalue */
-   int have_errval = 0;		/* &errorvalue has legal value */
-   int t_errornumber = 0;	/* tentative k_errornumber value */
-   int t_have_val = 0;		/* tentative have_errval flag */
-   struct descrip t_errorvalue;	/* tentative k_errorvalue value */
-#endif					/* MultiThread */
+struct descrip k_current;	/* current expression stack pointer */
+int k_errornumber = 0;		/* &errornumber */
+char *k_errortext = "";		/* &errortext */
+struct descrip k_errorvalue;	/* &errorvalue */
+int have_errval = 0;		/* &errorvalue has legal value */
+int t_errornumber = 0;		/* tentative k_errornumber value */
+int t_have_val = 0;		/* tentative have_errval flag */
+struct descrip t_errorvalue;	/* tentative k_errorvalue value */
 
 struct b_coexpr *stklist;	/* base of co-expression block list */
 
@@ -102,17 +95,15 @@ struct tend_desc *tend = NULL;  /* chain of tended descriptors */
 
 struct region rootstring, rootblock;
 
-#ifndef MultiThread
-   dptr glbl_argp = NULL;	/* argument pointer */
-   dptr globals, eglobals;	/* pointer to global variables */
-   dptr gnames, egnames;	/* pointer to global variable names */
-   dptr estatics;		/* pointer to end of static variables */
-   struct region *curstring, *curblock;
-   #if !COMPILER
-      int n_globals = 0;	/* number of globals */
-      int n_statics = 0;	/* number of statics */
-   #endif				/* !COMPILER */
-#endif					/* MultiThread */
+dptr glbl_argp = NULL;		/* argument pointer */
+dptr globals, eglobals;		/* pointer to global variables */
+dptr gnames, egnames;		/* pointer to global variable names */
+dptr estatics;			/* pointer to end of static variables */
+struct region *curstring, *curblock;
+#if !COMPILER
+  int n_globals = 0;		/* number of globals */
+  int n_statics = 0;		/* number of statics */
+#endif					/* !COMPILER */
 
 #if COMPILER
    struct p_frame *pfp = NULL;	/* procedure frame pointer */
@@ -130,11 +121,6 @@ struct region rootstring, rootblock;
 
    int op_tbl_sz = (sizeof(init_op_tbl) / sizeof(struct b_proc));
    struct pf_marker *pfp = NULL;  /* Procedure frame pointer */
-
-   #ifdef MultiThread
-      struct progstate *curpstate;  /* lastop accessed in program state */
-      struct progstate rootpstate;
-   #else				/* MultiThread */
 
       struct b_coexpr *mainhead;  /* &main */
 
@@ -159,7 +145,6 @@ struct region rootstring, rootblock;
       char *strcons;		/* pointer to string constant table */
       struct ipc_fname *filenms, *efilenms; /* pointer to ipc/file name table */
       struct ipc_line *ilines, *elines;	/* pointer to ipc/line number table */
-   #endif				/* MultiThread */
 
    #ifdef TallyOpt
       word tallybin[16];	/* counters for tallying */
@@ -175,7 +160,7 @@ struct region rootstring, rootblock;
 
 /*
  * Open the icode file and read the header.
- * Used by icon_init() as well as MultiThread's loadicode()
+ * Used by icon_init().
  */
 static FILE *readhdr(name,hdr)
 char *name;
@@ -317,58 +302,8 @@ struct header *hdr;
    rootstring.size = MaxStrSpace;
    rootblock.size  = MaxAbrSize;
 #else					/* COMPILER */
-
-#ifdef MultiThread
-   /*
-    * initialize root pstate
-    */
-   curpstate = &rootpstate;
-   rootpstate.parentdesc = nulldesc;
-   rootpstate.eventmask= nulldesc;
-   rootpstate.opcodemask = nulldesc;
-   rootpstate.eventcode= nulldesc;
-   rootpstate.eventval = nulldesc;
-   rootpstate.eventsource = nulldesc;
-   rootpstate.Glbl_argp = NULL;
-   MakeInt(0, &(rootpstate.Kywd_err));
-   MakeInt(1, &(rootpstate.Kywd_pos));
-   StrLen(rootpstate.ksub) = 0;
-   StrLoc(rootpstate.ksub) = "";
-   MakeInt(hdr.trace, &(rootpstate.Kywd_trc));
-   StrLen(rootpstate.Kywd_prog) = strlen(prog_name);
-   StrLoc(rootpstate.Kywd_prog) = prog_name;
-   MakeInt(0, &(rootpstate.Kywd_ran));
-   rootpstate.K_errornumber = 0;
-   rootpstate.T_errornumber = 0;
-   rootpstate.Have_errval = 0;
-   rootpstate.T_have_val = 0;
-   rootpstate.K_errortext = "";
-   rootpstate.K_errorvalue = nulldesc;
-   rootpstate.T_errorvalue = nulldesc;
-
-#ifdef Graphics
-   MakeInt(0,&(rootpstate.AmperX));
-   MakeInt(0,&(rootpstate.AmperY));
-   MakeInt(0,&(rootpstate.AmperRow));
-   MakeInt(0,&(rootpstate.AmperCol));
-   MakeInt(0,&(rootpstate.AmperInterval));
-   rootpstate.LastEventWin = nulldesc;
-   rootpstate.Kywd_xwin[XKey_Window] = nulldesc;
-#endif					/* Graphics */
-
-   rootpstate.Coexp_ser = 2;
-   rootpstate.List_ser  = 1;
-   rootpstate.Set_ser   = 1;
-   rootpstate.Table_ser = 1;
-   rootpstate.stringregion = &rootstring;
-   rootpstate.blockregion = &rootblock;
-
-#else					/* MultiThread */
-
    curstring = &rootstring;
    curblock  = &rootblock;
-#endif					/* MultiThread */
-
    rootstring.size = MaxStrSpace;
    rootblock.size  = MaxAbrSize;
 #endif					/* COMPILER */
@@ -420,11 +355,7 @@ struct header *hdr;
 #if COMPILER
    initalloc();
 #else					/* COMPILER */
-#ifdef MultiThread
-   initalloc(hdr.hsize,&rootpstate);
-#else					/* MultiThread */
    initalloc(hdr.hsize);
-#endif					/* MultiThread */
 #endif					/* COMPILER */
 
 #if !COMPILER
@@ -492,9 +423,6 @@ struct header *hdr;
    mainhead->es_tend = NULL;
    mainhead->freshblk = nulldesc;	/* &main has no refresh block. */
 					/*  This really is a bug. */
-#ifdef MultiThread
-   mainhead->program = &rootpstate;
-#endif					/* MultiThread */
 #if COMPILER
    mainhead->file_name = "";
    mainhead->line_num = 0;
@@ -542,19 +470,11 @@ struct header *hdr;
     * Initialize the event monitoring system, if configured.
     */
 
-#ifdef EventMon
-   EVInit();
-#endif					/* EventMon */
-
 #if !COMPILER
    /*
     * Resolve references from icode to run-time system.
     */
-#ifdef MultiThread
-   resolve(NULL);
-#else					/* MultiThread */
    resolve();
-#endif					/* MultiThread */
 #endif					/* COMPILER */
 
    /*
@@ -746,22 +666,6 @@ void c_exit(i)
 int i;
 {
 
-#ifdef EventMon
-   if (curpstate != NULL) {
-      EVVal((word)i, E_Exit);
-      }
-#endif					/* EventMon */
-
-#ifdef MultiThread
-   if (curpstate != NULL && curpstate->parent != NULL) {
-      /* might want to get to the lterm somehow, instead */
-      while (1) {
-	 struct descrip dummy;
-	 co_chng(curpstate->parent->Mainhead, NULL, &dummy, A_Cofail, 1);
-	 }
-      }
-#endif					/* MultiThread */
-
 #ifdef TallyOpt
    {
    int j;
@@ -831,12 +735,6 @@ void datainit()
     * some compilers).					[[I?]]
     */
 
-#ifdef MultiThread
-   k_errout.title = T_File;
-   k_input.title = T_File;
-   k_output.title = T_File;
-#endif					/* MultiThread */
-
    k_errout.fd = stderr;
    StrLen(k_errout.fname) = 7;
    StrLoc(k_errout.fname) = "&errout";
@@ -887,16 +785,6 @@ void datainit()
    StrLoc(ucase) = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
    IntVal(zerodesc) = 0;
 
-#ifdef EventMon
-/*
- *  Initialization needed for event monitoring
- */
-
-   BlkLoc(csetdesc) = (union block *)&fullcs;
-   BlkLoc(rzerodesc) = (union block *)&realzero;
-
-#endif					/* EventMon */
-
    maps2 = nulldesc;
    maps3 = nulldesc;
 
@@ -905,196 +793,6 @@ void datainit()
    #endif				/* COMPILER */
 
    }
-
-#ifdef MultiThread
-/*
- * loadicode - initialize memory particular to a given icode file
- */
-struct b_coexpr * loadicode(name, theInput, theOutput, theError, bs, ss, stk)
-char *name;
-struct b_file *theInput, *theOutput, *theError;
-C_integer bs, ss, stk;
-   {
-   struct b_coexpr *coexp;
-   struct progstate *pstate;
-   struct header hdr;
-   FILE *fname = NULL;
-   word cbread, longread();
-
-   /*
-    * open the icode file and read the header
-    */
-   fname = readhdr(name,&hdr);
-   if (fname == NULL)
-      return NULL;
-
-   /*
-    * Allocate memory for icode and the struct that describes it
-    */
-     Protect(coexp = alccoexp(hdr.hsize, stk),
-      { fprintf(stderr,"can't malloc new icode region\n");c_exit(EXIT_FAILURE);});
-
-   pstate = coexp->program;
-   /*
-    * Initialize values.
-    */
-   pstate->hsize = hdr.hsize;
-   pstate->parent= NULL;
-   pstate->parentdesc= nulldesc;
-   pstate->opcodemask= nulldesc;
-   pstate->eventmask= nulldesc;
-   pstate->eventcode= nulldesc;
-   pstate->eventval = nulldesc;
-   pstate->eventsource = nulldesc;
-   pstate->K_current.dword = D_Coexpr;
-
-   MakeInt(0, &(pstate->Kywd_err));
-   MakeInt(1, &(pstate->Kywd_pos));
-   MakeInt(0, &(pstate->Kywd_ran));
-
-   StrLen(pstate->Kywd_prog) = strlen(prog_name);
-   StrLoc(pstate->Kywd_prog) = prog_name;
-   StrLen(pstate->ksub) = 0;
-   StrLoc(pstate->ksub) = "";
-   MakeInt(hdr.trace, &(pstate->Kywd_trc));
-
-#ifdef EventMon
-   pstate->Linenum = pstate->Column = pstate->Lastline = pstate->Lastcol = 0;
-#endif					/* EventMon */
-   pstate->Lastop = 0;
-   /*
-    * might want to override from TRACE environment variable here.
-    */
-
-   /*
-    * Establish pointers to icode data regions.		[[I?]]
-    */
-   pstate->Mainhead= ((struct b_coexpr *)pstate)-1;
-   pstate->K_main.dword = D_Coexpr;
-   BlkLoc(pstate->K_main) = (union block *) pstate->Mainhead;
-   pstate->Code    = (char *)(pstate + 1);
-   pstate->Ecode    = (char *)(pstate->Code + hdr.Records);
-   pstate->Records = (word *)(pstate->Code + hdr.Records);
-   pstate->Ftabp   = (int *)(pstate->Code + hdr.Ftab);
-#ifdef FieldTableCompression
-   pstate->Fo = (int *)(pstate->Code + hdr.Fo);
-   pstate->Focp =   (unsigned char *)(pstate->Fo);
-   pstate->Fosp =   (short *)(pstate->Fo);
-   pstate->Foffwidth = hdr.FoffWidth;
-   if (hdr.FoffWidth == 1) {
-      pstate->Bm = (char *)(pstate->Focp + hdr.Nfields);
-      }
-   else if (hdr.FoffWidth == 2) {
-      pstate->Bm = (char *)(pstate->Fosp + hdr.Nfields);
-      }
-   else
-      pstate->Bm = (char *)(pstate->Fo + hdr.Nfields);
-   pstate->Ftabwidth= hdr.FtabWidth;
-   pstate->Foffwidth = hdr.FoffWidth;
-   pstate->Ftabcp   = (unsigned char *)(pstate->Code + hdr.Ftab);
-   pstate->Ftabsp   = (short *)(pstate->Code + hdr.Ftab);
-#endif					/* FieldTableCompression */
-   pstate->Fnames  = (dptr)(pstate->Code + hdr.Fnames);
-   pstate->Globals = pstate->Efnames = (dptr)(pstate->Code + hdr.Globals);
-   pstate->Gnames  = pstate->Eglobals = (dptr)(pstate->Code + hdr.Gnames);
-   pstate->NGlobals = pstate->Eglobals - pstate->Globals;
-   pstate->Statics = pstate->Egnames = (dptr)(pstate->Code + hdr.Statics);
-   pstate->Estatics = (dptr)(pstate->Code + hdr.Filenms);
-   pstate->NStatics = pstate->Estatics - pstate->Statics;
-   pstate->Filenms = (struct ipc_fname *)(pstate->Estatics);
-   pstate->Efilenms = (struct ipc_fname *)(pstate->Code + hdr.linenums);
-   pstate->Ilines = (struct ipc_line *)(pstate->Efilenms);
-   pstate->Elines = (struct ipc_line *)(pstate->Code + hdr.Strcons);
-   pstate->Strcons = (char *)(pstate->Elines);
-   pstate->K_errornumber = 0;
-   pstate->T_errornumber = 0;
-   pstate->Have_errval = 0;
-   pstate->T_have_val = 0;
-   pstate->K_errortext = "";
-   pstate->K_errorvalue = nulldesc;
-   pstate->T_errorvalue = nulldesc;
-
-#ifdef Graphics
-   MakeInt(0, &(pstate->AmperX));
-   MakeInt(0, &(pstate->AmperY));
-   MakeInt(0, &(pstate->AmperRow));
-   MakeInt(0, &(pstate->AmperCol));
-   MakeInt(0, &(pstate->AmperInterval));
-   pstate->LastEventWin = nulldesc;
-   pstate->Kywd_xwin[XKey_Window] = nulldesc;
-#endif					/* Graphics */
-
-   pstate->Coexp_ser = 2;
-   pstate->List_ser = 1;
-   pstate->Set_ser = 1;
-   pstate->Table_ser = 1;
-
-   pstate->stringtotal = pstate->blocktotal =
-   pstate->colltot     = pstate->collstat   =
-   pstate->collstr     = pstate->collblk    = 0;
-
-   pstate->stringregion = (struct region *)malloc(sizeof(struct region));
-   pstate->blockregion  = (struct region *)malloc(sizeof(struct region));
-   pstate->stringregion->size = ss;
-   pstate->blockregion->size = bs;
-
-   /*
-    * the local program region list starts out with this region only
-    */
-   pstate->stringregion->prev = NULL;
-   pstate->blockregion->prev = NULL;
-   pstate->stringregion->next = NULL;
-   pstate->blockregion->next = NULL;
-   /*
-    * the global region list links this region with curpstate's
-    */
-   pstate->stringregion->Gprev = curpstate->stringregion;
-   pstate->blockregion->Gprev = curpstate->blockregion;
-   pstate->stringregion->Gnext = curpstate->stringregion->Gnext;
-   pstate->blockregion->Gnext = curpstate->blockregion->Gnext;
-   if (curpstate->stringregion->Gnext)
-      curpstate->stringregion->Gnext->Gprev = pstate->stringregion;
-   curpstate->stringregion->Gnext = pstate->stringregion;
-   if (curpstate->blockregion->Gnext)
-      curpstate->blockregion->Gnext->Gprev = pstate->blockregion;
-   curpstate->blockregion->Gnext = pstate->blockregion;
-   initalloc(0, pstate);
-
-   pstate->K_errout = *theError;
-   pstate->K_input  = *theInput;
-   pstate->K_output = *theOutput;
-
-   /*
-    * Read the interpretable code and data into memory.
-    */
-   if ((cbread = longread(pstate->Code, sizeof(char), (long)hdr.hsize, fname))
-       != hdr.hsize) {
-      fprintf(stderr,"Tried to read %ld bytes of code, got %ld\n",
-	(long)hdr.hsize,(long)cbread);
-      error(name, "can't read interpreter code");
-      }
-   fclose(fname);
-
-   /*
-    * Make sure the version number of the icode matches the interpreter version
-    */
-   if (strcmp((char *)hdr.config,IVersion)) {
-      fprintf(stderr,"icode version mismatch in %s\n", name);
-      fprintf(stderr,"\ticode version: %s\n",(char *)hdr.config);
-      fprintf(stderr,"\texpected version: %s\n",IVersion);
-      error(name, "cannot run");
-      }
-
-   /*
-    * Resolve references from icode to run-time system.
-    * The first program has this done in icon_init after
-    * initializing the event monitoring system.
-    */
-   resolve(pstate);
-
-   return coexp;
-   }
-#endif					/* MultiThread */
 
 #ifdef WinGraphics
 static void MSStartup(HINSTANCE hInstance, HINSTANCE hPrevInstance)

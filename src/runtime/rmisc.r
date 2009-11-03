@@ -119,24 +119,6 @@ int getvar(s,vp)
          }
 #endif					/* Graphics */
 
-#ifdef MultiThread
-      else if (strcmp(s,"&eventvalue") == 0) {
-         vp->dword = D_Var;
-         VarLoc(*vp) = (dptr)&(curpstate->eventval);
-         return Succeeded;
-         }
-      else if (strcmp(s,"&eventsource") == 0) {
-         vp->dword = D_Var;
-         VarLoc(*vp) = (dptr)&(curpstate->eventsource);
-         return Succeeded;
-         }
-      else if (strcmp(s,"&eventcode") == 0) {
-         vp->dword = D_Var;
-         VarLoc(*vp) = (dptr)&(curpstate->eventcode);
-         return Succeeded;
-         }
-#endif					/* MultiThread */
-
       else return Failed;
       }
 
@@ -642,14 +624,6 @@ int noimage;
          }
 
       kywdevent: {
-#ifdef MultiThread
-         if (VarLoc(*dp) == &curpstate->eventsource)
-            fprintf(f, "&eventsource = ");
-         else if (VarLoc(*dp) == &curpstate->eventcode)
-            fprintf(f, "&eventcode = ");
-         else if (VarLoc(*dp) == &curpstate->eventval)
-            fprintf(f, "&eventval = ");
-#endif					/* MultiThread */
          outimage(f, VarLoc(*dp), noimage);
          }
 
@@ -900,10 +874,6 @@ struct b_coexpr *ce, *actvtr;
    struct astkblk *abp = ce->es_actstk, *nabp;
    struct actrec *arp;
 
-#ifdef MultiThread
-   abp->arec[0].activator = actvtr;
-#else					/* MultiThread */
-
    /*
     * If the last activator is the same as this one, just increment
     *  its count.
@@ -929,7 +899,6 @@ struct b_coexpr *ce, *actvtr;
    arp->acount = 1;
    arp->activator = actvtr;
    ce->es_actstk = abp;
-#endif					/* MultiThread */
    return Succeeded;
 }
 #endif					/* Coexpr */
@@ -947,10 +916,6 @@ struct b_coexpr *ce;
    struct astkblk *abp = ce->es_actstk, *oabp;
    struct actrec *arp;
    struct b_coexpr *actvtr;
-
-#ifdef MultiThread
-   return abp->arec[0].activator;
-#else					/* MultiThread */
 
    /*
     * If the current stack block is empty, pop it.
@@ -976,7 +941,6 @@ struct b_coexpr *ce;
 
    ce->es_actstk = abp;
    return actvtr;
-#endif					/* MultiThread */
 
 #else					/* Coexpr */
     syserr("popact() called, but co-expressions not implemented");
@@ -993,13 +957,9 @@ struct b_coexpr *ce;
 {
    struct astkblk *abp = ce->es_actstk;
 
-#ifdef MultiThread
-   return abp->arec[0].activator;
-#else					/* MultiThread */
    if (abp->nactivators == 0)
       abp = abp->astk_nxt;
    return abp->arec[abp->nactivators-1].activator;
-#endif					/* MultiThread */
 }
 
 #ifdef DeBugIconx
@@ -1055,11 +1015,7 @@ word *ipc;
    uword ipc_offset;
    uword size;
    struct ipc_line *base;
-
-#ifndef MultiThread
    extern struct ipc_line *ilines, *elines;
-#endif					/* MultiThread */
-
    static int two = 2;	/* some compilers generate bad code for division
 			   by a constant that is a power of two ... */
 
@@ -1089,11 +1045,7 @@ int line;
 {
    uword size;
    struct ipc_line *base;
-
-#ifndef MultiThread
    extern struct ipc_line *ilines, *elines;
-#endif					/* MultiThread */
-
    static int two = 2;	/* some compilers generate bad code for division
 			   by a constant that is a power of two ... */
 
@@ -1118,10 +1070,7 @@ word *ipc;
 {
    uword ipc_offset;
    struct ipc_fname *p;
-
-#ifndef MultiThread
    extern struct ipc_fname *filenms, *efilenms;
-#endif					/* MultiThread */
 
    if (!InRange(code,ipc,ecode))
       return "?";

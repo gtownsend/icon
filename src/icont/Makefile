@@ -45,7 +45,7 @@ tree.o:		tree.h
 tsym.o:		tglobals.h tsym.h ttoken.h lfile.h keyword.h ../h/kdefs.h
 
 # linker files
-$(LINKR):	link.h lfile.h ../h/rt.h ../h/sys.h ../h/monitor.h \
+$(LINKR):	link.h lfile.h ../h/rt.h ../h/sys.h \
 		   ../h/rstructs.h ../h/rmacros.h ../h/rexterns.h
 
 link.o:		tglobals.h hdr.h ../h/header.h

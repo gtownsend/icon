@@ -6,12 +6,6 @@
 
 struct b_proc Bnoproc;
 
-#ifdef EventMon
-struct b_iproc mt_llist = {
-   6, (sizeof(struct b_proc) - sizeof(struct descrip)), Ollist,
-   0, -1,  0, 0, {sizeof( "[...]")-1, "[...]"}};
-#endif					/* EventMon */
-
 
 /*
  * External declarations for function blocks.
@@ -186,24 +180,13 @@ struct b_cset  k_letters = {
 /*
  * Built-in files.
  */
-
-#ifndef MultiThread
 struct b_file  k_errout = {T_File, NULL, Fs_Write};	/* &errout */
 struct b_file  k_input = {T_File, NULL, Fs_Read};	/* &input */
 struct b_file  k_output = {T_File, NULL, Fs_Write};	/* &output */
-#endif					/* MultiThread */
-
-#ifdef EventMon
-/*
- *  Real block needed for event monitoring.
- */
-struct b_real realzero = {T_Real, 0.0};
-#endif					/* EventMon */
 
 /*
  * Keyword variables.
  */
-#ifndef MultiThread
 struct descrip kywd_err = {D_Integer};  /* &error */
 struct descrip kywd_pos = {D_Integer};	/* &pos */
 struct descrip kywd_prog;		/* &progname */
@@ -213,8 +196,6 @@ struct descrip kywd_trc = {D_Integer};	/* &trace */
 struct descrip k_eventcode = {D_Null};	/* &eventcode */
 struct descrip k_eventsource = {D_Null};/* &eventsource */
 struct descrip k_eventvalue = {D_Null};	/* &eventvalue */
-
-#endif					/* MultiThread */
 
 #ifdef FncTrace
 struct descrip kywd_ftrc = {D_Integer};	/* &ftrace */
@@ -238,15 +219,6 @@ struct descrip nulldesc = {D_Null};	/* null value */
 struct descrip onedesc = {D_Integer};	/* integer 1 */
 struct descrip ucase;			/* string of uppercase letters */
 struct descrip zerodesc = {D_Integer};	/* integer 0 */
-
-#ifdef EventMon
-/*
- * Descriptors used by event monitoring.
- */
-struct descrip csetdesc = {D_Cset};
-struct descrip eventdesc;
-struct descrip rzerodesc = {D_Real};
-#endif					/* EventMon */
 
 /*
  * An array of all characters for use in making one-character strings.

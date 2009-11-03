@@ -140,55 +140,13 @@ end
 "proc(x,i) - convert x to a procedure if possible; use i to resolve "
 "ambiguous string names."
 
-#ifdef MultiThread
-function{0,1} proc(x,i,c)
-#else					/* MultiThread */
 function{0,1} proc(x,i)
-#endif					/* MultiThread */
-
-#ifdef MultiThread
-   if is:coexpr(x) then {
-      abstract {
-         return proc
-         }
-      inline {
-	 struct b_coexpr *ce = NULL;
-	 struct b_proc *bp = NULL;
-	 struct pf_marker *fp;
-	 dptr dp=NULL;
-	 if (BlkLoc(x) != BlkLoc(k_current)) {
-	    ce = (struct b_coexpr *)BlkLoc(x);
-	    dp = ce->es_argp;
-	    if (dp == NULL) fail;
-	    bp = (struct b_proc *)BlkLoc(*(dp));
-	    }
-	 else
-	    bp = (struct b_proc *)BlkLoc(*(glbl_argp));
-	 return proc(bp);
-	 }
-      }
-#endif					/* MultiThread */
 
    if is:proc(x) then {
       abstract {
          return proc
          }
       inline {
-
-#ifdef MultiThread
-	 if (!is:null(c)) {
-	    struct progstate *p;
-	    if (!is:coexpr(c)) runerr(118,c);
-	    /*
-	     * Test to see whether a given procedure belongs to a given
-	     * program.  Currently this is a sleazy pointer arithmetic check.
-	     */
-	    p = BlkLoc(c)->coexpr.program;
-	    if (! InRange(p, BlkLoc(x)->proc.entryp.icode,
-			  (char *)p + p->hsize))
-	       fail;
-	    }
-#endif					/* MultiThread */
          return x;
          }
       }
@@ -212,23 +170,6 @@ function{0,1} proc(x,i)
       inline {
          struct b_proc *prc;
 
-#ifdef MultiThread
-	 struct progstate *prog, *savedprog;
-
-	 savedprog = curpstate;
-	 if (is:null(c)) {
-	    prog = curpstate;
-	    }
-	 else if (is:coexpr(c)) {
-	    prog = BlkLoc(c)->coexpr.program;
-	    }
-	 else {
-	    runerr(118,c);
-	    }
-
-	 ENTERPSTATE(prog);
-#endif					/* MultiThread */
-
          /*
           * Attempt to convert Arg0 to a procedure descriptor using i to
           *  discriminate between procedures with the same names.  If i
@@ -240,9 +181,6 @@ function{0,1} proc(x,i)
 	 else
          prc = strprc(&x, i);
 
-#ifdef MultiThread
-	 ENTERPSTATE(savedprog);
-#endif					/* MultiThread */
          if (prc == NULL)
             fail;
          else

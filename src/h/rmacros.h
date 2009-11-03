@@ -545,115 +545,6 @@
    #define Arg7	(cargp[7])
    #define Arg8	(cargp[8])
 
-   /*
-    * Miscellaneous macro definitions.
-    */
-
-   #ifdef MultiThread
-      #define glbl_argp (curpstate->Glbl_argp)
-      #define kywd_err  (curpstate->Kywd_err)
-      #define kywd_pos  (curpstate->Kywd_pos)
-      #define kywd_prog  (curpstate->Kywd_prog)
-      #define kywd_ran  (curpstate->Kywd_ran)
-      #define k_eventcode (curpstate->eventcode)
-      #define k_eventsource (curpstate->eventsource)
-      #define k_eventvalue (curpstate->eventval)
-      #define k_subject (curpstate->ksub)
-      #define kywd_trc  (curpstate->Kywd_trc)
-      #define mainhead (curpstate->Mainhead)
-      #define code (curpstate->Code)
-      #define ecode (curpstate->Ecode)
-      #define records (curpstate->Records)
-      #define ftabp (curpstate->Ftabp)
-      #ifdef FieldTableCompression
-         #define ftabwidth (curpstate->Ftabwidth)
-         #define foffwidth (curpstate->Foffwidth)
-         #define ftabcp (curpstate->Ftabcp)
-         #define ftabsp (curpstate->Ftabsp)
-         #define focp (curpstate->Focp)
-         #define fosp (curpstate->Fosp)
-         #define fo (curpstate->Fo)
-         #define bm (curpstate->Bm)
-      #endif				/* FieldTableCompression */
-      #define fnames (curpstate->Fnames)
-      #define efnames (curpstate->Efnames)
-      #define globals (curpstate->Globals)
-      #define eglobals (curpstate->Eglobals)
-      #define gnames (curpstate->Gnames)
-      #define egnames (curpstate->Egnames)
-      #define statics (curpstate->Statics)
-      #define estatics (curpstate->Estatics)
-      #define n_globals (curpstate->NGlobals)
-      #define n_statics (curpstate->NStatics)
-      #define strcons (curpstate->Strcons)
-      #define filenms (curpstate->Filenms)
-      #define efilenms (curpstate->Efilenms)
-      #define ilines (curpstate->Ilines)
-      #define elines (curpstate->Elines)
-      #define current_line_ptr (curpstate->Current_line_ptr)
-
-      #ifdef Graphics
-         #define amperX   (curpstate->AmperX)
-         #define amperY   (curpstate->AmperY)
-         #define amperRow (curpstate->AmperRow)
-         #define amperCol (curpstate->AmperCol)
-         #define amperInterval (curpstate->AmperInterval)
-         #define lastEventWin (curpstate->LastEventWin)
-         #define lastEvFWidth (curpstate->LastEvFWidth)
-         #define lastEvLeading (curpstate->LastEvLeading)
-         #define lastEvAscent (curpstate->LastEvAscent)
-         #define kywd_xwin (curpstate->Kywd_xwin)
-         #define xmod_control (curpstate->Xmod_Control)
-         #define xmod_shift (curpstate->Xmod_Shift)
-         #define xmod_meta (curpstate->Xmod_Meta)
-      #endif				/* Graphics */
-
-      #ifdef EventMon
-         #define linenum  (curpstate->Linenum)
-         #define column   (curpstate->Column)
-         #define lastline (curpstate->Lastline)
-         #define lastcol  (curpstate->Lastcol)
-      #endif				/* EventMon */
-
-      #define coexp_ser (curpstate->Coexp_ser)
-      #define extl_ser  (curpstate->Extl_ser)
-      #define list_ser  (curpstate->List_ser)
-      #define set_ser   (curpstate->Set_ser)
-      #define table_ser (curpstate->Table_ser)
-
-      #define curstring (curpstate->stringregion)
-      #define curblock  (curpstate->blockregion)
-      #define strtotal  (curpstate->stringtotal)
-      #define blktotal  (curpstate->blocktotal)
-
-      #define coll_tot  (curpstate->colltot)
-      #define coll_stat (curpstate->collstat)
-      #define coll_str  (curpstate->collstr)
-      #define coll_blk  (curpstate->collblk)
-
-      #define lastop    (curpstate->Lastop)
-      #define lastopnd  (curpstate->Lastopnd)
-
-      #define xargp     (curpstate->Xargp)
-      #define xnargs    (curpstate->Xnargs)
-
-      #define k_current     (curpstate->K_current)
-      #define k_errornumber (curpstate->K_errornumber)
-      #define k_errortext   (curpstate->K_errortext)
-      #define k_errorvalue  (curpstate->K_errorvalue)
-      #define have_errval   (curpstate->Have_errval)
-      #define t_errornumber (curpstate->T_errornumber)
-      #define t_have_val    (curpstate->T_have_val)
-      #define t_errorvalue  (curpstate->T_errorvalue)
-
-      #define k_main        (curpstate->K_main)
-      #define k_errout      (curpstate->K_errout)
-      #define k_input       (curpstate->K_input)
-      #define k_output      (curpstate->K_output)
-
-      #define ENTERPSTATE(p) if (((p)!=NULL)) { curpstate = (p); }
-   #endif				/* MultiThread */
-
 #endif					/* COMPILER */
 
 /*
@@ -677,9 +568,6 @@
    #define A_Coact	8	/* co-expression activated */
    #define A_Coret	9	/* co-expression returned */
    #define A_Cofail	10	/* co-expression failed */
-   #ifdef MultiThread
-      #define A_MTEvent	11	/* multithread event */
-   #endif				/* MultiThread */
 #endif					/* COMPILER */
 
 /*

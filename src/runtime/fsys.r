@@ -537,10 +537,6 @@ function{0,1} reads(f,i)
        * We may not have used the entire amount of storage we reserved.
        */
       nbytes = DiffPtrs(StrLoc(s) + tally, strfree);
-      if (nbytes < 0)
-         EVVal(-nbytes, E_StrDeAlc);
-      else
-         EVVal(nbytes, E_String);
       strtotal += nbytes;
       strfree = StrLoc(s) + tally;
       return s;

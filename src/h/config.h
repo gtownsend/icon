@@ -14,7 +14,6 @@
  *
  *  Other definitions may occur for different configurations. These include:
  *	DeBug		debugging code
- *	MultiThread	support for multiple programs under the interpreter
  *
  *  Many definitions reflect remnants of past research projects.
  *  Changing them to values not used in standard configurations
@@ -43,34 +42,10 @@
    #define Coexpr
 #endif					/* NoCoexpr */
 
-#ifdef NoCoexpr
-   #undef MultiThread
-   #undef EventMon
-   #undef Eve
-#endif					/* NoCoexpr */
-
-#if COMPILER
-   #undef Eve
-   #undef MultiThread
-   #undef EventMon
-#endif					/* COMPILER */
-
-#ifdef Eve
-   #undef EventMon
-   #undef MultiThread
-   #define EventMon
-   #define MultiThread
-#endif					/* Eve */
-
 #ifndef NoLargeInts
    #undef LargeInts
    #define LargeInts
 #endif					/* NoLargeInts */
-
-#ifdef EventMon
-   #undef MultiThread
-   #define MultiThread
-#endif					/* EventMon */
 
 /*
  * Graphics definitions.
@@ -251,15 +226,7 @@
 #define IHSize 128
 #define IHasher(x)	(((unsigned int)(unsigned long)(x))&(IHSize-1))
 
-#if COMPILER
-
-   /*
-    * Code for the compiler.
-    */
-   #undef MultiThread		/* no way -- interpreter only */
-   #undef EventMon		/* presently not supported in the compiler */
-
-#else					/* COMPILER */
+#if !COMPILER
 
    /*
     * Code for the interpreter.
@@ -284,7 +251,7 @@
       #define USuffix ".u"
    #endif				/* USuffix */
 
-#endif					/* COMPILER */
+#endif					/* !COMPILER */
 
 /*
  *  Vsizeof is for use with variable-sized (i.e., indefinite)

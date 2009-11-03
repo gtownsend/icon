@@ -84,7 +84,6 @@ operator{1} -- diff(x,y)
 	 deallocate((union block *)np);
          if (TooSparse(dstp))
             hshrink(dstp);
-         Desc_EVValD(dstp, E_Screate, D_Set);
          return set(dstp);
          }
       }
@@ -175,7 +174,6 @@ operator{1} ** inter(x,y)
 	 deallocate((union block *)np);
          if (TooSparse(dstp))
             hshrink(dstp);
-         Desc_EVValD(dstp, E_Screate, D_Set);
          return set(dstp);
          }
       }

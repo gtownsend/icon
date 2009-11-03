@@ -21,12 +21,7 @@ operator{1} ^ refresh(x)
       /*
        * Get a new co-expression stack and initialize.
        */
-#ifdef MultiThread
-      Protect(sblkp = alccoexp(0, 0), runerr(0));
-#else					/* MultiThread */
       Protect(sblkp = alccoexp(), runerr(0));
-#endif					/* MultiThread */
-
       sblkp->freshblk = BlkLoc(x)->coexpr.freshblk;
       if (ChkNull(sblkp->freshblk))	/* &main cannot be refreshed */
          runerr(215, x);
@@ -151,9 +146,6 @@ operator{*} = tabmat(x)
        */
       l = StrLen(x);
       k_pos += l;
-
-      EVVal(k_pos, E_Spos);
-
       suspend x;
 
       /*
@@ -161,10 +153,8 @@ operator{*} = tabmat(x)
        */
       if (i > StrLen(k_subject) + 1)
          runerr(205, kywd_pos);
-      else {
+      else
          k_pos = i;
-         EVVal(k_pos, E_Spos);
-         }
       fail;
       }
 end
@@ -274,9 +264,6 @@ operator{1} [...] llist(elems[n])
        */
       for (i = 0; i < n; i++)
          bp->lslots[i] = elems[i];
-
-/*  Not quite right -- should be after list() returns in case it fails */
-      Desc_EVValD(hp, E_Lcreate, D_List);
 
       return list(hp);
       }

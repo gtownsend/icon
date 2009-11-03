@@ -49,7 +49,6 @@ done
 (echo cfuncs:; cd cfuncs; LPATH=                            make -s cfunc.u2)
 (echo procs:;  cd procs;  LPATH="../incl"                   icont -usc *icn)
 (echo gprocs:; cd gprocs; LPATH="../incl ../gincl"          icont -usc *icn)
-# (echo mprocs:; cd mprocs; LPATH="../incl ../gincl ../mincl" icont -usc *icn)
 
 
 #  Check for undeclared identifiers or insufficient links in the core modules.
@@ -87,12 +86,6 @@ export IPATH="../procs ../cfuncs"
 export LPATH="../incl  ../gincl"
 export IPATH="../procs ../cfuncs ../gprocs"
 (echo gprogs:; cd gprogs;  for f in *.icn; do compile $f; done)
-
-# Skip mprogs, which requires a specially build MT-Icon version 
-# export LPATH="../incl  ../gincl  ../mincl"
-# export IPATH="../procs ../cfuncs ../gprocs ../mprocs"
-# (echo mprogs:; cd mprogs;  for f in *.icn; do compile $f; done)
-
 
 #  Test-build all the packages
 #  Allow use of graphics within packs, because one loadfunc example needs it

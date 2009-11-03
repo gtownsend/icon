@@ -62,15 +62,7 @@ keyword{1} column
       return integer;
       }
    inline {
-#ifdef MultiThread
-#ifdef EventMon
-      return C_integer findcol(ipc.opnd);
-#else					/* EventMon */
       fail;
-#endif					/* EventMon */
-#else
-      fail;
-#endif					/* MultiThread */
       }
 end
 #endif					/* !COMPILER */
@@ -545,9 +537,7 @@ keyword{1} version
    constant Version
 end
 
-#ifndef MultiThread
 struct descrip kywd_xwin[2] = {{D_Null}};
-#endif					/* MultiThread */
 
 "&window - variable containing the current graphics rendering context."
 #ifdef Graphics

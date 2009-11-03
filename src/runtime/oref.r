@@ -38,13 +38,6 @@ operator{*} ! bang(underef x -> dx)
             return type(dx).lst_elem
 	    }
          inline {
-
-#ifdef EventMon
-            word xi = 0;
-
-            EVValD(&dx, E_Lbang);
-#endif					/* EventMon */
-
             /*
              * x is a list.  Chain through each list element block and for
              * each one, suspend with a variable pointing to each
@@ -61,12 +54,6 @@ operator{*} ! bang(underef x -> dx)
                   j = ep->lelem.first + i;
                   if (j >= ep->lelem.nslots)
                      j -= ep->lelem.nslots;
-
-#ifdef EventMon
-                  MakeInt(++xi, &eventdesc);
-                  EVValD(&eventdesc, E_Lsub);
-#endif					/* EventMon */
-
                   suspend struct_var(&ep->lelem.lslots[j], ep);
                   }
                }
@@ -158,17 +145,12 @@ operator{*} ! bang(underef x -> dx)
          inline {
             struct b_tvtbl *tp;
 
-            EVValD(&dx, E_Tbang);
-
             /*
              * x is a table.  Chain down the element list in each bucket
              * and suspend a variable pointing to each element in turn.
              */
 	    for (ep = hgfirst(BlkLoc(dx), &state); ep != 0;
 	       ep = hgnext(BlkLoc(dx), &state, ep)) {
-
-                  EVValD(&ep->telem.tval, E_Tval);
-
 		  Protect(tp = alctvtbl(&dx, &ep->telem.tref, ep->telem.hashnum), runerr(0));
 		  suspend tvtbl(tp);
                   }
@@ -180,14 +162,12 @@ operator{*} ! bang(underef x -> dx)
             return store[type(dx).set_elem]
             }
          inline {
-            EVValD(&dx, E_Sbang);
             /*
              *  This is similar to the method for tables except that a
              *  value is returned instead of a variable.
              */
 	    for (ep = hgfirst(BlkLoc(dx), &state); ep != 0;
 	       ep = hgnext(BlkLoc(dx), &state, ep)) {
-                  EVValD(&ep->selem.setmem, E_Sval);
                   suspend ep->selem.setmem;
                   }
 	    }
@@ -202,21 +182,8 @@ operator{*} ! bang(underef x -> dx)
              * x is a record.  Loop through the fields and suspend
              * a variable pointing to each one.
              */
-
-#ifdef EventMon
-            word xi = 0;
-
-            EVValD(&dx, E_Rbang);
-#endif					/* EventMon */
-
             j = BlkLoc(dx)->record.recdesc->proc.nfields;
             for (i = 0; i < j; i++) {
-
-#ifdef EventMon
-                  MakeInt(++xi, &eventdesc);
-                  EVValD(&eventdesc, E_Rsub);
-#endif					/* EventMon */
-
                suspend struct_var(&BlkLoc(dx)->record.fields[i],
                   (struct b_record *)BlkLoc(dx));
                }
@@ -347,13 +314,6 @@ operator{0,1} ? random(underef x -> dx)
             rval = RandVal;
             rval *= val;
             i = (word)rval + 1;
-
-#ifdef EventMon
-            EVValD(&dx, E_Lrand);
-            MakeInt(i, &eventdesc);
-            EVValD(&eventdesc, E_Lsub);
-#endif					/* EventMon */
-
             j = 1;
             /*
              * Work down chain list of list blocks and find the block that
@@ -405,13 +365,6 @@ operator{0,1} ? random(underef x -> dx)
             rval *= val;
             n = (word)rval + 1;
 
-#ifdef EventMon
-            EVValD(&dx, E_Trand);
-            MakeInt(n, &eventdesc);
-            EVValD(&eventdesc, E_Tsub);
-#endif					/* EventMon */
-
-
             /*
              * Walk down the hash chains to find and return the nth element
 	     *  as a variable.
@@ -456,11 +409,6 @@ operator{0,1} ? random(underef x -> dx)
             rval *= val;
             n = (word)rval + 1;
 
-#ifdef EventMon
-            EVValD(&dx, E_Srand);
-            MakeInt(n, &eventdesc);
-#endif					/* EventMon */
-
             /*
              * Walk down the hash chains to find and return the nth element.
              */
@@ -497,13 +445,6 @@ operator{0,1} ? random(underef x -> dx)
              */
             rval = RandVal;
             rval *= val;
-
-#ifdef EventMon
-            EVValD(&dx, E_Rrand);
-            MakeInt(rval + 1, &eventdesc);
-            EVValD(&eventdesc, E_Rsub);
-#endif					/* EventMon */
-
             return struct_var(&rec->fields[(word)rval], rec);
             }
          }
@@ -690,12 +631,6 @@ operator{0,1} [] subsc(underef x -> dx,y)
             register union block *bp; /* doesn't need to be tended */
             struct b_list *lp;        /* doesn't need to be tended */
 
-#ifdef EventMon
-            EVValD(&dx, E_Lref);
-            MakeInt(y, &eventdesc);
-            EVValD(&eventdesc, E_Lsub);
-#endif					/* EventMon */
-
 	    /*
 	     * Make sure that subscript y is in range.
 	     */
@@ -742,9 +677,6 @@ operator{0,1} [] subsc(underef x -> dx,y)
             uword hn;
 	    struct b_tvtbl *tp;
 
-            EVValD(&dx, E_Tref);
-            EVValD(&y, E_Tsub);
-
 	    hn = hash(&y);
             Protect(tp = alctvtbl(&dx, &y, hn), runerr(0));
             return tvtbl(tp);
@@ -777,13 +709,6 @@ operator{0,1} [] subsc(underef x -> dx,y)
 	       for(i=0; i<nf; i++) {
 		  if (len == StrLen(bp2->proc.lnames[i]) &&
 		      !strncmp(loc, StrLoc(bp2->proc.lnames[i]), len)) {
-
-#ifdef EventMon
-		     EVValD(&dx, E_Rref);
-		     MakeInt(i+1, &eventdesc);
-		     EVValD(&eventdesc, E_Rsub);
-#endif					/* EventMon */
-
 		     /*
 		      * Found the field, return a pointer to it.
 		      */
@@ -802,13 +727,6 @@ operator{0,1} [] subsc(underef x -> dx,y)
             i = cvpos(y, (word)(bp->record.recdesc->proc.nfields));
             if (i == CvtFail || i > bp->record.recdesc->proc.nfields)
                fail;
-
-#ifdef EventMon
-            EVValD(&dx, E_Rref);
-            MakeInt(i, &eventdesc);
-            EVValD(&eventdesc, E_Rsub);
-#endif					/* EventMon */
-
             /*
              * Locate the appropriate field and return a pointer to it.
              */

@@ -28,36 +28,6 @@ int iconx(int argc, char *argv[]) {
    static word istart[4];
    static int mterm = Op_Quit;
 
-   #ifdef MultiThread
-      /*
-       * Look for MultiThread programming environment in which to execute
-       * this program, specified by MTENV environment variable.
-       */
-      {
-      char *p;
-      char **new_argv;
-      int i, j = 1, k = 1;
-      if ((p = getenv("MTENV")) != NULL) {
-         for(i=0;p[i];i++)
-   	 if (p[i] == ' ')
-   	    j++;
-         new_argv = malloc((argc + j) * sizeof(char *));
-         new_argv[0] = argv[0];
-         for (i=0; p[i]; ) {
-   	 new_argv[k++] = p+i;
-   	 while (p[i] && (p[i] != ' '))
-   	    i++;
-   	 if (p[i] == ' ')
-   	    p[i++] = '\0';
-   	 }
-         for(i=1;i<argc;i++)
-   	 new_argv[k++] = argv[i];
-         argc += j;
-         argv = new_argv;
-         }
-      }
-   #endif				/* MultiThread */
-
    ipc.opnd = NULL;
 
    #ifdef LoadFunc
@@ -235,26 +205,13 @@ int *ip;
  * resolve - perform various fix-ups on the data read from the icode
  *  file.
  */
-#ifdef MultiThread
-   void resolve(pstate)
-   struct progstate *pstate;
-#else					/* MultiThread */
-   void resolve()
-#endif					/* MultiThread */
+void resolve()
 
    {
    register word i, j;
    register struct b_proc *pp;
    register dptr dp;
    extern int Omkrec();
-   #ifdef MultiThread
-      register struct progstate *savedstate;
-   #endif				/* MultiThread */
-
-   #ifdef MultiThread
-      savedstate = curpstate;
-      if (pstate) curpstate = pstate;
-   #endif				/* MultiThread */
 
    /*
     * Relocate the names of the global variables.
@@ -331,13 +288,8 @@ int *ip;
    /*
     * Relocate the names of the fields.
     */
-
    for (dp = fnames; dp < efnames; dp++)
       StrLoc(*dp) = strcons + (uword)StrLoc(*dp);
-
-   #ifdef MultiThread
-      curpstate = savedstate;
-   #endif				/* MultiThread */
    }
 
 #endif					/* !COMPILER */

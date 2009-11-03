@@ -116,28 +116,14 @@ int		qtos		(dptr dp,char *sbuf);
 int		 radix		(int sign, register int r, register char *s,
 				   register char *end_s, union numeric *result);
 char		*reserve	(int region, word nbytes);
-void		retderef		(dptr valp, word *low, word *high);
+void		resolve		(void);
+void		retderef	(dptr valp, word *low, word *high);
 void		segvtrap	(int);
 void		stkdump		(int);
 word		sub		(word a,word b);
 void		syserr		(char *s);
 struct b_coexpr	*topact		(struct b_coexpr *ce);
 void		xmfree		(void);
-
-#ifdef MultiThread
-   void	resolve			(struct progstate *pstate);
-   struct b_coexpr *loadicode (char *name, struct b_file *theInput,
-      struct b_file *theOutput, struct b_file *theError,
-      C_integer bs, C_integer ss, C_integer stk);
-   void actparent (int eventcode);
-   int mt_activate   (dptr tvalp, dptr rslt, struct b_coexpr *ncp);
-#else					/* MultiThread */
-   void	resolve			(void);
-#endif					/* MultiThread */
-
-#ifdef EventMon
-   void EVAsgn	(dptr dx);
-#endif					/* EventMon */
 
 #ifdef LargeInts
    struct b_bignum *alcbignum	(word n);
@@ -433,11 +419,7 @@ int	tvcmp4		(struct dpair *dp1,struct dpair *dp2);
 int	tvtbl_asgn	(dptr dest, const dptr src);
 void	varargs		(dptr argp, int nargs, dptr rslt);
 
-#ifdef MultiThread
-   struct b_coexpr *alccoexp (long icodesize, long stacksize);
-#else					/* MultiThread */
-   struct b_coexpr *alccoexp (void);
-#endif					/* MultiThread */
+struct b_coexpr *alccoexp (void);
 
 #if COMPILER
 
@@ -473,10 +455,6 @@ void	varargs		(dptr argp, int nargs, dptr rslt);
    int	Ollist			(int nargs, Fargs);
    int	Omkrec			(int nargs, Fargs);
 
-   #ifdef MultiThread
-      void	initalloc	(word codesize, struct progstate *p);
-   #else				/* MultiThread */
-      void	initalloc	(word codesize);
-   #endif				/* MultiThread */
+   void	initalloc		(word codesize);
 
 #endif					/* COMPILER */

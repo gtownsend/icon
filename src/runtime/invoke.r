@@ -138,10 +138,6 @@ continuation succ_cont;
 
 #else					/* COMPILER */
 
-#ifdef EventMon
-#include "../h/opdefs.h"
-#endif					/* EventMon */
-
 
 /*
  * invoke -- Perform setup for invocation.
@@ -294,15 +290,12 @@ int nargs, *n;
       *cargp = newargp;
       sp = newsp;
 
-      EVVal((word)Op_Invoke,E_Ecall);
-
       if ((nparam < 0) || (proc->ndynam == -2))
          return I_Vararg;
       else
          return I_Builtin;
       }
 
-#ifndef MultiThread
    /*
     * Make a stab at catching interpreter stack overflow.  This does
     * nothing for invocation in a co-expression other than &main.
@@ -310,7 +303,6 @@ int nargs, *n;
    if (BlkLoc(k_current) == BlkLoc(k_main) &&
       ((char *)sp + PerilDelta) > (char *)stackend)
          fatalerr(301, NULL);
-#endif					/* MultiThread */
 
    /*
     * Build the procedure frame.
@@ -325,10 +317,6 @@ int nargs, *n;
    newpfp->pf_ipc = ipc;
    newpfp->pf_gfp = gfp;
    newpfp->pf_efp = efp;
-
-#ifdef MultiThread
-   newpfp->pf_prog = curpstate;
-#endif					/* MultiThread */
 
    glbl_argp = newargp;
    pfp = newpfp;
@@ -347,15 +335,6 @@ int nargs, *n;
     */
    ipc.opnd = (word *)proc->entryp.icode;
 
-#ifdef MultiThread
-   /*
-    * Enter the program state of the procedure being invoked.
-    */
-   if (!InRange(code, ipc.opnd, ecode)) {
-      syserr("interprogram procedure calls temporarily prohibited\n");
-      }
-#endif					/* MultiThread */
-
    efp = 0;
    gfp = 0;
 
@@ -368,8 +347,6 @@ int nargs, *n;
       }
    sp = newsp;
    k_level++;
-
-   EVValD(newargp, E_Pcall);
 
    return I_Continue;
 }

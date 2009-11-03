@@ -102,7 +102,6 @@ word i, j;
     */
    dp2->dword = D_List;
    BlkLoc(*dp2) = (union block *) lp2;
-   EVValD(dp2, E_Lcreate);
    return Succeeded;
    }
 
@@ -115,7 +114,6 @@ dptr dp1, dp2;
 word n;
    {
    int i = cphash(dp1, dp2, n, T_Set);
-   EVValD(dp2, E_Screate);
    return i;
    }
 
@@ -125,7 +123,6 @@ word n;
    {
    int i = cphash(dp1, dp2, n, T_Table);
    BlkLoc(*dp2)->table.defvalue = BlkLoc(*dp1)->table.defvalue;
-   EVValD(dp2, E_Tcreate);
    return i;
    }
 
@@ -243,7 +240,6 @@ word n;
    BlkLoc(*dp2) = dst;
    if (TooSparse(dst))
       hshrink(dst);
-   Desc_EVValD(dst, E_Screate, D_Set);
    return Succeeded;
    }
 #endif					/* TableFix */

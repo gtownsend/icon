@@ -72,63 +72,6 @@
  */
 #define Protect(notnull,orelse) do {if ((notnull)==NULL) orelse;} while(0)
 
-#ifdef EventMon
-/*
- * perform what amounts to "function inlining" of EVVal
- */
-#begdef EVVal(value,event)
-   do {
-      if (is:null(curpstate->eventmask)) break;
-      else if (!Testb((word)event, curpstate->eventmask)) break;
-      MakeInt(value, &(curpstate->parent->eventval));
-      actparent(event);
-   } while (0)
-#enddef					/* EVVal */
-#begdef EVValD(dp,event)
-   do {
-      if (is:null(curpstate->eventmask)) break;
-      else if (!Testb((word)event, curpstate->eventmask)) break;
-      curpstate->parent->eventval = *(dp);
-      actparent(event);
-   } while (0)
-#enddef					/* EVValD */
-#begdef EVValX(bp,event)
-   do {
-      struct progstate *parent = curpstate->parent;
-      if (is:null(curpstate->eventmask)) break;
-      else if (!Testb((word)event, curpstate->eventmask)) break;
-      parent->eventval.dword = D_Coexpr;
-      BlkLoc(parent->eventval) = (union block *)(bp);
-      actparent(event);
-   } while (0)
-#enddef					/* EVValX */
-
-#define InterpEVVal(arg1,arg2)  { ExInterp; EVVal(arg1,arg2); EntInterp; }
-#define InterpEVValD(arg1,arg2) { ExInterp; EVValD(arg1,arg2); EntInterp; }
-#define InterpEVValX(arg1,arg2) { ExInterp; EVValX(arg1,arg2); EntInterp; }
-
-/*
- * Macro with construction of event descriptor.
- */
-
-#begdef Desc_EVValD(bp, code, type)
-   do {
-   eventdesc.dword = type;
-   eventdesc.vword.bptr = (union block *)(bp);
-   EVValD(&eventdesc, code);
-   } while (0)
-#enddef					/* Desc_EVValD */
-
-#else					/* EventMon */
-   #define EVVal(arg1,arg2)
-   #define EVValD(arg1,arg2)
-   #define EVValX(arg1,arg2)
-   #define InterpEVVal(arg1,arg2)
-   #define InterpEVValD(arg1,arg2)
-   #define InterpEVValX(arg1,arg2)
-   #define Desc_EVValD(bp, code, type)
-#endif					/* EventMon */
-
 /*
  * dummy typedefs for things defined in #include files
  */

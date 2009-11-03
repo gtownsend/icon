@@ -64,22 +64,11 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
    extern int pollctr;
 #endif					/* Polling */
 
-#ifdef EventMon
-   extern char typech[];
-   extern word oldsum;
-   extern struct descrip csetdesc;	/* cset descriptor */
-   extern struct descrip eventdesc;	/* event descriptor */
-   extern struct b_iproc mt_llist;
-   extern struct descrip rzerodesc;	/* real descriptor */
-   extern struct b_real realzero;	/* real zero block */
-#endif					/* EventMon */
-
 /*
  * Externals conditional on multithreading.
  */
    extern struct region rootstring;
    extern struct region rootblock;
-#ifndef MultiThread
    extern dptr glbl_argp;		/* argument pointer */
    extern struct region *curstring;
    extern struct region *curblock;
@@ -118,7 +107,6 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
    extern int n_globals;		/* number of global variables */
    extern int n_statics;		/* number of static variables */
    extern struct b_coexpr *mainhead;	/* &main */
-#endif					/* MultiThread */
 
 /*
  * Externals that differ between compiler and interpreter.
@@ -149,11 +137,6 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
    extern struct pstrnm pntab[];
    extern int pnsize;
 
-   #ifdef MultiThread
-      extern struct progstate *curpstate;
-      extern struct progstate rootpstate;
-      extern int noMTevents;		/* no MT events during GC */
-   #else				/* MultiThread */
       extern char *code;		/* start of icode */
       extern char *ecode;		/* end of icode */
       extern dptr statics;		/* start of static variables */
@@ -171,7 +154,6 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
       extern word xnargs;
 
       extern word lastop;
-   #endif				/* MultiThread */
 
 #else					/* COMPILER */
 
@@ -198,7 +180,6 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
    extern int win_highwater, canvas_serial, context_serial;
    extern clock_t starttime;		/* start time in milliseconds */
 
-   #ifndef MultiThread
       extern struct descrip kywd_xwin[];
       extern struct descrip lastEventWin;
       extern int lastEvFWidth, lastEvLeading, lastEvAscent;
@@ -208,7 +189,6 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
       extern struct descrip amperY;
       extern struct descrip amperInterval;
       extern uword xmod_control, xmod_shift, xmod_meta;
-   #endif				/* MultiThread */
 
    #ifdef XWindows
       extern struct _wdisplay * wdsplys;

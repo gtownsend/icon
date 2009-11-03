@@ -118,9 +118,6 @@ register nodeptr t;
 	 loopsp->markcount++;
 	 traverse(Tree0(t));		/* evaluate first alternative */
 	 loopsp->markcount--;
-         #ifdef EventMon
-            setloc(t);
-         #endif				/* EventMon */
 	 emit("esusp");                 /*  and suspend with its result */
 	 emitl("goto", lab+1);
 	 emitlab(lab);

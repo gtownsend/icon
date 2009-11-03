@@ -3,7 +3,7 @@
 include ../../Makedefs
 
 
-HDRS = ../h/define.h ../h/config.h ../h/typedefs.h ../h/monitor.h\
+HDRS = ../h/define.h ../h/config.h ../h/typedefs.h \
 	  ../h/cstructs.h ../h/cpuconf.h ../h/grttin.h\
 	  ../h/rmacros.h ../h/rexterns.h ../h/rstructs.h \
 	  ../h/rproto.h ../h/mproto.h ../h/sys.h
@@ -28,7 +28,7 @@ $(COBJS):
 #
 
 XOBJS =	xcnv.o xdata.o xdef.o xerrmsg.o xfconv.o xfload.o xfmath.o\
-	xfmisc.o xfmonitr.o xfscan.o xfstr.o xfstranl.o xfstruct.o xfsys.o\
+	xfmisc.o xfscan.o xfstr.o xfstranl.o xfstruct.o xfsys.o\
 	xfwindow.o ximain.o ximisc.o xinit.o xinterp.o xinvoke.o\
 	xkeyword.o xlmisc.o xoarith.o xoasgn.o xocat.o xocomp.o\
 	xomisc.o xoref.o xoset.o xovalue.o xralc.o xrcoexpr.o xrcomp.o\
@@ -82,11 +82,6 @@ xfmisc.o: fmisc.r $(HDRS)
 	../../bin/rtt -x fmisc.r
 	$(CC) -c $(CFLAGS) xfmisc.c
 	rm xfmisc.c
-
-xfmonitr.o: fmonitr.r $(HDRS)
-	../../bin/rtt -x fmonitr.r
-	$(CC) -c $(CFLAGS) xfmonitr.c
-	rm xfmonitr.c
 
 xfscan.o: fscan.r $(HDRS)
 	../../bin/rtt -x fscan.r
@@ -285,7 +280,7 @@ db_lib: rt.db rt.a
 rt.db: $(HDRS)
 	rm -f rt.db rt.a
 	../../bin/rtt cnv.r data.r def.r errmsg.r fconv.r fload.r fmath.r\
-	  fmisc.r fmonitr.r fscan.r fstr.r fstranl.r fstruct.r\
+	  fmisc.r fscan.r fstr.r fstranl.r fstruct.r\
 	  fsys.r fwindow.r init.r invoke.r keyword.r\
 	  lmisc.r oarith.r oasgn.r ocat.r ocomp.r omisc.r\
 	  oref.r oset.r ovalue.r ralc.r rcoexpr.r rcomp.r\
@@ -295,7 +290,7 @@ rt.db: $(HDRS)
 	rm `sed 's/$$/.c/' rttcur.lst`
 
 rt.a: ../common/rswitch.o ../common/long.o ../common/time.o\
-      cnv.o data.o def.o errmsg.o fconv.o fload.o fmath.o fmisc.o fmonitr.o \
+      cnv.o data.o def.o errmsg.o fconv.o fload.o fmath.o fmisc.o \
       fscan.o fstr.o fstranl.o fstruct.o fsys.o fwindow.o init.o invoke.o\
       keyword.o lmisc.o oarith.o oasgn.o ocat.o ocomp.o omisc.o oref.o oset.o\
       ovalue.o ralc.o rcoexpr.o rcomp.o rdebug.o rlrgint.o rmemmgt.o\
@@ -345,11 +340,6 @@ fmath.o: fmath.r $(HDRS)
 
 fmisc.o: fmisc.r $(HDRS)
 	../../bin/rtt fmisc.r
-	$(CC) -c $(CFLAGS) `sed 's/$$/.c/' rttcur.lst`
-	rm `sed 's/$$/.c/' rttcur.lst`
-
-fmonitr.o: fmonitr.r $(HDRS)
-	../../bin/rtt fmonitr.r
 	$(CC) -c $(CFLAGS) `sed 's/$$/.c/' rttcur.lst`
 	rm `sed 's/$$/.c/' rttcur.lst`
 

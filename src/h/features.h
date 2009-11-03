@@ -46,10 +46,6 @@
 
    Feature(1, "", "environment variables")
 
-#ifdef EventMon
-   Feature(1, "_EVENT_MONITOR", "event monitoring")
-#endif					/* EventMon */
-
 #ifdef LoadFunc
    Feature(1, "_EXTERNAL_VALUES", "external values")
 #endif					/* LoadFunc */
@@ -61,10 +57,6 @@
 #ifdef LargeInts
    Feature(largeints, "_LARGE_INTEGERS", "large integers")
 #endif					/* LargeInts */
-
-#ifdef MultiThread
-   Feature(1, "_MULTITASKING", "multiple programs")
-#endif					/* MultiThread */
 
 #ifdef Pipes
    Feature(1, "_PIPES", "pipes")

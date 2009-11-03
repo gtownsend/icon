@@ -46,13 +46,7 @@ register dptr cargp;
    /*
     * Get a new co-expression stack and initialize.
     */
-
-#ifdef MultiThread
-   Protect(sblkp = alccoexp(0, 0), err_msg(0, NULL));
-#else					/* MultiThread */
    Protect(sblkp = alccoexp(), err_msg(0, NULL));
-#endif					/* MultiThread */
-
 
    if (!sblkp)
 #if COMPILER

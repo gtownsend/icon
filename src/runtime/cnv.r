@@ -14,9 +14,6 @@
  * Assumed: the C compiler must handle assignments of C integers to
  * C double variables and vice-versa.  Hopefully production C compilers
  * have managed to eliminate bugs related to these assignments.
- *
- * Note: calls beginning with EV are empty macros unless EventMon
- * is defined.
  */
 
 #define tonum(c)	(isdigit(c) ? (c)-'0' : 10+(((c)|(040))-'a'))
@@ -212,12 +209,8 @@ dptr s, d;
    register C_integer l;
    register char *s1;        /* does not need to be tended */
 
-   EVValD(s, E_Aconv);
-   EVValD(&csetdesc, E_Tconv);
-
    if (is:cset(*s)) {
       *d = *s;
-      EVValD(s, E_Nconv);
       return 1;
       }
    /*
@@ -232,11 +225,9 @@ dptr s, d;
          Setb(*s1, *d);
 	 s1++;
          }
-      EVValD(d, E_Sconv);
       return 1;
       }
    else {
-      EVValD(s, E_Fconv);
       return 0;
       }
   }
@@ -344,13 +335,9 @@ dptr s, d;
    char sbuf[MaxCvtLen];
    union numeric numrc;
 
-   EVValD(s, E_Aconv);
-   EVValD(&zerodesc, E_Tconv);
-
    type_case *s of {
       integer: {
          *d = *s;
-         EVValD(s, E_Nconv);
          return 1;
          }
       real: {
@@ -360,20 +347,16 @@ dptr s, d;
 
 #ifdef LargeInts
             if (realtobig(s, d) == Succeeded) {
-               EVValD(d, E_Sconv);
                return 1;
                }
             else {
-               EVValD(s, E_Fconv);
                return 0;
                }
 #else					/* LargeInts */
-            EVValD(s, E_Fconv);
             return 0;
 #endif					/* LargeInts */
 	    }
          MakeInt((word)dbl,d);
-         EVValD(d, E_Sconv);
          return 1;
          }
       string: {
@@ -384,7 +367,6 @@ dptr s, d;
         s = &cnvstr;
         }
       default: {
-         EVValD(s, E_Fconv);
          return 0;
          }
       }
@@ -398,13 +380,11 @@ dptr s, d;
       case T_Lrgint:
          d->dword = D_Lrgint;
 	 BlkLoc(*d) = (union block *)numrc.big;
-         EVValD(d, E_Sconv);
 	 return 1;
 #endif					/* LargeInts */
 
       case T_Integer:
          MakeInt(numrc.integer,d);
-         EVValD(d, E_Sconv);
          return 1;
       case T_Real: {
          double dbl = numrc.real;
@@ -412,24 +392,19 @@ dptr s, d;
 
 #ifdef LargeInts
             if (realtobig(s, d) == Succeeded) {
-               EVValD(d, E_Sconv);
                return 1;
                }
             else {
-               EVValD(s, E_Fconv);
                return 0;
                }
 #else					/* LargeInts */
-            EVValD(s, E_Fconv);
             return 0;
 #endif					/* LargeInts */
 	    }
          MakeInt((word)dbl,d);
-         EVValD(d, E_Sconv);
          return 1;
          }
       default:
-         EVValD(s, E_Fconv);
          return 0;
       }
    }
@@ -442,17 +417,12 @@ dptr s, d;
    {
    double dbl;
 
-   EVValD(s, E_Aconv);
-   EVValD(&rzerodesc, E_Tconv);
-
    if (cnv_c_dbl(s, &dbl)) {
       Protect(BlkLoc(*d) = (union block *)alcreal(dbl), fatalerr(0,NULL));
       d->dword = D_Real;
-      EVValD(d, E_Sconv);
       return 1;
       }
    else
-      EVValD(s, E_Fconv);
       return 0;
    }
 
@@ -464,13 +434,9 @@ dptr s, d;
    {
    char sbuf[MaxCvtLen];
 
-   EVValD(s, E_Aconv);
-   EVValD(&emptystr, E_Tconv);
-
    type_case *s of {
       string: {
          *d = *s;
-         EVValD(s, E_Nconv);
          return 1;
          }
       integer: {
@@ -497,12 +463,10 @@ dptr s, d;
       cset:
          cstos(BlkLoc(*s)->cset.bits, d, sbuf);
       default: {
-         EVValD(s, E_Fconv);
          return 0;
          }
       }
    Protect(StrLoc(*d) = alcstr(StrLoc(*d), StrLen(*d)), fatalerr(0,NULL));
-   EVValD(d, E_Sconv);
    return 1;
    }
 
@@ -518,12 +482,8 @@ dptr s, d;
    register char *s1;
    C_integer l;
 
-   EVValD(s, E_Aconv);
-   EVValD(&csetdesc, E_Tconv);
-
    if (is:cset(*s)) {
       *d = *s;
-      EVValD(s, E_Nconv);
       return 1;
       }
    if (tmp_str(sbuf, s, &tmpstr)) {
@@ -537,11 +497,9 @@ dptr s, d;
          Setb(*s1, *d);
 	 s1++;
          }
-      EVValD(d, E_Sconv);
       return 1;
       }
    else {
-      EVValD(s, E_Fconv);
       return 0;
       }
    }
@@ -554,20 +512,14 @@ char *sbuf;
 dptr s;
 dptr d;
    {
-   EVValD(s, E_Aconv);
-   EVValD(&emptystr, E_Tconv);
-
    if (is:string(*s)) {
       *d = *s;
-      EVValD(s, E_Nconv);
       return 1;
       }
    else if (tmp_str(sbuf, s, d)) {
-      EVValD(d, E_Sconv);
       return 1;
       }
    else {
-      EVValD(s, E_Fconv);
       return 0;
       }
    }
