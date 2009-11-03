@@ -262,9 +262,6 @@ function{0,1} open(fname, spec)
 	 Protect(hp = alclist(0), runerr(0));
 	 Protect(bp = alclstb(MinListSlots, (word)0, 0), runerr(0));
 	 hp->listhead = hp->listtail = (union block *) bp;
-#ifdef ListFix
-	 bp->listprev = bp->listnext = (union block *) hp;
-#endif					/* ListFix */
 
 	 /*
 	  * loop through attributes, checking validity

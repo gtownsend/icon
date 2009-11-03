@@ -44,11 +44,7 @@ operator{*} ! bang(underef x -> dx)
              * element contained in the block.
              */
             for (ep = BlkLoc(dx)->list.listhead;
-#ifdef ListFix
-		 BlkType(ep) == T_Lelem;
-#else					/* ListFix */
 		 ep != NULL;
-#endif					/* ListFix */
                  ep = ep->lelem.listnext){
                for (i = 0; i < ep->lelem.nused; i++) {
                   j = ep->lelem.first + i;
@@ -323,11 +319,7 @@ operator{0,1} ? random(underef x -> dx)
             while (i >= j + bp->lelem.nused) {
                j += bp->lelem.nused;
                bp = bp->lelem.listnext;
-#ifdef ListFix
-               if (BlkType(bp) == T_List)
-#else					/* ListFix */
 	       if (bp == NULL)
-#endif					/* ListFix */
                   syserr("list reference out of bounds in random");
                }
             /*
@@ -372,11 +364,7 @@ operator{0,1} ? random(underef x -> dx)
             for (i = 0; i < HSegs && (seg = bp->table.hdir[i]) != NULL; i++)
                for (j = segsize[i] - 1; j >= 0; j--)
                   for (ep = seg->hslots[j];
-#ifdef TableFix
-		       BlkType(ep) == T_Telem;
-#else					/* TableFix */
 		       ep != NULL;
-#endif					/* TableFix */
 		       ep = ep->telem.clink)
                      if (--n <= 0) {
 			Protect(tp = alctvtbl(&dx, &ep->telem.tref, ep->telem.hashnum), runerr(0));

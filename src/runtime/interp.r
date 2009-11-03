@@ -486,11 +486,7 @@ dptr cargp;
                           fatalerr(301, NULL);
 
                   for (bp = bp->list.listhead;
-#ifdef ListFix
-		       BlkType(bp) == T_Lelem;
-#else					/* ListFix */
-		       bp != NULL;
-#endif					/* ListFix */
+		     bp != NULL;
                      bp = bp->lelem.listnext) {
                         for (i = 0; i < bp->lelem.nused; i++) {
                            j = bp->lelem.first + i;

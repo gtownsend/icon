@@ -127,11 +127,6 @@ function{1} copy(x)
             }
       table: {
          body {
-#ifdef TableFix
-	    if (cptable(&x, &result, BlkLoc(x)->table.size) == Error)
-	       runerr(0);
-	    return result;
-#else					/* TableFix */
             register int i;
             register word slotnum;
             tended union block *src;
@@ -178,7 +173,6 @@ function{1} copy(x)
             if (TooSparse(dst))
                hshrink(dst);
 	    return table(dst);
-#endif					/* TableFix */
             }
          }
 
@@ -683,9 +677,6 @@ function{1} sort(t, i)
             Protect(lp = alclist(size), runerr(0));
             Protect(ep = (union block *)alclstb(size,(word)0,size), runerr(0));
             lp->listhead = lp->listtail = ep;
-#ifdef ListFix
-            ep->lelem.listprev = ep->lelem.listnext = (union block *) lp;
-#endif					/* ListFix */
             bp = BlkLoc(t);  /* need not be tended if not set until now */
 
             if (size > 0) {  /* only need to sort non-empty records */
@@ -721,9 +712,6 @@ function{1} sort(t, i)
             Protect(lp = alclist(size), runerr(0));
             Protect(ep = (union block *)alclstb(size,(word)0,size), runerr(0));
             lp->listhead = lp->listtail = ep;
-#ifdef ListFix
-            ep->lelem.listprev = ep->lelem.listnext = (union block *)lp;
-#endif					/* ListFix */
             bp = BlkLoc(t);  /* need not be tended if not set until now */
 
             if (size > 0) {  /* only need to sort non-empty sets */
@@ -789,9 +777,6 @@ function{1} sort(t, i)
                Protect(lp = alclist(size), runerr(0));
                Protect(ep=(union block *)alclstb(size,(word)0,size),runerr(0));
                lp->listtail = lp->listhead = ep;
-#ifdef ListFix
-               ep->lelem.listprev = ep->lelem.listnext = (union block *) lp;
-#endif					/* ListFix */
                /*
                 * If the table is empty, there is no need to sort anything.
                 */
@@ -810,20 +795,12 @@ function{1} sort(t, i)
                for (j = 0; j < HSegs && (seg = bp->hdir[j]) != NULL; j++)
                   for (k = segsize[j] - 1; k >= 0; k--)
                      for (ep= seg->hslots[k];
-#ifdef TableFix
-			  BlkType(ep) == T_Telem;
-#else					/* TableFix */
 			  ep != NULL;
-#endif					/* TableFix */
 			  ep = ep->telem.clink){
                         Protect(tp = alclist((word)2), runerr(0));
                         Protect(ev = (union block *)alclstb((word)2,
                            (word)0, (word)2), runerr(0));
                         tp->listhead = tp->listtail = ev;
-#ifdef ListFix
-                        ev->lelem.listprev = ev->lelem.listnext =
-			   (union block *)tp;
-#endif					/* ListFix */
                         tp->listhead->lelem.lslots[0] = ep->telem.tref;
                         tp->listhead->lelem.lslots[1] = ep->telem.tval;
                         d1 = &lp->listhead->lelem.lslots[n++];
@@ -864,9 +841,6 @@ function{1} sort(t, i)
             Protect(lp = alclist(size), runerr(0));
             Protect(ep = (union block *)alclstb(size,(word)0,size), runerr(0));
             lp->listhead = lp->listtail = ep;
-#ifdef ListFix
-            ep->lelem.listprev = ep->lelem.listnext = (union block *)lp;
-#endif					/* ListFix */
             /*
              * If the table is empty there's no need to sort anything.
              */
@@ -889,11 +863,7 @@ function{1} sort(t, i)
             for (j = 0; j < HSegs && (seg = bp->hdir[j]) != NULL; j++)
                for (k = segsize[j] - 1; k >= 0; k--)
                   for (ep = seg->hslots[k];
-#ifdef TableFix
-		       BlkType(ep) == T_Telem;
-#else					/* TableFix */
 		       ep != NULL;
-#endif					/* TableFix */
 		       ep = ep->telem.clink) {
                      *d1++ = ep->telem.tref;
                      *d1++ = ep->telem.tval;
@@ -1050,9 +1020,6 @@ function{1} sortf(t, i)
             Protect(lp = alclist(size), runerr(0));
             Protect(ep = (union block *)alclstb(size,(word)0,size), runerr(0));
             lp->listhead = lp->listtail = ep;
-#ifdef ListFix
-            ep->lelem.listprev = ep->lelem.listnext = (union block *) lp;
-#endif					/* ListFix */
             bp = BlkLoc(t);  /* need not be tended if not set until now */
 
             if (size > 0) {  /* only need to sort non-empty records */
@@ -1097,9 +1064,6 @@ function{1} sortf(t, i)
             Protect(lp = alclist(size), runerr(0));
             Protect(ep = (union block *)alclstb(size,(word)0,size), runerr(0));
             lp->listhead = lp->listtail = ep;
-#ifdef ListFix
-            ep->lelem.listprev = ep->lelem.listnext = (union block *)lp;
-#endif					/* ListFix */
             bp = BlkLoc(t);  /* need not be tended if not set until now */
 
             if (size > 0) {  /* only need to sort non-empty sets */

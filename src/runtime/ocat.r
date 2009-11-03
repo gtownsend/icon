@@ -101,9 +101,6 @@ operator{1} ||| lconcat(x, y)
       Protect(bp1 = (struct b_list *)alclist(size3), runerr(0));
       Protect(lp1 = (struct b_lelem *)alclstb(size3,(word)0,size3), runerr(0));
       bp1->listhead = bp1->listtail = (union block *)lp1;
-#ifdef ListFix
-      lp1->listprev = lp1->listnext = (union block *)bp1;
-#endif					/* ListFix */
 
       /*
        * Make a copy of both lists in adjacent slots.

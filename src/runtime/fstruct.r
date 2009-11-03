@@ -85,11 +85,7 @@ struct descrip *res;
    if (bp->nused <= 0) {
       bp = (struct b_lelem *) bp->listnext;
       hp->listhead = (union block *) bp;
-#ifdef ListFix
-      bp->listprev = (union block *) hp;
-#else					/* ListFix */
       bp->listprev = NULL;
-#endif					/* ListFix */
       }
 
    /*
@@ -302,9 +298,6 @@ function{1} list(n, x)
       Protect(hp = alclist(size), runerr(0));
       Protect(bp = alclstb(nslots, (word)0, size), runerr(0));
       hp->listhead = hp->listtail = (union block *) bp;
-#ifdef ListFix
-      bp->listprev = bp->listnext = (union block *) hp;
-#endif					/* ListFix */
 
       /*
        * Initialize each slot.
@@ -396,11 +389,7 @@ function{0,1} pull(x)
       if (bp->nused <= 0) {
          bp = (struct b_lelem *) bp->listprev;
          hp->listtail = (union block *) bp;
-#ifdef ListFix
-         bp->listnext = (union block *) hp;
-#else					/* ListFix */
          bp->listnext = NULL;
-#endif					/* ListFix */
          }
 
       /*
@@ -464,9 +453,6 @@ dptr val;
          }
 
       BlkLoc(*l)->list.listhead->lelem.listprev = (union block *) bp;
-#ifdef ListFix
-      bp->listprev = BlkLoc(*l);
-#endif					/* ListFix */
       bp->listnext = BlkLoc(*l)->list.listhead;
       BlkLoc(*l)->list.listhead = (union block *) bp;
       }
@@ -557,9 +543,6 @@ function{1} push(x, vals[n])
 	       }
 
 	    hp->listhead->lelem.listprev = (union block *) bp;
-#ifdef ListFix
-	    bp->listprev = (union block *) hp;
-#endif					/* ListFix */
 	    bp->listnext = hp->listhead;
 	    hp->listhead = (union block *) bp;
 	    }
@@ -637,9 +620,6 @@ struct descrip *val;
       ((struct b_list *)BlkLoc(*l))->listtail->lelem.listnext =
 	(union block *) bp;
       bp->listprev = ((struct b_list *)BlkLoc(*l))->listtail;
-#ifdef ListFix
-      bp->listnext = BlkLoc(*l);
-#endif					/* ListFix */
       ((struct b_list *)BlkLoc(*l))->listtail = (union block *) bp;
       }
 
@@ -727,9 +707,6 @@ function{1} put(x, vals[n])
 
 	    hp->listtail->lelem.listnext = (union block *) bp;
 	    bp->listprev = hp->listtail;
-#ifdef ListFix
-	    bp->listnext = (union block *)hp;
-#endif					/* ListFix */
 	    hp->listtail = (union block *) bp;
 	    }
 
@@ -812,11 +789,7 @@ function{1} set(l)
 	    Protect(ne = alcselem(&nulldesc, (uword)0), runerr(0));
 
             for (pb = pb->list.listhead;
-#ifdef ListFix
-		 BlkType(pb) == T_Lelem;
-#else					/* ListFix */
 		 pb != NULL;
-#endif					/* ListFix */
 		 pb = pb->lelem.listnext) {
                for (i = 0; i < pb->lelem.nused; i++) {
                   j = pb->lelem.first + i;

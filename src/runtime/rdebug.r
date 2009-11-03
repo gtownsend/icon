@@ -278,20 +278,11 @@ int get_name(dp1,dp0)
                   i = varptr - &blkptr->lelem.lslots[blkptr->lelem.first] + 1;
                   if (i < 1)
                      i += blkptr->lelem.nslots;
-#ifdef ListFix
-                  while (BlkType(blkptr->lelem.listprev) == T_Lelem) {
-#else					/* ListFix */
                   while (blkptr->lelem.listprev != NULL) {
-#endif					/* ListFix */
                      blkptr = blkptr->lelem.listprev;
                      i += blkptr->lelem.nused;
                      }
-#ifdef ListFix
-                  sprintf(sbuf,"list_%d[%ld]",
-			  (long)blkptr->lelem.listprev->list.id, (long)i);
-#else					/* ListFix */
                   sprintf(sbuf,"L[%ld]", (long)i);
-#endif					/* ListFix */
                   i = strlen(sbuf);
                   Protect(StrLoc(*dp0) = alcstr(sbuf,i), return Error);
                   StrLen(*dp0) = i;
@@ -299,16 +290,8 @@ int get_name(dp1,dp0)
                case T_Record:		/* record */
                   i = varptr - blkptr->record.fields;
                   proc = &blkptr->record.recdesc->proc;
-
-#ifdef TableFix
-                  sprintf(sbuf,"record %s_%d.%s", StrLoc(proc->recname),
-			  blkptr->record.id,
-			  StrLoc(proc->lnames[i]));
-#else
                   sprintf(sbuf,"%s.%s", StrLoc(proc->recname),
 			  StrLoc(proc->lnames[i]));
-#endif
-
                   i = strlen(sbuf);
                   Protect(StrLoc(*dp0) = alcstr(sbuf,i), return Error);
                   StrLen(*dp0) = i;
@@ -431,16 +414,7 @@ static int keyref(bp, dp)
     */
    s2 = StrLoc(*dp);
    len = StrLen(*dp);
-#ifdef TableFix
-   if (BlkType(bp) == T_Tvtbl)
-      bp = bp->tvtbl.clink;
-   else
-      while(BlkType(bp) == T_Telem)
-         bp = bp->telem.clink;
-   sprintf(sbuf, "table_%d[", bp->table.id);
-#else					/* TableFix */
    strcpy(sbuf, "T[");
-#endif					/* TableFix */
    { char * dest = sbuf + strlen(sbuf);
    strncpy(dest, s2, len);
    dest[len] = '\0';

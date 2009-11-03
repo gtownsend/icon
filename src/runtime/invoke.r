@@ -81,11 +81,7 @@ continuation succ_cont;
          tnd_args->d[0] = *callee;
          indx = 1;
          for (ep = BlkLoc(dstrct)->list.listhead;
-#ifdef ListFix
-	      BlkType(ep) == T_Lelem;
-#else					/* ListFix */
 	      ep != NULL;
-#endif					/* ListFix */
 	      ep = ep->lelem.listnext) {
             for (i = 0; i < ep->lelem.nused; i++) {
                j = ep->lelem.first + i;

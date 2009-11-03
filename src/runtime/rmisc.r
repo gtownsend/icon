@@ -1671,9 +1671,6 @@ dptr rslt;
     *  for the list.
     */
    hp->listhead = hp->listtail = (union block *)bp;
-#ifdef ListFix
-   bp->listprev = bp->listnext = (union block *)hp;
-#endif					/* ListFix */
 
    /*
     * Copy the arguments into the list
@@ -1711,9 +1708,6 @@ dptr rslt;
     *  for the list.
     */
    hp->listhead = hp->listtail = (union block *)bp;
-#ifdef ListFix
-   bp->listprev = bp->listnext = (union block *)hp;
-#endif					/* ListFix */
 
    /*
     * Copy the arguments into the list

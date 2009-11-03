@@ -255,9 +255,6 @@ operator{1} [...] llist(elems[n])
        *  for the list.
        */
       hp->listhead = hp->listtail = (union block *)bp;
-#ifdef ListFix
-      bp->listprev = bp->listnext = (union block *)hp;
-#endif					/* ListFix */
 
       /*
        * Assign each argument to a list element.
