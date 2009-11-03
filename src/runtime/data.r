@@ -196,11 +196,6 @@ struct descrip kywd_trc = {D_Integer};	/* &trace */
 struct descrip k_eventcode = {D_Null};	/* &eventcode */
 struct descrip k_eventsource = {D_Null};/* &eventsource */
 struct descrip k_eventvalue = {D_Null};	/* &eventvalue */
-
-#ifdef FncTrace
-struct descrip kywd_ftrc = {D_Integer};	/* &ftrace */
-#endif					/* FncTrace */
-
 struct descrip kywd_dmp = {D_Integer};	/* &dump */
 
 struct descrip nullptr =

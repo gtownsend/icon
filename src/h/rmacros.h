@@ -316,10 +316,6 @@
 #define k_trace kywd_trc.vword.integr	/* value of &trace */
 #define k_dump kywd_dmp.vword.integr	/* value of &dump */
 
-#ifdef FncTrace
-   #define k_ftrace kywd_ftrc.vword.integr	/* value of &ftrace */
-#endif					/* FncTrace */
-
 /*
  * Descriptor types and flags.
  */

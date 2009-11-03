@@ -551,45 +551,18 @@ invokej:
 
 	       bproc = (struct b_proc *)BlkLoc(*rargp);
 
-#ifdef FncTrace
-               typedef int (*bfunc2)(dptr, struct descrip *);
-#endif					/* FncTrace */
-
-
 	       /* ExInterp not needed since no change since last EntInterp */
 	       if (type == I_Vararg) {
 	          int (*bfunc)();
                   bfunc = bproc->entryp.ccode;
-
-#ifdef FncTrace
-                  signal = (*bfunc)(nargs, rargp, &(procs->pname));
-#else					/* FncTrace */
 		  signal = (*bfunc)(nargs,rargp);
-#endif					/* FncTrace */
-
                   }
 	       else
                   {
                   int (*bfunc)();
                   bfunc = bproc->entryp.ccode;
-
-#ifdef FncTrace
-                  signal = (*(bfunc2)bfunc)(rargp, &(bproc->pname));
-#else					/* FncTrace */
 		  signal = (*bfunc)(rargp);
-#endif					/* FncTrace */
                   }
-
-#ifdef FncTrace
-               if (k_ftrace) {
-                  k_ftrace--;
-                  if (signal == A_Failure)
-                     failtrace(&(bproc->pname));
-                  else
-                     rtrace(&(bproc->pname),rargp);
-                  }
-#endif					/* FncTrace */
-
 	       goto C_rtn_term;
 	       }
 	    }

@@ -56,10 +56,6 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
 /*
  * Externals that are conditional on features.
  */
-#ifdef FncTrace
-   extern struct descrip kywd_ftrc;	/* descriptor for &ftrace */
-#endif					/* FncTrace */
-
 #ifdef Polling
    extern int pollctr;
 #endif					/* Polling */

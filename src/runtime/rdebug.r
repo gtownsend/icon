@@ -196,14 +196,6 @@ int get_name(dp1,dp0)
             StrLen(*dp0) = 6;
             StrLoc(*dp0) = "&trace";
             }
-
-#ifdef FncTrace
-         else if (VarLoc(*dp1) == &kywd_ftrc) {
-            StrLen(*dp0) = 7;
-            StrLoc(*dp0) = "&ftrace";
-            }
-#endif					/* FncTrace */
-
          else if (VarLoc(*dp1) == &kywd_dmp) {
             StrLen(*dp0) = 5;
             StrLoc(*dp0) = "&dump";

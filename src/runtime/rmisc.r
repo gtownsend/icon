@@ -97,15 +97,6 @@ int getvar(s,vp)
          VarLoc(*vp) = &kywd_trc;
          return Succeeded;
          }
-
-#ifdef FncTrace
-      else if (strcmp(s,"&ftrace") == 0) {
-         vp->dword = D_Kywdint;
-         VarLoc(*vp) = &kywd_ftrc;
-         return Succeeded;
-         }
-#endif					/* FncTrace */
-
       else if (strcmp(s,"&dump") == 0) {
          vp->dword = D_Kywdint;
          VarLoc(*vp) = &kywd_dmp;
@@ -610,12 +601,6 @@ int noimage;
             fprintf(f, "&random = ");
          else if (VarLoc(*dp) == &kywd_trc)
             fprintf(f, "&trace = ");
-
-#ifdef FncTrace
-         else if (VarLoc(*dp) == &kywd_ftrc)
-            fprintf(f, "&ftrace = ");
-#endif					/* FncTrace */
-
          else if (VarLoc(*dp) == &kywd_dmp)
             fprintf(f, "&dump = ");
          else if (VarLoc(*dp) == &kywd_err)
