@@ -177,4 +177,6 @@ Pure:
 Dist-Clean:
 		rm -rf xx `find * -type d -name CVS`
 		rm -f  xx `find * -type f | xargs grep -l '<<ARIZONA-[O]NLY>>'`
-		rm -f  xx `find * -type f -name .cvsignore`
+		rm -f  xx `find . -type f -name '.??*' ! -name .placeholder`
+		find . -type d | xargs chmod u=rwx,g=rwsx,o=rx
+		find . -type f | xargs chmod ug=rw+X,o=r+X
