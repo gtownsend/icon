@@ -55,7 +55,6 @@ keyword{4} collections
       }
 end
 
-#if !COMPILER
 "&column - source column number of current execution point"
 keyword{1} column
    abstract {
@@ -65,7 +64,6 @@ keyword{1} column
       fail;
       }
 end
-#endif					/* !COMPILER */
 
 "&current - the currently active co-expression"
 keyword{1} current
@@ -251,11 +249,7 @@ keyword{1,*} features
       return string
       }
    body {
-#if COMPILER
-#define Feature(guard,sym,kwval) if ((guard) && (kwval)) suspend C_string kwval;
-#else					/* COMPILER */
 #define Feature(guard,sym,kwval) if (kwval) suspend C_string kwval;
-#endif					/* COMPILER */
 #include "../h/features.h"
       fail;
       }
@@ -267,17 +261,10 @@ keyword{1} file
       return string
       }
    inline {
-#if COMPILER
-      if (line_info)
-         return C_string file_name;
-      else
-         runerr(402);
-#else					/* COMPILER */
       char *s;
       s = findfile(ipc.opnd);
       if (!strcmp(s,"?")) fail;
       return C_string s;
-#endif					/* COMPILER */
       }
 end
 
@@ -324,10 +311,6 @@ keyword{1} level
       }
 
    inline {
-#if COMPILER
-      if (!debug_info)
-         runerr(402);
-#endif					/* COMPILER */
       return C_integer k_level;
       }
 end
@@ -338,14 +321,7 @@ keyword{1} line
       return integer;
       }
    inline {
-#if COMPILER
-      if (line_info)
-         return C_integer line_num;
-      else
-         runerr(402);
-#else					/* COMPILER */
       return C_integer findline(ipc.opnd);
-#endif					/* COMPILER */
       }
 end
 

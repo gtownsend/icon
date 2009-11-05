@@ -683,16 +683,10 @@ C_integer arity;
    /*
     * See if the string represents a built-in function.
     */
-#if COMPILER
-   for (i = 0; i < n_globals; ++i)
-      if (eq(s, &gnames[i]))
-	 return builtins[i];  /* may be null */
-#else					/* COMPILER */
    pp = (struct pstrnm *)qsearch((char *)s,(char *)pntab,pnsize,
 				 sizeof(struct pstrnm),dp_pnmcmp);
    if (pp!=NULL)
       return (struct b_proc *)pp->pblock;
-#endif					/* !COMPILER */
 
    return NULL;
    }
@@ -915,16 +909,13 @@ union numeric *result;
    /*
     * Test for bignum.
     */
-#if COMPILER
-   if (largeints)
-#endif					/* COMPILER */
-      if (!realflag) {
-         int rv;
-         rv = bigradix((int)msign, 10, ssave, end_s, result);
-         if (rv == Error)
-            fatalerr(0, NULL);
-         return rv;
-         }
+   if (!realflag) {
+      int rv;
+      rv = bigradix((int)msign, 10, ssave, end_s, result);
+      if (rv == Error)
+         fatalerr(0, NULL);
+      return rv;
+      }
 #endif					/* LargeInts */
 
    if (!realflag)
@@ -976,7 +967,7 @@ union numeric *result;
    return T_Real;
    }
 
-#if COMPILER || !(defined LargeInts)
+#ifndef LargeInts
 /*
  * radix - convert string s in radix r into an integer in *result.  sign
  *  will be either '+' or '-'.
@@ -1017,7 +1008,7 @@ union numeric *result;
 
    return T_Integer;
    }
-#endif					/* COMPILER || !(defined LargeInts) */
+#endif					/* LargeInts */
 
 
 /*

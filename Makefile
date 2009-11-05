@@ -64,14 +64,6 @@ Icont bin/icont: Common
 		cd src/runtime;		$(MAKE) 
 
 
-# The compiler: rtt, the run-time system, and iconc.
-# (NO LONGER SUPPORTED OR MAINTAINED.)
-
-Iconc bin/iconc: Common
-		cd src/runtime;		$(MAKE) comp_all
-		cd src/iconc;		$(MAKE)
-
-
 # Common components.
 
 Common:		src/h/define.h
@@ -128,21 +120,12 @@ Package:
 Test    Test-icont:	; cd tests; $(MAKE) Test
 Samples Samples-icont:	; cd tests; $(MAKE) Samples
 
-Test-iconc:		; cd tests; $(MAKE) Test-iconc
-Samples-iconc:		; cd tests; $(MAKE) Samples-iconc
-
 
 #################################################################
 #
 # Run benchmarks.
 
-Benchmark:
-		$(MAKE) Benchmark-icont
-
-Benchmark-iconc:
-		cd tests/bench;		$(MAKE) benchmark-iconc
-
-Benchmark-icont:
+Benchmark Benchmark-icont:
 		cd tests/bench;		$(MAKE) benchmark-icont
 
 

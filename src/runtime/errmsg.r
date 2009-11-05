@@ -41,13 +41,8 @@ dptr v;
    if (pfp != NULL) {
       if (IntVal(kywd_err) == 0 || !err_conv) {
          fprintf(stderr, "\nRun-time error %d\n", k_errornumber);
-#if COMPILER
-         if (line_info)
-            fprintf(stderr, "File %s; Line %d\n", file_name, line_num);
-#else					/* COMPILER */
          fprintf(stderr, "File %s; Line %ld\n", findfile(ipc.opnd),
             (long)findline(ipc.opnd));
-#endif					/* COMPILER */
          }
       else {
          IntVal(kywd_err)--;

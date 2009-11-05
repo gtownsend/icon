@@ -1,4 +1,3 @@
-#if !COMPILER
 /*
  * File: interp.r
  *  The interpreter proper.
@@ -416,12 +415,9 @@ dptr cargp;
 	       if (pollctr == -1) fatalerr(141, NULL);
 	       }
 #endif					/* Polling */
-
-
 #endif					/* LineCodes */
 
             break;
-
 
          case Op_Colm:		/* source column number */
             {
@@ -1275,6 +1271,3 @@ interp_quit:
    /*NOTREACHED*/
    return 0;	/* avoid gcc warning */
    }
-
-
-#endif					/* !COMPILER */

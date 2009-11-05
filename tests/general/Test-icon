@@ -3,11 +3,8 @@
 #  Test-icont -- test the Icon translator and interpreter.
 #
 #  usage:  Test-icont [file...]
-#
-#  If $IC is set to iconc, the compiler will be used instead.
 
-IC=${IC-icont}
-IC=../../bin/$IC
+IC=../../bin/icont
 ICONX=../../bin/iconx
 
 unset IPATH LPATH FPATH
@@ -21,16 +18,9 @@ echo ""
 uname -a
 
 # check that we have what we need
-case $IC in
-   *icont)
-      ls ../../bin/icont ../../bin/iconx >/dev/null || exit 0
-      echo "icont:  `$IC -V 2>&1`"
-      echo "iconx:  `$ICONX -V 2>&1`"
-      ;;
-   *iconc)
-      ls -l ../../bin/iconc ../../bin/rt.* || exit 0
-      ;;
-esac
+ls ../../bin/icont ../../bin/iconx >/dev/null || exit 0
+echo "icont:  `$IC -V 2>&1`"
+echo "iconx:  `$ICONX -V 2>&1`"
 
 #  report enabled features
 $IC -s features.icn -x

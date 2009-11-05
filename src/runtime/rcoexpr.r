@@ -2,10 +2,6 @@
  * File: rcoexpr.r -- co_init, co_chng
  */
 
-#if COMPILER
-static continuation coexpr_fnc;  /* function to call after switching stacks */
-#endif					/* COMPILER */
-
 /*
  * co_init - use the contents of the refresh block to initialize the
  *  co-expression.
@@ -27,31 +23,6 @@ struct b_coexpr *sblkp;
     * Get pointer to refresh block.
     */
    rblkp = (struct b_refresh *)BlkLoc(sblkp->freshblk);
-
-#if COMPILER
-   na = rblkp->nargs;                /* number of arguments */
-   nl = rblkp->nlocals;              /* number of locals */
-   nt = rblkp->ntemps;               /* number of temporaries */
-
-   /*
-    * The C stack must be aligned on the correct boundary. For up-growing
-    *  stacks, the C stack starts after the initial procedure frame of
-    *  the co-expression block. For down-growing stacks, the C stack starts
-    *  at the last word of the co-expression block.
-    */
-#ifdef UpStack
-   frame_size = sizeof(struct p_frame) + sizeof(struct descrip) * (nl + na +
-      nt - 1) + rblkp->wrk_size;
-   stack_strt = (word)((char *)&sblkp->pf + frame_size + StackAlign*WordSize);
-#else					/* UpStack */
-   stack_strt = (word)((char *)sblkp + stksize - WordSize);
-#endif					/* UpStack */
-   sblkp->cstate[0] = stack_strt & ~(WordSize * StackAlign - 1);
-
-   sblkp->es_argp = &sblkp->pf.tend.d[nl + nt];   /* args follow temporaries */
-
-#else					/* COMPILER */
-
    na = (rblkp->pfmkr).pf_nargs + 1; /* number of arguments */
    nl = (int)rblkp->numlocals;       /* number of locals */
 
@@ -80,8 +51,6 @@ struct b_coexpr *sblkp;
 
    sblkp->es_argp = (dptr)newsp;  /* args are first thing on stack */
 
-#endif					/* COMPILER */
-
    /*
     * Copy arguments onto new stack.
     */
@@ -93,16 +62,6 @@ struct b_coexpr *sblkp;
    /*
     * Set up state variables and initialize procedure frame.
     */
-#if COMPILER
-   sblkp->es_pfp = &sblkp->pf;
-   sblkp->es_tend = &sblkp->pf.tend;
-   sblkp->pf.old_pfp = NULL;
-   sblkp->pf.rslt = NULL;
-   sblkp->pf.succ_cont = NULL;
-   sblkp->pf.tend.previous = NULL;
-   sblkp->pf.tend.num = nl + na + nt;
-   sblkp->es_actstk = NULL;
-#else					/* COMPILER */
    *((struct pf_marker *)dsp) = rblkp->pfmkr;
    sblkp->es_pfp = (struct pf_marker *)dsp;
    sblkp->es_tend = NULL;
@@ -111,25 +70,14 @@ struct b_coexpr *sblkp;
    sblkp->es_gfp = 0;
    sblkp->es_efp = 0;
    sblkp->es_ilevel = 0;
-#endif					/* COMPILER */
    sblkp->tvalloc = NULL;
 
    /*
     * Copy locals into the co-expression.
     */
-#if COMPILER
-   dsp = sblkp->pf.tend.d;
-#endif					/* COMPILER */
    for (i = 1; i <= nl; i++)
       *dsp++ = *dp++;
 
-#if COMPILER
-   /*
-    * Initialize temporary variables.
-    */
-   for (i = 1; i <= nt; i++)
-      *dsp++ = nulldesc;
-#else					/* COMPILER */
    /*
     * Push two null descriptors on the stack.
     */
@@ -137,7 +85,6 @@ struct b_coexpr *sblkp;
    *dsp++ = nulldesc;
 
    sblkp->es_sp = (word *)dsp - 1;
-#endif					/* COMPILER */
 
 #endif					/* Coexpr */
    }
@@ -166,13 +113,11 @@ int first;
     */
    if (valloc != NULL) {
 
-#if !COMPILER
       /*
        * Determine if we need to dereference the transmitted value.
        */
       if (Var(*valloc))
          retderef(valloc, (word *)glbl_argp, sp);
-#endif					/* COMPILER */
 
       if (ncp->tvalloc != NULL)
          *ncp->tvalloc = *valloc;
@@ -187,28 +132,14 @@ int first;
    ccp->es_argp = glbl_argp;
    ccp->es_tend = tend;
 
-#if !COMPILER
    ccp->es_efp = efp;
    ccp->es_gfp = gfp;
    ccp->es_ipc = ipc;
    ccp->es_sp = sp;
    ccp->es_ilevel = ilevel;
-#endif					/* COMPILER */
 
-#if COMPILER
-   if (line_info) {
-      ccp->file_name = file_name;
-      ccp->line_num = line_num;
-      file_name = ncp->file_name;
-      line_num = ncp->line_num;
-      }
-#endif					/* COMPILER */
-
-#if COMPILER
-   if (debug_info)
-#endif					/* COMPILER */
-      if (k_trace)
-         cotrace(ccp, ncp, swtch_typ, valloc);
+   if (k_trace)
+      cotrace(ccp, ncp, swtch_typ, valloc);
 
    /*
     * Establish state for new co-expression.
@@ -216,20 +147,14 @@ int first;
    pfp = ncp->es_pfp;
    tend = ncp->es_tend;
 
-#if !COMPILER
    efp = ncp->es_efp;
    gfp = ncp->es_gfp;
    ipc = ncp->es_ipc;
    sp = ncp->es_sp;
    ilevel = (int)ncp->es_ilevel;
-#endif					/* COMPILER */
 
    glbl_argp = ncp->es_argp;
    BlkLoc(k_current) = (union block *)ncp;
-
-#if COMPILER
-   coexpr_fnc = ncp->fnc;
-#endif					/* COMPILER */
 
    coexp_act = swtch_typ;
    coswitch(ccp->cstate, ncp->cstate,first);
@@ -246,11 +171,7 @@ void new_context(fsig,cargp)
 int fsig;
 dptr cargp;
    {
-#if COMPILER
-   (*coexpr_fnc)();
-#else					/* COMPILER */
    interp(fsig, cargp);
-#endif					/* COMPILER */
    }
 #else					/* Coexpr */
 /* dummy new_context if co-expressions aren't supported */

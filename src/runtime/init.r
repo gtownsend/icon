@@ -9,19 +9,18 @@
 static void	env_err		(char *msg, char *name, char *val);
 FILE		*pathOpen       (char *fname, char *mode);
 
-#if !COMPILER
-   #include "../h/header.h"
-   static FILE *readhdr(char *name, struct header *hdr);
+#include "../h/header.h"
+static FILE *readhdr(char *name, struct header *hdr);
 
-   #passthru #define OpDef(p,n,s,u) int Cat(O,p) (dptr cargp);
-   #passthru #include "../h/odefs.h"
-   #passthru #undef OpDef
+#passthru #define OpDef(p,n,s,u) int Cat(O,p) (dptr cargp);
+#passthru #include "../h/odefs.h"
+#passthru #undef OpDef
 
-   /*
-    * External declarations for operator blocks.
-    */
+/*
+ * External declarations for operator blocks.
+ */
 
-   #passthru #define OpDef(f,nargs,sname,underef)\
+#passthru #define OpDef(f,nargs,sname,underef)\
 	{\
 	T_Proc,\
 	Vsizeof(struct b_proc),\
@@ -31,11 +30,10 @@ FILE		*pathOpen       (char *fname, char *mode);
 	underef,\
 	0,\
 	{{sizeof(sname)-1,sname}}},
-   #passthru static B_IProc(2) init_op_tbl[] = {
-   #passthru #include "../h/odefs.h"
-   #passthru   };
-   #undef OpDef
-#endif					/* !COMPILER */
+#passthru static B_IProc(2) init_op_tbl[] = {
+#passthru #include "../h/odefs.h"
+#passthru   };
+#undef OpDef
 
 #ifdef WinGraphics
    static void MSStartup(HINSTANCE hInstance, HINSTANCE hPrevInstance);
@@ -100,52 +98,35 @@ dptr globals, eglobals;		/* pointer to global variables */
 dptr gnames, egnames;		/* pointer to global variable names */
 dptr estatics;			/* pointer to end of static variables */
 struct region *curstring, *curblock;
-#if !COMPILER
-  int n_globals = 0;		/* number of globals */
-  int n_statics = 0;		/* number of statics */
-#endif					/* !COMPILER */
+int n_globals = 0;		/* number of globals */
+int n_statics = 0;		/* number of statics */
 
-#if COMPILER
-   struct p_frame *pfp = NULL;	/* procedure frame pointer */
+int debug_info=1;		/* flag: debugging information IS available */
+int err_conv=1;			/* flag: error conversion IS supported */
 
-   int debug_info;		/* flag: is debugging information available */
-   int err_conv;		/* flag: is error conversion supported */
-   int largeints;		/* flag: large integers are supported */
+int op_tbl_sz = (sizeof(init_op_tbl) / sizeof(struct b_proc));
+struct pf_marker *pfp = NULL;  /* Procedure frame pointer */
 
-   struct b_coexpr *mainhead;	/* &main */
+   struct b_coexpr *mainhead;  /* &main */
 
-#else					/* COMPILER */
+   char *code;			/* interpreter code buffer */
+   char *ecode;			/* end of interpreter code buffer */
+   word *records;		/* pointer to record procedure blocks */
+   int *ftabp;			/* pointer to record/field table */
+   dptr fnames, efnames;	/* pointer to field names */
+   dptr statics;		/* pointer to static variables */
+   char *strcons;		/* pointer to string constant table */
+   struct ipc_fname *filenms, *efilenms; /* pointer to ipc/file name table */
+   struct ipc_line *ilines, *elines;	/* pointer to ipc/line number table */
 
-   int debug_info=1;		/* flag: debugging information IS available */
-   int err_conv=1;		/* flag: error conversion IS supported */
+#ifdef TallyOpt
+   word tallybin[16];		/* counters for tallying */
+   int tallyopt = 0;		/* want tally results output? */
+#endif				/* TallyOpt */
 
-   int op_tbl_sz = (sizeof(init_op_tbl) / sizeof(struct b_proc));
-   struct pf_marker *pfp = NULL;  /* Procedure frame pointer */
-
-      struct b_coexpr *mainhead;  /* &main */
-
-      char *code;		/* interpreter code buffer */
-      char *ecode;		/* end of interpreter code buffer */
-      word *records;		/* pointer to record procedure blocks */
-      int *ftabp;		/* pointer to record/field table */
-      dptr fnames, efnames;	/* pointer to field names */
-      dptr statics;		/* pointer to static variables */
-      char *strcons;		/* pointer to string constant table */
-      struct ipc_fname *filenms, *efilenms; /* pointer to ipc/file name table */
-      struct ipc_line *ilines, *elines;	/* pointer to ipc/line number table */
-
-   #ifdef TallyOpt
-      word tallybin[16];	/* counters for tallying */
-      int tallyopt = 0;		/* want tally results output? */
-   #endif				/* TallyOpt */
-
-   word *stack;			/* Interpreter stack */
-   word *stackend;		/* End of interpreter stack */
-
-#endif					/* COMPILER */
+word *stack;			/* Interpreter stack */
+word *stackend;			/* End of interpreter stack */
 
-#if !COMPILER
-
 /*
  * Open the icode file and read the header.
  * Used by icon_init().
@@ -222,36 +203,21 @@ struct header *hdr;
 
    return fname;
    }
-
-#endif					/* !COMPILER */
 
 /*
  * init/icon_init - initialize memory and prepare for Icon execution.
  */
-#if !COMPILER
-   struct header hdr;
-#endif					/* !COMPILER */
+struct header hdr;
 
-#if COMPILER
-   void init(name, argcp, argv, trc_init)
-   char *name;
-   int *argcp;
-   char *argv[];
-   int trc_init;
-#else					/* COMPILER */
-   void icon_init(name, argcp, argv)
-   char *name;
-   int *argcp;
-   char *argv[];
-#endif					/* COMPILER */
-
+void icon_init(name, argcp, argv)
+char *name;
+int *argcp;
+char *argv[];
    {
    char *itval;
    int delete_icode = 0;
-#if !COMPILER
    FILE *fname = NULL;
    word cbread, longread();
-#endif					/* COMPILER */
 
    prog_name = name;			/* Set icode file name */
 
@@ -284,21 +250,11 @@ struct header *hdr;
       prog_name[-1] = '\0';
       }
 
-#if COMPILER
    curstring = &rootstring;
    curblock  = &rootblock;
    rootstring.size = MaxStrSpace;
    rootblock.size  = MaxAbrSize;
-#else					/* COMPILER */
-   curstring = &rootstring;
-   curblock  = &rootblock;
-   rootstring.size = MaxStrSpace;
-   rootblock.size  = MaxAbrSize;
-#endif					/* COMPILER */
-
-#if !COMPILER
    op_tbl = (struct b_proc*)init_op_tbl;
-#endif					/* !COMPILER */
 
 #ifdef Double
    if (sizeof(struct size_dbl) != sizeof(double))
@@ -317,14 +273,10 @@ struct header *hdr;
 
    datainit();
 
-   #if COMPILER
-      IntVal(kywd_trc) = trc_init;
-   #else				/* COMPILER */
-      fname = readhdr(name,&hdr);
-      if (fname == NULL)
-         error(name, "cannot open interpreter file");
-      k_trace = hdr.trace;
-   #endif				/* COMPILER */
+   fname = readhdr(name,&hdr);
+   if (fname == NULL)
+      error(name, "cannot open interpreter file");
+   k_trace = hdr.trace;
 
    /*
     * Examine the environment and make appropriate settings.    [[I?]]
@@ -340,13 +292,8 @@ struct header *hdr;
    /*
     * Allocate memory for various regions.
     */
-#if COMPILER
-   initalloc();
-#else					/* COMPILER */
    initalloc(hdr.hsize);
-#endif					/* COMPILER */
 
-#if !COMPILER
    /*
     * Establish pointers to icode data regions.		[[I?]]
     */
@@ -365,26 +312,14 @@ struct header *hdr;
    strcons = (char *)elines;
    n_globals = eglobals - globals;
    n_statics = estatics - statics;
-#endif					/* COMPILER */
 
    /*
     * Allocate stack and initialize &main.
     */
-
-#if COMPILER
-   mainhead = (struct b_coexpr *)malloc(sizeof(struct b_coexpr));
-#else					/* COMPILER */
    stack = (word *)malloc(mstksize);
    mainhead = (struct b_coexpr *)stack;
-
-#endif					/* COMPILER */
-
    if (mainhead == NULL)
-#if COMPILER
-      err_msg(305, NULL);
-#else					/* COMPILER */
       fatalerr(303, NULL);
-#endif					/* COMPILER */
 
    mainhead->title = T_Coexpr;
    mainhead->id = 1;
@@ -393,11 +328,6 @@ struct header *hdr;
    mainhead->es_tend = NULL;
    mainhead->freshblk = nulldesc;	/* &main has no refresh block. */
 					/*  This really is a bug. */
-#if COMPILER
-   mainhead->file_name = "";
-   mainhead->line_num = 0;
-#endif					/* COMPILER */
-
 #ifdef Coexpr
    Protect(mainhead->es_actstk = alcactiv(), fatalerr(0,NULL));
    pushact(mainhead, mainhead);
@@ -411,7 +341,6 @@ struct header *hdr;
    BlkLoc(k_main) = (union block *) mainhead;
    k_current = k_main;
 
-#if !COMPILER
    /*
     * Read the interpretable code and data into memory.
     */
@@ -425,27 +354,24 @@ struct header *hdr;
    if (delete_icode)		/* delete icode file if flag set earlier */
       remove(itval);
 
-/*
- * Make sure the version number of the icode matches the interpreter version.
- */
+   /*
+    * Make sure the version number of the icode matches the interpreter version.
+    */
    if (strcmp((char *)hdr.config,IVersion)) {
       fprintf(stderr,"icode version mismatch in %s\n", name);
       fprintf(stderr,"\ticode version: %s\n",(char *)hdr.config);
       fprintf(stderr,"\texpected version: %s\n",IVersion);
       error(name, "cannot run");
       }
-#endif					/* !COMPILER */
 
    /*
     * Initialize the event monitoring system, if configured.
     */
 
-#if !COMPILER
    /*
     * Resolve references from icode to run-time system.
     */
    resolve();
-#endif					/* COMPILER */
 
    /*
     * Allocate and assign a buffer to stderr if possible.
@@ -614,13 +540,8 @@ char *s;
    if (pfp == NULL)
       fprintf(stderr, " in startup code");
    else {
-#if COMPILER
-      if (line_info)
-	 fprintf(stderr, " at line %d in %s", line_num, file_name);
-#else					/* COMPILER */
       fprintf(stderr, " at line %ld in %s", (long)findline(ipc.opnd),
 	 findfile(ipc.opnd));
-#endif					/* COMPILER */
       }
    fprintf(stderr, "\n%s\n", s);
    fflush(stderr);
@@ -758,10 +679,7 @@ void datainit()
    maps2 = nulldesc;
    maps3 = nulldesc;
 
-   #if !COMPILER
-      qsort((char *)pntab,pnsize,sizeof(struct pstrnm), (int(*)())pstrnmcmp);
-   #endif				/* COMPILER */
-
+   qsort((char *)pntab,pnsize,sizeof(struct pstrnm), (int(*)())pstrnmcmp);
    }
 
 #ifdef WinGraphics

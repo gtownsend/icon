@@ -421,40 +421,23 @@ void	varargs		(dptr argp, int nargs, dptr rslt);
 
 struct b_coexpr *alccoexp (void);
 
-#if COMPILER
+struct b_refresh *alcrefresh	(word *e, int nl, int nt);
+void	atrace			(dptr dp);
+void	ctrace			(dptr dp, int nargs, dptr arg);
+void	failtrace		(dptr dp);
+int	invoke			(int nargs, dptr *cargs, int *n);
+void	rtrace			(dptr dp, dptr rval);
+void	strace			(dptr dp, dptr rval);
+void	tracebk			(struct pf_marker *lcl_pfp, dptr argp);
+int	xdisp			(struct pf_marker *fp, dptr dp, int n, FILE *f);
 
-   struct b_refresh *alcrefresh	(int na, int nl, int nt, int wk_sz);
-   void	atrace			(void);
-   void	ctrace			(void);
-   void	failtrace		(void);
-   void	initalloc		(void);
-   int	invoke			(int n, dptr args, dptr rslt, continuation c);
-   void	rtrace			(void);
-   void	strace			(void);
-   void	tracebk			(struct p_frame *lcl_pfp, dptr argp);
-   int	xdisp			(struct p_frame *fp, dptr dp, int n, FILE *f);
+#define Fargs dptr cargp
+int	Obscan			(int nargs, Fargs);
+int	Ocreate			(word *entryp, Fargs);
+int	Oescan			(int nargs, Fargs);
+int	Ofield			(int nargs, Fargs);
+int	Olimit			(int nargs, Fargs);
+int	Ollist			(int nargs, Fargs);
+int	Omkrec			(int nargs, Fargs);
 
-#else					/* COMPILER */
-
-   struct b_refresh *alcrefresh	(word *e, int nl, int nt);
-   void	atrace			(dptr dp);
-   void	ctrace			(dptr dp, int nargs, dptr arg);
-   void	failtrace		(dptr dp);
-   int	invoke			(int nargs, dptr *cargs, int *n);
-   void	rtrace			(dptr dp, dptr rval);
-   void	strace			(dptr dp, dptr rval);
-   void	tracebk			(struct pf_marker *lcl_pfp, dptr argp);
-   int	xdisp			(struct pf_marker *fp, dptr dp, int n, FILE *f);
-
-   #define Fargs dptr cargp
-   int	Obscan			(int nargs, Fargs);
-   int	Ocreate			(word *entryp, Fargs);
-   int	Oescan			(int nargs, Fargs);
-   int	Ofield			(int nargs, Fargs);
-   int	Olimit			(int nargs, Fargs);
-   int	Ollist			(int nargs, Fargs);
-   int	Omkrec			(int nargs, Fargs);
-
-   void	initalloc		(word codesize);
-
-#endif					/* COMPILER */
+void	initalloc		(word codesize);

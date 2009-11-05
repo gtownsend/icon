@@ -398,173 +398,148 @@
 #define blkend   (curblock->end)
 #define blkfree  (curblock->free)
 
-#if COMPILER
+/*
+ * Codes returned by invoke to indicate action.
+ */
+#define I_Builtin	201	/* A built-in routine is to be invoked */
+#define I_Fail	202	/* goal-directed evaluation failed */
+#define I_Continue	203	/* Continue execution in the interp loop */
+#define I_Vararg	204	/* A function with a variable number of args */
 
-   #ifdef Graphics
-      #define Poll() if (!pollctr--) pollctr = pollevent()
-   #else				/* Graphics */
-      #define Poll()
-   #endif				/* Graphics */
+/*
+ * Generator types.
+ */
+#define G_Csusp		1
+#define G_Esusp		2
+#define G_Psusp		3
+#define G_Fsusp		4
+#define G_Osusp		5
 
-#else					/* COMPILER */
+/*
+ * Evaluation stack overflow margin
+ */
+#define PerilDelta 100
 
-   /*
-    * Definitions for the interpreter.
-    */
+/*
+ * Macros for pushing values on the interpreter stack.
+ */
 
-   /*
-    * Codes returned by invoke to indicate action.
-    */
-   #define I_Builtin	201	/* A built-in routine is to be invoked */
-   #define I_Fail	202	/* goal-directed evaluation failed */
-   #define I_Continue	203	/* Continue execution in the interp loop */
-   #define I_Vararg	204	/* A function with a variable number of args */
+/*
+ * Push descriptor.
+ */
+#define PushDescSP(SP,d)  {*++SP=((d).dword); SP++; *SP =((d).vword.integr);}
 
-   /*
-    * Generator types.
-    */
-   #define G_Csusp		1
-   #define G_Esusp		2
-   #define G_Psusp		3
-   #define G_Fsusp		4
-   #define G_Osusp		5
+/*
+ * Push null-valued descriptor.
+ */
+#define PushNullSP(SP)	{*++SP = D_Null; SP++; *SP = 0;}
 
-   /*
-    * Evaluation stack overflow margin
-    */
-   #define PerilDelta 100
+/*
+ * Push word.
+ */
+#define PushValSP(SP,v)	{*++SP = (word)(v);}
 
-   /*
-    * Macros for pushing values on the interpreter stack.
-    */
+/*
+ * Shorter Versions of the Push*SP macros that assume sp points to the top
+ * of the stack.
+ */
+#define PushDesc(d)		PushDescSP(sp,d)
+#define PushNull		PushNullSP(sp)
+#define PushVal(x)		PushValSP(sp,x)
+#define PushAVal(x)		PushValSP(sp,x)
 
-   /*
-    * Push descriptor.
-    */
-   #define PushDescSP(SP,d)  {*++SP=((d).dword); SP++; *SP =((d).vword.integr);}
+/*
+ * Macros related to function and operator definition.
+ */
 
-   /*
-    * Push null-valued descriptor.
-    */
-   #define PushNullSP(SP)	{*++SP = D_Null; SP++; *SP = 0;}
+/*
+ * Procedure block for a function.
+ */
 
-   /*
-    * Push word.
-    */
-   #define PushValSP(SP,v)	{*++SP = (word)(v);}
+#define FncBlock(f,nargs,deref) \
+   struct b_iproc Cat(B,f) = {\
+   T_Proc,\
+   Vsizeof(struct b_proc),\
+   Cat(Z,f),\
+   nargs,\
+   -1,\
+   deref, 0,\
+   {sizeof(Lit(f))-1,Lit(f)}};
 
-   /*
-    * Shorter Versions of the Push*SP macros that assume sp points to the top
-    * of the stack.
-    */
-   #define PushDesc(d)		PushDescSP(sp,d)
-   #define PushNull		PushNullSP(sp)
-   #define PushVal(x)		PushValSP(sp,x)
-   #define PushAVal(x)		PushValSP(sp,x)
+/*
+ * Procedure block for an operator.
+ */
+#define OpBlock(f,nargs,sname,xtrargs)\
+   struct b_iproc Cat(B,f) = {\
+   T_Proc,\
+   Vsizeof(struct b_proc),\
+   Cat(O,f),\
+   nargs,\
+   -1,\
+   xtrargs,\
+   0,\
+   {sizeof(sname)-1,sname}};
 
-   /*
-    * Macros related to function and operator definition.
-    */
+/*
+ * Operator declaration.
+ */
+#define OpDcl(nm,n,pn) OpBlock(nm,n,pn,0) Cat(O,nm)(cargp) register dptr cargp;
 
-   /*
-    * Procedure block for a function.
-    */
+/*
+ * Operator declaration with extra working argument.
+ */
+#define OpDclE(nm,n,pn) OpBlock(nm,-n,pn,0) Cat(O,nm)(cargp) register dptr cargp;
 
-   #define FncBlock(f,nargs,deref) \
-      struct b_iproc Cat(B,f) = {\
-      T_Proc,\
-      Vsizeof(struct b_proc),\
-      Cat(Z,f),\
-      nargs,\
-      -1,\
-      deref, 0,\
-      {sizeof(Lit(f))-1,Lit(f)}};
+/*
+ * Agent routine declaration.
+ */
+#define AgtDcl(nm) Cat(A,nm)(cargp) register dptr cargp;
 
-   /*
-    * Procedure block for an operator.
-    */
-   #define OpBlock(f,nargs,sname,xtrargs)\
-      struct b_iproc Cat(B,f) = {\
-      T_Proc,\
-      Vsizeof(struct b_proc),\
-      Cat(O,f),\
-      nargs,\
-      -1,\
-      xtrargs,\
-      0,\
-      {sizeof(sname)-1,sname}};
+/*
+ * Macros to access Icon arguments in C functions.
+ */
 
-   /*
-    * Operator declaration.
-    */
-   #define OpDcl(nm,n,pn) OpBlock(nm,n,pn,0) Cat(O,nm)(cargp) register dptr cargp;
+/*
+ * n-th argument.
+ */
+#define Arg(n)	(cargp[n])
 
-   /*
-    * Operator declaration with extra working argument.
-    */
-   #define OpDclE(nm,n,pn) OpBlock(nm,-n,pn,0) Cat(O,nm)(cargp) register dptr cargp;
+/*
+ * Type field of n-th argument.
+ */
+#define ArgType(n)	(cargp[n].dword)
 
-   /*
-    * Agent routine declaration.
-    */
-   #define AgtDcl(nm) Cat(A,nm)(cargp) register dptr cargp;
+/*
+ * Value field of n-th argument.
+ */
+#define ArgVal(n)	(cargp[n].vword.integr)
 
-   /*
-    * Macros to access Icon arguments in C functions.
-    */
-
-   /*
-    * n-th argument.
-    */
-   #define Arg(n)	(cargp[n])
-
-   /*
-    * Type field of n-th argument.
-    */
-   #define ArgType(n)	(cargp[n].dword)
-
-   /*
-    * Value field of n-th argument.
-    */
-   #define ArgVal(n)	(cargp[n].vword.integr)
-
-   /*
-    * Specific arguments.
-    */
-   #define Arg0	(cargp[0])
-   #define Arg1	(cargp[1])
-   #define Arg2	(cargp[2])
-   #define Arg3	(cargp[3])
-   #define Arg4	(cargp[4])
-   #define Arg5	(cargp[5])
-   #define Arg6	(cargp[6])
-   #define Arg7	(cargp[7])
-   #define Arg8	(cargp[8])
-
-#endif					/* COMPILER */
+/*
+ * Specific arguments.
+ */
+#define Arg0	(cargp[0])
+#define Arg1	(cargp[1])
+#define Arg2	(cargp[2])
+#define Arg3	(cargp[3])
+#define Arg4	(cargp[4])
+#define Arg5	(cargp[5])
+#define Arg6	(cargp[6])
+#define Arg7	(cargp[7])
+#define Arg8	(cargp[8])
 
 /*
  * Constants controlling expression evaluation.
  */
-#if COMPILER
-   #define A_Resume	-1	/* expression failed: resume a generator */
-   #define A_Continue	-2	/* expression returned: continue execution */
-   #define A_FallThru	-3      /* body function: fell through end of code */
-   #define A_Coact	1	/* co-expression activation */
-   #define A_Coret	2	/* co-expression return */
-   #define A_Cofail	3	/* co-expression failure */
-#else					/* COMPILER */
-   #define A_Resume	1	/* routine failed */
-   #define A_Pret_uw	2	/* interp unwind for Op_Pret */
-   #define A_Unmark_uw	3	/* interp unwind for Op_Unmark */
-   #define A_Pfail_uw	4	/* interp unwind for Op_Pfail */
-   #define A_Lsusp_uw	5	/* interp unwind for Op_Lsusp */
-   #define A_Eret_uw	6	/* interp unwind for Op_Eret */
-   #define A_Continue	7	/* routine returned */
-   #define A_Coact	8	/* co-expression activated */
-   #define A_Coret	9	/* co-expression returned */
-   #define A_Cofail	10	/* co-expression failed */
-#endif					/* COMPILER */
+#define A_Resume	1	/* routine failed */
+#define A_Pret_uw	2	/* interp unwind for Op_Pret */
+#define A_Unmark_uw	3	/* interp unwind for Op_Unmark */
+#define A_Pfail_uw	4	/* interp unwind for Op_Pfail */
+#define A_Lsusp_uw	5	/* interp unwind for Op_Lsusp */
+#define A_Eret_uw	6	/* interp unwind for Op_Eret */
+#define A_Continue	7	/* routine returned */
+#define A_Coact		8	/* co-expression activated */
+#define A_Coret		9	/* co-expression returned */
+#define A_Cofail	10	/* co-expression failed */
 
 /*
  * Address of word containing cset bit b (c is a struct descrip of type Cset).

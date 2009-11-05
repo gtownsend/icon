@@ -19,13 +19,6 @@ Samples Samples-icont:
 		IC=icont sh Test-icon $(SAMPLES)
 
 
-Test-iconc:
-		IC=iconc sh Test-icon
-
-Samples-iconc:
-		IC=iconc sh Test-icon $(SAMPLES)
-
-
 # test preprocessor
 
 Test-preproc:

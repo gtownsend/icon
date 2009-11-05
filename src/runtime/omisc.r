@@ -30,19 +30,6 @@ operator{1} ^ refresh(x)
        * Use refresh block to finish initializing the new co-expression.
        */
       co_init(sblkp);
-
-#if COMPILER
-      sblkp->fnc = BlkLoc(x)->coexpr.fnc;
-      if (line_info) {
-         if (debug_info)
-            PFDebug(sblkp->pf)->proc = PFDebug(BlkLoc(x)->coexpr.pf)->proc;
-         PFDebug(sblkp->pf)->old_fname =
-            PFDebug(BlkLoc(x)->coexpr.pf)->old_fname;
-         PFDebug(sblkp->pf)->old_line =
-            PFDebug(BlkLoc(x)->coexpr.pf)->old_line;
-         }
-#endif					/* COMPILER */
-
       return coexpr(sblkp);
       }
 #else					/* Coexpr */

@@ -115,44 +115,6 @@ word n;
  * alccoexp - allocate a co-expression stack block.
  */
 
-#if COMPILER
-struct b_coexpr *alccoexp()
-   {
-   struct b_coexpr *ep;
-   static int serial = 2; /* main co-expression is allocated elsewhere */
-   ep = (struct b_coexpr *)malloc(stksize);
-
-   /*
-    * If malloc failed or if there have been too many co-expression allocations
-    * since a collection, attempt to free some co-expression blocks and retry.
-    */
-
-   if (ep == NULL || alcnum > AlcMax) {
-      collect(Static);
-      ep = (struct b_coexpr *)malloc(stksize);
-      }
-
-   if (ep == NULL)
-      ReturnErrNum(305, NULL);
-
-   alcnum++;                    /* increment allocation count since last g.c. */
-
-   ep->title = T_Coexpr;
-   ep->size = 0;
-   ep->id = serial++;
-   ep->nextstk = stklist;
-   ep->es_tend = NULL;
-   ep->file_name = "";
-   ep->line_num = 0;
-   ep->freshblk = nulldesc;
-   ep->es_actstk = NULL;
-   ep->cstate[0] = 0;		/* zero the first two cstate words as a flag */
-   ep->cstate[1] = 0;
-   stklist = ep;
-   return ep;
-   }
-#else					/* COMPILER */
-
 struct b_coexpr *alccoexp()
    {
    struct b_coexpr *ep;
@@ -185,7 +147,6 @@ struct b_coexpr *alccoexp()
    stklist = ep;
    return ep;
    }
-#endif					/* COMPILER */
 
 /*
  * alccset - allocate a cset in the block region.
@@ -403,23 +364,6 @@ union block *recptr;
  * alcrefresh - allocate a co-expression refresh block.
  */
 
-#if COMPILER
-struct b_refresh *alcrefresh(na, nl, nt, wrk_sz)
-int na;
-int nl;
-int nt;
-int wrk_sz;
-   {
-   struct b_refresh *blk;
-
-   AlcVarBlk(blk, b_refresh, T_Refresh, na + nl)
-   blk->nlocals = nl;
-   blk->nargs = na;
-   blk->ntemps = nt;
-   blk->wrk_size = wrk_sz;
-   return blk;
-   }
-#else					/* COMPILER */
 struct b_refresh *alcrefresh(entryx, na, nl)
 word *entryx;
 int na, nl;
@@ -431,7 +375,6 @@ int na, nl;
    blk->numlocals = nl;
    return blk;
    }
-#endif					/* COMPILER */
 
 /*
  * alcselem - allocate a set element block.

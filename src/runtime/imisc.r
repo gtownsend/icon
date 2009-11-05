@@ -1,4 +1,3 @@
-#if !COMPILER
 /*
  * File: imisc.r
  *  Contents: field, mkrec, limit, llist, bscan, escan
@@ -267,4 +266,3 @@ LibDcl(escan,1,"escan")
 
    return rc;
    }
-#endif					/* !COMPILER */

@@ -93,13 +93,7 @@ int firstd[] = {
      3*WordSize,              /* T_Tvtbl (14), table element trapped variable */
      0,                       /* T_Slots (15), set/table hash block */
      3*WordSize,              /* T_Tvsubs (16), substring trapped variable */
-
-#if COMPILER
-     2*WordSize,              /* T_Refresh (17), refresh block */
-#else					/* COMPILER */
      (4+Wsizeof(struct pf_marker))*WordSize, /* T_Refresh (17), refresh block */
-#endif					/* COMPILER */
-
     -1,                       /* T_Coexpr (18), co-expression block */
      0,                       /* T_External (19), external block */
      -1,                      /* T_Kywdint (20), integer keyword variable */
@@ -239,11 +233,6 @@ uword segsize[] = {
  * initalloc - initialization routine to allocate memory regions
  */
 
-#if COMPILER
-void initalloc()
-   {
-
-#else					/* COMPILER */
 void initalloc(codesize)
 word codesize;
    {
@@ -256,7 +245,6 @@ word codesize;
    if ((code = (char *)AllocReg(codesize)) == NULL)
       error(NULL,
 	 "insufficient memory, corrupted icode file, or wrong platform");
-#endif					/* COMPILER */
 
    /*
     * Set up allocated memory.	The regions are:
@@ -317,11 +305,8 @@ int region;
    /*
     * Garbage collection cannot be done until initialization is complete.
     */
-
-#if !COMPILER
    if (sp == NULL)
       return 0;
-#endif					/* !COMPILER */
 
    /*
     * Sync the values (used by sweep) in the coexpr block for &current
@@ -329,13 +314,10 @@ int region;
     */
    cp = (struct b_coexpr *)BlkLoc(k_current);
    cp->es_tend = tend;
-
-#if !COMPILER
    cp->es_pfp = pfp;
    cp->es_gfp = gfp;
    cp->es_efp = efp;
    cp->es_sp = sp;
-#endif					/* !COMPILER */
 
    /*
     * Reset qualifier list.
@@ -819,12 +801,9 @@ struct b_coexpr *ce;
 	    }
          }
       }
-#if !COMPILER
    sweep_stk(ce);
-#endif					/* !COMPILER */
    }
 
-#if !COMPILER
 /*
  * sweep_stk - sweep the stack, marking all descriptors there.  Method
  *  is to start at a known point, specifically, the frame that the
@@ -927,7 +906,6 @@ struct b_coexpr *ce;
          }
       }
    }
-#endif					/* !COMPILER */
 
 /*
  * reclaim - reclaim space in the allocated memory regions. The marking

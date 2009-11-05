@@ -433,12 +433,6 @@ function{1} map(s1,s2,s3)
     */
    if !cnv:string(s1) then
       runerr(103,s1)
-#if COMPILER
-   if !def:string(s2, ucase) then
-      runerr(103,s2)
-   if !def:string(s3, lcase) then
-      runerr(103,s3)
-#endif					/* COMPILER */
 
    abstract {
       return string
@@ -449,12 +443,11 @@ function{1} map(s1,s2,s3)
       register char *str1, *str2, *str3;
       static char maptab[256];
 
-#if !COMPILER
       if (is:null(s2))
          s2 = ucase;
       if (is:null(s3))
          s3 = lcase;
-#endif					/* !COMPILER */
+
       /*
        * If s2 and s3 are the same as for the last call of map,
        *  the current values in maptab can be used. Otherwise, the
@@ -463,13 +456,11 @@ function{1} map(s1,s2,s3)
       if (!EqlDesc(maps2,s2) || !EqlDesc(maps3,s3)) {
          maps2 = s2;
          maps3 = s3;
-
-#if !COMPILER
          if (!cnv:string(s2,s2))
             runerr(103,s2);
          if (!cnv:string(s3,s3))
             runerr(103,s3);
-#endif					/* !COMPILER */
+
          /*
           * s2 and s3 must be of the same length
           */

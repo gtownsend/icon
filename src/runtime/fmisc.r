@@ -5,9 +5,7 @@
  *  ishift, ixor, [keyword], [load], ord, name, runerr, seq, sort, sortf,
  *  type, variable
  */
-#if !COMPILER
 #include "../h/opdefs.h"
-#endif					/* !COMPILER */
 
 "args(p) - produce number of arguments for procedure p."
 
@@ -298,7 +296,6 @@ function{1} errorclear()
       }
 end
 
-#if !COMPILER
 
 "function() - generate the names of the functions."
 
@@ -315,7 +312,6 @@ function{*} function()
       fail;
       }
 end
-#endif					/* !COMPILER */
 
 
 /*
@@ -571,7 +567,6 @@ function{1,*} seq(from, by)
          }
       while (from >= seq_lb && from <= seq_ub);
 
-#if !COMPILER
       {
       /*
        * Suspending wipes out some things needed by the trace back code to
@@ -583,7 +578,6 @@ function{1,*} seq(from, by)
       r_args[0].dword = D_Proc;
       r_args[0].vword.bptr = (union block *)&Bseq;
       }
-#endif					/* COMPILER */
 
       runerr(203);
       }

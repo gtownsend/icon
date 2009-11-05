@@ -1,4 +1,3 @@
-#if !COMPILER
 /*
  * File: imain.r
  * Interpreter main program, argument handling, and such.
@@ -291,5 +290,3 @@ void resolve()
    for (dp = fnames; dp < efnames; dp++)
       StrLoc(*dp) = strcons + (uword)StrLoc(*dp);
    }
-
-#endif					/* !COMPILER */

@@ -1,7 +1,5 @@
 #include "../h/gsupport.h"
 
-#undef COMPILER
-#define COMPILER 1        /* insure compiler Version number */
 #include "../h/version.h"
 
 extern char *progname;

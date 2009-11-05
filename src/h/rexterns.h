@@ -61,101 +61,86 @@ extern struct tend_desc *tend;  /* chain of tended descriptors */
 #endif					/* Polling */
 
 /*
- * Externals conditional on multithreading.
+ * Externals that were conditional on multithreading.
  */
-   extern struct region rootstring;
-   extern struct region rootblock;
-   extern dptr glbl_argp;		/* argument pointer */
-   extern struct region *curstring;
-   extern struct region *curblock;
-   extern struct descrip k_current;	/* &current */
-   extern char *k_errortext;		/* value of &errortext */
-   extern int have_errval;		/* &errorvalue has a legal value */
-   extern int k_errornumber;		/* value of &errornumber */
-   extern int t_errornumber;		/* tentative k_errornumber value */
-   extern int t_have_val;		/* tentative have_errval flag */
-   extern struct b_file k_errout;	/* value of &errout */
-   extern struct b_file k_input;	/* value of &input */
-   extern struct b_file k_output;	/* value of &output */
-   extern struct descrip k_errorvalue;	/* value of &errorvalue */
-   extern struct descrip kywd_err;	/* &error */
-   extern struct descrip kywd_pos;	/* descriptor for &pos */
-   extern struct descrip kywd_prog;	/* descriptor for &prog */
-   extern struct descrip kywd_ran;	/* descriptor for &random */
-   extern struct descrip k_subject;	/* &subject */
-   extern struct descrip kywd_trc;	/* descriptor for &trace */
-   extern struct descrip k_eventcode;	/* &eventcode */
-   extern struct descrip k_eventsource;	/* &eventsource */
-   extern struct descrip k_eventvalue;	/* &eventvalue */
-   extern struct descrip k_main;	/* value of &main */
-   extern struct descrip t_errorvalue;	/* tentative k_errorvalue value */
-   extern uword blktotal;		/* cumul total of all block allocs */
-   extern uword strtotal;		/* cumul total of all string allocs */
-   extern word coll_tot;		/* total number of collections */
-   extern word coll_stat;		/* collections from static reqests */
-   extern word coll_str;		/* collections from string requests */
-   extern word coll_blk;		/* collections from block requests */
-   extern dptr globals;			/* start of global variables */
-   extern dptr eglobals;		/* end of global variables */
-   extern dptr gnames;			/* start of global variable names */
-   extern dptr egnames;			/* end of global variable names */
-   extern dptr estatics;		/* end of static variables */
-   extern int n_globals;		/* number of global variables */
-   extern int n_statics;		/* number of static variables */
-   extern struct b_coexpr *mainhead;	/* &main */
+extern struct region rootstring;
+extern struct region rootblock;
+extern dptr glbl_argp;		/* argument pointer */
+extern struct region *curstring;
+extern struct region *curblock;
+extern struct descrip k_current;	/* &current */
+extern char *k_errortext;		/* value of &errortext */
+extern int have_errval;		/* &errorvalue has a legal value */
+extern int k_errornumber;		/* value of &errornumber */
+extern int t_errornumber;		/* tentative k_errornumber value */
+extern int t_have_val;		/* tentative have_errval flag */
+extern struct b_file k_errout;	/* value of &errout */
+extern struct b_file k_input;	/* value of &input */
+extern struct b_file k_output;	/* value of &output */
+extern struct descrip k_errorvalue;	/* value of &errorvalue */
+extern struct descrip kywd_err;	/* &error */
+extern struct descrip kywd_pos;	/* descriptor for &pos */
+extern struct descrip kywd_prog;	/* descriptor for &prog */
+extern struct descrip kywd_ran;	/* descriptor for &random */
+extern struct descrip k_subject;	/* &subject */
+extern struct descrip kywd_trc;	/* descriptor for &trace */
+extern struct descrip k_eventcode;	/* &eventcode */
+extern struct descrip k_eventsource;	/* &eventsource */
+extern struct descrip k_eventvalue;	/* &eventvalue */
+extern struct descrip k_main;	/* value of &main */
+extern struct descrip t_errorvalue;	/* tentative k_errorvalue value */
+extern uword blktotal;		/* cumul total of all block allocs */
+extern uword strtotal;		/* cumul total of all string allocs */
+extern word coll_tot;		/* total number of collections */
+extern word coll_stat;		/* collections from static reqests */
+extern word coll_str;		/* collections from string requests */
+extern word coll_blk;		/* collections from block requests */
+extern dptr globals;			/* start of global variables */
+extern dptr eglobals;		/* end of global variables */
+extern dptr gnames;			/* start of global variable names */
+extern dptr egnames;			/* end of global variable names */
+extern dptr estatics;		/* end of static variables */
+extern int n_globals;		/* number of global variables */
+extern int n_statics;		/* number of static variables */
+extern struct b_coexpr *mainhead;	/* &main */
 
 /*
- * Externals that differ between compiler and interpreter.
+ * External declarations that differed for the compiler.
  */
-#if !COMPILER
-   /*
-    * External declarations for the interpreter.
-    */
 
-   extern int ixinited;			/* iconx has initialized */
-   extern inst ipc;			/* interpreter program counter */
-   extern int ilevel;			/* interpreter level */
-   extern int ntended;			/* number of active tended descriptors*/
-   extern struct b_cset k_ascii;	/* value of &ascii */
-   extern struct b_cset k_cset;		/* value of &cset */
-   extern struct b_cset k_digits;	/* value of &lcase */
-   extern struct b_cset k_lcase;	/* value of &lcase */
-   extern struct b_cset k_letters;	/* value of &letters */
-   extern struct b_cset k_ucase;	/* value of &ucase */
-   extern struct descrip tended[];	/* tended descriptors */
-   extern struct ef_marker *efp;	/* expression frame pointer */
-   extern struct gf_marker *gfp;	/* generator frame pointer */
-   extern struct pf_marker *pfp;	/* procedure frame pointer */
-   extern word *sp;			/* interpreter stack pointer */
-   extern word *stack;			/* interpreter stack base */
-   extern word *stackend;		/* end of evaluation stack */
+extern int ixinited;			/* iconx has initialized */
+extern inst ipc;			/* interpreter program counter */
+extern int ilevel;			/* interpreter level */
+extern int ntended;			/* number of active tended descriptors*/
+extern struct b_cset k_ascii;	/* value of &ascii */
+extern struct b_cset k_cset;		/* value of &cset */
+extern struct b_cset k_digits;	/* value of &lcase */
+extern struct b_cset k_lcase;	/* value of &lcase */
+extern struct b_cset k_letters;	/* value of &letters */
+extern struct b_cset k_ucase;	/* value of &ucase */
+extern struct descrip tended[];	/* tended descriptors */
+extern struct ef_marker *efp;	/* expression frame pointer */
+extern struct gf_marker *gfp;	/* generator frame pointer */
+extern struct pf_marker *pfp;	/* procedure frame pointer */
+extern word *sp;			/* interpreter stack pointer */
+extern word *stack;			/* interpreter stack base */
+extern word *stackend;		/* end of evaluation stack */
 
-   extern struct pstrnm pntab[];
-   extern int pnsize;
+extern struct pstrnm pntab[];
+extern int pnsize;
 
-      extern char *code;		/* start of icode */
-      extern char *ecode;		/* end of icode */
-      extern dptr statics;		/* start of static variables */
-      extern char *strcons;		/* start of the string constants */
-      extern dptr fnames;		/* field names */
-      extern dptr efnames;		/* end of field names */
-      extern word *records;
-      extern int *ftabp;		/* field table pointer */
-      extern dptr xargp;
-      extern word xnargs;
+extern char *code;		/* start of icode */
+extern char *ecode;		/* end of icode */
+extern dptr statics;		/* start of static variables */
+extern char *strcons;		/* start of the string constants */
+extern dptr fnames;		/* field names */
+extern dptr efnames;		/* end of field names */
+extern word *records;
+extern int *ftabp;		/* field table pointer */
+extern dptr xargp;
+extern word xnargs;
 
-      extern word lastop;
-
-#else					/* COMPILER */
-
-   extern struct descrip statics[];	/* array of static variables */
-   extern struct b_proc *builtins[];	/* pointers to builtin functions */
-   extern int noerrbuf;			/* error buffering */
-   extern struct p_frame *pfp;		/* procedure frame pointer */
-   extern struct descrip trashcan;	/* dummy descriptor, never read */
-   extern int largeints;		/* flag: large integers supported */
-
-#endif					/* COMPILER */
+extern word lastop;
 
 /*
  * graphics

@@ -20,33 +20,22 @@
  */
 #define DVersion "9.0.00"
 
-#if COMPILER
+/*
+ *  &version
+ */
+#define Version  "Icon Version " VersionNumber ", " VersionDate
 
-   /*
-    * &version
-    */
-   #define Version  "Icon Version " VersionNumber "-C, " VersionDate
+/*
+ * Version numbers to be sure that ucode is compatible with the linker
+ * and that icode is compatible with the run-time system.
+ */
 
-#else					/* COMPILER */
+#define UVersion "U9.0.00"
 
-   /*
-    *  &version
-    */
-   #define Version  "Icon Version " VersionNumber ", " VersionDate
+#if IntBits == 32
+   #define IVersion "I9.0.00/32"
+#endif				/* IntBits == 32 */
 
-   /*
-    * Version numbers to be sure that ucode is compatible with the linker
-    * and that icode is compatible with the run-time system.
-    */
-
-   #define UVersion "U9.0.00"
-
-   #if IntBits == 32
-      #define IVersion "I9.0.00/32"
-   #endif				/* IntBits == 32 */
-
-   #if IntBits == 64
-      #define IVersion "I9.0.00/64"
-   #endif				/* IntBits == 64 */
-
-#endif					/* COMPILER */
+#if IntBits == 64
+   #define IVersion "I9.0.00/64"
+#endif				/* IntBits == 64 */

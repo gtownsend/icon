@@ -21,14 +21,6 @@
  */
 
 /*
- * If COMPILER is not defined, code for the interpreter is compiled.
- */
-
-#ifndef COMPILER
-   #define COMPILER 0
-#endif
-
-/*
  * The following definitions serve to cast common conditionals is
  *  a positive way, while allowing defaults for the cases that
  *  occur most frequently.  That is, if co-expressions are not supported,
@@ -226,32 +218,28 @@
 #define IHSize 128
 #define IHasher(x)	(((unsigned int)(unsigned long)(x))&(IHSize-1))
 
-#if !COMPILER
+/*
+ * Code for the interpreter.
+ */
+#ifndef IcodeSuffix
+   #define IcodeSuffix ""
+#endif				/* IcodeSuffix */
 
-   /*
-    * Code for the interpreter.
-    */
-   #ifndef IcodeSuffix
-      #define IcodeSuffix ""
-   #endif				/* IcodeSuffix */
+#ifndef IcodeASuffix
+   #define IcodeASuffix ""
+#endif				/* IcodeASuffix */
 
-   #ifndef IcodeASuffix
-      #define IcodeASuffix ""
-   #endif				/* IcodeASuffix */
+#ifndef U1Suffix
+   #define U1Suffix ".u1"
+#endif				/* U1Suffix */
 
-   #ifndef U1Suffix
-      #define U1Suffix ".u1"
-   #endif				/* U1Suffix */
+#ifndef U2Suffix
+   #define U2Suffix ".u2"
+#endif				/* U2Suffix */
 
-   #ifndef U2Suffix
-      #define U2Suffix ".u2"
-   #endif				/* U2Suffix */
-
-   #ifndef USuffix
-      #define USuffix ".u"
-   #endif				/* USuffix */
-
-#endif					/* !COMPILER */
+#ifndef USuffix
+   #define USuffix ".u"
+#endif				/* USuffix */
 
 /*
  *  Vsizeof is for use with variable-sized (i.e., indefinite)

@@ -3,7 +3,7 @@ include ../../Makedefs
 
 OBJS =	long.o getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
 	munix.o literals.o rswitch.o alloc.o long.o getopt.o time.o\
-	xwindow.o dlrgint.o ipp.o
+	xwindow.o ipp.o
 
 common:		doincl $(OBJS) gpxmaybe
 
@@ -39,8 +39,6 @@ ipp.o: ../h/features.h
 literals.o: ../h/esctab.h
 
 rtdb.o: ../h/version.h icontype.h
-
-dlrgint.o: ../h/rproto.h ../h/rexterns.h ../h/rmacros.h ../h/rstructs.h
 
 xwindow.o: ../h/graphics.h ../h/xwin.h
 

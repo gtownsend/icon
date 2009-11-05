@@ -1624,9 +1624,6 @@ function{3} Pixel(argv[argc])
                   Protect((StrLoc(lastval) = alcstr(strout, slen)), runerr(0));
                   StrLen(lastval) = slen;
                   }
-#if COMPILER
-               suspend lastval;		/* memory leak on vanquish */
-#else					/* COMPILER */
 	       /*
 		* suspend, but free up imem if vanquished; RTL workaround
 		* Needs implementing under the compiler.
@@ -1637,12 +1634,8 @@ function{3} Pixel(argv[argc])
 		  getpixel_term(w, &imem);
 		  VanquishReturn(signal);
 		  }
-#endif					/* COMPILER */
                }
             else {
-#if COMPILER
-               suspend C_integer rv;	/* memory leak on vanquish */
-#else					/* COMPILER */
 	       int signal;
 	       /*
 		* suspend, but free up imem if vanquished; RTL workaround
@@ -1655,7 +1648,6 @@ function{3} Pixel(argv[argc])
 		  getpixel_term(w, &imem);
 		  VanquishReturn(signal);
 		  }
-#endif					/* COMPILER */
                }
             }
          }

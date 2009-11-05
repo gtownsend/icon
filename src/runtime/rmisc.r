@@ -50,17 +50,7 @@ int getvar(s,vp)
    register dptr np;
    register int i;
    struct b_proc *bp;
-#if COMPILER
-   struct descrip sdp;
-
-   if (!debug_info)
-      fatalerr(402,NULL);
-
-   StrLoc(sdp) = s;
-   StrLen(sdp) = strlen(s);
-#else					/* COMPILER */
    struct pf_marker *fp = pfp;
-#endif					/* COMPILER */
 
    /*
     * Is it a keyword that's a variable?
@@ -122,53 +112,31 @@ int getvar(s,vp)
     *  If no such variable exits, it fails.
     */
 
-#if !COMPILER
    /*
     *  If no procedure has been called (as can happen with icon_call(),
     *  dont' try to find local identifier.
     */
    if (pfp == NULL)
       goto glbvars;
-#endif					/* !COMPILER */
 
    dp = glbl_argp;
-#if COMPILER
-   bp = PFDebug(*pfp)->proc;  /* get address of procedure block */
-#else					/* COMPILER */
    bp = (struct b_proc *)BlkLoc(*dp);	/* get address of procedure block */
-#endif					/* COMPILER */
 
    np = bp->lnames;		/* Check the formal parameter names. */
 
    for (i = abs((int)bp->nparam); i > 0; i--) {
-#if COMPILER
-      if (eq(&sdp, np) == 1) {
-#else					/* COMPILER */
       dp++;
       if (strcmp(s,StrLoc(*np)) == 0) {
-#endif					/* COMPILER */
          vp->dword = D_Var;
          VarLoc(*vp) = (dptr)dp;
          return ParamName;
          }
       np++;
-#if COMPILER
-      dp++;
-#endif					/* COMPILER */
       }
-
-#if COMPILER
-   dp = &pfp->tend.d[0];
-#else					/* COMPILER */
    dp = &fp->pf_locals[0];
-#endif					/* COMPILER */
 
    for (i = (int)bp->ndynam; i > 0; i--) { /* Check the local dynamic names. */
-#if COMPILER
-         if (eq(&sdp, np)) {
-#else					/* COMPILER */
 	 if (strcmp(s,StrLoc(*np)) == 0) {
-#endif					/* COMPILER */
             vp->dword = D_Var;
             VarLoc(*vp) = (dptr)dp;
             return LocalName;
@@ -179,11 +147,7 @@ int getvar(s,vp)
 
    dp = &statics[bp->fstatic]; /* Check the local static names. */
    for (i = (int)bp->nstatic; i > 0; i--) {
-#if COMPILER
-         if (eq(&sdp, np)) {
-#else					/* COMPILER */
          if (strcmp(s,StrLoc(*np)) == 0) {
-#endif					/* COMPILER */
             vp->dword = D_Var;
             VarLoc(*vp) = (dptr)dp;
             return StaticName;
@@ -192,15 +156,6 @@ int getvar(s,vp)
          dp++;
          }
 
-#if COMPILER
-   for (i = 0; i < n_globals; ++i) {
-      if (eq(&sdp, &gnames[i])) {
-         vp->dword = D_Var;
-         VarLoc(*vp) = (dptr)&globals[i];
-         return GlobalName;
-         }
-      }
-#else					/* COMPILER */
 glbvars:
    dp = globals;	/* Check the global variable names. */
    np = gnames;
@@ -213,7 +168,6 @@ glbvars:
       np++;
       dp++;
       }
-#endif					/* COMPILER */
    return Failed;
    }
 
@@ -812,7 +766,6 @@ int (*compar)();
     return 0;
 }
 
-#if !COMPILER
 /*
  * qtos - convert a qualified string named by *dp to a C-style string.
  *  Put the C-style string in sbuf if it will fit, otherwise put it
@@ -847,7 +800,6 @@ char *sbuf;
       }
    return Succeeded;
    }
-#endif					/* !COMPILER */
 
 #ifdef Coexpr
 /*
@@ -975,7 +927,6 @@ struct b_coexpr *ce;
 #endif					/* DeBugIconx */
 #endif					/* Coexpr */
 
-#if !COMPILER
 /*
  * findline - find the source line number associated with the ipc
  */
@@ -1069,7 +1020,6 @@ word *ipc;
    /*NOTREACHED*/
    return 0;  /* avoid gcc warning */
 }
-#endif					/* !COMPILER */
 
 /*
  * doimage(c,q) - allocate character c in string space, with escape
@@ -1616,94 +1566,6 @@ word a;
    over_flow = 0;
    return -a;
 }
-
-#if COMPILER
-/*
- * sig_rsm - standard success continuation that just signals resumption.
- */
-
-int sig_rsm()
-   {
-   return A_Resume;
-   }
-
-/*
- * cmd_line - convert command line arguments into a list of strings.
- */
-void cmd_line(argc, argv, rslt)
-int argc;
-char **argv;
-dptr rslt;
-   {
-   tended struct b_list *hp;
-   register word i;
-   register struct b_lelem *bp;  /* need not be tended */
-
-   /*
-    * Skip the program name.
-    */
-   --argc;
-   ++argv;
-
-   /*
-    * Allocate the list and a list block.
-    */
-   Protect(hp = alclist(argc), fatalerr(0,NULL));
-   Protect(bp = alclstb(argc, (word)0, argc), fatalerr(0,NULL));
-
-   /*
-    * Make the list block just allocated into the first and last blocks
-    *  for the list.
-    */
-   hp->listhead = hp->listtail = (union block *)bp;
-
-   /*
-    * Copy the arguments into the list
-    */
-   for (i = 0; i < argc; ++i) {
-      StrLen(bp->lslots[i]) = strlen(argv[i]);
-      StrLoc(bp->lslots[i]) = argv[i];
-      }
-
-   rslt->dword = D_List;
-   rslt->vword.bptr = (union block *) hp;
-   }
-
-/*
- * varargs - construct list for use in procedures with variable length
- *  argument list.
- */
-void varargs(argp, nargs, rslt)
-dptr argp;
-int nargs;
-dptr rslt;
-   {
-   tended struct b_list *hp;
-   register word i;
-   register struct b_lelem *bp;  /* need not be tended */
-
-   /*
-    * Allocate the list and a list block.
-    */
-   Protect(hp = alclist(nargs), fatalerr(0,NULL));
-   Protect(bp = alclstb(nargs, (word)0, nargs), fatalerr(0,NULL));
-
-   /*
-    * Make the list block just allocated into the first and last blocks
-    *  for the list.
-    */
-   hp->listhead = hp->listtail = (union block *)bp;
-
-   /*
-    * Copy the arguments into the list
-    */
-   for (i = 0; i < nargs; i++)
-      deref(&argp[i], &bp->lslots[i]);
-
-   rslt->dword = D_List;
-   rslt->vword.bptr = (union block *) hp;
-   }
-#endif					/* COMPILER */
 
 /*
  * retderef - Dereference local variables and substrings of local

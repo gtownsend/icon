@@ -2,8 +2,6 @@
  * data.r -- Various interpreter data tables.
  */
 
-#if !COMPILER
-
 struct b_proc Bnoproc;
 
 
@@ -81,7 +79,6 @@ struct pstrnm pntab[] = {
 
 int pnsize = (sizeof(pntab) / sizeof(struct pstrnm)) - 1;
 
-#endif					/* COMPILER */
 
 /*
  * Structures for built-in values.  Parts of some of these structures are
@@ -125,8 +122,6 @@ struct b_cset  fullcs = {
    cset_display(~0, ~0, ~0, ~0, ~0, ~0, ~0, ~0,
 		~0, ~0, ~0, ~0, ~0, ~0, ~0, ~0)
    };
-
-#if !COMPILER
 
 /*
  * Built-in csets
@@ -175,7 +170,6 @@ struct b_cset  k_letters = {
    cset_display(0,  0,	0,  0,	~01,  03777, ~01, 03777,
 		0,  0,	0,  0,	0,  0,	0,  0)
    };
-#endif					/* COMPILER */
 
 /*
  * Built-in files.
@@ -328,7 +322,6 @@ struct errtab errtab[] = {
    0,	""
    };
 
-#if !COMPILER
 #define OpDef(p,n,s,u) int Cat(O,p) (dptr cargp);
 #include "../h/odefs.h"
 #undef OpDef
@@ -371,4 +364,3 @@ int (*keytab[])() = {
 #define KDef(p,n) Cat(K,p),
 #include "../h/kdefs.h"
    };
-#endif					/* !COMPILER */

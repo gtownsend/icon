@@ -418,7 +418,7 @@ operator{1} ^ powr(x, y)
       }
 end
 
-#if COMPILER || !(defined LargeInts)
+#ifndef LargeInts
 /*
  * iipow - raise an integer to an integral power.
  */
@@ -461,7 +461,7 @@ C_integer n1, n2;
    over_flow = 0;
    return result;
    }
-#endif					/* COMPILER || !(defined LargeInts) */
+#endif					/* LargeInts */
 
 
 /*

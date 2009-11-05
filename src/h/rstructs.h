@@ -86,16 +86,11 @@ struct b_list {			/* list-header block */
 struct b_proc {			/* procedure block */
    word title;			/*   T_Proc */
    word blksize;		/*   size of block */
-
-   #if COMPILER
-      int (*ccode)();
-   #else				/* COMPILER */
-      union {			/*   entry points for */
-         int (*ccode)();	/*     C routines */
-         uword ioff;		/*     and icode as offset */
-         pointer icode;		/*     and icode as absolute pointer */
-         } entryp;
-   #endif				/* COMPILER */
+   union {			/*   entry points for */
+      int (*ccode)();		/*     C routines */
+      uword ioff;		/*     and icode as offset */
+      pointer icode;		/*     and icode as absolute pointer */
+      } entryp;
 
    word nparam;			/*   number of parameters */
    word ndynam;			/*   number of dynamic locals */
@@ -262,19 +257,6 @@ struct region {
       };
 #endif					/* Double */
 
-#if COMPILER
-   /*
-    * Structures for the compiler.
-    */
-   struct p_frame {
-      struct p_frame *old_pfp;
-      struct descrip *old_argp;
-      struct descrip *rslt;
-      continuation succ_cont;
-      struct tend_desc tend;
-      };
-#endif				/* COMPILER */
-
 /*
  * when debugging is enabled a debug struct is placed after the tended
  *  descriptors in the procedure frame.
@@ -292,41 +274,6 @@ union numeric {			/* long integers or real numbers */
       struct b_bignum *big;
    #endif				/* LargeInts */
    };
-
-#if COMPILER
-struct b_coexpr {		/* co-expression stack block */
-   word title;			/*   T_Coexpr */
-   word size;			/*   number of results produced */
-   word id;			/*   identification number */
-   struct b_coexpr *nextstk;	/*   pointer to next allocated stack */
-   continuation fnc;		/*   function containing co-expression code */
-   struct p_frame *es_pfp;	/*   current procedure frame pointer */
-   dptr es_argp;		/*   current argument pointer */
-   struct tend_desc *es_tend;	/*   current tended pointer */
-   char *file_name;		/*   current file name */
-   word line_num;		/*   current line_number */
-   dptr tvalloc;		/*   where to place transmitted value */
-   struct descrip freshblk;	/*   refresh block pointer */
-   struct astkblk *es_actstk;	/*   pointer to activation stack structure */
-   word cstate[CStateSize];	/*   C state information */
-   struct p_frame pf;           /*   initial procedure frame */
-   };
-
-struct b_refresh {		/* co-expression block */
-   word title;			/*   T_Refresh */
-   word blksize;		/*   size of block */
-   word nlocals;		/*   number of local variables */
-   word nargs;			/*   number of arguments */
-   word ntemps;                 /*   number of temporary descriptors */
-   word wrk_size;		/*   size of non-descriptor work area */
-   struct descrip elems[1];	/*   locals and arguments */
-   };
-
-#else					/* COMPILER */
-
-/*
- * Structures for the interpreter.
- */
 
 /*
  * Declarations for entries in tables associating icode location with
@@ -434,7 +381,6 @@ struct b_refresh {		/* co-expression block */
    struct descrip elems[1];	/*   arguments and locals, including Arg0 */
    };
 
-#endif					/* COMPILER */
 
 union block {			/* general block */
    struct b_real realblk;

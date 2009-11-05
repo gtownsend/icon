@@ -39,43 +39,35 @@ typedef word C_integer;
  */
 typedef int (*continuation) (void);
 
-#if !COMPILER
+/*
+ * Icode consists of operators and arguments.  Operators are small integers,
+ *  while arguments may be pointers.  To conserve space in icode files on
+ *  computers with 16-bit ints, icode is written by the linker as a mixture
+ *  of ints and words (longs).  When an icode file is read in and processed
+ *  by the interpreter, it looks like a C array of mixed ints and words.
+ *  Accessing this "nonstandard" structure is handled by a union of int and
+ *  word pointers and incrementing is done by incrementing the appropriate
+ *  member of the union (see the interpreter).  This is a rather dubious
+ *  method and certainly not portable.  A better way might be to address
+ *  icode with a char *, but the incrementing code might be inefficient
+ *  (at a place that experiences a lot of execution activity).
+ *
+ * For the moment, the dubious coding is isolated under control of the
+ *  size of integers.
+ */
 
-   /*
-    * Typedefs for the interpreter.
-    */
+#if IntBits != WordBits
 
-   /*
-    * Icode consists of operators and arguments.  Operators are small integers,
-    *  while arguments may be pointers.  To conserve space in icode files on
-    *  computers with 16-bit ints, icode is written by the linker as a mixture
-    *  of ints and words (longs).  When an icode file is read in and processed
-    *  by the interpreter, it looks like a C array of mixed ints and words.
-    *  Accessing this "nonstandard" structure is handled by a union of int and
-    *  word pointers and incrementing is done by incrementing the appropriate
-    *  member of the union (see the interpreter).  This is a rather dubious
-    *  method and certainly not portable.  A better way might be to address
-    *  icode with a char *, but the incrementing code might be inefficient
-    *  (at a place that experiences a lot of execution activity).
-    *
-    * For the moment, the dubious coding is isolated under control of the
-    *  size of integers.
-    */
+   typedef union {
+      int *op;
+      word *opnd;
+      } inst;
 
-   #if IntBits != WordBits
+#else					/* IntBits != WordBits */
 
-      typedef union {
-         int *op;
-         word *opnd;
-         } inst;
+   typedef union {
+      word *op;
+      word *opnd;
+      } inst;
 
-      #else				/* IntBits != WordBits */
-
-      typedef union {
-         word *op;
-         word *opnd;
-         } inst;
-
-   #endif				/* IntBits != WordBits */
-
-#endif					/* COMPILER */
+#endif					/* IntBits != WordBits */
