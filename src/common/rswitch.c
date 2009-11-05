@@ -1,15 +1,11 @@
 /*
- * pthreads.c -- Icon context switch code using POSIX threads and semaphores
+ * rswitch.c -- context switch code using POSIX threads and semaphores
  *
  * This code implements co-expression context switching on any system that
- * provides POSIX threads and semaphores.  It requires Icon 9.4.1 or later
- * built with "#define CoClean" in order to free threads and semaphores when
- * co-expressions are collected.  It is typically much slower when called
- * than platform-specific custom code, but of course it is much more portable,
- * and it is typically used infrequently.
+ * provides POSIX threads and semaphores.
  *
- * Unnamed semaphores are used unless NamedSemaphores is defined.
- * (This is for Mac OS 10.3 which does not have unnamed semaphores.)
+ * Anonymous semaphores are used unless NamedSemaphores is defined.
+ * (This is for MacOS which does not have anonymous semaphores.)
  */
 
 #include <fcntl.h>

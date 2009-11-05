@@ -975,9 +975,7 @@ static void cofree()
             abp = abp->astk_nxt;
             free((pointer)xabp);
             }
-         #ifdef CoClean
-	    coclean(xep->cstate);
-         #endif				/* CoClean */
+	 coclean(xep->cstate);
          free((pointer)xep);
          }
       else {

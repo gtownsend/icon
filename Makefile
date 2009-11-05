@@ -6,7 +6,6 @@
 #  configuration parameters
 VERSION=v95x
 name=unspecified
-csw=custom
 dest=/must/specify/dest/
 
 
@@ -39,11 +38,11 @@ config/$(name)/status src/h/define.h:
 
 Configure:	config/$(name)/status
 		$(MAKE) Pure >/dev/null
-		cd config; sh setup.sh $(name) NoGraphics $(csw)
+		cd config; sh setup.sh $(name) NoGraphics
 
 X-Configure:	config/$(name)/status
 		$(MAKE) Pure >/dev/null
-		cd config; sh setup.sh $(name) Graphics $(csw)
+		cd config; sh setup.sh $(name) Graphics
 
 
 # Get the status information for a specific system.

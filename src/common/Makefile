@@ -42,10 +42,6 @@ rtdb.o: ../h/version.h icontype.h
 
 xwindow.o: ../h/graphics.h ../h/xwin.h
 
-#  for rswitch, $(CFLAGS) is deliberately omitted  (-O may cause problems)
-rswitch.o: ../h/define.h ../h/arch.h $(RSW)
-	$(CC) -c $(RSW)
-
 
 #  The following section is needed if changes are made to the Icon grammar,
 #  but it is not run as part of the normal installation process.  If it is

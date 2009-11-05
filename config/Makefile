@@ -9,4 +9,3 @@ Clean:
 Pure:
 	rm -f $(TOP)/Makedefs
 	rm -f $(SRC)/h/define.h
-	rm -f $(SRC)/common/rswitch.[csS]
