@@ -172,10 +172,6 @@
    #define PPDirectives {"passthru", PpKeep},
 #endif					/* PPDirectives */
 
-#ifndef NoSrcColumnInfo
-   #define SrcColumnInfo
-#endif					/* NoSrcColumnInfo */
-
 #ifndef ExecSuffix
    #define ExecSuffix ""
 #endif					/* ExecSuffix */

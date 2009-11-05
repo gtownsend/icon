@@ -1140,22 +1140,7 @@ char *s;
 	 }
       else {
 	 if (ws->iconic != IconicState) {
-#ifdef Iconify
-	    if (ws->win == (Window) NULL) {
-	       wmap(w);
-	       }
-	    XIconifyWindow(ws->display->display, ws->win, ws->display->screen);
-	    XSync(stddpy, False);
-	    while (ws->iconic != IconicState)
-	       if ((hm = handle_misc(wd, NULL)) < 1) {
-		  if (hm == -1) return Error;
-		  else if (hm == 0) {
-		     return Failed;
-		     }
-		  }
-#else					/* Iconify */
 	    return Failed;
-#endif					/* Iconify */
 	    }
 	 }
       }
@@ -1265,11 +1250,7 @@ char *s;
 	 }
       else {
 	 if (ws->iconic != IconicState) {
-#ifdef Iconify
-	    XIconifyWindow(ws->display->display, ws->win, ws->display->screen);
-#else					/* Iconify */
 	    return Failed;
-#endif					/* Iconify */
 	    }
 	 }
       }

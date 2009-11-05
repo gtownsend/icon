@@ -930,7 +930,6 @@ struct b_coexpr *ce;
 /*
  * findline - find the source line number associated with the ipc
  */
-#ifdef SrcColumnInfo
 int findline(ipc)
 word *ipc;
 {
@@ -943,9 +942,6 @@ word *ipc;
 }
 
 int findloc(ipc)
-#else					/* SrcColumnInfo */
-int findline(ipc)
-#endif					/* SrcColumnInfo */
 word *ipc;
 {
    uword ipc_offset;

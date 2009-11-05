@@ -1017,24 +1017,14 @@ nodeptr n;
 static void emitline(n)
 nodeptr n;
    {
-   #ifdef SrcColumnInfo
-      /*
-       * if either line or column has changed, emit location information
-       */
-      if (((Col(n) << 16) + Line(n)) != lastlin) {
-         lastlin = (Col(n) << 16) + Line(n);
-         emitn("line",Line(n));
-         emitn("colm",Col(n));
-         }
-   #else				/* SrcColumnInfo */
-      /*
-       * if line has changed, emit line information
-       */
-      if (Line(n) != lastlin) {
-         lastlin = Line(n);
-         emitn("line", lastlin);
-         }
-   #endif				/* SrcColumnInfo */
+   /*
+    * if either line or column has changed, emit location information
+    */
+   if (((Col(n) << 16) + Line(n)) != lastlin) {
+      lastlin = (Col(n) << 16) + Line(n);
+      emitn("line",Line(n));
+      emitn("colm",Col(n));
+      }
    }
 
 /*

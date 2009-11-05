@@ -22,24 +22,6 @@
    #define RTLD_LAZY 1
 #endif					/* RTLD_LAZY */
 
-#ifdef FreeBSD
-   /*
-    * If DL_GETERRNO exists, this is an FreeBSD 1.1.5 or 2.0
-    * which lacks dlerror(); supply a substitute.
-    */
-   #passthru #ifdef DL_GETERRNO
-      char *dlerror(void)
-      {
-         int no;
-
-         if (0 == dlctl(NULL, DL_GETERRNO, &no))
-            return(strerror(no));
-         else
-            return(NULL);
-      }
-   #passthru #endif
-#endif					/* __FreeBSD__ */
-
 int glue();
 int makefunc	(dptr d, char *name, int (*func)());
 

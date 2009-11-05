@@ -320,28 +320,6 @@ int extent;
 	     continue;
 	     }
 
-#ifdef FreeColorFix
-      /*
-       * don't free ANY context's fg or bg
-       */
-      {
-      wcp wc; int numhits = 0;
-      for(wc=wcntxts; wc; wc=wc->next) {
-	 if ((wc->fg == wd->colrptrs[j]) ||
-	     (wc->bg == wd->colrptrs[j])) {
-	    if (numhits == 0)
-	       theColors[numSaved++] = j;
-	    numhits++;
-	    }
-	 }
-      if (numhits) {
-	 if (numhits > wd->colrptrs[j]->refcount)
-	    wd->colrptrs[j]->refcount = numhits;
-	 continue;
-	 }
-      }
-#endif					/* FreeColorFix */
-
       if (--(wd->colrptrs[j]->refcount) == 0) {
 	 toFree[freed++] = wd->colrptrs[j]->c;
          }
