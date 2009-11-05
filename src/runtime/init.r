@@ -538,12 +538,12 @@ char *s;
    {
    fprintf(stderr, "System error");
    if (pfp == NULL)
-      fprintf(stderr, " in startup code");
+      fprintf(stderr, " in startup code\n");
    else {
-      fprintf(stderr, " at line %ld in %s", (long)findline(ipc.opnd),
+      fprintf(stderr, " at line %ld in %s\n", (long)findline(ipc.opnd),
 	 findfile(ipc.opnd));
       }
-   fprintf(stderr, "\n%s\n", s);
+   perror(s);
    fflush(stderr);
    if (dodump)
       abort();
