@@ -4,7 +4,3 @@
 
 #define UNIX 1
 #define LoadFunc
-
-/* use gcc to compile generated code */
-#define CComp "gcc"
-#define COpts "-ldl"

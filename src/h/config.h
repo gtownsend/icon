@@ -66,14 +66,6 @@
    #undef Polling
    #define Polling
 
-   #ifndef ICONC_XLIB
-      #ifdef WinGraphics
-         #define ICONC_XLIB "-luser32 -lgdi32 -lcomdlg32 -lwinmm"
-      #else				/* WinGraphics */
-         #define ICONC_XLIB "-L/usr/X11R6/lib -lX11"
-      #endif				/* WinGraphics */
-   #endif				/* ICONC_XLIB */
-
 #else					/* Graphics */
    #undef XWindows
    #undef WinGraphics
@@ -191,26 +183,6 @@
 #ifndef CSuffix
    #define CSuffix ".c"
 #endif					/* CSuffix */
-
-#ifndef HSuffix
-   #define HSuffix ".h"
-#endif					/* HSuffix */
-
-#ifndef ObjSuffix
-   #define ObjSuffix ".o"
-#endif					/* ObjSuffix */
-
-#ifndef LibSuffix
-   #define LibSuffix ".a"
-#endif					/* LibSuffix */
-
-#ifndef CComp
-   #define CComp "cc"
-#endif					/* CComp */
-
-#ifndef COpts
-   #define COpts ""
-#endif					/* COpts */
 
 /*
  * Note, size of the hash table is a power of 2:

@@ -2,8 +2,6 @@
  * error.h -- routines for producing error messages.
  *
  * This source file contains the routines for issuing error messages.
- * It is built by inclusion in ../icont/tlex.c and ../iconc/clex.c,
- * with slight variations depending on whether "Iconc" is defined.
  */
 
 /*
@@ -110,25 +108,6 @@ char *s1, *s2;
    nocode++;
    }
 
-#ifdef Iconc
-/*
- * twarn produces s1 and s2 (if nonnull) as translator warning messages.
- *  The location of the error is found in tok_loc.
- */
-void twarn(s1, s2)
-char *s1, *s2;
-   {
-
-   if (tok_loc.n_file)
-      fprintf(stderr, "File %s; ", tok_loc.n_file);
-   fprintf(stderr, "Line %d # ", tok_loc.n_line);
-   if (s2)
-      fprintf(stderr, "\"%s\": ", s2);
-   fprintf(stderr, "%s\n", s1);
-   twarns++;
-   }
-#endif					/* Iconc */
-
 /*
  * tsyserr is called for fatal errors.  The message s is produced and the
  *  translator exits.
@@ -162,18 +141,12 @@ void quitf(msg,arg)
 char *msg, *arg;
    {
    extern char *progname;
+   extern char *ofile;
 
    fprintf(stderr,"%s: ",progname);
    fprintf(stderr,msg,arg);
    fprintf(stderr,"\n");
-
-   #if !defined(Iconc)
-      {
-      extern char *ofile;
-      if (ofile)
-	 remove(ofile);			/* remove bad icode file */
-      }
-   #endif				/* !Iconc */
-
+   if (ofile)
+      remove(ofile);			/* remove bad icode file */
    exit(EXIT_FAILURE);
    }

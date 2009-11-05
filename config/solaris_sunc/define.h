@@ -4,6 +4,3 @@
 
 #define UNIX 1
 #define LoadFunc
-
-#define CComp "cc"
-#define COpts "-ldl"

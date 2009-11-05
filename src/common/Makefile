@@ -49,9 +49,8 @@ rswitch.o: ../h/define.h ../h/arch.h $(RSW)
 
 #  The following section is needed if changes are made to the Icon grammar,
 #  but it is not run as part of the normal installation process.  If it is
-#  needed, it is run by changing ../icont/Makefile and/or ../iconc/Makefile;
-#  see the comments there for details.  icont must be in the search path
-#  for this section to work.
+#  needed, it is run by changing ../icont/Makefile; see the comments there
+#  for details.  icont must be in the search path for this section to work.
 
 gfiles:			lextab.h yacctok.h fixgram pscript
 

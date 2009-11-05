@@ -2,14 +2,10 @@
  * yylex.h -- the lexical analyzer.
  *
  * This source file contains the lexical analyzer, yylex(), and its
- * support routines. It is built by inclusion in ../icont/tlex.c and
- * ../iconc/clex.c, with slight variations depending on whether "Iconc"
- * is defined.
+ * support routines. It is built by inclusion in ../icont/tlex.c.
  */
 
-#if !defined(Iconc)
-   #include "../h/esctab.h"
-#endif					/* !Iconc */
+#include "../h/esctab.h"
 
 /*
  * Prototypes.
@@ -23,11 +19,9 @@ static	struct toktab   *getstring	(int ac,int *cc);
 static	int		setfilenm	(int c);
 static	int		setlineno	(void);
 
-#if !defined(Iconc)
-   static	int	ctlesc		(void);
-   static	int	hexesc		(void);
-   static	int	octesc		(int ac);
-#endif					/* !Iconc */
+static	int		ctlesc		(void);
+static	int		hexesc		(void);
+static	int		octesc		(int ac);
 
 #define isletter(s)	(isupper(c) | islower(c))
 #define tonum(c)        (isdigit(c) ? (c - '0') : ((c & 037) + 9))
@@ -399,16 +393,6 @@ int *cc;
          c = NextChar;
          if (c == EOF)
             break;
-
-#if defined(Iconc)
-         AppChar(lex_sbuf, Escape);
-         if (c == '^') {
-            c = NextChar;
-            if (c == EOF)
-               break;
-            AppChar(lex_sbuf, '^');
-            }
-#else					/* Iconc */
 	 if (isoctal(c))
 	    c = octesc(c);
 	 else if (c == 'x')
@@ -417,9 +401,8 @@ int *cc;
 	    c = ctlesc();
 	 else
 	    c = esctab[c];
-#endif					/* Iconc */
-
 	 }
+
       AppChar(lex_sbuf, c);
       c = NextChar;
 
@@ -451,8 +434,6 @@ int *cc;
       }
    }
 
-#if !defined(Iconc)
-
 /*
  * ctlesc - translate a control escape -- backslash followed by
  *  caret and one character.
@@ -523,8 +504,6 @@ static int hexesc()
 
    return c;
    }
-
-#endif					/* !Iconc */
 
 /*
  * setlineno - set line number from #line comment, return following char.

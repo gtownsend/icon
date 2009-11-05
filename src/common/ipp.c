@@ -18,7 +18,7 @@
  *	ppinit(fname,inclpath,m4flag) -- open input file
  *	ppdef(s,v) -- "$define s v", or "$undef s" if v is a null pointer
  *	ppch() -- return next preprocessed character
- *	ppecho() -- preprocess to stdout (for icont/iconc -E)
+ *	ppecho() -- preprocess to stdout (for icont -E)
  *
  *  See ../h/features.h for the set of predefined symbols.
  */
@@ -115,7 +115,7 @@ static char *lpath;			/* LPATH for finding source files */
 
 static int ifdepth;			/* depth of $if nesting */
 
-extern int tfatals, nocode;		/* provided by icont, iconc */
+extern int tfatals, nocode;		/* provided by icont */
 
 /*
  * ppinit(fname, inclpath, m4) -- initialize preprocessor to read from fname.

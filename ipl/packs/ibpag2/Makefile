@@ -23,7 +23,7 @@ LIBDIR = /usr/local/lib/icon/data
 #
 # Name of your icon compiler and compiler flags.
 #
-ICONC = icont
+ICONT = icont
 IFLAGS = -u -s #-Sc 400 -Sg 400 -Si 2000 -Sn 4000 -SF 40
 
 SHAR = /usr/local/bin/shar
@@ -48,7 +48,7 @@ SHARFILES = $(SRC) $(PARSER) $(GLRPARSER) sample.ibp beta2ref.ibp \
 all: $(PROGNAME)
 
 $(PROGNAME): $(SRC)
-	$(ICONC) $(IFLAGS) -o $(PROGNAME) $(SRC)
+	$(ICONT) $(IFLAGS) -o $(PROGNAME) $(SRC)
 
 
 ##########################################################################

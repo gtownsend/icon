@@ -9,8 +9,6 @@
 
 #define LoadFunc 1	/* enable dynamic loading */
 
-#define CComp "gcc"
-
 #define ExecSuffix ".exe"
 #define IcodeSuffix ".exe"
 
