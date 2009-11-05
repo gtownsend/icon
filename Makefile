@@ -128,6 +128,9 @@ Samples Samples-icont:	; cd tests; $(MAKE) Samples
 Benchmark Benchmark-icont:
 		cd tests/bench;		$(MAKE) benchmark-icont
 
+Micro Microbench Microbenchmark:
+		cd tests/bench;		$(MAKE) microbenchmark
+
 
 ##################################################################
 #

@@ -1,0 +1,976 @@
+#  micro.icn -- microbenchmark timings of Icon operations
+#
+#  From the Jcon distribution:
+#  14-feb-98/gmt
+#  13-mar-98/gmt
+#  25-mar-98/gmt
+#   2-apr-98/gmt
+#   3-apr-98/gmt
+#  Revised for Icon v9:
+#   5-nov-09/gmt
+#
+#  usage:  icon micro.icn interval
+#
+#  Various Icon operations are executed inside an "every 1 to n" loop,
+#  with n scaled to execute the loop for at least <interval> seconds.
+#  Timings are based on &time, which must be meaningful or all bets are off.
+#
+#  For each operation, execution time per iteration is given in nanoseconds.
+#  Automatic calibration produces a delay of a few seconds before the
+#  first line is output.  This first line reports the measured overhead
+#  of an empty loop, which is subtracted from subsequent values.
+#
+#  Timings labeled "nothing" are remeasurements of the empty loop.
+#  They should ideally be zero;  deviations indicate inaccuracies
+#  and inconsistencies in the timing measurements.
+
+
+$define DefaultTime 1.0		# default measurement interval, in seconds
+$define MinOvhTime 1.0		# minimum interval for overhead measurement
+$define NumOvhLoops 5		# number of overhead measurements to take
+
+global looptime			# expected loop time, in msec
+global overhead			# measured loop overhead, in nsec
+
+global sink			# output file for I/O tests
+
+
+procedure main(args)
+   local olist, ovhtime
+
+   looptime := integer(1000 * (args[1] | DefaultTime))
+   sink := open("/dev/null", "w")
+
+   # use median of five tries for overhead value
+   ovhtime := looptime
+   ovhtime <:= integer(1000 * MinOvhTime)
+   olist := list()
+   every 1 to NumOvhLoops do {
+      writes(&errout,".")
+      put(olist, measure(nothing, ovhtime))
+      }
+   overhead := sort(olist)[1 + (*olist - 1) / 2]	# median
+   write(right(overhead, 10), "  overhead")
+
+   report(nothing)
+   report(nothing)
+   report(nothing)
+
+   report(globasgn)
+   report(statasgn)
+   report(loclasgn)
+
+   report(if0)
+   report(case3)
+   report(nulltest)
+   report(typef)
+   report(imagef)
+   report(everyto)
+   report(everyalt)
+   report(conj5)
+   report(nullfunc)
+   report(listcall)
+   report(marshal)
+   report(evsusp)
+
+   report(tointeger)
+   report(intcoerce)
+   report(uplus)
+   report(tostring)
+   report(strcoerce)
+   report(absf)
+   report(intadd)
+   report(addfunc)
+   report(intpow)
+   report(intcmp)
+   report(rfact0)
+   report(rfact10)
+   report(rfib5)
+   report(prslow)
+
+   report(toreal)
+   report(realcoerce)
+   report(uplusr)
+   report(rtostring)
+   report(strcoercer)
+   report(realcmp)
+   report(sqrtf)
+   report(cosf)
+   report(logf)
+
+   report(charf)
+   report(ordf)
+   report(strsize)
+   report(strpick)
+   report(strbang)
+   report(strsub)
+   report(substr)
+   report(subsasg)
+   report(strcmp)
+   report(strident)
+   report(concat)
+
+   report(reversef)
+   report(trimf)
+   report(replf)
+   report(leftf)
+   report(centerf)
+   report(rightf)
+   report(entabf)
+   report(detabf)
+   report(mapf)
+
+   report(nullscan)
+   report(movef)
+   report(tabf)
+   report(matchf)
+   report(tabmat)
+   report(posf)
+   report(anyf)
+   report(manyf)
+   report(uptof)
+   report(findf)
+   report(balf)
+
+   report(tocset)
+   report(cssize)
+   report(cscompl)
+
+   report(lcreate)
+   report(lconst)
+   report(lcopy)
+   report(lsort)
+   report(lsize)
+   report(lpick)
+   report(lbang)
+   report(lsubscr)
+   report(putget)
+   report(putget12)
+   report(pushpop)
+   report(pushpop12)
+
+   report(setcreate)
+   report(setcopy)
+   report(setmember)
+   report(setinsert)
+   report(setinsdel)
+   report(setbang)
+   report(setpick)
+
+   report(tblcreate)
+   report(tblsub)
+   report(tblasgn)
+
+   report(recconstr)
+   report(reccopy)
+   report(recfield)
+   report(bigfield)
+
+   report(readz)
+   report(writechr)
+   report(writestr)
+
+   report(cxcreate)
+   report(cxget)
+
+   report(nothing)
+   report(nothing)
+   report(nothing)
+
+   write(&errout)
+end
+
+procedure report(proc)
+   local label
+   label := proc()
+   writes(&errout, ".")			# progress indicator
+   write(right(measure(proc, looptime) - overhead, 10), "  ", label)
+   return
+end
+
+procedure measure(proc, looptime)
+   local n, t1, t2, dt, nsec
+
+   proc(1)	# prime the pump -- load classes etc.
+   n := 1
+   t2 := &time
+
+   repeat {
+      n *:= 10
+      t1 := t2
+      proc(n)				# call proc n times
+      t2 := &time			# get ending time
+      dt := integer(t2 - t1)
+      if dt >= looptime / 20 then	# if close enough to estimate
+         break
+      }
+
+   n := integer(1.1 * n * looptime / real(dt))	# calc final loop count
+   collect()				# clean up accumulated garbage
+
+   t1 := &time
+   until t1 ~=:= &time			# await next tick
+   proc(n)				# run timing loop for real
+   t2 := &time				# calculate elapsed time
+   dt := integer(t2 - t1)
+
+   t1 := dt / real(n)
+   nsec := integer(t1 * 1000000 + 0.5)
+   return nsec
+end
+
+
+
+####################### microbenchmark procedures #####################
+
+
+
+procedure nothing(n)
+   if /n then return "nothing"
+   every 1 to n do
+      0
+end
+
+
+
+procedure uplus(n)
+   if /n then return "+407"
+   every 1 to n do
+      +407
+end
+
+procedure uplusr(n)
+   if /n then return "+7.25"
+   every 1 to n do
+      +7.25
+end
+
+procedure absf(n)
+   if /n then return "abs(-3)"
+   every 1 to n do
+      abs(-3)
+end
+
+procedure intadd(n)
+   if /n then return "4 + 7"
+   every 1 to n do
+      4 + 7
+end
+
+procedure intcmp(n)
+   if /n then return "4 < 7"
+   every 1 to n do
+      4 < 7
+end
+
+procedure intpow(n)
+   if /n then return "4 ^ 7"
+   every 1 to n do
+      4 ^ 7
+end
+
+procedure realcmp(n)
+   if /n then return "1.6 < 2.7"
+   every 1 to n do
+      1.6 < 2.7
+end
+
+procedure cosf(n)
+   if /n then return "cos(0.2)"
+   every 1 to n do
+      cos(0.2)
+end
+
+procedure sqrtf(n)
+   if /n then return "sqrt(7.4)"
+   every 1 to n do
+      sqrt(7.4)
+end
+
+procedure logf(n)
+   if /n then return "log(25.,17.)"
+   every 1 to n do
+      log(25.,17.)
+end
+
+
+
+
+
+
+procedure nullfunc(n)
+   if /n then return "p()"
+   every 1 to n do
+      nullf()
+end
+
+	procedure nullf()
+	end
+
+procedure listcall(n)
+   static L
+   initial L := []
+   if /n then return "p ! L"
+   every 1 to n do
+      nullf ! L
+end
+
+procedure addfunc(n)
+   if /n then return "add(4, 7)"
+   every 1 to n do
+      add(4, 7)
+end
+	procedure add(a, b)
+	   return a + b
+	end
+
+
+procedure rfact0(n)
+   if /n then return "rfact(0)"
+   every 1 to n do
+      rfact(0)
+end
+
+procedure rfact10(n)
+   if /n then return "rfact(10)"
+   every 1 to n do
+      rfact(10)
+end
+
+procedure rfact(n)	# makes n recursive calls
+   if n < 1 then return 1
+   else return n * rfact(n - 1)
+end
+
+
+procedure rfib5(n)
+   if /n then return "rfib(5)"
+   every 1 to n do
+      rfib(5)
+end
+
+procedure rfib(n)	# slow, recursive Fibonacci
+   if n < 3 then
+      return 1
+   else
+      return rfib(n - 2) + rfib(n - 1)
+end
+
+
+procedure prslow(n)	# slow prime number counting
+   local i, k
+   if /n then return "prslow(7)"
+   every 1 to n do {
+      k := 0
+      every i := 2 to 7 do {
+         if i % (2 to i - 1) = 0 then
+            next
+         k +:= 1
+      }
+   }
+end
+
+
+procedure if0(n)
+   if /n then return "if 0 then 1"
+   every 1 to n do
+      if 0 then 1
+end
+
+procedure case3(n)
+   if /n then return "case 3 of..."
+   every 1 to n do
+      case 3 of {
+	 1 : 1
+	 2 : 2
+	 3 : 3
+	 4 : 4
+	 default : 0
+      }
+end
+
+procedure nulltest(n)
+   if /n then return "\\8"
+   every 1 to n do
+      \8
+end
+
+procedure typef(n)
+   if /n then return "type(s)"
+   every 1 to n do
+      type("abcde")
+end
+
+procedure imagef(n)
+   if /n then return "image(s)"
+   every 1 to n do
+      image("ab\tcd")
+end
+
+
+procedure marshal(n)
+   if /n then return "2(3,1,4,1,6)"
+   every 1 to n do
+      2 (3, 1, 4, 1, 6)
+end
+
+
+procedure conj5(n)
+   if /n then return "1&2&3&4&5"
+   every 1 to n do
+      1 & 2 & 3 & 4 & 5
+end
+
+procedure everyalt(n)
+   if /n then return "1|2|3|4|5"
+   every 1 to n do
+      every 1 | 2 | 3 | 4 | 5
+end
+
+procedure everyto(n)
+   if /n then return "1 to 5"
+   every 1 to n do
+      every 1 to 5
+end
+
+procedure evsusp(n)
+   if /n then return "suspend i"
+   every susproc(n)
+end
+    procedure susproc(n)
+	suspend 1 to n
+    end
+
+
+procedure intcoerce(n)
+   if /n then return "+\"407\""
+   every 1 to n do
+      +"407"
+end
+
+procedure realcoerce(n)
+   if /n then return "+\"7.25\""
+   every 1 to n do
+      +"7.25"
+end
+
+procedure strcoerce(n)
+   if /n then return "*407"
+   every 1 to n do
+      *407
+end
+
+procedure strcoercer(n)
+   if /n then return "*7.25"
+   every 1 to n do
+      *7.25
+end
+
+
+
+procedure tointeger(n)
+   if /n then return "integer(\"407\")"
+   every 1 to n do
+      integer("407")
+end
+
+procedure toreal(n)
+   if /n then return "real(\"7.25\")"
+   every 1 to n do
+      real("407")
+end
+
+procedure tostring(n)
+   if /n then return "string(407)"
+   every 1 to n do
+      string(407)
+end
+
+procedure rtostring(n)
+   if /n then return "string(7.25)"
+   every 1 to n do
+      string(7.25)
+end
+
+procedure tocset(n)
+   if /n then return "cset(\"407\")"
+   every 1 to n do
+      cset("407")
+end
+
+
+
+procedure charf(n)
+   if /n then return "char(65)"
+   every 1 to n do
+      char(65)
+end
+
+procedure ordf(n)
+   if /n then return "ord(\"A\")"
+   every 1 to n do
+      ord("A")
+end
+
+procedure strsize(n)
+   if /n then return "*\"abcde\""
+   every 1 to n do
+      *"abcde"
+end
+
+procedure concat(n)
+   if /n then return "\"a\" || \"b\""
+   every 1 to n do
+      "a" || "b"
+end
+
+procedure strpick(n)
+   if /n then return "?\"abcde\""
+   every 1 to n do
+      ?"abcde"
+end
+
+procedure strbang(n)
+   if /n then return "!\"12345\""
+   every 1 to n do
+      every !"12345"
+end
+
+procedure strsub(n)
+   if /n then return "\"abcde\"[3]"
+   every 1 to n do
+      "abcde"[3]
+end
+
+procedure substr(n)
+   if /n then return "\"abcde\"[2:5]"
+   every 1 to n do
+      "abcde"[2:5]
+end
+
+procedure subsasg(n)
+   local s
+   if /n then return "s[2:5] := \"x\""
+   every 1 to n do
+      (s := "abcde")[2:5] := "x"
+end
+
+procedure strcmp(n)
+   if /n then return "\"abc\">>\"aaa\""
+   every 1 to n do
+      "abc" >> "aaa"
+end
+
+procedure strident(n)
+   if /n then return "\"abc\"===\"aaa\""
+   every 1 to n do
+      "abc" === "aaa"
+end
+
+procedure replf(n)
+   if /n then return "repl(\"-\",20)"
+   every 1 to n do
+      repl("-", 20)
+end
+
+procedure reversef(n)
+   if /n then return "reverse(\"a...z\")"
+   every 1 to n do
+      reverse("abcdefghijklmnopqrstuvwxyz")
+end
+
+procedure leftf(n)
+   if /n then return "left(\"a\",10)"
+   every 1 to n do
+      left("a",10)
+end
+
+procedure centerf(n)
+   if /n then return "center(\"a\",10)"
+   every 1 to n do
+      center("a",10)
+end
+
+procedure rightf(n)
+   if /n then return "right(\"a\",10)"
+   every 1 to n do
+      right("a",10)
+end
+
+procedure trimf(n)
+   if /n then return "trim(\"a  ...\")"
+   every 1 to n do
+      trim("a         ")
+end
+
+procedure entabf(n)
+   if /n then return "entab(\"a  ...\")"
+   every 1 to n do
+      entab("a         ")
+end
+
+procedure detabf(n)
+   if /n then return "detab(\"a\\tb\\tc\")"
+   every 1 to n do
+      detab("a\tb\tc")
+end
+
+procedure mapf(n)
+   if /n then return "map(s1,s2,s3)"
+   every 1 to n do
+      map("abcde", "bcdef", "cdefg")
+end
+
+
+procedure nullscan(n)
+   if /n then return "s ? 0"
+   every 1 to n do
+      "abc" ? 0
+end
+
+procedure movef(n)
+   if /n then return "move(0)"
+   "abcde" ? every 1 to n do
+      move(0)
+end
+
+procedure tabf(n)
+   if /n then return "tab(3)"
+   "abcde" ? every 1 to n do
+      tab(3)
+end
+
+procedure matchf(n)
+   if /n then return "match(\"abc\")"
+   "abcde" ? every 1 to n do
+      match("abc")
+end
+
+procedure tabmat(n)
+   if /n then return "s1 ? =s2"
+   "abcde" ? every 1 to n do
+      ="abd"
+end
+
+procedure posf(n)
+   if /n then return "pos(-1)"
+   "abcde" ? every 1 to n do
+      pos(-1)
+end
+
+procedure anyf(n)
+   if /n then return "any('aeiou')"
+   "abcde" ? every 1 to n do
+      any('aeiou')
+end
+
+procedure manyf(n)
+   if /n then return "many(&lcase)"
+   "abcde" ? every 1 to n do
+      many(&lcase)
+end
+
+procedure uptof(n)
+   if /n then return "upto('d')"
+   "abcde" ? every 1 to n do
+      upto('d')
+end
+
+procedure findf(n)
+   if /n then return "find(\"de\")"
+   "abcde" ? every 1 to n do
+      find("de")
+end
+
+procedure balf(n)
+   if /n then return "bal('+')"
+   "(a*b)+(c/d)" ? every 1 to n do
+      upto('+')
+end
+
+
+procedure cssize(n)
+   if /n then return "*&digits"
+   every 1 to n do
+      *&digits
+end
+
+procedure cscompl(n)
+   if /n then return "~&digits"
+   every 1 to n do
+      ~&digits
+end
+
+
+
+procedure lcreate(n)
+   if /n then return "list(5,0)"
+   every 1 to n do
+      list(5,0)
+end
+
+procedure lconst(n)
+   local x
+   if /n then return "[1,2,3,4,5]"
+   every 1 to n do
+      x := [1,2,3,4,5]		# must store, else jcont suppresses
+end
+
+procedure lcopy(n)
+   static L
+   initial L := [1,2,3,4,5]
+   if /n then return "copy(L)"
+   every 1 to n do
+      copy(L)
+end
+
+procedure lsort(n)
+   static L
+   initial L := [2,7,1,8,3]
+   if /n then return "sort(L)"
+   every 1 to n do
+      sort(L)
+end
+
+procedure lsize(n)
+   static L
+   initial L := [1,2,3,4,5]
+   if /n then return "*L"
+   every 1 to n do
+      *L
+end
+
+procedure lpick(n)
+   static L
+   initial L := [1,2,3,4,5]
+   if /n then return "?L"
+   every 1 to n do
+      ?L
+end
+
+procedure lsubscr(n)
+   static L
+   initial L := [1,2,3,4,5]
+   if /n then return "L[3]"
+   every 1 to n do
+      L[3]
+end
+
+procedure lbang(n)
+   static L
+   initial L := [1,2,3,4,5]
+   if /n then return "!L"
+   every 1 to n do
+      every !L
+end
+
+procedure putget(n)
+   static L
+   initial L := []
+   if /n then return "get(put(L,0))"
+   every 1 to n do
+      get(put(L,0))
+end
+
+procedure pushpop(n)
+   static L
+   initial L := []
+   if /n then return "pop(push(L,0))"
+   every 1 to n do
+      pop(push(L,0))
+end
+
+procedure putget12(n)
+   static L
+   initial L := [3,1,4,1,5,9,2,6,5,3,5,8]
+   if /n then return "get(put(L12,0))"
+   every 1 to n do
+      get(put(L,0))
+end
+
+procedure pushpop12(n)
+   static L
+   initial L := [3,1,4,1,5,9,2,6,5,3,5,8]
+   if /n then return "pop(push(L12,0))"
+   every 1 to n do
+      pop(push(L,0))
+end
+
+
+
+procedure setcreate(n)
+   if /n then return "set()"
+   every 1 to n do
+      set()
+end
+
+procedure setcopy(n)
+   static S
+   initial insert(S := set(), 5)
+   if /n then return "copy(S)"
+   every 1 to n do
+      copy(S)
+end
+
+procedure setinsert(n)
+   static S
+   initial insert(S := set(), 5)
+   if /n then return "insert(S,5)"
+   every 1 to n do
+      insert(S,5)
+end
+
+procedure setmember(n)
+   static S
+   initial insert(S := set(), 5)
+   if /n then return "member(S,5)"
+   every 1 to n do
+      member(S,5)
+end
+
+procedure setinsdel(n)
+   static S
+   initial S := set()
+   if /n then return "insert+delete"
+   every 1 to n do
+      delete(insert(S,5),5)
+end
+
+procedure setpick(n)
+   static S
+   initial insert(S := set(), 5)
+   if /n then return "?S"
+   every 1 to n do
+      ?S
+end
+
+procedure setbang(n)
+   static S
+   initial every insert(S := set(), 1 to 5)
+   if /n then return "!S"
+   every 1 to n do
+      every !S
+end
+
+
+
+procedure tblcreate(n)
+   if /n then return "table()"
+   every 1 to n do
+      table()
+end
+
+procedure tblasgn(n)
+   static T
+   initial (T := table())[5] := 1
+   if /n then return "T[5] := 1"
+   every 1 to n do
+      T[5] := 1
+end
+
+procedure tblsub(n)
+   static T
+   initial (T := table())[5] := 1
+   if /n then return "T[5]"
+   every 1 to n do
+      T[5]
+end
+
+
+
+record point(x,y)
+record bigrec(alpha, beta, gamma, delta, epsilon, figaro, guido, horatio)
+
+procedure recconstr(n)
+   if /n then return "record(4,7)"
+   every 1 to n do
+      point(4,7)
+end
+
+procedure reccopy(n)
+   static R
+   initial R := point(4,7)
+   if /n then return "copy(R)"
+   every 1 to n do
+      copy(R)
+end
+
+procedure recfield(n)
+   static R
+   initial R := point(4,7)
+   if /n then return "R.f"
+   every 1 to n do
+      R.y
+end
+
+procedure bigfield(n)
+   static R
+   initial R := bigrec()
+   if /n then return "R2.f"
+   every 1 to n do
+      R.horatio
+end
+
+
+
+global ggg
+
+procedure globasgn(n)
+   if /n then return "global := 1"
+   every 1 to n do
+      ggg := 1
+end
+
+procedure loclasgn(n)
+   local i
+   if /n then return "local := 1"
+   every 1 to n do
+      i := 1
+end
+
+procedure statasgn(n)
+   static i
+   if /n then return "static := 1"
+   every 1 to n do
+      i := 1
+end
+
+
+
+procedure readz(n)
+   static f
+   initial f := open("/dev/zero","ru")
+   if /n then return "reads(zero,8)"
+   every 1 to n do
+       reads(f, 8)
+end
+
+procedure writechr(n)
+   if /n then return "write(\"a...z\")"
+   every 1 to n do
+      write(sink, "abcdefghijklmnopqrstuvwxyz")
+end
+
+procedure writestr(n)
+   static s
+   initial s := "abcdefghijklmnopqrstuvwxyz"
+   if /n then return "write(s)"
+   every 1 to n do
+      write(sink, s)
+end
+
+
+procedure cxcreate(n)
+   if /n then return "create |\"a\""
+   every 1 to n do
+      create |"a"
+end
+
+procedure cxget(n)
+   static C
+   initial C := create |"a"
+   if /n then return "@C"
+   every 1 to n do
+      @C
+end
+

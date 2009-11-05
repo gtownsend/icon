@@ -1,3 +1,9 @@
+default:	benchmark
+
+
+micro microbench microbenchmark:
+		../../bin/icon micro.icn >micro.out 
+
 benchmark:
 		$(MAKE) benchmark-icont
 
