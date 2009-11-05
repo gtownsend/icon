@@ -13,6 +13,7 @@
  */
 
 #include <fcntl.h>
+#include <limits.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>
@@ -26,7 +27,10 @@ extern void new_context(int, void *);
 extern void syserr(char *msg);
 extern void *alloc(unsigned int n);
 
+extern long stksize;		/* value of COEXPSIZE */
+
 static int inited = 0;		/* has first-time initialization been done? */
+static pthread_attr_t attribs;	/* thread creation attributes */
 
 /*
  * Define a "context" struct to hold the thread information we need.
@@ -57,6 +61,8 @@ int coswitch(void *o, void *n, int first) {
    cstate ocs = o;			/* old cstate pointer */
    cstate ncs = n;			/* new cstate pointer */
    context *old, *new;			/* old and new context pointers */
+   size_t newsize;			/* stack size for new thread */
+   size_t pagesize;			/* system page size */
 
    if (inited)				/* if not first call */
       old = ocs[1];			/* load current context pointer */
@@ -69,6 +75,26 @@ int coswitch(void *o, void *n, int first) {
       makesem(old);
       old->thread = pthread_self();
       old->alive = 1;
+
+      /*
+       * Set up thread attributes to honor COEXPSIZE for setting stack size.
+       */
+      pagesize = sysconf(_SC_PAGESIZE);
+      newsize = stksize;
+      #ifdef PTHREAD_STACK_MIN
+         if (newsize < PTHREAD_STACK_MIN)   /* ensure system minimum is met */
+            newsize = PTHREAD_STACK_MIN;
+      #endif
+      if (pagesize > 0 && (newsize % pagesize) != 0) {
+         /* some systems require an exact multiple of the system page size */
+         newsize = newsize + pagesize - (newsize % pagesize);
+      }
+      pthread_attr_init(&attribs);
+      if (pthread_attr_setstacksize(&attribs, newsize) != 0) {
+         perror("pthread_attr_setstacksize");
+         syserr("cannot set stacksize for thread");
+      }
+
       inited = 1;
       }
 
@@ -81,7 +107,7 @@ int coswitch(void *o, void *n, int first) {
        */
       new = ncs[1] = alloc(sizeof(context));
       makesem(new);
-      if (pthread_create(&new->thread, NULL, nctramp, new) != 0) 
+      if (pthread_create(&new->thread, &attribs, nctramp, new) != 0)
          syserr("cannot create thread");
       new->alive = 1;
       }
