@@ -543,7 +543,8 @@ char *s;
       fprintf(stderr, " at line %ld in %s\n", (long)findline(ipc.opnd),
 	 findfile(ipc.opnd));
       }
-   perror(s);
+   if (s != NULL)
+      fprintf(stderr, "%s\n", s);
    fflush(stderr);
    if (dodump)
       abort();

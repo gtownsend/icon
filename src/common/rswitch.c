@@ -40,6 +40,7 @@ typedef struct {
 
 static void makesem(context *ctx);
 static void *nctramp(void *arg);
+static void uerror(char *msg);
 
 /*
  * Treat an Icon "cstate" array as an array of context pointers.
@@ -87,8 +88,7 @@ int coswitch(void *o, void *n, int first) {
       }
       pthread_attr_init(&attribs);
       if (pthread_attr_setstacksize(&attribs, newsize) != 0) {
-         perror("pthread_attr_setstacksize");
-         syserr("cannot set stacksize for thread");
+         uerror("cannot set stacksize for thread");
       }
 
       inited = 1;
@@ -104,7 +104,7 @@ int coswitch(void *o, void *n, int first) {
       new = ncs[1] = alloc(sizeof(context));
       makesem(new);
       if (pthread_create(&new->thread, &attribs, nctramp, new) != 0)
-         syserr("cannot create thread");
+         uerror("cannot create thread");
       new->alive = 1;
       }
 
@@ -144,11 +144,11 @@ static void makesem(context *ctx) {
       sprintf(name, "i%ld.sem", (long)getpid());
       ctx->semp = sem_open(name, O_CREAT, S_IRUSR | S_IWUSR, 0);
       if (ctx->semp == (sem_t *)SEM_FAILED)
-         syserr("cannot create semaphore");
+         uerror("cannot create semaphore");
       sem_unlink(name);
    #else				/* NamedSemaphores */
       if (sem_init(&ctx->sema, 0, 0) == -1)
-         syserr("cannot init semaphore");
+         uerror("cannot init semaphore");
       ctx->semp = &ctx->sema;
    #endif				/* NamedSemaphores */
    }
@@ -162,4 +162,12 @@ static void *nctramp(void *arg) {
    new_context(0, 0);			/* call new_context; will not return */
    syserr("new_context returned to nctramp");
    return NULL;
+   }
+
+/*
+ * uerror(s) -- abort due to Unix error.
+ */
+static void uerror(char *msg) {
+   perror(msg);
+   syserr(NULL);
    }
