@@ -9,7 +9,6 @@
 /*
  *  A number of symbols are defined here.
  *  Some enable or disable certain Icon features, for example:
- *	NoCoexpr	disables co-expressions
  *	LoadFunc	enables dynamic loading
  *
  *  Other definitions may occur for different configurations. These include:
@@ -19,20 +18,6 @@
  *  Changing them to values not used in standard configurations
  *  may result in an unbuildable or nonfunctioning system.
  */
-
-/*
- * The following definitions serve to cast common conditionals is
- *  a positive way, while allowing defaults for the cases that
- *  occur most frequently.  That is, if co-expressions are not supported,
- *  NoCoexpr is defined in define.h, but if they are supported, no
- *  definition is needed in define.h; nonetheless subsequent conditionals
- *  can be cast as #ifdef Coexpr.
- */
-
-#ifndef NoCoexpr
-   #undef Coexpr
-   #define Coexpr
-#endif					/* NoCoexpr */
 
 #ifndef NoLargeInts
    #undef LargeInts

@@ -311,9 +311,6 @@ struct errtab errtab[] = {
    307, "inadequate space in block region",
    308, "system stack overflow in co-expression",
 
-#ifndef Coexpr
-   401, "co-expressions not implemented",
-#endif					/* Coexpr */
    402, "program not compiled with debugging option",
 
    500, "program malfunction",		/* for use by runerr() */

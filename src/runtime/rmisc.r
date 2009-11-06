@@ -801,7 +801,6 @@ char *sbuf;
    return Succeeded;
    }
 
-#ifdef Coexpr
 /*
  * pushact - push actvtr on the activator stack of ce
  */
@@ -838,7 +837,6 @@ struct b_coexpr *ce, *actvtr;
    ce->es_actstk = abp;
    return Succeeded;
 }
-#endif					/* Coexpr */
 
 /*
  * popact - pop the most recent activator from the activator stack of ce
@@ -847,9 +845,6 @@ struct b_coexpr *ce, *actvtr;
 struct b_coexpr *popact(ce)
 struct b_coexpr *ce;
 {
-
-#ifdef Coexpr
-
    struct astkblk *abp = ce->es_actstk, *oabp;
    struct actrec *arp;
    struct b_coexpr *actvtr;
@@ -878,14 +873,8 @@ struct b_coexpr *ce;
 
    ce->es_actstk = abp;
    return actvtr;
-
-#else					/* Coexpr */
-    syserr("popact() called, but co-expressions not implemented");
-#endif					/* Coexpr */
-
 }
 
-#ifdef Coexpr
 /*
  * topact - return the most recent activator of ce.
  */
@@ -925,7 +914,6 @@ struct b_coexpr *ce;
       }
 }
 #endif					/* DeBugIconx */
-#endif					/* Coexpr */
 
 /*
  * findline - find the source line number associated with the ipc

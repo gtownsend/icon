@@ -227,11 +227,7 @@
 #endif					/* QualLstSize */
 
 #ifndef ActStkBlkEnts
-   #ifdef Coexpr
-      #define ActStkBlkEnts   25	/* number of entries in an astkblk */
-   #else				/* Coexpr */
-      #define ActStkBlkEnts    1	/* number of entries in an astkblk */
-   #endif				/* Coexpr */
+   #define ActStkBlkEnts   25		/* number of entries in an astkblk */
 #endif					/* ActStkBlkEnts */
 
 #ifndef RegionCushion

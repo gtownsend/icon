@@ -36,9 +36,7 @@
 
    Feature(1, "_ASCII", "ASCII")
 
-#ifdef Coexpr
    Feature(1, "_CO_EXPRESSIONS", "co-expressions")
-#endif					/* Coexpr */
 
 #ifdef LoadFunc
    Feature(1, "_DYNAMIC_LOADING", "dynamic loading")

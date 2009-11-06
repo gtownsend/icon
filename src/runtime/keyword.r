@@ -428,11 +428,7 @@ keyword{1} source
        return coexpr
        }
    inline {
-#ifndef Coexpr
-         return k_main;
-#else					/* Coexpr */
          return coexpr(topact((struct b_coexpr *)BlkLoc(k_current)));
-#endif					/* Coexpr */
          }
 end
 

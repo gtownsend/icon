@@ -11,8 +11,6 @@ int Ocreate(entryp, cargp)
 word *entryp;
 register dptr cargp;
    {
-
-#ifdef Coexpr
    tended struct b_coexpr *sblkp;
    register struct b_refresh *rblkp;
    register dptr dp, ndp;
@@ -77,12 +75,6 @@ register dptr cargp;
    Arg0.dword = D_Coexpr;
    BlkLoc(Arg0) = (union block *) sblkp;
    Return;
-
-#else					/* Coexpr */
-   err_msg(401, NULL);
-   Fail;
-#endif					/* Coexpr */
-
    }
 
 /*
@@ -93,8 +85,6 @@ dptr val;
 struct b_coexpr *ncp;
 dptr result;
    {
-#ifdef Coexpr
-
    int first;
 
    /*
@@ -114,8 +104,4 @@ dptr result;
       return A_Resume;
    else
       return A_Continue;
-
-#else					/* Coexpr */
-   RunErr(401,NULL);
-#endif					/* Coexpr */
    }

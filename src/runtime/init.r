@@ -328,10 +328,8 @@ char *argv[];
    mainhead->es_tend = NULL;
    mainhead->freshblk = nulldesc;	/* &main has no refresh block. */
 					/*  This really is a bug. */
-#ifdef Coexpr
    Protect(mainhead->es_actstk = alcactiv(), fatalerr(0,NULL));
    pushact(mainhead, mainhead);
-#endif					/* Coexpr */
 
    /*
     * Point &main at the co-expression block for the main procedure and set
