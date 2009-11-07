@@ -52,9 +52,7 @@
    Feature(1, "_KEYBOARD_FUNCTIONS", "keyboard functions")
 #endif					/* KeyboardFncs */
 
-#ifdef LargeInts
    Feature(largeints, "_LARGE_INTEGERS", "large integers")
-#endif					/* LargeInts */
 
 #ifdef Pipes
    Feature(1, "_PIPES", "pipes")

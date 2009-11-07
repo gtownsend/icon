@@ -39,7 +39,7 @@ char *compiler_def;
 FILE *out_file;
 char *inclname;
 int def_fnd;
-char *largeints = NULL;
+char *largeints = "LargeInts";
 
 int iconx_flg = 0;
 int enable_out = 0;
@@ -245,12 +245,9 @@ char *src_file;
    char *cname;
    char buf[MaxPath];		/* file name construction buffer */
    char *buf_ptr;
-   char *s;
    struct fileparts *fp;
    struct tdefnm *td;
    struct token *t;
-   static char *test_largeints = "#ifdef LargeInts\nyes\n#endif\n";
-   static int first_time = 1;
 
    cur_src = src_file;
 
@@ -266,24 +263,6 @@ char *src_file;
       sym_add(TypeDefName, td->name, OtherDcl, 1);
    init_lex();
    yyparse();
-   if (first_time) {
-      first_time = 0;
-      /*
-       * Now that the standard include files have been processed, see if
-       *  Largeints is defined and make sure it matches what's in the data base.
-       */
-      s = "NoLargeInts";
-      str_src("<rtt initialization>", test_largeints,
-         (int)strlen(test_largeints));
-      while ((t = preproc()) != NULL)
-          if (strcmp(t->image, "yes"))
-             s = "LargeInts";
-      if (largeints == NULL)
-         largeints = s;
-      else if (strcmp(largeints, s) != 0)
-         err2("header file definition of LargeInts/NoLargeInts does not match ",
-            dbname);
-      }
    enable_out = 1;
 
    /*

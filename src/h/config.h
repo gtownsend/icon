@@ -19,11 +19,6 @@
  *  may result in an unbuildable or nonfunctioning system.
  */
 
-#ifndef NoLargeInts
-   #undef LargeInts
-   #define LargeInts
-#endif					/* NoLargeInts */
-
 /*
  * Graphics definitions.
  */

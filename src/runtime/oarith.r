@@ -13,9 +13,7 @@ int over_flow = 0;
 
    operator{1} icon_op func_name(x, y)
       declare {
-#ifdef LargeInts
          tended struct descrip lx, ly;
-#endif					/* LargeInts */
 	 C_integer irslt;
          }
      arith_case (x, y) of {
@@ -70,15 +68,11 @@ end
 
    irslt = div3(x,y);
    if (over_flow) {
-#ifdef LargeInts
       MakeInt(x,&lx);
       MakeInt(y,&ly);
       if (bigdiv(&lx,&ly,&result) == Error) /* alcbignum failed */
 	 runerr(0);
       return result;
-#else					/* LargeInts */
-      runerr(203);
-#endif					/* LargeInts */
       }
    else return C_integer irslt;
 }
@@ -112,15 +106,11 @@ ArithOp( / , divide , Divide , RealDivide)
 #begdef Sub(x,y)
    irslt = sub(x,y);
    if (over_flow) {
-#ifdef LargeInts
       MakeInt(x,&lx);
       MakeInt(y,&ly);
       if (bigsub(&lx,&ly,&result) == Error) /* alcbignum failed */
          runerr(0);
       return result;
-#else					/* LargeInts */
-      runerr(203);
-#endif					/* LargeInts */
       }
    else return C_integer irslt;
 #enddef
@@ -196,15 +186,11 @@ ArithOp( % , mod , IntMod , RealMod)
 #begdef Mpy(x,y)
    irslt = mul(x,y);
    if (over_flow) {
-#ifdef LargeInts
       MakeInt(x,&lx);
       MakeInt(y,&ly);
       if (bigmul(&lx,&ly,&result) == Error) /* alcbignum failed */
          runerr(0);
       return result;
-#else					/* LargeInts */
-      runerr(203);
-#endif					/* LargeInts */
       }
    else return C_integer irslt;
 #enddef
@@ -228,21 +214,15 @@ operator{1} - neg(x)
 
 	    i = neg(x);
 	    if (over_flow) {
-#ifdef LargeInts
 	       struct descrip tmp;
 	       MakeInt(x,&tmp);
 	       if (bigneg(&tmp, &result) == Error)  /* alcbignum failed */
 	          runerr(0);
                return result;
-#else					/* LargeInts */
-	       irunerr(203,x);
-               errorfail;
-#endif					/* LargeInts */
                }
          return C_integer i;
          }
       }
-#ifdef LargeInts
    else if cnv:(exact) integer(x) then {
       abstract {
          return integer
@@ -253,7 +233,6 @@ operator{1} - neg(x)
 	 return result;
          }
       }
-#endif					/* LargeInts */
    else {
       if !cnv:C_double(x) then
          runerr(102, x)
@@ -282,7 +261,6 @@ operator{1} + number(x)
           return C_integer x;
           }
       }
-#ifdef LargeInts
    else if cnv:(exact) integer(x) then {
        abstract {
           return integer
@@ -291,7 +269,6 @@ operator{1} + number(x)
           return x;
           }
       }
-#endif					/* LargeInts */
    else if cnv:C_double(x) then {
        abstract {
           return real
@@ -319,15 +296,11 @@ end
 #begdef Add(x,y)
    irslt = add(x,y);
    if (over_flow) {
-#ifdef LargeInts
       MakeInt(x,&lx);
       MakeInt(y,&ly);
       if (bigadd(&lx, &ly, &result) == Error)  /* alcbignum failed */
 	 runerr(0);
       return result;
-#else					/* LargeInts */
-      runerr(203);
-#endif					/* LargeInts */
       }
    else return C_integer irslt;
 #enddef
@@ -346,19 +319,11 @@ operator{1} ^ powr(x, y)
 	    return integer
 	    }
 	 inline {
-#ifdef LargeInts
 	    tended struct descrip ly;
 	    MakeInt ( y, &ly );
 	    if (bigpow(&x, &ly, &result) == Error)  /* alcbignum failed */
 	       runerr(0);
 	    return result;
-#else
-	    extern int over_flow;
-	    C_integer r = iipow(IntVal(x), y);
-	    if (over_flow)
-	       runerr(203);
-	    return C_integer r;
-#endif
 	   }
 	 }
       else {
@@ -374,7 +339,6 @@ operator{1} ^ powr(x, y)
 	    }
 	 }
       }
-#ifdef LargeInts
    else if cnv:(exact)integer(y) then {
       if cnv:(exact)integer(x) then {
 	 abstract {
@@ -399,7 +363,6 @@ operator{1} ^ powr(x, y)
 	    }
 	 }
       }
-#endif					/* LargeInts */
    else {
       if !cnv:C_double(x) then
 	 runerr(102, x)
@@ -417,52 +380,6 @@ operator{1} ^ powr(x, y)
 	 }
       }
 end
-
-#ifndef LargeInts
-/*
- * iipow - raise an integer to an integral power.
- */
-C_integer iipow(n1, n2)
-C_integer n1, n2;
-   {
-   C_integer result;
-
-   /* Handle some special cases first */
-   over_flow = 0;
-   switch ( n1 ) {
-      case 1:
-	 return 1;
-      case -1:
-	 /* Result depends on whether n2 is even or odd */
-	 return ( n2 & 01 ) ? -1 : 1;
-      case 0:
-	 if ( n2 <= 0 )
-	    over_flow = 1;
-	 return 0;
-      default:
-	 if (n2 < 0)
-	    return 0;
-      }
-
-   result = 1L;
-   for ( ; ; ) {
-      if (n2 & 01L)
-	 {
-	 result = mul(result, n1);
-	 if (over_flow)
-	    return 0;
-	 }
-
-      if ( ( n2 >>= 1 ) == 0 ) break;
-      n1 = mul(n1, n1);
-      if (over_flow)
-	 return 0;
-      }
-   over_flow = 0;
-   return result;
-   }
-#endif					/* LargeInts */
-
 
 /*
  * ripow - raise a real number to an integral power.

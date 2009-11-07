@@ -35,8 +35,6 @@ dptr dp1, dp2;
 
    switch (Type(*dp1)) {
 
-#ifdef LargeInts
-
       case T_Integer:
 	 if (Type(*dp2) != T_Lrgint) {
             v1 = IntVal(*dp1);
@@ -55,20 +53,6 @@ dptr dp1, dp2;
 	 if (lresult == 0)
 	    return Equal;
 	 return ((lresult > 0) ? Greater : Less);
-
-#else					/* LargeInts */
-
-      case T_Integer:
-         v1 = IntVal(*dp1);
-         v2 = IntVal(*dp2);
-         if (v1 < v2)
-            return Less;
-         else if (v1 == v2)
-            return Equal;
-         else
-            return Greater;
-
-#endif					/* LargeInts */
 
       case T_Coexpr:
          /*
@@ -202,17 +186,12 @@ dptr dp;
 	 return 0;
       case T_Integer:
 	 return 1;
-
-#ifdef LargeInts
       case T_Lrgint:
 	 return 1;
-#endif					/* LargeInts */
-
       case T_Real:
 	 return 2;
-
-      /* string: return 3 (see above) */
-
+      /* String (handled above): /*
+         /* return 3; */
       case T_Cset:
 	 return 4;
       case T_File:
@@ -286,12 +265,9 @@ dptr dp1, dp2;
 	    result = (IntVal(*dp1) == IntVal(*dp2));
 	    break;
 
-#ifdef LargeInts
 	 case T_Lrgint:
 	    result = (bigcmp(dp1, dp2) == 0);
 	    break;
-#endif					/* LargeInts */
-
 
 	 case T_Real:
             GetReal(dp1, rres1);

@@ -276,11 +276,7 @@
 #define T_String	-1	/* string -- for reference; not used */
 #define T_Null		 0	/* null value */
 #define T_Integer	 1	/* integer */
-
-#ifdef LargeInts
-   #define T_Lrgint	 2	/* long integer */
-#endif					/* LargeInts */
-
+#define T_Lrgint	 2	/* long integer */
 #define T_Real		 3	/* real number */
 #define T_Cset		 4	/* cset */
 #define T_File		 5	/* file */
@@ -322,11 +318,7 @@
 
 #define D_Null		(T_Null     | D_Typecode)
 #define D_Integer	(T_Integer  | D_Typecode)
-
-#ifdef LargeInts
-   #define D_Lrgint	(T_Lrgint | D_Typecode | F_Ptr)
-#endif					/* LargeInts */
-
+#define D_Lrgint	(T_Lrgint   | D_Typecode | F_Ptr)
 #define D_Real		(T_Real     | D_Typecode | F_Ptr)
 #define D_Cset		(T_Cset     | D_Typecode | F_Ptr)
 #define D_File		(T_File     | D_Typecode | F_Ptr)

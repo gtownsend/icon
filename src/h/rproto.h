@@ -125,30 +125,31 @@ void		syserr		(char *s);
 struct b_coexpr	*topact		(struct b_coexpr *ce);
 void		xmfree		(void);
 
-#ifdef LargeInts
-   struct b_bignum *alcbignum	(word n);
-   word		bigradix	(int sign, int r, char *s, char *x,
+/*
+ * for large integers
+ */
+struct b_bignum *alcbignum	(word n);
+word		bigradix	(int sign, int r, char *s, char *x,
 						   union numeric *result);
-   double	bigtoreal	(dptr da);
-   int		realtobig	(dptr da, dptr dx);
-   int		bigtos		(dptr da, dptr dx);
-   void		bigprint	(FILE *f, dptr da);
-   int		cpbignum	(dptr da, dptr db);
-   int		bigadd		(dptr da, dptr db, dptr dx);
-   int		bigsub		(dptr da, dptr db, dptr dx);
-   int		bigmul		(dptr da, dptr db, dptr dx);
-   int		bigdiv		(dptr da, dptr db, dptr dx);
-   int		bigmod		(dptr da, dptr db, dptr dx);
-   int		bigneg		(dptr da, dptr dx);
-   int		bigpow		(dptr da, dptr db, dptr dx);
-   int		bigpowri        (double a, dptr db, dptr drslt);
-   int		bigand		(dptr da, dptr db, dptr dx);
-   int		bigor		(dptr da, dptr db, dptr dx);
-   int		bigxor		(dptr da, dptr db, dptr dx);
-   int		bigshift	(dptr da, dptr db, dptr dx);
-   word		bigcmp		(dptr da, dptr db);
-   int		bigrand		(dptr da, dptr dx);
-#endif					/* LargeInts */
+double		bigtoreal	(dptr da);
+int		realtobig	(dptr da, dptr dx);
+int		bigtos		(dptr da, dptr dx);
+void		bigprint	(FILE *f, dptr da);
+int		cpbignum	(dptr da, dptr db);
+int		bigadd		(dptr da, dptr db, dptr dx);
+int		bigsub		(dptr da, dptr db, dptr dx);
+int		bigmul		(dptr da, dptr db, dptr dx);
+int		bigdiv		(dptr da, dptr db, dptr dx);
+int		bigmod		(dptr da, dptr db, dptr dx);
+int		bigneg		(dptr da, dptr dx);
+int		bigpow		(dptr da, dptr db, dptr dx);
+int		bigpowri        (double a, dptr db, dptr drslt);
+int		bigand		(dptr da, dptr db, dptr dx);
+int		bigor		(dptr da, dptr db, dptr dx);
+int		bigxor		(dptr da, dptr db, dptr dx);
+int		bigshift	(dptr da, dptr db, dptr dx);
+word		bigcmp		(dptr da, dptr db);
+int		bigrand		(dptr da, dptr dx);
 
 #ifdef FAttrib
    char *make_mode(mode_t st_mode);

@@ -36,7 +36,6 @@ struct sdescrip {
  * Heap Blocks
  */
 
-#ifdef LargeInts
 struct b_bignum {		/* large integer block */
    word title;			/*   T_Lrgint */
    word blksize;		/*   block size */
@@ -44,7 +43,6 @@ struct b_bignum {		/* large integer block */
    int sign;			/*   sign; 0 positive, 1 negative */
    DIGIT digits[1];		/*   digits */
    };
-#endif					/* LargeInts */
 
 struct b_real {			/* real block */
    word title;			/*   T_Real */
@@ -270,9 +268,7 @@ struct debug {
 union numeric {			/* long integers or real numbers */
    long integer;
    double real;
-   #ifdef LargeInts
-      struct b_bignum *big;
-   #endif				/* LargeInts */
+   struct b_bignum *big;
    };
 
 /*
@@ -400,8 +396,5 @@ union block {			/* general block */
    struct b_coexpr coexpr;
    struct b_external externl;
    struct b_slots slots;
-
-   #ifdef LargeInts
-      struct b_bignum bignumblk;
-   #endif				/* LargeInts */
+   struct b_bignum bignumblk;
    };

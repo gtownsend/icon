@@ -43,15 +43,10 @@ double *d;
          return 1;
          }
       integer: {
-
-#ifdef LargeInts
          if (Type(*s) == T_Lrgint)
             *d = bigtoreal(s);
          else
-#endif					/* LargeInts */
-
             *d = IntVal(*s);
-
          return 1;
          }
       string: {
@@ -73,15 +68,11 @@ double *d;
       case T_Integer:
          *d = numrc.integer;
          return 1;
-
-#ifdef LargeInts
       case T_Lrgint:
          result.dword = D_Lrgint;
 	 BlkLoc(result) = (union block *)numrc.big;
          *d = bigtoreal(&result);
          return 1;
-#endif					/* LargeInts */
-
       case T_Real:
          *d = numrc.real;
          return 1;
@@ -103,13 +94,9 @@ C_integer *d;
 
    type_case *s of {
       integer: {
-
-#ifdef LargeInts
          if (Type(*s) == T_Lrgint) {
             return 0;
             }
-#endif					/* LargeInts */
-
          *d = IntVal(*s);
          return 1;
          }
@@ -245,12 +232,9 @@ C_integer *d;
 
    type_case *s of {
       integer: {
-
-#ifdef LargeInts
          if (Type(*s) == T_Lrgint) {
             return 0;
             }
-#endif					/* LargeInts */
          *d = IntVal(*s);
          return 1;
          }
@@ -312,14 +296,10 @@ dptr s, d;
       case T_Integer:
          MakeInt(numrc.integer, d);
 	 return 1;
-
-#ifdef LargeInts
       case T_Lrgint:
          d->dword = D_Lrgint;
 	 BlkLoc(*d) = (union block *)numrc.big;
          return 1;
-#endif					/* LargeInts */
-
       default:
          return 0;
       }
@@ -344,17 +324,12 @@ dptr s, d;
          double dbl;
          GetReal(s,dbl);
          if (dbl > MaxLong || dbl < MinLong) {
-
-#ifdef LargeInts
             if (realtobig(s, d) == Succeeded) {
                return 1;
                }
             else {
                return 0;
                }
-#else					/* LargeInts */
-            return 0;
-#endif					/* LargeInts */
 	    }
          MakeInt((word)dbl,d);
          return 1;
@@ -375,32 +350,21 @@ dptr s, d;
     * s is now a string.
     */
    switch( ston(s, &numrc) ) {
-
-#ifdef LargeInts
       case T_Lrgint:
          d->dword = D_Lrgint;
 	 BlkLoc(*d) = (union block *)numrc.big;
 	 return 1;
-#endif					/* LargeInts */
-
       case T_Integer:
          MakeInt(numrc.integer,d);
          return 1;
       case T_Real: {
          double dbl = numrc.real;
          if (dbl > MaxLong || dbl < MinLong) {
-
-#ifdef LargeInts
-            if (realtobig(s, d) == Succeeded) {
+            if (realtobig(s, d) == Succeeded)
                return 1;
-               }
-            else {
+            else
                return 0;
-               }
-#else					/* LargeInts */
-            return 0;
-#endif					/* LargeInts */
-	    }
+            }
          MakeInt((word)dbl,d);
          return 1;
          }
@@ -440,21 +404,17 @@ dptr s, d;
          return 1;
          }
       integer: {
-
-#ifdef LargeInts
          if (Type(*s) == T_Lrgint) {
             word slen;
             word dlen;
 
             slen = (BlkLoc(*s)->bignumblk.lsd - BlkLoc(*s)->bignumblk.msd +1);
             dlen = slen * NB * 0.3010299956639812;	/* 1 / log2(10) */
-	    bigtos(s,d);
-	    }
+            bigtos(s,d);
+            }
          else
-#endif					/* LargeInts */
-
-         itos(IntVal(*s), d, sbuf);
-	 }
+            itos(IntVal(*s), d, sbuf);
+            }
       real: {
          double res;
          GetReal(s, res);
@@ -613,21 +573,17 @@ dptr d;
       string:
          *d = *s;
       integer: {
-
-#ifdef LargeInts
          if (Type(*s) == T_Lrgint) {
             word slen;
             word dlen;
 
             slen = (BlkLoc(*s)->bignumblk.lsd - BlkLoc(*s)->bignumblk.msd +1);
             dlen = slen * NB * 0.3010299956639812;	/* 1 / log2(10) */
-	    bigtos(s,d);
-	    }
+            bigtos(s,d);
+            }
          else
-#endif					/* LargeInts */
-
-         itos(IntVal(*s), d, sbuf);
-	 }
+            itos(IntVal(*s), d, sbuf);
+         }
       real: {
          double res;
          GetReal(s, res);
@@ -833,13 +789,9 @@ union numeric *result;
     */
    if (c == 'r' || c == 'R') {
       int rv;
-#ifdef LargeInts
       rv = bigradix((int)msign, (int)mantissa, s, end_s, result);
       if (rv == Error)
          fatalerr(0, NULL);
-#else					/* LargeInts */
-      rv = radix((int)msign, (int)mantissa, s, end_s, result);
-#endif					/* LargeInts */
       return rv;
       }
 
@@ -905,7 +857,6 @@ union numeric *result;
       return T_Integer;
       }
 
-#ifdef LargeInts
    /*
     * Test for bignum.
     */
@@ -916,7 +867,6 @@ union numeric *result;
          fatalerr(0, NULL);
       return rv;
       }
-#endif					/* LargeInts */
 
    if (!realflag)
       return CvtFail;		/* don't promote to real if integer format */
@@ -966,50 +916,6 @@ union numeric *result;
    result->real = mantissa;
    return T_Real;
    }
-
-#ifndef LargeInts
-/*
- * radix - convert string s in radix r into an integer in *result.  sign
- *  will be either '+' or '-'.
- */
-int radix(sign, r, s, end_s, result)
-int sign;
-register int r;
-register char *s;
-register char *end_s;
-union numeric *result;
-   {
-   register int c;
-   long num;
-
-   if (r < 2 || r > 36)
-      return CvtFail;
-   c = (s < end_s) ? *s++ : ' ';
-   num = 0L;
-   while (isalnum(c)) {
-      c = tonum(c);
-      if (c >= r)
-	 return CvtFail;
-      num = num * r + c;
-      c = (s < end_s) ? *s++ : ' ';
-      }
-
-   /*
-    * Skip trailing white space and make sure there is nothing else left
-    *  in the string. Note, if we have already reached end-of-string,
-    *  c has been set to a space.
-    */
-   while (isspace(c) && s < end_s)
-      c = *s++;
-   if (!isspace(c))
-      return CvtFail;
-
-   result->integer = (sign == '+' ? num : -num);
-
-   return T_Integer;
-   }
-#endif					/* LargeInts */
-
 
 /*
  * cvpos - convert position to strictly positive position

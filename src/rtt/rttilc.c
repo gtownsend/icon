@@ -847,25 +847,11 @@ int const_cast;
                   }
               else if (typcd == int_typ) {
                   ForceNl();
-                  prt_str("#ifdef LargeInts", 0);
-                  ForceNl();
-
                   ilc_str("(((");
                   ilc_walk(n1, 0, 0);
                   ilc_str(").dword == D_Integer) || ((");
                   ilc_walk(n1, 0, 0);
                   ilc_str(").dword == D_Lrgint))");
-
-                  ForceNl();
-                  prt_str("#else /* LargeInts */", 0);
-                  ForceNl();
-
-                  ilc_str("((");
-                  ilc_walk(n1, 0, 0);
-                  ilc_str(").dword == D_Integer)");
-
-                  ForceNl();
-                  prt_str("#endif /* LargeInts */", 0);
                   ForceNl();
                   }
               else {

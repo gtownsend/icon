@@ -566,21 +566,11 @@ int indent;
        *  an ordinary integer or a large integer.
        */
       ForceNl();
-      prt_str("#ifdef LargeInts", 0);
-      ForceNl();
       prt_str("(((", indent);
       c_walk(desc, indent, 0);
       prt_str(").dword == D_Integer) || ((", indent);
       c_walk(desc, indent, 0);
       prt_str(").dword == D_Lrgint))", indent);
-      ForceNl();
-      prt_str("#else\t\t\t\t\t/* LargeInts */", 0);
-      ForceNl();
-      prt_str("((", indent);
-      c_walk(desc, indent, 0);
-      prt_str(").dword == D_Integer)", indent);
-      ForceNl();
-      prt_str("#endif\t\t\t\t\t/* LargeInts */", 0);
       ForceNl();
       }
    else {
@@ -2133,11 +2123,7 @@ int indent;
 
 	       if (typcd == int_typ) {
 		 ForceNl();
-		 prt_str("#ifdef LargeInts", 0);
-		 ForceNl();
 		 prt_str("case T_Lrgint:  ", indent + IndentInc);
-		 ForceNl();
-		 prt_str("#endif /* LargeInts */", 0);
 		 ForceNl();
 	       }
 
@@ -2661,8 +2647,6 @@ int brace;
                /*
                 * Try converting both arguments to an integer.
                 */
-               prt_str("#ifdef LargeInts", 0);
-               ForceNl();
                ld_prmloc(strt_prms);
                tok_line(t, indent);
                prt_str("else if (", indent);
@@ -2675,8 +2659,6 @@ int brace;
                   fall_thru |= 1;
                   mrg_prmloc(end_prms);
                   }
-               ForceNl();
-               prt_str("#endif\t\t\t\t\t/* LargeInts */", 0);
                ForceNl();
 
                /*
