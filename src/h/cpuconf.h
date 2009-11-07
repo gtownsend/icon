@@ -4,10 +4,6 @@
  *  included before this file.
  */
 
-#ifndef CStateSize
-   #define CStateSize 15		/* size of C state for co-expressions */
-#endif					/* CStateSize */
-
 /*
  * The following definitions depend on the sizes of ints and pointers.
  */

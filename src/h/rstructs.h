@@ -369,7 +369,7 @@ struct b_coexpr {		/* co-expression stack block */
    dptr tvalloc;		/*   where to place transmitted value */
    struct descrip freshblk;	/*   refresh block pointer */
    struct astkblk *es_actstk;	/*   pointer to activation stack structure */
-   word cstate[CStateSize];	/*   C state information */
+   word cstate[2];		/*   was C state, now rswitch data */
    };
 
 struct b_refresh {		/* co-expression block */

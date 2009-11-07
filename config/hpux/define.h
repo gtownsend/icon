@@ -3,5 +3,4 @@
  */
 #define UNIX 1
 
-#define CStateSize 20
 #define StackSize 10000

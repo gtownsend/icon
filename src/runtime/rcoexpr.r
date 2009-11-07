@@ -25,28 +25,11 @@ struct b_coexpr *sblkp;
 
    /*
     * The interpreter stack starts at word after co-expression stack block.
-    *  C stack starts at end of stack region on machines with down-growing C
-    *  stacks and somewhere in the middle of the region.
-    *
-    * The C stack is aligned on a doubleword boundary.	For up-growing
-    *  stacks, the C stack starts in the middle of the stack portion
-    *  of the static block.  For down-growing stacks, the C stack starts
-    *  at the last word of the static block.
+    * There is no longer C state in this region; pthreads makes another stack.
     */
 
    newsp = (word *)((char *)sblkp + sizeof(struct b_coexpr));
-
-#ifdef UpStack
-   sblkp->cstate[0] =
-      ((word)((char *)sblkp + (stksize - sizeof(*sblkp))/2)
-         &~((word)WordSize*StackAlign-1));
-#else					/* UpStack */
-   sblkp->cstate[0] =
-	((word)((char *)sblkp + stksize - WordSize)
-           &~((word)WordSize*StackAlign-1));
-#endif					/* UpStack */
-
-   sblkp->es_argp = (dptr)newsp;  /* args are first thing on stack */
+   sblkp->es_argp = (dptr)newsp;	/* args are first thing on stack */
 
    /*
     * Copy arguments onto new stack.

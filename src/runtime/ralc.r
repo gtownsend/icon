@@ -113,6 +113,9 @@ word n;
 
 /*
  * alccoexp - allocate a co-expression stack block.
+ *
+ * Although pthreads allocates a C stack, we still need this an
+ * interpreter stack beyond the end of the coexpr block.
  */
 
 struct b_coexpr *alccoexp()
