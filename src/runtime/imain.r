@@ -160,11 +160,6 @@ int argc;
 char **argv;
 int *ip;
    {
-
-   #ifdef TallyOpt
-      extern int tallyopt;
-   #endif				/* TallyOpt */
-
    *ip = 0;			/* number of arguments processed */
 
    /*
@@ -173,15 +168,6 @@ int *ip;
    while ( argv[1] != 0 && *argv[1] == '-' ) {
 
       switch ( *(argv[1]+1) ) {
-
-         #ifdef TallyOpt
-         /*
-          * Set tallying flag if -T option given
-          */
-         case 'T':
-            tallyopt = 1;
-            break;
-         #endif				/* TallyOpt */
 
          /*
           * Announce version on stderr if -V is given.

@@ -119,11 +119,6 @@ struct pf_marker *pfp = NULL;  /* Procedure frame pointer */
    struct ipc_fname *filenms, *efilenms; /* pointer to ipc/file name table */
    struct ipc_line *ilines, *elines;	/* pointer to ipc/line number table */
 
-#ifdef TallyOpt
-   word tallybin[16];		/* counters for tallying */
-   int tallyopt = 0;		/* want tally results output? */
-#endif				/* TallyOpt */
-
 word *stack;			/* Interpreter stack */
 word *stackend;			/* End of interpreter stack */
 
@@ -555,19 +550,6 @@ char *s;
 void c_exit(i)
 int i;
 {
-
-#ifdef TallyOpt
-   {
-   int j;
-
-   if (tallyopt) {
-      fprintf(stderr,"tallies: ");
-      for (j=0; j<16; j++)
-	 fprintf(stderr," %ld", (long)tallybin[j]);
-	 fprintf(stderr,"\n");
-	 }
-      }
-#endif					/* TallyOpt */
 
    if (k_dump && ixinited) {
       fprintf(stderr,"\nTermination dump:\n\n");

@@ -131,10 +131,6 @@ dptr cargp;
    extern int (*keytab[])();
    struct b_proc *bproc;
 
-#ifdef TallyOpt
-   extern word tallybin[];
-#endif					/* TallyOpt */
-
    /*
     * Make a stab at catching interpreter stack overflow.  This does
     * nothing for invocation in a co-expression other than &main.
@@ -1106,12 +1102,6 @@ Pfail_uw:
 	       rsp = (word *) rargp + 1;
 	       }
 	    goto mark0;
-
-#ifdef TallyOpt
-	 case Op_Tally:		/* tally */
-	    tallybin[GetWord]++;
-	    break;
-#endif					/* TallyOpt */
 
 	 case Op_Pnull:		/* push null descriptor */
 	    PushNull;
