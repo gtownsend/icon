@@ -22,7 +22,7 @@ XOBJS =	cnv.o data.o def.o errmsg.o fconv.o fload.o fmath.o\
 	rdebug.o rexternal.o rlrgint.o rmemmgt.o rmisc.o rstruct.o \
 	rsys.o rwinrsc.o rwinsys.o rwindow.o rcolor.o rimage.o
 
-RTT = ../../bin/rtt
+RTT = ../rtt/rtt
 SUFFIXES = .r .c .o
 .r.o:	; $(RTT) -x $*.r && $(CC) -o $*.o -c $(CFLAGS) x$*.c && rm x$*.c
 .r.c:	; $(RTT) -x $*.r

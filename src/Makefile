@@ -5,7 +5,7 @@ what:
 	@echo "What do you want to make?"
 
 Clean Pure:
-	cd common;	rm -f *.o *.exe doincl patchstr infer
+	cd common;	rm -f *.o *.exe patchstr infer
 	cd preproc;	rm -f *.o *.exe pp
 	cd rtt;		rm -f *.o *.exe rtt
 	cd runtime;	rm -f *.o *.exe *.c rt.db rt.a rtt*.lst iconx
@@ -24,6 +24,6 @@ Clean Pure:
 Force-rebuild: Clean
 	cd h; rm -f kdefs.h
 	cd common; rm -f *.o yacctok.h lextab.h icontype.h \
-		doincl fixgram mktoktab patchstr pscript typespec
+		fixgram mktoktab patchstr pscript typespec
 	cd icont; rm -f *.o icont mkkwd trash \
 		hdr.h keyword.h tgram.g ttoken.h tparse.c

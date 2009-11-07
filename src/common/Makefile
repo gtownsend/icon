@@ -5,11 +5,7 @@ OBJS =	long.o getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
 	munix.o literals.o rswitch.o alloc.o long.o getopt.o time.o\
 	xwindow.o ipp.o
 
-common:		doincl $(OBJS) gpxmaybe
-
-doincl:		doincl.c ../h/arch.h
-		$(CC) $(CFLAGS) -o doincl doincl.c
-		-./doincl -o ../../bin/rt.h ../h/rt.h
+common:		$(OBJS) gpxmaybe
 
 patchstr:	patchstr.c
 		$(CC) $(CFLAGS) -o patchstr patchstr.c

@@ -24,8 +24,8 @@ static char *options =
  *  interpreted as relative to where rtt.exe is or where rtt.exe is
  *  invoked.
  */
-    char *grttin_path = "../src/h/grttin.h";
-    char *rt_path = "../src/h/rt.h";
+    char *grttin_path = "../h/grttin.h";
+    char *rt_path = "../h/rt.h";
 
 /*
  *  Note: rtt presently does not process system include files. If this

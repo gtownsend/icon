@@ -58,18 +58,13 @@ Status:
 
 # The interpreter: icont and iconx.
 
-Icont bin/icont: Common
-		cd src/icont;		$(MAKE)
-		cd src/runtime;		$(MAKE) 
-
-
-# Common components.
-
-Common:		src/h/define.h
+Icont bin/icont: src/h/define.h
 		uname -a
 		pwd
 		cd src/common;		$(MAKE)
 		cd src/rtt;		$(MAKE)
+		cd src/icont;		$(MAKE)
+		cd src/runtime;		$(MAKE) 
 
 
 # The Icon program library.
