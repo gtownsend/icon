@@ -94,13 +94,3 @@ void	writecheck		(int rc);
 void	yyerror			(int tok,struct node *lval,int state);
 int	yylex			(void);
 int	yyparse			(void);
-
-#ifdef DeBugTrans
-   void	cdump			(void);
-   void	gdump			(void);
-   void	ldump			(void);
-#endif					/* DeBugTrans */
-
-#ifdef DeBugLinker
-   void	idump			(char *c);
-#endif					/* DeBugLinker */

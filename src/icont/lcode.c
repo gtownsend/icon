@@ -38,10 +38,6 @@ static void	outblock	(char *addr,int count);
 static void	setfile		(void);
 static void	wordout		(word oword);
 
-#ifdef DeBugLinker
-   static void	dumpblock	(char *addr,int count);
-#endif					/* DeBugLinker */
-
 word pc = 0;		/* simulated program counter */
 
 #define outword(n)	wordout((word)(n))
@@ -238,10 +234,6 @@ void gencode()
          case Op_Lab:
             lab = getlab();
             newline();
-            #ifdef DeBugLinker
-               if (Dflag)
-                  fprintf(dbgfile, "L%d:\n", lab);
-            #endif			/* DeBugLinker */
             backpatch(lab);
             break;
 
@@ -318,10 +310,6 @@ void gencode()
                implicit = gp->g_flag & F_ImpError;
                nargs = gp->g_nargs;
 	       align();
-               #ifdef DeBugLinker
-                  if (Dflag)
-                     fprintf(dbgfile, "\n# procedure %s\n", &lsspace[lsfree]);
-               #endif			/* DeBugLinker */
                }
             else {
                /*
@@ -438,12 +426,6 @@ static void lemit(op, name)
 int op;
 char *name;
    {
-
-   #ifdef DeBugLinker
-      if (Dflag)
-         fprintf(dbgfile, "%ld:\t%d\t\t\t\t# %s\n", (long)pc, op, name);
-   #endif				/* DeBugLinker */
-
    outop(op);
    }
 
@@ -452,11 +434,6 @@ int op, lab;
 char *name;
    {
    misalign();
-
-   #ifdef DeBugLinker
-      if (Dflag)
-         fprintf(dbgfile, "%ld:\t%d\tL%d\t\t\t# %s\n", (long)pc, op, lab, name);
-   #endif				/* DeBugLinker */
 
    if (lab >= maxlabels)
       labels  = (word *) trealloc(labels, NULL, &maxlabels, sizeof(word),
@@ -476,13 +453,6 @@ word n;
 char *name;
    {
    misalign();
-
-   #ifdef DeBugLinker
-      if (Dflag)
-         fprintf(dbgfile, "%ld:\t%d\t%ld\t\t\t# %s\n", (long)pc, op, (long)n,
-            name);
-   #endif				/* DeBugLinker */
-
    outop(op);
    outword(n);
    }
@@ -494,20 +464,7 @@ word loc;
 char *name;
    {
    misalign();
-
    loc -= pc + ((IntBits/ByteBits) + WordSize);
-
-   #ifdef DeBugLinker
-      if (Dflag) {
-         if (loc >= 0)
-            fprintf(dbgfile, "%ld:\t%d\t*+%ld\t\t\t# %s\n",(long) pc, op,
-               (long)loc, name);
-         else
-            fprintf(dbgfile, "%ld:\t%d\t*-%ld\t\t\t# %s\n",(long) pc, op,
-               (long)-loc, name);
-         }
-   #endif				/* DeBugLinker */
-
    outop(op);
    outword(loc);
    }
@@ -518,13 +475,6 @@ word offset;
 char *name;
    {
    misalign();
-
-   #ifdef DeBugLinker
-      if (Dflag)
-         fprintf(dbgfile, "%ld:\t%d\t%d,S+%ld\t\t\t# %s\n", (long)pc, op, n,
-            (long)offset, name);
-   #endif				/* DeBugLinker */
-
    outop(op);
    outword(n);
    outword(offset);
@@ -543,12 +493,6 @@ long i;
 char *name;
    {
    misalign();
-
-   #ifdef DeBugLinker
-      if (Dflag)
-         fprintf(dbgfile,"%ld:\t%d\t%ld\t\t\t# %s\n",(long)pc,op,(long)i,name);
-   #endif				/* DeBugLinker */
-
    outop(op);
    outword(i);
    }
@@ -578,23 +522,12 @@ register int k;
          x.f = lctable[k].c_val.rval;
       #endif				/* Double */
 
-      #ifdef DeBugLinker
-         if (Dflag) {
-            fprintf(dbgfile,"%ld:\t%d\t\t\t\t# real(%g)",(long)pc,T_Real, x.f);
-            dumpblock(x.ovly,sizeof(double));
-            }
-      #endif				/* DeBugLinker */
-
       outword(T_Real);
 
       #ifdef Double
          #if WordBits != 64
             /* fill out real block with an empty word */
             outword(0);
-            #ifdef DeBugLinker
-               if (Dflag)
-	          fprintf(dbgfile,"\t0\t\t\t\t\t# padding\n");
-            #endif			/* DeBugLinker */
          #endif				/* WordBits != 64 */
       #endif				/* Double */
 
@@ -614,23 +547,9 @@ register int k;
          if (Testb(i, csbuf))
            j++;
          }
-
-      #ifdef DeBugLinker
-         if (Dflag) {
-            fprintf(dbgfile, "%ld:\t%d\n",(long) pc, T_Cset);
-            fprintf(dbgfile, "\t%d\n",j);
-            }
-      #endif				/* DeBugLinker */
-
       outword(T_Cset);
       outword(j);		   /* cset size */
       outblock((char *)csbuf,sizeof(csbuf));
-
-      #ifdef DeBugLinker
-         if (Dflag)
-            dumpblock((char *)csbuf,CsetSize);
-      #endif				/* DeBugLinker */
-
       }
    }
 
@@ -649,19 +568,6 @@ int nargs, ndyn, nstat, fstat;
    size = (9*WordSize) + (2*WordSize) * (abs(nargs)+ndyn+nstat);
 
    p = &lsspace[name];
-   #ifdef DeBugLinker
-      if (Dflag) {
-         fprintf(dbgfile, "%ld:\t%d\n", (long)pc, T_Proc); /* type code */
-         fprintf(dbgfile, "\t%d\n", size);		/* size of block */
-         fprintf(dbgfile, "\tZ+%ld\n",(long)(pc+size));	/* entry point */
-         fprintf(dbgfile, "\t%d\n", nargs);		/* # arguments */
-         fprintf(dbgfile, "\t%d\n", ndyn);		/* # dynamic locals */
-         fprintf(dbgfile, "\t%d\n", nstat);		/* # static locals */
-         fprintf(dbgfile, "\t%d\n", fstat);		/* first static */
-         fprintf(dbgfile, "\t%d\tS+%ld\t\t\t# %s\n",	/* name of procedure */
-            (int)strlen(p), (long)(name), p);
-      }
-   #endif				/* DeBugLinker */
 
    outword(T_Proc);
    outword(size);
@@ -682,13 +588,6 @@ int nargs, ndyn, nstat, fstat;
       if (lltable[i].l_flag & F_Argument) {
          s_indx = lltable[i].l_name;
          p = &lsspace[s_indx];
-
-         #ifdef DeBugLinker
-            if (Dflag)
-               fprintf(dbgfile, "\t%d\tS+%ld\t\t\t# %s\n", (int)strlen(p),
-                  (long)s_indx, p);
-         #endif				/* DeBugLinker */
-
          outword(strlen(p));
          outword(s_indx);
          }
@@ -701,13 +600,6 @@ int nargs, ndyn, nstat, fstat;
       if (lltable[i].l_flag & F_Dynamic) {
          s_indx = lltable[i].l_name;
          p = &lsspace[s_indx];
-
-         #ifdef DeBugLinker
-            if (Dflag)
-               fprintf(dbgfile, "\t%d\tS+%ld\t\t\t# %s\n", (int)strlen(p),
-                  (long)s_indx, p);
-         #endif				/* DeBugLinker */
-
          outword(strlen(p));
          outword(s_indx);
          }
@@ -720,13 +612,6 @@ int nargs, ndyn, nstat, fstat;
       if (lltable[i].l_flag & F_Static) {
          s_indx = lltable[i].l_name;
          p = &lsspace[s_indx];
-
-         #ifdef DeBugLinker
-            if (Dflag)
-               fprintf(dbgfile, "\t%d\tS+%ld\t\t\t# %s\n", (int)strlen(p),
-                  (long)s_indx, p);
-         #endif				/* DeBugLinker */
-
          outword(strlen(p));
          outword(s_indx);
          }
@@ -752,36 +637,11 @@ void gentables()
     */
    align();
    hdr.Records = pc;
-
-   #ifdef DeBugLinker
-      if (Dflag) {
-         fprintf(dbgfile, "\n\n# global tables\n");
-         fprintf(dbgfile, "\n%ld:\t%d\t\t\t\t# record blocks\n",
-	    (long)pc, nrecords);
-         }
-   #endif				/* DeBugLinker */
-
    outword(nrecords);
    for (gp = lgfirst; gp != NULL; gp = gp->g_next) {
       if ((gp->g_flag & F_Record) && gp->g_procid > 0) {
          s = &lsspace[gp->g_name];
          gp->g_pc = pc;
-
-         #ifdef DeBugLinker
-            if (Dflag) {
-               fprintf(dbgfile, "%ld:\n", pc);
-               fprintf(dbgfile, "\t%d\n", T_Proc);
-               fprintf(dbgfile, "\t%d\n", RkBlkSize(gp));
-               fprintf(dbgfile, "\t_mkrec\n");
-               fprintf(dbgfile, "\t%d\n", gp->g_nargs);
-               fprintf(dbgfile, "\t-2\n");
-               fprintf(dbgfile, "\t%d\n", gp->g_procid);
-               fprintf(dbgfile, "\t1\n");
-               fprintf(dbgfile, "\t%d\tS+%ld\t\t\t# %s\n", (int)strlen(s),
-                  (long)gp->g_name, s);
-               }
-         #endif				/* DeBugLinker */
-
          outword(T_Proc);		/* type code */
          outword(RkBlkSize(gp));
          outword(0);			/* entry point (filled in by interp)*/
@@ -810,12 +670,6 @@ void gentables()
                         fflush(stderr);
                         exit(1);
                         }
-                     #ifdef DeBugLinker
-                        if (Dflag)
-                           fprintf(dbgfile, "\t%d\tS+%ld\t\t\t# %s\n",
-                              (int)strlen(&lsspace[fp->f_name]),
-                              fp->f_name, &lsspace[fp->f_name]);
-                     #endif		/* DeBugLinker */
                      outword(strlen(&lsspace[fp->f_name]));
                      outword(fp->f_name);
                      foundit++;
@@ -839,40 +693,18 @@ void gentables()
        * Output record/field table (not compressed).
        */
       hdr.Ftab = pc;
-      #ifdef DeBugLinker
-         if (Dflag)
-            fprintf(dbgfile,"\n%ld:\t\t\t\t\t# record/field table\n",(long)pc);
-      #endif				/* DeBugLinker */
-
       for (fp = lffirst; fp != NULL; fp = fp->f_nextentry) {
-         #ifdef DeBugLinker
-            if (Dflag)
-               fprintf(dbgfile, "%ld:\t\t\t\t\t# %s\n", (long)pc,
-                  &lsspace[fp->f_name]);
-         #endif				/* DeBugLinker */
          rp = fp->f_rlist;
          for (i = 1; i <= nrecords; i++) {
             while (rp != NULL && rp->r_gp->g_procid < 0)
 	       rp = rp->r_link;		/* skip unreferenced constructor */
             if (rp != NULL && rp->r_gp->g_procid == i) {
-               #ifdef DeBugLinker
-                  if (Dflag)
-                      fprintf(dbgfile, "\t%d\n", rp->r_fnum);
-               #endif			/* DeBugLinker */
                outop(rp->r_fnum);
                rp = rp->r_link;
 	       }
             else {
-               #ifdef DeBugLinker
-                  if (Dflag)
-                      fprintf(dbgfile, "\t-1\n");
-               #endif			/* DeBugLinker */
                outop(-1);
                }
-            #ifdef DeBugLinker
-               if (Dflag && (i == nrecords || (i & 03) == 0))
-                  putc('\n', dbgfile);
-            #endif			/* DeBugLinker */
             }
          }
 
@@ -883,13 +715,6 @@ void gentables()
    hdr.Fnames = pc;
    for (fp = lffirst; fp != NULL; fp = fp->f_nextentry) {
       s = &lsspace[fp->f_name];
-
-      #ifdef DeBugLinker
-         if (Dflag)
-            fprintf(dbgfile, "%ld:\t%d\tS+%ld\t\t\t# %s\n",
-               (long)pc, (int)strlen(s), (long)fp->f_name, s);
-      #endif				/* DeBugLinker */
-
       outword(strlen(s));      /* name of field: length & offset */
       outword(fp->f_name);
    }
@@ -900,38 +725,18 @@ void gentables()
    hdr.Globals = pc;
    for (gp = lgfirst; gp != NULL; gp = gp->g_next) {
       if (gp->g_flag & F_Builtin) {		/* function */
-         #ifdef DeBugLinker
-            if (Dflag)
-               fprintf(dbgfile, "%ld:\t%06lo\t%d\t\t\t# %s\n",
-                   (long)pc, (long)D_Proc, -gp->g_procid, &lsspace[gp->g_name]);
-         #endif				/* DeBugLinker */
          outword(D_Proc);
          outword(-gp->g_procid);
          }
       else if (gp->g_flag & F_Proc) {		/* Icon procedure */
-         #ifdef DeBugLinker
-            if (Dflag)
-               fprintf(dbgfile, "%ld:\t%06lo\tZ+%ld\t\t\t# %s\n",
-                   (long)pc,(long)D_Proc, (long)gp->g_pc, &lsspace[gp->g_name]);
-         #endif				/* DeBugLinker */
          outword(D_Proc);
          outword(gp->g_pc);
          }
       else if (gp->g_flag & F_Record) {		/* record constructor */
-         #ifdef DeBugLinker
-            if (Dflag)
-               fprintf(dbgfile, "%ld:\t%06lo\tZ+%ld\t\t\t# %s\n", (long) pc,
-                   (long)D_Proc, (long)gp->g_pc, &lsspace[gp->g_name]);
-         #endif				/* DeBugLinker */
          outword(D_Proc);
          outword(gp->g_pc);
          }
       else {				/* simple global variable */
-         #ifdef DeBugLinker
-            if (Dflag)
-               fprintf(dbgfile, "%ld:\t%06lo\t0\t\t\t# %s\n",(long)pc,
-                  (long)D_Null, &lsspace[gp->g_name]);
-         #endif				/* DeBugLinker */
          outword(D_Null);
          outword(0);
          }
@@ -942,14 +747,6 @@ void gentables()
     */
    hdr.Gnames = pc;
    for (gp = lgfirst; gp != NULL; gp = gp->g_next) {
-
-      #ifdef DeBugLinker
-         if (Dflag)
-            fprintf(dbgfile, "%ld:\t%d\tS+%ld\t\t\t# %s\n",
-               (long)pc, (int)strlen(&lsspace[gp->g_name]), (long)(gp->g_name),
-                  &lsspace[gp->g_name]);
-      #endif				/* DeBugLinker */
-
       outword(strlen(&lsspace[gp->g_name]));
       outword(gp->g_name);
       }
@@ -959,12 +756,6 @@ void gentables()
     */
    hdr.Statics = pc;
    for (i = lstatics; i > 0; i--) {
-
-      #ifdef DeBugLinker
-         if (Dflag)
-            fprintf(dbgfile, "%ld:\t0\t0\n", (long)pc);
-      #endif				/* DeBugLinker */
-
       outword(D_Null);
       outword(0);
       }
@@ -981,20 +772,6 @@ void gentables()
       outfile) < 0)
          quit("cannot write icode file");
 
-   #ifdef DeBugLinker
-      if (Dflag) {
-         int k = 0;
-         struct ipc_fname *ptr;
-         for (ptr = fnmtbl; ptr < fnmfree; ptr++) {
-            fprintf(dbgfile, "%ld:\t%03d\tS+%03d\t\t\t# %s\n",
-               (long)(pc + k), ptr->ipc, ptr->fname, &lsspace[ptr->fname]);
-            k = k + 8;
-            }
-         putc('\n', dbgfile);
-         }
-
-   #endif				/* DeBugLinker */
-
    pc += (char *)fnmfree - (char *)fnmtbl;
 
    hdr.linenums = pc;
@@ -1002,47 +779,8 @@ void gentables()
       outfile) < 0)
          quit("cannot write icode file");
 
-   #ifdef DeBugLinker
-      if (Dflag) {
-         int k = 0;
-         struct ipc_line *ptr;
-         for (ptr = lntable; ptr < lnfree; ptr++) {
-            fprintf(dbgfile, "%ld:\t%03d\t%03d\n", (long)(pc + k),
-               ptr->ipc, ptr->line);
-            k = k + 8;
-            }
-         putc('\n', dbgfile);
-         }
-
-   #endif				/* DeBugLinker */
-
    pc += (char *)lnfree - (char *)lntable;
-
    hdr.Strcons = pc;
-   #ifdef DeBugLinker
-      if (Dflag) {
-         int c, j, k;
-         j = k = 0;
-         for (s = lsspace; s < &lsspace[lsfree]; ) {
-            fprintf(dbgfile, "%ld:\t%03o", (long)(pc + k), *s++ & 0377);
-            k = k + 8;
-            for (i = 7; i > 0; i--) {
-               if (s >= &lsspace[lsfree])
-                  fprintf(dbgfile,"    ");
-               else
-                  fprintf(dbgfile, " %03o", *s++ & 0377);
-               }
-            fprintf(dbgfile, "   ");
-            for (i = 0; i < 8; i++)
-               if (j < lsfree) {
-                  c = lsspace[j++];
-                  putc(isprint(c & 0377) ? c : ' ', dbgfile);
-   	       }
-            putc('\n', dbgfile);
-            }
-         }
-
-   #endif				/* DeBugLinker */
 
    if (longwrite(lsspace, (long)lsfree, outfile) < 0)
          quit("cannot write icode file");
@@ -1055,25 +793,6 @@ void gentables()
    hdr.hsize = pc;
    strcpy((char *)hdr.config,IVersion);
    hdr.trace = trace;
-
-
-   #ifdef DeBugLinker
-      if (Dflag) {
-         fprintf(dbgfile, "\n");
-         fprintf(dbgfile, "size:	 %ld\n", (long)hdr.hsize);
-         fprintf(dbgfile, "trace:	 %ld\n", (long)hdr.trace);
-         fprintf(dbgfile, "records: %ld\n", (long)hdr.Records);
-         fprintf(dbgfile, "ftab:	 %ld\n", (long)hdr.Ftab);
-         fprintf(dbgfile, "fnames:  %ld\n", (long)hdr.Fnames);
-         fprintf(dbgfile, "globals: %ld\n", (long)hdr.Globals);
-         fprintf(dbgfile, "gnames:  %ld\n", (long)hdr.Gnames);
-         fprintf(dbgfile, "statics: %ld\n", (long)hdr.Statics);
-         fprintf(dbgfile, "strcons:   %ld\n", (long)hdr.Strcons);
-         fprintf(dbgfile, "filenms:   %ld\n", (long)hdr.Filenms);
-         fprintf(dbgfile, "linenums:   %ld\n", (long)hdr.linenums);
-         fprintf(dbgfile, "config:   %s\n", hdr.config);
-         }
-   #endif				/* DeBugLinker */
 
    fseek(outfile, hdrsize, 0);
    if (longwrite((char *)&hdr, (long)sizeof(hdr), outfile) < 0)
@@ -1176,25 +895,6 @@ int count;
       *codep++ = *addr++;
    }
 
-#ifdef DeBugLinker
-   /*
-    * dumpblock(a,i) dump contents of i bytes at address a, used only
-    *  in conjunction with -L.
-    */
-   static void dumpblock(addr, count)
-   char *addr;
-   int count;
-      {
-      int i;
-      for (i = 0; i < count; i++) {
-         if ((i & 7) == 0)
-            fprintf(dbgfile,"\n\t");
-         fprintf(dbgfile," %03o",(0377 & (unsigned)addr[i]));
-         }
-      putc('\n',dbgfile);
-      }
-   #endif				/* DeBugLinker */
-
 /*
  * flushcode - write buffered code to the output file.
  */
@@ -1247,16 +947,3 @@ int lab;
       }
    labels[lab] = pc;
    }
-
-#ifdef DeBugLinker
-   void idump(s)		/* dump code region */
-      char *s;
-      {
-      int *c;
-
-      fprintf(stderr,"\ndump of code region %s:\n",s);
-      for (c = (int *)codeb; c < (int *)codep; c++)
-          fprintf(stderr,"%ld: %d\n",(long)c, (int)*c);
-      fflush(stderr);
-      }
-   #endif				/* DeBugLinker */

@@ -48,10 +48,6 @@ Global int pponly	Init(0);	/* -E: preprocess only */
 Global int strinv	Init(0);	/* -f s: allow full string invocation */
 Global int verbose	Init(1);	/* -v n: verbosity of commentary */
 
-#ifdef DeBugLinker
-   Global int Dflag	Init(0);	/* -L: linker debug (write .ux file) */
-#endif					/* DeBugLinker */
-
 /*
  * Files and related globals.
  */

@@ -11,9 +11,6 @@
  *  Some enable or disable certain Icon features, for example:
  *	LoadFunc	enables dynamic loading
  *
- *  Other definitions may occur for different configurations. These include:
- *	DeBug		debugging code
- *
  *  Many definitions reflect remnants of past research projects.
  *  Changing them to values not used in standard configurations
  *  may result in an unbuildable or nonfunctioning system.
@@ -64,15 +61,6 @@
 /*
  * Other defaults.
  */
-
-#ifdef DeBug
-   #undef DeBugTrans
-   #undef DeBugLinker
-   #undef DeBugIconx
-   #define DeBugTrans
-   #define DeBugLinker
-   #define DeBugIconx
-#endif					/* DeBug */
 
 #ifndef MaxHdr
    /*

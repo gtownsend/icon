@@ -881,33 +881,6 @@ struct b_coexpr *ce;
    return abp->arec[abp->nactivators-1].activator;
 }
 
-#ifdef DeBugIconx
-/*
- * dumpact - dump an activator stack
- */
-void dumpact(ce)
-struct b_coexpr *ce;
-{
-   struct astkblk *abp = ce->es_actstk;
-   struct actrec *arp;
-   int i;
-
-   if (abp)
-      fprintf(stderr, "Ce %ld ", (long)ce->id);
-   while (abp) {
-      fprintf(stderr, "--- Activation stack block (%x) --- nact = %d\n",
-         abp, abp->nactivators);
-      for (i = abp->nactivators; i >= 1; i--) {
-         arp = &abp->arec[i-1];
-         /*for (j = 1; j <= arp->acount; j++)*/
-         fprintf(stderr, "co-expression_%ld(%d)\n", (long)(arp->activator->id),
-            arp->acount);
-         }
-      abp = abp->astk_nxt;
-      }
-}
-#endif					/* DeBugIconx */
-
 /*
  * findline - find the source line number associated with the ipc
  */

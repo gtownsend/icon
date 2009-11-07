@@ -19,11 +19,6 @@ static	void	setexe	(char *fname);
 FILE *infile;				/* input file (.u1 or .u2) */
 FILE *outfile;				/* interpreter code output file */
 
-#ifdef DeBugLinker
-   FILE *dbgfile;			/* debug file */
-   static char dbgname[MaxPath];	/* debug file name */
-#endif					/* DeBugLinker */
-
 struct lfile *llfiles = NULL;		/* List of files to link */
 
 char inname[MaxPath];			/* input file name */
@@ -139,18 +134,6 @@ char *outname;
    fflush(outfile);
    if (ferror(outfile) != 0)
       quit("unable to write to icode file");
-
-   #ifdef DeBugLinker
-      /*
-       * Open the .ux file if debugging is on.
-       */
-      if (Dflag) {
-         makename(dbgname, TargetDir, llfiles->lf_name, ".ux");
-         dbgfile = fopen(dbgname, "w");
-         if (dbgfile == NULL)
-            quitf("cannot create %s", dbgname);
-         }
-   #endif				/* DeBugLinker */
 
    /*
     * Loop through input files and generate code for each.

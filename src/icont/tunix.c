@@ -110,13 +110,6 @@ int main(int argc, char *argv[]) {
          case 'X':			/* -X srcfile: execute single srcfile */
             txrun(copyfile, optarg, &argv[optind]);
             break;	/*NOTREACHED*/
-
-         #ifdef DeBugLinker
-            case 'L':			/* -L: enable linker debugging */
-               Dflag = 1;
-               break;
-         #endif				/* DeBugLinker */
-
          default:
          case 'x':			/* -x illegal until after file list */
             usage();

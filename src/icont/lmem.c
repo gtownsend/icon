@@ -96,22 +96,6 @@ void linit()
    putglobal(instid("main"), F_Global, 0, 0);
    }
 
-#ifdef DeBugLinker
-   /*
-    * dumplfiles - print the list of files to link.  Used for debugging only.
-    */
-   void dumplfiles()
-      {
-      struct lfile *p,*lfls;
-
-      fprintf(stderr,"lfiles:\n");
-      lfls = llfiles;
-      while (p = getlfile(&lfls))
-          fprintf(stderr,"'%s'\n",p->lf_name);
-      fflush(stderr);
-      }
-#endif					/* DeBugLinker */
-
 /*
  * alsolink - create an lfile structure for the named file and add it to the
  *  end of the list of files (llfiles) to generate link instructions for.

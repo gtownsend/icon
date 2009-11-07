@@ -25,13 +25,6 @@ static struct	tgentry *glookup	(char *id);
 static struct	tlentry *llookup	(char *id);
 static void	putglob
    (char *id,int id_type, int n_args);
-
-#ifdef DeBugTrans
-   void	cdump	(void);
-   void	gdump	(void);
-   void	ldump	(void);
-#endif					/* DeBugTrans */
-
 
 /*
  * Keyword table.
@@ -256,79 +249,6 @@ register char *id;
 
    return 0;
    }
-
-#ifdef DeBugTrans
-/*
- * ldump displays local symbol table to stdout.
- */
-
-void ldump()
-   {
-   register int i;
-   register struct tlentry *lptr;
-   int n;
-
-   if (llast == NULL)
-      n = 0;
-   else
-      n = llast->l_index + 1;
-   fprintf(stderr,"Dump of local symbol table (%d entries)\n", n);
-   fprintf(stderr," loc   blink   id		  (name)      flags\n");
-   for (i = 0; i < lhsize; i++)
-      for (lptr = lhash[i]; lptr != NULL; lptr = lptr->l_blink)
-         fprintf(stderr,"%5d  %5d  %5d	%20s  %7o\n", lptr->l_index,
-		lptr->l_blink, lptr->l_name, lptr->l_name, lptr->l_flag);
-   fflush(stderr);
-
-   }
-
-/*
- * gdump displays global symbol table to stdout.
- */
-
-void gdump()
-   {
-   register int i;
-   register struct tgentry *gptr;
-   int n;
-
-   if (glast == NULL)
-      n = 0;
-   else
-      n = glast->g_index + 1;
-   fprintf(stderr,"Dump of global symbol table (%d entries)\n", n);
-   fprintf(stderr," loc   blink   id		  (name)      flags	  nargs\n");
-   for (i = 0; i < ghsize; i++)
-      for (gptr = ghash[i]; gptr != NULL; gptr = gptr->g_blink)
-         fprintf(stderr,"%5d  %5d  %5d	%20s  %7o   %8d\n", gptr->g_index,
-		gptr->g_blink, gptr->g_name, gptr->g_name,
-		gptr->g_flag, gptr->g_nargs);
-   fflush(stderr);
-   }
-
-/*
- * cdump displays constant symbol table to stdout.
- */
-
-void cdump()
-   {
-   register int i;
-   register struct tcentry *cptr;
-   int n;
-
-   if (clast == NULL)
-      n = 0;
-   else
-      n = clast->c_index + 1;
-   fprintf(stderr,"Dump of constant symbol table (%d entries)\n", n);
-   fprintf(stderr," loc   blink   id		  (name)      flags\n");
-   for (i = 0; i < lchsize; i++)
-      for (cptr = chash[i]; cptr != NULL; cptr = cptr->c_blink)
-         fprintf(stderr,"%5d  %5d  %5d	%20s  %7o\n", cptr->c_index,
-		cptr->c_blink, cptr->c_name, cptr->c_name, cptr->c_flag);
-   fflush(stderr);
-   }
-#endif					/* DeBugTrans */
 
 /*
  * alcloc allocates a local symbol table entry, fills in fields with
