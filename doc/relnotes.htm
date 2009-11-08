@@ -17,7 +17,7 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 <BR> <SMALL> The University of Arizona </SMALL>
 
 <P> <SMALL> www.cs.arizona.edu/icon/v950/relnotes.htm
-<BR> Last updated November 5, 2009</SMALL>
+<BR> Last updated November 8, 2009</SMALL>
 <!-- $Id$ -->
 
 
@@ -52,6 +52,7 @@ See <A HREF=extlvals.htm>External Values</A> for more information.
 <P> This version of Icon is the first to deliberately move beyond the
 1989 C standard and make use of features of the 1999 C standard,
 specifically the "struct hack".
+Consequently, a C99 (or newer) compiler is now required to build Icon.
 
 <H3> Cygwin Configuration </H3>
 
@@ -59,16 +60,17 @@ specifically the "struct hack".
 removal of unneeded special cases now that Cygwin better approximates Unix.
 External functions can now be loaded using <CODE>loadfunc()</CODE>.
 
-<P> While the <CODE>cygwin</CODE> configuration uses Windows graphics, a new
-<CODE>xcygwin</CODE> configuration uses the X window system.
+<P> In addition to the <CODE>cygwin</CODE> configuration, which uses
+Windows graphics, there is now a new <CODE>xcygwin</CODE> configuration
+that uses the X window system.
 
 <H3> Implementation Cleanup</H3>
 
+<P> Large amounts of conditionalized dead code, including the old Icon
+compiler, have been removed from the source code.
+
 <P> All platforms now use POSIX threads for context switching instead of
 system- and processor-dependent assembly language code.
-
-<P> Large amounts of conditionalized dead code, most notably the Icon
-compiler, have been removed from the source code.
 
 <H3> Minor Fixes </H3>
 
@@ -103,6 +105,13 @@ gprogs/gallery	Handle spaces embedded in JPEG filenames.
 gprogs/spider	Add shortcuts, opt-in logging, congratulatory display.
 gpacks/weaving	Add "halftone" weaving program htweav.icn.
 </PRE>
+
+<H3> Documentation Additions </H3>
+
+<P> A new page on <A HREF="cfuncs.htm">Loading C functions</A> has been
+added.
+<P> The old <A HREF="../refernce/ref.htm">language reference pages</A>
+have been updated and incorporated into the Icon distribution.
 
 
 <H2> Earlier feature additions </H2>
@@ -143,7 +152,7 @@ The Icon translator and linker search these paths when looking for
 <P> The Icon program library is now searched automatically, but
 <CODE>LPATH</CODE> and <CODE>IPATH</CODE> can still be set to control
 the search order.
-For version 9.4, the effective path in each case is:
+The effective path in each case is:
 <OL>
 	<LI> The current directory
 	<LI> Any directories named by the environment variable
@@ -233,6 +242,7 @@ of external values.
 Carl Sturtivant and Steve Waldo supplied numerous Cygwin improvements.
 Cheyenne Wills enhanced configuration flexibility.
 Clint Jeffery fixed an ancient linking bug.
+Bob Alexander wrote the original language reference pages.
 
 <P> <HR>
 
