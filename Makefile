@@ -4,7 +4,7 @@
 
 
 #  configuration parameters
-VERSION=v95x
+VERSION=v950
 name=unspecified
 dest=/must/specify/dest/
 

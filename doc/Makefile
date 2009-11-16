@@ -3,7 +3,7 @@
 #
 #  This Makefile is for Icon maintenance and FAQ installation at Arizona.
 #  Because of that it is targeted for the Icon development environment
-#  (Red Hat Linux and some specialized tools) and is less portable than
+#  (Mac OS X plus some specialized tools) and is less portable than
 #  other Makefiles.
 
 
@@ -14,7 +14,7 @@ TFAQ = /cs/www/icon/ftp/doc/faq.txt
 FFAQ = /cs/ftp/icon/doc/faq.txt
 
 SERVER = york.cs.arizona.edu
-RLSDIR = /cs/www/icon/v943
+RLSDIR = /cs/www/icon/v950
 
 
 #  (default:) rebuild icon.txt, icont.txt, and faq.txt from nroff/html sources.
