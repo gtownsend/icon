@@ -86,7 +86,7 @@ Ibin:		bin/icont
 D=$(dest)
 Install:
 		mkdir $D
-		mkdir $D/bin $D/lib $D/doc $D/refernce $D/man $D/man/man1
+		mkdir $D/bin $D/lib $D/doc $D/man $D/man/man1
 		cp README $D
 		cp bin/[cflpvwx]* $D/bin
 		cp bin/icon[tx]* $D/bin
@@ -94,7 +94,6 @@ Install:
 		(cd $D/bin; ln -s icont icon)
 		cp lib/*.* $D/lib
 		cp doc/*.* $D/doc
-		cp refernce/*.* $D/refernce
 		cp man/man1/*.* $D/man/man1
 
 
