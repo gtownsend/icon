@@ -1,0 +1,191 @@
+############################################################################
+#
+#	File:     tron.icn
+#
+#	Subject:  Program to play a Tron-like video game
+#
+#	Author:   Eduardo Ochs <eduardoochs@gmail.com>
+#
+#	Date:     November 18, 2009
+#
+############################################################################
+#
+#	This file is in the public domain.
+#
+############################################################################
+#
+#	Rules: You're yellow, and you leave a yellow trail when you walk.
+#	You never stop until you die. You die when you hit something
+#	yellow. Use the arrow keys to change your direction. Try to make
+#	the best score you can before you die. You only live once.
+#
+#	In the beginning it's a black arena with yellow walls and a red
+#	3x3 pixel square somewhere. Walking over a red pixel gives you
+#	one point and makes another 3x3 square appear somewhere.  So,
+#	crossing a 3x3 red square from one side to another gives you
+#	three points and makes three other squares appear in random
+#	positions.
+#
+#	Walking over black pixels is harmless.
+#
+#	Sometimes the red squares will appear over your trail. Then some
+#	pixels of your trail will become red and you'll be able to cross.
+#
+#	The game loop and the outer loop: typing "Q" or Esc or losing when
+#	you're playing makes you go to the outer loop; in the outer loop
+#	typing "P" or Enter or space restarts the game, and typing "Q" or
+#	Esc leaves the program.
+#
+#	Source:     <http://angg.twu.net/ICON/tron.icn>
+#	Htmlized:   <http://angg.twu.net/ICON/tron.icn.html>
+#	Screenshot: <http://angg.twu.net/ICON/tron.icn.png>
+#	See also:   <http://angg.twu.net/elisp/tron.el.html>
+#	            <http://angg.twu.net/elisp/tron.el.png>
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  graphics, random
+#
+############################################################################
+
+link graphics
+link random
+
+$include "keysyms.icn"
+
+global actions, direction
+global x, y, dx, dy
+global score
+global pixels
+
+procedure prepare_vars()
+  actions := table()
+  actions[Key_Down]  := ["v", +1]
+  actions[Key_Up]    := ["v", -1]
+  actions[Key_Right] := ["h", +1]
+  actions[Key_Left]  := ["h", -1]
+  every actions["q" | "Q" | "\e"] := "quit"
+  set_direction(["h", +1])
+  x := 150
+  y := 90
+  score := 0
+  pixels := table()
+  every pixels[0 to 199] := table(0)
+end
+
+procedure set_color(n)
+  if n == 0 then WAttrib("fg=black")
+  if n == 1 then WAttrib("fg=red")
+  if n == 3 then WAttrib("fg=yellow")
+end
+
+procedure pset(x, y, color)
+  set_color(color)
+  pixels[y][x] := color
+  FillRectangle(x*2, y*2, 2, 2)
+end
+
+procedure point(x, y)
+  return pixels[y][x]
+end
+
+procedure draw_red_square()
+  local x, y
+  x := ?316
+  y := ?188
+  every pset(x to x+2, y to y+2, 1)
+end
+
+procedure is_direction(action)
+  return type(action) == "list"
+end
+
+procedure ignored_turn(newdirection)
+  return newdirection[1] == direction[1]
+end
+
+procedure set_direction(newdirection)
+  direction := newdirection
+  if direction[1] == "h" then {
+    dx := direction[2]; dy := 0
+  } else {
+    dy := direction[2]; dx := 0
+  }
+end
+
+procedure process_events()
+  local e, action
+  while *Pending() > 0 do {
+    e := Event()
+    # w(e)
+    action := actions[e]
+    if is_direction(action) then {
+      if not ignored_turn(action) then {
+        set_direction(action)
+        return
+      }
+    }
+    if action === "quit" then
+      fail
+  }
+  return
+end
+
+procedure prepare_walls()
+  every pset(0 to 319,   0, 3)
+  every pset(0 to 319, 191, 3)
+  every pset(0,   0 to 191, 3)
+  every pset(319, 0 to 191, 3)
+end
+
+procedure draw_score()
+  GotoXY(6, 396)
+  set_color(3)
+  WWrites("Score: " || score)
+end
+
+procedure play()
+  prepare_vars()
+  set_color(0)
+  FillRectangle(0, 0, 640, 400)
+  prepare_walls()
+  pset(x, y, 3)
+  draw_red_square()
+  draw_score()
+
+  WDelay(1000)
+
+  while process_events() do {
+    x +:= dx
+    y +:= dy
+    if point(x, y) == 3 then break
+    if point(x, y) == 1 then {
+      draw_red_square(); score +:= 1; draw_score()
+      pset(x, y, 3)
+      WDelay(50)
+    }
+    pset(x, y, 3)
+    WDelay(50)
+  }
+end
+
+procedure main(args)
+  local e
+
+  # w(actions)
+  WOpen("size=640,400", "fg=yellow", "bg=black")
+  WAttrib("font=Helvetica,12,bold")
+
+  randomize()
+  while 1 do {
+    play()
+    while e := Event() do {
+      if e === ("q" | "Q" | "\e") then return
+      if e === ("p" | "P" | " " | "\r" | "\n") then break
+    }
+  }
+end
