@@ -326,11 +326,6 @@ dptr da, dx;
       return Succeeded;		/* got lucky; a simple integer suffices */
       }
 
-#ifdef isnormal			/* if c99 macro is defined */
-   if (!isnormal(x))		/* can't handle NaN or Inf reasonably */
-      drunerr(205, x);		/* so issue "invalid value" error */
-#endif					/* isnormal */
-
    if (sgn = x < 0)
       x = -x;
    blen = ln(x) / ln(B) + 0.99;
