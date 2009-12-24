@@ -1,0 +1,76 @@
+#  micsum.icn -- summarize micro.icn outputs
+#
+#  24-dec-09/gmt
+#
+#  usage:  icon micsum.icn file...
+#
+#  Reads one or more output files created by micro.icn and summarizes the
+#  contents.  Overhead and "nothing" lines are treated specially.  Remaining
+#  lines are considered true microbenchmarks.  Output columns are:
+#
+#  N	    number of microbenchmarks
+#  ovhead   overhead measurement
+#  rmserr   RMS average error from "nothing" lines
+#  median   median microbenchmark time
+#  gmean    geometric mean of microbenchmark times
+
+
+procedure main(args)
+   local a, f
+
+   write("  N ovhead rmserr median  gmean   filename")
+   if *args = 0 then
+      dofile(&input, "stdin")
+   else while a := get(args) do {
+      f := open(a) | stop("cannot open ", a)
+      dofile(f, a)
+   }
+end
+
+procedure dofile(f, name)
+   local line, label, overhead, nothings, others, n, t, v
+   nothings := []
+   others := []
+
+   while line := read(f) do line ? {
+      tab(many(' '))
+      n := integer(tab(many('-0123456789')))
+      tab(many(' '))
+      label := tab(0)
+      if label == "overhead" then
+         overhead := n
+      else if label == "nothing" then
+         put(nothings, n)
+      else
+         put(others, n)
+   }
+
+   # count of measurements
+   writes(*others)
+
+   # overhead value
+   writes(right(overhead, 7))
+
+   # RMS error ("nothing" values)
+   t := 0
+   every t +:= !nothings ^ 2
+   t := integer(sqrt(t / *nothings) + 0.5)
+   writes(right(t, 7))
+
+   # median of other values
+   others := sort(others)
+   t := others[*others / 2 + 1]
+   writes(right(t, 7))
+
+   # geometric mean of other values
+   t := 0.0
+   every v := !others do
+      t +:= (if v <= 0 then 0 else log(v))
+   t := integer(&e ^ (t / *others) + 0.5)
+   writes(right(t, 7))
+
+   # file name
+   write("   ", name)
+   return
+
+end

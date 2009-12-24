@@ -3,6 +3,8 @@ default:	benchmark
 
 micro microbench microbenchmark:
 		../../bin/icon micro.icn >micro.out 
+		../../bin/icon micsum.icn micro.out >micro.sum
+		cat micro.sum
 
 benchmark:
 		$(MAKE) benchmark-icont
@@ -26,4 +28,4 @@ check-icont:
 		grep elapsed *-t.out
 
 Clean:
-		rm -f *.out *-t *.u?
+		rm -f *.out *.sum *-t *.u?
