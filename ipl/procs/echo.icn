@@ -6,11 +6,16 @@
 #
 #	Author:   Carl Sturtivant
 #
-#	Date:     December 1, 2009
+#	Date:     February 9, 2010
 #
 ############################################################################
 #
 # This file is in the public domain.
+#
+############################################################################
+#
+#  echo() substitutes global variables for occurrences of $name in &subject,
+#  and writes the result to standard output.
 #
 ############################################################################
 #
@@ -54,10 +59,7 @@
 #
 # Usage:
 #
-# First, compile echo.icn with the -c option, and make sure the
-# resulting ucode files are where your link step can find them.
-#
-# Then you are ready to use echo() in your Icon programs.  A string to
+# A string to
 # be printed with interpolated values should be set up in a scanning
 # environment, using echo() as the scanning procedure, as in
 # "foo$variable" ? echo().  Here is an actual example for testing:
@@ -120,13 +122,93 @@
 #
 ############################################################################
 #
-# See also:  "echo-tips.txt", which has a few additional fine points.
-#
+# Using echo() on a larger scale , with input from a generator:
+# 
+# global time, date, save, wombats
+# 
+# link echo
+# 
+# procedure main()
+#   time := &clock
+#   date := &date
+#   save := ?100000
+#   wombats := 22
+#   "It is now $time on $date and you have savings of $$$save." |
+#      "The number of wombats is $wombats." |
+#      "It is now ${time} on ${date} and you have ${wombats} wombats." |
+#      "There is no global variable named \"$foo\"." |
+#      "This does not work:  It is now ${&clock}." |
+#      "" |
+#      "The previous input line printed an empty output line." ? echo()
+# end
+# 
+# Because echo() always fails (in the Icon sense), evaluation of
+# 
+#     a | b | c | d ? echo()
+# 
+# will group as
+# 
+#     (a | b | c | d) ? echo()
+# 
+# because of operator precedence, and the left-hand expression produces
+# _a_ first, which is assigned to &subject.  Then echo() is evaluated --
+# and fails.  This makes the whole expression fail, so Icon backtracks
+# to the first expression, resumes its evaluation to produce its second
+# value b, which is assigned to &subject and then echo() is called,
+# which fails, and so forth, until all possibilities are exhausted.
+# 
 ############################################################################
 #
-# Code:
+# Taking input from a template file:
+# 
+# You can create a template file (with $-strings in it) and use an Icon
+# program to read it and write it out to standard output.  Your main
+# Icon program will supply the needed variable values for the $-strings
+# in the template.
+# 
+# As an example, suppose your program will generate a hundred business
+# cards for you as a PostScript file.  You have a template file named
+# template.ps with $-strings such as $firstname, $lastname, $address,
+# $companyname, and so on --- all embedded in it at the proper places.
+# Your main program will read this template and substitute the actual
+# name and address information.
+# 
+# This is one way your program can read template.ps and pass it to
+# echo():
+# 
+# ...
+# firstname := "Joe"
+# lastname := "Smith"
+# # ... etc. ...
+# reads("template.ps",1000000) ? echo()
+# ...
+# 
+# When this is run, your customized business cards appear on standard
+# output.
+# 
+############################################################################
+# 
+# This trick relies upon concatenation having a higher precedence
+# than alternation:
+# 
+#     "................" ||
+#     "................" ||
+#     "................" |
+#     "................" ||
+#     "................" |
+#     "................" ||
+#     "................" ? echo()
+# 
+# This prints out three messages, one specified on three lines, one on
+# two, and one on two. The alternations fix the newlines provided at the
+# end of each message by echo().
+# 
+#  &subject is the empty string if it's unassigned.  So echo() called
+# without ? will under those circumstances print a blank line.
 #
-procedure echo()
+############################################################################
+
+procedure echo()			#: interpolate variables and print
 
    $define idchars 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_'
    while writes(tab(find("$")) ) do {
