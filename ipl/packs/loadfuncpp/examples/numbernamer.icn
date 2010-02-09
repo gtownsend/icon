@@ -1,0 +1,61 @@
+
+procedure main(arg)
+    every write( number(!arg, 0) )
+end
+
+procedure number(n, state)
+    static small, large, units
+    initial {
+	small := ["one", "two", "three", "four", "five", "six", "seven", "eight", 
+		  "nine", "ten", "eleven", "twelve", "thirteen", "fourteen",
+		  "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"]
+	large := ["ten", "twenty", "thirty", "forty", "fifty", "sixty",
+		  "seventy", "eighty", "ninety"]
+	units := ["thousand", "million", "billion", "trillion", "quadrillion",
+		  "quintillion", "sextillion", "septillion", "octillion", "nonillion"]
+    }
+    n := integer(n) | fail
+    if 0 = n then return "zero"
+    if 0 > n then return "minus " || number(-n)
+    if 20 > n then return small[n]
+    if 100 > n then {
+	x := n / 10
+	r := n % 10
+	if (0 = r) then {
+	    return large[x]
+	} else {
+	    return large[x] || "-" || number(r, state)
+	}
+    }
+    if (1000 > n) then {
+	x := n / 100
+	r := n % 100
+	if (0 = r) then {
+	    return number(x, 1) || " hundred"
+	} else {
+	    if (0 = state) then {
+		return number(x, 1) || " hundred and " || number(r, 1)
+	    } else {
+		return number(x, 1) || " hundred " || number(r, 1)
+	    }
+	}
+    }
+    
+    every i := 1 to *units do {
+	j := (*units - i + 1)
+	k := j * 3
+	m := 10^k
+	x := n / m
+	r := n % m
+	if (0 < x) then {
+	    if (0 = r) then  {
+		return number(x, 1) || " " || units[j]
+	    } else if ( 100 > r) then {
+		return number(x, 1) || " " || units[j] || " and " || number(r, 1)
+	    } else {
+		return number(x, 1) || " " || units[j] || ", " || number(r, 0)
+	    }
+	}
+    }
+    return "Error NaN: " || n
+end

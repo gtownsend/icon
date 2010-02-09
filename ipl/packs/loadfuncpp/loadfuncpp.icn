@@ -1,0 +1,241 @@
+
+procedure loadfuncpp(fname, entry, arity)
+#the first call loads the glue library, and loads and assigns the external loadfuncpp
+	local iload, fpath, oldloadfunc, real_loadfunc
+	real_loadfunc := _loadfuncpp_proc("loadfunc")
+	iload := _loadfuncpp_iload()
+	oldloadfunc := loadfunc			#catch22: loadfunc cannot correctly return loadfuncpp	
+	real_loadfunc(iload, "loadfuncpp")	#implicitly assigns loadfuncpp to loadfunc on load
+	loadfuncpp := loadfunc			#replace this loadfuncpp with the one loaded 
+	loadfunc := oldloadfunc			#put the old loadfunc back
+	self(iload)						#initialize self from iload.so; calls loadfuncpp
+	bindself(iload)					#initialize bindself from iload.so; calls loadfuncpp
+	loadfuncpp(_loadfuncpp_iloadgpx(), "iconx_graphics", 0) #calling Icon
+	return loadfuncpp(fname, entry, arity)	#call the new loadfuncpp just loaded
+end
+
+procedure self()
+	static getbinding
+	initial {
+		getbinding := loadfuncpp(_loadfuncpp_iload(), "getbinding", 0) |
+		stop("loadfuncpp: support function 'getbinding' not found in iload.so")
+		fail
+	}
+	return getbinding()		#must be called from self()
+end
+
+procedure bindself(proc, rec)
+	bindself := loadfuncpp(_loadfuncpp_iload(), "bindself", 2)	|
+	stop("loadfuncpp: support functon 'bindself' not found in iload.so")
+	return bindself(proc, rec)
+end
+
+invocable "_loadfuncpp_pathfind", "_loadfuncpp_reduce", "_loadfuncpp_create", 
+	"_loadfuncpp_activate", "_loadfuncpp_kcollections", "_loadfuncpp_kfeatures",
+	"_loadfuncpp_kregions", "_loadfuncpp_kstorage", "_loadfuncpp_function",
+	"_loadfuncpp_bang", "_loadfuncpp_apply", "_loadfuncpp_any", "_loadfuncpp_many",
+	"_loadfuncpp_upto", "_loadfuncpp_find", "_loadfuncpp_match", "_loadfuncpp_bal",
+	"_loadfuncpp_move", "_loadfuncpp_tab", "_loadfuncpp_proc", "_loadfuncpp_key",
+	"_loadfuncpp_iload", "_loadfuncpp_iloadgpx"
+
+procedure _loadfuncpp_iload()
+	local getenv, fpath
+	static iload
+	initial {
+		getenv := _loadfuncpp_proc("getenv")
+		iload := _loadfuncpp_pathfind("iload.so", fpath:= getenv("FPATH")) |
+		stop("Cannot find iload.so on FPATH where \nFPATH=", fpath)
+	}
+	return iload	
+end
+
+procedure _loadfuncpp_iloadgpx()
+	local getenv, fpath, libname
+	static iloadgpx
+	initial {
+		if \Event then libname := "iloadgpx.so" else libname := "iloadnogpx.so"
+		getenv := _loadfuncpp_proc("getenv")
+		iloadgpx := _loadfuncpp_pathfind(libname, fpath:= getenv("FPATH")) |
+		stop("Cannot find ", libname, " on FPATH where \nFPATH=", fpath)
+	}
+	return iloadgpx	
+end
+
+procedure _loadfuncpp_pathfind(fname, path, psep)
+	local f, dir, fullname
+	static close, open, tab, upto, trim, many, pos
+	initial {
+		close := _loadfuncpp_proc("close")
+		open := _loadfuncpp_proc("open")
+		tab := _loadfuncpp_proc("tab")
+		upto := _loadfuncpp_proc("upto")
+		trim := _loadfuncpp_proc("trim")
+		many := _loadfuncpp_proc("many")
+		pos := _loadfuncpp_proc("pos")
+	}
+	/psep := ' :'				#good for cygwin, unix variants (including OS X)
+	fname ? {
+		if ="/" & close(open(fname)) then
+			return fname			#full absolute path works
+		while tab(upto('/') + 1)
+		fname := tab(0)			#get final component of path
+	}
+	/path := ""
+	path := ". " || path
+	path ? while not pos(0) do {
+		dir := tab(upto(psep) | 0)
+		fullname := trim(dir, '/') || "/" || fname
+		if close(open(fullname)) then
+			return fullname
+		tab(many(psep))
+	}
+   return	#must return
+end
+
+procedure _loadfuncpp_reduce(nullary, binary, g, arg)
+	local result
+	result := nullary
+	every binary(result, g!arg)
+	return result
+end
+
+procedure _loadfuncpp_create(g, arg)
+	return create g!arg
+end
+
+procedure _loadfuncpp_activate(coexp, val)
+	return val@coexp | &null
+end
+
+procedure _loadfuncpp_kcollections()
+	local ls
+	ls := []
+	every put(ls, &collections)
+	return ls
+end
+
+procedure _loadfuncpp_kfeatures()
+	local ls
+	ls := []
+	every put(ls, &features)
+	return ls
+end
+
+procedure _loadfuncpp_kregions()
+	local ls
+	ls := []
+	every put(ls, &regions)
+	return ls
+end
+
+procedure _loadfuncpp_kstorage()
+	local ls
+	ls := []
+	every put(ls, &storage)
+	return ls
+end
+
+procedure _loadfuncpp_function()
+	local ls
+	static function
+	initial function := _loadfuncpp_proc("function")
+	ls := []
+	every put(ls, function())
+	return ls
+end
+
+procedure _loadfuncpp_key(t)
+	local ls
+	static key
+	initial key := _loadfuncpp_proc("key")
+	ls := []
+	every put(ls, key(t))
+	return ls
+end
+
+procedure _loadfuncpp_bang(nullary, binary, x)
+	local result
+	result := nullary
+	if type(x)=="table" 
+	then every binary(result, key(x))
+	else every binary(result, !x)
+	return result
+end
+
+procedure _loadfuncpp_any(c,s,i1,i2)
+	static any
+	initial any := _loadfuncpp_proc("any")
+	return any(c,s,i1,i2) | &null
+end
+
+procedure _loadfuncpp_many(c,s,i1,i2)
+	static many
+	initial many := _loadfuncpp_proc("many")
+	return many(c,s,i1,i2) | &null
+end
+
+procedure _loadfuncpp_upto(c,s,i1,i2)
+	static upto
+	initial upto := _loadfuncpp_proc("upto")
+	return upto(c,s,i1,i2) | &null
+end
+
+procedure _loadfuncpp_find(s1,s2,i1,i2)
+	static find
+	initial find := _loadfuncpp_proc("find")
+	return find(s1,s2,i1,i2) | &null
+end
+
+procedure _loadfuncpp_match(s1,s2,i1,i2)
+	static match
+	initial match := _loadfuncpp_proc("match")
+	return match(s1,s2,i1,i2) | &null
+end
+
+procedure _loadfuncpp_bal(c1,c2,c3,s,i1,i2)
+	static bal
+	initial bal := _loadfuncpp_proc("bal")
+	return bal(c1,c2,c3,s,i1,i2) | &null
+end
+
+procedure _loadfuncpp_move(i)
+	static move
+	initial move := _loadfuncpp_proc("move")
+	return move(i) | &null
+end
+
+procedure _loadfuncpp_tab(i)
+	static tab
+	initial tab := _loadfuncpp_proc("tab")
+	return tab(i) | &null
+end
+
+procedure _loadfuncpp_apply(f, arg)
+	return f!arg | &null
+end
+
+#use to find built-in functions so they can be nobbled
+#prior to the first call of loadfuncpp without affecting us
+#this is a defensive measure to protect a reasonable programmer
+#NOT an attempt to be secure against all ways to subvert loadfuncpp
+procedure _loadfuncpp_proc(function)
+	static Proc
+	local errmsg
+	initial {
+		#called when procedure loadfuncpp is first called to load the real loadfuncpp
+		errmsg := "loadfuncpp: built-in function 'proc' not found"
+		Proc := proc("proc",0) | stop(errmsg)
+		image(Proc)=="function proc" | stop(errmsg)
+		args(Proc)=2 | stop(errmsg)
+		Proc("proc",0)===Proc | stop(errmsg)	#good enough, not perfect
+	}
+	return Proc(function,0) | &null	
+end
+
+
+
+
+
+
+
+

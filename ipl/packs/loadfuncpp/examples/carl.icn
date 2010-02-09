@@ -1,0 +1,50 @@
+
+#here's cat in icon (line by line):
+
+procedure main()
+     while write(read()) #fails when eof
+end
+
+#here's writing out the command line arguments
+
+procedure main(arg)  #passed a list of strings
+     every write( !arg)  # ! (bang) makes a generator sequence
+end
+
+#here's finding all lines in standard input containing "frog"
+
+procedure main()
+     while line := read() do line ? #string matching subject is line
+         if find("frog") then write(line)
+end
+
+#here's finding the text on each line that contains "frog" that
+#lies before the first occurrence of "frog"
+
+procedure main()
+     while line := read() do line ? #string matching subject is line
+         write( tab(find("frog")) )
+end
+
+#here's generating the first 1000 squares
+
+procedure main()
+    every write( squares() ) \1000 #truncate generator to 1000 results
+end
+
+procedure squares()
+     n := 0
+     repeat {
+         n +:= 1
+         suspend n^2 #shoot out next element of generator sequence
+     }
+end
+
+procedure main()
+    (n := 1) | |( n +:= 1, n^2 )
+end
+
+#So that
+procedure main()
+    every write(  (n := 1) | |( n +:= 1, n^2 )  ) \1000
+end

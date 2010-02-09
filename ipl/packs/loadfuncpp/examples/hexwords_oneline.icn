@@ -1,0 +1,8 @@
+procedure printable(word) 
+    return "" == word | map(map(word, "oOiIzZeEsStT", "001122335577"), &lcase, &ucase);
+end
+procedure main()
+    find := '0123456789abcdefABCDEFoOiIzZeEsS';
+    words := open(word_file := "/usr/share/dict/words") | stop("Unable to open: " || word_file);
+    every write(printable( | 1 ( | (word := trim(read(words))) , not("" == word) , ('' == word -- find))));
+end

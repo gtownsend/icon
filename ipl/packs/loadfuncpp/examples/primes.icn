@@ -1,0 +1,26 @@
+procedure main() 
+    #limit to the first x primes
+    local x;
+    x := 20;
+    every write(!(p := 1, a := [2])| 1(|(p +:= 2), not(p % !a = 0), put(a, p))) \x
+    list_primes(x);
+end
+
+procedure list_primes(prime_limit)
+    local p;
+    local a;
+    local s;
+    initial {
+	p := 1;
+	a := [2];
+    }
+    until (prime_limit <= *a) do {
+	p +:= 2;
+	s := sqrt(p);
+	
+	if (not(p % !a = 0)) then {
+	    put(a, p);
+	}
+    }
+    every write(!a)
+end

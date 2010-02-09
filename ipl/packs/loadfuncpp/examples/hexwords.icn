@@ -1,0 +1,18 @@
+procedure printable(word) 
+    if ("" == word) then {
+	return "";
+    } else {
+	return map(map(word, "oOiIzZeEsStT", "001122335577"), &lcase, &ucase);
+    }
+end
+procedure main(arg)
+    word_file := "/usr/share/dict/words";
+    find := '0123456789abcdefABCDEFoOiIzZeEsStT';
+    usage := "Finds all the words in a word file that can be written using /^[A-Fa-f0-9$/";
+    words := open(word_file) | stop("Unable to open: " || word_file)
+    while word := trim(read(words)) do {
+	if ('' == word -- find) then {
+	    write(printable(word) || " " || word);
+	}
+    }
+end

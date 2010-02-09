@@ -1,0 +1,37 @@
+
+link loadfuncpp
+
+global integertobytes, bytestointeger, base64, base64tostring, base64tointeger
+
+procedure main()
+	integertobytes := loadfuncpp("iexample.so", "integertobytes", 1)
+	bytestointeger := loadfuncpp("iexample.so", "bytestointeger", 1)
+	base64 := loadfuncpp("iexample.so", "base64", 1)
+	base64tostring := loadfuncpp("iexample.so", "base64tostring", 1)
+	base64tointeger := loadfuncpp("iexample.so", "base64tointeger", 1)
+
+	#test1()
+	test2()
+	#test3()
+end
+
+procedure test3()
+	while write(base64tointeger(base64(integer(read()))))
+end
+
+procedure test2()
+	while write(base64tostring(base64(read())))
+end
+
+procedure test1()
+	i := 16rBEADEDCEDEDBEEFEDCEDEDBEADEDBEEFED
+	
+	s := "\x00" || integertobytes(i)
+	ii := bytestointeger(s)
+	ss := integertobytes(ii)
+	
+	write( image(s) )
+	write( image(ss) )
+	write(i)
+	write(ii)
+end

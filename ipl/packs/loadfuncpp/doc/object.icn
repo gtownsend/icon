@@ -1,0 +1,23 @@
+
+link loadfuncpp
+
+record object(val, print)
+
+procedure print()
+	obj := self() | fail
+	write( obj.val )
+end
+
+procedure newObject(x)
+	obj := object(x) #don't assign print method yet
+	#print will be a copy bound to the record it's embedded in
+	obj.print := bindself(print, obj)
+	return obj
+end
+
+procedure main()
+	obj := newObject("Hello")
+	obj.print()	
+end
+
+

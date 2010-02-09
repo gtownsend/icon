@@ -1,0 +1,41 @@
+
+procedure main(arg)
+	usage := "Copies iexample.icn and iexample.cpp to doc/<name>.icn\n" ||
+	         "and <name>.cpp to doc/<name>.cpp\nUsage: savex <name>"
+	exname := !arg | stop(usage)
+	examples := open("doc/examples.txt") | stop("Unable to open doc/examples.txt")
+	template := open("doc/Makefile.mak") | stop("Unable to open doc/Makefile.mak")
+	makefile := open("doc/Makefile", "w") | stop("Unable to open doc/Makefile")
+	in := open("iexample.icn") | stop("Unable to open iexample.icn")
+	out := open("doc/"||exname||".icn", "w") | stop("Unable to open "||exname||".icn")
+	ls := [exname]
+	while put(ls, ""~==trim(read(examples), ' \t'))
+	ls := sort(ls)
+	write(makefile, "\n#Automatically generated from Makefile.mak and examples.txt by ../savex.icn")
+	while line := read(template) do line ? {
+		if writes(makefile, tab(find("#exe#"))) then {
+			every writes(makefile, !ls, ".exe ")
+			write(makefile)
+			next
+		}
+		if writes(makefile, tab(find("#so#"))) then {
+			every writes(makefile, !ls, ".so ")
+			write(makefile)
+			next
+		}
+		write(makefile, line)
+	}
+	while line := read(in) do line ? {
+		if p := find("iexample.so") then {
+			writes(out, tab(p))
+			writes(out, exname)
+			="iexample"
+			write(out, tab(0))
+		} else write(out, line)
+	}
+	every close(examples|template|makefile|in|out)
+	system("cp iexample.cpp doc/" || exname || ".cpp")
+	examples := open("doc/examples.txt", "w") | stop("Unable to open doc/examples.txt")
+	every write(examples, !ls)	
+end	
+

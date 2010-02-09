@@ -1,0 +1,23 @@
+
+link loadfuncpp
+
+
+record thing(val, method)
+
+procedure method(x)
+	object := self() | stop("not bound to a record")
+	object.val := x
+end
+
+procedure main()
+	
+	obj := thing()
+	obj.method := bindself(method, obj)
+	
+	write(image(obj.method))
+	
+	obj.method(99)
+	
+	write( obj.val )
+end
+

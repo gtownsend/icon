@@ -1,0 +1,32 @@
+
+link loadfuncpp
+
+procedure main()
+	x := [1,2,3]
+	main2()
+end
+
+global newdisplay
+
+procedure main2()
+	newrunerr := loadfuncpp("runerr.so", "iexample", 2)
+	newdisplay := loadfuncpp("runerr.so", "iexample2", 2)
+#&trace := -1
+	newrunerr(callme, "Hello!")
+	write("We don't get here!")
+end
+
+procedure callme()
+	initial {
+		write("callme() called! first time!")
+		return
+	}
+	write("callme() called for second time!")
+	newdisplay(nextcall, runerr)
+	#runerr(123, "callme error termination!")
+	return
+end
+
+procedure nextcall()
+	write("Call to nextcall")
+end

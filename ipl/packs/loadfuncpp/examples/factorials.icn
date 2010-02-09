@@ -1,0 +1,27 @@
+procedure main ()
+    every  n := 1 to 10 do {
+	write (n, "! = ",  memoized_factorial ( n ) );
+    }
+    n := 135; write(n, "! = ",  memoized_factorial ( n ) );
+    n := 155; write(n, "! = ",  memoized_factorial ( n ) );
+end
+procedure memoized_factorial ( k )
+    static results;
+    static k_limit;
+    static k_old;
+    initial {
+	results := [1];
+	k_limit := 10 ^ 5;
+	k_old := 1;
+    }
+    if (k < k_limit) then {
+	while (k > *results) do results := results ||| list(*results)
+	every n := (k_old + 1) to k do {
+	    results[n] := n * results[n - 1];
+	}
+	k_old := k;
+	return results[k];
+    } else {
+	return ((k / &e) ^ n) * sqrt(2 * &pi * n);
+    }
+end

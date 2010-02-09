@@ -1,0 +1,24 @@
+
+link loadfuncpp
+
+procedure main()
+    icall := loadfuncpp("./callicon.so", "iexample")
+	
+	write( icall(f, ["Argument passed"]) )
+end
+
+procedure f(arg)
+	write(arg)
+	write("Called from C++")
+	every write( g(arg) )
+	x := create g(arg)
+	while writes(@x)
+	write()
+	return "Result string!"
+end
+
+procedure g(arg)
+	suspend !arg
+end
+
+
