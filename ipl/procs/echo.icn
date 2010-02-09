@@ -1,0 +1,145 @@
+############################################################################
+#
+#	File:     echo.icn
+#
+#	Subject:  Procedure to perform "variable interpolation" a la Perl
+#
+#	Author:   Carl Sturtivant
+#
+#	Date:     December 1, 2009
+#
+############################################################################
+#
+# This file is in the public domain.
+#
+############################################################################
+#
+# Background:
+#
+# String "interpolation", as used in Perl, Tcl, Bash, and so on,
+# involves a special notation used within a string that causes the
+# value of a variable to be inserted into the string at runtime.  A
+# common notation for this is a dollar sign, e. g. "The price is
+# $price pfennig."  If a variable named "price" has the value 10, then
+# on output the string becomes "The price is 10 pfennig."
+#
+# Interpolation is lacking in Icon, so we must use the fussier syntax
+# of an Icon write() procedure:  write("The price is ", price,
+# "pfennig.").  Here is a slightly more complex example, assuming
+# variables `price' = 10, `article' == "thimble", and `currency' ==
+# "pfennig":
+#
+#    write("The price of a ", article, " is ", price, " ", currency, ".")
+#
+# This can be annoying and error-prone if we must use many such
+# strings in a program.
+#
+# The echo() procedure provides a very nice solution for Icon
+# programmers.  Compare the preceding write() call to this:
+#
+#    "The price of a $article is $price $currency" ? echo()
+#
+# Is this not much simpler?  Both examples will print out the string
+#
+#    "The price of a thimble is 10 pfennig."
+#
+# but interpolation with echo() greatly reduces the low-level
+# syntactic requirements (and reduces the number of characters to type
+# from 68 to 54).  It is much easier to write, read, and check.  If
+# many such lines of code are needed, the difference adds up.
+# Consider, for example, how this would pay off if your program needs
+# to generate hundreds of lines of HTML or PostScript.
+#
+############################################################################
+#
+# Usage:
+#
+# First, compile echo.icn with the -c option, and make sure the
+# resulting ucode files are where your link step can find them.
+#
+# Then you are ready to use echo() in your Icon programs.  A string to
+# be printed with interpolated values should be set up in a scanning
+# environment, using echo() as the scanning procedure, as in
+# "foo$variable" ? echo().  Here is an actual example for testing:
+#
+#    link echo
+#    global month, day, year
+#
+#    procedure main()
+#       month := "February"
+#       day := 30
+#       year := 2010
+#       "Free beer on $month $day, $year." ? echo()
+#    end
+#
+# Assuming echo.icn has been compiled with the -c option beforehand,
+# compiling, linking, and running this program produces the string
+# "Free beer on February 30, 2010." on standard output.
+#
+############################################################################
+#
+# Notes:
+#
+# Since there is no way for any Icon procedure to discover the values of
+# any another procedure's local variables, all variables to be used via
+# the echo() procedure must be global.  This restriction ought not to be
+# too serious for smaller programs, or even longer ones if they are of
+# simple construction.  But it may be a limitation for sophisticated
+# Icon programming projects.  You will have to be the judge.
+#
+# If x is a global variable with value 10,
+#
+#    "x" ? echo()         prints "x"
+#    "$x" ? echo()        prints "10"
+#    "$$x" ? echo()       prints "$x"
+#    "$$$x" ? echo()      prints "$10"
+#    "$$$$x" ? echo()     prints "$$x"
+#    "$$$$$x" ? echo()    prints "$$10"
+#
+# and so on.  The rule is:  take dollar signs off in pairs from the
+# left.  Each pair prints ONE literal dollar sign on the output.
+#
+# If there were an odd number of dollar signs to begin with, then one
+# will be left over, and this will print the value of the variable (10).
+#
+# If there were an even number to begin with, then none are left, and a
+# literal "x" is printed.
+#
+# There is an extended notation that helps disambiguate some usage
+# scenarios.  Here are some examples:
+#
+#    "${x}" is the same as $x.
+#    "${x}:" is the same as $x:.
+#    "${x}${y}" is the same as $x$y.
+#
+# However, "${x}avier" is NOT the same as $xavier!  Can you see why?
+#
+# You may use any variable names you like.  There are no restrictions.
+# echo() uses no global variable names of its own, but receives the
+# string it interpolates in a string scanning environment.
+#
+############################################################################
+#
+# See also:  "echo-tips.txt", which has a few additional fine points.
+#
+############################################################################
+#
+# Code:
+#
+procedure echo()
+
+   $define idchars 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_'
+   while writes(tab(find("$")) ) do {
+      move(1)
+      writes( ="$" |
+             variable(tab(many(idchars)) |
+                      2( ="{", tab(find("}")), ="}" )
+                      )
+             ) |
+                tab(many(idchars)) |
+                ( ="{" & tab(find("}")) & ="}" )
+   }
+   write(tab(0))
+   $undef idchars
+
+end

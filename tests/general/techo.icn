@@ -1,0 +1,63 @@
+global time, date, save, wombats
+
+# All variables passed to echo() must be:
+
+#    Simple scalar variables, because echo() does not yet understand
+#    Icon keywords (such as &clock), arrays, records, or function
+#    calls.  However, such entities may be assigned to simple global
+#    variables, as the main program below shows; and
+
+#    Global, because echo() cannot accesss their values otherwise.
+
+# If a variable is undefined or null, echo() outputs nothing.
+
+link echo
+
+procedure main()
+   time := &clock
+   date := &date
+   save := ?100000
+   wombats := 22
+
+   # Usage method 1:
+
+   "It is now $time on $date and you have savings of $$$save." ? echo()
+   "The number of wombats is $wombats." ? echo()
+   "It is now ${time} on ${date} and you have ${wombats} wombats." ? echo()
+   "There is no global variable named \"$foo\"." ? echo()
+   "This does not work:  It is now ${&clock}." ? echo()
+   echo()
+   "The previous echo() example printed an empty line." ? echo()
+   echo()
+   "Here is another way to use echo()..." ? echo()
+   echo()
+
+   # Usage method 2:
+
+   "It is now $time on $date and you have savings of $$$save." |
+      "The number of wombats is $wombats." |
+      "It is now ${time} on ${date} and you have ${wombats} wombats." |
+      "There is no global variable named \"$foo\"." |
+      "This does not work:  It is now ${&clock}." |
+      "" |
+      "The previous input line printed an empty output line." ? echo()
+
+   # The value of &subject defaults to "", so echo() will print out an
+   # empty line if it is called without a `?'.
+
+   echo()
+
+   # The next test takes advantage of the fact that string
+   # concatenation has a higher precedence than alternation.  It
+   # prints three lines:
+
+   "Fee, " ||
+      "fi, " ||
+      "fo, " ||
+      "fum, " |                    # 1st line
+      "I " ||
+      "smell " ||
+      "the blood " |               # 2nd line
+      "of an Englishman!" ? echo() #3rd line
+
+end
