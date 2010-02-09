@@ -1,0 +1,105 @@
+
+#simulation of the real icondb.icn
+#using the C mysql and postgresql interfaces for Icon 9.4.
+#use with cgi.icn (instead of web.icn)
+#until loadfuncpp becomes reliable
+
+#WARNING: can only connect to one mysql and one postgresql database at a time
+
+#CS 2008/7/27
+
+
+link io
+
+#the C interface
+procedure _mysqldb(arg[])
+    return ( _mysqldb := pathload("mysqldb.so","mysqldb") )!arg
+end
+
+procedure _postgresqldb(arg[])
+    return ( _postgresqldb := pathload("postgresqldb.so","postgresqldb") )!arg
+end
+
+#simulated external value
+record database_handle(connection, c_interface)
+
+#simulated mysql connection procedure
+procedure _connectmysql(dbname, user, pwd, host, port)
+	local connection, result
+	icondb_error := &null
+	connection := [dbname, user, pwd]
+	if put(connection, \host) then put(connection, \port)
+	result := _mysqldb(connection)
+	if /result then return database_handle(connection, _mysqldb)
+	icondb_error := result
+	fail
+end
+
+#simulated postgresql connection procedure
+procedure _connectpostgresql(dbname, user, pwd, host, port)
+	local connection, result
+	icondb_error := &null
+	connection := [dbname, user, pwd]
+	if put(connection, \host) then put(connection, \port)
+	result := _postgresqldb(connection)
+	if /result then return database_handle(connection, _postgresqldb)
+	icondb_error := result
+	fail
+end
+
+global icondb_error
+
+#icondb returns a connection procedure for a known kind of dbms
+#which may then be called following the pattern 
+#dbhandle := connect(dbname, user, pwd, host, port)
+#where host and port are optional
+
+procedure icondb(kind)
+	case kind of {
+		"mysql" : return _connectmysql
+		"postgresql" : return _connectpostgresql
+		default : stop("icondb: unknown dbms\nerror: ", image(kind)) | fail
+	}
+end
+
+procedure dbclose(db)
+	if type(db) ~== "database_handle" then 
+		stop("dbclose: not a database handle: ", image(db))
+	icondb_error := &null
+	db.c_interface()
+	return
+end
+
+procedure dbquery(db, query, constructor)
+	local result, rec
+	if type(db) ~== "database_handle" then 
+		stop("dbquery: not a database handle: ", image(db))
+	case type(constructor) of {
+		"null" : 
+			&null
+		"procedure" :
+			image(constructor) ? {
+				="record constructor" | 
+					stop("dbquery: not a record constructor: ", image(constructor))
+			}
+		default : 
+			stop("dbquery: not a record constructor: ", image(constructor))
+	}
+	icondb_error := &null
+	result := db.c_interface(query)
+    case type(result) of {
+        "integer" | "null" : return result
+        "list" : case type(result[1]) of {
+            "list":	
+				if /constructor then
+					suspend !result
+				else {
+					if result[1] & *constructor() ~= *result[1] then
+						stop("dbquery: ",image(constructor)," needs at least ",*rec[1]," fields." )
+					suspend constructor!!result
+				}
+			"integer" : icondb_error := result
+        }
+    }	
+end
+

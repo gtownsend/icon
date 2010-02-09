@@ -1,0 +1,43 @@
+
+#everything needed for typical web form handling
+
+procedure cgiparms() #returns a table, mapping names to lists of values
+	local GET_data, POST_data, data, i, pname, pvalue, s
+    static result
+    initial {
+        result := table()
+        GET_data := trim(getenv("QUERY_STRING"))|""
+        if *GET_data = 0 then GET_data := &null
+        POST_data := reads(&input, getenv("CONTENT_LENGTH"))
+        if \GET_data & \POST_data then
+            data := GET_data || "&" || POST_data
+        else
+            data := \GET_data | \POST_data
+        if /data then return result
+        data ? every i := upto('&')|0 do {
+            tab(i) ? {
+                pname := _urldecode( tab(upto('=')) )
+                move(1)
+                pvalue := _urldecode( tab(0) )
+                /result[pname] := []
+                put( result[pname], pvalue )
+            }
+            if pos(0) then break
+            move(1)
+        }
+    }
+    return result
+end
+
+procedure _urldecode(url)
+	local s
+    s := ""
+    url ? repeat {
+        s ||:= tab(upto('%+')|0)
+        if pos(0) then return s
+        case move(1) of {
+			"%" : s ||:= char("16r" || map(move(2)) )
+			"+" : s ||:= " "
+		}
+    }
+end

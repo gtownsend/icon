@@ -1,0 +1,9 @@
+
+procedure sys(command, data)
+	local pipe, result
+	command := "bash -c cat <<'EOF' | " || command || " 2>&1 \n" || \data || "\nEOF\n"
+	pipe := open(command, "p") | fail
+	result := reads(pipe, 100000000)
+	close(pipe)
+	return result
+end
