@@ -1,0 +1,1558 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<HTML>
+
+<HEAD>
+	<META HTTP-EQUIV="Content-Type" CONTENT="text/html;CHARSET=iso-8859-1">
+	<TITLE>loadfuncpp</TITLE>
+	<LINK REL="stylesheet" TYPE="text/css" HREF="loadfuncpp.css">
+</HEAD>
+
+<BODY>
+
+<CENTER>
+<P>
+<TABLE BORDER="0" WIDTH="700">
+	<TR>
+		<TD WIDTH="100%">
+			<H1 ALIGN="CENTER"><BR>
+			Loadfuncpp</H1>
+			<H2 ALIGN="CENTER">How to Write External Functions and Libraries<BR>
+			for <A HREF="http://www.cs.arizona.edu/icon/lb3.htm" target="_blank">The Icon Programming Language</A> in C++</H2>
+			<H3 ALIGN="CENTER">Carl Sturtivant, February 2010, <FONT COLOR="#FF9900">version 0.91alpha</FONT></H3>
+			<BLOCKQUOTE>
+				<H2><A NAME="Contents"></A>Contents</H2>
+				<UL>
+					<LI><A HREF="#Contents">Contents</A>
+					<LI><A HREF="#Summary">Summary</A>
+					<LI><A HREF="#Installation">Installation</A>
+					<UL>
+						<LI><A HREF="#CorrectIconInstallation">Correct Icon Installation</A>
+						<LI><A HREF="DefaultPlacement">Default Placement of Loadfuncpp Files</A>
+						<LI><A HREF="#AlternativePlacement">Alternative Placement of Loadfuncpp Files</A>
+						<LI><A HREF="#LoadfuncppInstallationTest">Loadfuncpp Installation Test</A>
+					</UL>
+					<LI><A HREF="#Manual">Manual</A>
+					<UL>
+						<LI><A HREF="#Writing">Writing, Loading and Calling an External Function</A>
+						<LI><A HREF="#Working">Working with Icon Values</A>
+						<UL>
+							<LI><A HREF="#Initialization">Assignment &amp; Initialization</A>
+							<LI><A HREF="#Operations">Icon Operations</A>
+							<LI><A HREF="#Functions">Icon Built-in Functions</A>
+							<LI><A HREF="#Keywords">Icon Keywords</A>
+							<LI><A HREF="#Types">Types, Conversions and Errors</A>
+						</UL>
+						<LI><A HREF="#Variadic">Variadic Functions and Dynamic List Construction</A>
+						<LI><A HREF="#Calling">Calling Icon from C++</A>
+						<LI><A HREF="#Generators">Working with Generators</A>
+						<UL>
+							<LI><A HREF="#Generate">Writing External Functions that are Generators</A>
+							<LI><A HREF="#Iterate">Calling Icon Procedures that are Generators in C++</A>
+							<LI><A HREF="#Bang">Iterating over Exploded Structures in C++</A>
+							<LI><A HREF="#Coexpressions">Working with Coexpressions in C++</A>
+						</UL>
+						<LI><A HREF="#Externals">Working with External Values</A>
+						<LI><A HREF="#Records">Using Icon Records as Objects</A>
+					</UL>
+				</UL>
+				<H2><A NAME="Summary"></A>Summary</H2>
+				<P>Since 1996 a new function for Version 9 of <A HREF="http://www.cs.arizona.edu/icon" target="_blank">Icon</A>
+				could be written in C following a certain <A HREF="http://www.cs.arizona.edu/icon/docs/ipd240.htm" target="_blank">interface</A>,
+				and compiled into a shared library, where such is a <A HREF="http://www.ibm.com/developerworks/library/l-shobj/"
+				target="_blank">shared object</A> (.so) under Unix-like operating systems. More recently this has been implemented
+				using dynamically linked libraries (DLLs) under <A HREF="http://www.cs.arizona.edu/icon/v95x/doc/relnotes.htm"
+				target="_blank">cygwin</A>. The library could then be dynamically loaded by an Icon program calling the built-in
+				function <A HREF="http://www.cs.arizona.edu/icon/docs/ipd240.htm" target="_blank">loadfunc</A> which is passed
+				the location and name of the library and the name of the C function desired, and which returns an Icon function
+				that can subsequently be called. A suite of useful <A HREF="http://www.cs.arizona.edu/icon/library/fcfuncs.htm"
+				target="_blank">examples</A> of this technique is a part of the distribution of Icon.</P>
+				<P>Writing a significantly complex external function for use by <A HREF="http://www.cs.arizona.edu/icon/docs/ipd240.htm"
+				target="_blank">loadfunc</A> is potentially difficult for two reasons. First, an Icon structure (or other value,
+				string, list, set, table, etcetera) referred to solely by variables inside external code could be garbage collected
+				by Icon. Second, working directly with Icon data more complex than numbers, strings and files requires a thorough
+				understanding of the <A HREF="http://www.cs.arizona.edu/icon/ftp/doc/ib1up.pdf" target="_blank">implementation
+				of Icon</A>. The Icon runtime system is implemented in an <A HREF="http://www.cs.arizona.edu/icon/ftp/doc/ipd261.pdf"
+				target="_blank">extension of C</A> that is automatically translated into C. The design of the Icon virtual machine
+				is not object oriented, and contains a great deal of straight-line code. Icon structures are operated upon as combinations
+				of complex linked blocks. Writing code to work directly with such is lengthy, error prone and time consuming.</P>
+				<P>Loadfuncpp is a tool that makes writing external functions for Icon a relatively simple matter, requiring very
+				little understanding of the implementation of the Icon virtual machine. Loadfuncpp exploits the close compatibility
+				of C and C++ to provide a clean abstract interface to Icon. External functions for Icon are declared with C linkage,
+				and the Icon virtual machine requires no modification to use exernal functions written using loadfuncpp.</P>
+				<P>Beginning C++ programmers with programming experience in other languages should have little difficulty with
+				using loadfuncpp. It is not necessary to use templates, exceptions, or RTTI to use loadfuncpp. Little beyond some
+				C experience plus how to define a simple class with virtual and non-virtual member functions is needed to use loadfuncpp.
+				So C programmers with OOP experience but without C++ experience will also find loadfuncpp not difficult to use.</P>
+				<P>Loadfuncpp makes extensive use of operator overloading and other techniques to provide in C++ essentially the
+				same suite of operations, functions and capabilities that are available to the Icon programmer in Icon. The use
+				of these facilities in C++ is at most an order of magnitude more difficult than the corresponding Icon, and is
+				often much easier than that. These facilities include the ability to write external functions that suspend a sequence
+				of results, and the ability to call an Icon procedure that returns a value, which may in turn call a function that
+				calls Icon recursively in the same fashion.</P>
+				<P>These facilities also include the ability to create, activate and refresh coexpressions, the ability to write
+				external functions that are new string matching or string analyis functions, and the ability to work with all kinds
+				of Icon data as if they were built-in types. Loadfuncpp also provides garbage collection safety as a matter of
+				course, largely transparently to the C++ programmer. Loadfuncpp also provides a simple way to add new datatypes
+				to Icon using the new <A HREF="http://www.cs.arizona.edu/icon/v95x/doc/extlvals.htm" target="_blank">external values</A>
+				added to Icon version 9.5 in 2008. These are used extensively by loadfuncpp, and so loadfuncpp cannot be used with
+				versions of Icon prior to 9.5.</P>
+				<P>Loadfuncpp consists of three shared libraries (iload.so, loadnogpx.so and iloadgpx.so) normally placed in the
+				icon/bin directory (all are actually DLLs under cygwin despite the .so filename extension, and import library called
+				iload.a is used to link to them under cygwin) together with a small amount of Icon in loadfuncpp.icn, compiled
+				into loadfuncpp.u1 and loadfuncpp.u2 (using 'icont -c loadfuncpp.icn') which are normally placed in the icon/lib
+				directory. Loadfuncpp may then be used by an Icon program by adding the line 'link loadfuncpp' which makes the
+				function loadfuncpp available to Icon.</P>
+				<P>The function loadfuncpp is used in place of loadfunc to dynamically load external functions written to use the
+				loadfuncpp interface. The library containing loadfuncpp is itself loaded by an implicit call to loadfunc. The first
+				call to loadfuncpp loads iload.so (and also loads iloadgpx.so if the Icon installation supports graphics and iloadnogpx.so
+				if not) and replaces loadfuncpp by an external function in iload.so of the same name. This sequence of events makes
+				the C++ interface in iload.so available to all libraries subsequently loaded by Icon through calls of loadfuncpp.</P>
+				<H2><A NAME="Installation"></A>Installation</H2>
+				<P>Installation of Loadfuncpp is in three parts. First ensuring a correct Icon installation. Second placing the
+				loadfuncpp files appropriately. And third, ensuring that environment variables are set appropriately if the default
+				locations of loadfuncpp files are not used.</P>
+				<H3><A NAME="CorrectIconInstallation"></A>Correct Icon Installation</H3>
+				<P>You will need to install Icon version 9.5 Loadfuncpp to run. To verify you are running the correct version of
+				Icon, use `<A HREF="http://www.cs.arizona.edu/icon/refernce/icontx.htm#icont" target="_blank">icont</A> -V` and
+				`<A HREF="http://www.cs.arizona.edu/icon/refernce/icontx.htm#iconx" target="_blank">iconx</A> -V`.
+				<H3><A NAME="DefaultPlacement"></A>Default Placement of Loadfuncpp Files</H3>
+				<P>Loadfuncpp consists of the following files. Starting now (2010/2/8) loadfuncpp is available as an <A HREF="loadfuncpp.htm"
+				target="_blank">experimental source distribution.</A> I intend to do no further work on it. Use <I>make</I> and
+				examine the following files.
+				<BLOCKQUOTE>
+					<P>
+					<TABLE BORDER="0" WIDTH="585">
+						<TR>
+							<TD WIDTH="26%">
+								<P>iload.so
+							</TD>
+							<TD WIDTH="74%">
+								<P>C++ part of the loadfuncpp interface to <A HREF="http://www.cs.arizona.edu/icon/refernce/icontx.htm#iconx" target="_blank">iconx</A>
+							</TD>
+						</TR>
+						<TR>
+							<TD WIDTH="26%">
+								<P>loadfuncpp.icn
+							</TD>
+							<TD WIDTH="74%">
+								<P>Icon part of the loadfuncpp interface to <A HREF="http://www.cs.arizona.edu/icon/refernce/icontx.htm#iconx"
+								target="_blank">iconx</A>
+							</TD>
+						</TR>
+						<TR>
+							<TD WIDTH="26%">
+								<P>iloadgpx.so
+							</TD>
+							<TD WIDTH="74%">
+								<P>C++ interface needed with the graphics build of Icon
+							</TD>
+						</TR>
+						<TR>
+							<TD WIDTH="26%">
+								<P>iloadnogpx.so
+							</TD>
+							<TD WIDTH="74%">
+								<P>C++ interface needed with the non-graphics build of Icon
+							</TD>
+						</TR>
+						<TR>
+							<TD WIDTH="26%">
+								<P>loadfuncpp.h
+							</TD>
+							<TD WIDTH="74%">
+								<P>C++ header for writing new external functions
+							</TD>
+						</TR>
+					</TABLE>
+</P>
+				</BLOCKQUOTE>
+				<P>The default installation of these files is as follows. (Here we assume that the directory containing your Icon
+				installation is called icon.) I recommend that you use these locations unless there is a compelling reason not
+				to.</P>
+				<P>
+				<TABLE BORDER="0" WIDTH="585">
+					<TR>
+						<TD WIDTH="26%">
+							<P>iload.so
+						</TD>
+						<TD WIDTH="74%">
+							<P>icon/bin
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="26%">
+							<P>iload.a
+						</TD>
+						<TD WIDTH="74%">
+							<P>icon/bin (cygwin only)
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="26%">
+							<P>loadfuncpp.u1
+						</TD>
+						<TD WIDTH="74%">
+							<P>icon/lib (from loadfuncpp.icn)
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="26%">
+							<P>loadfuncpp.u2
+						</TD>
+						<TD WIDTH="74%">
+							<P>icon/lib (from loadfuncpp.icn)
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="26%">
+							<P>iloadgpx.so
+						</TD>
+						<TD WIDTH="74%">
+							<P>icon/bin
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="26%">
+							<P>iloadnogpx.so
+						</TD>
+						<TD WIDTH="74%">
+							<P>icon/bin
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="26%">
+							<P>loadfuncpp.h
+						</TD>
+						<TD WIDTH="74%">
+							<P>wherever is convenient to #include in C++ source
+						</TD>
+					</TR>
+				</TABLE>
+<BR>
+				Under <I>cygwin only</I> there is one additional file used when <A HREF="compile.htm" target="_blank">linking</A>
+				a dynamic library that uses loadfuncpp. This is the windows import library iload.a, and is most naturally placed
+				in the same directory as iload.so, as it contains the information necessary to link against it.
+				<H3><A NAME="AlternativePlacement"></A>Alternative Placement of Loadfuncpp Files</H3>
+				<P>Alternatively, you can place iload.so and iloadgpx.so anywhere you please and set the environment variable FPATH
+				to include the directories containing iload.so and iloadgpx.so. FPATH should be a space or colon separated string
+				of locations. You can compile loadfuncpp.icn using `icont -c loadfuncpp.icn` and place the resulting files (loadfuncpp.u1
+				and loadfuncpp.u2) in any directory and set the environment variable IPATH to include that directory. IPATH should
+				also be a space or colon separated string of locations.
+				<H3><A NAME="LoadfuncppInstallationTest"></A>Loadfuncpp Installation Test</H3>
+				<P>Once loadfuncpp is installed, you may test your installation by creating a small new exernal function and load
+				and call it from Icon. Here's how.</P>
+				<P>
+				<UL>
+					<LI>Create a new directory, place a copy of loadfuncpp.h in it and work there
+					<LI>Edit a new file called (say) hello.cpp to contain the following code
+					<P>
+					<TABLE BORDER="0" WIDTH="312">
+						<TR>
+							<TD WIDTH="312">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">#include &quot;loadfuncpp.h&quot;
+
+extern &quot;C&quot; int hello(value argv[]) {
+    argv[0] = &quot;Hello World&quot;;
+    return SUCCEEDED;
+}</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+
+					<LI>Compile hello.cpp into a shared object hello.so using one of these <A HREF="compile.htm" target="_blank">compiler
+					options</A>
+					<LI>Edit a new file called (say) hello.icn to contain the following code and ensure that hello.so is in the same
+					directory
+					<P>
+					<TABLE BORDER="0" WIDTH="392">
+						<TR>
+							<TD WIDTH="392">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">link loadfuncpp
+
+procedure main()
+    hello := loadfuncpp(&quot;./hello.so&quot;, &quot;hello&quot;, 0)
+    write( hello() )
+end</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+
+					<LI>Compile hello.icn by typing `icont hello.icn` and run it by typing `./hello` and you should get the output
+					<FONT COLOR="black">Hello World</FONT> appearing in the console.
+				</UL>
+			</BLOCKQUOTE>
+			<BLOCKQUOTE ALIGN="CENTER">
+				<UL>
+					<P>
+				</UL>
+				<P>
+			</BLOCKQUOTE>
+			<BLOCKQUOTE>
+				<H2><A NAME="Manual"></A>Manual</H2>
+				<P>This manual assumes that you have a <A HREF="#Installation">working installation</A> of Loadfuncpp and Icon
+				as described above. An installation of Icon alone is not sufficient, nor can Loadfuncpp be used with any Icon version
+				prior to 9.5, as it relies upon the presence of <A HREF="http://www.cs.arizona.edu/icon/v95x/doc/extlvals.htm"
+				target="_blank">external values</A> which are first implemented as a part of that version.</P>
+				<H3><A NAME="Writing"></A>Writing, Loading and Calling a new External Function</H3>
+			</BLOCKQUOTE>
+			<BLOCKQUOTE ALIGN="CENTER">
+				<P>A new Icon external function written in C++ takes one of the following forms.
+			</BLOCKQUOTE>
+			<BLOCKQUOTE>
+				<BLOCKQUOTE>
+					<P>
+					<TABLE BORDER="0" WIDTH="432">
+						<TR>
+							<TD WIDTH="432">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">#include &quot;loadfuncpp.h&quot;
+
+extern &quot;C&quot; int fixed_arity(value argv[]) {
+    // ... has a fixed number of arguments
+    return SUCCEEDED; //or FAILED
+}
+
+extern &quot;C&quot; int variable_arity(int argc, value argv[]){
+    // ... has a variable number of arguments
+    return SUCCEEDED; //or FAILED
+}</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+</P>
+				</BLOCKQUOTE>
+				<P>The C++ type 'value' is an Icon value (called a <A HREF="http://www.cs.arizona.edu/icon/docs/ipd240.htm" target="_blank">descriptor</A>),
+				representing null or an integer, real, string, cset, list, table, set, file, procedure, coexpression, record, <A
+				HREF="http://www.cs.arizona.edu/icon/v95x/doc/extlvals.htm" target="_blank">external value</A> or an Icon <A HREF="#Variable">variable</A>.
+				When such a function is called from Icon, its arguments are passed in the array argv starting from argv[1], and
+				argv[0] is taken to be the value returned to Icon by the function. In the function variable_arity the number of
+				arguments is also passed in argc. So the following is a one argument external function that returns its only argument.
+				<BLOCKQUOTE>
+					<P>
+					<TABLE BORDER="0" WIDTH="432">
+						<TR>
+							<TD WIDTH="432">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">#include &quot;loadfuncpp.h&quot;
+
+extern &quot;C&quot; int ident(value argv[]) {
+    argv[0] = argv[1];
+    return SUCCEEDED;
+}</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+</P>
+				</BLOCKQUOTE>
+				<P>The int returned to C++ is a signal to Icon indicating whether the call succeeded or failed. These are represented
+				by the constants SUCCEEDED and FAILED respectively, defined in loadfuncpp.h. However there is also a simple mechanism
+				in loadfuncpp to write <A HREF="#Generate">external functions that suspend a sequence of values</A> when called
+				in Icon.</P>
+				<P>Functions <A HREF="compile.htm" target="_blank">compiled into a shared object</A> are loaded into Icon by calls
+				of loadfuncpp. Such calls indicate to Icon whether the loaded function has a variable or a fixed number of arguments,
+				and if the latter, how many. For example the preceding functions might be loaded into Icon as follows if the body
+				of fixed_arity was written to use two arguments.
+				<BLOCKQUOTE>
+					<P>
+					<TABLE BORDER="0" WIDTH="464">
+						<TR>
+							<TD WIDTH="464">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">link loadfuncpp
+
+procedure main()
+    fixed := loadfuncpp(&quot;./mylib.so&quot;, &quot;fixed_arity&quot;, 2)
+    variadic := loadfuncpp(&quot;./mylib.so&quot;, &quot;variable_arity&quot;)
+    #fixed and variadic now contain Icon functions
+    #and may be treated like any other such values
+end</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+</P>
+				</BLOCKQUOTE>
+				<P>If the number of arguments is not specified when loading a function of fixed <A HREF="http://en.wikipedia.org/wiki/Arity">arity</A>
+				then calling the result from Icon will lead to a memory violation. (Similar behavior will likely occur if a function
+				of variable arity is loaded with a specific arity specified, or if too small an arity is specified for a fixed
+				arity function.) Beware!<BR>
+				<BR>
+				A relative or absolute path to the shared object may be used as the first argument to loadfuncpp, in which case
+				loadfuncpp will look exactly where specified for it and nowhere else. <B>Alternatively, just the filename of the
+				shared object may be specified, in which case Icon will search FPATH for the file.</B> If FPATH is not set in the
+				environment Icon runs in, then iconx defines FPATH to consist of the current directory followed by the icon/bin
+				directory. If FPATH is set in the environment Icon is run in, then iconx appends the icon/bin directory. In either
+				case FPATH should be a space or colon separated series of directories, with no spaces in their paths. (This restriction
+				will be cleaned up &quot;soon&quot;.)</P>
+				<P>All of the C++ in this manual requires '#include &quot;loadfuncpp.h&quot;' and all of the Icon requires 'link
+				loadfuncpp'. Hereafter this will be assumed implicitly.</P>
+				<P>Here is an external function of no arguments that returns null, represented in C++ by the constant nullvalue.
+				<BLOCKQUOTE>
+					<P>
+					<TABLE BORDER="0" WIDTH="432">
+						<TR>
+							<TD WIDTH="432">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">extern &quot;C&quot; int dull(value argv[]){
+    argv[0] = nullvalue;
+    return SUCCEEDED;
+}</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+</P>
+				</BLOCKQUOTE>
+				<P>If this is compiled into the shared object 'dull.so' in the current directory then it might be called by Icon
+				as follows.
+				<BLOCKQUOTE>
+					<P>
+					<TABLE BORDER="0" WIDTH="464">
+						<TR>
+							<TD WIDTH="464">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">dull := loadfuncpp(&quot;./dull.so&quot;, &quot;dull&quot;, 0)
+write(image( dull() ))</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+</P>
+				</BLOCKQUOTE>
+				<P>The value of argv[0] when an external function is called is of type procedure, and is the Icon value representing
+				the external function being called. So failure to assign to argv[0] means that Icon loads a function that returns
+				itself.</P>
+				<P>The C++ class <B>value</B> is intended to be used primarily in the interface to Icon. Icon structures in variables
+				of this class are not safe from garbage collection. Icon does guarantee that argv[] is garbage collection safe
+				however.</P>
+				<H3><A NAME="Working"></A>Working with Icon values</H3>
+				<P>Variables of the C++ class <B>safe</B> are intended to hold Icon values with guaranteed garbage collection safety.
+				The interface to Icon is largely available through the class safe. Most computation with Icon values in external
+				functions may be implemented through use of the <A HREF="#Operations">overloaded operators</A> in using this class,
+				along with its member functions that represent <A HREF="#Operations">additional Icon operators</A>. Loadfuncpp
+				also provides the <A HREF="#Keywords">Icon keywords</A> and in the namespace '<A HREF="#Builtin">Icon</A>' provides
+				a C++ variant of each of the <A HREF="#Functions">built-in functions in Icon</A>.</P>
+				<H4><A NAME="Initialization"></A>Assignment and Initialization among safe and value</H4>
+				<P>Assignment of a safe to a safe has the semantics of an Icon assignment. Specifically, if the left operand contains
+				an Icon value that is an <A NAME="Variable"></A>Icon <FONT COLOR="black">variable</FONT> (i.e. an Icon value used
+				to refer to the storage containing another Icon value so that the latter can be modified) then the assignment modifies
+				the value referred to by that Icon variable, not the C++ variable whose value is the Icon variable.</P>
+				<P>Assignment is possible among the classes safe and value, and has simple semantics: even values that are Icon
+				variables are copied. Initialization of variables of the class safe is possible from any of safe and value, with
+				the same simple semantics. In both cases the semantics is the same as Icon assignment, except in the case of an
+				Icon variable, which is merely copied, so that the variable assigned or initialized now contains the same Icon
+				variable. This lack of dereferencing is useful if an external function needs to return an Icon variable, in the
+				same way that an Icon procedure may.</P>
+			</BLOCKQUOTE>
+			<BLOCKQUOTE ALIGN="CENTER">
+				<P>A variable of class safe may also be initialized from an array of values as follows.
+			</BLOCKQUOTE>
+			<BLOCKQUOTE>
+				<BLOCKQUOTE>
+					<P>
+					<TABLE BORDER="0" WIDTH="432">
+						<TR>
+							<TD WIDTH="432">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">extern &quot;C&quot; int makelist(int argc, value argv[]){
+    safe arglist(argc, argv);
+    argv[0] = arglist;
+    return SUCCEEDED;
+}</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+</P>
+				</BLOCKQUOTE>
+				<P>Such initialization creates an Icon list containing the values in the array starting from position 1. So the
+				above function called from Icon returns a list of its arguments.</P>
+				<P>A variable of class safe may be initialized by or assigned a C string, which causes an Icon string that is a
+				copy of the original to be created, so that the original can safely be modified or destroyed later. If such copying
+				is unwanted because the C string is a literal or constant, then the two argument value constructor may be used
+				as follows.
+				<BLOCKQUOTE>
+					<P>
+					<TABLE BORDER="0" WIDTH="432">
+						<TR>
+							<TD WIDTH="432">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">extern &quot;C&quot; int f(value argv[]){
+    safe text = value(StringLiteral, &quot;Hello&quot;);
+    // ...
+    return SUCCEEDED;
+}</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+</P>
+				</BLOCKQUOTE>
+				<P>A variable of class safe may also be initialized by or assigned a C++ long or int causing the creation of an
+				Icon integer. Similarly initialization or assignment of a double causes the creation of an Icon real.</P>
+				<H4><A NAME="Operations"></A>Icon operations on variables of class safe</H4>
+				<P>Here is a table of the overloaded operators and member functions implementing Icon operators for the class safe.
+				These are listed with their Icon equivalents, and with a note of any restrictions or extensions. The <A HREF="#Bang">unary
+				! operator</A> in Icon is a generator and is supplied through loadfuncpp by <A HREF="#Bang">other means</A>.</P>
+			</BLOCKQUOTE>
+			<BLOCKQUOTE ALIGN="CENTER">
+				<P>
+				<TABLE BORDER="0" WIDTH="585">
+					<TR>
+						<TH COLSPAN="2">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">functions of safe for Icon operators</FONT>
+						</TH>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TH WIDTH="130">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">unary</FONT>
+						</TH>
+						<TH WIDTH="164">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">Icon equivalent</FONT>
+						</TH>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">*x</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">*x</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P>&nbsp;
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">~x</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">~x</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P>&nbsp;
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">-x</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">-x</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">++x</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x +:= 1</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">--x</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x -:= 1</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><B><FONT SIZE="2" FACE="Courier New, Courier">binary</FONT></B>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><B><FONT SIZE="2" FACE="Courier New, Courier">Icon equivalent</FONT></B>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">=</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">:=</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">+= -= *=</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">+:= -:= *:=</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">/= %= ^=</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">/:= %:= ^:=</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P>&nbsp;
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">+</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">+</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">-</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">-</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">*</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">*</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">/</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">/</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">%</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">%</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x^y</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x^y</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x | y</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x ++ y</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x &amp; y</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x ** y</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x &amp;&amp; y</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x -- y</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x || y</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x || y</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">|=</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">++:=</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P>&nbsp;
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">&amp;=</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">**:=</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P>&nbsp;
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">==</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">===</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">!=</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">~===</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">&lt; &gt; &lt;= &gt;=</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><B><FONT SIZE="2" FACE="Courier New, Courier">none</FONT></B>
+						</TD>
+						<TD WIDTH="271">
+							<P><A HREF="#Compare"><FONT SIZE="2" FACE="Courier New, Courier">The comparison used when sorting</FONT></A>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x[y]</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x[y]</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P>&nbsp;
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><B><FONT SIZE="2" FACE="Courier New, Courier">variadic</FONT></B>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><B><FONT SIZE="2" FACE="Courier New, Courier">Icon Equivalent</FONT></B>
+						</TD>
+						<TD WIDTH="271">
+							<P>&nbsp;
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x(...)</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x(...)</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><A HREF="#Call"><FONT SIZE="2" FACE="Courier New, Courier">Icon procedure call</FONT></A>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">(a,b ...)</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">[a,b ...]</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><A HREF="#Variadic"><FONT SIZE="2" FACE="Courier New, Courier">Variadic list construction</FONT></A>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><B><FONT SIZE="2" FACE="Courier New, Courier">member function</FONT></B>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><B><FONT SIZE="2" FACE="Courier New, Courier">Icon equivalent</FONT></B>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x.slice(y,z)&nbsp;</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x[y:z]</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x.apply(y)</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x ! y</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><A HREF="#Call"><FONT SIZE="2" FACE="Courier New, Courier">Apply Icon procedure to arguments</FONT></A>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x.listcat(y)</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x ||| y</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P>&nbsp;
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x.swap(y)</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x :=: y</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P>&nbsp;
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x.create()</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">create !x</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x.create(y)</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">create x ! y</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P>&nbsp;
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x.activate(y)</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">y@x</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">y defaults to &amp;null</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x.refresh()</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">^x</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P>&nbsp;
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x.random()</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">?x</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P>&nbsp;
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x.dereference()</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">.x</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P>&nbsp;
+						</TD>
+					</TR>
+				</TABLE>
+</P>
+			</BLOCKQUOTE>
+			<BLOCKQUOTE>
+				<H4><A NAME="Functions"></A>Icon Built-in Functions</H4>
+				<P>All of the functions built in to Icon are available in C++ in the namespace 'Icon'. The C++ counterpart of an
+				Icon built-in function returns &amp;null if the original function would have failed. Those functions that are generators
+				have been made to produce a single result. Those functions that are <A HREF="#Variadic">variadic</A> have been
+				made C++ compatible too; with a small number of arguments this can usually safely be ignored. The table below lists
+				each C++ variant of each Icon function that is a generator, along with a comment indicating how it has been modified
+				for C++ compatibility.</P>
+			</BLOCKQUOTE>
+			<BLOCKQUOTE ALIGN="CENTER">
+				<P>
+				<TABLE BORDER="0" WIDTH="551">
+					<TR>
+						<TH WIDTH="96">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">Function</FONT>
+						</TH>
+						<TD WIDTH="441">
+							<P>&nbsp;
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="96">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">bal</FONT>
+						</TD>
+						<TD WIDTH="441">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">returns the first result generated only</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="96">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">find</FONT>
+						</TD>
+						<TD WIDTH="441">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">returns the first result generated only</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="96">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">function</FONT>
+						</TD>
+						<TD WIDTH="441">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">returns a list of the results originally generated</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="96">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">key</FONT>
+						</TD>
+						<TD WIDTH="441">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">returns a list of the results originally generated</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="96">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">move</FONT>
+						</TD>
+						<TD WIDTH="441">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">cannot be resumed</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="96">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">tab</FONT>
+						</TD>
+						<TD WIDTH="441">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">cannot be resumed</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="96">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">upto</FONT>
+						</TD>
+						<TD WIDTH="441">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">returns the first result generated only</FONT>
+						</TD>
+					</TR>
+				</TABLE>
+</P>
+			</BLOCKQUOTE>
+			<BLOCKQUOTE>
+				<P>Here is an example of the use of such Icon built-in functions in a new external function. The following function
+				returns the set of its arguments.</P>
+				<BLOCKQUOTE>
+					<P>
+					<TABLE BORDER="0" WIDTH="432">
+						<TR>
+							<TD WIDTH="432">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">extern &quot;C&quot; int makeset(int argc, value argv[]){
+    safe arglist(argc, argv);
+    argv[0] = Icon::set(arglist);
+    return SUCCEEDED;
+}</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+</P>
+				</BLOCKQUOTE>
+				<H4><A NAME="Keywords"></A>Icon Keywords</H4>
+				<P>All of the Icon keywords have been made available apart from &amp;cset (to avoid a possible name collision),
+				and &amp;fail. The keywords are implemented through a keyword class with the unary '&amp;' operator overloaded
+				and are used thus in C++, as in the following example.</P>
+				<BLOCKQUOTE>
+					<P>
+					<TABLE BORDER="0" WIDTH="432">
+						<TR>
+							<TD WIDTH="432">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">extern &quot;C&quot; int assignprog(value argv[]){
+    safe newname(argv[1]);
+    &amp;progname = newname; //Icon assignment semantics
+    return FAILED;
+}</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+</P>
+				</BLOCKQUOTE>
+				<P>The preceding function assigns a new value to the keyword &amp;progname, just as in Icon. In all cases a keyword
+				is used with the unary '&amp;' operator, and therefore appears just as in an Icon program. The keywords that are
+				generators in Icon produce a list of values in C++.</P>
+				<H4><A NAME="Types"></A>Types, Conversions and Errors</H4>
+				<P>A well designed external function will probably do some type checking and conversions of its arguments, and
+				perhaps give a run-time error if they are problematic.</P>
+				<P>The member function <FONT COLOR="black">type()</FONT> in the value class returns one of the following constants
+				indicating its Icon type: <FONT COLOR="black">Null</FONT>, <FONT COLOR="black">Integer</FONT>, <A HREF="#BigInteger">BigInteger</A>,
+				<FONT COLOR="black">Real</FONT>, <FONT COLOR="black">Cset</FONT>, <FONT COLOR="black">File</FONT>, <FONT COLOR="black">Procedure</FONT>,
+				<FONT COLOR="black">Record</FONT>, <FONT COLOR="black">List</FONT>, <FONT COLOR="black">Set</FONT>, <FONT COLOR="black">Table</FONT>,
+				<FONT COLOR="black">String</FONT>, <FONT COLOR="black">Constructor</FONT>, <FONT COLOR="black">Coexpression</FONT>,
+				<FONT COLOR="black">External</FONT>, or <A HREF="#Variable">Variable</A>. Constructor means a record constructor,
+				and <A HREF="#BigInteger">BigInteger</A> is an integer with a binary representation larger than a machine word.</P>
+				<P>The member functions <FONT COLOR="black">isNull()</FONT> and <FONT COLOR="black">notNull()</FONT> in the value
+				class each return a boolean indicating whether or not the Icon type is null. The member functions <FONT COLOR="black">toInteger()</FONT>,
+				<FONT COLOR="black">toReal()</FONT>, <FONT COLOR="black">toNumeric()</FONT>, <FONT COLOR="black">toString()</FONT>
+				and <FONT COLOR="black">toCset()</FONT> in the value class each endeavors to perform a conversion in place to the
+				corresponding type following the same conventions as Icon. Each returns a boolean indicating whether the conversion
+				succeeded. If the conversion failed, then the Icon value remains unchanged. These functions are intended for use
+				with the arguments of an external function supplied to C++ before they are converted to the class safe and the
+				real computation begins. (The use of these functions on the entries in argv[] is garbage-collection safe because
+				Icon protects argv[].) For example to check that we have a string where we would need one as follows.
+				<BLOCKQUOTE>
+					<P>
+					<TABLE BORDER="0" WIDTH="432">
+						<TR>
+							<TD WIDTH="432">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">extern &quot;C&quot; int assignprog(value argv[]){
+    if( !argv[1].toString() ) {
+        Icon::runerr(103, argv[1]);
+        return FAILED; //in case &amp;error is set
+    }
+    safe newname(argv[1]);
+    &amp;progname = newname; //Icon assignment semantics
+    return FAILED;
+}</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+</P>
+				</BLOCKQUOTE>
+				<P>The function <FONT COLOR="black">syserror(const char*)</FONT> unconditionally and fatally terminates execution
+				with an Icon style error message referring to the point of execution in Icon together with the error message supplied
+				as a C string argument. This nicely complements <FONT COLOR="black">Icon::runerr</FONT>.<BR>
+				<BR>
+				To avoid problems with C++ conversion/overloading ambiguities, the class safe has been provided with a conversion
+				to the class value only, and no conversions to the types char*, int, long or double. On the other hand, the value
+				class has such conversions and so an explicit conversion to value can be used in many contexts to permit an implicit
+				conversion to a built-in type. See below for details.<BR>
+				<BR>
+				The overloaded operators for the class safe defining much of Icon's repertoire in C++ have been defined outside
+				the class safe, with the exception of those such as assignment, subscripting and call that C++ insists be non-static
+				member functions, and almost all such as well as all other member functions have parameters of type safe only.
+				This is so that the wide repertoire of conversions of other types to safe defined by loadfuncpp may be of maximum
+				utility.<BR>
+				<BR>
+				Conversions of char*, double, int and long to safe as well as value are defined, those from the built-in types
+				creating copies on the Icon heap. Specifically, the conversion from char* to safe or to value assumes a null terminated
+				C string, and produces a correspondingly copied Icon string.<BR>
+				<BR>
+				Conversions of value to long and double have been defined. These behave as expected for Icon integers and reals
+				respectively, but perform no conversions within Icon values (from integer to real or vice-versa). <BR>
+				<BR>
+				There is also a conversion from value to char* defined. This does <I>not</I> make a C string, but rather simply
+				produces a pointer to the start of an Icon string, which is not null terminated, and can move in the event of a
+				garbage collection. If null termination is desired, then concatenate the loadfuncpp constant value nullchar before
+				converting to char*, and if a copy outside of Icon is needed, then you will have to explicitly make one. Here is
+				an example.
+				<BLOCKQUOTE>
+					<P>
+					<TABLE BORDER="0" WIDTH="432">
+						<TR>
+							<TD WIDTH="432">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">extern &quot;C&quot; int assignprog(value argv[]){
+    if( !argv[1].toString() ) {
+        Icon::runerr(103, argv[1]);
+        return FAILED; //in case &amp;error is set
+    }
+    safe newname(argv[1]);
+    char* s = value(newname || nullchar); //can move
+    char sbuf[100];
+    sprintf(sbuf, &quot;%s&quot;, s);
+    //use the local copy sbuf
+    //...
+}</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+
+				</BLOCKQUOTE>
+				<P>The non-member functions <FONT COLOR="black">bytestointeger</FONT> and <FONT COLOR="black">integertobytes</FONT>
+				are useful to overtly convert to and from Icon integers of any size (i.e. type <FONT COLOR="black">Integer</FONT>
+				or <A HREF="#BigInteger">BigInteger</A> behind the scenes). Both functions take a value and return a value. In
+				this context Icon strings are considered to be representations of natural numbers. Each character is considered
+				a base 256 digit in the obvious way, and the digits are defined to be in order from most to least significant.
+				The empty string represents zero. <FONT COLOR="black">bytestointeger</FONT> takes such a string and produces the
+				corresponding Icon integer. <FONT COLOR="black">integertobytes</FONT> takes an Icon integer and produces an Icon
+				string representing its absolute value in the preceding sense. Neither function attempts type conversions, so for
+				meaningful results they must be passed respectively a string value and an integer value.<BR>
+				<BR>
+				The non-member functions <FONT COLOR="black">base64</FONT>, <FONT COLOR="black">base64tointeger</FONT> and <FONT
+				COLOR="black">base64tostring</FONT> are useful to overtly convert strings and integers of any size to and from
+				the commonly used <A HREF="http://www.faqs.org/rfcs/rfc3548.html">base64</A> encoding. Each function takes a value
+				and returns a value, and none attempts any type conversion of its arguments. <FONT COLOR="black">base64</FONT>
+				may be passed an Icon integer or string and produces a string containing the base64 encoding thereof. The sign
+				of an integer is ignored, so the base64 encoding of its absolute value is produced. <FONT COLOR="black">base64tointeger</FONT>
+				may be passed an Icon string that is a strict base64 encoding in which case it returns the corresponding Icon integer,
+				and similarly <FONT COLOR="black">base64tostring</FONT> may be passed an Icon string that is a strict base64 encoding
+				in which case it returns the corresponding Icon string. By strict base64 encoding is meant that the string's length
+				is a multiple of four, that the end of the string is a sequence of between zero and two &quot;=&quot; characters
+				(used to pad the file length to a multiple of four when encoding), and apart from that the remaining characters
+				in the string are either lower or upper case letters, or digits, or the characters &quot;/&quot; and &quot;+&quot;.
+				Failure to supply a string containing a strict base64 encoding to either function will cause null to be returned.</P>
+				<H3><A NAME="Variadic"></A><A HREF="http://en.wikipedia.org/wiki/Variadic_function">Variadic Functions</A> and
+				Dynamic List Construction</H3>
+				<P>Some built-in Icon functions take an arbitrary number of arguments. Unfortunately, C++ as of the present standard
+				has no convenient way to define a function with an arbitrary number of arguments of the same type. So variadic
+				functions included in the namespace 'Icon' such as <FONT COLOR="black">writes</FONT> are defined in two versions.
+				The first has at most eight arguments, with defaults and glue code to account for fewer being supplied. This takes
+				care of most uses of such functions.</P>
+				<P>The second uses a single argument of the class variadic, which is a wrapper for an Icon list of the arguments.
+				The operator ',' (comma) has been overloaded so as to combine two locals into a variadic, and to combine a variadic
+				and a safe so as to append the safe's value to the variadic's list. A variadic has a conversion to safe that in
+				effect removes the wrapper, and there are other sundry conversions and overloads of comma. These enable lists to
+				be constructed in place, providing a syntactic equivalent of things like <FONT COLOR="black">[x,y,z]</FONT> in
+				Icon, namely <FONT COLOR="black">(x,y,z)</FONT> in C++. The second implementation of writes may then be called
+				as <FONT COLOR="black">writes((x,y,z))</FONT>. The second pair of parentheses is necessary as comma is not regarded
+				as an operator by C++ when it is in a parameter list. Here is an example of the use of dynamic list construction.</P>
+				<BLOCKQUOTE>
+					<P>
+					<TABLE BORDER="0" WIDTH="432">
+						<TR>
+							<TD WIDTH="432">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">extern &quot;C&quot; int divide(value argv[]){
+    safe x(argv[1]), y(argv[2]);
+    argv[0] = (x / y, x % y);
+    return SUCCEEDED;
+}</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+</P>
+				</BLOCKQUOTE>
+				<H3><A NAME="Calling"></A>Calling Icon from C++</H3>
+				<P>The class safe has overloaded the function call operator '()' so that a safe may be called with function call
+				syntax. If the value of the safe is an Icon procedure (or function or record constructor) the effect is to call
+				Icon from C++. There are two kinds of restrictions on these calls.</P>
+				<P>The first restriction is because C++ requires a specific <A HREF="http://en.wikipedia.org/wiki/Arity" target="_blank">arity</A>
+				when overloading the function call operator, and has no convenient way to handle an arbitrary number of parameters
+				of the same type. This restriction is the same one affecting the calling of <A HREF="#Variadic">variadic functions</A>,
+				and is overcome in the same way with <A HREF="#Variadic">two implementations</A>. One with a single argument of
+				class variadic necessitating <A HREF="#Variadic">two pairs of parentheses</A> when the call is made, and the other
+				with up to eight arguments and useful for most procedure calls.</P>
+				<P>The second restriction is because there are three ways Icon can pass control back to a caller: by returning
+				a value, by failing and by suspending a value. However, there is only one way for C++ to receive control back from
+				a call it has made: by a value (possibly void) being returned. For this reason a call of an Icon procedure from
+				C++ will return &amp;null if the procedure fails, and will return rather than suspend if the procedure suspends
+				a value. In either case, the call always returns cleanly with a single value. It is possible to <A HREF="#Iterate">iterate
+				through the values suspended by an Icon procedure</A> in C++ through a different mechanism.</P>
+				<H3><A NAME="Generators"></A>Working with Generators from C++</H3>
+				<P>Generators and the flow of control in Icon have no counterpart in C++. Nevertheless, it is useful to be able
+				to both implement generators for Icon in C++, and iterate through generator sequences produced by Icon in C++,
+				as well as create coexpressions in C++. All these facilities are provided by loadfuncpp.</P>
+				<H4><A NAME="Generate"></A>Writing External Functions that are Generators</H4>
+				<P>Here is an example of a generator function written in C++. It is a C++ implementation of the built-in Icon function
+				<FONT COLOR="black">seq</FONT>, without the restriction to machine size integers.</P>
+				<BLOCKQUOTE>
+					<P>
+					<TABLE BORDER="0" WIDTH="456">
+						<TR>
+							<TD WIDTH="456">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">class sequence: public generator {
+    safe current, inc;
+  public:
+    sequence(local start, local increment) {
+        current = start - increment;
+        inc = increment;
+    }
+    virtual bool hasNext() { 
+        return true; 
+    }
+    virtual value giveNext() {
+        return current += inc;
+    }
+};
+
+extern &quot;C&quot; int seq2(value argv[]){
+    sequence seq(argv[1], argv[2]);
+    return seq.generate(argv);
+}</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+</P>
+				</BLOCKQUOTE>
+				<P>This exemplifies all the features of loadfuncpp that enable generator functions to be written. First a C++ version
+				of the generator is written as a class that inherits from the loadfuncpp class generator. Some data members are
+				added to maintain state as generation occurs, and a constructor is written to initialize those data members. Finally
+				the virtual functions <FONT COLOR="black">hasNext()</FONT> and <FONT COLOR="black">giveNext()</FONT> with exactly
+				the above prototypes are overloaded. The sequence generated by an object of this class is defined to be that produced
+				by repeatedly calling <FONT COLOR="black">hasNext()</FONT> to determine if there is a next member of the sequence,
+				and if there is, calling <FONT COLOR="black">giveNext()</FONT> to get it.</P>
+				<P>Now the external function itself simply creates a generator object of the above class, presumably using values
+				passed to it from Icon to initialize that object's state. Then the inherited member function <FONT COLOR="black">generate</FONT>
+				is called, passing the original argument array for technical reasons, and the signal it returns is passed back
+				to Icon. The effect of this call is to iterate through the calls of <FONT COLOR="black">giveNext()</FONT> while
+				<FONT COLOR="black">hasNext()</FONT> returns true, suspending the results produced by each call of <FONT COLOR="black">giveNext()</FONT>
+				to Icon. In a nutshell the call to <FONT COLOR="black">generate</FONT> suspends the sequence of results produced
+				by the object to Icon. The reason that <FONT COLOR="black">generate</FONT> needs to be passed argv is that it needs
+				to send its results to Icon by assigning to argv[0], in just as a single result is passed back.</P>
+				<H4><A NAME="Iterate"></A>Calling Icon Procedures that are Generators from C++</H4>
+				<P>Here is an example of how to iterate over the results of a call of an Icon procedure. In the example the procedure
+				to be called and its argument list are presumed to be the arguments passed to the external function, which then
+				computes the sum of the first ten results suspended by the call, or the sum of all the results if less than ten
+				results are computed.</P>
+				<BLOCKQUOTE>
+					<P>
+					<TABLE BORDER="0" WIDTH="456">
+						<TR>
+							<TD WIDTH="456">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">class addup: public iterate {
+  public:
+    safe total;
+    int count;
+
+    addup(): total(0), count(0) {}
+	
+    virtual void takeNext(const value&amp; x) {
+        total += x;
+    }
+    virtual bool wantNext(const value&amp; x) {
+        return ++count &lt;= 10;
+    }
+};
+
+extern &quot;C&quot; int sum10(value argv[]){
+    addup sum;
+    sum.every(argv[1], argv[2]);
+    argv[0] = sum.total;
+    return SUCCEEDED;
+}</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+</P>
+				</BLOCKQUOTE>
+				<P>This exemplifies all the features of loadfuncpp that enable the results of a call to Icon to be iterated over
+				in C++. First a class representing the loop that will iterate over the generator sequence is written, inheriting
+				from the loadfuncpp class iterate. The data members of that class model the variables used in the loop, and the
+				constructor models the initialization of those loop variables. It is convenient that these be public along with
+				everything else; the class could be declared as a struct to achieve this. The two inherited virtual member functions
+				<FONT COLOR="black">wantNext()</FONT> and <FONT COLOR="black">takeNext()</FONT> with exactly the above prototypes
+				are then overridden. The function <FONT COLOR="black">wantNext()</FONT> models the loop condition: it returns true
+				if the loop will process the next result produced by the generator, and false if the loop should be terminated.
+				The function <FONT COLOR="black">takeNext()</FONT> models the loop body: it will be passed each result produced
+				by the generator, and may modify the loop variables accordingly.</P>
+				<P>Now the external function itself simply creates an object of this class, using the constructor to initialize
+				the loop variables, or simply assigning to them directly. This models setup code before the loop proper starts.
+				Then the inherited member function <FONT COLOR="black">every</FONT> is called with the generator function and its
+				argument list as arguments to the call. The call of <FONT COLOR="black">every</FONT> models executing the loop
+				body by calling the generator function applied to its argument list and repeatedly alternately calling <FONT COLOR="black">wantNext()</FONT>
+				to see if the loop should continue and <FONT COLOR="black">takeNext()</FONT> to pass the loop body the next result
+				produced by the call to Icon. The loop is terminated either by <FONT COLOR="black">wantNext()</FONT> returning
+				false or by the sequence of results generated by the call to Icon coming to an end, whichever occurs first.</P>
+				<H4><A NAME="Bang"></A>Iterating over Exploded Structures in C++</H4>
+				<P>This feature of loadfuncpp enables iteration over the results that would be generated in Icon by an expression
+				of the form <FONT COLOR="black">!x</FONT>, with one important difference: if <FONT COLOR="black">x</FONT> is a
+				table, then the results iterated over are those that would be produced by the Icon expression <FONT COLOR="black">key(x)</FONT>.
+				The technique use to perform such an iteration is almost identical to that used to <A HREF="#Iterate">iterate over
+				the results of a call to an Icon procedure</A>. The only difference is that a different inherited member function
+				(<FONT COLOR="black">bang</FONT>) is called to run the iteration. Here is an example that sums the first ten elements
+				of a list by quite unnecessarily using this technique.</P>
+				<BLOCKQUOTE>
+					<P>
+					<TABLE BORDER="0" WIDTH="456">
+						<TR>
+							<TD WIDTH="456">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">class addup: public iterate {
+  public:
+    safe total;
+    int count;
+
+    addup(): total(0), count(0) {}
+
+    virtual void takeNext(const value&amp; x) {
+        total += x;
+    }
+    virtual bool wantNext(const value&amp; x) {
+        return ++count &lt;= 10;
+    }
+};
+
+extern &quot;C&quot; int sumlist(value argv[]) {
+    addup sum;
+    sum.bang(argv[1]);
+    argv[0] = sum.total;
+    return SUCCEEDED;
+}</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+</P>
+				</BLOCKQUOTE>
+				<H4><A NAME="Coexpressions"></A>Working with Coexpressions in C++</H4>
+				<P>There are a handful of member functions in the class safe that provide an essentially complete set of operations
+				on coexpressions. These are straighforward to use and are summarized here.</P>
+			</BLOCKQUOTE>
+			<BLOCKQUOTE ALIGN="CENTER">
+				<P>
+				<TABLE BORDER="0">
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><B><FONT SIZE="2" FACE="Courier New, Courier">safe function</FONT></B>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><B><FONT SIZE="2" FACE="Courier New, Courier">Icon equivalent</FONT></B>
+						</TD>
+						<TD WIDTH="271">
+							<P>&nbsp;
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x.create()</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">create !x</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">&nbsp;</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x.create(y)</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">create x!y</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P>&nbsp;
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x.activate(y)</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">y@x</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P><FONT SIZE="2" FACE="Courier New, Courier">y defaults to &amp;null</FONT>
+						</TD>
+					</TR>
+					<TR>
+						<TD WIDTH="130">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">x.refresh()</FONT>
+						</TD>
+						<TD WIDTH="164">
+							<P ALIGN="CENTER"><FONT SIZE="2" COLOR="black" FACE="Courier New, Courier">^x</FONT>
+						</TD>
+						<TD WIDTH="271">
+							<P>&nbsp;
+						</TD>
+					</TR>
+				</TABLE>
+</P>
+			</BLOCKQUOTE>
+			<BLOCKQUOTE>
+				<H3><A NAME="Externals"></A>Working with <A HREF="http://www.cs.arizona.edu/icon/v95x/doc/extlvals.htm" target="_blank">External
+				Values</A></H3>
+				<P>A new kind of external value is easily defined and used via inheritance from the loadfuncpp class external,
+				which permanently hides the low level machinery of the <A HREF="http://www.cs.arizona.edu/icon/v95x/doc/extlvals.htm"
+				target="_blank">C specification</A>. Here is an example of such that illustrates the use of the available features.</P>
+				<BLOCKQUOTE>
+					<P>
+					<TABLE BORDER="0" WIDTH="456">
+						<TR>
+							<TD WIDTH="456">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">class Widget: public external {
+    long state;
+  public:
+    Widget(long x): state(x) {}
+  	
+    virtual value name() {
+        return &quot;Widget&quot;;
+    }  	
+    virtual external* copy() {
+        return new Widget(state);
+    }
+    virtual value image() {
+        char sbuf[100];
+        sprintf(sbuf, &quot;Widget_%ld(%ld)&quot;, id, state);
+        return value(NewString, sbuf);
+    }
+    virtual long compare(external* ep) {
+        //negative:less, zero:equal, positive:greater
+        Widget* wp = (Widget*)ep;
+        return this-&gt;state - wp-&gt;state;
+    }  	
+};
+
+extern &quot;C&quot; int widget(value argv[]) {
+    if( argv[1].type() != Integer ) {
+        Icon::runerr(101, argv[1]);
+        return FAILED;
+    }
+    argv[0] = new Widget(argv[1]);
+    return SUCCEEDED;
+}
+
+extern &quot;C&quot; int widgetint(value argv[]) {
+    if( argv[1].type() != External ) {
+        Icon::runerr(131, argv[1]);
+        return FAILED;
+    }
+    if( !argv[1].isExternal(&quot;Widget&quot;) ) {
+        Icon::runerr(132, argv[1]);
+        return FAILED;
+    }
+    external* ep = argv[1]; //implied conversion
+    Widget* wp = (Widget*)ep; //can move if GC occurs!
+    argv[0] = ep-&gt;state;
+    return SUCCEEDED;
+}</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+</P>
+				</BLOCKQUOTE>
+				<P>The example defines an external function <FONT COLOR="black">widget</FONT> that returns an external value to
+				Icon, and an external function <FONT COLOR="black">widgetint</FONT> that returns an integer extracted from a Widget
+				to Icon. Of course a real library would have in addition a number of external functions to work with Widgets; these
+				could call additional member functions in the Widget class to do the necessary work.</P>
+				<P>Overriding the inherited virtual functions <FONT COLOR="black">name()</FONT>, <FONT COLOR="black">copy()</FONT>,
+				<FONT COLOR="black">image()</FONT> and <FONT COLOR="black">compare()</FONT> automatically redefines the behavior
+				respectively of the built-in Icon functions type, copy and image and the Icon operators === and ~=== when applied
+				to Widgets, as well as the order for sorting Widgets among themselves in Icon. Such overriding is optional, and
+				the defaults defined in the <A HREF="http://www.cs.arizona.edu/icon/v95x/doc/extlvals.htm" target="_blank">C specification</A>
+				will apply otherwise. Specifically, the default copy is not to copy but to return the original.</P>
+				<P>There are automatic conversions to and from <FONT COLOR="black">external*</FONT> so that new widgets may be
+				assigned to values or safes, and vice versa when appropriate. The operator new has been overloaded so that an external
+				is allocated by Icon as a part of an Icon external block on the Icon heap. The class external has a protected data
+				member <FONT COLOR="black">id</FONT> that contains the serial number of the external value (assigned by Icon when
+				it allocates the external block). Using <FONT COLOR="black">id</FONT> may be convenient when overriding the <FONT
+				COLOR="black">image()</FONT> member function, as above.</P>
+				<P>External blocks are assumed by Icon not to contain any Icon <A HREF="http://www.cs.arizona.edu/icon/docs/ipd240.htm"
+				target="_blank">descriptors</A>, so do not declare any data members of the classes value or safe when inheriting
+				from external, unless you wish to invite disaster when a garbage collection occurs. Take into account that external
+				blocks may be relocated or garbage collected by Icon. It is not possible to arrange for a destructor or anything
+				else to be called when that occurs. If calling a destructor is essential, then place a pointer to the real object
+				in the external object, and allocate and manage the real object yourself.</P>
+				<H3><A NAME="Records"></A>Using Icon Records as Objects</H3>
+				<P>A new procedure that is a copy of another with an Icon record bound to it may be created by calling the procedure
+				<FONT COLOR="black">bindself</FONT>. The new procedure behaves exactly as the old one, except that a call of the
+				procedure <FONT COLOR="black">self</FONT> from within it returns the record attached to it by <FONT COLOR="black">bindself</FONT>.
+				This enables a record to contain a procedure that behaves like a method by virtue of being bound to it, as illustrated
+				by the following example.
+				<BLOCKQUOTE>
+					<P>
+					<TABLE BORDER="0" WIDTH="496">
+						<TR>
+							<TD WIDTH="496">
+								<PRE><FONT COLOR="black" FACE="Courier New, Courier">link loadfuncpp
+
+record object(val, print)
+
+procedure print()
+    obj := self() | fail
+    write( obj.val )
+end
+
+procedure newObject(x)
+    obj := object(x) #don't assign print method yet
+    #print will be a copy bound to the record it's embedded in
+    obj.print := bindself(print, obj)
+    return obj 
+end
+
+procedure main()
+    obj := newObject(&quot;Hello&quot;)
+    obj.print()
+end</FONT></PRE>
+							</TD>
+						</TR>
+					</TABLE>
+
+				</BLOCKQUOTE>
+				<P>Note that <FONT COLOR="black">self</FONT> fails if called from a procedure that is not bound to a record i.e.
+				one that has not been returned by <FONT COLOR="black">bindself</FONT>. It is possible to use bindself to bind a
+				record to a procedure that already has a record bound to it. This simply replaces the bound record, which is useful
+				for copying records that are to be treated as objects in this way, e.g. when copying a prototype object when simulating
+				an object based inheritance scheme.
+			</BLOCKQUOTE>
+		</TD>
+	</TR>
+</TABLE>
+
+</CENTER>
+
+</BODY>
+
+</HTML>

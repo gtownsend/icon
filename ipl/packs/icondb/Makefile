@@ -1,3 +1,9 @@
+#  icondb -- Icon database interface contributed by Carl Stutivant.
+
+#  Depends on prior build of ../loadfuncpp.
+#  Requires that mysql utilities be installed.
+
+#  WARNING: Requires GNU make.  Do not call from portable Makefiles.
 
 ifndef TARGET
 
@@ -14,7 +20,7 @@ endif
 endif #TARGET
 
 
-ICON_PATH=../../../..
+ICON_PATH=../../..
 
 
 SHARED_mac = -bundle -undefined suppress
@@ -31,5 +37,8 @@ EXTRA_other = -I./
 default:
 	icont -ucs icondb.icn
 	cp icondb.u1 icondb.u2 $(ICON_PATH)/lib
-	sh -c "gcc $(SHARED_$(TARGET)) -o mysqldb.so $(PIC_$(TARGET)) `mysql_config --cflags` mysqldb.c `mysql_config --libs`"
+	sh -c "gcc -I../../cfuncs $(SHARED_$(TARGET)) -o mysqldb.so $(PIC_$(TARGET)) `mysql_config --cflags` mysqldb.c `mysql_config --libs`"
 	cp mysqldb.so $(ICON_PATH)/bin
+
+clean Clean:
+	rm -f *.u? *.o *.so */*.o */*.u? */*.so

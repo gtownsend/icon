@@ -77,7 +77,7 @@ $(ICON_LIB_PATH)/loadfuncpp.u1 : loadfuncpp.u1
 loadfuncpp.u1 : loadfuncpp.icn
 	icont -cs loadfuncpp.icn
 	
-clean:
+clean Clean:
 	rm -f iexample *.exe *.u? *.so *.o *% *~ core .#*
 
 iconsrc: $(ICON_BIN_PATH) $(ICON_LIB_PATH) $(ICON_HDR_PATH)
@@ -102,4 +102,3 @@ package : $(SLIBS) loadfuncpp.u1
 	tar -cf $(TARGET).tar package
 	gzip $(TARGET).tar
 	rm -rf package/
-	
