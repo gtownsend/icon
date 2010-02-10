@@ -77,4 +77,5 @@ Clean Pure:
 	-rm -rf ilib iexe *.zip */*.u[12] */*.zip */*.so *packs/*/*.exe
 	-rm -f xx `find *procs *progs -type f -perm -100 -print`
 	for d in cfuncs *packs/[abcdefghijklmnopqrstuvwxyz]*; do \
-	    (cd $$d; $(MAKE) Clean); done
+	    echo "+ cd ipl/$$d"; \
+	    (cd $$d; $(MAKE) Clean 2>/dev/null) || echo "[not cleaned]"; done
