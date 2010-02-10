@@ -1,3 +1,7 @@
+#  loadfuncpp -- a C++ interface for icon.
+#  See doc/index.htm.
+
+#  WARNING: Requires GNU make.  Do not call from portable Makefiles.
 
 CC=g++
 
