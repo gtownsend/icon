@@ -1,9 +1,6 @@
 #  icondb -- Icon database interface contributed by Carl Stutivant.
 
-#  Depends on prior build of ../loadfuncpp.
-#  Requires that mysql utilities be installed.
-
-#  WARNING: Requires GNU make.  Do not call from portable Makefiles.
+#  Requires GNU make, gcc, mysql utilities, and mysql development package.
 
 ifndef TARGET
 
