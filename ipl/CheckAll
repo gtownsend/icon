@@ -87,12 +87,19 @@ export LPATH="../incl  ../gincl"
 export IPATH="../procs ../cfuncs ../gprocs"
 (echo gprogs:; cd gprogs;  for f in *.icn; do compile $f; done)
 
-#  Test-build all the packages
+#  Test-build most of the packages (skipping GNU-only packs)
 #  Allow use of graphics within packs, because one loadfunc example needs it
 
 export LPATH="../../incl ../../gincl"
 export IPATH="../../cfuncs ../../procs ../../gprocs"
 for d in *packs/[a-z]*; do
-    echo $d:
-    (cd $d; make -s Clean; make -s)
+    case $d in
+	packs/icondb | packs/loadfuncpp)
+	    echo $d skipped
+	    ;;
+	*)
+	    echo $d:
+	    (cd $d; make -s Clean; make -s)
+	    ;;
+    esac
 done
