@@ -1,4 +1,4 @@
-#  icondb -- Icon database interface contributed by Carl Stutivant.
+#  icondb -- Icon database interface contributed by Carl Sturtivant.
 
 #  Requires GNU make, gcc, mysql utilities, and mysql development package.
 
