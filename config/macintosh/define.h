@@ -6,4 +6,4 @@
 #define MACINTOSH 1
 #define LoadFunc 
 
-#define NamedSemaphores    /* unnamed sempahores not implemented by XCode 2.4 */
+#define NamedSemaphores     /* unnamed sempahores not implemented by OS 10.6 */
