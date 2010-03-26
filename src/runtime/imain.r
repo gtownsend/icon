@@ -173,7 +173,8 @@ int *ip;
           * Announce version on stderr if -V is given.
           */
          case 'V':
-            fprintf(stderr, "%s  (%s, %s)\n", Version, Config, __DATE__);
+            fprintf(stderr, "%s  (%s %d/%d, %s)\n",
+               Version, Config, IntBits, WordBits, __DATE__);
 	    if (!argv[2])
 	       exit(0);
             break;

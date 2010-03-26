@@ -103,7 +103,8 @@ int main(int argc, char *argv[]) {
             iconxloc = "";
             break;
          case 'V':			/* -V: print version information */
-            fprintf(stderr, "%s  (%s, %s)\n", Version, Config, __DATE__);
+            fprintf(stderr, "%s  (%s %d/%d, %s)\n",
+               Version, Config, IntBits, WordBits, __DATE__);
             if (optind == argc)
                exit(0);
             break;
