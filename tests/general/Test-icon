@@ -1,8 +1,8 @@
 #!/bin/sh
 #
-#  Test-icont -- test the Icon translator and interpreter.
+#  Test-icon -- test the Icon translator and interpreter.
 #
-#  usage:  Test-icont [file...]
+#  usage:  Test-icon [BLKSIZE [STRSIZE]] [file...]
 
 IC=../../bin/icont
 ICONX=../../bin/iconx
@@ -12,6 +12,14 @@ unset BLKSIZE STRSIZE MSTKSIZE COEXPSIZE QLSIZE
 
 # may be needed if Icon is built with BinaryHeader defined
 export ICONX
+
+# check for BKLSIZE / STRSIZE arguments
+case X$1 in
+    X[0-9]*)  export BLKSIZE=$1; echo BLKSIZE=$1; shift;;
+esac
+case X$1 in
+    X[0-9]*)  export STRSIZE=$1; echo STRSIZE=$1; shift;;
+esac
 
 # echo system environment
 echo ""

@@ -13,10 +13,10 @@ Test Test-icont:  Test-programs Test-preproc Test-options
 # test programs
 
 Programs Programs-icont Test-programs:
-		IC=icont sh Test-icon
+		sh Test-icon
 
 Samples Samples-icont:
-		IC=icont sh Test-icon $(SAMPLES)
+		sh Test-icon $(SAMPLES)
 
 
 # test preprocessor
@@ -35,6 +35,15 @@ Test-options:
 		cmp options.ok options.out
 		: options test passed
 
+
+# test garbage collection by forcing small region sizes
+# (note: gc2 and kwds will fail)
+
+Test-tiny:
+		sh Test-icon 1000 1000
+
+
+# clean up
 
 Clean:
 		-rm -f *.u? *.c *.h foo.baz tmp1 tmp2 *.out *.err *.all
