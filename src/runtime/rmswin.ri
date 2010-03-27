@@ -299,10 +299,10 @@ FILE *wopen(char *name, struct b_list *lp, dptr attr, int n, int *err_idx)
       palette = CreatePalette(logpal);
       if ((scp = malloc(2 * sizeof (struct wcolor))) == NULL) return NULL;
       scp[0].c = RGB(0,0,0);
-      scp[0].type = SHARED;
+      scp[0].type = CSHARED;
       strcpy(scp[0].name, "black");
       scp[1].c = RGB(255,255,255);
-      scp[1].type = SHARED;
+      scp[1].type = CSHARED;
       strcpy(scp[1].name, "white");
       }
    oldfont = SelectObject(hdc, wc->font->font);
@@ -1552,7 +1552,7 @@ int alc_rgb(wbp w, SysColor rgb)
    LOGPALETTE lp;
    if (palette) {
       for (i=0; i < numColors; i++) {
-         if (rgb == scp[i].c && scp[i].type == SHARED) break;
+         if (rgb == scp[i].c && scp[i].type == CSHARED) break;
 	 }
       if (i == numColors) {
          numColors++;
@@ -1563,7 +1563,7 @@ int alc_rgb(wbp w, SysColor rgb)
          scp = realloc(scp, numColors * sizeof(struct wcolor));
          if (scp == NULL) { numColors--; return Failed; }
 	 scp[numColors - 1].c = rgb;
-	 scp[numColors - 1].type = SHARED;
+	 scp[numColors - 1].type = CSHARED;
 	 sprintf(scp[numColors - 1].name, "%d,%d,%d",
                  RED(rgb), GREEN(rgb), BLUE(rgb));
          lp.palNumEntries = 1;
@@ -2529,10 +2529,10 @@ HBITMAP loadimage(wbp w, char *filename, unsigned int *width,
 	    if ((scp = malloc(2 * sizeof (struct wcolor))) == NULL)
 	       return NULL;
 	    scp[0].c = RGB(0,0,0);
-	    scp[0].type = SHARED;
+	    scp[0].type = CSHARED;
 	    strcpy(scp[0].name, "black");
 	    scp[1].c = RGB(255,255,255);
-	    scp[1].type = SHARED;
+	    scp[1].type = CSHARED;
 	    strcpy(scp[1].name, "white");
             }
 	 else {
@@ -2570,7 +2570,7 @@ char *get_mutable_name(wbp w, int mute_index)
    char *tmp;
    PALETTEENTRY pe;
 
-   if (-mute_index > numColors || scp[-mute_index].type != MUTABLE) {
+   if (-mute_index > numColors || scp[-mute_index].type != CMUTABLE) {
       return NULL;
       }
 
@@ -2642,7 +2642,7 @@ int mutable_color(wbp w, dptr argv, int argc, int *retval)
       }
    scp[numColors-1].c = -(numColors-1);
    sprintf(scp[numColors-1].name, "%d:", -(numColors-1));
-   scp[numColors-1].type = MUTABLE;
+   scp[numColors-1].type = CMUTABLE;
    if (ResizePalette(palette, numColors) == 0) {
       FREE_STDLOCALS(w);
       return Failed;

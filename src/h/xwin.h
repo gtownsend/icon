@@ -74,8 +74,8 @@
 #define WMAXCOLORS	256
 #define MAXCOLORNAME	40
 #define MAXDISPLAYNAME	64
-#define SHARED          0
-#define MUTABLE         1
+#define CSHARED         0
+#define CMUTABLE        1
 #define NUMCURSORSYMS	78
 
 /*
@@ -165,7 +165,7 @@
 typedef struct wcolor {
    unsigned long c;			/* X pixel value */
    int		refcount;		/* reference count */
-   int		type;			/* SHARED or MUTABLE */
+   int		type;			/* CSHARED or CMUTABLE */
    int		next;			/* next entry in hash chain */
    unsigned short r, g, b;		/* rgb for colorsearch */
    char		name[6+MAXCOLORNAME];	/* name for WAttrib & WColor reads */

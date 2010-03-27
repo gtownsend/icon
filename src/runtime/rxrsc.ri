@@ -16,7 +16,7 @@ int fontcmp(char *font1, char *font2, int size, int flags);
 /* check for color match */
 #define CMATCH(cp, rr, gg, bb) \
    ((cp)->r == (rr) && (cp)->g == (gg) && (cp->b) == (bb) && \
-   (cp)->type == SHARED && (cp)->refcount > 0)
+   (cp)->type == CSHARED && (cp)->refcount > 0)
 
 /*
  * Allocate a color given linear r, g, b. Colors are shared on a
@@ -122,7 +122,7 @@ int is_iconcolor;
       cp->g = g;
       cp->b = b;
       cp->c = color.pixel;
-      cp->type = SHARED;
+      cp->type = CSHARED;
       /*
        * Remember in window color list, too, if not TrueColor visual.
        */
@@ -234,7 +234,7 @@ wbp w1, w2;
 
    for (i1 = 0; i1 < ws1->numColors; i1++) {
       j = ws1->theColors[i1];
-      if (wd->colrptrs[j]->refcount > 0 && wd->colrptrs[j]->type != MUTABLE) {
+      if (wd->colrptrs[j]->refcount > 0 && wd->colrptrs[j]->type != CMUTABLE) {
 	 for (i2 = 0; i2 < ws2->numColors; i2++) {
 	    if (j == ws2->theColors[i2])
 	       break;
@@ -315,7 +315,7 @@ int extent;
        */
       if (((extent==0) && (wd->colrptrs[j] == w->context->fg)) ||
 	  ((extent==0) && (wd->colrptrs[j] == w->context->bg)) ||
-	  (wd->colrptrs[j]->type == MUTABLE)) {
+	  (wd->colrptrs[j]->type == CMUTABLE)) {
 	     theColors[numSaved++] = j;
 	     continue;
 	     }
@@ -406,7 +406,7 @@ char *s;
 
    cp = wd->colrptrs[0];
    strcpy(cp->name,"black");
-   cp->type = SHARED;
+   cp->type = CSHARED;
    cp->r = cp->g = cp->b = 0;
    color.red = color.green = color.blue = 0;
    if (XAllocColor(wd->display, wd->cmap, &color))
@@ -416,7 +416,7 @@ char *s;
 
    cp = wd->colrptrs[1];
    strcpy(cp->name,"white");
-   cp->type = SHARED;
+   cp->type = CSHARED;
    cp->r = cp->g = cp->b = 65535;
    color.red = color.green = color.blue = 65535;
    if (XAllocColor(wd->display, wd->cmap, &color))

@@ -1490,7 +1490,7 @@ int fg;
       return setfgrgb(w, r * 257, g * 257, b * 257);
       }
    for (i = 2; i < wd->numColors; i++)
-      if (wd->colrptrs[i]->type == MUTABLE && wd->colrptrs[i]->c == -fg - 1)
+      if (wd->colrptrs[i]->type == CMUTABLE && wd->colrptrs[i]->c == -fg - 1)
 	 break;
    if (i == wd->numColors) return Failed;
    wc->fg = wd->colrptrs[i];
@@ -1543,7 +1543,7 @@ int bg;
       return setbgrgb(w, r * 257, g * 257, b * 257);
       }
    for (i = 2; i < wd->numColors; i++)
-      if (wd->colrptrs[i]->type == MUTABLE && wd->colrptrs[i]->c == -bg - 1)
+      if (wd->colrptrs[i]->type == CMUTABLE && wd->colrptrs[i]->c == -bg - 1)
 	 break;
    if (i == wd->numColors) return Failed;
    wc->bg = wd->colrptrs[i];
@@ -2268,7 +2268,7 @@ int *retval;
    i = alc_centry(wd);
    if (i == 0)
       return Failed;
-   wd->colrptrs[i]->type = MUTABLE;
+   wd->colrptrs[i]->type = CMUTABLE;
    wd->colrptrs[i]->c = pixels[0];
 
    /* save color index as "name", followed by a null string for value */
@@ -2332,7 +2332,7 @@ int mute_index;
    d = dp->display;
 
    for (i = 2; i < dp->numColors; i++)
-      if (dp->colrptrs[i]->type == MUTABLE
+      if (dp->colrptrs[i]->type == CMUTABLE
       && dp->colrptrs[i]->c == - mute_index - 1)
          break;
    if (i == dp->numColors)
@@ -2371,7 +2371,7 @@ int mute_index;
    d = dp->display;
 
    for (i = 2; i < dp->numColors; i++)
-      if (dp->colrptrs[i]->type == MUTABLE
+      if (dp->colrptrs[i]->type == CMUTABLE
       && dp->colrptrs[i]->c == - mute_index - 1)
          break;
    if (i != dp->numColors)
@@ -2397,7 +2397,7 @@ char *s;
 
    for (i = 2; i < dp->numColors; i++)
       if (dp->colrptrs[i]->r == color.red && dp->colrptrs[i]->g == color.green
-      && dp->colrptrs[i]->b == color.blue && dp->colrptrs[i]->type != MUTABLE)
+      && dp->colrptrs[i]->b == color.blue && dp->colrptrs[i]->type != CMUTABLE)
          break;
    if (i != dp->numColors)
       free_xcolor(w, dp->colrptrs[i]->c);
@@ -2775,7 +2775,7 @@ struct imgmem *imem;
 
    for (cpp = wd->colrptrs ; cpp < wd->colrptrs + wd->numColors; cpp++) {
       if ((*cpp)->c == c) {
-	 if ((*cpp)->type == MUTABLE)
+	 if ((*cpp)->type == CMUTABLE)
 	    *rv = -c - 1;
 	 else {
             *rv = 1;
