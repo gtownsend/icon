@@ -6,7 +6,7 @@
 #
 #	Authors:  Gregg M. Townsend
 #
-#	Date:     October 1, 2005
+#	Date:     April 2, 2010
 #
 ############################################################################
 #
@@ -34,7 +34,7 @@
 #
 #	Track log colorings are selected by pressing a key:
 #
-#	F	color by File
+#	F	color by File (restricting legend to files in view)
 #	A	color by Age
 #	O	color by Orientation (direction of travel)
 #	V	color by Velocity
@@ -384,7 +384,7 @@ procedure draw(win, pjn, a)		# display map using curview
    GotoXY(2 * BORDER, lbase)
    ltext(curview.ltitle)
    ltext(": ")
-   curview.lproc()
+   curview.lproc(pjn)
 
    Clip ! mclip
    every ptlist := !seglist do {
@@ -457,11 +457,42 @@ end
 
 
 #  F: color segments by source file, using colors set at load time
+#
+#  show in the legend only those files containing a point in view
+#  (note: won't show legend for tracks that "just pass through")
 
-procedure flegend()
-   local i
+procedure flegend(pjn)
+   local winlim, viewlim, fset, vset, i, seg, pt, x0, x1, y0, y1
 
-   every i := 1 to *fnlist do
+   fset := set()		# set of potential file source indices
+   every insert(fset, 1 to *fnlist)
+   vset := set()		# set of indices of files in view
+
+   # find limits of the current field of view
+   winlim := [mclip[1], mclip[2] + mclip[4], mclip[1] + mclip[3], mclip[2]]
+   viewlim := project(invp(pjn), winlim)
+   x0 := get(viewlim)
+   y0 := get(viewlim)
+   x1 := get(viewlim)
+   y1 := get(viewlim)
+
+   # find files in view
+   every seg := !seglist do {
+      pt := !seg	# first pt
+      if member(fset, pt.f) then {
+         every pt := !seg do {
+            if x0 <= pt.x <= x1 & y0 <= pt.y <= y1 then {
+               delete(fset, pt.f)
+               insert(vset, pt.f)
+               if *fset = 0 then
+                  break break
+               }
+            }
+         }
+      }
+
+   # now, finally draw the legend
+   every i := !sort(vset) do
       lhue(fhlist[i], fnlist[i] || " ")
    return
 end
