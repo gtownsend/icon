@@ -6,7 +6,7 @@
 #
 #	Authors:  Gregg M. Townsend
 #
-#	Date:     April 2, 2010
+#	Date:     April 3, 2010
 #
 ############################################################################
 #
@@ -242,7 +242,7 @@ procedure tcrack(date, time)		# translate date + time into real value
 
    if date[3] == "/" then
       date := map("CcYy/Mm/Dd", "Mm/Dd/CcYy", date)
-   if date == ("1989/12/31" | "1990/01/01") then
+   if date <<= "1990/01/01" then	# if indicator of missing date
       return &null
    *time =  8 | fail
    *date = 10 | fail
