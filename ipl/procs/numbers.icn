@@ -15,7 +15,7 @@
 ############################################################################
 #
 #	Contributors:  Robert J. Alexander, Richard Goerwitz
-#	   Tim Korb, and Gregg M. Townsend
+#	   Tim Korb, Gregg M. Townsend, and David Gamey
 #
 ############################################################################
 #
@@ -102,6 +102,8 @@
 #	mod1(i, m)	residue for 1-based indexing.
 #
 #	npalins(n)	generates palindromic n-digit numbers.
+#
+#	qmean ! L	returns quadratic mean (RMS) of numbers in L.
 #
 #	residue(i, m, j)
 #			residue for j-based indexing.
@@ -564,6 +566,15 @@ procedure npalins(n)		#: palindromic numbers
    every i := palins(&digits, n) do
       if i[1] ~== "0" then suspend i	# can't start with zero
 
+end
+
+procedure qmean(L[])			#: quadratic mean
+   local m
+
+   if *L = 0 then fail
+   m := 0.0
+   every m +:= !L ^ 2
+   return sqrt(m / *L)
 end
 
 procedure residue(i, m, j)		#: residue for j-based integers
