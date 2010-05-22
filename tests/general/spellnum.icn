@@ -1,0 +1,15 @@
+#  test procedure spell() from the core file numbers.icn
+
+link numbers
+
+procedure main()
+   local L, n
+   L := []
+   every put(L, -2 to 31)
+   every put(L, 47 to 92 by 9)
+   every put(L, 100 | 113 | 144 | (200 to 1400 by 100) | 3456 | 7803)
+   every n := 10 ^ (4 to 25) do
+      every put(L, n, integer(n * &pi))
+   every n := !L do
+      write(n, ": ", spell(n) | "[failed]")
+end

@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     June 10, 2001
+#	Date:     May 21, 2010
 #
 ############################################################################
 #
@@ -116,7 +116,7 @@
 #
 #	sign(r)		returns sign of r.
 #
-#	spell(i)	spells out i in English.
+#	spell(i)	spells out i in American English.
 #
 #	sum ! L		sum of numbers in list L
 #
@@ -627,21 +627,30 @@ procedure sign(r)		#: sign
 
 end
 
-procedure spell(n)		#: spell out integer
-   local m
+procedure spell(n)		#: spell integer in American English
+   local m, i
+   static scale 
+   initial {
+      scale := [ "thousand", "million", "billion", "trillion", "quadrillion",
+         "quintillion", "sextillion", "septillion"]  
+      every scale[i := 1 to *scale ] :=
+         [ integer(repl("999", i + 1)), -3 * i, " " || scale[i] ]
+      push(scale, [999, 2, " hundred"])
+      }
 
-   n := integer(n) | stop(image(n)," is not an integer")
-   if n <= 12 then return {
+   n := integer(n) | stop(image(n), " is not an integer")
+   if n < 0 then
+      return "negative " || spell(-n)
+   if n <= 14 then return {
       "0zero,1one,2two,3three,4four,5five,6six,7seven,8eight,_
-         9nine,10ten,11eleven,12twelve," ? {
+         9nine,10ten,11eleven,12twelve,13thirteen,14fourteen," ? {
             tab(find(n))
             move(*n)
             tab(find(","))
             }
       }
    else if n <= 19 then return {
-      spell(n[2] || "0") ?
-         (if ="for" then "four" else tab(find("ty"))) || "teen"
+      spell(10 * n[2]) ? tab(find("ty")) || "teen"
       }
    else if n <= 99 then return {
       "2twen,3thir,4for,5fif,6six,7seven,8eigh,9nine," ? {
@@ -651,20 +660,12 @@ procedure spell(n)		#: spell out integer
             (if n[2] ~= 0 then "-" || spell(n[2]) else "")
          }
       }
-   else if n <= 999 then return {
-      spell(n[1]) || " hundred" ||
-         (if (m := n[2:0]) ~= 0 then " and " || spell(m) else "")
+   else if n <= scale[i := 1 to *scale, 1] then return {
+     # generalize based on scale
+      spell(n[1:scale[i,2]]) || scale[i,3] ||
+         (if (m := n[scale[i,2]:0]) ~= 0 then " " || spell(m) else "")   
       }
-   else if n <= 999999 then return {
-      spell(n[1:-3]) || " thousand" ||
-         (if (m := n[2:0]) ~= 0 then " and " || spell(m) else "")
-      }
-   else if n <= 999999999 then return {
-      spell(n[1:-6]) || " million" ||
-         (if (m := n[2:0]) ~= 0 then " and " || spell(m) else "")
-      }
-   else fail
-
+   else fail                                                # really big
 end
 
 procedure sum(values[])		#: sum of numbers
