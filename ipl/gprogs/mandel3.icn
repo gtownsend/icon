@@ -1,0 +1,59 @@
+############################################################################
+#
+#	File:     mandel3.icn
+#
+#	Subject:  Program to display the Mandelbrot set in color
+#
+#	Author:   Greg Buchholz
+#
+#	Date:     April 14, 2010
+#
+############################################################################
+#
+#   This file is in the public domain.
+#
+############################################################################
+#
+#	This program displays the Mandelbrot set in color.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  complex, graphics
+#
+############################################################################
+
+link complex
+link graphics 
+
+procedure main() 
+   local width, height, limit, x, y, z, c, j
+   width := 750 
+   height := 600 
+   limit := 100 
+   WOpen("size=" || width || "," || height) 
+   every x := 1 to width & y := 1 to height do 
+   { 
+      z := complex(0.0, 0.0) 
+      c := complex(2.5 * x / width - 2.0, 2.0 * y / height - 1.0) 
+      j := 0 
+      while j < limit & cpxabs(z) < 2.0 do 
+      { 
+         z := cpxadd(cpxmul(z, z), c) 
+         j +:= 1 
+      } 
+      Fg(mColor(j, limit)) 
+      DrawPoint(x, y) 
+   } 
+   WDone() 
+end 
+
+procedure mColor(x, limit) 
+   if x = limit then
+      return "black"
+   else
+      return HSVValue((360 * x / limit) || "/100/100")
+end 
