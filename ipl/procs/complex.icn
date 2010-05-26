@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     June 21, 2000
+#	Date:     May 26, 2010
 #
 ############################################################################
 #
@@ -19,7 +19,11 @@
 #       complex(r,i)    create complex number with real part r and
 #                       imaginary part i
 #  
+#       cpxabs(z)       compute absolute value of complex number z
+#
 #       cpxadd(z1, z2)  add complex numbers z1 and z2
+#
+#       cpxconj(z)      compute conjugate of complex number z
 #  
 #       cpxdiv(z1, z2)  divide complex number z1 by complex number z2
 #  
@@ -36,7 +40,7 @@
 
 record complex(rpart, ipart)
 
-procedure strcpx(s)
+procedure strcpx(s)			#: convert string to complex number
 
    s ? {
       ="(" | fail
@@ -46,33 +50,33 @@ procedure strcpx(s)
 
 end
 
-procedure cpxstr(z)
+procedure cpxstr(z)			#: return complex number as string
 
    if z.ipart < 0 then return "(" ||  z.rpart || z.ipart || "i)"
    else return "(" ||  z.rpart || "+" || z.ipart || "i)"
 
 end
 
-procedure cpxadd(z1, z2)
+procedure cpxadd(z1, z2)		#: complex add
 
    return complex(z1.rpart + z2.rpart, z1.ipart + z2.ipart)
 
 end
 
-procedure cpxsub(z1, z2)
+procedure cpxsub(z1, z2)		#: complex subtract
 
    return complex(z1.rpart - z2.rpart, z1.ipart - z2.ipart)
 
 end
 
-procedure cpxmul(z1, z2)
+procedure cpxmul(z1, z2)		#: complex multiply
 
    return complex(z1.rpart * z2.rpart - z1.ipart * z2.ipart,
       z1.rpart * z2.ipart + z1.ipart * z2.rpart)
 
 end
 
-procedure cpxdiv(z1, z2)
+procedure cpxdiv(z1, z2)		#: complex divide
    local denom
 
    denom := z2.rpart ^ 2 + z2.ipart ^ 2
@@ -82,13 +86,13 @@ procedure cpxdiv(z1, z2)
 
 end
 
-procedure cpxconj(z)
+procedure cpxconj(z)			#: complex conjugate
 
    return complex(z.rpart, -z.ipart)
 
 end
 
-procedure cpxabs(z)
+procedure cpxabs(z)			#: complex absolute value
 
    return sqrt(z.rpart ^ 2 + z.ipart ^ 2)
 
