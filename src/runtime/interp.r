@@ -5,8 +5,6 @@
 
 #include "../h/opdefs.h"
 
-extern fptr fncentry[];
-
 word lastop;			/* Last operator evaluated */
 
 /*

@@ -11,10 +11,6 @@ extern "C" {	//cs
 #define COMPILER 0
 #include RTT
 
-//#line 8 "interp.r"
-
-extern fptr fncentry[];
-
 //#line 22 "interp.r"
 
 //word lastop;

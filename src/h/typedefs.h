@@ -22,15 +22,11 @@ typedef unsigned int DIGIT;
    typedef unsigned int uword;
 #endif					/* IntBits != WordBits */
 
-typedef void *pointer;
-
 /*
  * Typedefs to make some things easier.
  */
-
-typedef int (*fptr)();
+typedef void *pointer;
 typedef struct descrip *dptr;
-
 typedef word C_integer;
 
 /*
