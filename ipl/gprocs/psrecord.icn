@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     May 10, 1999
+#	Date:     June 16, 2010
 #
 ############################################################################
 #
@@ -448,12 +448,12 @@ procedure PS_arc(a, n, f)	# handle draw/fill arc/circle, append f to cmd
       h := a[i+2+n]
       a1 := (\a[i+n+3] * mul) | 0.0
       a2 := (\a[i+n+4] * mul) | 360.0
-      if n = 1 then {		# if DrawArc
+      if n = 1 then {		# if Draw/Fill Arc
          r := w / 2.0			# radius
          x +:= r			# center coordinates
-         y +:= r
+         y +:= h / 2.0
          }
-      else
+      else			# Draw/Fill Circle
          r := w
       if w = h & abs(a2) > 359.99 then	# if circle
          PS_out(x, y, r, "c" || f)
