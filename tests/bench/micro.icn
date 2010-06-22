@@ -8,6 +8,7 @@
 #   3-apr-98/gmt
 #  Revised for Icon v9:
 #   5-nov-09/gmt
+#  22-jun-10/gmt
 #
 #  usage:  icon micro.icn interval
 #
@@ -119,6 +120,10 @@ procedure main(args)
    report(entabf)
    report(detabf)
    report(mapf)
+   report(map1)
+   report(map2)
+   report(tablemap)
+   report(listmap)
 
    report(nullscan)
    report(movef)
@@ -616,9 +621,38 @@ procedure detabf(n)
 end
 
 procedure mapf(n)
-   if /n then return "map(s1,s2,s3)"
+   if /n then return "map(\"quick brown fox\",\"a...z\",\"A...Z\")"
    every 1 to n do
-      map("abcde", "bcdef", "cdefg")
+      map("quick brown fox",
+         "abcdefghijklmnopqrstuvwxyz", "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+end
+
+procedure map1(n)
+   if /n then return "map(\"b\",\"ab\",\"ba\")"
+   every 1 to n do
+      map("b","ab","ba")
+end
+
+procedure map2(n)
+   if /n then return "map(\"b\",\"ab\",\"ba\") & map(\"c\",\"dc\",\"cd\")"
+   every 1 to n do 
+      map("b","ab","ba") & map("c","dc","cd")
+end
+
+procedure tablemap(n)
+   static T
+   initial { T := table(); T["a"] := "b"; T["b"] := "a" }
+   if /n then return "T[\"b\"]"
+   every 1 to n do
+      T["b"]
+end
+
+procedure listmap(n)
+   static L
+   initial { L := list(256); L[ord("a")] := "b"; L[ord("b")] := "a" }
+   if /n then return "L[ord(\"b\")]"
+   every 1 to n do
+      L[ord("b")]
 end
 
 
