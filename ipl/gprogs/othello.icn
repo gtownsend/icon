@@ -1,0 +1,766 @@
+############################################################################
+#
+#	File:     othello.icn
+#
+#	Subject:  Program to play the board game Othello (or Reversi)
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     July 14, 2010
+#
+############################################################################
+#
+#	This file is in the public domain.
+#
+############################################################################
+#
+#	Othello is a board game based on the older English game Reversi.
+#	This program provides a computerized opponent for a human player.
+#
+#	To make a move, click on a square to place a piece.  The program
+#	flips the appropriate pieces, cogitates a bit, and then makes
+#	its own move.  If you have no legal move, click anywhere to pass.
+#
+#	Play ends when neither side can move; the player with the larger
+#	number of of pieces is the winner.
+#
+#	Commands are issued by pressing a key:
+#
+#	N	new game
+#	G	go (the program makes a move; to play white, start with this)
+#	H	hints (toggle the display of legal moves)
+#	Q	quit
+#
+#	U	undo last move (which is cheating, of course)
+#	P	pass, even if not legal, changing the side to move
+#
+#	W	write game history to standard output
+#	S	save current game to a file
+#	O	open game from a file
+#		(or: pass a filename argument when starting the program)
+#
+#	1 to 9	set program lookahead depth (the default is 5)
+#	E	display an evaluation of possible move choices
+#	D	start demo mode; press space bar to end demo
+#
+#	In addition to the control commands and the click-to-move action,
+#	selecting a square by right-clicking or control-clicking makes
+#	a move in isolation without prompting a computer response.
+#
+############################################################################
+#
+#  Requires:  Version 9 graphics
+#
+############################################################################
+#
+#  Links:  graphics, random
+#
+############################################################################
+
+link graphics
+link random
+
+$define DEPTH 5			# default search depth
+$define DEFNAME "savedgame.oth"	# default filename for save
+
+global game			# current game state
+global depth			# current search depth setting in half-moves
+global hints			# non-null if to show hints (legal moves)
+global savename			# filename of saved game
+
+
+#########################  OVERALL CONTROL   #########################
+
+procedure main(args)
+   local c, n, e, f, newg, dlogwin
+
+   # initialize globals
+   depth := DEPTH
+   savename := DEFNAME
+   randomize()
+
+   # initialize graphics
+   Window("size=800,640", "resize=on", args) # open the main window
+   dlogwin := Clone("font=sans,bold,12") # make a separate GC for dialog use
+   layout()				# configure the game window
+
+   # load game if passed a filename argument, or set up a new name
+   if *args > 0 then {
+      f := open(args[1])	| stop("cannot open ", args[1])
+      game := load(f)		| stop("cannot load game from ", args[1])
+      close(f)
+      }
+   else
+      game := newgame()
+
+   redisplay(game)			# show initial game state on display
+
+   # main loop
+   while e := Event() do case e of {
+      &lrelease:			# left click: make move and respond
+         if game := selectmove(game, whichcell(&x, &y)) then
+            if not &control then	# treat control-click as right-click
+               game := automove(game)
+      &rrelease:			# right click: make move, then wait
+         game := selectmove(game, whichcell(&x, &y))
+      &resize: {			# resize window
+         if Pending()[1] === &resize then
+            next			# ignore this resize; another follows
+         layout()			# reconfigure the new window
+         redisplay(game)		# redraw the current game
+         }
+      !"123456789":			# 1 to 9: set search depth
+         depth := integer(e)
+      !"dD":				# d: run in demo mode
+         game := demo(game)
+      !"eE":				# e: evaluate possible moves
+         showevals(game, depth)
+      !"gG":				# g: generate and make a move
+         (game := automove(game)) | Alert()
+      !"hH":  {				# h: toggle hints display (legal moves)
+         (/hints := e) | (\hints := &null)
+         redisplay(game)
+         }
+      !"nN":				# n: start new game
+         redisplay(game := newgame())
+      !"oO":				# o: open and read game from file
+         while f := getfile(dlogwin, "Load game from file:", "r") do {
+            if game := load(f) then {
+               close(f)
+               redisplay(game)
+               break
+               }
+            close(f)
+            Notice(dlogwin, "Cannot load game from " || savename)
+            }
+      !"pP":  {				# p: pass
+         game := domove(game, &null)
+         redisplay(game)
+         }
+      !"qQ":				# q: quit
+         exit()
+      !"sS":				# s: save history to file
+         if f := getfile(dlogwin, "Save game to file:", "w") then {
+            save(f, game)
+            close(f)
+            }
+      !"uU":				# u : undo last move
+         if game := \game.pred then
+            redisplay(game)
+         else
+            Alert()
+      !"wW":				# w: write history to stdout
+         save(&output, game)
+      }
+end
+
+
+#  demo(game) -- run in demo mode (full automatic) until interrupted
+
+procedure demo(game)
+   local oldh
+
+   oldh := hints
+   hints := 1
+   while *Pending() = 0 do {
+      if game := automove(game) then
+         WDelay(500)
+      else {
+         # write("black ", game.bcount, ", white ", game.wcount,
+         #    " (depth=", depth, ")")
+         WDelay(5000)
+         redisplay(game := newgame())
+         WDelay(1000)
+         }
+      }
+   hints := oldh
+   return game
+end
+
+
+#  automove(game) -- find the best move, and make it
+
+procedure automove(game)
+   local newg, t1, t2
+
+   if gameover(game) then
+      fail
+
+   t1 := &time
+   showthink(game)
+   newg := bestmove(game, depth)
+   t2 := &time
+   # write(game.bcount + game.wcount, ". ", game.nextup, " at ",
+   #    \newg.move | "--", ": ", t2 - t1, " ms, depth=", depth)
+   if game.bcount > 0 & game.wcount > 0 & (game.bcount+game.wcount) < 64 then {
+      showmove(game, newg.move)		# show animated move, if game not over
+      WDelay(500)			# pause a moment
+      }
+   redisplay(newg)			# show the new board configuration
+   return newg
+end
+
+
+#  selectmove(game, n) -- accept or reject move at cell n
+
+procedure selectmove(game, n)
+   local newg, move
+
+   if canmove(game, n) then		# if clicked on a legal move
+      move := n
+   else if \allmoves(game).move then {	# if didn't, but one was available
+      Alert()
+      fail
+      }
+   else					# clicked when no move is legal
+      move := &null			# treat as a pass
+
+   newg := domove(game, move)		# make the move
+   showmove(game, move)			# show it in animation
+   WDelay(100)				# pause very briefly
+   redisplay(newg)			# show the new board configuration
+   return newg
+end
+
+
+#  getfile(win, prompt, mode) -- get filename using dialog, and open file
+
+procedure getfile(win, prompt, mode)
+   local f
+   repeat {
+      case OpenDialog(win, prompt, savename) of {
+         "Okay": {
+            if f := open(savename := dialog_value, mode) then
+               return f
+            Notice(win, "Cannot open " || savename)
+            }
+         "Cancel":
+            fail
+         }
+      }
+end
+
+
+#########################  GAME DISPLAY   #########################
+
+$define ASPECT 1.25
+
+$define BOARDCOLOR "dark weak green"
+$define SIDECOLOR "dark moderate red-yellow"
+$define SCORECOLOR "gray"
+$define BLACKHINT "deep weak green"
+$define WHITEHINT "weak green"
+$define ACTCOLOR "dark red"
+
+global cw	# cell width
+global c2	# cell width / 2
+global r        # token radius
+global sw	# scoreboard width
+
+
+#  layout() -- configure display based on current window size
+
+procedure layout()
+   local w, h, a
+
+   # rehape window to closest rectangle with proper aspect ratio
+   h := WAttrib("height")		# get current height and width
+   w := WAttrib("width")
+   a := w * h / ASPECT			# compute area for the board itself
+   h := 8 * integer(sqrt(a) / 8 + 0.5)	# closest corresponding legal height
+   w := integer(ASPECT * h)		# and corresponding width
+   WAttrib("width=" || w, "height=" || h)  # resize the window
+   sw := w - h				# calculate scoreboard width
+   WAttrib("dx=" || sw, "dy=0")		# set gameboard origin beyond scoreboard
+   cw := h / 8				# calculate cell width
+   c2 := cw / 2				# calculate half of that
+   r := integer(0.4 * cw)		# calculate counter radius
+   WAttrib("font=sans,bold," || integer(0.4 * cw))	# set font size
+   return
+end
+
+procedure xloc(n)			# get x-coordinate from cell number
+   return (n % 10) * cw - cw / 2
+end
+
+procedure yloc(n)			# get y-coordinate from cell number
+   return (n / 10) * cw - cw / 2
+end
+
+
+#  whichcell(x, y) -- translate mouse click to cell number
+
+procedure whichcell(x, y)
+   local i, j
+   i := integer(x / cw) + 1
+   j := integer(y / cw) + 1
+   return 10 * j + i
+end
+
+
+#  showevals(gs, depth) -- show evaluation scores of all legal moves
+
+procedure showevals(gs, depth)
+   local rs, x, y
+
+   Fg(if gs.nextup == "b" then BLACKHINT else WHITEHINT)
+   every rs := !evaluate(gs, depth) do {
+      x := xloc(\rs.move | 44)
+      y := yloc(\rs.move | 44)
+      EraseArea(x - r - 2, y - r - 2, 2 * r + 4, 2 * r + 4)
+      CenterString(x, y, rs.score)
+      }
+end
+
+
+#  showmove(gs, n) -- show animation of transitions caused by move at cell n
+
+procedure showmove(gs, n)
+   local v, f, d, c, x, y
+
+   if gameover(gs) then			# don't show anything for "pass" at end
+      return
+
+   if /n then {				# show pass move by flashing PASS
+      EraseArea(3 * cw, 4 * cw - r, 2 * cw, 2 * r)
+      Fg(ACTCOLOR)
+      CenterString(4 * cw, 4 * cw, "PASS")
+      return
+   }
+
+   # this is a normal flip move
+   c := if gs.nextup == "b" then "black" else "white"	# color to play
+   x := xloc(n)				# coordinates of center of cell to play
+   y := yloc(n)
+   Fg(c)
+   FillCircle(x, y, r)			# draw new piece in proper color
+   Fg(ACTCOLOR)
+   FillCircle(x, y, r / 2)		# add a red center
+   WAttrib("linewidth=5")		# plus red lines along flip rows
+   every v := nvectors() do if f := canflip(gs, n, v) then {
+      WDelay(250)			# pause briefly before each row
+      d := n + f * v + v
+      FillCircle(xloc(d), yloc(d), r / 2)
+      DrawLine(xloc(d), yloc(d), xloc(n), yloc(n))
+      }
+   WDelay(250)				# pause for reflection
+   Fg(c)
+   every v := nvectors() do if f := canflip(gs, n, v) then {
+      WDelay(50)			# slight additional pause per row
+      while f > 0 do {
+         WDelay(50)			# and between pieces
+         d := n + f * v
+         FillCircle(xloc(d), yloc(d), r)  # redraw piece in new color
+         f -:= 1
+         }
+      }
+   return
+end
+
+
+#  redisplay(gs) -- redraw the entire game display
+
+procedure redisplay(gs)
+
+   Bg(SIDECOLOR)
+   EraseArea(-sw, 0, sw, 8 * cw)
+   drawscores(gs)
+
+   Bg(BOARDCOLOR)
+   EraseArea(0, 0)
+   drawboard(gs)
+   return
+end
+
+
+#  drawscores(gs) -- draw the scoreboard showing piece counts and next to play
+
+procedure drawscores(gs)
+   local x, y
+
+   # show counts
+   drawcounter(-1, 7, "black", gs.bcount, SCORECOLOR)
+   drawcounter(-1, 8, "white", gs.wcount, SCORECOLOR)
+
+   # show who is to move
+   if gameover(gs) then {
+      if gs.bcount > gs.wcount then
+         drawlabel(0, 7, SIDECOLOR, "WIN", ACTCOLOR)
+      else if gs.wcount > gs.bcount then
+         drawlabel(0, 8, SIDECOLOR, "WIN", ACTCOLOR)
+      else
+         drawlabel(-0.1, 7.5, SIDECOLOR, "DRAW", ACTCOLOR)
+      }
+   else
+      drawlabel(0, if gs.nextup == "b" then 7 else 8,
+         SIDECOLOR, "next", ACTCOLOR)
+   return
+end
+
+
+#  showthink(gs) -- replace "who's up" with search depth while computing move
+
+procedure showthink(gs)
+   drawlabel(0, if gs.nextup == "b" then 7 else 8, SIDECOLOR,
+      "[" || depth || "]", ACTCOLOR)
+end
+
+
+#  drawboard(gs) -- draw the game board proper, with pieces and hints
+
+procedure drawboard(gs)
+   local c, i, j, n
+
+   WAttrib("fg=black", "linewidth=2")
+   every i := 0 to 8 do {
+      DrawLine(i * cw, 0, i * cw, 8 * cw)
+      DrawLine(0, i * cw, 8 * cw, i * cw)
+      }
+   every i := 1 to 8 do {
+      every j := 1 to 8 do {
+         n := i + 10 * j
+         case gs.cells[n + 1] of {
+            "b":
+               drawcounter(i, j, "black")
+            "w":
+               drawcounter(i, j, "white")
+            " ":
+               if \hints & canmove(gs, n) then {
+                  Fg(if gs.nextup == "b" then BLACKHINT else WHITEHINT)
+                  DrawCircle(i * cw - c2, j * cw - c2, r - 1)
+                  }
+            }
+         }
+      }
+   return
+end
+
+
+#  drawcounter(i, j, color, label, labelcolor) -- draw one piece at (i,j)
+
+procedure drawcounter(i, j, color, label, lcolor)
+   local x, y
+
+   Fg(color)
+   FillCircle(x := i * cw - c2, y := j * cw - c2, r)
+   if Fg(\lcolor) then
+      CenterString(x, y, \label)
+   return
+end
+
+
+#  drawlabel(i, j, bgcolor, label, fgcolor) -- draw label at (i,j)
+
+procedure drawlabel(i, j, bgcolor, label, fgcolor)
+   local x, y
+
+   x := i * cw - c2
+   y := j * cw - c2
+   Fg(bgcolor)
+   FillRectangle(x - c2 + 1, y - c2 + 1, cw - 2, cw - 2)
+   Fg(fgcolor)
+   CenterString(x, y, label)
+   return
+end
+
+
+#########################  GAME MODEL  #########################
+
+$define HEADER "-- Ithello v1.0"
+
+record board(		# game state record:
+   cells,		# 10x10 string of cell values (many(' bw*'))
+   nextup,		# who's up next ("b" or "w")
+   bcount,		# count of black cells
+   wcount,		# count of white cells
+   score,		# evaluation from standpoint of nextup player
+   move,                # last move (cell number in 11 to 88, null to pass)
+   pred)		# predecessor state
+
+# offsets to eight neighbors given a square number
+$define ALLNEIGHBORS (1 | 11 | 10 | 9 | -1 | -11 | -10 | -9)
+
+
+procedure newgame()                     # generate a new game
+   static iboard
+   initial iboard :=		# square numbers (&pos-1)
+      "**********" ||		# 00 - 09
+      "*        *" ||		# 10 - 19
+      "*        *" ||		# 20 - 29
+      "*        *" ||		# 30 - 39
+      "*   wb   *" ||		# 40 - 49
+      "*   bw   *" ||		# 50 - 50
+      "*        *" ||		# 60 - 69
+      "*        *" ||		# 70 - 79
+      "*        *" ||		# 80 - 89
+      "**********"		# 90 - 99
+   return board(iboard, "b", 2, 2, 0)
+end
+
+procedure nvectors()		# generate offsets to eight neighbors
+   suspend ALLNEIGHBORS
+end
+
+procedure getcell(gs, n)	# get cell number n (00 <= n <= 99)
+   return gs.cells[n + 1]
+end
+
+procedure setcell(gs, n, c)	# set cell number n to char c
+   return gs.cells[n + 1] := c
+end
+
+procedure opposite(c)			# map(c,"bw","wb")
+   static opp
+   initial { opp := table(); opp["b"] := "w"; opp["w"] := "b"; }
+   return \opp[c]
+end
+
+
+#  trymove(gs, n) -- return result of move at cell n, if legal
+
+procedure trymove(gs, n)
+   if canmove(gs, n) then
+      return domove(gs, n)
+   else
+      fail
+end
+
+
+#  domove(gs, n) -- return result of move in cell n, or of pass move if n null
+
+procedure domove(gs, n)
+   local new
+
+   new := copy(gs)
+   doboard(new, \n)
+   new.nextup := opposite(gs.nextup)
+   new.move := n
+   new.pred := gs
+   return new
+end
+
+
+#  doboard(gs, n) -- perform a flip move in cell n
+
+procedure doboard(gs, n)
+   local o, f, i, t
+
+   setcell(gs, n, gs.nextup)
+   t := 0
+   every o := ALLNEIGHBORS do {
+      if f := canflip(gs, n, o) then {
+         every i := 1 to f do
+            setcell(gs, n + i * o, gs.nextup)
+         t +:= f
+         }
+      }
+   if gs.nextup == "b" then {
+      gs.wcount -:= t
+      gs.bcount +:= t + 1
+      }
+   else {				# == "w"
+      gs.bcount -:= t
+      gs.wcount +:= t + 1
+      }
+   return gs
+end
+
+
+#  allmoves(gs) -- generate legal moves, including pass, from gs
+
+procedure allmoves(gs)
+   local new
+
+   suspend new := flipmoves(gs)
+   if /new then
+      return domove(gs, &null)
+   else
+      fail
+end
+
+
+#  flipmoves(gs) -- generate moves that flip pieces
+
+procedure flipmoves(gs)
+   static seq		# for alpha-beta pruning, try most important first
+   initial seq := [
+      11, 18, 88, 81, 22, 27, 77, 72, 12, 17, 28, 78, 87, 82, 71, 21,
+      13, 16, 38, 68, 86, 83, 61, 31, 14, 15, 48, 58, 85, 84, 51, 41,
+      23, 26, 37, 67, 76, 73, 62, 32, 24, 25, 47, 57, 75, 74, 52, 42,
+      33, 34, 35, 36, 46, 56, 66, 65, 64, 63, 53, 43 ]
+
+   suspend trymove(gs, !seq)
+end
+
+
+#  canmove(gs, n) -- succeed if can move at square n (n not null)
+
+procedure canmove(gs, n)
+   if getcell(gs, n) ~== " " then
+      fail
+   return canflip(gs, n, ALLNEIGHBORS)
+end
+
+
+#  canflip(gs, n, o) -- return flip count from square n along offset o, or fail
+
+procedure canflip(gs, n, o)
+   local f, opp
+
+   opp := opposite(gs.nextup)
+   f := 0
+   while getcell(gs, n +:= o) == opp do
+      f +:= 1
+   if getcell(gs, n) ~== gs.nextup then
+      fail
+   return 0 < f			# return count flipped, or fail if none
+end
+
+
+#  gameover(game) -- succeed if neither side can move
+
+procedure gameover(gs)
+   if gs.bcount = 0 | gs.wcount = 0 then
+      return				# one side is wiped out: game over
+   if gs.bcount + gs.wcount = 64 then
+      return				# board is full: game over
+   if flipmoves(gs) then
+      fail				# next player has a move: not over
+   gs := domove(gs, &null)
+   if flipmoves(gs) then
+      fail				# after pass, other player can move
+   else
+      return				# no moves for either: game over
+end
+
+
+#  save(f, gs) -- write game (with history) to file
+
+procedure save(f, gs)
+   write(f, HEADER)
+   rsave(f, gs)
+   write(f)
+   return
+end
+
+procedure rsave(f, gs)			# recursively save oldest first
+   rsave(f, \gs.pred)
+   writes(f, \gs.move | "--", " ")
+   return
+end
+
+
+#  load(f) -- read game from file
+
+procedure load(f)
+   local g, s, n
+
+   g := newgame()
+   read(f) == HEADER				| fail
+   s := read(f)					| fail
+   s ? {
+      ="-- "					| fail
+      while n := move(2) do {
+         =" " | pos(0)				| fail
+         if n == "--" then
+            g := domove(g, &null)
+         else
+            g := trymove(g, integer(n))		| fail
+         }
+      pos(0)					| fail
+      }
+   return g
+end
+
+
+#########################  POSITION EVALUATION  #########################
+
+$define INFSCORE 1000000	# infinite score
+
+
+#  bestmove(gs, n) -- find best move to depth n, and return resulting game state
+#
+#  Selects randomly from equally good choices.
+
+procedure bestmove(gs, n)
+   local a, g, best, nbest
+
+   a := evaluate(gs, n)
+   every g := !a do
+      if /best | g.score > best.score then {
+         best := g
+         nbest := 1
+         }
+      else if g.score = best.score then {
+         nbest +:= 1
+         if ?0 < (1. / nbest) then
+            best := g
+         }
+   return best
+end
+
+
+#  evaluate(gs, n) -- return list of evaluated states from all legal moves
+
+procedure evaluate(gs, n)
+   local a, g
+
+   a := []
+   every g := allmoves(gs) do {
+      g.score := -alphabeta(g, n - 1, -INFSCORE, +INFSCORE)
+      put(a, g)
+      }
+   return a
+end
+
+
+#  alphabeta(gs, n, alpha, beta) -- return score from minmax search with pruning
+
+procedure alphabeta(gs, n, alpha, beta)
+   local g
+
+   if n <= 0 then
+      return calcscore(gs)
+   every g := allmoves(gs) do {
+      alpha <:= -alphabeta(g, n - 1, -beta, -alpha)
+      if beta <= alpha then
+         return alpha
+      }
+   if /g then
+      return calcscore(gs)
+   else
+      return alpha
+end
+
+
+#  calcscore(gs) -- evaluate state of board from viewpoint of nextup player
+
+procedure calcscore(gs)
+   local score, bonus, c
+
+   # calculate from standpoint of black
+
+   if gs.wcount = 0 then
+      score := 60 + gs.bcount		# win by annihilation
+   else if gs.bcount = 0 then
+      score := -60 - gs.wcount		# loss by annihilation
+   else {
+
+      # start with the difference in counters
+      score := gs.bcount - gs.wcount
+
+      # add a bonus (that decreases as game progresses) for corners
+      bonus := (60 - gs.bcount - gs.wcount) / 2
+      if bonus > 0 then
+         every c := getcell(gs, 11 | 18 | 81 | 88) do
+            if c == "b" then score +:= bonus
+            else if c == "w" then score -:= bonus
+      }
+
+   # save and return according to who is really to go next
+
+   if gs.nextup == "b" then
+      return gs.score := +score
+   else
+      return gs.score := -score
+end
