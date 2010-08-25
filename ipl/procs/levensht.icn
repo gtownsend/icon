@@ -1,12 +1,12 @@
 ############################################################################
 #
-#	File:     distance.icn
+#	File:     levensht.icn
 #
-#	Subject:  Levenshtein string distance calculation
+#	Subject:  Procedure to compute Levenshtein edit distance
 #
 #	Author:   Jeremy N. Cowgar
 #
-#	Date:     November 26, 2006
+#	Date:     August 25, 2010
 #
 ############################################################################
 #
@@ -14,54 +14,53 @@
 #
 ############################################################################
 #
-# levenshtein(s1, s2)
+#   The procedure levenshtein(s1, s2) returns the minimum number of edit
+#   operations needed to transform string s1 into s2.
 #
-#  Computes the minimum number of operations needed to transform `s1`
-#  into `s2`.
+#   Examples:
+#      levenshtein("day", "may") produces 1
+#      levenshtein("cat", "dog") produces 3
 #
-#  Example:
+#   Now, those are easy examples, but consider:
+#      levenshtein("Saturday", "Sunday") produces 3
 #
-#    levenshtein("day", "may") # 1
-#    levenshtein("cat", "dog") # 3
-#
-#  Now, those are easy examples, but take this one for example:
-#
-#    levenshtein("Saturday", "Sunday") # 3
-#
-#  Yes, 3. Delete "a" and "t" in Saturday, (Surday) then change the "r" to a
-#  "n" and you have Sunday!
+#    Yes, 3.  Delete "a" and "t" from Saturday (Surday),
+#    then change the "r" to an "n", and you have Sunday!
 #
 ############################################################################
 #
-#  Links: numbers (min)
+#  Links: numbers
 #
 ############################################################################
 
 link numbers
 
 procedure levenshtein(s, t)
-	local d, n, m, i, j, cost
-	
-	n := *s+1
-	m := *t+1
-	
-	if n = 1 then return m-1
-	if m = 1 then return n-1
-	
-	d := list(n, 0)
-	every !d := list(m, 0)
-	
-	every i := 1 to n do
-		d[i,1] := i-1
-	every j := 1 to m do
-		d[1,j] := j-1
-	
-	every i := 2 to n do {
-		every j := 2 to m do {
-			if s[i-1] == t[j-1] then cost := 0 else cost := 1
-			d[i,j] := min(d[i-1,j] + 1, d[i,j-1] + 1, d[i-1,j-1] + cost)
-		}
-	}
-	
-	return d[n,m]
+   local d, n, m, i, j, cost
+   
+   n := *s + 1
+   m := *t + 1
+   
+   if n = 1 then return m - 1
+   if m = 1 then return n - 1
+   
+   d := list(n, 0)
+   every !d := list(m, 0)
+   
+   every i := 1 to n do
+      d[i, 1] := i - 1
+   every j := 1 to m do
+      d[1, j] := j - 1
+   
+   every i := 2 to n do {
+      every j := 2 to m do {
+         if s[i-1] == t[j-1] then
+            cost := 0
+         else
+            cost := 1
+         d[i, j] := min(d[i-1, j] + 1, d[i, j-1] + 1, d[i-1, j-1] + cost)
+         }
+      }
+   
+   return d[n, m]
 end
