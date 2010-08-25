@@ -2,6 +2,7 @@
 #  (and a few things outside the core)
 
 link core
+link levensht
 link options
 link printf
 link rational
@@ -171,6 +172,14 @@ procedure main()
    tbl(options, copy(argv), "-abc: -s: irvb")
    tbl(options, argv, "a:svi:r")
    every writes(" ", "  argv        " | !argv | "\n")
+
+   write()
+   write("levensht:")			# levensht  (not part of core)
+   writes("levenshtein    ")
+   every writes(" ", levenshtein("sunday",
+      "sunday" | "sunray" | "suday" | "sunnyday" | "" |
+      "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday"))
+   write()
 
    write()
    write("printf:")			# printf  (not part of core)
