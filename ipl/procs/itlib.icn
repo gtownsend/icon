@@ -6,7 +6,7 @@
 #	
 #	Author:   Richard L. Goerwitz
 #
-#	Date:     March 25, 2002
+#	Date:     September 2, 2010
 #
 ############################################################################
 #
@@ -14,7 +14,11 @@
 #
 ############################################################################
 #
-#	Version:  1.33
+#   	Contributor:  Clinton L. Jeffery
+#
+############################################################################
+#
+#	Version:  1.33+clj
 #
 ############################################################################
 #
@@ -212,6 +216,7 @@ procedure getentry(name, termcap_string)
 	if find("/",\termcap_string)
 	then f := open(termcap_string)
 	/f := open("/etc/termcap") |
+	    open("infocmp -C " || getenv("TERM"), "p") |
 	    er("getentry","I can't access your /etc/termcap file",1)
 
 	getline := create read_file(f)
