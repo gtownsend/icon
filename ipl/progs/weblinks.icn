@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     March 29, 2006
+#	Date:     October 6, 2010
 #
 ############################################################################
 #
@@ -37,7 +37,8 @@
 #	NOTE:  if the environment variable USER is set, as it usually is,
 #	then "From: $USER@hostname" is sent as part of each remote inquiry
 #	in order to identify the source.  This is standard etiquette for
-#	automated checkers.
+#	automated checkers.  If USER is not set, but LOGNAME is, then
+#	$LOGNAME is used.
 #
 #	Limitations:
 #	   url(...) links within embedded stylesheets are not recognized.
@@ -226,12 +227,12 @@ end
 procedure setfrom()
    local user, host, f
 
-   user := getenv("USER")	| fail
-   *user > 0			| fail
-   f := open("uname -n", "rp")	| fail
+   user := getenv("USER" | "LOGNAME")	| fail
+   *user > 0				| fail
+   f := open("uname -n", "rp")		| fail
    host := read(f)
    close(f)
-   *\host > 0			| fail
+   *\host > 0				| fail
    vhttp_from := user || "@" || host
    return
 end
