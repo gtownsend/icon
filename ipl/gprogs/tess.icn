@@ -1,0 +1,297 @@
+
+#TITLE TESSARECT 4-D VIRTUAL REALITY MANIPULATOR
+#EJECT
+#
+# FILE : TESS.ICN
+# DESC : TUMBLING TESSARECT SIMULTATION WRITTEN FOR X WINDOWS
+# USAGE: TESS  [size]
+#        The size is optional. I believe it's pixels. The window produced is
+#        square shaped. The size defaults to 1024. Of course you need an X
+#        display to run this. It has been successfully run under VMS and
+#        Ultrix unix as is. It's written for monochrome displays. You will
+#        have to prep your environment for X before running it.
+#
+# UPDATE       BY        WHAT
+# 22-AUG-1992  TENAGLIA  INITIAL PORTING FROM DOS BASIC
+# 23-AUG-1992  TENAGLIA  OPTIMIZE AND ELIMINATE UNNECESSARY VARIABLES
+# 28-AUG-1992  TENAGLIA  MADE HANDLE BOUNDARY CONDITIONS BETTER
+# 08-APR-1992  TENAGLIA  ADDED COLORS FOR COLOR X-TERMINALS
+#
+global vs, vt,  ne,  pi, twopi, vs2, vs3,   # view parameters
+       vx, vy,  vz,  vw,                    # view projectors
+       ox, oy, oldx, oldy,                  # old x,y positions
+       x,   h,  dh,  xi,                    # axis pointer & increment
+       y,   p,  dp,  yi,                    # axis pointer & increment
+       z,   b,  db,                         # axis pointer & increment
+       w,   a,  da,                         # axis pointer & increment
+       dv, dd,  d,                          # distance increments
+       sa,  sb, sp,  sh,                    # sine constants
+       ca,  cb, cp,  ch,                    # cosine constants
+       ppux,ppuy,scale,                     # more projection constants
+       projtessarect,                       # new projection matrices
+       oldproj,                             # former matrix
+       tessarect,                           # tessarect matrix
+       edges, colors,                       # edges matrix
+       xwindow, lines, columns              # xwindow variables
+#SUB MAIN AND SETUP PROCEDURES
+#EJECT
+#
+# this is the main drawing loop
+#
+procedure main(stuff)
+  setup(stuff)
+  getview()
+  repeat
+    {
+    genview()
+    testkey(stuff)
+    changeview()
+    }
+  end
+
+#
+# this sets up some main x variables and constants
+#
+procedure setup(settings)
+  vs := real(settings[1] | 1024.0)
+  vs2:= vs * 5.0
+  vs3:= -vs* 4.0
+  vt := 16
+  ne := 48
+  pi := 3.1415927
+  twopi     := pi * 2.0
+  tessarect := [ [ 1, 1,-1,-1 ],      # C
+                 [ 1,-1,-1,-1 ],      # 8
+                 [-1,-1,-1,-1 ],      # 0
+                 [-1, 1,-1,-1 ],      # 4
+                 [ 1, 1, 1,-1 ],      # E
+                 [ 1,-1, 1,-1 ],      # A
+                 [-1,-1, 1,-1 ],      # 2
+                 [-1, 1, 1,-1 ],      # 6
+                 [ 1, 1,-1, 1 ],      # D
+                 [ 1,-1,-1, 1 ],      # 9
+                 [-1,-1,-1, 1 ],      # 1
+                 [-1, 1,-1, 1 ],      # 5
+                 [ 1, 1, 1, 1 ],      # F
+                 [ 1,-1, 1, 1 ],      # B
+                 [-1,-1, 1, 1 ],      # 3
+                 [-1, 1, 1, 1 ] ]     # 7
+  edges     :=  [ -1,  9, -2, 10, -3, 11, -4, 12,
+                  -5, 13, -6, 14, -7, 15, -8, 16,
+                  -1,  2,  3,  4,  1,  5,  6,  7,
+                   8,  5, -2,  6, -3,  7, -4,  8,
+                  -9, 10, 11, 12,  9, 13, 14, 15,
+                  16, 13,-10, 14,-11, 15,-12, 16 ]
+  colors  := []
+  every i := 1 to 16 do put(colors,"yellow")
+  every i := 1 to 16 do put(colors,"red")
+  every i := 1 to 16 do put(colors,"cyan")
+  projtessarect := table(0)
+  oldproj       := table(0)
+  end
+#SUB BUILD WINDOW & OTHER NEEDED CONSTANTS
+#EJECT
+#
+# set up other important windowing variables and constants
+#
+procedure getview()
+  ox      := vs / 2.0
+  oy      := vs / 2.0
+  lines   := integer(vs / 14.22 + 0.5)
+  columns := integer(vs /  5.69 + 0.5)
+  scale   := 5.0
+  ppux    := scale * 10.0 ; ppuy    := scale *  8.0
+  dv      := 2.0          ; dd      := 0.0          ; d       := 2.0
+  h       := pi / 4.0     ; dh      := 0.0040        ; xi      := 0.0
+  p       := 0.0          ; dp      := 0.0          ; yi      := 0.0
+  b       := 0.0          ; db      := 0.0
+  a       := 0.015        ; da      := 0.0
+#
+# configure the X-connection
+#
+  every write(&features)
+  (xwindow := open("TESS","x",
+                   "x=" || integer(vs),"y=" || integer(vs),
+                   "bg=black","fg=white",
+                   "lines=" || lines,"columns=" || columns)) |
+    {
+    write("Can't open window. Press <RETURN>")
+    stop("ABEND ANOX")
+    }
+  WSync(xwindow)
+#  XSetStipple(xwindow,8,0)
+  WAttrib(xwindow,"drawop=xor")
+  GotoRC(xwindow,1,1)
+  write(xwindow,"Tessarect Simulation\n")
+#  write(xwindow," x : move x-axis          | r : reset to original settings")
+#  write(xwindow," y : move y-axis          | o : move futher out")
+#  write(xwindow," z : move z-axis          | i : move closer in ")
+#  write(xwindow," a : move the OTHER axis  | q : quit")
+#  write(xwindow," up/down/left/right arrows move shape on screen")
+#  write(xwindow," f : freeze rotation      |   : blank stop movement")
+  end
+#SUB ACTUAL TESSARECT ANIMATOR
+#EJECT
+#
+# calculate points in 4 dimensions
+#
+procedure calcview()
+  sh := sin(h)    ; ch := cos(h)
+  sp := sin(p)    ; cp := cos(p)
+  sb := sin(b)    ; cb := cos(b)
+  sa := sin(a)    ; ca := cos(a)
+  vx := -dv * ca * cp * sh
+  vy := -dv * ca * cp * ch
+  vz := -dv * ca * sp
+  vw := -dv * sa
+  end
+#
+# run a display pass
+#
+procedure genview()
+  calcview()
+  project()
+  connect()
+  oldproj := copy(projtessarect)
+  end
+#
+# project 4 dimensions to fewer dimensions
+#
+procedure project()
+  projtessarect := table(0)
+  every i := 1 to vt do
+    {
+    x := tessarect[i][1] - vx
+    y := tessarect[i][2] - vy
+    z := tessarect[i][3] - vz
+    w := tessarect[i][4] - vw
+    q := w * sa
+
+    x := (x * ca - q) / w
+    y := (y * ca - q) / w
+    z := (z * ca - q) / w
+
+    xa:= ch * x - sh * y
+    ya:= sh * x + ch * y
+    za:= cp * z - sp * ya
+
+    tx:= cb * xa + sb * za
+    ty:= cp * ya + sp * z
+    tz:= cb * za - sb * xa
+
+    projtessarect[i || "," || 1] := ox + ppux * d * tx / ty
+    projtessarect[i || "," || 2] := oy + ppuy * d * tz / ty
+    }
+  end
+#EJECT
+#
+# perform motion
+#
+procedure changeview()
+  if (h +:= dh) > twopi  then h  -:= twopi
+  if (p -:= dp) < -twopi then p  +:= twopi
+  if (a +:= da) > twopi  then a  -:= twopi
+  if (b -:= db) < -twopi then b  +:= twopi
+  if (dv > 0.0) & (dv < 6.0) then
+    {
+    dv +:= dd
+    } else {
+    dv -:= (2.0 * dd)
+    dd  := 0.0
+    }
+  if (ox > 0.0) & (ox < vs) then
+    {
+    ox +:= xi
+    } else {
+    ox -:= (2.0 * xi)
+    xi  := 0.0
+    }
+  if (oy > 0.0) & (oy < vs) then
+    {
+    oy +:= yi
+    } else {
+    oy -:= (2.0 * yi)
+    yi  := 0.0
+    }
+  end
+#EJECT
+#
+# draw it
+#
+procedure connect()
+  every i := 1 to ne do
+    {
+    if i=(1|17|33) then WAttrib(xwindow,"fg=" || colors[i])
+    pt := abs(edges[i])
+    b1 := oldproj[pt || "," || 1]
+    b2 := oldproj[pt || "," || 2]
+    a1 := projtessarect[pt || "," || 1]
+    a2 := projtessarect[pt || "," || 2]
+    if edges[i] < 0 then
+      {
+      oldx := a1
+      oldy := a2
+      oldxb:= b1
+      oldyb:= b2
+      next
+      }
+
+    if ((vs2 > oldxb > vs3) &
+        (vs2 > b1    > vs3) &
+        (vs2 > oldyb > vs3) &
+        (vs2 > b2    > vs3)) then
+       DrawLine(xwindow,oldxb,oldyb,b1,b2)
+
+    if ((vs2 > oldx > vs3) &
+        (vs2 > a1   > vs3) &
+        (vs2 > oldy > vs3) &
+        (vs2 > a2   > vs3)) then
+       DrawLine(xwindow,oldx,oldy,a1,a2)
+
+    oldx := a1
+    oldy := a2
+    oldxb:= b1
+    oldyb:= b2
+    }
+  WSync(xwindow)
+  end
+#EJECT
+#
+# sense the outside world
+#
+procedure testkey(window)
+  static    uparrow,  downarrow, leftarrow,   rightarrow,
+            xrotate,  yrotate,   zrotate,     arotate,
+            closer,   further,   halt,        freeze,
+            quit,     restart
+  initial { uparrow   := "65362" ; downarrow  := "65364"
+            leftarrow := "65361" ; rightarrow := "65363"
+            xrotate   := "x"     ; yrotate    := "y"
+            zrotate   := "z"     ; arotate    := "a"
+            closer    := "i"     ; further    := "o"
+            halt      := " "     ; freeze     := "f"
+            quit      := "q"     ; restart    := "r"
+          }
+  if (things := Pending(xwindow)) & (*things > 0) then
+    {
+    request := map(Event(xwindow))
+    } 
+  case request of
+    {
+    xrotate    : dh := if dh = 0.0 then 0.0070 else 0.00
+    yrotate    : dp := if dp = 0.0 then 0.0039 else 0.00
+    zrotate    : db := if db = 0.0 then 0.0025 else 0.00
+    arotate    : da := if da = 0.0 then 0.0016 else 0.00
+    closer     : dd := if dd = 0.0 then -0.05 else 0.00
+    further    : dd := if dd = 0.0 then 0.05  else 0.00
+    leftarrow  : xi := -5.0
+    rightarrow : xi :=  5.0
+    uparrow    : yi := -5.0
+    downarrow  : yi :=  5.0
+    halt       : { xi := 0.00 ; yi := 0.00 ; dd := 0.00 }
+    freeze     : { dh := 0.00 ; dp := 0.00 ; db := 0.00 ; da := 0.00 }
+    restart    : { WClose(xwindow) ; setup(window) ; getview() ; connect() }
+    quit       : stop("Execution Interrupted")
+    }
+  end
+
