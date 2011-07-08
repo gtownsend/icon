@@ -137,12 +137,12 @@ dptr cargp;
       ((char *)sp + PerilDelta) > (char *)stackend)
          fatalerr(301, NULL);
 
-#ifdef Polling
+#ifdef Graphics
    if (!pollctr--) {
       pollctr = pollevent();
       if (pollctr == -1) fatalerr(141, NULL);
       }
-#endif					/* Polling */
+#endif					/* Graphics */
 
    ilevel++;
 
@@ -398,38 +398,13 @@ dptr cargp;
 	    DerefArg(3);
 	    Call_Gen;
 
-         case Op_Noop:		/* no-op */
-
-#ifdef LineCodes
-#ifdef Polling
-            if (!pollctr--) {
-	       ExInterp;
-               pollctr = pollevent();
-	       EntInterp;
-	       if (pollctr == -1) fatalerr(141, NULL);
-	       }
-#endif					/* Polling */
-#endif					/* LineCodes */
-
+         case Op_Noop:		/* no-op, used for padding on some configns */
             break;
 
-         case Op_Colm:		/* source column number */
-            {
+         case Op_Colm:		/* source column number; no longer used */
             break;
-            }
 
-         case Op_Line:		/* source line number */
-
-#ifdef LineCodes
-#ifdef Polling
-            if (!pollctr--) {
-	       ExInterp;
-               pollctr = pollevent();
-	       EntInterp;
-	       if (pollctr == -1) fatalerr(141, NULL);
-	       }
-#endif					/* Polling */
-#endif					/* LineCodes */
+         case Op_Line:		/* source line number; only seen if enabled */
             break;
 
 				/* ---String Scanning--- */
@@ -526,7 +501,7 @@ invokej:
 
                rargp = carg;		/* valid only for Vararg or Builtin */
 
-#ifdef Polling
+#ifdef Graphics
 	       /*
 		* Do polling here
 		*/
@@ -537,7 +512,7 @@ invokej:
 	          EntInterp;
 	          if (pollctr == -1) fatalerr(141, NULL);
 	          }
-#endif					/* Polling */
+#endif					/* Graphics */
 
 	       bproc = (struct b_proc *)BlkLoc(*rargp);
 

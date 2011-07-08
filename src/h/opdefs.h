@@ -50,6 +50,7 @@
 #define Op_Toby		 41
 #define Op_Unions	 42
 #define Op_Value	 43
+
 /*
  * Other instructions.
  */
@@ -113,14 +114,14 @@
 #define Op_Agoto	 95
 #define Op_Amark	 96
 
+/*
+ * Used for padding to align opcodes.
+ */
 #define Op_Noop		 98
-
-#define Op_Colm		108		/* column number */
 
 /*
  * Declarations and such -- used by the linker but not the run-time system.
  */
-
 #define Op_Proc		101
 #define Op_Declend	102
 #define Op_End		103
@@ -128,6 +129,7 @@
 #define Op_Version	105
 #define Op_Con		106
 #define Op_Filen	107
+#define Op_Colm		108
 
 /*
  * Global symbol table declarations.

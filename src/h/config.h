@@ -37,12 +37,6 @@
       #endif				/* XWindows */
    #endif				/* NoXpmFormat */
 
-   #undef LineCodes
-   #define LineCodes
-
-   #undef Polling
-   #define Polling
-
 #else					/* Graphics */
    #undef XWindows
    #undef WinGraphics

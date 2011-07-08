@@ -54,13 +54,6 @@ extern uword stattotal;		/* cumulative total of all static allocations */
 extern struct tend_desc *tend;  /* chain of tended descriptors */
 
 /*
- * Externals that are conditional on features.
- */
-#ifdef Polling
-   extern int pollctr;
-#endif					/* Polling */
-
-/*
  * Externals that were conditional on multithreading.
  */
 extern struct region rootstring;
@@ -154,17 +147,17 @@ extern word lastop;
    extern int GraphicsLeft, GraphicsUp, GraphicsRight, GraphicsDown;
    extern int GraphicsHome, GraphicsPrior, GraphicsNext, GraphicsEnd;
    extern int win_highwater, canvas_serial, context_serial;
-   extern clock_t starttime;		/* start time in milliseconds */
+   extern int pollctr;		/* counter for polling graphics system */
 
-      extern struct descrip kywd_xwin[];
-      extern struct descrip lastEventWin;
-      extern int lastEvFWidth, lastEvLeading, lastEvAscent;
-      extern struct descrip amperCol;
-      extern struct descrip amperRow;
-      extern struct descrip amperX;
-      extern struct descrip amperY;
-      extern struct descrip amperInterval;
-      extern uword xmod_control, xmod_shift, xmod_meta;
+   extern struct descrip kywd_xwin[];
+   extern struct descrip lastEventWin;
+   extern int lastEvFWidth, lastEvLeading, lastEvAscent;
+   extern struct descrip amperCol;
+   extern struct descrip amperRow;
+   extern struct descrip amperX;
+   extern struct descrip amperY;
+   extern struct descrip amperInterval;
+   extern uword xmod_control, xmod_shift, xmod_meta;
 
    #ifdef XWindows
       extern struct _wdisplay * wdsplys;

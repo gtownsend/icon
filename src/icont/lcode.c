@@ -242,7 +242,7 @@ void gencode()
             newline();
             break;
 
-         case Op_Colm:			/* always recognize, maybe ignore */
+         case Op_Colm:
             colmno = getdec();
             if (lnfree >= &lntable[nsize])
                lntable  = (struct ipc_line *)trealloc(lntable,&lnfree,&nsize,

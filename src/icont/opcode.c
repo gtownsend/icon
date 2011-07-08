@@ -5,19 +5,16 @@
 /*
  * Opcode table.
  */
-
 struct opentry optable[] = {
    "asgn",	Op_Asgn,
    "bang",	Op_Bang,
-
    "bscan",	Op_Bscan,
-
    "cat",	Op_Cat,
    "ccase",	Op_Ccase,
    "chfail",	Op_Chfail,
    "coact",	Op_Coact,
    "cofail",	Op_Cofail,
-   "colm",	Op_Colm,		/* always recognized, possibly ignored*/
+   "colm",	Op_Colm,
    "compl",	Op_Compl,
    "con",	Op_Con,
    "coret",	Op_Coret,
@@ -36,7 +33,6 @@ struct opentry optable[] = {
    "esusp",	Op_Esusp,
    "field",	Op_Field,
    "filen",	Op_Filen,
-
    "global",	Op_Global,
    "goto",	Op_Goto,
    "impl",	Op_Impl,
@@ -68,11 +64,7 @@ struct opentry optable[] = {
    "neg",	Op_Neg,
    "neqv",	Op_Neqv,
    "nonnull",	Op_Nonnull,
-
-#ifdef LineCodes
    "noop",	Op_Noop,
-#endif					/* LineCodes */
-
    "null",	Op_Null,
    "number",	Op_Number,
    "numeq",	Op_Numeq,
