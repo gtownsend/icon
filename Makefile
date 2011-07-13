@@ -14,6 +14,7 @@ dest=/must/specify/dest/
 # Default targets.
 
 All:	Icont Ilib Ibin
+	bin/icon -V
 
 config/$(name)/status src/h/define.h:
 	:
