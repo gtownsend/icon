@@ -257,10 +257,11 @@ char *argv[];
 #endif					/* Double */
 
    /*
-    * Catch floating-point traps and memory faults.
+    * Catch floating-point traps, memory faults, and QUIT (^\) signals.
     */
    signal(SIGFPE, fpetrap);
    signal(SIGSEGV, segvtrap);
+   signal(SIGQUIT, quittrap);
 
    /*
     * Initialize data that can't be initialized statically.
@@ -495,6 +496,15 @@ uword limit;
 void fpetrap(int sig)
    {
    fatalerr(204, NULL);
+   }
+
+/*
+ * Produce run-time error 300 on QUIT (^\) signal.
+ */
+
+void quittrap(int sig)
+   {
+   fatalerr(300, NULL);
    }
 
 /*

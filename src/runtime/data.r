@@ -302,6 +302,7 @@ struct errtab errtab[] = {
    215, "attempt to refresh &main",
    216, "external function not found",
 
+   300, "interrupted",
    301, "evaluation stack overflow",
    302, "memory violation",
    303, "inadequate space for evaluation stack",

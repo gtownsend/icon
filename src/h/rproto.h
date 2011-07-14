@@ -116,6 +116,7 @@ int		putstr		(FILE *f,dptr d);
 char		*qsearch	(char *key, char *base, int nel, int width,
 				   int (*cmp)());
 int		qtos		(dptr dp,char *sbuf);
+void		quittrap	(int);
 int		 radix		(int sign, register int r, register char *s,
 				   register char *end_s, union numeric *result);
 char		*reserve	(int region, word nbytes);
