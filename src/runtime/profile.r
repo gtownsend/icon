@@ -42,6 +42,7 @@ static int linecmp(const void *v1, const void *v2);
 void initprofile()
    {
    struct itimerval tv;
+   struct sigaction sg;
 
    char *fname = getenv("ICONPROFILE");	/* get output file name */
    if (!fname) 				/* if not profiling, just return */
@@ -62,9 +63,12 @@ void initprofile()
    /*
     * Arrange for periodic interrupts to call tick() for time-based profiling.
     */
+   memset(&sg, 0, sizeof(struct sigaction));
+   sg.sa_handler = tick;
    tv.it_interval.tv_sec = tv.it_value.tv_sec = 0;
    tv.it_interval.tv_usec = tv.it_value.tv_usec = INTERVAL;
-   if (signal(SIGVTALRM, tick) < 0 || setitimer(ITIMER_VIRTUAL, &tv, NULL) < 0)
+   if (sigaction(SIGVTALRM, &sg, NULL) < 0
+   || setitimer(ITIMER_VIRTUAL, &tv, NULL) < 0)
       perror("no timer");
 
    profiling_active = 1;
@@ -154,7 +158,7 @@ void genprofile(void)
       if (i > 0 && p->p_fname != results[i - 1]->p_fname) {
          /*
           * This is the start of a new source file.
-	  *  Sort the previous run by IPC.
+          *  Sort the previous run by IPC.
           */
          qsort(results + j, i - j, sizeof(struct profbin *), linecmp);
          j = i;
