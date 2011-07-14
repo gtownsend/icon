@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
     * IMPORTANT:  When making changes here,
     * also update usage() function and man page.
     */
-   while ((c = getopt(argc, argv, "+ce:f:o:stuv:ELNP:VX:")) != EOF)
+   while ((c = getopt(argc, argv, "+ce:f:o:pstuv:ENP:VX:")) != EOF)
       switch (c) {
          case 'c':			/* -c: compile only (no linking) */
             nolink = 1;
@@ -76,6 +76,9 @@ int main(int argc, char *argv[]) {
          case 'o':			/* -o file: name output file */
             ofile = optarg;
             break;
+	 case 'p':			/* -p: enable icode profiling */
+	    profile = 1;
+	    break;
          case 's':			/* -s: suppress informative messages */
             silent = 1;
             verbose = 0;
@@ -277,7 +280,7 @@ static void usage(void) {
    fprintf(stderr, "usage: icon  sourcefile   [args]\n");
    fprintf(stderr, "       icon  -P 'program' [args]\n");
    fprintf(stderr, "       icont %s\n",
-      "[-cstuENV] [-f s] [-o ofile] [-v i] file ... [-x args]");
+      "[-cpstuENV] [-f s] [-o ofile] [-v i] file ... [-x args]");
    exit(EXIT_FAILURE);
    }
 

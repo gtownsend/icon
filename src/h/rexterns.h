@@ -14,6 +14,7 @@ extern int dodump;		/* termination dump */
 extern int line_info;		/* flag: line information is available */
 extern char *file_name;		/* source file for current execution point */
 extern int line_num;		/* line number for current execution point */
+extern int profiling_active;	/* nonzero if profiling is active */
 
 extern unsigned char allchars[];/* array for making one-character strings */
 extern char *blkname[];		/* print names for block types. */

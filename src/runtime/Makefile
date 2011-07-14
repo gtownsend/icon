@@ -18,7 +18,7 @@ XOBJS =	cnv.o data.o def.o errmsg.o fconv.o fload.o fmath.o\
 	fmisc.o fscan.o fstr.o fstranl.o fstruct.o fsys.o\
 	fwindow.o imain.o imisc.o init.o interp.o invoke.o\
 	keyword.o lmisc.o oarith.o oasgn.o ocat.o ocomp.o\
-	omisc.o oref.o oset.o ovalue.o ralc.o rcoexpr.o rcomp.o\
+	omisc.o oref.o oset.o ovalue.o profile.o ralc.o rcoexpr.o rcomp.o\
 	rdebug.o rexternal.o rlrgint.o rmemmgt.o rmisc.o rstruct.o \
 	rsys.o rwinrsc.o rwinsys.o rwindow.o rcolor.o rimage.o
 

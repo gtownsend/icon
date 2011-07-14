@@ -17,7 +17,7 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 <BR> <SMALL> The University of Arizona </SMALL>
 
 <P> <SMALL> www.cs.arizona.edu/icon/v950/relnotes.htm
-<BR> Last updated September 2, 2010</SMALL>
+<BR> Last updated July 14, 2011</SMALL>
 <!-- $Id$ -->
 
 
@@ -33,8 +33,23 @@ subsequent to the release of version 9.5.0 of Icon.
 Some code cleanup work and documentation editing
 has also been done.
 
+<H3> Execution profiling </H3>
+
+<P> An execution profile can be produced by linking with <CODE>icont &ndash;p</CODE>
+and setting the environment variable <CODE>ICONPROFILE</CODE> at execution time
+to specify an output file.
+
+<P> For each line executed, the output reports timer ticks, number of visits,
+filename, and line number.
+
+<P> Output reflects the layout in memory, which is based on linkage order.
+To arrange by filename, use the Unix <CODE>sort</CODE> utility
+with keys <CODE>&ndash;k3,3 &ndash;k4n</CODE>.
+To see the CPU hotspots, use <CODE>sort &ndash;nr | head</CODE>.
 
 <H3> Minor Fixes </H3>
+
+<SMALL> (None so far.) </SMALL>
 
 <H3> Library changes </H3>
 
@@ -47,6 +62,8 @@ procs/itlib	Use infocmp utility if no termcap file
 procs/numbers	Add quadratic mean procedure qmean(L)
 procs/numbers	Fix spell(i) procedure
 procs/psrecord	Fix positioning of noncircular arcs
+
+progs/iprofl	Add program for listing source with execution profile
 
 gprogs/mandel3	Add new Mandelbrot Set display
 gprogs/othello	Add new interactive Othello board game

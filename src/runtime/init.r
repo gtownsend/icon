@@ -265,13 +265,17 @@ char *argv[];
    /*
     * Initialize data that can't be initialized statically.
     */
-
    datainit();
 
+   /*
+    * Read the header.
+    */
    fname = readhdr(name,&hdr);
    if (fname == NULL)
       error(name, "cannot open interpreter file");
    k_trace = hdr.trace;
+   if (hdr.magic != IHEADER_MAGIC)	/* if flags word is not valid */
+      hdr.flags = 0;			/* clear it out */
 
    /*
     * Examine the environment and make appropriate settings.    [[I?]]
@@ -350,16 +354,12 @@ char *argv[];
    /*
     * Make sure the version number of the icode matches the interpreter version.
     */
-   if (strcmp((char *)hdr.config,IVersion)) {
+   if (strcmp((char *)hdr.iversion,IVersion)) {
       fprintf(stderr,"icode version mismatch in %s\n", name);
-      fprintf(stderr,"\ticode version: %s\n",(char *)hdr.config);
+      fprintf(stderr,"\ticode version: %s\n",(char *)hdr.iversion);
       fprintf(stderr,"\texpected version: %s\n",IVersion);
       error(name, "cannot run");
       }
-
-   /*
-    * Initialize the event monitoring system, if configured.
-    */
 
    /*
     * Resolve references from icode to run-time system.
@@ -377,6 +377,12 @@ char *argv[];
          fatalerr(305, NULL);
       setbuf(stderr, buf);
       }
+
+   /*
+    * Initialize the profiling system, if configured.
+    */
+   if (hdr.flags & IHEADER_PROFILING)
+      initprofile();
 
    /*
     * Start timing execution.
@@ -560,7 +566,7 @@ int i;
       fflush(stderr);
       xdisp(pfp,glbl_argp,k_level,stderr);
       }
-
+   genprofile();		/* report execution profile, if enabled */
    exit(i);
 
 }

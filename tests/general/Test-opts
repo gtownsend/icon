@@ -40,6 +40,10 @@ rm olleh
 test ! -f hello
 test ! -f hello.u?
 
+#  profiling
+ICONPROFILE=hello.p icont -ups hello -x profiler
+sed 's/^ *[0-9]*/    $/' hello.p
+
 #  separate compilation
 icont -c -t -s hello
 icont -u -s hello.u -x west

@@ -47,6 +47,7 @@ Global int trace	Init(0);	/* -t: initial &trace value */
 Global int pponly	Init(0);	/* -E: preprocess only */
 Global int strinv	Init(0);	/* -f s: allow full string invocation */
 Global int verbose	Init(1);	/* -v n: verbosity of commentary */
+Global int profile	Init(0);	/* -p: enable icode profiling? */
 
 /*
  * Files and related globals.

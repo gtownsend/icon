@@ -8,6 +8,7 @@
  * (This is for MacOS which does not have anonymous semaphores.)
  */
 
+#include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <pthread.h>
@@ -109,7 +110,9 @@ int coswitch(void *o, void *n, int first) {
       }
 
    sem_post(new->semp);			/* unblock the new thread */
-   sem_wait(old->semp);			/* block this thread */
+   while (sem_wait(old->semp) < 0)	/* block this thread */
+      if (errno != EINTR)
+         uerror("sem_wait in coswitch");
 
    if (!old->alive)		
       pthread_exit(NULL);		/* if unblocked because unwanted */
@@ -158,7 +161,9 @@ static void makesem(context *ctx) {
  */
 static void *nctramp(void *arg) {
    context *new = arg;			/* new context pointer */
-   sem_wait(new->semp);			/* wait for signal */
+   while (sem_wait(new->semp) < 0)	/* wait for signal */
+      if (errno != EINTR)
+         uerror("sem_wait in nctramp");
    new_context(0, 0);			/* call new_context; will not return */
    syserr("new_context returned to nctramp");
    return NULL;

@@ -1,0 +1,150 @@
+############################################################################
+#
+#	File:     iprofl.icn
+#
+#	Subject:  Program to annotate source code with execution profile
+#
+#	Author:   Gregg M. Townsend
+#
+#	Date:     July 13, 2011
+#
+############################################################################
+#
+#	This file is in the public domain.
+#
+############################################################################
+#
+#	Iprofl combines Icon execution profiling output (see icont(1))
+#	with source code files to produce an annotated listing.
+#
+#	Usage:   iprofl [file]
+#
+#	Iprofl reads an execution profile from a named file or from
+#	standard input if none is specified.  Source files referenced
+#	in the profile file are listed with corresponding nonzero profile
+#	counts (ticks and visits) prepended to the left of each line.
+#
+#	Tick counts are given as a one-to-three-digit "per mille" value
+#	(like a baseball "percentage") of the total number of ticks seen.
+#	A value of "0" indicates a very small number of ticks whereas
+#	a blank field indicates no ticks at all.
+#
+#	Iprofl lists only files in the current directory.  Files named in
+#	the profile file but not found are only summarized.  This is not
+#	considered an error because it is typical for library files to be
+#	included in the profile output.
+#
+############################################################################
+#
+#  Links:  records, strings
+#
+############################################################################
+
+link records
+link strings
+
+$define INDENT "                "		# shift by 16 to preserve tabs
+
+record bucket(ticks, visits, fname, lnum)	# hash bucket (one data line)
+
+global tticks					# total ticks
+
+procedure main(args)
+   local a, b, f, line, fname, flist, ftable
+
+   if fname := get(args) then
+      f := open(fname) | stop("cannot open ", fname)
+   else
+      f := &input
+
+   flist := list()			# list of profiled files in order seen
+   ftable := table()			# table of bucket lists, indexed by file
+
+   # read profile data into memory
+   while line := read(f) do {
+      b := parse(line) | stop("bad profile input")
+      a := ftable[b.fname]
+      if /a then
+         put(flist, a := ftable[b.fname] := list())
+      put(a, b)
+      }
+   close(f)
+
+   # count the total number of ticks
+   tticks := 0
+   every tticks +:= (!!flist).ticks
+
+   # list one file at a time, in the order first seen
+   every a := !flist do {
+      fname := (!a).fname
+      write()
+      write()
+      write(map(INDENT, " ", "="), center(" " || fname || " ", 79, "="))
+      write()
+      if f := open(fname) then {
+         listfile(f, a)
+         close(f)
+         }
+      else
+         nofile(a)
+      }
+
+end
+
+procedure parse(line)			#: parse a profile line, failing on err
+   local ticks, visits, fname, lnum
+
+   line ? {
+      tab(many(' \t'))
+      ticks := integer(tab(many(&digits)))		| fail
+      tab(many(' \t'))					| fail
+      visits := integer(tab(many(&digits)))		| fail
+      tab(many(' \t'))					| fail	
+      fname := tab(upto(' '))				| fail
+      tab(many(' \t'))					| fail	
+      lnum := integer(tab(many(&digits)))		| fail
+      return bucket(ticks, visits, fname, lnum)
+      }
+end
+
+procedure nofile(blist)			#: summarize a file not found
+   local b, t, v
+
+   t := v := 0
+   every b := !blist do {
+      t +:= b.ticks
+      v +:= b.visits
+      }
+   showline(t, v, "[total over all lines]")
+   return
+end
+
+procedure listfile(f, blist)		#: list a file with annotations
+   local n, b, t
+
+   n := 0
+   every b := !sortf(blist, fieldnum(bucket(), "lnum")) do {
+      if b.lnum <= n then			# if out of order line
+         showline(b.ticks, b.visits, "[" || b.lnum - n - 1 || "]")
+      else {
+         while (n +:= 1) < b.lnum do
+            write(INDENT, read(f))			# list skipped lines
+         showline(b.ticks, b.visits, read(f) | "[missing]")  # list sampled line
+         }
+      }
+   while write(INDENT, read(f))		# list unsampled lines at EOF
+   return
+end
+
+procedure showline(t, v, s)		#: show ticks and visits with one line
+   if t = 0 then
+      t := "   "			# blank if no ticks
+   else {
+      t := 1000.0 * t / tticks + 0.5	# else per-mille value
+      t >:= 999				# (changing 1000 to 999 to fit 3 chars)
+      t := right(integer(t), 3)
+      }
+
+   write(t, right(v, 11), "  ", s)	# 16 chars of annotation, plus the line
+   return
+end

@@ -405,6 +405,8 @@ dptr cargp;
             break;
 
          case Op_Line:		/* source line number; only seen if enabled */
+	    if (profiling_active)	
+	       countline(ipc.opnd);	/* note this line if we're profiling */
             break;
 
 				/* ---String Scanning--- */

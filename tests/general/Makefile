@@ -8,6 +8,7 @@ SAMPLES = btrees diffwrds kross meander prefix recogn roman sieve wordcnt
 # default is to run all tests, using icont
 
 Test Test-icont:  Test-programs Test-preproc Test-options
+		../../bin/icon -V
 
 
 # test programs
@@ -46,5 +47,5 @@ Test-tiny:
 # clean up
 
 Clean:
-		-rm -f *.u? *.c *.h foo.baz tmp1 tmp2 *.out *.err *.all
+		-rm -f *.u? *.[chp] foo.baz tmp1 tmp2 *.out *.err *.all
 		-rm -f xx `find * -type f -perm -100 ! -name 'Test-*' -print`

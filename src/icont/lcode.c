@@ -240,6 +240,8 @@ void gencode()
          case Op_Line:
             lineno = getdec();
             newline();
+            if (profile)
+               lemit(op, name);
             break;
 
          case Op_Colm:
@@ -633,6 +635,16 @@ void gentables()
    struct header hdr;
 
    /*
+    * Initialize header with new (post 9.5.0) magic word and
+    * ensure unused areas are now zeroed to allow future use.
+    */
+   memset(&hdr, 0, sizeof(struct header));
+   strcpy((char *)hdr.iversion, IVersion);
+   hdr.magic = IHEADER_MAGIC;
+   if (profile)
+      hdr.flags |= IHEADER_PROFILING;
+
+   /*
     * Output record constructor procedure blocks.
     */
    align();
@@ -791,7 +803,6 @@ void gentables()
     * Output icode file header.
     */
    hdr.hsize = pc;
-   strcpy((char *)hdr.config,IVersion);
    hdr.trace = trace;
 
    fseek(outfile, hdrsize, 0);
