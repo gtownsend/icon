@@ -9,6 +9,7 @@
 #  Revised for Icon v9:
 #   5-nov-09/gmt
 #  22-jun-10/gmt
+#  18-jul-11/gmt
 #
 #  usage:  icon micro.icn interval
 #
@@ -127,6 +128,8 @@ procedure main(args)
 
    report(nullscan)
    report(movef)
+   report(mov11)
+   report(pos11)
    report(tabf)
    report(matchf)
    report(tabmat)
@@ -666,6 +669,18 @@ procedure movef(n)
    if /n then return "move(0)"
    "abcde" ? every 1 to n do
       move(0)
+end
+
+procedure mov11(n)
+   if /n then return "move(1) & move(-1)"
+   "abcde" ? every 1 to n do
+      move(1) & move(-1)
+end
+
+procedure pos11(n)
+   if /n then return "(&pos +:= 1) & (&pos -:= 1)"
+   "abcde" ? every 1 to n do
+      (&pos +:= 1) & (&pos -:= 1)
 end
 
 procedure tabf(n)
