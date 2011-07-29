@@ -163,11 +163,11 @@ BOOL_CALLBACK myenumproc2(HWND w, LPARAM l)
    return 1;
 }
 
-char * strcasestr(char *haystack, char *needle)
+char *strcasestr(const char *haystack, const char *needle)
 {
    int len = strlen(needle);
    while (*haystack) {
-      if (strncasecmp(haystack, needle, len) == 0) return haystack;
+      if (strncasecmp(haystack, needle, len) == 0) return (char *)haystack;
       haystack++;
       }
    return 0;
