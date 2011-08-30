@@ -1,16 +1,5 @@
 #  micro.icn -- microbenchmark timings of Icon operations
 #
-#  From the Jcon distribution:
-#  14-feb-98/gmt
-#  13-mar-98/gmt
-#  25-mar-98/gmt
-#   2-apr-98/gmt
-#   3-apr-98/gmt
-#  Revised for Icon v9:
-#   5-nov-09/gmt
-#  22-jun-10/gmt
-#  18-jul-11/gmt
-#
 #  usage:  icon micro.icn interval
 #
 #  Various Icon operations are executed inside an "every 1 to n" loop,
@@ -25,6 +14,8 @@
 #  Timings labeled "nothing" are remeasurements of the empty loop.
 #  They should ideally be zero;  deviations indicate inaccuracies
 #  and inconsistencies in the timing measurements.
+#
+#  Originally from the Jcon distribution; revised Nov 2009 for Icon v9.
 
 
 $define DefaultTime 1.0		# default measurement interval, in seconds
@@ -152,9 +143,12 @@ procedure main(args)
    report(lpick)
    report(lbang)
    report(lsubscr)
-   report(putget)
-   report(putget12)
+   report(put1get1)
+   report(put2get2)
+   report(put3get3)
+   report(put4get4)
    report(pushpop)
+   report(putget12)
    report(pushpop12)
 
    report(setcreate)
@@ -813,12 +807,36 @@ procedure lbang(n)
       every !L
 end
 
-procedure putget(n)
+procedure put1get1(n)
    static L
    initial L := []
    if /n then return "get(put(L,0))"
    every 1 to n do
       get(put(L,0))
+end
+
+procedure put2get2(n)
+   static L
+   initial L := []
+   if /n then return "put(L,1,2) & [2x] get(L)"
+   every 1 to n do
+      put(L,1,2) & get(L) & get(L)
+end
+
+procedure put3get3(n)
+   static L
+   initial L := []
+   if /n then return "put(L,1,2,3) & [3x] get(L)"
+   every 1 to n do
+      put(L,1,2,3) & get(L) & get(L) & get(L)
+end
+
+procedure put4get4(n)
+   static L
+   initial L := []
+   if /n then return "put(L,1,2,3,4) & [4x] get(L)"
+   every 1 to n do
+      put(L,1,2,3,4) & get(L) & get(L) & get(L) & get(L)
 end
 
 procedure pushpop(n)
