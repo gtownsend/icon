@@ -180,10 +180,10 @@
 #define MaxDigits	30
 
 /*
- * Memory sizing.
+ * Maximum co-expression allocations before garbage collection.
  */
 #ifndef AlcMax
-   #define AlcMax 25
+   #define AlcMax 100
 #endif					/* AlcMax */
 
 /*

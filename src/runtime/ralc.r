@@ -120,21 +120,17 @@ struct b_coexpr *alccoexp()
    {
    struct b_coexpr *ep;
 
+   alcnum++;			/* increment allocation count since last g.c. */
+   if (alcnum >= AlcMax)	/* collect garbage every AlcMax coexprs */
+      collect(Static);
+
    ep = (struct b_coexpr *)malloc(stksize);
-
-   /*
-    * If malloc failed or if there have been too many co-expression allocations
-    * since a collection, attempt to free some co-expression blocks and retry.
-    */
-
-   if (ep == NULL || alcnum > AlcMax) {
+   if (ep == NULL) {		/* if can't get space, collect and retry */
       collect(Static);
       ep = (struct b_coexpr *)malloc(stksize);
    }
-   if (ep == NULL)
+   if (ep == NULL)		/* if still can't get space */
       ReturnErrNum(305, NULL);
-
-   alcnum++;		/* increment allocation count since last g.c. */
 
    ep->title = T_Coexpr;
    ep->es_actstk = NULL;
