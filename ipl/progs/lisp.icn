@@ -4,9 +4,11 @@
 #
 #	Subject:  Program to interpret LISP programs
 #
-#	Author:   Stephen B. Wampler, modified by Phillip Lee Thomas
+#	Author:   Stephen B. Wampler
 #
-#	Date:     February 4, 1991
+#	Contributors:  Phillip Lee Thomas, Clinton L. Jeffery
+#
+#	Date:     April 16, 2012
 #
 ############################################################################
 #
@@ -29,39 +31,19 @@
 #     The language implemented is case-insensitive.
 #
 #     It only reads enough input lines at one time to produce at least
-#   one LISP-expression, but continues to read input until a valid
-#   LISP-expression is found.
+#  one LISP-expression, but continues to read input until a valid
+#  LISP-expression is found.
 #
-#     Errors:
+#     It first reads in files listed on command line, switches
+#  to reading standard input, and terminates with the first (exit)
+#  instruction.
 #
-#        Fails on EOF; fails with error message if current
-#     input cannot be made into a valid LISP-expression (i.e. more
-#     right than left parens).
+#  Errors:
 #
-############################################################################
+#     Fails with error message if current input cannot be made into
+#  a valid LISP-expression (i.e. more right than left parens).
 #
-#  Syntax:
-#    (quote (a b c))           ==> (A B C)
-#    (setq a (quote (A B C)))  ==> (A B C)
-#    (car a)                   ==> (A)
-#    (cdr a)                   ==> (B C)
-#    (cons (quote d) a)        ==> (D A B C)
-#    (eq (car a) (car a))      ==> T
-#    (atom (quote ()))         ==> T
-#    (atom a)                  ==> NIL
-#    (null (car (car a)))      ==> T
-#    (eval (quote a))          ==> (A B C)
-#    (print a)                 ==> (A B C)
-#                                  (A B C)
-#    (define (quote (
-#            (cadr (quote (lambda (l) (car (cdr l)))))
-#            (cddr (quote (lambda (l) (cdr (cdr l)))))
-#            )))               ==> (CADR CDDR)
-#    (trace (quote (cadr)))    ==> NIL
-#    (untrace (quote (cadr)))  ==> NIL
-#    (itraceon)                ==> T [turns on icon tracing]
-#    (itraceoff)               ==> NIL [turns off icon tracing]
-#    (exit)                    ==> [exit gracefully from icon]
+#  See HELP function at end of file for syntax summary/examples.
 #
 ############################################################################
 
@@ -78,14 +60,18 @@ record prop(v,f)  # abbreviated propery list
 procedure main(f) 
 local sexpr, source
    initialize()
-   while infile := open(source := (pop(f) | "CON")) do {
-      write("Reading: ", source)
+   if f[1] == ("-C" | "/C") then pop(f)  # run-command-then-terminate mode
+   else if not (!f=="-") then put(f, "-")   # append "-" by default
+   while source := pop(f) do {
+      if not (infile := (if source == "-" then &input else open(source))) then
+	 stop("wtLisp can't open ", image(source))
+      if source ~== "-" then write("Reading: ", image(source))
+      writes("> ")
       every sexpr := bstol(getbs()) do  {
-            PRINT([EVAL([sexpr])])
-            writes("> ")
-            }
+	 PRINT([EVAL([sexpr])])
+	 writes("> ")
+	 }
       }
-
 end
 
 ## (EVAL e) - the actual LISP interpreter
@@ -106,6 +92,7 @@ local fn, arglist, arg
          "SETQ"  : return SET([l[2]]|||evlis(l[3:0]))
          "ITRACEON"  : return (&trace := -1,T)
          "ITRACEOFF" : return (&trace := 0,NIL)
+         "HELP"      : return (HELP(),NIL)
          "EXIT"      : exit(0)
          default : return apply([l[1]]|||evlis(l[2:0])) | NIL
          }
@@ -416,4 +403,48 @@ end
 
 procedure Map(s)
    return map(s, &lcase, &ucase)
+end
+
+procedure HELP()
+   write("\n",
+	 "Syntax:\n",
+	 "  (quote (a b c))           ==> (A B C)\n",
+	 "  (setq a (quote (a b c)))  ==> (A B C)\n",
+	 "  (setq b (quote (x y z)))  ==> (X Y Z)\n",
+	 "  (car a)                   ==> A\n",
+	 "  (cdr a)                   ==> (B C)\n",
+	 "  (cons (quote d) a)        ==> (D A B C)\n",
+	 "  (eq (car a) (car a))      ==> T\n",
+	 "  (atom (quote ()))         ==> T\n",
+	 "  (atom a)                  ==> NIL\n",
+	 "  (null (car (car a)))      ==> T\n",
+	 "  (eval (quote a))          ==> (A B C)\n",
+	 "  (print a)                 ==> (A B C)\n",
+	 "                                (A B C)\n",
+	 "Define functions cadr and cddr:\n",
+	 "  (define (quote (\n",
+	 "          (cadr (lambda (l) (car (cdr l))))\n",
+	 "          (cddr (lambda (l) (cdr (cdr l))))\n",
+	 "          )))               ==> (CADR CDDR)\n",
+	 "  (cadr a)                  ==> B\n",
+	 "  (cddr a)                  ==> (C)\n",
+	 "  (trace (quote (cadr)))    ==> NIL\n",
+	 "  (cadr a)                  ==> B\n",
+	 "  (untrace (quote (cadr)))  ==> NIL\n",
+	 "\n",
+	 "Is an atom in a list? Uses cond and recursion:\n",
+	 "  (define (quote (\n",
+	 "    (has (lambda (atm lis)\n",
+	 "      (cond ((null lis) nil)\n",
+	 "        ((eq atm (car lis)) t)\n",
+	 "        (t (has atm (cdr lis))))\n",
+	 "  )) )))                    ==> (HAS)\n",
+	 "  (has (quote y) b)         ==> T\n",
+	 "\n",
+	 "  (itraceon)                ==> T [turn on icon tracing]\n",
+	 "  (itraceoff)               ==> NIL [turn off icon tracing]\n",
+	 "  (help)                    ==> NIL [print help message]\n",
+	 "  (exit)                    ==> [exit gracefully from icon]"
+	 )
+   return
 end
