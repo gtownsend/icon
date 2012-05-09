@@ -53,6 +53,7 @@ procedure main(stuff)
 # this sets up some main x variables and constants
 #
 procedure setup(settings)
+  local i
   vs := real(settings[1] | 1024.0)
   vs2:= vs * 5.0
   vs3:= -vs* 4.0
@@ -158,6 +159,7 @@ procedure genview()
 # project 4 dimensions to fewer dimensions
 #
 procedure project()
+  local i, q, xa, ya, za, tx, ty, tz
   projtessarect := table(0)
   every i := 1 to vt do
     {
@@ -219,6 +221,7 @@ procedure changeview()
 # draw it
 #
 procedure connect()
+  local i, pt, b1, b2, a1, a2, oldxb, oldyb
   every i := 1 to ne do
     {
     if i=(1|17|33) then WAttrib(xwindow,"fg=" || colors[i])
@@ -260,6 +263,7 @@ procedure connect()
 # sense the outside world
 #
 procedure testkey(window)
+  local things, request
   static    uparrow,  downarrow, leftarrow,   rightarrow,
             xrotate,  yrotate,   zrotate,     arotate,
             closer,   further,   halt,        freeze,
