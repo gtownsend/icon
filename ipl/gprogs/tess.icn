@@ -1,9 +1,41 @@
-
-#TITLE TESSARECT 4-D VIRTUAL REALITY MANIPULATOR
-#EJECT
+############################################################################
 #
-# FILE : TESS.ICN
-# DESC : TUMBLING TESSARECT SIMULTATION WRITTEN FOR X WINDOWS
+#	File:     tess.icn
+#
+#	Subject:  Program to display and manipulate a 4-D tesseract
+#
+#	Author:   Chris Tenaglia
+#
+#	Date:     September 6, 2009
+#
+############################################################################
+#
+#	This file is in the public domain.
+#
+############################################################################
+#
+#	Usage:  tess [size]
+#
+#	The size is optional and defaults to 1024.
+#
+#	Keypresses in the window control the animation:
+#	x : move x-axis
+#	y : move y-axis
+#	z : move z-axis
+#	a : move the OTHER axis
+#	i : move closer in
+#	o : move futher out
+#	f : freeze rotation
+#	r : reset to original settings
+#	q : quit
+#	up/down/left/right arrows move shape on screen
+#
+############################################################################
+#
+#	Requires:  Version 9 graphics
+#
+############################################################################
+
 # USAGE: TESS  [size]
 #        The size is optional. I believe it's pixels. The window produced is
 #        square shaped. The size defaults to 1024. Of course you need an X
@@ -16,7 +48,9 @@
 # 23-AUG-1992  TENAGLIA  OPTIMIZE AND ELIMINATE UNNECESSARY VARIABLES
 # 28-AUG-1992  TENAGLIA  MADE HANDLE BOUNDARY CONDITIONS BETTER
 # 08-APR-1992  TENAGLIA  ADDED COLORS FOR COLOR X-TERMINALS
-#
+# 30-MAR-2011  TENAGLIA  SUBMITTED TO ICON PROGRAM LIBRARY
+# 09-MAY-2012  TOWNSEND  ADDED TO ICON PROGRAM LIBRARY WITH MINIMAL CHANGES
+
 global vs, vt,  ne,  pi, twopi, vs2, vs3,   # view parameters
        vx, vy,  vz,  vw,                    # view projectors
        ox, oy, oldx, oldy,                  # old x,y positions
@@ -33,8 +67,10 @@ global vs, vt,  ne,  pi, twopi, vs2, vs3,   # view parameters
        tessarect,                           # tessarect matrix
        edges, colors,                       # edges matrix
        xwindow, lines, columns              # xwindow variables
+
 #SUB MAIN AND SETUP PROCEDURES
 #EJECT
+
 #
 # this is the main drawing loop
 #
@@ -90,8 +126,10 @@ procedure setup(settings)
   projtessarect := table(0)
   oldproj       := table(0)
   end
+
 #SUB BUILD WINDOW & OTHER NEEDED CONSTANTS
 #EJECT
+
 #
 # set up other important windowing variables and constants
 #
@@ -131,8 +169,10 @@ procedure getview()
 #  write(xwindow," up/down/left/right arrows move shape on screen")
 #  write(xwindow," f : freeze rotation      |   : blank stop movement")
   end
+
 #SUB ACTUAL TESSARECT ANIMATOR
 #EJECT
+
 #
 # calculate points in 4 dimensions
 #
@@ -185,7 +225,9 @@ procedure project()
     projtessarect[i || "," || 2] := oy + ppuy * d * tz / ty
     }
   end
+
 #EJECT
+
 #
 # perform motion
 #
@@ -216,7 +258,9 @@ procedure changeview()
     yi  := 0.0
     }
   end
+
 #EJECT
+
 #
 # draw it
 #
@@ -258,7 +302,9 @@ procedure connect()
     }
   WSync(xwindow)
   end
+
 #EJECT
+
 #
 # sense the outside world
 #
@@ -298,4 +344,3 @@ procedure testkey(window)
     quit       : stop("Execution Interrupted")
     }
   end
-
