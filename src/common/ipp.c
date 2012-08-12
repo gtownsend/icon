@@ -15,7 +15,7 @@
  *	$error [text]
  *
  *  Entry points are
- *	ppinit(fname,inclpath,m4flag) -- open input file
+ *	ppinit(fname,inclpath) -- open input file
  *	ppdef(s,v) -- "$define s v", or "$undef s" if v is a null pointer
  *	ppch() -- return next preprocessed character
  *	ppecho() -- preprocess to stdout (for icont -E)
@@ -32,7 +32,6 @@ typedef struct fstruct {		/* input file structure */
    char *fname;				/* file name */
    long lno;				/* line number */
    FILE *fp;				/* stdio file pointer */
-   int m4flag;				/* nz if preprocessed by m4 */
    int ifdepth;				/* $if nesting depth when opened */
    } infile;
 
@@ -57,8 +56,7 @@ typedef struct cd {			/* structure holding a definition */
    char s[1];				/* name then value, as needed, no \0 */
    } cdefn;
 
-static	int	ppopen	(char *fname, int m4);
-static	FILE *	m4pipe	(char *fname);
+static	int	ppopen	(char *fname);
 static	char *	rline	(FILE *fp);
 static	void	pushdef	(cdefn *d);
 static	void	pushline (char *fname, long lno);
@@ -118,14 +116,13 @@ static int ifdepth;			/* depth of $if nesting */
 extern int tfatals, nocode;		/* provided by icont */
 
 /*
- * ppinit(fname, inclpath, m4) -- initialize preprocessor to read from fname.
+ * ppinit(fname, inclpath) -- initialize preprocessor to read from fname.
  *
  *  Returns 1 if successful, 0 if open failed.
  */
-int ppinit(fname, inclpath, m4)
+int ppinit(fname, inclpath)
 char *fname;
 char *inclpath;
-int m4;
    {
    int i;
    cdefn *d, *n;
@@ -152,19 +149,18 @@ int m4;
     */
    lpath = inclpath;
    curfile = &nofile;			/* init file struct pointer */
-   return ppopen(fname, m4);		/* open main source file */
+   return ppopen(fname);		/* open main source file */
    }
 
 /*
- * ppopen(fname, m4) -- open a new file for reading by the preprocessor.
+ * ppopen(fname) -- open a new file for reading by the preprocessor.
  *
  *  Returns 1 if successful, 0 if open failed.
  *
  *  Open calls may be nested.  Files are closed when EOF is read.
  */
-static int ppopen(fname, m4)
+static int ppopen(fname)
 char *fname;
-int m4;
    {
    FILE *f;
    infile *fs;
@@ -174,9 +170,7 @@ int m4;
          pfatal("circular include", fname);	/* issue error message */
          return 1;				/* treat as success */
          }
-   if (m4)
-      f = m4pipe(fname);
-   else if (curfile == &nofile && strcmp(fname, "-") == 0) { /* 1st file only */
+   if (curfile == &nofile && strcmp(fname, "-") == 0) { /* 1st file only */
       f = stdin;
       fname = "stdin";
       }
@@ -190,25 +184,10 @@ int m4;
    fs->fp = f;
    fs->fname = salloc(fname);
    fs->lno = 0;
-   fs->m4flag = m4;
    fs->ifdepth = ifdepth;
    pushline(fs->fname, 0L);
    curfile = fs;
    return 1;
-   }
-
-/*
- * m4pipe -- open a pipe from m4.
- */
-static FILE *m4pipe(filename)
-char *filename;
-   {
-   FILE *f;
-   char *s = alloc(4 + strlen(filename));
-   sprintf(s, "m4 %s", filename);
-   f = popen(s, "r");
-   free(s);
-   return f;
    }
 
 /*
@@ -369,15 +348,7 @@ int ppch()
           */
          fs = curfile;
          curfile = fs->prev;
-
-         if (fs->m4flag) {			/* if m4 preprocessing */
-            void quit();
-            if (pclose(fs->fp) != 0)		/* close pipe */
-               quit("m4 terminated abnormally");
-            }
-         else
-            fclose(fs->fp);		/* close current file */
-
+         fclose(fs->fp);		/* close current file */
          free((char *)fs->fname);
          free((char *)fs);
          if (curfile == &nofile)	/* if at outer level, return EOF */
@@ -610,7 +581,7 @@ char *s;
       return "$include: invalid file name";
    if (*wskip(s) != '\0')
       return "$include: too many arguments";
-   if (!pathfind(fullpath, lpath, fname, (char *)NULL) || !ppopen(fullpath, 0))
+   if (!pathfind(fullpath, lpath, fname, (char *)NULL) || !ppopen(fullpath))
       pfatal("cannot open", fname);
    return NULL;
    }

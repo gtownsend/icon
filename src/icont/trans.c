@@ -70,7 +70,7 @@ char *filename, *tgtdir;
    incol = 0;
    peekc = 0;			/* clear character lookahead */
 
-   if (!ppinit(filename,lpath,m4pre))
+   if (!ppinit(filename,lpath))
       quitf("cannot open %s",filename);
 
    if (strcmp(filename,"-") == 0)

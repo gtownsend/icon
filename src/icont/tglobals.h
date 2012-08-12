@@ -41,7 +41,6 @@ Global unsigned int lhsize	Init(128);	/* local hash table */
  */
 Global char *progname	Init("icont");	/* program name for diagnostics */
 Global int silent	Init(0);	/* -s: suppress info messages? */
-Global int m4pre	Init(0);	/* -m: use m4 preprocessor? */
 Global int uwarn	Init(0);	/* -u: warn about undefined ids? */
 Global int trace	Init(0);	/* -t: initial &trace value */
 Global int pponly	Init(0);	/* -E: preprocess only */
