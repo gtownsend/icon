@@ -18,7 +18,7 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 
 <P> <SMALL>
 <B>(work in progress)</B> <!-- www.cs.arizona.edu/icon/v950/relnotes.htm -->
-<BR> Last updated May 9, 2012</SMALL>
+<BR> Last updated August 15, 2012</SMALL>
 <!-- $Id$ -->
 
 
@@ -33,6 +33,64 @@ subsequent to the release of version 9.5.0 of Icon.
 <P> Notable changes in this latest version are listed here.
 Some code cleanup work and documentation editing
 has also been done.
+
+<H3> Dynamic Record Construction </H3>
+
+<P><EM>This feature is still under construction.</EM>
+
+<P> A new built-in function <CODE>constructor()</CODE>
+produces a new record constructor.
+This in turn allows the creation of records with field names that
+are computed at execution time.
+Here is a simple example:
+    <BLOCKQUOTE>
+    	point := constructor("point", "x", "y")
+	<BR>vector := constructor("vector", "origin", "angle")
+	<BR>p := point(5.0, 3.0)
+	<BR>v := vector(p, &pi/3)
+	<BR>write(v.origin.x, " ", v.origin.y, " ", v.angle)
+    </BLOCKQUOTE>
+
+<P>
+Here's the full specification in the form of Appendix D of the Icon book:
+
+    <BLOCKQUOTE>
+	<P>
+	<CODE><B>constructor(s, L) : p ...</B></CODE>
+	&mdash; produce record constructors
+
+	<P>
+	<CODE>constructor(s, L)</CODE> produces a sequence of record
+	constructors having the name <CODE>s</CODE>.
+	If <CODE>L</CODE> is a list of strings, it specifies zero or more
+	field names, and a single matching record constructor is returned.
+	An existing constructor is returned if possible;
+	otherwise a new one is created.
+
+	<P>
+	If <CODE>L</CODE> is omitted or null, all existing record constructors
+	having name <CODE>s</CODE> are produced.
+	If both <CODE>s</CODE> and <CODE>L</CODE> are omitted or null,
+	all existing record constructors are produced.
+	In both cases, the order of production is unspecified.
+
+	<P>
+	<CODE>constructor(s, s1, s2, ..., sn)</CODE> is treated as
+	equivalent to <CODE>constructor(s, [s1, s2, ..., sn])</CODE>.
+
+    </BLOCKQUOTE>
+
+<P> Additionally, the existing built-in function <CODE>key()</CODE>,
+which produces the keys of a table, has been enhanced:
+
+    <BLOCKQUOTE>
+	<P>
+	<CODE>key(R)</CODE> produces, in order, the names of the fields
+	of record or record constructor <CODE>R</CODE>.
+    </BLOCKQUOTE>
+
+<P><EM>(Also reference new related IPL procedures.)</EM>
+
 
 <H3> Execution profiling </H3>
 
@@ -212,6 +270,7 @@ for an overview of the available Icon documentation.
 <H2> Acknowledgments </H2>
 
 <P>
+Carl Sturtivant developed the <CODE>constructor()</CODE> feature.
 Jafar Al-Gharaibeh supplied the co-expression fix.
 David Gamey contributed the quadratic mean procedure <CODE>qmean()</CODE>
 as well as a fix for <CODE>spell()</CODE>.
