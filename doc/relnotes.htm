@@ -18,14 +18,17 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 
 <P> <SMALL>
 <B>(work in progress)</B> <!-- www.cs.arizona.edu/icon/v950/relnotes.htm -->
-<BR> Last updated August 15, 2012</SMALL>
+<BR> Last updated August 16, 2012</SMALL>
 <!-- $Id$ -->
 
 
 <H2> Introduction </H2>
 
-<P> These notes document ongoing changes in the Icon source tree
-subsequent to the release of version 9.5.0 of Icon.
+<P> These notes document
+<UL>
+<LI>changes to the Icon source tree since the last release
+<LI>cumulative earlier amendments of the Icon language and graphics books
+</UL>
 
 
 <H2> Changes in version 9.5.cvs </H2>
@@ -42,7 +45,11 @@ has also been done.
 produces a new record constructor.
 This in turn allows the creation of records with field names that
 are computed at execution time.
-Here is a simple example:
+Record constructors are remembered and reused;
+multiple calls with the same specification all return the same
+constructor function.
+
+<P> Here is a simple example:
     <BLOCKQUOTE>
     	point := constructor("point", "x", "y")
 	<BR>vector := constructor("vector", "origin", "angle")
@@ -51,9 +58,7 @@ Here is a simple example:
 	<BR>write(v.origin.x, " ", v.origin.y, " ", v.angle)
     </BLOCKQUOTE>
 
-<P>
-Here's the full specification in the form of Appendix D of the Icon book:
-
+<P> This function specification follows the form of Appendix D of the Icon book:
     <BLOCKQUOTE>
 	<P>
 	<CODE><B>constructor(s, L) : p ...</B></CODE>
@@ -61,11 +66,15 @@ Here's the full specification in the form of Appendix D of the Icon book:
 
 	<P>
 	<CODE>constructor(s, L)</CODE> produces a sequence of record
-	constructors having the name <CODE>s</CODE>.
-	If <CODE>L</CODE> is a list of strings, it specifies zero or more
-	field names, and a single matching record constructor is returned.
-	An existing constructor is returned if possible;
-	otherwise a new one is created.
+	constructor functions each having the name <CODE>s</CODE>.
+	Unless <CODE>s</code> is null it must have the form of an identifier.
+
+	<P>
+	If <CODE>L</CODE> is a list of strings,
+	a single constructor is returned for building
+	records with the field names
+	specified by list <CODE>L</CODE>.
+	Each field name must have the form of an identifier.
 
 	<P>
 	If <CODE>L</CODE> is omitted or null, all existing record constructors
@@ -78,7 +87,13 @@ Here's the full specification in the form of Appendix D of the Icon book:
 	<CODE>constructor(s, s1, s2, ..., sn)</CODE> is treated as
 	equivalent to <CODE>constructor(s, [s1, s2, ..., sn])</CODE>.
 
+	<P> Errors:
+	<BR> 103 string expected
+	<BR> 110 string or list expected
+	<BR> 127 invalid identifier form
+
     </BLOCKQUOTE>
+
 
 <P> Additionally, the existing built-in function <CODE>key()</CODE>,
 which produces the keys of a table, has been enhanced:
