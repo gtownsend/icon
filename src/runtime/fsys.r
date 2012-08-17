@@ -247,8 +247,8 @@ function{0,1} open(fname, spec)
 
       if ((status & (Fs_Read|Fs_Write)) == (Fs_Read|Fs_Write))
 	 mode[1] = '+';
-      if ((status & Fs_Untrans) != 0)
-         strcat(mode, "b");
+      if ((status & Fs_Untrans) && ! (status & Fs_Pipe))
+         strcat(mode, "b");		/* not required or allowed by popen() */
 
       /*
        * Open the file with fopen or popen.
@@ -284,7 +284,8 @@ function{0,1} open(fname, spec)
 
 #ifdef Pipes
       if (status & Fs_Pipe) {
-	 if (status != (Fs_Read|Fs_Pipe) && status != (Fs_Write|Fs_Pipe))
+	 int m = status & ~(Fs_Pipe | Fs_Untrans);
+	 if (m != Fs_Read && m != Fs_Write)	/* not both, no other flags */
 	    runerr(209, spec);
 	 f = popen(fnamestr, mode);
 	 }
