@@ -60,40 +60,41 @@ constructor function.
 
 <P> This function specification follows the form of Appendix D of the Icon book:
     <BLOCKQUOTE>
-	<P>
-	<CODE><B>constructor(s, L) : p ...</B></CODE>
-	&mdash; produce record constructors
+	
+	<P><CODE><B>constructor(x, L) : p ...</B></CODE>
+	&mdash; produce record constructor functions
 
-	<P>
-	<CODE>constructor(s, L)</CODE> produces a sequence of record
-	constructor functions each having the name <CODE>s</CODE>.
-	Unless <CODE>s</code> is null it must have the form of an identifier.
+	<P><CODE>constructor(x, L)</CODE> returns a record constructor,
+	or generates a sequence of them, depending on the types of
+	<CODE>s</CODE> and <CODE>L</CODE>.
 
-	<P>
-	If <CODE>L</CODE> is a list of strings,
-	a single constructor is returned for building
-	records with the field names
-	specified by list <CODE>L</CODE>.
-	Each field name must have the form of an identifier.
+	<P>If <CODE>x</CODE> is a string and <CODE>L</CODE> a list,
+	<CODE>constructor(s, L)</CODE> returns a record constructor
+	with name <CODE>s</CODE>
+	for creating records with the field names specified by list
+	<CODE>L</CODE>.
+	The constructor and field names must each
+	have the form of an identifier.
 
-	<P>
-	If <CODE>L</CODE> is omitted or null, all existing record constructors
-	having name <CODE>s</CODE> are produced.
-	If both <CODE>s</CODE> and <CODE>L</CODE> are omitted or null,
-	all existing record constructors are produced.
-	In both cases, the order of production is unspecified.
-
-	<P>
-	<CODE>constructor(s, s1, s2, ..., sn)</CODE> is treated as
+	<P><CODE>constructor(s, s1, s2, ..., sn)</CODE> is treated as
 	equivalent to <CODE>constructor(s, [s1, s2, ..., sn])</CODE>.
 
+	<P><CODE>constructor(s)</CODE>, with <CODE>L</CODE> null or omitted,
+	generates (in unspecified order)
+	the existing constructors that match name <CODE>s</CODE>.
+
+	<P><CODE>constructor()</CODE>, with <CODE>x</CODE> null or omitted,
+	generates (in unspecified order) all existing constructors.
+
+	<P><CODE>constructor(R)</CODE> returns the record constructor
+	associated with record <CODE>R</CODE>.
+
 	<P> Errors:
-	<BR> 103 string expected
 	<BR> 110 string or list expected
-	<BR> 127 invalid identifier form
+	<BR> 127 string or record expected
+	<BR> 128 invalid identifier form
 
     </BLOCKQUOTE>
-
 
 <P> Additionally, the existing built-in function <CODE>key()</CODE>,
 which produces the keys of a table, has been enhanced:
