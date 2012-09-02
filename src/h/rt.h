@@ -2,6 +2,11 @@
 #define RT_DOT_H 1
 
 /*
+ * Inhibit complaints about unnecessary generated parentheses.
+ */
+#pragma clang diagnostic ignored "-Wparentheses"
+
+/*
  * Include files.
  */
 

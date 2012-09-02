@@ -78,6 +78,8 @@ function{} exit(status)
       runerr(101, status)
    inline {
       c_exit((int)status);
+      /*NOTREACHED*/
+      return nulldesc;  /* avoid warning */
       }
 end
 
@@ -772,6 +774,8 @@ end
 
 #if terminate
 	    c_exit(EXIT_FAILURE);
+	    /*NOTREACHED*/
+	    return nulldesc;  /* avoid warning */
 #else					/* terminate */
 	    return retvalue;
 #endif					/* terminate */

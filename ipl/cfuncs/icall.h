@@ -144,10 +144,10 @@ typedef struct { word title; double rval; } realblock;
 typedef struct { word title; FILE *fp; word stat; descriptor fname; } fileblock;
 typedef struct { word title, size, id; void *head, *tail; } listblock;
 
-typedef struct externalblock {
+typedef struct externalblock {		/* standard header for external block */
    word title, size, id;
    struct funclist *funcs;
-   word data[];
+   /* extend this struct to add additional data */
 } externalblock;
 
 typedef struct funclist {

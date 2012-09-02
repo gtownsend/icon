@@ -7,7 +7,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     November 17, 1997
+#	Date:     September 2, 2012
 #
 ############################################################################
 #
@@ -167,7 +167,7 @@ static void bcdadd(unsigned long lside[], unsigned long rside[], int n)
       rword = *--rside + carry;
       hgh = (lword & MASK) + (rword & MASK);
       low = (lword & ~MASK) + (rword & ~MASK);
-      while (icarry = (hgh & ~MASK) + (low & MASK)) {
+      while ((icarry = (hgh & ~MASK) + (low & MASK)) != 0) {
 	 hgh &= MASK;
 	 low &= ~MASK;
 	 carry |= icarry;

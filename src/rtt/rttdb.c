@@ -1028,11 +1028,12 @@ int may_fthru;
       fprintf(db, "e");      /* can do error conversion */
    else
       fprintf(db, "_");      /* cannot do error conversion */
-   if (may_fthru)            /* body functions only: */
+   if (may_fthru) {            /* body functions only: */
       if (flag & DoesFThru)
          fprintf(db, "t");      /* can fall through */
       else
          fprintf(db, "_");      /* cannot fall through */
+      }
   fprintf(db, " ");
   }
 

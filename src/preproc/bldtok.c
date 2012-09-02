@@ -212,7 +212,7 @@ struct char_src *cs;
    /*
     * Look ahead to see if a ## operator is next.
     */
-   if (*next_char == '#' && next_char[1] == '#')
+   if (*next_char == '#' && next_char[1] == '#') {
       if (tok_id == PpDirEnd)
          errt1(t, "## expressions must not cross directive boundaries");
       else {
@@ -222,6 +222,7 @@ struct char_src *cs;
          free_t(t);
          return NULL;
          }
+      }
    return t;
    }
 
@@ -365,7 +366,7 @@ struct token *tokenize()
           *  for white space to discard.
           */
          cs->dir_state = Within;
-         if ((t1 = chck_wh_sp(cs)) != NULL)
+         if ((t1 = chck_wh_sp(cs)) != NULL) {
             if (t1->tok_id == PpDirEnd) {
                /*
                 * We found a new-line, this is a null preprocessor directive.
@@ -376,6 +377,7 @@ struct token *tokenize()
                }
             else
                free_t(t1);  /* discard white space */
+	    }
          c = *next_char;
          if (islower(c) || isupper(c) || c == '_') {
             /*
@@ -399,11 +401,12 @@ struct token *tokenize()
                    * A header name has to be tokenized specially. Find
                    *  it, then save the token.
                    */
-                  if ((t2 = chck_wh_sp(cs)) != NULL)
+                  if ((t2 = chck_wh_sp(cs)) != NULL) {
                      if (t2->tok_id == PpDirEnd)
                         errt1(t2, "file name missing from #include");
                      else
                         free_t(t2);
+		  }
                   c = *next_char;
                   if (c == '"')
                      cs->tok_sav = hdr_tok('"', StrLit, cs);
@@ -752,12 +755,13 @@ struct token *tokenize()
          /*
           * The operand must be in the same preprocessing directive.
           */
-         if ((t2 = chck_wh_sp(cs)) != NULL)
+         if ((t2 = chck_wh_sp(cs)) != NULL) {
             if (t2->tok_id == PpDirEnd)
               errt2(t2, t1->image,
                " preprocessing expression must not cross directive boundary");
             else
                free_t(t2);
+	    }
          return t1;
 
       default:
