@@ -61,6 +61,13 @@ To see the CPU hotspots, use <CODE>sort &ndash;nr | head</CODE>.
 a traceback message.
 If profiling has been enabled, the profile report is also generated.
 
+<P> The MacOS configuration has been slightly modified to adapt to a new
+X11 location.
+
+<p> Some implementation code has changed to avoid provoking the
+well-intentioned warning messages that some C complers produce
+for certain perfectly legal constructs.
+
 <H3> Library changes </H3>
 
 <P> As usual, some files in the Icon program library have been
@@ -162,7 +169,12 @@ read by an Icon program running on a different platform.
 <H2> Limitations, bugs, and problems </H2>
 
 <SMALL> (This list has remained essentially unchanged for twenty years.
+<!-- At least.  See for example IPD 212 of 13 March 1993. -->
 The remaining knotty problems relate to fundamental design decisions.) </SMALL>
+
+<P> Icon deals strictly in 8-bit characters and expects a superset of ASCII
+such as ISO 8859-1 (&ldquo;Latin 1&rdquo;).
+It does not translate UTF-8 escape sequences and does not support Unicode.
 
 <P> Large integers cannot be used with <CODE>i to j</CODE>,
 with <CODE>seq()</CODE>, or with integer-valued keywords.
