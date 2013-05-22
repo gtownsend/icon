@@ -18,7 +18,7 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 
 <P> <SMALL>
 <B>(work in progress)</B> <!-- www.cs.arizona.edu/icon/v950/relnotes.htm -->
-<BR> Last updated April 28, 2013</SMALL>
+<BR> Last updated May 21, 2013</SMALL>
 <!-- $Id$ -->
 
 
@@ -36,78 +36,6 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 <P> Notable changes in this latest version are listed here.
 Some code cleanup work and documentation editing
 has also been done.
-
-<H3> Dynamic Record Construction (proposed)</H3>
-
-<P><EM>This feature is under consideration but not yet implemented.
-<BR>The following tentative specification is subject to change.</EM>
-
-<P> A new built-in function <CODE>constructor()</CODE>
-produces a new record constructor.
-This in turn allows the creation of records with field names that
-are computed at execution time.
-Record constructors are remembered and reused;
-multiple calls with the same specification all return the same
-constructor function.
-
-<P> Here is a simple example:
-    <BLOCKQUOTE>
-    	point := constructor("point", "x", "y")
-	<BR>vector := constructor("vector", "origin", "angle")
-	<BR>p := point(5.0, 3.0)
-	<BR>v := vector(p, &pi/3)
-	<BR>write(v.origin.x, " ", v.origin.y, " ", v.angle)
-    </BLOCKQUOTE>
-
-<P> This function specification follows the form of Appendix D of the Icon book:
-    <BLOCKQUOTE>
-	
-	<P><CODE><B>constructor(x, L) : p ...</B></CODE>
-	&mdash; produce record constructor functions
-
-	<P><CODE>constructor(x, L)</CODE> returns a record constructor,
-	or generates a sequence of them, depending on the types of
-	<CODE>s</CODE> and <CODE>L</CODE>.
-
-	<P>If <CODE>x</CODE> is a string and <CODE>L</CODE> a list,
-	<CODE>constructor(s, L)</CODE> returns a record constructor
-	with name <CODE>s</CODE>
-	for creating records with the field names specified by list
-	<CODE>L</CODE>.
-	The constructor and field names must each
-	have the form of an identifier.
-
-	<P><CODE>constructor(s, s1, s2, ..., sn)</CODE> is treated as
-	equivalent to <CODE>constructor(s, [s1, s2, ..., sn])</CODE>.
-
-	<P><CODE>constructor(s)</CODE>, with <CODE>L</CODE> null or omitted,
-	generates (in unspecified order)
-	the existing constructors that match name <CODE>s</CODE>.
-
-	<P><CODE>constructor()</CODE>, with <CODE>x</CODE> null or omitted,
-	generates (in unspecified order) all existing constructors.
-
-	<P><CODE>constructor(R)</CODE> returns the record constructor
-	associated with record <CODE>R</CODE>.
-
-	<P> Errors:
-	<BR> 110 string or list expected
-	<BR> 127 string or record expected
-	<BR> 128 invalid identifier form
-
-    </BLOCKQUOTE>
-
-<P> Additionally, the existing built-in function <CODE>key()</CODE>,
-which produces the keys of a table, has been enhanced:
-
-    <BLOCKQUOTE>
-	<P>
-	<CODE>key(R)</CODE> produces, in order, the names of the fields
-	of record or record constructor <CODE>R</CODE>.
-    </BLOCKQUOTE>
-
-<P><EM>(There may also be some sort of "join" procedure added to the IPL.)</EM>
-
 
 <H3> Execution profiling </H3>
 
@@ -289,7 +217,6 @@ for an overview of the available Icon documentation.
 <H2> Acknowledgments </H2>
 
 <P>
-Carl Sturtivant developed the <CODE>constructor()</CODE> feature.
 Jafar Al-Gharaibeh supplied the co-expression fix.
 David Gamey contributed the quadratic mean procedure <CODE>qmean()</CODE>
 as well as a fix for <CODE>spell()</CODE>.
