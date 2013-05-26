@@ -88,7 +88,7 @@ static void tick(int signum)
  */
 void countline(word *ipc)
    {
-   int b = ((long)ipc) % PROFBINS;
+   int b = ((unsigned long)ipc) % PROFBINS;
    struct profbin *p;
 
    /*
