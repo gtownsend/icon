@@ -1,3 +1,7 @@
+#  locations of X11 found in different BSD didstributions
+X=/usr/X11R6
+L=/usr/local
+
 #  CC       C compiler
 #  CFLAGS   flags for building C files
 #  CFDYN    additional flags for dynamic functions
@@ -9,11 +13,11 @@
 #  GDIR     directory of graphics helper library
 
 CC = cc
-CFLAGS = -O -I/usr/local/include
+CFLAGS = -O -I$X/include -I$L/include
 CFDYN = -fPIC
 RLINK = -Wl,-E
 RLIBS = -lm
 TLIBS = -lpthread
-XLIBS = -Wl,-R/usr/local/lib -L/usr/local/lib -lX11
-XPMDEFS = -DZPIPE -I/usr/local/include
+XLIBS = -Wl,-R$X/lib -Wl,-R$L/lib -L$X/lib -L$L/lib -lX11
+XPMDEFS = -DZPIPE
 GDIR = xpm
