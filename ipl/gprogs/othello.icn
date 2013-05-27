@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     July 14, 2010
+#	Date:     May 27, 2013
 #
 ############################################################################
 #
@@ -256,6 +256,7 @@ global cw	# cell width
 global c2	# cell width / 2
 global r        # token radius
 global sw	# scoreboard width
+global tc	# text context
 
 
 #  layout() -- configure display based on current window size
@@ -276,6 +277,9 @@ procedure layout()
    c2 := cw / 2				# calculate half of that
    r := integer(0.4 * cw)		# calculate counter radius
    WAttrib("font=sans,bold," || integer(0.4 * cw))	# set font size
+   Uncouple(\tc)			
+   tc := Clone("dx=0", "fg=black", "bg=" || SIDECOLOR,
+      "font=sans,bold," || integer(0.2 * cw))  # new gpx context for text help
    return
 end
 
@@ -364,11 +368,48 @@ procedure redisplay(gs)
 
    Bg(SIDECOLOR)
    EraseArea(-sw, 0, sw, 8 * cw)
+   drawhelp()
    drawscores(gs)
 
    Bg(BOARDCOLOR)
    EraseArea(0, 0)
    drawboard(gs)
+   return
+end
+
+
+#  drawhelp() -- draw textual help column
+
+procedure drawhelp()
+   static helptext
+   initial helptext := ["",
+      "Ithello 1.0",
+      "",
+      "click to move",
+      "",
+      "N  new game",
+      "O  open game",
+      "S  save game",
+      "W  write history",
+      "Q  quit",
+      "",
+      "G  go",
+      "P  pass",
+      "U  undo",
+      "D  demo",
+      "_  pause",
+      "",
+      "H  hints",
+      "E  evaluate",
+      "123456789",
+      "   set lookahead",
+      "",
+      "control-click to",
+      "  move and freeze",
+   ]
+
+   GotoRC(tc, 1, 1)
+   every write(tc, " ", \!helptext)
    return
 end
 
