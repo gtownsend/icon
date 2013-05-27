@@ -1,4 +1,4 @@
-#!/bin/ksh -p
+#!/bin/sh -p
 #
 #  CheckAll -- Test-build all IPL components and run other sanity checks
 #
@@ -74,7 +74,7 @@ rm -f xxx
 
 
 #  Define function for silent compilation, echoing name only on error
-function compile {  icont -us $1  ||  echo "   -- failed in $1";  }
+compile()  { icont -us $1  ||  echo "   -- failed in $1"; }
 
 #  Build programs from "bipl" portion, using only "bipl" library.
 #  (For a better check, should really build using non-graphics version of Icon.)
