@@ -49,7 +49,9 @@ Undef:
 #  Check for stray files
 
 Strays:
-	for d in *procs *progs *incl; do (cd $$d; pwd; gcomp CVS *.icn); done
+	for d in *procs *progs *incl; do \
+	    (cd $$d; pwd; ls -a | grep -vxE '\.|\.\.|CVS|.*\.icn'); \
+	done; exit 0
 
 
 #  Verify that all procedures and programs build, including packs,
