@@ -340,6 +340,18 @@ static void txrun(char *(*func)(FILE*, char*), char *source, char *args[]) {
    atexit(cleanup);
 
    /*
+    * If source is from a file, prepend its directory to LPATH.
+    */
+   if (func == copyfile) {
+      sprintf(buf, "%s/..", source);
+      canonize(buf);
+      strcat(buf, ":");
+      strcat(buf, lpath);
+      free(lpath);
+      lpath = salloc(buf);
+      }
+
+   /*
     * Copy the source file, then translate to produce .u1 and .u2 files.
     */
    progname = func(f, source);
