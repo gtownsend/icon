@@ -7,7 +7,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     October 29, 2009
+#	Date:     May 29, 2013
 #
 ############################################################################
 #
@@ -40,15 +40,14 @@ int extxmin(int argc, descriptor argv[])   /*: create minimal external value */
    }
 
 /*
- * custom external holding a string and a trivial checksum
+ * custom external holding a null-terminated string and a trivial checksum
  */
 
-/* custom external data block extends the standard block */
-typedef struct sblock {
-   externalblock eb;
+/* data area */
+typedef struct sdata {
    unsigned short cksum;
    char string[];
-   } sblock;
+   } sdata;
 
 /* type name returns "xstr" */
 static int sname(int argc, descriptor argv[]) {
@@ -57,10 +56,11 @@ static int sname(int argc, descriptor argv[]) {
 
 /* image returns "xstr_N(cksum:string)" with no special string escapes */
 static int simage(int argc, descriptor argv[]) {
-   sblock *b = (sblock*)ExternalBlock(argv[1]);
+   externalblock *xb = ExternalBlock(argv[1]);
+   sdata *d = (sdata*) xb->data;
    char buffer[1000];	/* not robust against huge strings */
    RetStringN(buffer,
-      sprintf(buffer, "xstr_%ld(%05d:%s)", b->eb.id, b->cksum, b->string));
+      sprintf(buffer, "xstr_%ld(%05d:%s)", xb->id, d->cksum, d->string));
    }
 
 /* list of custom functions for constructor */
@@ -74,20 +74,19 @@ static funclist sfuncs = {
 /* finally, the exported constructor function, extxstr(s) */
 int extxstr(int argc, descriptor argv[])   /*: create string-valued external */
    {
-   sblock *new;
-   char *p;
-   int slen;
-
    ArgString(1);
-   slen = StringLen(argv[1]);
-   new = (sblock *)alcexternal(sizeof(sblock) + slen + 1, &sfuncs, 0);
-   memcpy(new->string, StringAddr(argv[1]), slen);
-   new->string[slen] = '\0';
+   int slen = StringLen(argv[1]);
+   externalblock *xb = alcexternal(
+      sizeof(externalblock) + sizeof(sdata) + slen + 1, &sfuncs, 0);
+   sdata *d = (sdata*) xb->data;
+   memcpy(d->string, StringAddr(argv[1]), slen);
+   d->string[slen] = '\0';
    int cksum = 0;
-   for (p = new->string; *p; p++)
-       cksum = 37 * cksum + (unsigned char) *p;
-   new->cksum = cksum;
-   RetExternal((externalblock*)new);
+   char *p;
+   for (p = d->string; *p; p++)
+      cksum = 37 * cksum + (unsigned char) *p;
+   d->cksum = cksum;
+   RetExternal(xb);
    }
 
 
@@ -95,30 +94,29 @@ int extxstr(int argc, descriptor argv[])   /*: create string-valued external */
  * custom real-valued external with lots of trimmings
  */
 
-/* custom external data block extends the standard block */
-typedef struct rblock {
-   externalblock eb;
+/* data area */
+typedef struct rdata {
    float value;
-   } rblock;
+   } rdata;
 
 /* comparison function for sorting */
 static int rcmp(int argc, descriptor argv[]) {
-   rblock *eb1 = (rblock*)ExternalBlock(argv[1]);
-   rblock *eb2 = (rblock*)ExternalBlock(argv[2]);
-   if (eb1->value < eb2->value) RetInteger(-1);
-   if (eb1->value > eb2->value) RetInteger(+1);
-   if (eb1->eb.id < eb2->eb.id) RetInteger(-1);
-   if (eb1->eb.id > eb2->eb.id) RetInteger(+1);
+   externalblock *xb1 = ExternalBlock(argv[1]);
+   externalblock *xb2 = ExternalBlock(argv[2]);
+   rdata *data1 = (rdata*) xb1->data;
+   rdata *data2 = (rdata*) xb2->data;
+   if (data1->value < data2->value) RetInteger(-1);
+   if (data1->value > data2->value) RetInteger(+1);
+   if (xb1->id < xb2->id) RetInteger(-1);
+   if (xb1->id > xb2->id) RetInteger(+1);
    RetInteger(0);
    }
 
 /* copy function duplicates block, getting new serial number */
 static int rcopy(int argc, descriptor argv[]) {
-   externalblock *b = ExternalBlock(argv[1]);
-   rblock *old = (rblock*)b;
-   rblock *new = (rblock *)alcexternal(sizeof(rblock), b->funcs, 0);
-   new->value = old->value;
-   RetExternal((externalblock*)new);
+   externalblock *xb = ExternalBlock(argv[1]);
+   RetExternal(alcexternal(
+      sizeof(externalblock) + sizeof(rdata), xb->funcs, xb->data));
    }
 
 /* type name returns "xreal" */
@@ -128,10 +126,11 @@ static int rname(int argc, descriptor argv[]) {
 
 /* image returns "xreal_N(V)" */
 static int rimage(int argc, descriptor argv[]) {
-   rblock *b = (rblock*)ExternalBlock(argv[1]);
+   externalblock *xb = ExternalBlock(argv[1]);
+   rdata *d = (rdata*) xb->data;
    char buffer[100];
    RetStringN(buffer,
-      sprintf(buffer, "xreal_%ld(%.1f)", b->eb.id, b->value));
+      sprintf(buffer, "xreal_%ld(%.1f)", xb->id, d->value));
    }
 
 /* list of custom functions for constructor */
@@ -145,10 +144,8 @@ static funclist rfuncs = {
 /* finally, the exported constructor function, extxreal(r) */
 int extxreal(int argc, descriptor argv[])    /*: create real-valued external */
    {
-   rblock *new;
-
    ArgReal(1);
    float v = RealVal(argv[1]);
-   new = (rblock *)alcexternal(sizeof(rblock), &rfuncs, &v);
-   RetExternal((externalblock*)new);
+   RetExternal(alcexternal(
+      sizeof(externalblock) + sizeof(rdata), &rfuncs, &v));
    }
