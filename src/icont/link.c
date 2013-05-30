@@ -122,7 +122,7 @@ char *outname;
          "[ -x \"$IXBIN\" ] && exec \"$IXBIN\" $0 ${1+\"$@\"}",
          "exec iconx $0 ${1+\"$@\"}",
          "[executable Icon binary follows]");
-      strcat(script, "        \n\f\n" + ((int)(strlen(script) + 4) % 8));
+      strcat(script, &"        \n\f\n"[(int)(strlen(script) + 4) % 8]);
       hdrsize = strlen(script) + 1;	/* length includes \0 at end */
       fwrite(script, hdrsize, 1, outfile);	/* write header */
       }
