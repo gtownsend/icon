@@ -147,7 +147,7 @@ typedef struct { word title, size, id; void *head, *tail; } listblock;
 typedef struct externalblock {		/* standard header for external block */
    word title, size, id;
    struct funclist *funcs;
-   /* extend this struct to add additional data */
+   word data[];
 } externalblock;
 
 typedef struct funclist {
