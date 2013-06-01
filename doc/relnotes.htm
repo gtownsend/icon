@@ -1,7 +1,7 @@
 <!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN">
 <HTML>
 <HEAD>
-    <TITLE>Release Notes for Version 9.5.cvs of Icon</TITLE>
+    <TITLE>Release Notes for Version 9.5.1 of Icon</TITLE>
     <LINK REL="STYLESHEET" TYPE="text/css" HREF="istyle.css">
     <LINK REL="SHORTCUT ICON" HREF="shortcut.gif">
 </HEAD>
@@ -10,28 +10,32 @@
 <P><A HREF="http://www.cs.arizona.edu/icon/"> <IMG SRC="wwwcube.gif"
 ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 
-<H1> Release Notes for Version 9.5.cvs of Icon </H1>
+<H1> Release Notes for Version 9.5.1 of Icon </H1>
 
 <P> Gregg M. Townsend
 <BR> <SMALL> Department of Computer Science </SMALL>
 <BR> <SMALL> The University of Arizona </SMALL>
 
-<P> <SMALL>
-<B>(work in progress)</B> <!-- www.cs.arizona.edu/icon/v950/relnotes.htm -->
-<BR> Last updated May 28, 2013</SMALL>
+<P> <SMALL> www.cs.arizona.edu/icon/v951/relnotes.htm
+<BR> Last updated June 1, 2013</SMALL>
 <!-- $Id$ -->
 
 
 <H2> Introduction </H2>
 
+<P> Version 9.5.1 of Icon is an update of version 9.5.0.
+It incorporates configuration, library, and documentation changes.
+An execution profiler has been added and there are a few new example programs.
+Some minor bugs have been fixed.
+
 <P> These notes document
 <UL>
-<LI>changes to the Icon source tree since the last release
+<LI>changes to the Icon source tree since the previous release
 <LI>cumulative earlier amendments of the Icon language and graphics books
 </UL>
 
 
-<H2> Changes in version 9.5.cvs </H2>
+<H2> Changes in version 9.5.1 </H2>
 
 <P> Notable changes in this latest version are listed here.
 Some code cleanup work and documentation editing
@@ -51,7 +55,7 @@ To arrange by filename, use the Unix <CODE>sort</CODE> utility
 with keys <CODE>&ndash;k3,3 &ndash;k4n</CODE>.
 To see the CPU hotspots, use <CODE>sort &ndash;nr | head</CODE>.
 
-<H3> Minor Fixes </H3>
+<H3> Minor enhancements </H3>
 
 <P> A <CODE>QUIT</CODE> signal (<CODE>^\</CODE>) is now caught to produce 
 a traceback message.
@@ -61,16 +65,18 @@ If profiling has been enabled, the profile report is also generated.
 <CODE>icon <VAR>filename</VAR>.icn</CODE> now searches first in the
 directory of <CODE><VAR>filename</VAR></CODE> for <CODE>$include</CODE> files.
 
+<H3> Minor fixes </H3>
+
 <P> Pipes can now be opened in untranslated mode.
 
 <P> A memory leak on every 25th co-expression allocation has been fixed.
 
-<P> The external value examples have been rewriten for standards compliance.
+<P> The external value examples have been rewritten for standards compliance.
 
 <P> Some configurations have been modified in response to changes in
 their underlying platforms.
 
-<p> Some perfectly legal implementation code has been tweaked to avoid provoking
+<p> Some perfectly legal code has been tweaked to avoid provoking
 well-intentioned warning messages from C compilers.
 
 <H3> Library changes </H3>
@@ -82,6 +88,7 @@ Notable changes include:
 <PRE>
 procs/io	Honor "len" parameter in tempname()
 procs/itlib	Use infocmp utility if no termcap file
+procs/levensht	Add procedure for computing Levenshtein edit distance
 procs/numbers	Add quadratic mean procedure qmean(L)
 procs/numbers	Fix spell(i) procedure
 procs/psrecord	Fix positioning of noncircular arcs
@@ -100,7 +107,7 @@ gprogs/tess	Add 4-D tesseract display
 <P> These features appeared in earlier releases of Icon
 but subsequent to publication of the Icon books.
 
-<H3> External Values </H3>
+<H3> External values </H3>
 <SMALL> (new with version 9.5.0 of Icon) </SMALL>
 
 <P> External code incorporated by <CODE>loadfunc()</CODE> can now create
@@ -230,12 +237,12 @@ by <CODE>xlsfonts</CODE>) and not the more modern client-side fonts.
 <P> Now that graphics memory is cheap, very few platforms require or support
 mutable colors.  Icon code for mutable colors is still present but untested.
 
-<P> Windows are not always refreshed properly if a program is blocked while
-reading from standard input.
+<P> Windows are not always refreshed properly while a program is blocked
+awaiting standard input.
 
 <P> Depending on the window manager, values set and read back from the
 <CODE>pos</CODE>, <CODE>posx</CODE>, and <CODE>posy</CODE> attributes
-may be inconsistent.
+may be slightly inconsistent.
 
 
 <H2> Documentation </H2>
@@ -252,10 +259,15 @@ for an overview of the available Icon documentation.
 
 <P>
 Jafar Al-Gharaibeh supplied the co-expression fix.
-David Gamey contributed the quadratic mean procedure <CODE>qmean()</CODE>
-as well as a fix for <CODE>spell()</CODE>.
+
+<P>
 Greg Buchholz published the <CODE>mandel3</CODE> program in comp.lang.icon.
 Chris Tenaglia contributed the <CODE>tess</CODE> program.
+David Gamey contributed the quadratic mean procedure <CODE>qmean()</CODE>
+as well as a fix for <CODE>spell()</CODE>.
+Jeremy Cowgar supplied the <CODE>levenshtein()</CODE> procedure.
+
+<P>
 Will Evans provided the fix for the PostScript recorder <CODE>psrecord</CODE>.
 Clint Jeffery supplied the <CODE>itlib</CODE> fix.
 Phillip Thomas and Clint Jeffery modified the <CODE>lisp</code> program.
