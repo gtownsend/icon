@@ -1,0 +1,72 @@
+# test assignments to trapped variables
+# original source unknown; found 2013 in an ancient to-do collection
+
+procedure tvtbl_test ()
+local T
+
+    #
+    # Test to make sure that the table trapped variable returns
+    # the correct value.
+    #
+    # Developer's note: The parameters to write are not de-referenced
+    # until all of them are evaluated.  Any line produced by this section
+    # that has includes two different values for T [] is therefore incorrect.
+    #
+    write ( "TVTBL test 1" )
+    T := table ("Defaulted")
+
+    write ( "Assignment test:  \t", T [], "\t", T [] := "Assigned" )
+    write ( "Reassignment test:\t", T [], "\t", T [] := "Reassigned" )
+    write ( "Deletion test:    \t", T [], "\t", delete ( T ) & T [] )
+    write ( "Insertion test:   \t", T [], "\t",
+	 T [] := ( insert ( T, , "Assigned" ) & "Reassigned" ) )
+
+    #
+    # Test to make sure that the table is getting updated properly by
+    # trapped variable assignment.
+    #
+    # Note: there have been past errors where "T [] :=..." returns the
+    # correct value without properly updating the table.
+    #
+    write ( "\nTVTBL test 2" )
+    delete ( T )
+    T [] := "Assigned";   write ( "Assignment test:  \t",   T [] )
+    T [] := "Reassigned"; write ( "Reassignment test:\t", T [] )
+    T [] := "Assigned"
+    T [] := ( delete ( T ) & "Reassigned" )
+    write ( "Deletion test:    \t" , T [] )
+    delete ( T )
+    T [] := ( insert ( T, , "Assigned" ) & "Reassigned" )
+    write ( "Insertion test:   \t", T [] )
+    write ( )
+
+end
+
+
+procedure subs_test (  )
+local T, s
+
+    write ( "TVSUBS test" )     
+    T := table ( "....." )
+    T [ 7 ] [ 4 ] := "X"
+    write ( "Subs of new table elem:      ", T [ 7 ] )
+    insert ( T, 7, "....." )
+    T [ 7 ] [ 4 ] := "X"
+    write ( "Subs of existing table elem: ", T [ 7 ] )
+
+    &progname := "....."
+    &progname [ 4 ] := "X"
+    write ( "Subs of string trapped var:  ", &progname )
+    write ( )
+
+    # Lots more cases should be added here.
+
+    return    
+end
+
+
+procedure main (  )
+    tvtbl_test ( )
+    subs_test ( )
+    return
+end
