@@ -45,7 +45,7 @@ void initprofile()
    struct sigaction sg;
 
    char *fname = getenv("ICONPROFILE");	/* get output file name */
-   if (!fname) 				/* if not profiling, just return */
+   if (fname == NULL || fname[0] == '\0') /* if not profiling, just return */
       return;
    fprintf(stderr, "[profiling to $ICONPROFILE = %s]\n", fname);
    fflush(stderr);

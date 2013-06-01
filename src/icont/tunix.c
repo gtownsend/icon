@@ -41,6 +41,7 @@ int main(int argc, char *argv[]) {
    char **rptr;				/* list of files to remove */
    char *efile = NULL;			/* stderr file */
    char buf[MaxPath];			/* file name construction buffer */
+   char *ppath;				/* ICONPROFILE value */
    int c, n;
    char ch;
    struct fileparts *fp;
@@ -55,6 +56,9 @@ int main(int argc, char *argv[]) {
       iconxloc = patchpath + 18;	/* use stated iconx path if patched */
    else
       iconxloc = relfile(argv[0], "/../iconx");	/* otherwise infer it */
+   ppath = getenv("ICONPROFILE");
+   if (ppath != NULL && ppath[0] != '\0')
+      profile = 1;			/* ICONPROFILE implies -p */
 
    /*
     * Process options.

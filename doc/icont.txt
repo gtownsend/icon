@@ -38,7 +38,8 @@ OPTIONS
        -o file
            Write the executable program to the specified file.
 
-       -p  Enable execution profiling; see ICONPROFILE below.
+       -p  Enable execution-time profiling; implied if ICONPROFILE is set  and
+           not empty.
 
        -s  Suppress informative messages during translation and linking.
 
@@ -50,7 +51,7 @@ OPTIONS
        -v i
            Set verbosity level of informative messages to i.
 
-       -E  Direct  the results of preprocessing to standard output and inhibit
+       -E  Direct the results of preprocessing to standard output and  inhibit
            further processing.
 
        -N  Don't embed iconx path in executable file.
@@ -58,17 +59,17 @@ OPTIONS
        -V  Announce version and configuration information on standard error.
 
 TRANSLATION ENVIRONMENT
-       Two environment variables control file search paths during  translation
-       and  linking.   These variables contain blank- or colon-separated lists
-       of directories to be searched after the current  directory  and  before
+       Two  environment variables control file search paths during translation
+       and linking.  These variables contain blank- or  colon-separated  lists
+       of  directories  to  be searched after the current directory and before
        the standard library.
 
        IPATH
-           Directories  to search for for ucode files specified in link direc-
+           Directories to search for for ucode files specified in link  direc-
            tives and on the command line.
 
        LPATH
-           Directories to search for source files  specified  in  preprocessor
+           Directories  to  search  for source files specified in preprocessor
            $include directives.
 
 EXECUTION ENVIRONMENT
@@ -85,21 +86,21 @@ EXECUTION ENVIRONMENT
            If set, a core dump is produced for error termination.
 
        ICONPROFILE
-           If set, specifies a file to which profiling data  is  written  upon
-           termination  of  a  program  linked with the -p option.  The output
+           If  set,  specifies  a file to which profiling data is written upon
+           termination of a program linked with the  -p  option.   The  output
            reports timer ticks and visit counts for each line executed.
 
        ICONX
-           The location of iconx, the icon interpreter, overriding  the  value
+           The  location  of iconx, the icon interpreter, overriding the value
            built into the executable by icont.  Not required if the configura-
-           tion is unchanged since build time or  if  iconx  is  in  the  same
+           tion  is  unchanged  since  build  time  or if iconx is in the same
            directory as the executable.
 
        MSTKSIZE (10000)
            The size, in words, of the main interpreter stack for icont.
 
        NOERRBUF
-           By  default, &errout is buffered.  If this variable is set, &errout
+           By default, &errout is buffered.  If this variable is set,  &errout
            is not buffered.
 
        QLSIZE (5000)
@@ -110,11 +111,11 @@ EXECUTION ENVIRONMENT
            The initial size, in bytes, of the string space.
 
        TRACE
-           The  initial  value  of  &trace.   If this variable has a value, it
+           The initial value of &trace.  If this  variable  has  a  value,  it
            overrides the translation-time -t option.
 
 SEE ALSO
-       icon(1), a simpler command interface for  embedding  Icon  programs  in
+       icon(1),  a  simpler  command  interface for embedding Icon programs in
        scripts.
 
        The Icon Programming Language.
@@ -129,7 +130,7 @@ SEE ALSO
        http://www.cs.arizona.edu/icon/v950.
 
 CAVEATS
-       Icon  executables are not self-sufficient, but require the iconx inter-
-       preter.  When distributing an Icon program in executable form,  include
+       Icon executables are not self-sufficient, but require the iconx  inter-
+       preter.   When distributing an Icon program in executable form, include
        a copy of iconx in the same directory.
 

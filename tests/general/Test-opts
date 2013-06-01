@@ -41,7 +41,8 @@ test ! -f hello
 test ! -f hello.u?
 
 #  profiling
-ICONPROFILE=hello.p icont -ups hello -x profiler
+rm -f hello.p
+ICONPROFILE=hello.p icon hello.icn profiler
 sed 's/^ *[0-9]*/    $/' hello.p
 
 #  separate compilation

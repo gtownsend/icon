@@ -43,14 +43,13 @@ has also been done.
 
 <H3> Execution profiling </H3>
 
-<P> An execution profile can be produced by linking with <CODE>icont &ndash;p</CODE>
-and setting the environment variable <CODE>ICONPROFILE</CODE> at execution time
-to specify an output file.
+<P> An execution profile can be produced by setting the environment variable
+<CODE>ICONPROFILE</CODE> at execution time to specify an output file.
+For a separately built program, profiling must also be enabled during linking.
 
-<P> For each line executed, the output reports timer ticks, number of visits,
-filename, and line number.
+<P> For each line of the program that is executed, the profiler reports the number of visits and also the number of timer ticks attributed to the line.
 
-<P> Output reflects the layout in memory, which is based on linkage order.
+<P> The report is ordered by memory layout, which is based on linkage order.
 To arrange by filename, use the Unix <CODE>sort</CODE> utility
 with keys <CODE>&ndash;k3,3 &ndash;k4n</CODE>.
 To see the CPU hotspots, use <CODE>sort &ndash;nr | head</CODE>.
