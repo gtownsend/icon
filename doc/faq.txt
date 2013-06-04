@@ -1,7 +1,7 @@
         Frequently Asked Questions about the Icon programming language
 
    www.cs.arizona.edu/icon/faq.htm
-   Last updated March 29, 2013
+   Last updated June 3, 2013
 
    Learning about Icon
    A1. What is Icon?
@@ -24,15 +24,11 @@
    C3. Where did Icon come from?
    C4. Where is Icon going?
 
-   Support
-   D1. Is there a users' group for Icon?
-   D2. How do I get technical support?
-
    Programming
-   E1. Why doesn't read() work with every?
-   E2. Why doesn't string invocation such as "foo"() work?
-   E3. How can I call a C function?
-   E4. Can I open a bidirectional pipe?
+   D1. Why doesn't read() work with every?
+   D2. Why doesn't string invocation such as "foo"() work?
+   D3. How can I call a C function?
+   D4. Can I open a bidirectional pipe?
      _________________________________________________________________
 
 Learning about Icon
@@ -58,8 +54,8 @@ Learning about Icon
    used in an operation that requires a string, the integer is
    automatically converted to a string.
 
-   Several implementations of Icon have high-level graphics facilities
-   with an easily programmed window interface.
+   Most implementations of Icon have high-level graphics facilities with
+   an easily programmed window interface.
 
    Icon manages storage automatically. Objects are created as needed
    during program execution and space is reclaimed by garbage collection
@@ -226,8 +222,8 @@ Implementations
 
    No. Icon is defined in terms of 8-bit characters, and changing this
    presents several design challenges that would likely break existing
-   programs. Also, modifying the C implementation is probably infeasible,
-   but a Unicode version of Jcon might be possible.
+   programs. Modifying the C implementation is probably infeasible
+   anyway, although a Unicode version of Jcon might be possible.
 
   B4. What happened to the compiler?
 
@@ -242,17 +238,20 @@ Administration
 
   C1. What is the Icon Project?
 
-   The Icon Project is a name used by the group that distributes and
-   supports the Icon programming language. The project maintains the Icon
-   web site at www.cs.arizona.edu/icon. A non-commercial organization,
+   The Icon Project name identifies the group that distributes and
+   supports the Icon programming language. A non-commercial organization,
    the project is supported by the Department of Computer Science at the
    University of Arizona.
+
+   Gregg Townsend, now retired from Arizona, maintains the Icon
+   implementation and the Icon website. Carl Sturtivant of the University
+   of Minnesota assists with the Cygwin port.
 
   C2. How often is the on-line material updated?
 
    The Icon implementation is now in maintenance mode, with new releases
    produced only when necessary. This typically happens every few years
-   when a change in the Gnu tools cause the source to stop building.
+   when changes in host platforms cause the source to stop building.
 
   C3. Where did Icon come from?
 
@@ -292,29 +291,9 @@ Administration
    program library.
      _________________________________________________________________
 
-Support
-
-  D1. Is there a users' group for Icon?
-
-   There is no official Icon users' group, but the Usenet newsgroup
-   comp.lang.icon is dedicated to issues relating to the Icon language.
-
-  D2. How do I get technical support?
-
-   The Icon Project is not a commercial organization, and its capacity
-   for providing technical support is limited. Please use the appropriate
-   resource when you need assistance:
-     * For programming questions, submit a query to the Usenet newsgroup
-       comp.lang.icon.
-     * For porting assistance or Unix problems, contact
-       icon-project@cs.arizona.edu.
-     * For general information and additional documentation, visit the
-       Icon web site: www.cs.arizona.edu/icon.
-     _________________________________________________________________
-
 Programming
 
-  E1. Why doesn't read() work with every?
+  D1. Why doesn't read() work with every?
 
    every s := read() do {...} doesn't loop because read() produces a
    single value and then fails if resumed. Other "consumer" procedures
@@ -322,7 +301,7 @@ Programming
    procedures, and save every for use with generators such as !x or
    key(T).
 
-  E2. Why doesn't string invocation such as "foo"() work?
+  D2. Why doesn't string invocation such as "foo"() work?
 
    String invocation works if the procedure is present; the catch is that
    the linker removes unreferenced procedures. To ensure a procedure's
@@ -334,7 +313,7 @@ Programming
    greatly reduces the memory requirements of programs that use the
    library. There was a time when this mattered.)
 
-  E3. How can I call a C function?
+  D3. How can I call a C function?
 
    You can't call an arbitrary C function, but you can load and call one
    that is written to Icon's specifications. A tutorial appears in Icon
@@ -344,7 +323,7 @@ Programming
    The Jcon implementation allows Icon programs to call Java code that is
    written to Jcon specifications.
 
-  E4. Can I open a bidirectional pipe?
+  D4. Can I open a bidirectional pipe?
 
    No, this is not possible. Although the concept is simple -- write a
    line to a program via a pipe, then read that program's output -- it

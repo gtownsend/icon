@@ -11,7 +11,7 @@
 <H1>Frequently Asked Questions about the Icon programming language</H1>
 <A HREF="http://www.cs.arizona.edu/icon/faq.htm">
 www.cs.arizona.edu/icon/faq.htm</A>
-<BR>Last updated March 29, 2013<BR>
+<BR>Last updated June 3, 2013<BR>
 <!-- $Id$ -->
 
 <P><STRONG>Learning about Icon</STRONG><BR>
@@ -32,14 +32,11 @@ www.cs.arizona.edu/icon/faq.htm</A>
 <A HREF="#updates">C2. How often is the on-line material updated?</A><BR>
 <A HREF="#lineage">C3. Where did Icon come from?</A><BR>
 <A HREF="#futures">C4. Where is Icon going? </A><BR>
-<P><STRONG>Support</STRONG><BR>
-<A HREF="#ugroup">D1. Is there a users' group for Icon?</A><BR>
-<A HREF="#techsupport">D2. How do I get technical support?</A><BR>
 <P><STRONG>Programming</STRONG><BR>
-<A HREF="#evread">E1. Why doesn't <CODE>read()</CODE> work with <CODE>every</CODE>?</A><BR>
-<A HREF="#strinv">E2. Why doesn't string invocation such as <CODE>"foo"()</CODE> work?</A><BR>
-<A HREF="#callc">E3. How can I call a C function?</A><BR>
-<A HREF="#rwpipe">E4. Can I open a bidirectional pipe?</A><BR>
+<A HREF="#evread">D1. Why doesn't <CODE>read()</CODE> work with <CODE>every</CODE>?</A><BR>
+<A HREF="#strinv">D2. Why doesn't string invocation such as <CODE>"foo"()</CODE> work?</A><BR>
+<A HREF="#callc">D3. How can I call a C function?</A><BR>
+<A HREF="#rwpipe">D4. Can I open a bidirectional pipe?</A><BR>
 
 <P><HR><H2>Learning about Icon</H2>
 
@@ -62,7 +59,7 @@ It provides transparent automatic type conversion:
 For example, if an integer is used in an operation that requires a string,
 the integer is automatically converted to a string.
 <P>
-Several implementations of Icon have high-level graphics facilities with
+Most implementations of Icon have high-level graphics facilities with
 an easily programmed window interface.
 <P>
 Icon manages storage automatically.
@@ -282,8 +279,8 @@ www.cs.arizona.edu/icon/jcon</A>.
 No.
 Icon is defined in terms of 8-bit characters, and changing this presents
 several design challenges that would likely break existing programs.
-Also, modifying the C implementation is probably infeasible,
-but a Unicode version of Jcon might be possible.
+Modifying the C implementation is probably infeasible anyway,
+although a Unicode version of Jcon might be possible.
 
 <H3><A NAME="iconc">B4.</A> What happened to the compiler?</H3>
 <P>
@@ -297,18 +294,19 @@ even for production applications.
 
 <H3><A NAME="iconproject">C1.</A> What is the Icon Project?</H3>
 <P>
-The Icon Project is a name used by the group that
+The Icon Project name identifies the group that
 distributes and supports the Icon programming language.
-The project maintains the Icon web site at
-<A HREF="http://www.cs.arizona.edu/icon/">www.cs.arizona.edu/icon</A>.
 A non-commercial organization, the project is supported by the
 Department of Computer Science at the University of Arizona.
+<P> Gregg Townsend, now retired from Arizona, maintains the
+Icon implementation and the Icon website.
+Carl Sturtivant of the University of Minnesota assists with the Cygwin port.
 
 <H3><A NAME="updates">C2.</A> How often is the on-line material updated?</H3>
 <P>
 The Icon implementation is now in maintenance mode, with new releases
-produced only when necessary.  This typically happens every few years when a
-change in the Gnu tools cause the source to stop building.
+produced only when necessary.  This typically happens every few years when
+changes in host platforms cause the source to stop building.
 
 <H3><A NAME="lineage">C3.</A> Where did Icon come from?</H3>
 <P>
@@ -348,43 +346,14 @@ and to distribute ports to other systems as supplied by volunteers.
 <P>
 The Unicon project is developing an object-oriented language based on Icon.
 For more information, see
-<A HREF="http://unicon.sourceforge.net/">
-unicon.sourceforge.net</A>.
-
+<A HREF="http://unicon.sourceforge.net/">unicon.sourceforge.net</A>.
 
 An earlier object-oriented extension to Icon, Idol,
 can be found in the Icon program library.
 
-<P><HR><H2>Support</H2>
-
-<H3><A NAME="ugroup">D1.</A> Is there a users' group for Icon?</H3>
-<P>
-There is no official Icon users' group, but the Usenet newsgroup
-<A HREF="news:comp.lang.icon">comp.lang.icon</A>
-is dedicated to issues relating to the Icon language.
-
-<H3><A NAME="techsupport">D2.</A> How do I get technical support?</H3>
-<P>
-The Icon Project is not a commercial organization, and its capacity for
-providing technical support is limited. Please use the appropriate resource
-when you need assistance:
-<UL>
-<LI>
-For <STRONG>programming</STRONG> questions,
-submit a query to the Usenet newsgroup
-<A HREF="news:comp.lang.icon">comp.lang.icon</A>.
-<LI>
-For <STRONG>porting</STRONG> assistance
-or <STRONG>Unix</STRONG> problems, contact
-<A HREF="mailto:icon-project@cs.arizona.edu">icon-project@cs.arizona.edu</A>.
-<LI>
-For general information and additional documentation, visit the Icon web site:
-<A HREF="http://www.cs.arizona.edu/icon/">www.cs.arizona.edu/icon</A>.
-</UL>
-
 <P><HR><H2>Programming</H2>
 
-<H3><A NAME="evread">E1.</A>
+<H3><A NAME="evread">D1.</A>
 Why doesn't <CODE>read()</CODE> work with <CODE>every</CODE>?</H3>
 <P>
 <CODE>every s := read() do {...}</CODE>
@@ -396,7 +365,7 @@ Use a <CODE>while</CODE> loop with these procedures, and save
 <CODE>every</CODE> for use with generators such as <CODE>!x</CODE>
 or <CODE>key(T)</CODE>.
 
-<H3><A NAME="strinv">E2.</A>
+<H3><A NAME="strinv">D2.</A>
 Why doesn't string invocation such as <CODE>"foo"()</CODE> work?</H3>
 <P>
 String invocation works if the procedure is present;
@@ -412,7 +381,7 @@ Because that <EM>greatly</EM> reduces the memory requirements of
 programs that use the library.
 There was a time when this mattered.)
 
-<H3><A NAME="callc">E3.</A> How can I call a C function?</H3>
+<H3><A NAME="callc">D3.</A> How can I call a C function?</H3>
 <P>
 You can't call an arbitrary C function, but you can load and call one
 that is written to Icon's specifications.
@@ -427,7 +396,7 @@ Some examples can be found in the
 The <A HREF="http://www.cs.arizona.edu/icon/jcon/">Jcon</A> implementation
 allows Icon programs to call Java code that is written to Jcon specifications.
 
-<H3><A NAME="rwpipe">E4.</A> Can I open a bidirectional pipe?</H3>
+<H3><A NAME="rwpipe">D4.</A> Can I open a bidirectional pipe?</H3>
 <P>
 No, this is not possible.
 Although the concept is simple &mdash; 
