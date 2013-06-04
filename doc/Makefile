@@ -14,7 +14,7 @@ TFAQ = /cs/www/icon/ftp/doc/faq.txt
 FFAQ = /cs/ftp/icon/doc/faq.txt
 
 SERVER = york.cs.arizona.edu
-RLSDIR = /cs/www/icon/v950
+RLSDIR = /cs/www/icon/v951
 
 
 #  (default:) rebuild icon.txt, icont.txt, and faq.txt from nroff/html sources.
