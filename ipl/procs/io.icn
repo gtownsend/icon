@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     May 27, 2013
+#	Date:     June 5, 2013
 #
 ############################################################################
 #
@@ -16,7 +16,7 @@
 #
 #  Contributors:  Paul Abrahams, Bob Alexander, Will Evans, David A. Gamey,
 #		  Richard L. Goerwitz, Will Menagarini, Charles Shartsis,
-#		  and Gregg Townsend.
+#		  Carl Sturtivant, and Gregg Townsend.
 #
 ############################################################################
 #
@@ -580,17 +580,10 @@ end
 
 procedure directory(name)		#: succeed if name is a directory
 
-$ifdef _MS_WINDOWS
-   if fattrib(name, "status")[1] == "d" then
-      return name
-   else
-      fail
-$else
    if close(open(name || "/.")) then
       return name
    else
       fail
-$endif
 
 end
 
