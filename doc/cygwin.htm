@@ -62,10 +62,10 @@ Icon requires a C compiler and the usual tools and utilities
 available on a standard POSIX development system; these are found
 in the <CODE>gcc-core</CODE> and <CODE>make</CODE> packages.
 
-<P> An additional Cygwin/X installation is needed to enable Icon graphics.
-The necessary
-packages are detailed at <A HREF="http://x.cygwin.com">x.cygwin.com</A>.
-
+<P> Additional Cygwin/X packages must also be included in the installation
+if Icon is to be built with graphics enabled.
+The necessary packages are detailed at
+<A HREF="http://x.cygwin.com">x.cygwin.com</A>.
 
 
 <H2> Running Icon programs </H2>
@@ -108,6 +108,18 @@ graphics enabled, as is the symbol <CODE>_X_WINDOW_SYSTEM</CODE>.
 The corresponding strings are produced or omitted, as appropriate,
 by the <CODE>&amp;features</CODE> keyword.
 
+
+<H2> Building dynamic libraries of loadable C code </H2>
+
+<P> The Icon function <CODE>loadfunc</CODE> allows
+specially written C code to be loaded and called by an Icon program.
+See <A HREF="cfuncs.htm">Loading C Functions in Icon</A>.
+
+<P> When building a <CODE>loadfunc</CODE> library under Cygwin,
+link to the import library <CODE>iconx.a</CODE> located in the
+<CODE>bin</CODE> directory of the Icon distribution.
+This allows callbacks to functions in <CODE>iconx</CODE>,
+which happens by default on UNIX-like platforms but not on Windows.
 
 <P> <HR>
 
