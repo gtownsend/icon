@@ -5,8 +5,6 @@
 #define CYGWIN 1	/* this configuration uses Cygwin API */
 #define XWindows 1	/* this configuration uses X Windows for graphics */
 
-#define FAttrib		/* enable fattrib() extension */
-
 #define LoadFunc 1	/* enable dynamic loading */
 
 #define ExecSuffix ".exe"
