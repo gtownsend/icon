@@ -18,7 +18,7 @@ ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 
 <P> <SMALL> www.cs.arizona.edu/icon/v951/cygwin.htm
 <BR> 
-Last updated November 8, 2009</SMALL>
+Last updated June 4, 2013</SMALL>
 <!-- $Id$ -->
 
 
@@ -47,9 +47,10 @@ These differences are not necessarily identified in other documentation.
 <P> Icon is built in a Cygwin shell window using the same process as on
 on other platforms.
 See the <A HREF=build.htm>installation documentation</A> for instructions.
-There are two possible choices for configuration name:
-The <CODE>cygwin</CODE> configuration uses the native Windows graphics system;
-the <CODE>xcygwin</CODE> configuration uses the X window system and thus
+There is now one possible choice of configuration name:
+The <CODE>cygwin</CODE> configuration that retained some compatibility with
+an <A HREF="http://www.cs.arizona.edu/icon/docs/ipd271.htm">older port of Icon to Windows</A>
+is no longer available; the <CODE>xcygwin</CODE> configuration uses the X window system and thus
 is closer to other Unix implementations of Icon.
 
 <P> The Cygwin package is available from
@@ -60,8 +61,11 @@ insufficient for building software.
 Icon requires a C compiler and the usual tools and utilities
 available on a standard POSIX development system; these are found
 in the <CODE>gcc-core</CODE> and <CODE>make</CODE> packages.
-The <CODE>xinit</CODE> and <CODE>libXt-devel</CODE> packages are also needed
-to build the <CODE>xcygwin</CODE> configuration with graphics enabled.
+The Cygwin/X is also needed to build the <CODE>xcygwin</CODE> 
+configuration with graphics enabled; this is also available
+as a part a custom install of Cygwin and the necessary
+packages are detailed at <A HREF="http://x.cygwin.com">x.cygwin.com</A>.
+
 
 
 <H2> Running Icon programs </H2>
@@ -82,29 +86,16 @@ describe the command options in a traditionally cryptic manner.
 On Windows, the path of the interpreter is not embedded
 in an executable program.
 The program must be able to find
-<CODE>iconx.exe</CODE> in the search path.
+<CODE>iconx.exe</CODE> in the search path. Icon programs
+must be run from a Cygwin command shell or xterm.
 
-<P> The Cygwin X server must be running, with a correct <CODE>DISPLAY</CODE>
+<P> The <A HREF="http://x.cygwin.com">Cygwin/X</A>
+server must be running, with a correct <CODE>DISPLAY</CODE>
 variable in the environment, to execute graphics programs built by the
-<CODE>xcygwin</CODE> configuration of Icon.
-
-<P> When the environment is correctly set,
-with <CODE>cygwin1.dll</CODE> in the Windows path,
-a compiled Icon program may be run from the Cygwin shell or by
-double-clicking its graphical icon.
-
-
-<H2> Extra built-in functions </H2>
-
-<P> For compatibility with an earlier port of Icon to Windows,
-the <CODE>cygwin</CODE> configuration includes some extra built-in functions.
-These are described in section 6.2 of
-<A HREF="http://www.cs.arizona.edu/icon/docs/ipd271.htm">IPD271</A>,
-which documents that earlier port.
-
-<P> These unsupported functions are not part of Icon on other platforms,
-nor of the <CODE>xcygwin</CODE> configuration,
-so their use renders a program non-portable.
+<CODE>xcygwin</CODE> configuration of Icon. The Cygwin installation must
+therefore include Cygwin/X, in which case the X server may be started from 
+a shortcut or the Start menu in Windows 7, before a command is issued
+to execute such a graphics program.
 
 
 <H2> Feature test symbols </H2>
@@ -113,9 +104,7 @@ so their use renders a program non-portable.
 are defined by the Icon preprocessor.
 The symbol <CODE>_UNIX</CODE> is not defined.
 The symbol <CODE>_GRAPHICS</CODE> is defined if Icon is built with
-graphics enabled;
-the symbol <CODE>_X_WINDOW_SYSTEM</CODE> is also defined
-in the <CODE>xcygwin</CODE> configuration.
+graphics enabled, as is the symbol <CODE>_X_WINDOW_SYSTEM</CODE>.
 The corresponding strings are produced or omitted, as appropriate,
 by the <CODE>&amp;features</CODE> keyword.
 
@@ -125,7 +114,6 @@ by the <CODE>&amp;features</CODE> keyword.
 <UL>
     <LI>Some Unix dependencies cause the <CODE>tpp</CODE>
     and <CODE>opts</CODE> tests to fail.
-    <LI> Resizing a window sends a large number of events to the program.
 </UL>
 
 
