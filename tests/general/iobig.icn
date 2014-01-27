@@ -1,0 +1,50 @@
+#  test text and binary I/O in many different lengths from tiny to huge
+
+procedure main()
+   testio("tmp3", "t", read, write, create textgen())
+   testio("tmp4", "u", reads, writes, create bingen() | textgen() | "\^@")
+   write(&errout, "no problems found")
+end
+
+procedure testio(fname, mode, rfunc, wfunc, datagen)	#: test one file
+   local f, n, s, t
+
+   f := open(fname, "w" || mode) | stop("can't open ", fname, " for writing")
+   write(&errout, "writing ", image(f))
+   while wfunc(f, @datagen)
+   close(f)
+
+   datagen := ^datagen
+   f := open(fname, "r" || mode) | stop("can't open ", fname, " for reading")
+   write(&errout, "reading ", image(f))
+   n := 0
+   while s := @datagen do {
+      n +:= 1
+      t := rfunc(f, if rfunc === reads then *s else &null)
+      if s ~== t then stop("mismatch on item ", n)
+      }
+
+   if rfunc(f) then stop("read extra data beyond expected EOF")
+   write(&errout, "closing ", image(f))
+   close(f)
+end
+
+procedure textgen()		#: generate printable strings for text file
+   suspend !&digits
+   suspend &digits | &lcase | &ucase | &letters
+   suspend &ascii[33+:95]
+   suspend repl("a", (16 | 128 | 256 | 512 | 1024 | 32768 | 65536) + (-2 to 1))
+end
+
+procedure bingen()		#: generate tougher strings for binary file
+   local h
+
+   suspend !&cset
+   suspend &cset[(1 to 255) +: 3]
+   suspend &cset
+   h := "[ b\b t\t n\n v\v f\f r\r e\e d\d crlf\r\n z\^@ zzz\^@\^@\^@ ]"
+   suspend !h
+   suspend h
+   suspend repl("\^@", 1037)
+   suspend h
+end

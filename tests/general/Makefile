@@ -47,5 +47,5 @@ Test-tiny:
 # clean up
 
 Clean:
-		-rm -f *.u? *.[chp] foo.baz tmp1 tmp2 *.out *.err *.all
+		-rm -f *.u? *.[chp] foo.baz tmp? *.out *.err *.all
 		-rm -f xx `find * -type f -perm -100 ! -name 'Test-*' -print`
