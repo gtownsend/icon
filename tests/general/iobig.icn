@@ -3,20 +3,20 @@
 procedure main()
    testio("tmp3", "t", read, write, create textgen())
    testio("tmp4", "u", reads, writes, create bingen() | textgen() | "\^@")
-   write(&errout, "no problems found")
+   write("no problems found")
 end
 
 procedure testio(fname, mode, rfunc, wfunc, datagen)	#: test one file
    local f, n, s, t
 
    f := open(fname, "w" || mode) | stop("can't open ", fname, " for writing")
-   write(&errout, "writing ", image(f))
+   write("writing ", image(f))
    while wfunc(f, @datagen)
    close(f)
 
    datagen := ^datagen
    f := open(fname, "r" || mode) | stop("can't open ", fname, " for reading")
-   write(&errout, "reading ", image(f))
+   write("reading ", image(f))
    n := 0
    while s := @datagen do {
       n +:= 1
@@ -25,7 +25,7 @@ procedure testio(fname, mode, rfunc, wfunc, datagen)	#: test one file
       }
 
    if rfunc(f) then stop("read extra data beyond expected EOF")
-   write(&errout, "closing ", image(f))
+   write("closing ", image(f))
    close(f)
 end
 
