@@ -139,6 +139,7 @@ procedure main()
    gen(floor, &phi)
    gen(frn, &pi, 10, 4)
    gen(gcd, 42, 120)
+   tgcd()
    gen(gcdl, 42, 120, 81)
    gen(gmean, 1, 1, 2, 3, 5, 8, 13, 21, 42)
    gen(hmean, 1, 1, 2, 3, 5, 8, 13, 21, 42)
@@ -161,7 +162,7 @@ procedure main()
    gen(sum, 1, 1, 2, 3, 5, 8, 13, 21, 42)
    gen(trunc, &phi)
    gen(unroman, "MCMLXXIV")
-
+   
    write()
    write("options:")			# options  (not part of core)
    argv := ["-abc","-","-s","-v","-i","42","-r","98.6","--","-b","x","y"] 
@@ -413,5 +414,20 @@ procedure trat()			#: test rational arithmetic
       g := gcd(n, d)
       if r.numer ~= n / g | r.denom ~= d / g then
          write("   REAL2RAT: ", n, " / ", d, " => ", r.numer, " / ", r.denom)
+      }
+end
+
+procedure tgcd()			#: test gcd
+   local L, m, n, r
+
+   L := [1, 0, -3, 5, -7, 28, 30, 35, 36]
+   every writes(right("" | !L, 4) | "\n")
+   every m := !L do {
+      writes(right(m, 4))
+      every n := !L do {
+         r := if m = n = 0 then "" else gcd(m, n)
+         writes(right(r, 4))
+         }
+      write()
       }
 end

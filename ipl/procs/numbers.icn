@@ -6,7 +6,7 @@
 #
 #	Author:   Ralph E. Griswold
 #
-#	Date:     May 21, 2010
+#	Date:     March 17, 2014
 #
 ############################################################################
 #
@@ -15,7 +15,7 @@
 ############################################################################
 #
 #	Contributors:  Robert J. Alexander, Richard Goerwitz
-#	   Tim Korb, Gregg M. Townsend, and David Gamey
+#	   Tim Korb, Gregg M. Townsend, David Gamey, Steve Wampler
 #
 ############################################################################
 #
@@ -73,10 +73,10 @@
 #			Fixed format is always used; there is no exponential
 #			notation.  Defaults:  w 0, d  0
 #
-#	gcd(i, j)	returns greatest common divisor of i and j.
+#	gcd(i, j)	returns greatest common divisor of abs(i) and abs(j).
 #
-#	gcdl ! L	returns the greatest common division of the integers
-#			list L.
+#	gcdl ! L	returns the greatest common divisor of the integers
+#			in list L.
 #
 #	gmean ! L	returns geometric mean of numbers in L.
 #
@@ -389,10 +389,13 @@ procedure frn(r, w, d)		#: format real number
 
 end
 
-procedure gcd(i,j)		#: greatest common divisor
+procedure gcd(i, j)		#: greatest common divisor
    local r
 
-   if (i | j) < 1 then runerr(501)
+   i <:= -i			# ensure positive arguments
+   j <:= -j
+   if i = 0 then if j ~= 0 then return j else runerr(202)
+   if j = 0 then if i ~= 0 then return i else runerr(202)
 
    repeat {
       r := i % j
