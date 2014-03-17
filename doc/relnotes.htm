@@ -1,7 +1,7 @@
 <!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN">
 <HTML>
 <HEAD>
-    <TITLE>Release Notes for Version 9.5.1 of Icon</TITLE>
+    <TITLE>Release Notes for Version 9.5.2 of Icon</TITLE>
     <LINK REL="STYLESHEET" TYPE="text/css" HREF="istyle.css">
     <LINK REL="SHORTCUT ICON" HREF="shortcut.gif">
 </HEAD>
@@ -10,23 +10,23 @@
 <P><A HREF="http://www.cs.arizona.edu/icon/"> <IMG SRC="wwwcube.gif"
 ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 
-<H1> Release Notes for Version 9.5.1 of Icon </H1>
+<H1> Release Notes for Version 9.5.2 of Icon </H1>
 
 <P> Gregg M. Townsend
 <BR> <SMALL> Department of Computer Science </SMALL>
 <BR> <SMALL> The University of Arizona </SMALL>
 
-<P> <SMALL> www.cs.arizona.edu/icon/v951/relnotes.htm
-<BR> Last updated June 5, 2013</SMALL>
+<P> <SMALL> www.cs.arizona.edu/icon/v952/relnotes.htm
+<BR> Last updated March 17, 2014</SMALL>
 <!-- $Id$ -->
 
 
 <H2> Introduction </H2>
 
-<P> Version 9.5.1 of Icon is an update of version 9.5.0.
-It incorporates configuration, library, and documentation changes.
-An execution profiler has been added and there are a few new example programs.
-Some minor bugs have been fixed.
+<P> Version 9.5.2 of Icon is an update of version 9.5.1.
+It incorporates minor library changes.
+<!-- not yet: and code cleanup and documentation updates. -->
+<!-- not yet: Some minor bugs have been fixed. -->
 
 <P> These notes document:
 <UL>
@@ -35,46 +35,14 @@ Some minor bugs have been fixed.
 </UL>
 
 
-<H2> Changes in version 9.5.1 </H2>
+<H2> Changes in version 9.5.2 </H2>
 
 <P> Notable changes in this latest version are listed here.
 
-<H3> Execution profiling </H3>
-
-<P> An execution profile can be produced by setting the environment variable
-<CODE>ICONPROFILE</CODE> at execution time to specify an output file.
-For a separately built program, profiling must also be enabled during linking.
-
-<P> For each line of the program that is executed, the profiler reports the number of visits and also the number of timer ticks attributed to the line.
-
-<P> The report is ordered by memory layout, which is based on linkage order.
-To arrange by filename, use the Unix <CODE>sort</CODE> utility
-with keys <CODE>&ndash;k3,3 &ndash;k4n</CODE>.
-To see the CPU hotspots, use <CODE>sort &ndash;nr | head</CODE>.
 
 <H3> Minor enhancements </H3>
 
-<P> A <CODE>QUIT</CODE> signal (<CODE>^\</CODE>) is now caught to produce 
-a traceback message.
-If profiling has been enabled, the profile report is also generated.
-
-<P> The command
-<CODE>icon <VAR>filename</VAR>.icn</CODE> now searches first in the
-directory of <CODE><VAR>filename</VAR></CODE> for <CODE>$include</CODE> files.
-
 <H3> Minor fixes </H3>
-
-<P> Pipes can now be opened in untranslated mode.
-
-<P> A memory leak on every 25th co-expression allocation has been fixed.
-
-<P> The external value examples have been rewritten for standards compliance.
-
-<P> Some configurations have been modified in response to changes in
-their underlying platforms.
-
-<p> Some perfectly legal code has been tweaked to avoid provoking
-well-intentioned warning messages from C compilers.
 
 <H3> Library changes </H3>
 
@@ -83,32 +51,28 @@ added or edited, but the core library files remain stable.
 Notable changes include:
 
 <PRE>
-procs/io	Honor "len" parameter in tempname()
-procs/itlib	Use infocmp utility if no termcap file
-procs/levensht	Add procedure for computing Levenshtein edit distance
-procs/numbers	Add quadratic mean procedure qmean(L)
-procs/numbers	Fix spell(i) procedure
-procs/psrecord	Fix positioning of noncircular arcs
-
-progs/iprofl	Add program for listing source with execution profile
-progs/lisp	Read from standard input after reading named file
-
-gprogs/mandel3	Add Mandelbrot Set display
-gprogs/othello	Add interactive Othello board game
-gprogs/tess	Add 4-D tesseract display
 </PRE>
 
-<H3> Cygwin configuration changes </H3>
-
-<P> There is now a single <A HREF="cygwin.htm">Cygwin</A> configuration.
-It uses the X Window System if built with graphics enabled.
-The alternate configuration using native Windows graphics is no longer
-supported, and its non-standard compatibility functions are no longer available.
 
 <H2> Earlier feature additions </H2>
 
 <P> These features appeared in earlier releases of Icon
 but subsequent to publication of the Icon books.
+
+<H3> Execution profiling </H3>
+<SMALL> (new with version 9.5.1 of Icon) </SMALL>
+
+<P> An execution profile can be produced by setting the environment variable
+<CODE>ICONPROFILE</CODE> at execution time to specify an output file.
+For a separately built program, profiling must also be enabled during linking.
+
+<P> For each line of the program that is executed, the profiler reports the
+number of visits and also the number of timer ticks attributed to the line.
+
+<P> The report is ordered by memory layout, which is based on linkage order.
+To arrange by filename, use the Unix <CODE>sort</CODE> utility
+with keys <CODE>&ndash;k3,3 &ndash;k4n</CODE>.
+To see the CPU hotspots, use <CODE>sort &ndash;nr | head</CODE>.
 
 <H3> External values </H3>
 <SMALL> (new with version 9.5.0 of Icon) </SMALL>
@@ -260,24 +224,6 @@ for an overview of the available Icon documentation.
 
 <H2> Acknowledgments </H2>
 
-<P>
-Carl Sturtivant updated and maintained the Cygwin configuration.
-Jafar Al-Gharaibeh discovered two problems with co-expression switching and
-supplied corrective code.
-
-<P>
-Greg Buchholz published the <CODE>mandel3</CODE> program in comp.lang.icon.
-Chris Tenaglia contributed the <CODE>tess</CODE> program.
-David Gamey contributed the quadratic mean procedure <CODE>qmean()</CODE>
-as well as a fix for <CODE>spell()</CODE>.
-Jeremy Cowgar supplied the <CODE>levenshtein()</CODE> procedure.
-
-<P>
-Will Evans provided the fix for the PostScript recorder <CODE>psrecord</CODE>.
-Clint Jeffery supplied the <CODE>itlib</CODE> fix.
-Phillip Thomas and Clint Jeffery modified the <CODE>lisp</code> program.
-Tom Christopher supplied the <code>tempname</CODE> fix in some <EM>very</EM>
-old mail that was recently rediscovered.
 
 <P> <HR>
 
