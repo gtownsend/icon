@@ -6,7 +6,7 @@
 #
 #	Authors:  Ralph E. Griswold and Gregg M. Townsend
 #
-#	Date:     November 5, 2009
+#	Date:     April 11, 2014
 #
 ############################################################################
 #
@@ -15,6 +15,8 @@
 ############################################################################
 #
 #  This file contains procedures related to pseudo-random numbers.
+#
+#	choose(k, n)	produces a set of k distinct integers in [1..n]
 #
 #	rand_num()	is a linear congruential pseudo-random number
 #			generator.  Each time it is called, it produces
@@ -60,6 +62,18 @@
 link factors
 
 global random
+
+#  Robert W Floyd's algorithm for k distinct integers in [1..n]
+#  See Jon Bentley, Programming Pearls, CACM 30:9 (Sept 1987) pp754-757
+procedure choose(k, n)			#: set of k integers in [1..n]
+   local s, j, t
+   s := set()
+   every j := n - k + 1 to n do {
+      t := ?j
+      insert(s, if member(s, t) then j else t)
+      }
+   return s
+end
 
 procedure rand_num(a_, c_, m_)		#: random number generator
    static random_last, a, c, m
