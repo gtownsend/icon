@@ -1,5 +1,4 @@
 # Annotated debugging commands for the demo debugging session.
-# $Id$
 #
 # After seeing the 'automatic' debugging session you may want to repeat
 # some of the commands manually in a new interactive session.

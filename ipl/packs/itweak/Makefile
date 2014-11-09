@@ -2,7 +2,6 @@
 #
 # Unix Makefile for installing itweak and running a sample debugging session.
 #
-# $Id$
 # updated 4-aug-2000/gmt
 #
 # 'make' or 'make install'
