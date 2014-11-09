@@ -50,7 +50,7 @@ Undef:
 
 Strays:
 	for d in *procs *progs *incl; do \
-	    (cd $$d; pwd; ls -a | grep -vxE '\.|\.\.|CVS|.*\.icn'); \
+	    (cd $$d; pwd; ls -a | grep -vxE '\.|\.\.|.*\.icn'); \
 	done; exit 0
 
 
@@ -65,8 +65,8 @@ Check:
 
 ZipFiles:  Ilib
 	rm -rf ilib *.zip
-	zip -qrX9 bipl.zip docs incl procs progs packs data cfuncs -x '*/CVS/*'
-	zip -qrX9 gipl.zip gdocs gincl gprocs gprogs gpacks gdata  -x '*/CVS/*'
+	zip -qrX9 bipl.zip docs incl procs progs packs data cfuncs
+	zip -qrX9 gipl.zip gdocs gincl gprocs gprogs gpacks gdata
 	mkdir ilib
 	cp ../lib/*.* ilib
 	zip -qrX9 ilib.zip ilib

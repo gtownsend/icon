@@ -156,7 +156,7 @@ Pure:
 #  (This is used at Arizona to prepare source distributions.)
 
 Dist-Clean:
-		rm -rf xx `find * -type d -name CVS`
+		rm -rf xx `find . -type d -name .git`
 		rm -f  xx `find * -type f | xargs grep -l '<<ARIZONA-[O]NLY>>'`
 		rm -f  xx `find . -type f -name '.??*' ! -name .placeholder`
 		find . -type d | xargs chmod u=rwx,g=rwsx,o=rx
