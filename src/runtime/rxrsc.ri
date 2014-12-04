@@ -376,7 +376,7 @@ char *s;
 
    GRFX_ALLOC(wd, _wdisplay);
 
-   strcpy(wd->name,s);
+   wd->name = salloc(s);
    wd->display = XOpenDisplay((*s=='\0') ? NULL : s);
 
    if (wd->display == NULL) {

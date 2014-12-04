@@ -201,7 +201,7 @@ struct imgmem {
 typedef struct _wdisplay {
    int		refcount;
    int		serial;			/* serial # */
-   char		name[MAXDISPLAYNAME];
+   char		*name;
    Display *	display;
    Visual *	visual;
    GC		icongc;

@@ -73,7 +73,6 @@
  */
 #define WMAXCOLORS	256
 #define MAXCOLORNAME	40
-#define MAXDISPLAYNAME	64
 #define CSHARED         0
 #define CMUTABLE        1
 #define NUMCURSORSYMS	78
