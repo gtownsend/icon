@@ -6,7 +6,7 @@
 #
 #	Author:   Gregg M. Townsend
 #
-#	Date:     October 21, 2014
+#	Date:     December 31, 2014
 #
 ############################################################################
 #
@@ -17,12 +17,14 @@
 #     drawcard(win, x, y, c) draws the playing card labeled <c> with its
 #  upper left corner at (x,y).  The card size is fixed at 80w x 124h.
 #
-#     Card labelings are those used in the examples in the "Mappings and
-#  Labelings" chapter of the Icon book (pp 205-207, 2/e).
+#     Card labelings are as follows.
 #
 #         label: ABCDEFGHIJKLM NOPQRSTUVWXYZ abcdefghijklm nopqrstuvwxyz
 #         rank:  A23456789TJQK A23456789TJQK A23456789TJQK A23456789TJQK
-#         suit:  clubs........ diamonds..... hearts....... spades.......
+#         suit:  hearts....... spades....... clubs........ diamonds.....
+#
+#  These differ unintentionally from the card mappings used in the
+#  "Mappings and Labelings" chapter of the Icon book (pp 243-244, 3/e).
 #
 #  If the label is unrecognized, the back of a card is drawn.
 #  "-" is suggested as a conventional label for a card back.
@@ -106,7 +108,7 @@ procedure drawcard(win, x, y, label)
 
    if (i := (deck ? find(label)) - 1) then {
       r := i % 13 + 1			# 1 to 13 for A,2,...,9,10,J,Q,K
-      s := i / 13 + 1			# 1=heart, 2=diamond, 3=spade, 4=club
+      s := i / 13 + 1			# 1=heart, 2=diamond, 3=club, 4=spade
       }
    else {
       # unrecognized; draw card back
@@ -165,9 +167,8 @@ end
 #  It is represented there as a bilevel image.
 
 procedure cardmap()		# create and load card bitmap
-   local ims, cmap, rmap
+   local cmap, rmap
 
-   ims := cardbits()
    cmap := open("cardbits", "g", "canvas=hidden", "size=160,432") | fail
 						# make offscreen canvas
    DrawImage(cmap, 0, 0, cardbits()) 		# load card fragments
