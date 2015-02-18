@@ -44,6 +44,10 @@ Changes since the last formal release of Icon (version 9.5.1) are noted here.
 
 <H3> Minor fixes </H3>
 
+<P> For graphics programs, the environment variable <CODE>DISPLAY</CODE>
+can now exceed 63 characters.  This bug was exposed by the relase of
+Mac OS 10.10 (&ldquo;Yosemite;&rdquo;).
+
 <H3> Library changes </H3>
 
 <P> As usual, some files in the Icon program library have been
@@ -53,7 +57,6 @@ Notable changes include:
 <PRE>
 procs/numbers	gcd(i,j) now allows all argument values except i=j=0.
 procs/random	choose(k,n) returns a set of k distinct integers in [1..n].
-gprocs/drawcard	fix CopyArea() error that provoked abort on Mac OSX Yosemite.
 </PRE>
 
 
@@ -201,12 +204,6 @@ Such overflow may occur during type conversion.
 
 <H2> Graphics system limitations, bugs, and problems </H2>
 
-<P><EM> Several problems have surfaced on Mac OSX 10.10 ("Yosemite").
-They are not yet well understood or even characterized,
-but they are most noticeable in the ipl/spider.icn program 
-and may all be related to the CopyArea() function.
-</EM>
-
 <P> Icon graphics facilities utilize only server-side fonts (those listed
 by <CODE>xlsfonts</CODE>) and not the more modern client-side fonts.
 
@@ -219,6 +216,11 @@ awaiting standard input.
 <P> Depending on the window manager, values set and read back from the
 <CODE>pos</CODE>, <CODE>posx</CODE>, and <CODE>posy</CODE> attributes
 may be slightly inconsistent.
+
+<P> The <CODE>$DISPLAY</CODE> bug (noted above as a minor fix)
+exposed problems when a program uses multiple displays.
+CopyArea() calls are not properly clipped,
+and the management of colors is suspect.
 
 
 <H2> Documentation </H2>
