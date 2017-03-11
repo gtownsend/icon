@@ -301,7 +301,7 @@
 #define T_Kywdstr	24	/* string keyword */
 #define T_Kywdevent	25	/* keyword &eventsource, etc. */
 
-#define MaxType		26	/* maximum type number */
+#define MaxType		25	/* maximum type number */
 
 /*
  * Definitions for keywords.
