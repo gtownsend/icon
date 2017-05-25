@@ -646,17 +646,6 @@ void datainit()
    StrLoc(kywd_prog) = prog_name;
    StrLen(k_subject) = 0;
    StrLoc(k_subject) = "";
-
-#ifdef MSwindows
-   if (i != EXIT_SUCCESS)
-   {
-      char exit_msg[40];
-
-      sprintf(exit_msg, "Terminated with exit code %d", i);
-      MessageBox(NULL, exit_msg, prog_name, MB_OK | MB_ICONSTOP);
-   }
-#endif					/* defined(MSwindows) */
-
    StrLen(blank) = 1;
    StrLoc(blank) = " ";
    StrLen(emptystr) = 0;
