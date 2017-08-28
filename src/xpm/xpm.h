@@ -191,8 +191,8 @@ extern "C" {
 				      XpmAttributes * attributes));
 
     FUNC(XpmAttributesSize, int, ());
-    FUNC(XpmFreeAttributes, int, (XpmAttributes * attributes));
-    FUNC(XpmFreeExtensions, int, (XpmExtension * extensions, int nextensions));
+    FUNC(XpmFreeAttributes, void, (XpmAttributes * attributes));
+    FUNC(XpmFreeExtensions, void, (XpmExtension * extensions, int nextensions));
 
 #ifdef __cplusplus
 }					/* for C++ V2.0 */

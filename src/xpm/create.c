@@ -344,6 +344,7 @@ CreateColors(display, attributes, ct, ncolors,
 
 #endif
 
+int
 xpmCreateImage(display, attrib, image_return, shapeimage_return, attributes)
     Display *display;
     xpmInternAttrib *attrib;

@@ -110,6 +110,7 @@ ParseComment(mdata)
 /*
  * skip to the end of the current string and the beginning of the next one
  */
+void
 xpmNextString(mdata)
     xpmData *mdata;
 {
@@ -277,6 +278,7 @@ xpmGetString(mdata, sptr, l)
 /*
  * get the current comment line
  */
+void
 xpmGetCmt(mdata, cmt)
     xpmData *mdata;
     char **cmt;
@@ -403,6 +405,7 @@ xpmOpenArray(data, mdata)
 /*
  * close the file related to the xpmData if any
  */
+void
 XpmDataClose(mdata)
     xpmData *mdata;
 {

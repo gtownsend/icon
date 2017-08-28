@@ -14,6 +14,7 @@
  * Free the computed color table
  */
 
+void
 xpmFreeColorTable(colorTable, ncolors)
     char ***colorTable;
     int ncolors;
@@ -39,6 +40,7 @@ xpmFreeColorTable(colorTable, ncolors)
  * which ones must be freed later on.
  */
 
+void
 xpmInitInternAttrib(attrib)
     xpmInternAttrib *attrib;
 {
@@ -55,6 +57,7 @@ xpmInitInternAttrib(attrib)
  * Free the xpmInternAttrib pointers which have been allocated
  */
 
+void
 xpmFreeInternAttrib(attrib)
     xpmInternAttrib *attrib;
 {
@@ -80,6 +83,7 @@ xpmFreeInternAttrib(attrib)
 /*
  * Free array of extensions
  */
+void
 XpmFreeExtensions(extensions, nextensions)
     XpmExtension *extensions;
     int          nextensions;
@@ -108,6 +112,7 @@ XpmFreeExtensions(extensions, nextensions)
  * Return the XpmAttributes structure size
  */
 
+int
 XpmAttributesSize()
 {
     return sizeof(XpmAttributes);
@@ -119,6 +124,7 @@ XpmAttributesSize()
  * but the structure itself
  */
 
+void
 XpmFreeAttributes(attributes)
     XpmAttributes *attributes;
 {
@@ -167,6 +173,7 @@ XpmFreeAttributes(attributes)
  * the xpmInternAttrib structure.
  */
 
+void
 xpmSetAttributes(attrib, attributes)
     xpmInternAttrib *attrib;
     XpmAttributes *attributes;

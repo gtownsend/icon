@@ -159,13 +159,13 @@ FUNC(xpmScanImage, int, (Display * display,
 			 XpmAttributes * attributes,
 			 xpmInternAttrib * attrib));
 
-FUNC(xpmFreeColorTable, int, (char ***colorTable, int ncolors));
+FUNC(xpmFreeColorTable, void, (char ***colorTable, int ncolors));
 
-FUNC(xpmInitInternAttrib, int, (xpmInternAttrib * xmpdata));
+FUNC(xpmInitInternAttrib, void, (xpmInternAttrib * xmpdata));
 
-FUNC(xpmFreeInternAttrib, int, (xpmInternAttrib * xmpdata));
+FUNC(xpmFreeInternAttrib, void, (xpmInternAttrib * xmpdata));
 
-FUNC(xpmSetAttributes, int, (xpmInternAttrib * attrib,
+FUNC(xpmSetAttributes, void, (xpmInternAttrib * attrib,
 			     XpmAttributes * attributes));
 
 FUNC(xpmGetAttributes, int, (XpmAttributes * attributes,
@@ -173,18 +173,20 @@ FUNC(xpmGetAttributes, int, (XpmAttributes * attributes,
 
 /* I/O utility */
 
-FUNC(xpmNextString, int, (xpmData * mdata));
+FUNC(atoui, unsigned int, (char *p, unsigned int l, unsigned int *ui_return));
+FUNC(xpmGetString, int, (xpmData *mdata, char **sptr, unsigned int *l));
+FUNC(xpmNextString, void, (xpmData * mdata));
 FUNC(xpmNextUI, int, (xpmData * mdata, unsigned int *ui_return));
 
 #define xpmGetC(mdata) \
 	(mdata->type ? (getc(mdata->stream.file)) : (*mdata->cptr++))
 
 FUNC(xpmNextWord, unsigned int, (xpmData * mdata, char *buf));
-FUNC(xpmGetCmt, int, (xpmData * mdata, char **cmt));
+FUNC(xpmGetCmt, void, (xpmData * mdata, char **cmt));
 FUNC(xpmReadFile, int, (char *filename, xpmData * mdata));
 FUNC(xpmWriteFile, int, (char *filename, xpmData * mdata));
 FUNC(xpmOpenArray, void, (char **data, xpmData * mdata));
-FUNC(XpmDataClose, int, (xpmData * mdata));
+FUNC(XpmDataClose, void, (xpmData * mdata));
 
 /* RGB utility */
 
