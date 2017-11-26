@@ -177,6 +177,9 @@ struct b_cset *alccset()
  */
 
 struct b_external *alcexternal(long nbytes, struct b_extlfuns *f, void *data)
+#passthru #ifdef __clang__ /* tests/general/extlvals fails w/o this */
+#passthru    __attribute__ ((optnone))
+#passthru #endif /*clang*/
    {
    register struct b_external *blk;
    long datasize;
