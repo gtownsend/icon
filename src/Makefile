@@ -13,7 +13,7 @@ Clean Pure:
 	cd wincap;	rm -f *.o *.exe *.a
 	cd xpm;		rm -f *.o *.exe *.a
 # force full runtime system rebuild
-	touch h/define.h
+	touch -c h/define.h
 	rm -f h/arch.h
 
 
