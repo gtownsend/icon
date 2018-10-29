@@ -15,6 +15,10 @@
 #
 ############################################################################
 #
+#  Contributor:  Cheyenne Wills
+#
+############################################################################
+#
 #  fpoll(f, msec) waits until data is available for input from file f,
 #  and then returns.  It also returns when end-of-file is reached.
 #  If msec is specified, and no data is available after waiting that
@@ -60,11 +64,8 @@ int fpoll(int argc, descriptor *argv)	/*: await data from file */
 
    /* check for data already in buffer */
    /* there's no legal way to do this in C; we cheat */
-#if defined(__GLIBC__) && defined(_STDIO_USES_IOSTREAM)	/* new GCC library */
+#if defined(__GLIBC__) 					/* new GCC library */
    if (f->_IO_read_ptr < f->_IO_read_end)
-      RetArg(1);
-#elif defined(__GLIBC__)				/* old GCC library */
-   if (f->__bufp < f->__get_limit)
       RetArg(1);
 #elif defined(_FSTDIO)					/* new BSD library */
    if (f->_r > 0)
@@ -92,7 +93,7 @@ int fpoll(int argc, descriptor *argv)	/*: await data from file */
 
    if (r > 0)
       RetArg(1);			/* success */
-   else if (r == 0)			
+   else if (r == 0)
       Fail;				/* timeout */
    else
       ArgError(1, 214);			/* I/O error */
