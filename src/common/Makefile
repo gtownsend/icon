@@ -24,8 +24,10 @@ wincap:
 $(OBJS): ../h/define.h ../h/arch.h ../h/config.h ../h/cstructs.h \
 	  ../h/typedefs.h ../h/mproto.h ../h/cpuconf.h
 
-../h/arch.h:	infer.c
+infer:		infer.c
 		$(CC) $(CFLAGS) -o infer infer.c
+
+../h/arch.h:	infer
 		./infer >../h/arch.h
 
 identify.o: ../h/version.h
