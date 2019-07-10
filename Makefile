@@ -86,8 +86,7 @@ Ibin:		bin/icont
 
 D=$(dest)
 Install:
-		mkdir $D
-		mkdir $D/bin $D/lib $D/doc $D/man $D/man/man1
+		mkdir -p $D/bin $D/lib $D/doc $D/man/man1
 		cp README $D
 		cp bin/[cflpvwx]* $D/bin
 		cp bin/icon[tx]* $D/bin
