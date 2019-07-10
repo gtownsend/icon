@@ -11,8 +11,8 @@ SRC=$TOP/src
 
 # check parameters
 case "$GPX" in
-   Graphics)	XL='-L../../bin -lIgpx $(XLIBS)';;
-   NoGraphics)	XL= ;;
+   Graphics)	;;
+   NoGraphics)	;;
    *)		echo "$USAGE" 1>&2; exit 1;;
 esac
 
@@ -32,9 +32,9 @@ cat  $NAME/define.h				>> $SRC/h/define.h
 echo "#  from config/$NAME"			 > $TOP/Makedefs
 echo ""						>> $TOP/Makedefs
 cat $NAME/Makedefs				>> $TOP/Makedefs
-echo ""						>> $TOP/Makedefs
-echo "#  $GPX"					>> $TOP/Makedefs
-echo "XL = $XL"					>> $TOP/Makedefs
+if [ "$GPX" = "NoGraphics" ]; then
+   sed -i 's/^XLIBS =.*/XLIBS =/' $TOP/Makedefs
+fi
 
 # report actions
 echo "   configured $NAME"

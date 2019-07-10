@@ -11,7 +11,6 @@ Clean Pure:
 	cd runtime;	rm -f *.o *.exe *.c rt.db rt.a rtt*.lst iconx
 	cd icont;	rm -f *.o *.exe icont hdr.h ixhdr.hdr newhdr
 	cd wincap;	rm -f *.o *.exe *.a
-	cd xpm;		rm -f *.o *.exe *.a
 # force full runtime system rebuild
 	touch -c h/define.h
 	rm -f h/arch.h
