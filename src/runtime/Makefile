@@ -24,7 +24,7 @@ XOBJS =	cnv.o data.o def.o errmsg.o fconv.o fload.o fmath.o\
 
 RTT = ../rtt/rtt
 SUFFIXES = .r .c .o
-.r.o:	; $(RTT) -x $*.r && $(CC) -o $*.o -c $(CFLAGS) x$*.c && rm x$*.c
+.r.o:	; $(RTT) -x $*.r && $(CC) $(CFLAGS) -c -o $*.o x$*.c && rm x$*.c
 .r.c:	; $(RTT) -x $*.r
 
 

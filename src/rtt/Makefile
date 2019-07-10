@@ -38,37 +38,37 @@ rttparse.o : ../h/gsupport.h ../h/config.h ../h/cstructs.h \
 	../h/mproto.h ../h/typedefs.h ../h/cpuconf.h ../h/define.h
 
 pout.o: $(PP_DIR)pout.c $(P_DOT_H)
-	$(CC) -c $(CFLAGS) $(PP_DIR)pout.c 
+	$(CC) $(CFLAGS) -c $(PP_DIR)pout.c
 
 pchars.o: $(PP_DIR)pchars.c $(P_DOT_H)
-	$(CC) -c $(CFLAGS) $(PP_DIR)pchars.c 
+	$(CC) $(CFLAGS) -c $(PP_DIR)pchars.c
 
 perr.o: $(PP_DIR)perr.c $(P_DOT_H)
-	$(CC) -c $(CFLAGS) $(PP_DIR)perr.c
+	$(CC) $(CFLAGS) -c $(PP_DIR)perr.c
 
 pmem.o: $(PP_DIR)pmem.c $(P_DOT_H)
-	$(CC) -c $(CFLAGS) $(PP_DIR)pmem.c
+	$(CC) $(CFLAGS) -c $(PP_DIR)pmem.c
 
 bldtok.o: $(PP_DIR)bldtok.c $(P_DOT_H)
-	$(CC) -c $(CFLAGS) $(PP_DIR)bldtok.c
+	$(CC) $(CFLAGS) -c $(PP_DIR)bldtok.c
 
 macro.o: $(PP_DIR)macro.c $(P_DOT_H)
-	$(CC) -c $(CFLAGS) $(PP_DIR)macro.c
+	$(CC) $(CFLAGS) -c $(PP_DIR)macro.c
 
 preproc.o: $(PP_DIR)preproc.c $(P_DOT_H)
-	$(CC) -c $(CFLAGS) $(PP_DIR)preproc.c
+	$(CC) $(CFLAGS) -c $(PP_DIR)preproc.c
 
 evaluate.o: $(PP_DIR)evaluate.c $(P_DOT_H)
-	$(CC) -c $(CFLAGS) $(PP_DIR)evaluate.c
+	$(CC) $(CFLAGS) -c $(PP_DIR)evaluate.c
 
 files.o: $(PP_DIR)files.c $(P_DOT_H)
-	$(CC) -c $(CFLAGS) $(PP_DIR)files.c
+	$(CC) $(CFLAGS) -c $(PP_DIR)files.c
 
 gettok.o: $(PP_DIR)gettok.c $(P_DOT_H)
-	$(CC) -c $(CFLAGS) $(PP_DIR)gettok.c
+	$(CC) $(CFLAGS) -c $(PP_DIR)gettok.c
 
 pinit.o: $(PP_DIR)pinit.c $(P_DOT_H)
-	$(CC) -c $(CFLAGS) $(PP_DIR)pinit.c
+	$(CC) $(CFLAGS) -c $(PP_DIR)pinit.c
 
 #
 # The following entry is commented out because it is not normally
