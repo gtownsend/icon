@@ -22,7 +22,7 @@ OBJ = $(ROBJS) $(POBJS) $(COBJS)
 
 
 rtt:	$(OBJ)
-	$(CC) $(LDFLAGS) -o rtt $(OBJ)
+	$(CC) $(LDFLAGS) -o $@ $(OBJ)
 
 library:	$(OBJ)
 		rm -rf rtt.a
@@ -38,37 +38,37 @@ rttparse.o : ../h/gsupport.h ../h/config.h ../h/cstructs.h \
 	../h/mproto.h ../h/typedefs.h ../h/cpuconf.h ../h/define.h
 
 pout.o: $(PP_DIR)pout.c $(P_DOT_H)
-	$(CC) $(CFLAGS) -c $(PP_DIR)pout.c
+	$(CC) $(CFLAGS) -c $<
 
 pchars.o: $(PP_DIR)pchars.c $(P_DOT_H)
-	$(CC) $(CFLAGS) -c $(PP_DIR)pchars.c
+	$(CC) $(CFLAGS) -c $<
 
 perr.o: $(PP_DIR)perr.c $(P_DOT_H)
-	$(CC) $(CFLAGS) -c $(PP_DIR)perr.c
+	$(CC) $(CFLAGS) -c $<
 
 pmem.o: $(PP_DIR)pmem.c $(P_DOT_H)
-	$(CC) $(CFLAGS) -c $(PP_DIR)pmem.c
+	$(CC) $(CFLAGS) -c $<
 
 bldtok.o: $(PP_DIR)bldtok.c $(P_DOT_H)
-	$(CC) $(CFLAGS) -c $(PP_DIR)bldtok.c
+	$(CC) $(CFLAGS) -c $<
 
 macro.o: $(PP_DIR)macro.c $(P_DOT_H)
-	$(CC) $(CFLAGS) -c $(PP_DIR)macro.c
+	$(CC) $(CFLAGS) -c $<
 
 preproc.o: $(PP_DIR)preproc.c $(P_DOT_H)
-	$(CC) $(CFLAGS) -c $(PP_DIR)preproc.c
+	$(CC) $(CFLAGS) -c $<
 
 evaluate.o: $(PP_DIR)evaluate.c $(P_DOT_H)
-	$(CC) $(CFLAGS) -c $(PP_DIR)evaluate.c
+	$(CC) $(CFLAGS) -c $<
 
 files.o: $(PP_DIR)files.c $(P_DOT_H)
-	$(CC) $(CFLAGS) -c $(PP_DIR)files.c
+	$(CC) $(CFLAGS) -c $<
 
 gettok.o: $(PP_DIR)gettok.c $(P_DOT_H)
-	$(CC) $(CFLAGS) -c $(PP_DIR)gettok.c
+	$(CC) $(CFLAGS) -c $<
 
 pinit.o: $(PP_DIR)pinit.c $(P_DOT_H)
-	$(CC) $(CFLAGS) -c $(PP_DIR)pinit.c
+	$(CC) $(CFLAGS) -c $<
 
 #
 # The following entry is commented out because it is not normally

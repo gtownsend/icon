@@ -19,8 +19,8 @@ COBJS =		../common/long.o ../common/getopt.o ../common/alloc.o \
 
 
 icont:		$(OBJS) $(COBJS)
-		$(CC) $(CFLAGS) $(LDFLAGS) -o icont $(OBJS) $(COBJS)
-		cp icont ../../bin
+		$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJS) $(COBJS)
+		cp $@ ../../bin
 		strip ../../bin/icont$(EXE)
 		(cd ../../bin; rm -f icon icon.exe; ln -s icont icon)
 
@@ -60,13 +60,13 @@ opcode.o:	opcode.h ../h/opdefs.h
 #  hdr.h is always built, to simplify the Makefile,
 #  but it is only actually used if BinHeader is define.
 hdr.h:		newhdr ixhdr.hdr
-		./newhdr -o hdr.h ixhdr.hdr
+		./newhdr -o $@ ixhdr.hdr
 newhdr:		newhdr.c ../h/define.h ../h/config.h ../h/gsupport.h
-		$(CC) $(CFLAGS) $(LDFLAGS) -o newhdr newhdr.c
+		$(CC) $(CFLAGS) $(LDFLAGS) -o $@ newhdr.c
 ixhdr.hdr:	ixhdr.c ../h/define.h ../h/config.h ../h/header.h $(COBJS)
-		$(CC) $(CFLAGS) $(LDFLAGS) -o ixhdr.hdr \
+		$(CC) $(CFLAGS) $(LDFLAGS) -o $@ \
 			ixhdr.c ../common/alloc.o ../common/munix.o
-		strip ixhdr.hdr
+		strip $@
 
 
 
@@ -96,13 +96,13 @@ ixhdr.hdr:	ixhdr.c ../h/define.h ../h/config.h ../h/header.h $(COBJS)
 #
 #tgram.g:	tgrammar.c ../h/define.h ../h/grammar.h \
 #			../common/yacctok.h ../common/fixgram 
-#		$(CC) -E -C tgrammar.c | ../common/fixgram >tgram.g
+#		$(CC) -E -C tgrammar.c | ../common/fixgram >$@
 #
 #../h/kdefs.h keyword.h:	../runtime/keyword.r mkkwd
 #		./mkkwd <../runtime/keyword.r
 #
 #trash:		trash.icn
-#		icont -s trash.icn
+#		icont -s $<
 #
 #mkkwd:		mkkwd.icn
-#		icont -s mkkwd.icn
+#		icont -s $<

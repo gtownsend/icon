@@ -24,14 +24,14 @@ XOBJS =	cnv.o data.o def.o errmsg.o fconv.o fload.o fmath.o\
 
 RTT = ../rtt/rtt
 SUFFIXES = .r .c .o
-.r.o:	; $(RTT) -x $*.r && $(CC) $(CFLAGS) -c -o $*.o x$*.c && rm x$*.c
-.r.c:	; $(RTT) -x $*.r
+.r.o:	; $(RTT) -x $< && $(CC) $(CFLAGS) -c -o $@ x$*.c && rm x$*.c
+.r.c:	; $(RTT) -x $<
 
 
 iconx: $(COBJS) $(XOBJS)
 	cd ../common; $(MAKE)
-	$(CC) $(RLINK) -o iconx $(XOBJS) $(COBJS) $(XL) $(RLIBS) $(TLIBS)
-	cp iconx ../../bin
+	$(CC) $(RLINK) -o $@ $(XOBJS) $(COBJS) $(XL) $(RLIBS) $(TLIBS)
+	cp $@ ../../bin
 	strip $(SFLAGS) ../../bin/iconx$(EXE)
 
 $(COBJS):

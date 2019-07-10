@@ -8,7 +8,7 @@ OBJS =	long.o getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
 common:		$(OBJS) gpxmaybe
 
 patchstr:	patchstr.c
-		$(CC) $(CFLAGS) -o patchstr patchstr.c
+		$(CC) $(CFLAGS) -o $@ patchstr.c
 
 gpxmaybe:
 		-if [ "x$(XL)" != "x" ]; then $(MAKE) $(GDIR); fi
@@ -25,10 +25,10 @@ $(OBJS): ../h/define.h ../h/arch.h ../h/config.h ../h/cstructs.h \
 	  ../h/typedefs.h ../h/mproto.h ../h/cpuconf.h
 
 infer:		infer.c
-		$(CC) $(CFLAGS) -o infer infer.c
+		$(CC) $(CFLAGS) -o $@ infer.c
 
 ../h/arch.h:	infer
-		./infer >../h/arch.h
+		./infer >$@
 
 identify.o: ../h/version.h
 
@@ -52,13 +52,13 @@ lextab.h yacctok.h:	tokens.txt op.txt mktoktab
 			./mktoktab
 
 mktoktab:		mktoktab.icn
-			icont -s mktoktab.icn
+			icont -s $<
 
 fixgram:		fixgram.icn
-			icont -s fixgram.icn
+			icont -s $<
 
 pscript:		pscript.icn
-			icont -s pscript.icn
+			icont -s $<
 
 
 

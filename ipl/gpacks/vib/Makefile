@@ -17,7 +17,7 @@ OBJ = vib.u2 vibbttn.u2 vibedit.u2 vibfile.u2 vibglbl.u2 \
 	giftoppm $< | ppmtopgm | pnmtops -scale .75 >$@
 
 vib:	$(OBJ)
-	$(ITRAN) -o vib $(OBJ)
+	$(ITRAN) -o $@ $(OBJ)
 
 $(OBJ):	vibdefn.icn
 
@@ -26,7 +26,7 @@ ipd doc: ipd265.ps
 
 ipd265.ps:	ipd265.bibl fig1.ps fig2.ps
 	bib -t stdn -p /r/che/usr/ralph/docs/reg.index <ipd265.bibl | \
-	    psfig | psroff -t >ipd265.ps
+	    psfig | psroff -t >$@
 
 Iexe:	vib
 	cp vib ../../iexe/

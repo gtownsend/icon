@@ -23,14 +23,14 @@ default:  $(MADE)
 
 icon.txt: ../man/man1/icon.1 clnroff.sed
 	nroff -Tascii -man ../man/man1/icon.1 | \
-	    sed -f clnroff.sed | uniq >icon.txt
+	    sed -f clnroff.sed | uniq >$@
 
 icont.txt: ../man/man1/icont.1 clnroff.sed
 	nroff -Tascii -man ../man/man1/icont.1 | \
-	    sed -f clnroff.sed | uniq >icont.txt
+	    sed -f clnroff.sed | uniq >$@
 
 faq.txt:  faq.htm
-	lynx -nolist -dump -justify=off -width=79 faq.htm >faq.txt
+	lynx -nolist -dump -justify=off -width=79 faq.htm >$@
 
 
 #  check integrity of HTML files.

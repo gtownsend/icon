@@ -6,7 +6,7 @@ W32DEFS = -mwin32
 OBJS = copy.o dibutil.o errors.o file.o
 
 .c.o:
-	$(CC) $(CFLAGS) $(W32DEFS) -c $*.c
+	$(CC) $(CFLAGS) $(W32DEFS) -c $<
 
 libWincap.a: $(OBJS)
 	rm -f $@

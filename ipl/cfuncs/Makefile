@@ -33,9 +33,9 @@ $(FUNCS):	icall.h
 # Icon interface
 
 cfunc.u2:	cfunc.icn
-		$(ICONT) $(IFLAGS) -c cfunc.icn
+		$(ICONT) $(IFLAGS) -c $<
 cfunc.icn:	$(CSRC) mkfunc.sh
-		sh mkfunc.sh $(FUNCLIB) $(FUNCS) >cfunc.icn
+		sh mkfunc.sh $(FUNCLIB) $(FUNCS) >$@
 
 
 # cleanup
