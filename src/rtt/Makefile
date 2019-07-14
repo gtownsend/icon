@@ -22,7 +22,7 @@ OBJ = $(ROBJS) $(POBJS) $(COBJS)
 
 
 rtt:	$(OBJ)
-	$(CC) $(LDFLAGS) -o $@ $(OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJ)
 
 library:	$(OBJ)
 		rm -rf rtt.a

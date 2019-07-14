@@ -30,7 +30,7 @@ SUFFIXES = .r .c .o
 
 iconx: $(COBJS) $(XOBJS)
 	cd ../common; $(MAKE)
-	$(CC) $(RLINK) -o $@ $(XOBJS) $(COBJS) $(XL) $(RLIBS) $(TLIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(RLINK) -o $@ $(XOBJS) $(COBJS) $(XL) $(RLIBS) $(TLIBS)
 	cp $@ ../../bin
 	strip $(SFLAGS) ../../bin/iconx$(EXE)
 

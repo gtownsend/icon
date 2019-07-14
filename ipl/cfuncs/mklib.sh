@@ -12,27 +12,27 @@ SYS=`uname -s`
 set -x
 case "$SYS" in
    Linux*|*BSD*|GNU*)
-      $CC -shared -o $LIBNAME -fPIC "$@";;
+      $CC $CFLAGS $LDFLAGS -shared -fPIC -o $LIBNAME "$@";;
    CYGWIN*)
       # move the win32 import library for iconx.exe callbacks
       # created when iconx.exe was built
       if [ -e $BIN/../src/runtime/iconx.a ]; then
          mv $BIN/../src/runtime/iconx.a $BIN
       fi
-      $CC -shared -Wl,--enable-auto-import -o $LIBNAME "$@" $BIN/iconx.a;;
+      $CC $CFLAGS $LDFLAGS -shared -Wl,--enable-auto-import -o $LIBNAME "$@" $BIN/iconx.a;;
    Darwin*)
-      $CC -bundle -undefined suppress -flat_namespace -o $LIBNAME "$@";;
+      $CC $CFLAGS $LDFLAGS -bundle -undefined suppress -flat_namespace -o $LIBNAME "$@";;
    SunOS*)
-      $CC $CFLAGS -G -o $LIBNAME "$@" -lc -lsocket;;
+      $CC $CFLAGS $LDFLAGS -G -o $LIBNAME "$@" -lc -lsocket;;
    HP-UX*)
-      ld -b -o $LIBNAME "$@";;
+      ld $LDFLAGS -b -o $LIBNAME "$@";;
    IRIX*)
-      ld -shared -o $LIBNAME "$@";;
+      ld $LDFLAGS -shared -o $LIBNAME "$@";;
    OSF*)
-      ld -shared -expect_unresolved '*' -o $LIBNAME "$@" -lc;;
+      ld $LDFLAGS -shared -expect_unresolved '*' -o $LIBNAME "$@" -lc;;
    AIX*)
       # this may not be quite right; it doesn't seem to work yet...
-      ld -bM:SRE -berok -bexpall -bnoentry -bnox -bnogc -brtl -o $LIBNAME "$@";;
+      ld $LDFLAGS -bM:SRE -berok -bexpall -bnoentry -bnox -bnogc -brtl -o $LIBNAME "$@";;
    *)
       set -
       echo 1>&2 "don't know how to make libraries under $SYS"

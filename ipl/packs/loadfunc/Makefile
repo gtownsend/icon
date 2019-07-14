@@ -28,7 +28,7 @@ libnames.icn:	Makefile
 		echo '$$define FUNCLIB "./$(FUNCLIB)"'	>libnames.icn
 
 $(FUNCLIB):	$(FUNCS)
-		CC="$(CC)" CFLAGS="$(CFLAGS)" BIN="../../../bin" \
+		CC="$(CC)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" BIN="../../../bin" \
 			sh $(MKLIB) $(FUNCLIB) $(FUNCS)
 
 
