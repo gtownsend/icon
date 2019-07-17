@@ -6,7 +6,7 @@
 #  configuration parameters
 VERSION=v951
 name=unspecified
-dest=/must/specify/dest/
+dest=
 
 
 ##################################################################
@@ -86,6 +86,15 @@ Ibin:		bin/icont
 
 D=$(dest)
 Install:
+		@if [ "x$D" = "x" -o -e "$D" ]; then \
+			echo ""; \
+			echo "To install Icon, run"; \
+			echo ""; \
+			echo "	make Install dest=xxxx"; \
+			echo ""; \
+			echo "where xxxx is the name of a directory to create."; \
+			echo ""; \
+			false; fi
 		mkdir -p $D/bin $D/lib $D/doc $D/man/man1
 		cp README $D
 		cp bin/[cflpvwx]* $D/bin
