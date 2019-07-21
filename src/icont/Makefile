@@ -2,6 +2,12 @@
 
 include ../../Makedefs
 
+IC = icont
+IFLAGS = -s
+
+.SUFFIXES: .icn
+.icn:
+		$(IC) $(IFLAGS) $<
 
 HFILES =	../h/define.h ../h/config.h ../h/cpuconf.h ../h/gsupport.h \
 		   ../h/mproto.h ../h/typedefs.h ../h/cstructs.h
@@ -102,7 +108,4 @@ ixhdr.hdr:	ixhdr.c ../h/define.h ../h/config.h ../h/header.h $(COBJS)
 #		./mkkwd <../runtime/keyword.r
 #
 #trash:		trash.icn
-#		icont -s $<
-#
 #mkkwd:		mkkwd.icn
-#		icont -s $<

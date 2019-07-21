@@ -18,7 +18,7 @@ cfuncs/libcfunc.so:  ../bin/icont
 #  Make C functions.  Only called if LoadFunc is defined.
 
 Cfunctions:
-	cd cfuncs; LPATH= $(MAKE) ICONT=../../bin/icont
+	cd cfuncs; LPATH= $(MAKE) IC=../../bin/icont
 	cp cfuncs/*.u? ../lib
 	cp cfuncs/libcfunc.so ../bin
 

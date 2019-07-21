@@ -1,5 +1,11 @@
 include ../../Makedefs
 
+IC = icont
+IFLAGS = -s
+
+.SUFFIXES: .icn
+.icn:
+		$(IC) $(IFLAGS) $<
 
 OBJS =	long.o getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
 	munix.o literals.o rswitch.o alloc.o long.o getopt.o time.o\
@@ -52,14 +58,8 @@ lextab.h yacctok.h:	tokens.txt op.txt mktoktab
 			./mktoktab
 
 mktoktab:		mktoktab.icn
-			icont -s $<
-
 fixgram:		fixgram.icn
-			icont -s $<
-
 pscript:		pscript.icn
-			icont -s $<
-
 
 
 #  The following section is commented out because it does not need to be
@@ -79,4 +79,3 @@ pscript:		pscript.icn
 #	typespec <typespec.txt >icontype.h
 #
 #typespec: typespec.icn
-#	icont typespec
