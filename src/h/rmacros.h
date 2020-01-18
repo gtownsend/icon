@@ -213,12 +213,12 @@
 /*
  * Set bit b in cset c.
  */
-#define Setb(b,c)	(*CsetPtr(b,c) |= (01 << CsetOff(b)))
+#define Setb(b,c)	(*CsetPtr(b,c) |= (1u << CsetOff(b)))
 
 /*
  * Test bit b in cset c.
  */
-#define Testb(b,c)	((*CsetPtr(b,c) >> CsetOff(b)) & 01)
+#define Testb(b,c)	((*CsetPtr(b,c) >> CsetOff(b)) & 1u)
 
 /*
  * Check whether a set or table needs resizing.
