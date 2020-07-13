@@ -686,7 +686,6 @@ char *s;
    {
    register char *p;
    long ival;
-   static char *maxneg = MaxNegInt;
 
    p = s + MaxCvtLen - 1;
    ival = num;
@@ -698,9 +697,9 @@ char *s;
 	 ival /= 10L;
 	 } while (ival != 0L);
    else {
-      if (ival == -ival) {      /* max negative value */
-	 p -= strlen (maxneg);
-	 sprintf (p, "%s", maxneg);
+      if (ival == MinLong) {
+         p -= strlen(MaxNegInt);
+         strcpy(p, MaxNegInt);
          }
       else {
 	ival = -ival;
