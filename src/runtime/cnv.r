@@ -698,7 +698,7 @@ char *s;
 	 ival /= 10L;
 	 } while (ival != 0L);
    else {
-      if (ival == -ival) {      /* max negative value */
+      if (ival == MinLong) {      /* max negative value */
 	 p -= strlen (maxneg);
 	 sprintf (p, "%s", maxneg);
          }
