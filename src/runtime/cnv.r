@@ -698,8 +698,8 @@ char *s;
 	 } while (ival != 0L);
    else {
       if (ival == MinLong) {
-	 p -= strlen (MaxNegInt);
-	 sprintf (p, MaxNegInt);
+         p -= strlen(MaxNegInt);
+         strcpy(p, MaxNegInt);
          }
       else {
 	ival = -ival;
