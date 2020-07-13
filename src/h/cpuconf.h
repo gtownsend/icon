@@ -31,7 +31,7 @@
       #define MaxLong  ((long int)0x7fffffffffffffff) /* largest long integer */
    #endif
 
-   #define MaxStrLen 017777777777L		/* maximum string length */
+   #define MaxStrLen 037777777777777777777L	/* maximum string length */
 
    #ifndef MaxNegInt
       #define MaxNegInt "-9223372036854775808"
