@@ -57,16 +57,16 @@
 				</UL>
 				<H2><A NAME="Summary"></A>Summary</H2>
 				<P>Since 1996 a new function for Version 9 of <A HREF="http://www.cs.arizona.edu/icon/" target="_blank">Icon</A>
-				could be written in C following a certain <A HREF="http://www.cs.arizona.edu/icon/current/cfuncs.htm" target="_blank">interface</A>,
+				could be written in C following a certain <A HREF="http://www.cs.arizona.edu/icon/uguide/cfuncs.htm" target="_blank">interface</A>,
 				and compiled into a shared library, where such is a <A HREF="http://www.ibm.com/developerworks/library/l-shobj/"
 				target="_blank">shared object</A> (.so) under Unix-like operating systems. More recently this has been implemented
-				using dynamically linked libraries (DLLs) under <A HREF="http://www.cs.arizona.edu/icon/v950/relnotes.htm"
+				using dynamically linked libraries (DLLs) under <A HREF="http://www.cs.arizona.edu/icon/uguide/relnotes.htm"
 				target="_blank">cygwin</A>. The library could then be dynamically loaded by an Icon program calling the built-in
-				function <A HREF="http://www.cs.arizona.edu/icon/current/cfuncs.htm" target="_blank">loadfunc</A> which is passed
+				function <A HREF="http://www.cs.arizona.edu/icon/uguide/cfuncs.htm" target="_blank">loadfunc</A> which is passed
 				the location and name of the library and the name of the C function desired, and which returns an Icon function
 				that can subsequently be called. A suite of useful <A HREF="http://www.cs.arizona.edu/icon/library/fcfuncs.htm"
 				target="_blank">examples</A> of this technique is a part of the distribution of Icon.</P>
-				<P>Writing a significantly complex external function for use by <A HREF="http://www.cs.arizona.edu/icon/current/cfuncs.htm"
+				<P>Writing a significantly complex external function for use by <A HREF="http://www.cs.arizona.edu/icon/uguide/cfuncs.htm"
 				target="_blank">loadfunc</A> is potentially difficult for two reasons. First, an Icon structure (or other value,
 				string, list, set, table, et cetera) referred to solely by variables inside external code could be garbage collected
 				by Icon. Second, working directly with Icon data more complex than numbers, strings and files requires a thorough
@@ -93,7 +93,7 @@
 				external functions that are new string matching or string analysis functions, and the ability to work with all kinds
 				of Icon data as if they were built-in types. Loadfuncpp also provides garbage collection safety as a matter of
 				course, largely transparently to the C++ programmer. Loadfuncpp also provides a simple way to add new datatypes
-				to Icon using the new <A HREF="http://www.cs.arizona.edu/icon/v950/extlvals.htm" target="_blank">external values</A>
+				to Icon using the new <A HREF="http://www.cs.arizona.edu/icon/uguide/extlvals.htm" target="_blank">external values</A>
 				added to Icon version 9.5 in 2008. These are used extensively by loadfuncpp, and so loadfuncpp cannot be used with
 				versions of Icon prior to 9.5.</P>
 				<P>Loadfuncpp consists of three shared libraries (iload.so, loadnogpx.so and iloadgpx.so) normally placed in the
@@ -291,7 +291,7 @@ end</FONT></PRE>
 				<H2><A NAME="Manual"></A>Manual</H2>
 				<P>This manual assumes that you have a <A HREF="#Installation">working installation</A> of Loadfuncpp and Icon
 				as described above. An installation of Icon alone is not sufficient, nor can Loadfuncpp be used with any Icon version
-				prior to 9.5, as it relies upon the presence of <A HREF="http://www.cs.arizona.edu/icon/v950/extlvals.htm"
+				prior to 9.5, as it relies upon the presence of <A HREF="http://www.cs.arizona.edu/icon/uguide/extlvals.htm"
 				target="_blank">external values</A> which are first implemented as a part of that version.</P>
 				<H3><A NAME="Writing"></A>Writing, Loading and Calling a new External Function</H3>
 			</BLOCKQUOTE>
@@ -320,9 +320,9 @@ extern &quot;C&quot; int variable_arity(int argc, value argv[]){
 					</TABLE>
 </P>
 				</BLOCKQUOTE>
-				<P>The C++ type 'value' is an Icon value (called a <A HREF="http://www.cs.arizona.edu/icon/current/cfuncs.htm" target="_blank">descriptor</A>),
+				<P>The C++ type 'value' is an Icon value (called a <A HREF="http://www.cs.arizona.edu/icon/uguide/cfuncs.htm" target="_blank">descriptor</A>),
 				representing null or an integer, real, string, cset, list, table, set, file, procedure, coexpression, record, <A
-				HREF="http://www.cs.arizona.edu/icon/v950/extlvals.htm" target="_blank">external value</A> or an Icon <A HREF="#Variable">variable</A>.
+				HREF="http://www.cs.arizona.edu/icon/uguide/extlvals.htm" target="_blank">external value</A> or an Icon <A HREF="#Variable">variable</A>.
 				When such a function is called from Icon, its arguments are passed in the array argv starting from argv[1], and
 				argv[0] is taken to be the value returned to Icon by the function. In the function variable_arity the number of
 				arguments is also passed in argc. So the following is a one argument external function that returns its only argument.
@@ -1422,10 +1422,10 @@ extern &quot;C&quot; int sumlist(value argv[]) {
 </P>
 			</BLOCKQUOTE>
 			<BLOCKQUOTE>
-				<H3><A NAME="Externals"></A>Working with <A HREF="http://www.cs.arizona.edu/icon/v950/extlvals.htm" target="_blank">External
+				<H3><A NAME="Externals"></A>Working with <A HREF="http://www.cs.arizona.edu/icon/uguide/extlvals.htm" target="_blank">External
 				Values</A></H3>
 				<P>A new kind of external value is easily defined and used via inheritance from the loadfuncpp class external,
-				which permanently hides the low level machinery of the <A HREF="http://www.cs.arizona.edu/icon/v950/extlvals.htm"
+				which permanently hides the low level machinery of the <A HREF="http://www.cs.arizona.edu/icon/uguide/extlvals.htm"
 				target="_blank">C specification</A>. Here is an example of such that illustrates the use of the available features.</P>
 				<BLOCKQUOTE>
 					<P>
@@ -1491,7 +1491,7 @@ extern &quot;C&quot; int widgetint(value argv[]) {
 				<FONT COLOR="black">image()</FONT> and <FONT COLOR="black">compare()</FONT> automatically redefines the behavior
 				respectively of the built-in Icon functions type, copy and image and the Icon operators === and ~=== when applied
 				to Widgets, as well as the order for sorting Widgets among themselves in Icon. Such overriding is optional, and
-				the defaults defined in the <A HREF="http://www.cs.arizona.edu/icon/v950/extlvals.htm" target="_blank">C specification</A>
+				the defaults defined in the <A HREF="http://www.cs.arizona.edu/icon/uguide/extlvals.htm" target="_blank">C specification</A>
 				will apply otherwise. Specifically, the default copy is not to copy but to return the original.</P>
 				<P>There are automatic conversions to and from <FONT COLOR="black">external*</FONT> so that new widgets may be
 				assigned to values or safes, and vice versa when appropriate. The operator new has been overloaded so that an external
@@ -1499,7 +1499,7 @@ extern &quot;C&quot; int widgetint(value argv[]) {
 				member <FONT COLOR="black">id</FONT> that contains the serial number of the external value (assigned by Icon when
 				it allocates the external block). Using <FONT COLOR="black">id</FONT> may be convenient when overriding the <FONT
 				COLOR="black">image()</FONT> member function, as above.</P>
-				<P>External blocks are assumed by Icon not to contain any Icon <A HREF="http://www.cs.arizona.edu/icon/current/cfuncs.htm"
+				<P>External blocks are assumed by Icon not to contain any Icon <A HREF="http://www.cs.arizona.edu/icon/uguide/cfuncs.htm"
 				target="_blank">descriptors</A>, so do not declare any data members of the classes value or safe when inheriting
 				from external, unless you wish to invite disaster when a garbage collection occurs. Take into account that external
 				blocks may be relocated or garbage collected by Icon. It is not possible to arrange for a destructor or anything

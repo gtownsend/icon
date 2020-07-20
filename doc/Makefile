@@ -9,7 +9,7 @@
 MADE = icon.txt icont.txt
 
 SERVER = lectura.cs.arizona.edu
-RLSDIR = /cs/www/icon/current
+PUBDIR = /cs/www/icon/uguide
 
 
 #  (default:) rebuild icon.txt, icont.txt, and faq.txt from nroff/html sources.
@@ -27,9 +27,8 @@ icont.txt: ../man/man1/icont.1 clnroff.sed
 
 #  install updated files on the Icon website.
 
-publish: icon.txt icont.txt
-	scp *.css *.gif *.jpg *.txt $(SERVER):$(RLSDIR)
-	scp `ls *.htm | grep -v index` $(SERVER):$(RLSDIR)
+publish: $(MADE)
+	scp *.css *.gif *.jpg *.txt *.htm $(SERVER):$(PUBDIR)
 
 
 #  remove built files to force a rebuild.
