@@ -4,7 +4,6 @@
 
 
 #  configuration parameters
-VERSION=v951
 name=unspecified
 dest=/must/specify/dest/
 
@@ -100,7 +99,7 @@ Install:
 
 # Bundle up for binary distribution.
 
-DIR=icon-$(VERSION)
+DIR=icon-package
 Package:
 		rm -rf $(DIR)
 		umask 002; $(MAKE) Install dest=$(DIR)
