@@ -1,0 +1,103 @@
+#  mega.icn -- build really long strings
+#
+#  usage:  icon mega.icn [n]
+#
+#  Builds larger and larger strings until the length reaches n bits.
+#  The default value of n is 20, for a longest string of just over 1 MB.
+#  If omitted, less detail is printed, and the output is reproducible.
+#  Explicit values of n through 33 (at least) have been tested on 64-bit Icon.
+
+link hexcvt
+link numbers
+
+global arglen	# if arg count > 0, show more info, irreproducibly
+
+global base	# basic string of 63 characters
+global mega	# growing mega-string
+
+
+procedure main(args)
+   local nbits
+   arglen := *args
+   nbits := integer(args[1]) | 20	# number of length bits to try
+   init()
+   report()
+   while bitlen(*mega) < nbits do {
+      mega := double(mega)	# double the size
+      validate(mega)		# validate new longer string
+      tscan(mega)		# test string scanning
+      collect()			# perform a garbage collection
+      report()			# print statistics
+      }
+   write("PASS.")
+end
+
+procedure report()		#: write statistics to stdout
+   local n, alc, avl
+   n := *mega
+   every alc := &allocated \ 3
+   every avl := &regions \ 2
+   writes("okay: ",
+      right(commas(n), 15), right(bitlen(n), 4), " ", right(fxu(n, 8), 12))
+   if arglen > 0 then
+      writes(" ", right(commas(alc), 15), " / ", commas(avl))
+   write()
+end
+
+procedure bitlen(n)		#: return number of bits needed to represent n
+   local i
+   every i := seq(1) do
+      if n < ishift(1, i - 1) then
+         return i - 1
+end
+
+procedure validate(s)		#: check that s is plausibly correct
+   local n, lh, rh
+   n := *s / 2 + 63
+   lh := s[1+:n]
+   rh := s[0-:n]
+   if lh ~=== rh then
+      stop("failed validation   *s=", *s, " n-", n)
+   return
+end
+
+procedure tscan(s)		#: test string scanning
+   local L, n, t, i
+   L := [.91, .22, .77, .11, .88]
+   s ? every n := 0 | 1 | -17 | 23 | integer(!L * *s) do {
+      t := tab(n)
+      i := find(base, t) | 0
+      if *t > 127 & (i > 63 || i = 0) then
+         stop("failed tscan   *s=", *s, " *t=", *t, " n=", *n, " &pos=", &pos)
+      }
+end
+
+procedure init()		#: set up globals
+   writes("            strlength bits   hexlength")
+   if arglen > 0 then
+      writes("       allocated / available")
+   write()
+   # make and validate a string of 63 distinct unordered characters
+   # (63 so that the six top bits of the length are set)
+   base := "1SPHINX0FBL4CKQUARTZ8JDGEMYVOW$7packmy3boxwth5five6dzn2lqrjugs9"
+   *base = 63 | stop("wrong base length")
+   *cset(base) = 63 | stop("base contains duplicates")
+   # initialize the growing string
+   mega := base
+end
+
+procedure double(s)		#: return s || s, mainly to test a big "return"
+   return s || s
+end
+
+procedure fxu(i, n)		#: format i with n hex digits plus underscores
+   local s, t
+   s := ""
+   hexstring(i, n) ? {
+      tab(0)
+      while t := move(-4) & not pos(1) do
+         s := "_" || t || s
+      s := tab(1) || s
+      }
+   return s
+end
