@@ -544,7 +544,7 @@ function{1} repl(s,n)
        * Make sure the resulting string will not be too long.
        */
       size = n * slen;
-      if (size > MaxStrLen) {
+      if (size > MaxRepl) {
          irunerr(205,n);
          errorfail;
          }
