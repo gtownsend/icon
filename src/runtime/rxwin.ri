@@ -2,8 +2,6 @@
  * File: rxwin.ri - X11 system-specific graphics interface code.
  */
 
-#ifdef Graphics
-
 #define RootState IconicState+1
 
 /*
@@ -1127,7 +1125,6 @@ int setcanvas(w,s)
 wbp w;
 char *s;
    {
-   int hm;
    XTextProperty textprop;
    STDLOCALS(w);
 
@@ -2573,12 +2570,10 @@ short *data;
    Visual *v;
    XImage *im;
    XColor colorcell;
-   LinearColor lc;
-   wclrp *cpp;
    unsigned char cmap[256];
    short *cval;
-   int i, r, g, b, ncolors;
-   unsigned long px, clist[GIFMAX], *lp, *ckey;
+   int i, r, g, b;
+   unsigned long px, *ckey;
    double gamma = w->context->gamma;
    STDLOCALS(w);
 
@@ -3450,5 +3445,3 @@ int volume;
   XFlush(stddpy);
   return Succeeded;
   }
-
-#endif					/* Graphics */

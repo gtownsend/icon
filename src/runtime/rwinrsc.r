@@ -5,6 +5,9 @@
  * Resources are allocated through a layer of internal management
  * routines in order to handle aliasing and resource sharing.
  */
+
+#passthru #pragma GCC diagnostic ignored "-Wunused-variable"
+
 #ifdef Graphics
 
 /*

@@ -72,7 +72,9 @@ dptr dp1, dp2;
           * Collate on file name or window label.
           */
 	 {
+#ifdef Graphics
 	 struct descrip s1, s2; /* live only long enough to lexcmp them */
+#endif					/* Graphics */
 	 dptr ps1 = &(BlkLoc(*dp1)->file.fname);
 	 dptr ps2 = &(BlkLoc(*dp2)->file.fname);
 #ifdef Graphics

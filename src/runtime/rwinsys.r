@@ -4,6 +4,8 @@
  *  This file simply includes an appropriate r*win.ri file.
  */
 
+#passthru #pragma GCC diagnostic ignored "-Wunused-variable"
+
 #ifdef Graphics
 
    #ifdef XWindows
