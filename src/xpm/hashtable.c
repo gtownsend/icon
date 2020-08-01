@@ -84,7 +84,7 @@ xpmHashSlot(table, s)
     char *s;
 {
     xpmHashAtom *atomTable = table->atomTable;
-    unsigned int hash, hash2;
+    unsigned int hash;
     xpmHashAtom *p;
     char *hp = s;
     char *ns;
@@ -153,7 +153,6 @@ xpmHashIntern(table, tag, data)
 	    return (XpmNoMemory);
 	if (table->used >= table->limit) {
 	    int ErrorStatus;
-	    xpmHashAtom new = *slot;
 	    if ((ErrorStatus = HashTableGrows(table)) != XpmSuccess)
 		return(ErrorStatus);
 	    table->used++;

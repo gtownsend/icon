@@ -406,10 +406,7 @@ dptr s, d;
       integer: {
          if (Type(*s) == T_Lrgint) {
             word slen;
-            word dlen;
-
             slen = (BlkLoc(*s)->bignumblk.lsd - BlkLoc(*s)->bignumblk.msd +1);
-            dlen = slen * NB * 0.3010299956639812;	/* 1 / log2(10) */
             bigtos(s,d);
             }
          else
@@ -575,10 +572,7 @@ dptr d;
       integer: {
          if (Type(*s) == T_Lrgint) {
             word slen;
-            word dlen;
-
             slen = (BlkLoc(*s)->bignumblk.lsd - BlkLoc(*s)->bignumblk.msd +1);
-            dlen = slen * NB * 0.3010299956639812;	/* 1 / log2(10) */
             bigtos(s,d);
             }
          else

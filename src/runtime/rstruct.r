@@ -470,12 +470,10 @@ dptr x;
 register uword hn;
 int *res;				/* pointer to integer result flag */
    {
-   struct b_set *ps;
    register union block **lp;
    register struct b_selem *pe;
    register uword eh;
 
-   ps = (struct b_set *)pb;
    lp = hchain(pb, hn);
    /*
     * Look for x in the hash chain.
