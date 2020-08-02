@@ -11,11 +11,7 @@ patchstr:	patchstr.c
 		$(CC) $(CFLAGS) -o patchstr patchstr.c
 
 gpxmaybe:
-		-if [ "x$(XL)" != "x" ]; then $(MAKE) $(GDIR); fi
-
-xpm:
-		cd ../xpm; $(MAKE) libXpm.a
-		cp -p ../xpm/libXpm.a ../../bin/libIgpx.a
+		-if [ "x$(GDIR)" != "x" ]; then $(MAKE) $(GDIR); fi
 
 wincap:		
 		cd ../wincap; $(MAKE) libWincap.a

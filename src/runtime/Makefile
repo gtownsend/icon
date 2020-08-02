@@ -30,7 +30,7 @@ RTT = ../rtt/rtt
 
 iconx: $(COBJS) $(XOBJS)
 	cd ../common; $(MAKE)
-	$(CC) $(RLINK) -o iconx $(XOBJS) $(COBJS) $(XL) $(RLIBS) $(TLIBS)
+	$(CC) $(RLINK) -o iconx $(XOBJS) $(COBJS) $(XLIBS) $(RLIBS) $(TLIBS)
 	cp iconx ../../bin
 	strip $(SFLAGS) ../../bin/iconx$(EXE)
 

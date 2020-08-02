@@ -58,7 +58,7 @@
  */
 #ifdef XWindows
    #ifdef HaveXpmFormat
-      #include "../xpm/xpm.h"
+      #include <X11/xpm.h>
    #else				/* HaveXpmFormat */
       #include <X11/Xlib.h>
    #endif				/* HaveXpmFormat */
