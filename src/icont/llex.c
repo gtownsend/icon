@@ -167,7 +167,7 @@ long getint(j,wp)
    int over = 0;
    register word indx;
    double result = 0;
-   long lresult = 0;
+   unsigned long lresult = 0;
    double radix;
    long iradix;
 
@@ -180,7 +180,7 @@ long getint(j,wp)
       lsspace[indx++] = c;
       result = result * 10 + (c - '0');
       lresult = lresult * 10 + (c - '0');
-      if (result <= MinLong || result >= MaxLong) {
+      if (result >= MaxLong) {
          over = 1;			/* flag overflow */
          result = 0;			/* reset to avoid fp exception */
          }
@@ -199,7 +199,7 @@ long getint(j,wp)
             break;
          result = result * radix + c;
          lresult = lresult * iradix + c;
-         if (result <= MinLong || result >= MaxLong) {
+         if (result >= MaxLong) {
             over = 1;			/* flag overflow */
             result = 0;			/* reset to avoid fp exception */
             }
@@ -207,7 +207,7 @@ long getint(j,wp)
       }
    nlflag = (c == '\n');
    if (!over)
-      return lresult;			/* integer is small enough */
+      return (long)lresult;		/* integer is small enough */
    else {				/* integer is too large */
       lsspace[indx++] = '\0';
       *wp = putident((int)(indx - lsfree), 1); /* convert integer to string */

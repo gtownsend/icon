@@ -436,7 +436,7 @@ function{1} ishift(i,j)
          runerr(101,j);
       cj = IntVal(j);
       if (Type(i) == T_Lrgint || cj >= WordBits
-      || ((ci=(uword)IntVal(i))!=0 && cj>0 && (ci >= (1<<(WordBits-cj-1))))) {
+      || ((ci=(uword)IntVal(i))!=0 && cj>0 && (ci >= (1L<<(WordBits-cj-1))))) {
          if (bigshift(&i, &j, &result) == Error)  /* alcbignum failed */
             runerr(0);
          return result;

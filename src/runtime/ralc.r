@@ -181,7 +181,8 @@ struct b_external *alcexternal(long nbytes, struct b_extlfuns *f, void *data)
 #passthru    __attribute__ ((optnone))
 #passthru #endif /*clang*/
    {
-   register struct b_external *blk;
+   struct b_external x;			/* only for faking offsetof */
+   register struct b_external *blk = &x;
    long datasize;
    static struct b_extlfuns fdefault; 	/* default dispatch table, all empty */
 
