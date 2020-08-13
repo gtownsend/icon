@@ -662,7 +662,7 @@ static void binop(op)
 int op;
    {
    register int asgn;
-   register char *name;
+   register char *name = NULL;
 
    asgn = 0;
    switch (op) {
@@ -913,7 +913,7 @@ nodeptr t;
 static void unopb(op)
 int op;
    {
-   register char *name;
+   register char *name = NULL;
 
    switch (op) {
 

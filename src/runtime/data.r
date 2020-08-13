@@ -68,13 +68,13 @@ struct b_proc *opblks[] = {
 
 struct pstrnm pntab[] = {
 
-#define FncDef(p,n) Lit(p), Cat(&B,p),
-#define FncDefV(p) Lit(p), Cat(&B,p),
+#define FncDef(p,n) { Lit(p), Cat(&B,p) },
+#define FncDefV(p) { Lit(p), Cat(&B,p) },
 #include "../h/fdefs.h"
 #undef FncDef
 #undef FncDefV
 
-	0,		 0
+	{ 0, 0 }
 	};
 
 int pnsize = (sizeof(pntab) / sizeof(struct pstrnm)) - 1;
@@ -237,87 +237,87 @@ unsigned char allchars[256] = {
  */
 struct errtab errtab[] = {
 
-   101, "integer expected or out of range",
-   102, "numeric expected",
-   103, "string expected",
-   104, "cset expected",
-   105, "file expected",
-   106, "procedure or integer expected",
-   107, "record expected",
-   108, "list expected",
-   109, "string or file expected",
-   110, "string or list expected",
-   111, "variable expected",
-   112, "invalid type to size operation",
-   113, "invalid type to random operation",
-   114, "invalid type to subscript operation",
-   115, "structure expected",
-   116, "invalid type to element generator",
-   117, "missing main procedure",
-   118, "co-expression expected",
-   119, "set expected",
-   120, "two csets or two sets expected",
-   121, "function not supported",
-   122, "set or table expected",
-   123, "invalid type",
-   124, "table expected",
-   125, "list, record, or set expected",
-   126, "list or record expected",
+   { 101, "integer expected or out of range" },
+   { 102, "numeric expected" },
+   { 103, "string expected" },
+   { 104, "cset expected" },
+   { 105, "file expected" },
+   { 106, "procedure or integer expected" },
+   { 107, "record expected" },
+   { 108, "list expected" },
+   { 109, "string or file expected" },
+   { 110, "string or list expected" },
+   { 111, "variable expected" },
+   { 112, "invalid type to size operation" },
+   { 113, "invalid type to random operation" },
+   { 114, "invalid type to subscript operation" },
+   { 115, "structure expected" },
+   { 116, "invalid type to element generator" },
+   { 117, "missing main procedure" },
+   { 118, "co-expression expected" },
+   { 119, "set expected" },
+   { 120, "two csets or two sets expected" },
+   { 121, "function not supported" },
+   { 122, "set or table expected" },
+   { 123, "invalid type" },
+   { 124, "table expected" },
+   { 125, "list, record, or set expected" },
+   { 126, "list or record expected" },
 
    /* general messages for use by code dealing with external data */
-   131, "external expected",		/* not an external */
-   132, "incorrect external type",	/* external of wrong flavor */
-   133, "invalid external value",	/* right flavor in wrong context */
-   134, "malformed external value",	/* data bogus, not just inappropriate */
+   { 131, "external expected" },	/* not an external */
+   { 132, "incorrect external type" },	/* external of wrong flavor */
+   { 133, "invalid external value" },	/* right flavor in wrong context */
+   { 134, "malformed external value" },	/* data bogus, not just inappropriate */
 
 #ifdef Graphics
-   140, "window expected",
-   141, "program terminated by window manager",
-   142, "attempt to read/write on closed window",
-   143, "malformed event queue",
-   144, "window system error",
-   145, "bad window attribute",
-   146, "incorrect number of arguments to drawing function",
-   147, "window attribute cannot be read or written as requested",
+   { 140, "window expected" },
+   { 141, "program terminated by window manager" },
+   { 142, "attempt to read/write on closed window" },
+   { 143, "malformed event queue" },
+   { 144, "window system error" },
+   { 145, "bad window attribute" },
+   { 146, "incorrect number of arguments to drawing function" },
+   { 147, "window attribute cannot be read or written as requested" },
 #endif					/* Graphics */
 
 #ifdef FAttrib
-   160, "bad file attribute",
+   { 160, "bad file attribute" },
 #endif					/* FAttrib */
 
-   201, "division by zero",
-   202, "remaindering by zero",
-   203, "integer overflow",
-   204, "real overflow, underflow, or division by zero",
-   205, "invalid value",
-   206, "negative first argument to real exponentiation",
-   207, "invalid field name",
-   208, "second and third arguments to map of unequal length",
-   209, "invalid second argument to open",
-   210, "non-ascending arguments to detab/entab",
-   211, "by value equal to zero",
-   212, "attempt to read file not open for reading",
-   213, "attempt to write file not open for writing",
-   214, "input/output error",
-   215, "attempt to refresh &main",
-   216, "external function not found",
+   { 201, "division by zero" },
+   { 202, "remaindering by zero" },
+   { 203, "integer overflow" },
+   { 204, "real overflow, underflow, or division by zero" },
+   { 205, "invalid value" },
+   { 206, "negative first argument to real exponentiation" },
+   { 207, "invalid field name" },
+   { 208, "second and third arguments to map of unequal length" },
+   { 209, "invalid second argument to open" },
+   { 210, "non-ascending arguments to detab/entab" },
+   { 211, "by value equal to zero" },
+   { 212, "attempt to read file not open for reading" },
+   { 213, "attempt to write file not open for writing" },
+   { 214, "input/output error" },
+   { 215, "attempt to refresh &main" },
+   { 216, "external function not found" },
 
-   300, "interrupted",
-   301, "evaluation stack overflow",
-   302, "memory violation",
-   303, "inadequate space for evaluation stack",
-   304, "inadequate space in qualifier list",
-   305, "inadequate space for static allocation",
-   306, "inadequate space in string region",
-   307, "inadequate space in block region",
-   308, "system stack overflow in co-expression",
+   { 300, "interrupted" },
+   { 301, "evaluation stack overflow" },
+   { 302, "memory violation" },
+   { 303, "inadequate space for evaluation stack" },
+   { 304, "inadequate space in qualifier list" },
+   { 305, "inadequate space for static allocation" },
+   { 306, "inadequate space in string region" },
+   { 307, "inadequate space in block region" },
+   { 308, "system stack overflow in co-expression" },
 
-   402, "program not compiled with debugging option",
+   { 402, "program not compiled with debugging option" },
 
-   500, "program malfunction",		/* for use by runerr() */
-   600, "vidget usage error",		/* yeah! */
+   { 500, "program malfunction" },	/* for use by runerr() */
+   { 600, "vidget usage error" },	/* yeah! */
 
-   0,	""
+   { 0,	"" }
    };
 
 #define OpDef(p,n,s,u) int Cat(O,p) (dptr cargp);

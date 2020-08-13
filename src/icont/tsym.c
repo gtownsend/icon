@@ -35,10 +35,10 @@ struct keyent {
    int keyid;
    };
 
-#define KDef(p,n) Lit(p), n,
+#define KDef(p,n) { Lit(p), n },
 static struct keyent keytab[] = {
 #include "../h/kdefs.h"
-   NULL, -1
+   { NULL, -1 }
 };
 
 /*

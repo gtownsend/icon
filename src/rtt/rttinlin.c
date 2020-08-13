@@ -137,7 +137,7 @@ struct node *n;
    struct node *n2;
    struct il_code *il;
    struct il_code *il1;
-   struct sym_entry *sym;
+   struct sym_entry *sym = NULL;
    struct init_tend *tnd;
    int dummy_int;
    int ntend;
@@ -696,7 +696,7 @@ struct node *n;
 static struct il_code *il_var(n)
 struct node *n;
    {
-   struct il_code *il;
+   struct il_code *il = NULL;
 
    if (n->nd_id == SymNd) {
       il = new_il(IL_Var, 1);

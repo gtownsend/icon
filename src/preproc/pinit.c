@@ -8,7 +8,6 @@
 #include "../preproc/pproto.h"
 
 static void define_opt   (char *s, int len, struct token *dflt);
-static void do_directive (char *s);
 static void mac_opts     (char *opt_lst, char **opt_args);
 static void undef_opt    (char *s, int len);
 
@@ -100,19 +99,6 @@ int len;
    }
 
 /*
- * do_directive - take a character string containing preprocessor
- *  directives separated by new-lines and execute them. This done
- *  by preprocessing the string.
- */
-static void do_directive(s)
-char *s;
-   {
-   str_src("<initialization>", s, (int)strlen(s));
-   while (interp_dir() != NULL)
-      ;
-   }
-
-/*
  * undef_opt - take the argument to a -U option and, if it is valid,
  *  undefine it.
  */
@@ -151,7 +137,7 @@ struct token *dflt;
    {
    struct token *mname;
    struct token *t;
-   struct tok_lst *body;
+   struct tok_lst *body = NULL;
    struct tok_lst **ptlst, **trail_whsp;
    int i;
 
