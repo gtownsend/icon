@@ -1,0 +1,41 @@
+# floating overflow test
+# assumes 64-bit IEEE values
+
+procedure main()
+   local v
+
+   &error := -1
+   binary("+", 1e307, 1e307)
+   binary("+", 1e308, 1e308)
+   binary("-", -1e307, 1e307)
+   binary("-", -1e308, 1e308)
+   binary("-", 1e308, -1e308)
+   binary("*", 1e100, 1e100)
+   binary("*", 1e200, 1e200)
+   binary("/", 1e100, 1e-100)
+   binary("/", 1e200, 1e-200)
+   binary("^", 1e100, 2)
+   binary("^", 1e100, 3)
+   binary("^", 1e100, 4)
+   binary("^", 1e200, 2)
+   binary("^", 10.0, 308)
+   binary("^", 10.0, 309)
+   binary("^", 10e9, 10)
+   binary("^", 10e9, 20)
+   binary("^", 10e9, 30)
+   binary("^", 10e9, 40)
+   convert(7 ^ 317)
+   convert(11 ^ 193)
+   convert(11 ^ 317)
+   convert(string(7 ^ 317))
+   convert(string(11 ^ 193))
+   convert(string(11 ^ 317))
+end
+
+procedure binary(opr, x, y)
+   write(x, " ", opr, " ", y, " : ", opr(x, y) | ("error " || &errornumber))
+end
+
+procedure convert(v)
+   write(image(v), " : ", image(real(v)) | ("error " || &errornumber))
+end

@@ -44,7 +44,7 @@ double *d;
          }
       integer: {
          if (Type(*s) == T_Lrgint)
-            *d = bigtoreal(s);
+            return bigtoreal(s, d);
          else
             *d = IntVal(*s);
          return 1;
@@ -70,9 +70,8 @@ double *d;
          return 1;
       case T_Lrgint:
          result.dword = D_Lrgint;
-	 BlkLoc(result) = (union block *)numrc.big;
-         *d = bigtoreal(&result);
-         return 1;
+         BlkLoc(result) = (union block *)numrc.big;
+         return bigtoreal(&result, d);
       case T_Real:
          *d = numrc.real;
          return 1;
