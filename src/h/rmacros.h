@@ -166,7 +166,8 @@
 #define InRange(p1,p2,p3) ((uword)(p2) >= (uword)(p1) && (uword)(p2) < (uword)(p3))
 
 /*
- * Get floating-point number from real block.
+ * Get floating-point number into res from real block dp.
+ * If Double is defined, the value may be misaligned.
  */
 #ifdef Double
    #define GetReal(dp,res) *((struct size_dbl *)&(res)) =\

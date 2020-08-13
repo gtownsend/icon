@@ -330,7 +330,7 @@ double val;
    AlcFixBlk(blk, b_real, T_Real)
 
 #ifdef Double
-/* access real values one word at a time */
+   /* store real value one word at a time into possibly unaligned slot */
    { int *rp, *rq;
      rp = (int *) &(blk->realval);
      rq = (int *) &val;

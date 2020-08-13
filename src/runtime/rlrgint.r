@@ -302,33 +302,13 @@ double *d;
 int realtobig(da, dx)
 dptr da, dx;
 {
-
-#ifdef Double
    double x;
-#else					/* Double */
-   double x = BlkLoc(*da)->realblk.realval;
-#endif					/* Double */
-
    struct b_bignum *b;
    word i, blen;
    word d;
    int sgn;
 
-#ifdef Double
-	{
-		int	*rp, *rq;
-		rp = (int *) &(BlkLoc(*da)->realblk.realval);
-		rq = (int *) &x;
-		*rq++ = *rp++;
-		*rq = *rp;
-	}
-#endif					/* Double */
-
-   if (x > 0.9999 * MinLong && x < 0.9999 * MaxLong) {
-      MakeInt((word)x, dx);
-      return Succeeded;		/* got lucky; a simple integer suffices */
-      }
-
+   GetReal(da, x);
    if (sgn = x < 0)
       x = -x;
    blen = ln(x) / ln(B) + 0.99;
