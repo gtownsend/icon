@@ -48,6 +48,19 @@ end
 #enddef
 
 /*
+ * check real expr for overflow before returning
+ */
+#begdef RealResult(expr)
+{
+   double z;
+   z = expr;
+   if (isinf(z))
+      runerr(204);
+   return C_double z;
+}
+#enddef
+
+/*
  * x / y
  */
 
@@ -79,12 +92,9 @@ end
 #enddef
 #begdef RealDivide(x,y)
 {
-   double z;
-
    if (y == 0.0)
       runerr(204);
-   z = x / y;
-   return C_double z;
+   RealResult(x / y);
 }
 #enddef
 
@@ -115,7 +125,7 @@ ArithOp( / , divide , Divide , RealDivide)
    else return C_integer irslt;
 #enddef
 
-#define RealSub(x,y) return C_double (x - y);
+#define RealSub(x,y) RealResult(x - y);
 
 ArithOp( - , minus , Sub , RealSub)
 
@@ -196,7 +206,7 @@ ArithOp( % , mod , IntMod , RealMod)
 #enddef
 
 
-#define RealMpy(x,y) return C_double (x * y);
+#define RealMpy(x,y) RealResult(x * y);
 
 ArithOp( * , mult , Mpy , RealMpy)
 
@@ -305,7 +315,7 @@ end
    else return C_integer irslt;
 #enddef
 
-#define RealAdd(x,y) return C_double (x + y);
+#define RealAdd(x,y) RealResult(x + y);
 
 ArithOp( + , plus , Add , RealAdd)
 
@@ -372,11 +382,15 @@ operator{1} ^ powr(x, y)
 	 return real
 	 }
       inline {
+	 double z;
 	 if (x == 0.0 && y < 0.0)
 	     runerr(204);
 	 if (x < 0.0)
 	    runerr(206);
-	 return C_double pow(x,y);
+	 z = pow(x, y);
+	 if (isinf(z))
+	    runerr(204);
+	 return C_double z;
 	 }
       }
 end
@@ -413,6 +427,8 @@ dptr drslt;
       r *= r;
       n >>= 1;
       }
+   if (isinf(retval))
+      ReturnErrNum(204, Error);
    Protect(BlkLoc(*drslt) = (union block *)alcreal(retval), return Error);
    drslt->dword = D_Real;
    return Succeeded;

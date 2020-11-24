@@ -2,7 +2,7 @@
 <HTML>
 <HEAD>
     <META NAME=viewport CONTENT="width=device-width, initial-scale=1">
-    <TITLE>DRAFT Release Notes for Icon</TITLE>
+    <TITLE>Cumulative Release Notes for Icon</TITLE>
     <LINK REL="STYLESHEET" TYPE="text/css" HREF="istyle.css">
     <LINK REL="SHORTCUT ICON" HREF="shortcut.gif">
 </HEAD>
@@ -11,37 +11,40 @@
 <P><A HREF="http://www.cs.arizona.edu/icon/"> <IMG SRC="wwwcube.gif"
 ALT="[Icon home]" WIDTH=128 HEIGHT=144 BORDER=0 ALIGN=RIGHT> </A>
 
-<H1> DRAFT Release Notes for Icon </H1>
+<H1> Cumulative Release Notes for Icon </H1>
 
 <P> Gregg M. Townsend
 <BR> <SMALL> Department of Computer Science </SMALL>
 <BR> <SMALL> The University of Arizona </SMALL>
 
-<P> <SMALL>
-<!-- www.cs.arizona.edu/icon/v952/relnotes.htm <BR> -->
-Last updated October 29, 2018
-</SMALL>
+<P> <SMALL> www.cs.arizona.edu/icon/uguide/relnotes.htm
+<BR> Last updated July 20, 2020 </SMALL>
 
 
 <H2> Introduction </H2>
 
-<!-- <P> Version 9.5.2 of Icon is an update of version 9.5.1. -->
-<!-- It incorporates minor library changes. -->
-<!-- not yet: and code cleanup and documentation updates. -->
-<!-- not yet: Some minor bugs have been fixed. -->
-
-<P> This is a working draft recording ongoing changes to Icon:
+<P> This page summarizes changes in
+the official Arizona implementation of the Icon programming language:
 <UL>
-<LI>changes to the Icon source tree since the previous release
+<LI>changes to the Icon source tree since the formal 9.5.1 release
 <LI>cumulative earlier amendments of the Icon language and graphics books
 </UL>
 
+<P> Not all minor changes are listed here.
+For an exhaustive list, review the Git history at
+<A HREF="https://github.com/gtownsend/icon/commits/master">
+https://github.com/gtownsend/icon/commits/master</A>.
 
-<H2> Changes in the Git version of Icon </H2>
+
+<H2> Changes in the GitHub version of Icon </H2>
 
 Changes since the last formal release of Icon (version 9.5.1) are noted here.
 
 <H3> Minor enhancements </H3>
+
+<P>The <A HREF="https://musl.libc.org/"><CODE>musl</CODE></A> C library
+can be used to build Icon by manually defining <CODE>_MUSL</CODE>
+in CFLAGS when configuring.
 
 <H3> Minor fixes </H3>
 
@@ -54,9 +57,8 @@ adapt to internal changes in version 2.28 of 2018.
 
 <H3> Library changes </H3>
 
-<P> As usual, some files in the Icon program library have been
-added or edited, but the core library files remain stable.
-Notable changes include:
+<P> The core library files remain stable.
+Minor changes include:
 
 <PRE>
 procs/numbers	gcd(i,j) now allows all argument values except i=j=0.
@@ -237,7 +239,7 @@ and the management of colors is suspect.
 
 <H2> Documentation </H2>
 
-<P> See the <A HREF=docguide.htm>documentation guide</A>
+<P> See the <A HREF=index.htm>documentation guide</A>
 for an overview of the available Icon documentation.
 
 <P> For installation instructions, see
@@ -252,7 +254,14 @@ Steve Wampler suggested the <CODE>gcd</CODE> liberalization.
 <BR>
 Sean Jensen fixed an ancient bug in the lexer.
 <BR>
-Cheyenne Wills provided the GNU C library fix.
+Cheyenne Wills provided the GNU C library fix
+and the <CODE>musl</CODE> adaptation.
+<BR>
+The GitHub user &ldquo;turboencabulator&rdquo; noted and fixed
+several questionable uses of signed values.
+<BR>
+He and Cheyenne Wills both, independently, isolated a nasty bug
+in the string conversion of MinLong.
 
 <HR>
 

@@ -1,5 +1,35 @@
-DISTRIBUTION CHECKLIST
+MODIFICATION CHECKLIST
 <<ARIZONA-ONLY>>
+
+Icon maintenance has evolved from infrequent formal releases to a system of
+continual modifications that are immediately available publicly through GitHub.
+When a set of changes is ready to go:
+
+Set the version number and date (for &version) in src/h/version.h.
+The date should be the date of modification, i.e. today's date.
+The version number should be of the form  9.5.yyx  where
+	yy is the last two digits of today's year
+	x is an alphabetic sequence character within the year (a,b,c,...)
+
+Do full rebuilds and tests, both with and without graphics.
+Do this on multiple architectures if warranted by non-trivial edits.
+Verify the appearance of &version as printed by the tests.
+Check in the changes.
+Set a Git "annotated" tag of the form "v9.5.yyx" (note the leading v):
+	git tag -a "v9.5.yyx" -m "fix xxx yyy problem on zzz"
+Push the mods *with the tag*:
+	git push
+	git push --tags
+
+Send an announcement to the Icon-language mailing list if warranted.
+Consider whether any Icon web pages need updating for
+-- significant news on the front page
+-- changes to FAQ or other documentation which is mirrored on the website
+-- IPL changes warranting a rebuild of online documentation
+
+
+-------------------------------------------------------------------
+The old checklist for periodic heavyweight releases was as follows:
 
 review diffs; check vs release notes; check spelling
 run manual gtests

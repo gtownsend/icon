@@ -44,9 +44,9 @@
         DisplayWidth(w->window->display->display, w->window->display->screen)
 #define FS_SOLID FillSolid
 #define FS_STIPPLE FillStippled
-#define hidecrsr(x) /* noop */
+#define hidecrsr(x) (void)x /* noop */
 #define UpdateCursorPos(x, y) /* noop */
-#define showcrsr(x) /* noop */
+#define showcrsr(x) (void)x /* noop */
 #define SysColor XColor
 #define ARCWIDTH(arc) ((arc).width)
 #define ARCHEIGHT(arc) ((arc).height)

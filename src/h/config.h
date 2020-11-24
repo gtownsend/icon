@@ -48,10 +48,6 @@
 
 #define WordSize sizeof(word)
 
-#ifndef StackAlign
-   #define StackAlign 8
-#endif					/* StackAlign */
-
 /*
  * Other defaults.
  */

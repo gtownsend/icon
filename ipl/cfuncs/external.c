@@ -81,7 +81,7 @@ int extxstr(int argc, descriptor argv[])   /*: create string-valued external */
    sdata *d = (sdata*) xb->data;
    memcpy(d->string, StringAddr(argv[1]), slen);
    d->string[slen] = '\0';
-   int cksum = 0;
+   unsigned short cksum = 0;
    char *p;
    for (p = d->string; *p; p++)
       cksum = 37 * cksum + (unsigned char) *p;

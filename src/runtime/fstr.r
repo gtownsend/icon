@@ -213,7 +213,6 @@ function{1} detab(s,i[n])
       if (is_expanded)
          return result;
       else {
-	 long n = DiffPtrs(StrLoc(result),strfree); /* note deallocation */
 	 strtotal += DiffPtrs(StrLoc(result),strfree);
          strfree = StrLoc(result);		/* reset the free pointer */
          return s;				/* return original string */
@@ -330,15 +329,12 @@ function{1} entab(s,i[n])
        *  original string (and reset strfree) to conserve memory.
        */
       if (inserted) {
-	 long n;
          StrLen(result) = DiffPtrs(out,StrLoc(result));
-	 n = DiffPtrs(out,strfree);		/* note the deallocation */
 	 strtotal += DiffPtrs(out,strfree);
          strfree = out;				/* give back unused space */
          return result;				/* return new string */
          }
       else {
-	 long n = DiffPtrs(StrLoc(result),strfree); /* note the deallocation */
 	 strtotal += DiffPtrs(StrLoc(result),strfree);
          strfree = StrLoc(result);		/* reset free pointer */
          return s;				/* return original string */
@@ -544,7 +540,7 @@ function{1} repl(s,n)
        * Make sure the resulting string will not be too long.
        */
       size = n * slen;
-      if (size > MaxStrLen) {
+      if (size > MaxRepl) {
          irunerr(205,n);
          errorfail;
          }

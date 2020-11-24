@@ -37,6 +37,10 @@
 #include <sys/types.h>
 #include <sys/time.h>
 
+#if defined(_MUSL)
+# include <stdio_ext.h>
+#endif
+
 #include "icall.h"
 
 int fpoll(int argc, descriptor *argv)	/*: await data from file */
@@ -69,6 +73,9 @@ int fpoll(int argc, descriptor *argv)	/*: await data from file */
       RetArg(1);
 #elif defined(_FSTDIO)					/* new BSD library */
    if (f->_r > 0)
+      RetArg(1);
+#elif defined(_MUSL)					/* MUSL library */
+   if (__freadahead(f))
       RetArg(1);
 #else							/* old AT&T library */
    if (f->_cnt > 0)

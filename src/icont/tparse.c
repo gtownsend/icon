@@ -982,21 +982,8 @@ char * yyreds[] =
 /*
 ** yacc user known macros and defines
 */
-#define YYERROR		goto yyerrlab
 #define YYACCEPT	{ free(yys); free(yyv); return(0); }
 #define YYABORT		{ free(yys); free(yyv); return(1); }
-#define YYBACKUP( newtoken, newvalue )\
-{\
-	if ( yychar >= 0 || ( yyr2[ yytmp ] >> 1 ) != 1 )\
-	{\
-		tsyserr("parser: syntax error - cannot backup" );\
-		goto yyerrlab;\
-	}\
-	yychar = newtoken;\
-	yystate = *yyps;\
-	yylval = newvalue;\
-	goto yynewstate;\
-}
 #define YYRECOVERING()	(!!yyerrflag)
 #ifndef YYDEBUG
 #	define YYDEBUG	1	/* make debugging available */
@@ -1063,16 +1050,6 @@ yyparse()
 		register int *yy_ps;		/* top of state stack */
 		register int yy_state;		/* current state */
 		register int  yy_n;		/* internal state number info */
-
-		/*
-		** get globals into registers.
-		** branch to here only if YYBACKUP was called.
-		*/
-	yynewstate:
-		yy_pv = yypv;
-		yy_ps = yyps;
-		yy_state = yystate;
-		goto yy_newstate;
 
 		/*
 		** get globals into registers.
@@ -1255,17 +1232,6 @@ yyparse()
 			{
 			case 0:		/* new error */
 				yyerror(yychar, yylval, yy_state );
-				goto skip_init;
-			yyerrlab:
-				/*
-				** get globals into registers.
-				** we have a user generated syntax type error
-				*/
-				yy_pv = yypv;
-				yy_ps = yyps;
-				yy_state = yystate;
-				yynerrs++;
-			skip_init:
 			case 1:
 			case 2:		/* incompletely recovered error */
 					/* try again... */

@@ -13,6 +13,7 @@ typedef struct {
    double d;
    } tstruct;
 
+#pragma clang diagnostic ignored "-Wreturn-stack-address"
 static long atdepth(int n) {
    return n <= 1 ? (long)&n : atdepth(n - 1);
    }

@@ -44,7 +44,7 @@ double *d;
          }
       integer: {
          if (Type(*s) == T_Lrgint)
-            *d = bigtoreal(s);
+            return bigtoreal(s, d);
          else
             *d = IntVal(*s);
          return 1;
@@ -70,9 +70,8 @@ double *d;
          return 1;
       case T_Lrgint:
          result.dword = D_Lrgint;
-	 BlkLoc(result) = (union block *)numrc.big;
-         *d = bigtoreal(&result);
-         return 1;
+         BlkLoc(result) = (union block *)numrc.big;
+         return bigtoreal(&result, d);
       case T_Real:
          *d = numrc.real;
          return 1;
@@ -406,10 +405,7 @@ dptr s, d;
       integer: {
          if (Type(*s) == T_Lrgint) {
             word slen;
-            word dlen;
-
             slen = (BlkLoc(*s)->bignumblk.lsd - BlkLoc(*s)->bignumblk.msd +1);
-            dlen = slen * NB * 0.3010299956639812;	/* 1 / log2(10) */
             bigtos(s,d);
             }
          else
@@ -575,10 +571,7 @@ dptr d;
       integer: {
          if (Type(*s) == T_Lrgint) {
             word slen;
-            word dlen;
-
             slen = (BlkLoc(*s)->bignumblk.lsd - BlkLoc(*s)->bignumblk.msd +1);
-            dlen = slen * NB * 0.3010299956639812;	/* 1 / log2(10) */
             bigtos(s,d);
             }
          else
@@ -686,7 +679,6 @@ char *s;
    {
    register char *p;
    long ival;
-   static char *maxneg = MaxNegInt;
 
    p = s + MaxCvtLen - 1;
    ival = num;
@@ -698,9 +690,9 @@ char *s;
 	 ival /= 10L;
 	 } while (ival != 0L);
    else {
-      if (ival == -ival) {      /* max negative value */
-	 p -= strlen (maxneg);
-	 sprintf (p, "%s", maxneg);
+      if (ival == MinLong) {
+         p -= strlen(MaxNegInt);
+         strcpy(p, MaxNegInt);
          }
       else {
 	ival = -ival;

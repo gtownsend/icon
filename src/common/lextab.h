@@ -13,44 +13,44 @@ struct toktab toktab[] = {
 /*  token		token type	flags */
 
    /* primitives */
-   "identifier",      IDENT,         Beginner+Ender,    /*   0 */
-   "integer-literal", INTLIT,        Beginner+Ender,    /*   1 */
-   "real-literal",    REALLIT,       Beginner+Ender,    /*   2 */
-   "string-literal",  STRINGLIT,     Beginner+Ender,    /*   3 */
-   "cset-literal",    CSETLIT,       Beginner+Ender,    /*   4 */
-   "end-of-file",     EOFX,          0,                 /*   5 */
+   { "identifier",      IDENT,         Beginner+Ender },    /*   0 */
+   { "integer-literal", INTLIT,        Beginner+Ender },    /*   1 */
+   { "real-literal",    REALLIT,       Beginner+Ender },    /*   2 */
+   { "string-literal",  STRINGLIT,     Beginner+Ender },    /*   3 */
+   { "cset-literal",    CSETLIT,       Beginner+Ender },    /*   4 */
+   { "end-of-file",     EOFX,          0 },                 /*   5 */
 
    /* reserved words */
-   "break",           BREAK,         Beginner+Ender,    /*   6 */
-   "by",              BY,            0,                 /*   7 */
-   "case",            CASE,          Beginner,          /*   8 */
-   "create",          CREATE,        Beginner,          /*   9 */
-   "default",         DEFAULT,       Beginner,          /*  10 */
-   "do",              DO,            0,                 /*  11 */
-   "else",            ELSE,          0,                 /*  12 */
-   "end",             END,           Beginner,          /*  13 */
-   "every",           EVERY,         Beginner,          /*  14 */
-   "fail",            FAIL,          Beginner+Ender,    /*  15 */
-   "global",          GLOBAL,        0,                 /*  16 */
-   "if",              IF,            Beginner,          /*  17 */
-   "initial",         INITIAL,       Beginner,          /*  18 */
-   "invocable",       INVOCABLE,     0,                 /*  19 */
-   "link",            LINK,          0,                 /*  20 */
-   "local",           LOCAL,         Beginner,          /*  21 */
-   "next",            NEXT,          Beginner+Ender,    /*  22 */
-   "not",             NOT,           Beginner,          /*  23 */
-   "of",              OF,            0,                 /*  24 */
-   "procedure",       PROCEDURE,     0,                 /*  25 */
-   "record",          RECORD,        0,                 /*  26 */
-   "repeat",          REPEAT,        Beginner,          /*  27 */
-   "return",          RETURN,        Beginner+Ender,    /*  28 */
-   "static",          STATIC,        Beginner,          /*  29 */
-   "suspend",         SUSPEND,       Beginner+Ender,    /*  30 */
-   "then",            THEN,          0,                 /*  31 */
-   "to",              TO,            0,                 /*  32 */
-   "until",           UNTIL,         Beginner,          /*  33 */
-   "while",           WHILE,         Beginner,          /*  34 */
-   "end-of-file",     0,             0,
+   { "break",           BREAK,         Beginner+Ender },    /*   6 */
+   { "by",              BY,            0 },                 /*   7 */
+   { "case",            CASE,          Beginner },          /*   8 */
+   { "create",          CREATE,        Beginner },          /*   9 */
+   { "default",         DEFAULT,       Beginner },          /*  10 */
+   { "do",              DO,            0 },                 /*  11 */
+   { "else",            ELSE,          0 },                 /*  12 */
+   { "end",             END,           Beginner },          /*  13 */
+   { "every",           EVERY,         Beginner },          /*  14 */
+   { "fail",            FAIL,          Beginner+Ender },    /*  15 */
+   { "global",          GLOBAL,        0 },                 /*  16 */
+   { "if",              IF,            Beginner },          /*  17 */
+   { "initial",         INITIAL,       Beginner },          /*  18 */
+   { "invocable",       INVOCABLE,     0 },                 /*  19 */
+   { "link",            LINK,          0 },                 /*  20 */
+   { "local",           LOCAL,         Beginner },          /*  21 */
+   { "next",            NEXT,          Beginner+Ender },    /*  22 */
+   { "not",             NOT,           Beginner },          /*  23 */
+   { "of",              OF,            0 },                 /*  24 */
+   { "procedure",       PROCEDURE,     0 },                 /*  25 */
+   { "record",          RECORD,        0 },                 /*  26 */
+   { "repeat",          REPEAT,        Beginner },          /*  27 */
+   { "return",          RETURN,        Beginner+Ender },    /*  28 */
+   { "static",          STATIC,        Beginner },          /*  29 */
+   { "suspend",         SUSPEND,       Beginner+Ender },    /*  30 */
+   { "then",            THEN,          0 },                 /*  31 */
+   { "to",              TO,            0 },                 /*  32 */
+   { "until",           UNTIL,         Beginner },          /*  33 */
+   { "while",           WHILE,         Beginner },          /*  34 */
+   { "end-of-file",     0,             0 },
    };
 
 /*

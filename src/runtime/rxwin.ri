@@ -2,8 +2,6 @@
  * File: rxwin.ri - X11 system-specific graphics interface code.
  */
 
-#ifdef Graphics
-
 #define RootState IconicState+1
 
 /*
@@ -58,11 +56,10 @@ int wputc(ci,w)
 int ci;
 wbp w;
    {
-   int fh, lh, width, height, over;
+   int lh, width, height, over;
    char c = (char)ci;
    STDLOCALS(w);
 
-   fh = wc->font->height;
    lh = wc->leading;
    width = ws->width;
    height = ws->height;
@@ -1127,7 +1124,6 @@ int setcanvas(w,s)
 wbp w;
 char *s;
    {
-   int hm;
    XTextProperty textprop;
    STDLOCALS(w);
 
@@ -2322,13 +2318,10 @@ wbp w;
 int mute_index;
    {
    wdp dp;
-   Display *d;
    int i;
    char *colorname;
 
    dp = w->window->display;
-   d = dp->display;
-
    for (i = 2; i < dp->numColors; i++)
       if (dp->colrptrs[i]->type == CMUTABLE
       && dp->colrptrs[i]->c == - mute_index - 1)
@@ -2362,12 +2355,9 @@ wbp w;
 int mute_index;
    {
    wdp dp;
-   Display *d;
    int i;
 
    dp = w->window->display;
-   d = dp->display;
-
    for (i = 2; i < dp->numColors; i++)
       if (dp->colrptrs[i]->type == CMUTABLE
       && dp->colrptrs[i]->c == - mute_index - 1)
@@ -2382,7 +2372,6 @@ wbp w;
 char *s;
    {
    wdp dp;
-   Display *d;
    int i;
    LinearColor clr;
    XColor color;
@@ -2390,7 +2379,6 @@ char *s;
    if (parsecolor(w, s, &clr.red, &clr.green, &clr.blue) != Succeeded)
       return;
    dp = w->window->display;
-   d = dp->display;
    color = xcolor(w, clr);
 
    for (i = 2; i < dp->numColors; i++)
@@ -2573,12 +2561,10 @@ short *data;
    Visual *v;
    XImage *im;
    XColor colorcell;
-   LinearColor lc;
-   wclrp *cpp;
    unsigned char cmap[256];
    short *cval;
-   int i, r, g, b, ncolors;
-   unsigned long px, clist[GIFMAX], *lp, *ckey;
+   int i, r, g, b;
+   unsigned long px, *ckey;
    double gamma = w->context->gamma;
    STDLOCALS(w);
 
@@ -3450,5 +3436,3 @@ int volume;
   XFlush(stddpy);
   return Succeeded;
   }
-
-#endif					/* Graphics */

@@ -285,7 +285,8 @@ static struct toktab *getnum(ac, cc)
 int ac;
 int *cc;
    {
-   register int c, r, state;
+   register int c;
+   register unsigned int r, state;
    int realflag, n, dummy;
 
    c = ac;

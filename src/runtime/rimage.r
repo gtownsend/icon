@@ -682,8 +682,8 @@ typedef struct box {	/* 3-D RGB region for median cut algorithm */
    char maxaxis;		/* indication of longest axis */
    char maxdim;			/* length along longest axis */
    char cutpt;			/* cut point along that axis */
-   char rmin, gmin, bmin;	/* minimum r, g, b values (5-bit color) */
-   char rmax, gmax, bmax;	/* maximum r, g, b values (5-bit color) */
+   unsigned char rmin, gmin, bmin; /* minimum r, g, b values (5-bit color) */
+   unsigned char rmax, gmax, bmax; /* maximum r, g, b values (5-bit color) */
    } box;
 
 #define MC_QUANT 5		/* quantize colors to 5 bits for median cut */

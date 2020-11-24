@@ -12,9 +12,7 @@ struct b_coexpr *sblkp;
    register word *newsp;
    register struct b_refresh *rblkp;
    register dptr dp, dsp;
-   int frame_size;
-   word stack_strt;
-   int na, nl, nt, i;
+   int na, nl, i;
 
    /*
     * Get pointer to refresh block.

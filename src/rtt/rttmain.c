@@ -247,7 +247,6 @@ char *src_file;
    char *buf_ptr;
    struct fileparts *fp;
    struct tdefnm *td;
-   struct token *t;
 
    cur_src = src_file;
 

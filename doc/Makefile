@@ -6,15 +6,10 @@
 #  (Mac OS X plus some specialized tools) and is less portable than
 #  other Makefiles.
 
+MADE = icon.txt icont.txt
 
-MADE = icon.txt icont.txt faq.txt
-
-HFAQ = /cs/www/icon/faq.htm
-TFAQ = /cs/www/icon/ftp/doc/faq.txt
-FFAQ = /cs/ftp/icon/doc/faq.txt
-
-SERVER = york.cs.arizona.edu
-RLSDIR = /cs/www/icon/v951
+SERVER = lectura.cs.arizona.edu
+PUBDIR = /cs/www/icon/uguide
 
 
 #  (default:) rebuild icon.txt, icont.txt, and faq.txt from nroff/html sources.
@@ -29,34 +24,11 @@ icont.txt: ../man/man1/icont.1 clnroff.sed
 	nroff -Tascii -man ../man/man1/icont.1 | \
 	    sed -f clnroff.sed | uniq >$@
 
-faq.txt:  faq.htm
-	lynx -nolist -dump -justify=off -width=79 faq.htm >$@
 
+#  install updated files on the Icon website.
 
-#  check integrity of HTML files.
-#  n.b. weblinks generates some false negatives.
-
-lint:
-	weblint -x netscape *.htm
-	weblinks -t *.htm
-
-
-#  compare FAQ with currently installed version.
-
-diff:
-	diff -c $(HFAQ) faq.htm
-
-
-#  install updated files on Icon web and FTP sites.
-
-install-faq:  faq.txt
-	scp faq.htm $(SERVER):$(HFAQ)
-	scp faq.txt $(SERVER):$(TFAQ)
-	scp -p faq.txt $(SERVER):$(FFAQ)
-
-install-other: icon.txt icont.txt
-	scp *.css *.gif *.jpg *.txt $(SERVER):$(RLSDIR)
-	scp `ls *.htm | grep -v index` $(SERVER):$(RLSDIR)
+publish: $(MADE)
+	scp *.css *.gif *.jpg *.txt *.htm $(SERVER):$(PUBDIR)
 
 
 #  remove built files to force a rebuild.
