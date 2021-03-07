@@ -2,6 +2,7 @@
 <HTML>
 <HEAD>
     <META NAME=viewport CONTENT="width=device-width, initial-scale=1">
+    <META CHARSET="UTF-8">
     <TITLE>Icon Programming Language FAQ</TITLE>
     <LINK REL="STYLESHEET" TYPE="text/css" HREF="istyle.css">
     <LINK REL="SHORTCUT ICON" HREF="shortcut.gif">
@@ -12,7 +13,7 @@
 <H1>Frequently Asked Questions about the Icon programming language</H1>
 <A HREF="http://www.cs.arizona.edu/icon/uguide/faq.htm">
 www.cs.arizona.edu/icon/uguide/faq.htm</A>
-<BR>Last updated July 22, 2020<BR>
+<BR>Last updated March 7, 2021<BR>
 
 <P><STRONG>Learning about Icon</STRONG><BR>
 <A HREF="#whatsicon">A1. What is Icon?</A><BR>
@@ -290,6 +291,11 @@ Icon is defined in terms of 8-bit characters, and changing this presents
 several design challenges that would likely break existing programs.
 Modifying the C implementation is probably infeasible anyway,
 although a Unicode version of Jcon might be possible.
+<P>
+The clever design of UTF-8, the usual Unicode encoding,
+allows code such as <CODE>write("E♭F♯G♮")</CODE> to work;
+but to Icon, <CODE>"E♭F♯G♮"</CODE> is a string of length 12 because
+the music accidentals ♭♯♮ are encoded in three bytes each.
 
 <H3><A NAME="iconc">B4.</A> What happened to the compiler?</H3>
 <P>
