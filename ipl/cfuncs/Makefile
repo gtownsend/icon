@@ -6,13 +6,14 @@
 
 include ../../Makedefs
 
-ICONT = icont
+IC = icont
 IFLAGS = -us
 
 FUNCLIB = libcfunc.so
 
-.SUFFIXES: .c .o
+.SUFFIXES: .c .o .icn .u2
 .c.o:			; $(CC) $(CFLAGS) $(CFDYN) -c $<
+.icn.u2:		; $(IC) $(IFLAGS) -c $<
 
 FUNCS = bitcount.o external.o files.o fpoll.o internal.o lgconv.o osf.o \
 	pack.o ppm.o process.o tconnect.o
@@ -25,7 +26,7 @@ default:	cfunc.u2 $(FUNCLIB)
 # library
 
 $(FUNCLIB):	$(FUNCS) mklib.sh
-		CC="$(CC)" CFLAGS="$(CFLAGS)" BIN="../../bin" \
+		CC="$(CC)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" BIN="../../bin" \
 		    sh mklib.sh $(FUNCLIB) $(FUNCS)
 $(FUNCS):	icall.h
 
@@ -33,9 +34,8 @@ $(FUNCS):	icall.h
 # Icon interface
 
 cfunc.u2:	cfunc.icn
-		$(ICONT) $(IFLAGS) -c cfunc.icn
 cfunc.icn:	$(CSRC) mkfunc.sh
-		sh mkfunc.sh $(FUNCLIB) $(FUNCS) >cfunc.icn
+		sh mkfunc.sh $(FUNCLIB) $(FUNCS) >$@
 
 
 # cleanup

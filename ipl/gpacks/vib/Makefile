@@ -1,8 +1,7 @@
 #  Makefile for vib, the Visual Interface Builder
 
-ICONT = icont
+IC = icont
 IFLAGS = -us
-ITRAN = $(ICONT) $(IFLAGS)
 
 OBJ = vib.u2 vibbttn.u2 vibedit.u2 vibfile.u2 vibglbl.u2 \
 	viblabel.u2 vibline.u2 viblist.u2 vibmenu.u2 vibradio.u2 \
@@ -10,14 +9,14 @@ OBJ = vib.u2 vibbttn.u2 vibedit.u2 vibfile.u2 vibglbl.u2 \
 
 .SUFFIXES: .icn .u2 .gif .ps
 
-.icn.u2:	; $(ITRAN) -c $<
-.icn:		; $(ITRAN) $<
+.icn.u2:	; $(IC) $(IFLAGS) -c $<
+.icn:		; $(IC) $(IFLAGS) $<
 
 .gif.ps:
 	giftoppm $< | ppmtopgm | pnmtops -scale .75 >$@
 
 vib:	$(OBJ)
-	$(ITRAN) -o vib $(OBJ)
+	$(IC) $(IFLAGS) -o $@ $(OBJ)
 
 $(OBJ):	vibdefn.icn
 
@@ -26,7 +25,7 @@ ipd doc: ipd265.ps
 
 ipd265.ps:	ipd265.bibl fig1.ps fig2.ps
 	bib -t stdn -p /r/che/usr/ralph/docs/reg.index <ipd265.bibl | \
-	    psfig | psroff -t >ipd265.ps
+	    psfig | psroff -t >$@
 
 Iexe:	vib
 	cp vib ../../iexe/
