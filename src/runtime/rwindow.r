@@ -894,13 +894,13 @@ char * abuf;
 	 break;
 	 }
       case A_POSX: {
-	 char tmp[20];
+	 char tmp[200];
 	 sprintf(tmp,"%s,%d",val,ws->posy);
 	 AttemptAttr(setpos(w, tmp));
 	 break;
 	 }
       case A_POSY: {
-	 char tmp[20];
+	 char tmp[200];
 	 sprintf(tmp,"%d,%s",ws->posx,val);
 	 AttemptAttr(setpos(w, tmp));
          break;

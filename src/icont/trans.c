@@ -45,7 +45,7 @@ char *tgtdir;
    if (afatals == 1)
       report("1 error\n");
    else if (afatals > 1) {
-      char tmp[12];
+      char tmp[32];
       sprintf(tmp, "%d errors\n", afatals);
       report(tmp);
       }

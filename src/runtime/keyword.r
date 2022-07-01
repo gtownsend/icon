@@ -83,7 +83,7 @@ keyword{1} date
    inline {
       time_t t;
       struct tm *ct;
-      char sbuf[11], *tmp;
+      char sbuf[32], *tmp;
 
       time(&t);
       ct = localtime(&t);
