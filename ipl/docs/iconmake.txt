@@ -23,16 +23,15 @@ FILES=|>List of component files, space separated, using .u1 suffix<|
 #
 #  Option flag definitions, etc.
 #
-ICFLAGS=-s
+IC=icont
 IFLAGS=-s
-ICONT=icont
 
 #
 #  Implicit rule for making ucode files.
 #
-.SUFFIXES: .u1 .icn
+.SUFFIXES: .icn .u1
 .icn.u1:
-	$(ICONT) -c $(ICFLAGS) $*
+	$(IC) $(IFLAGS) -c $<
 
 #
 #  Explicit rules for making an Icon program.
@@ -40,5 +39,4 @@ ICONT=icont
 all:	$(PROGRAM)
 
 $(PROGRAM): $(FILES)
-	$(ICONT) -o $(PROGRAM) $(IFLAGS) $(FILES)
-
+	$(IC) $(IFLAGS) -o $@ $(FILES)

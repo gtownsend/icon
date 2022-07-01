@@ -1,5 +1,11 @@
 include ../../Makedefs
 
+IC = icont
+IFLAGS = -s
+
+.SUFFIXES: .icn
+.icn:
+		$(IC) $(IFLAGS) $<
 
 OBJS =	long.o getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
 	munix.o literals.o rswitch.o alloc.o long.o getopt.o time.o\
@@ -8,7 +14,7 @@ OBJS =	long.o getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
 common:		$(OBJS) gpxmaybe
 
 patchstr:	patchstr.c
-		$(CC) $(CFLAGS) -o patchstr patchstr.c
+		$(CC) $(CFLAGS) $(LDFLAGS) -o $@ patchstr.c
 
 gpxmaybe:
 		-if [ "x$(XL)" != "x" ]; then $(MAKE) $(GDIR); fi
@@ -24,9 +30,11 @@ wincap:
 $(OBJS): ../h/define.h ../h/arch.h ../h/config.h ../h/cstructs.h \
 	  ../h/typedefs.h ../h/mproto.h ../h/cpuconf.h
 
-../h/arch.h:	infer.c
-		$(CC) $(CFLAGS) -o infer infer.c
-		./infer >../h/arch.h
+infer:		infer.c
+		$(CC) $(CFLAGS) $(LDFLAGS) -o $@ infer.c
+
+../h/arch.h:	infer
+		./infer >$@
 
 identify.o: ../h/version.h
 
@@ -50,14 +58,8 @@ lextab.h yacctok.h:	tokens.txt op.txt mktoktab
 			./mktoktab
 
 mktoktab:		mktoktab.icn
-			icont -s mktoktab.icn
-
 fixgram:		fixgram.icn
-			icont -s fixgram.icn
-
 pscript:		pscript.icn
-			icont -s pscript.icn
-
 
 
 #  The following section is commented out because it does not need to be
@@ -77,4 +79,3 @@ pscript:		pscript.icn
 #	typespec <typespec.txt >icontype.h
 #
 #typespec: typespec.icn
-#	icont typespec
