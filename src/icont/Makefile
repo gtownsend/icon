@@ -20,6 +20,7 @@ COBJS =		../common/long.o ../common/getopt.o ../common/alloc.o \
 
 icont:		$(OBJS) $(COBJS)
 		$(CC) $(CFLAGS) $(LDFLAGS) -o icont $(OBJS) $(COBJS)
+		rm -f ../../bin/icont$(EXE)
 		cp icont ../../bin
 		strip ../../bin/icont$(EXE)
 		(cd ../../bin; rm -f icon icon.exe; ln -s icont icon)

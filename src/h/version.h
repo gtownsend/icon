@@ -11,7 +11,7 @@
  *  Icon version number and date.
  *  These are the only two entries that change any more.
  */
-#define VersionNumber "9.5.22b"
+#define VersionNumber "9.5.22c"
 #define VersionDate "July 10, 2022"
 
 /*

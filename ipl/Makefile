@@ -20,6 +20,7 @@ cfuncs/libcfunc.so:  ../bin/icont
 Cfunctions:
 	cd cfuncs; LPATH= $(MAKE) ICONT=../../bin/icont
 	cp cfuncs/*.u? ../lib
+	rm -f ../bin/libcfunc.so
 	cp cfuncs/libcfunc.so ../bin
 
 
