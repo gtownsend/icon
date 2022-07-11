@@ -11,7 +11,7 @@ shift
 SYS=`uname -s`
 set -x
 case "$SYS" in
-   Linux*|*BSD*|GNU*)
+   Linux*|*BSD*|GNU*|Haiku*)
       $CC -shared -o $LIBNAME -fPIC "$@";;
    CYGWIN*)
       # move the win32 import library for iconx.exe callbacks

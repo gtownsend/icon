@@ -26,6 +26,10 @@
    Feature(1, "_MACINTOSH", "Macintosh")
 #endif					/* MACINTOSH */
 
+#if HAIKU
+   Feature(1, "_HAIKU", "Haiku")
+#endif					/* HAIKU */
+
 #if MSWIN
    Feature(1, "_MS_WINDOWS", "MS Windows")
 #endif					/* MSWIN */

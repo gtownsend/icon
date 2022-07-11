@@ -23,11 +23,12 @@ static char *RCS_Id = "$Id$";
 #include <ctype.h>
 #endif
 
-FUNC(atoui, unsigned int, (char *p, unsigned int l, unsigned int *ui_return));
+FUNC(atouint, unsigned int, (char *p, unsigned int l, unsigned int *ui_return));
+
 LFUNC(ParseComment, int, (xpmData *mdata));
 
 unsigned int
-atoui(p, l, ui_return)
+atouint(p, l, ui_return)
     register char *p;
     unsigned int l;
     unsigned int *ui_return;
@@ -153,7 +154,7 @@ xpmNextUI(mdata, ui_return)
     int l;
 
     l = xpmNextWord(mdata, buf);
-    return atoui(buf, l, ui_return);
+    return atouint(buf, l, ui_return);
 }
 
 /*

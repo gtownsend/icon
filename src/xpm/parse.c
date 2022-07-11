@@ -200,7 +200,7 @@ ParseValues(data, width, height, ncolors, cpp,
 	    *hotspot = xpmNextUI(data, x_hotspot)
 		&& xpmNextUI(data, y_hotspot);
 	else {
-	    *hotspot = atoui(buf, l, x_hotspot) && xpmNextUI(data, y_hotspot);
+	    *hotspot = atouint(buf, l, x_hotspot) && xpmNextUI(data, y_hotspot);
 	    l = xpmNextWord(data, buf);
 	    *extensions = l == 6 && !strncmp("XPMEXT", buf, 6);
 	}

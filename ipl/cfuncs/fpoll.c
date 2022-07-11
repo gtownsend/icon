@@ -68,7 +68,7 @@ int fpoll(int argc, descriptor *argv)	/*: await data from file */
 
    /* check for data already in buffer */
    /* there's no legal way to do this in C; we cheat */
-#if defined(__GLIBC__) 					/* new GCC library */
+#if defined(__GLIBC__) || defined(__HAIKU__)		/* new GCC library */
    if (f->_IO_read_ptr < f->_IO_read_end)
       RetArg(1);
 #elif defined(_FSTDIO)					/* new BSD library */

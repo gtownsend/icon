@@ -173,7 +173,7 @@ FUNC(xpmGetAttributes, int, (XpmAttributes * attributes,
 
 /* I/O utility */
 
-FUNC(atoui, unsigned int, (char *p, unsigned int l, unsigned int *ui_return));
+FUNC(atouint, unsigned int, (char *p, unsigned int l, unsigned int *ui_return));
 FUNC(xpmGetString, int, (xpmData *mdata, char **sptr, unsigned int *l));
 FUNC(xpmNextString, void, (xpmData * mdata));
 FUNC(xpmNextUI, int, (xpmData * mdata, unsigned int *ui_return));
