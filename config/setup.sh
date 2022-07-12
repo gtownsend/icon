@@ -11,7 +11,7 @@ SRC=$TOP/src
 
 # check parameters
 case "$GPX" in
-   Graphics)	XL='-L../../bin -lIgpx $(XLIBS)';;
+   Graphics)	XL='$(XLIBS)';;
    NoGraphics)	XL= ;;
    *)		echo "$USAGE" 1>&2; exit 1;;
 esac

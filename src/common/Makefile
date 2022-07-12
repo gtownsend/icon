@@ -5,17 +5,10 @@ OBJS =	long.o getopt.o time.o filepart.o identify.o strtbl.o rtdb.o\
 	munix.o literals.o rswitch.o alloc.o long.o getopt.o time.o\
 	xwindow.o ipp.o
 
-common:		$(OBJS) gpxmaybe
+common:		$(OBJS)
 
 patchstr:	patchstr.c
 		$(CC) $(CFLAGS) -o patchstr patchstr.c
-
-gpxmaybe:
-		-if [ "x$(XL)" != "x" ]; then $(MAKE) $(GDIR); fi
-
-xpm:
-		cd ../xpm; $(MAKE) libXpm.a
-		cp -p ../xpm/libXpm.a ../../bin/libIgpx.a
 
 wincap:		
 		cd ../wincap; $(MAKE) libWincap.a

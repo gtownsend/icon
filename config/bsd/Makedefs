@@ -9,8 +9,6 @@ L=/usr/local
 #  RLIBS    libraries to link with run-time system
 #  TLIBS    libraries to link for POSIX threads
 #  XLIBS    libraries to link for graphics
-#  XPMDEFS  definitions for building XPM library
-#  GDIR     directory of graphics helper library
 
 CC = cc
 CFLAGS = -O -I$X/include -I$L/include
@@ -18,6 +16,4 @@ CFDYN = -fPIC
 RLINK = -Wl,-E
 RLIBS = -lm
 TLIBS = -lpthread
-XLIBS = -Wl,-R$X/lib -Wl,-R$L/lib -L$X/lib -L$L/lib -lX11
-XPMDEFS = -DZPIPE
-GDIR = xpm
+XLIBS = -Wl,-R$X/lib -Wl,-R$L/lib -L$X/lib -L$L/lib -lXpm -lX11
