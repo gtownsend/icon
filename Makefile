@@ -82,6 +82,9 @@ Ibin:		bin/icont
 
 
 # Installation:  "make Install dest=new-icon-directory"
+#
+# This will fail, intentionally, if the directory "dest" already exists.
+# (That prevents several kinds of possible problems.)
 
 D=$(dest)
 Install:
