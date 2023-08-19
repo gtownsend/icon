@@ -347,12 +347,8 @@ end
  *   beyond col
  */
 
-void nxttab(col, tablst, endlst, last, interval)
-C_integer *col;
-dptr *tablst;
-dptr endlst;
-C_integer *last;
-C_integer *interval;
+void nxttab(C_integer *col, dptr *tablst, dptr endlst,
+   C_integer *last, C_integer *interval)
    {
    /*
     * Look for the right tab stop.

@@ -19,8 +19,7 @@ static void toks_to_str  (struct str_buf *sbuf, struct token *t);
 /*
  * start_select - handle #if, #ifdef, #ifndef
  */
-static void start_select(t)
-struct token *t;
+static void start_select(struct token *t)
    {
    struct token *t1;
    struct tok_lst *tlst;
@@ -133,8 +132,7 @@ struct token *t;
 /*
  * end_select - handle #elif, #else, and #endif
  */
-static void end_select(t)
-struct token *t;
+static void end_select(struct token *t)
    {
    struct tok_lst *tlst;
    struct token *t1;
@@ -190,8 +188,7 @@ struct token *t;
 /*
  * incl_file - handle #include
  */
-static void incl_file(t)
-struct token *t;
+static void incl_file(struct token *t)
    {
    struct token *file_tok, *t1;
    struct str_buf *sbuf;
@@ -289,8 +286,7 @@ struct token *t;
 /*
  * define - handle #define and #begdef
  */
-static void define(t)
-struct token *t;
+static void define(struct token *t)
    {
    struct token *mname;   /* name of macro */
    int category;	  /* NoArgs for object-like macro, else number params */
@@ -416,9 +412,7 @@ struct token *t;
 /*
  * expand - add expansion of macro to source stack.
  */
-static int expand(t, m)
-struct token *t;
-struct macro *m;
+static int expand(struct token *t, struct macro *m)
    {
    struct token *t1 = NULL;
    struct token *t2;
@@ -585,9 +579,7 @@ struct macro *m;
  * toks_to_str - put in a buffer the string image of tokens up to the end of
  *    of a preprocessor directive.
  */
-static void toks_to_str(sbuf, t)
-struct str_buf *sbuf;
-struct token *t;
+static void toks_to_str(struct str_buf *sbuf, struct token *t)
    {
    char *s;
 

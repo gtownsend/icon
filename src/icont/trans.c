@@ -26,9 +26,7 @@ int peekc;			/* one-character look ahead */
 /*
  * translate a number of files, returning an error count
  */
-int trans(ifiles, tgtdir)
-char **ifiles;
-char *tgtdir;
+int trans(char **ifiles, char *tgtdir)
    {
    afatals = 0;
 
@@ -58,8 +56,7 @@ char *tgtdir;
 /*
  * translate one file.
  */
-static void trans1(filename, tgtdir)
-char *filename, *tgtdir;
+static void trans1(char *filename, char *tgtdir)
 {
    char oname1[MaxPath];	/* buffer for constructing file name */
    char oname2[MaxPath];	/* buffer for constructing file name */
@@ -117,8 +114,7 @@ char *filename, *tgtdir;
 /*
  * writecheck - check the return code from a stdio output operation
  */
-void writecheck(rc)
-int rc;
+void writecheck(int rc)
    {
    if (rc < 0)
       quit("cannot write to ucode file");

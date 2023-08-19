@@ -3,7 +3,7 @@
  *
  *  The arguments are dumped in hexadecimal on standard output.
  *
- *  This function requires neither an ANSI C compiler nor "icall.h".
+ *  This function does not require "icall.h".
  */
 
 #include <stdio.h>
@@ -13,9 +13,7 @@ typedef struct {
    long vword;
 } descriptor;
 
-int ddump(argc, argv)
-int argc;
-descriptor *argv;
+int ddump(int argc, descriptor *argv)
 {
    int i, n;
 

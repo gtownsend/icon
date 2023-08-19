@@ -112,9 +112,7 @@ word xnargs;
 /*
  * The main loop of the interpreter.
  */
-int interp(fsig,cargp)
-int fsig;
-dptr cargp;
+int interp(int fsig, dptr cargp)
    {
    register word opnd;
    register word *rsp;
@@ -125,8 +123,8 @@ dptr cargp;
    register word *firstwd, *lastwd;
    word *oldsp;
    int type, signal, args;
-   extern int (*optab[])();
-   extern int (*keytab[])();
+   extern int (*optab[])(dptr);
+   extern int (*keytab[])(dptr);
    struct b_proc *bproc;
 
    /*
@@ -520,13 +518,13 @@ invokej:
 
 	       /* ExInterp not needed since no change since last EntInterp */
 	       if (type == I_Vararg) {
-	          int (*bfunc)();
+	          int (*bfunc)(word,dptr);
                   bfunc = bproc->entryp.ccode;
 		  signal = (*bfunc)(nargs,rargp);
                   }
 	       else
                   {
-                  int (*bfunc)();
+                  int (*bfunc)(dptr);
                   bfunc = bproc->entryp.ccode;
 		  signal = (*bfunc)(rargp);
                   }

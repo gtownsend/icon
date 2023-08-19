@@ -22,8 +22,8 @@
    #define RTLD_LAZY 1
 #endif					/* RTLD_LAZY */
 
-int glue();
-int makefunc	(dptr d, char *name, int (*func)());
+int glue(int, dptr);
+int makefunc	(dptr d, char *name, int (*func)(int, dptr));
 
 "loadfunc(filename,funcname) - load C function dynamically."
 
@@ -91,10 +91,7 @@ end
  *
  *  Returns 0 if memory could not be allocated.
  */
-int makefunc(d, name, func)
-dptr d;
-char *name;
-int (*func)();
+int makefunc(dptr d, char *name, int (*func)(int, dptr))
    {
    struct b_proc *blk;
 
@@ -124,17 +121,15 @@ int (*func)();
  * It digs the actual C code address out of the proc block, and calls that.
  */
 
-int glue(argc, dargv)
-int argc;
-dptr dargv;
+int glue(int argc, dptr dargv)
    {
-   int status, (*func)();
+   int status, (*func)(int, dptr);
    struct b_proc *blk;
    struct descrip r;
    tended struct descrip p;
 
    blk = (struct b_proc *)dargv[0].vword.bptr;	/* proc block address */
-   func = (int (*)())blk->lnames[0].vword.sptr;	/* entry point address */
+   func = (int (*)(int, dptr))blk->lnames[0].vword.sptr; /* entry point addr */
 
    p = dargv[0];			/* save proc for traceback */
    dargv[0] = nulldesc;			/* set default return value */

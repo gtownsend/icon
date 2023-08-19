@@ -31,10 +31,7 @@ static Pixmap	loadimage	(wbp w, char *filename, unsigned int *height,
 /*
  * write some text to both the window and the pixmap
  */
-void xdis(w,s,n)
-register wbp w;
-char *s;
-int n;
+void xdis(wbp w, char *s, int n)
    {
    int x, y, delta_x;
    STDLOCALS(w);
@@ -52,9 +49,7 @@ int n;
 /*
  * put a character out to a window using the current attributes
  */
-int wputc(ci,w)
-int ci;
-wbp w;
+int wputc(int ci, wbp w)
    {
    int lh, width, height, over;
    char c = (char)ci;
@@ -176,9 +171,7 @@ wbp w;
  * if w is non-null, block until a returnable event arrives.
  * returns 1 on success, 0 on failure, and -1 on error.
  */
-int handle_misc(wd, w)
-wdp wd;
-wbp w;
+int handle_misc(wdp wd, wbp w)
    {
    XEvent event;
    Window evwin;
@@ -329,9 +322,7 @@ int pollevent()
 /*
  * get a single item from w's pending queue
  */
-int wgetq(w,res)
-wbp w;
-dptr res;
+int wgetq(wbp w, dptr res)
    {
    int posted = 0;
 
@@ -356,8 +347,7 @@ dptr res;
 /*
  * postcursor/scrubcursor calls must be paired without any intervening output.
  */
-static void postcursor(w)
-wbp w;
+static void postcursor(wbp w)
    {
    STDLOCALS(w);
 
@@ -370,8 +360,7 @@ wbp w;
    XSync(stddpy, False);
    }
 
-static void scrubcursor(w)
-wbp w;
+static void scrubcursor(wbp w)
    {
    STDLOCALS(w);
 
@@ -388,8 +377,7 @@ wbp w;
  * wclose - close a window.  If is a real on-screen window,
  * wait for a DestroyNotify event from the server before returning.
  */
-int wclose(w)
-wbp w;
+int wclose(wbp w)
    {
    STDLOCALS(w);
 
@@ -421,8 +409,7 @@ wbp w;
 /*
  * flush a window
  */
-void wflush(w)
-wbp w;
+void wflush(wbp w)
    {
    STDLOCALS(w);
    XFlush(stddpy);
@@ -440,8 +427,7 @@ void wflushall()
 /*
  * sync all the servers
  */
-void wsync(w)
-wbp w;
+void wsync(wbp w)
    {
    wdp wd;
    if (w == NULL) {
@@ -463,11 +449,7 @@ wbp w;
  *  -1  : ordinary failure
  *  -2  : out of memory
  */
-FILE *wopen(name, lp, attr, n, err_index)
-char *name;
-struct b_list *lp;
-dptr attr;
-int n, *err_index;
+FILE *wopen(char *name, struct b_list *lp, dptr attr, int n, int *err_index)
    {
    wbp w;
    wsp ws;
@@ -566,10 +548,9 @@ int n, *err_index;
 
 /*
  * make an icon for a window
+ * x,y are current mouse position
  */
-void makeIcon(w, x, y)
-wbp w;
-int x, y;		/* current mouse position */
+void makeIcon(wbp w, int x, int y)
 {
    int status;
    STDLOCALS(w);
@@ -617,8 +598,7 @@ int x, y;		/* current mouse position */
  *  If a window, cause the window to actually become visible on the screen.
  *  returns Succeeded, Failed, or Error
  */
-int wmap(w)
-wbp w;
+int wmap(wbp w)
    {
    XWindowAttributes attrs;
    XGCValues gcv;
@@ -848,9 +828,7 @@ wbp w;
 }
 
 
-int do_config(w, status)
-wbp w;
-int status;
+int do_config(wbp w, int status)
    {
    wsp ws = w->window;
    wdp wd = ws->display;
@@ -880,9 +858,7 @@ int status;
    return Succeeded;
    }
 
-int setheight(w, new_height)
-wbp w;
-SHORT new_height;
+int setheight(wbp w, SHORT new_height)
    {
    STDLOCALS(w);
    if (new_height < 0) return Failed;
@@ -890,9 +866,7 @@ SHORT new_height;
    return Succeeded;
    }
 
-int setwidth(w, new_width)
-wbp w;
-SHORT new_width;
+int setwidth(wbp w, SHORT new_width)
 {
    STDLOCALS(w);
    if (new_width < 0) return Failed;
@@ -900,9 +874,7 @@ SHORT new_width;
    return Succeeded;
 }
 
-int setgeometry(w, geo)
-wbp w;
-char *geo;
+int setgeometry(wbp w, char *geo)
    {
    int width = 0, height = 0;
    int x = 0, y = 0, status;
@@ -930,9 +902,7 @@ char *geo;
    return Succeeded;
    }
 
-int allowresize(w, on)
-wbp w;
-int on;
+int allowresize(wbp w, int on)
    {
    if (on)
       SETRESIZABLE(w);
@@ -941,9 +911,7 @@ int on;
    return Succeeded;
    }
 
-void warpPointer(w, x, y)
-wbp w;
-int x, y;
+void warpPointer(wbp w, int x, int y)
    {
    wsp ws = w->window;
    XWarpPointer(ws->display->display, None, ws->win, 0,0,0,0, x, y);
@@ -952,9 +920,7 @@ int x, y;
 /*
  * #@#@ This is a bug
  */
-int seticonlabel(w, val)
-wbp w;
-char *val;
+int seticonlabel(wbp w, char *val)
    {
    STDLOCALS(w);
    if (ws->iconlabel != NULL) free(ws->iconlabel);
@@ -976,9 +942,7 @@ char *val;
 /*
  * setwindowlabel
  */
-int setwindowlabel(w, s)
-wbp w;
-char *s;
+int setwindowlabel(wbp w, char *s)
 {
    wsp ws = w->window;
    if (ws->windowlabel != NULL) free(ws->windowlabel);
@@ -993,9 +957,7 @@ char *s;
 /*
  * setcursor() - a no-op under X at present
  */
-int setcursor(w, on)
-wbp w;
-int on;
+int setcursor(wbp w, int on)
 {
    if (on)
       SETCURSORON(w);
@@ -1008,9 +970,7 @@ int on;
 /*
  * setpointer() - define a mouse pointer shape
  */
-int setpointer(w, val)
-wbp w;
-char *val;
+int setpointer(wbp w, char *val)
    {
    int i = si_s2i(cursorsyms,val) >> 1;
    STDLOCALS(w);
@@ -1027,9 +987,7 @@ char *val;
 /*
  * setdrawop() - set the drawing operation
  */
-int setdrawop(w, val)
-wbp w;
-char *val;
+int setdrawop(wbp w, char *val)
    {
    STDLOCALS(w);
    XSync(stddpy, False);
@@ -1057,8 +1015,7 @@ char *val;
 /*
  * rebind() - bind w's context to that of w2.
  */
-int rebind(w, w2)
-wbp w, w2;
+int rebind(wbp w, wbp w2)
    {
    if (w->window->display != w2->context->display) return Failed;
    w->context = w2->context;
@@ -1066,8 +1023,7 @@ wbp w, w2;
    }
 
 
-void setclip(w)
-wbp w;
+void setclip(wbp w)
    {
    wcp wc = w->context;
    XRectangle rec;
@@ -1080,8 +1036,7 @@ wbp w;
       }
    }
 
-void unsetclip(w)
-wbp w;
+void unsetclip(wbp w)
    {
    wcp wc = w->context;
    if (wc->gc) {
@@ -1089,9 +1044,7 @@ wbp w;
       }
    }
 
-void getcanvas(w, s)
-wbp w;
-char *s;
+void getcanvas(wbp w, char *s)
    {
    if (w->window->win == (Window) NULL) sprintf(s, "hidden");
    else
@@ -1120,9 +1073,7 @@ char *s;
  *  Set the canvas type, either during open (pixmap is null, set a flag)
  *   or change an existing canvas to a different type.
  */
-int setcanvas(w,s)
-wbp w;
-char *s;
+int setcanvas(wbp w, char *s)
    {
    XTextProperty textprop;
    STDLOCALS(w);
@@ -1231,9 +1182,7 @@ char *s;
    return Succeeded;
    }
 
-int seticonicstate(w,s)
-wbp w;
-char *s;
+int seticonicstate(wbp w, char *s)
    {
    STDLOCALS(w);
 
@@ -1265,9 +1214,7 @@ char *s;
    return Succeeded;
    }
 
-int seticonpos(w,s)
-wbp w;
-char *s;
+int seticonpos(wbp w, char *s)
    {
    char *s2;
    wsp ws = w->window;
@@ -1288,9 +1235,7 @@ char *s;
    return Succeeded;
    }
 
-int geticonpos(w, s)
-wbp w;
-char *s;
+int geticonpos(wbp w, char *s)
    {
    wsp ws = w->window;
    sprintf(s,"%d,%d", ws->iconx, ws->icony);
@@ -1301,9 +1246,7 @@ char *s;
 /*
  * if the window exists and is visible, set its position to (x,y)
  */
-void moveWindow(w,x,y)
-wbp w;
-int x, y;
+void moveWindow(wbp w, int x, int y)
 {
    STDLOCALS(w);
    ws->posx = x;
@@ -1314,9 +1257,7 @@ int x, y;
       }
 }
 
-int moveResizeWindow(w, x, y, width, height)
-wbp w;
-int x, y, width, height;
+int moveResizeWindow(wbp w, int x, int y, int width, int height)
    {
    wsp ws = w->window;
    wdp wd = ws->display;
@@ -1351,9 +1292,7 @@ int x, y, width, height;
 /*
  * Set the context's fill style by name.
  */
-int setfillstyle(w, s)
-wbp w;
-char *s;
+int setfillstyle(wbp w, char *s)
    {
    STDLOCALS(w);
 
@@ -1378,9 +1317,7 @@ char *s;
 /*
  * Set the context's line style by name.
  */
-int setlinestyle(w, s)
-wbp w;
-char *s;
+int setlinestyle(wbp w, char *s)
    {
    STDLOCALS(w);
 
@@ -1404,9 +1341,7 @@ char *s;
 /*
  * Set the context's line width
  */
-int setlinewidth(w, linewid)
-wbp w;
-LONG linewid;
+int setlinewidth(wbp w, LONG linewid)
    {
    unsigned long gcmask;
    XGCValues gcv;
@@ -1431,8 +1366,7 @@ LONG linewid;
 /*
  * Reset the context's foreground color to whatever it is supposed to be.
  */
-int resetfg(w)
-wbp w;
+int resetfg(wbp w)
    {
    wcp wc = w->context;
    if (wc->gc != NULL)
@@ -1444,9 +1378,7 @@ wbp w;
 /*
  * Set the context's foreground color by name.
  */
-int setfg(w,s)
-wbp w;
-char *s;
+int setfg(wbp w, char *s)
    {
    wclrp cp;
    STDLOCALS(w);
@@ -1456,9 +1388,7 @@ char *s;
    return resetfg(w);
    }
 
-int setfgrgb(w, r, g, b)
-wbp w;
-int r, g, b;
+int setfgrgb(wbp w, int r, int g, int b)
 {
    char sbuf1[MaxCvtLen];
    sprintf(sbuf1, "%d,%d,%d", r, g, b);
@@ -1468,9 +1398,7 @@ int r, g, b;
 /*
  * Set the context's foreground color by color cell.
  */
-int isetfg(w,fg)
-wbp w;
-int fg;
+int isetfg(wbp w, int fg)
    {
    int i, r, g, b;
    STDLOCALS(w);
@@ -1494,9 +1422,7 @@ int fg;
 /*
  * Set the window context's background color by name.
  */
-int setbg(w,s)
-wbp w;
-char *s;
+int setbg(wbp w, char *s)
    {
    wclrp cp;
    STDLOCALS(w);
@@ -1509,9 +1435,7 @@ char *s;
    return ISXORREVERSE(w) ? resetfg(w) : Succeeded;
    }
 
-int setbgrgb(w, r, g, b)
-wbp w;
-int r, g, b;
+int setbgrgb(wbp w, int r, int g, int b)
 {
    char sbuf1[MaxCvtLen];
    sprintf(sbuf1, "%d,%d,%d", r, g, b);
@@ -1521,9 +1445,7 @@ int r, g, b;
 /*
  * Set the context's background color by color cell.
  */
-int isetbg(w,bg)
-wbp w;
-int bg;
+int isetbg(wbp w, int bg)
    {
    int i, r, g, b;
    STDLOCALS(w);
@@ -1549,9 +1471,7 @@ int bg;
 /*
  * Set the gamma correction value.
  */
-int setgamma(w, gamma)
-wbp w;
-double gamma;
+int setgamma(wbp w, double gamma)
    {
    w->context->gamma = gamma;
    setfg(w, w->context->fg->name);	/* reinterpret current Fg/Bg spec */
@@ -1564,9 +1484,7 @@ double gamma;
  * for now just open a new display each time.  Note that this can only be
  * called before a window is instantiated...
  */
-int setdisplay(w,s)
-wbp w;
-char *s;
+int setdisplay(wbp w, char *s)
    {
    wdp d;
    /* can't change display for mapped window! */
@@ -1581,17 +1499,13 @@ char *s;
    return Succeeded;
    }
 
-int setleading(w, i)
-wbp w;
-int i;
+int setleading(wbp w, int i)
 {
    w->context->leading = i;
    return Succeeded;
 }
 
-int setimage(w, val)
-wbp w;
-char *val;
+int setimage(wbp w, char *val)
    {
    wsp ws = w->window;
    int status;
@@ -1601,8 +1515,7 @@ char *val;
    return Succeeded;
    }
 
-void toggle_fgbg(w)
-wbp w;
+void toggle_fgbg(wbp w)
 {
    wclrp tmp;
    STDLOCALS(w);
@@ -1616,9 +1529,7 @@ wbp w;
       }
 }
 
-void getdisplay(w, answer)
-wbp w;
-char *answer;
+void getdisplay(wbp w, char *answer)
    {
    char *tmp;
    wdp wd = w->window->display;
@@ -1631,9 +1542,7 @@ char *answer;
    else sprintf(answer, "%s", wd->name);
    }
 
-int getvisual(w, answer)
-wbp w;
-char *answer;
+int getvisual(wbp w, char *answer)
 {
    wdp wd = w->window->display;
    Visual * v = DefaultVisual(wd->display,wd->screen);
@@ -1643,8 +1552,7 @@ char *answer;
 /*
  * getpos() - update the window state's notion of its current position
  */
-int getpos(w)
-wbp w;
+int getpos(wbp w)
 {
    Window garbage1, garbage2;
    int root_x, root_y, win_x, win_y;
@@ -1666,23 +1574,17 @@ wbp w;
    return Succeeded;
 }
 
-void getfg(w, answer)
-wbp w;
-char *answer;
+void getfg(wbp w, char *answer)
 {
    sprintf(answer, "%s", w->context->fg->name);
 }
 
-void getbg(w, answer)
-wbp w;
-char *answer;
+void getbg(wbp w, char *answer)
 {
    sprintf(answer, "%s", w->context->bg->name);
 }
 
-void getlinestyle(w, answer)
-wbp w;
-char *answer;
+void getlinestyle(wbp w, char *answer)
 {
    wcp wc = w->context;
    sprintf(answer,"%s",
@@ -1690,23 +1592,17 @@ char *answer;
 	   ((wc->linestyle==LineOnOffDash)?"dashed":"striped"));
 }
 
-void getfntnam(w, answer)
-wbp w;
-char *answer;
+void getfntnam(wbp w, char *answer)
 {
    sprintf(answer,"%s", w->context->font->name);
 }
 
-void getpointername(w, answer)
-wbp w;
-char *answer;
+void getpointername(wbp w, char *answer)
 {
    strcpy(answer, si_i2s(cursorsyms, 2 * w->window->theCursor));
 }
 
-void getdrawop(w, answer)
-wbp w;
-char *answer;
+void getdrawop(wbp w, char *answer)
 {
    char *s;
    if (ISXORREVERSE(w)) s = "reverse";
@@ -1715,9 +1611,7 @@ char *answer;
    else strcpy(answer, "copy");
 }
 
-void geticonic(w, answer)
-wbp w;
-char *answer;
+void geticonic(wbp w, char *answer)
 {
    switch (w->window->iconic) {
    case RootState:
@@ -1737,9 +1631,7 @@ char *answer;
 /*
  * Set the window's font by name.
  */
-int setfont(w,s)
-wbp w;
-char **s;
+int setfont(wbp w, char **s)
    {
    wfp tmp;
    STDLOCALS(w);
@@ -1763,9 +1655,7 @@ char **s;
  * callback procedures
  */
 
-static int handle_exposures(w, event)
-wbp w;
-XExposeEvent *event;
+static int handle_exposures(wbp w, XExposeEvent *event)
    {
    int returnval;
    STDLOCALS(w);
@@ -1800,10 +1690,7 @@ XExposeEvent *event;
  *
  * Returns 0 on failure.
  */
-int resizePixmap(w,width,height)
-wbp w;
-int width;
-int height;
+int resizePixmap(wbp w, int width, int height)
    {
    Pixmap p;
    STDLOCALS(w);
@@ -1861,9 +1748,7 @@ int height;
  * user program is informed anyhow.  The integer coordinates are
  * the new size of the window, in pixels.
  */
-static int handle_config(w, event)
-wbp w;
-XConfigureEvent *event;
+static int handle_config(wbp w, XConfigureEvent *event)
    {
    struct descrip d;
    STDLOCALS(w);
@@ -1902,9 +1787,7 @@ XConfigureEvent *event;
 /*
  * Queue up characters for keypress events.
  */
-static void handle_keypress(w,event)
-wbp w;
-XKeyEvent *event;
+static void handle_keypress(wbp w, XKeyEvent *event)
    {
    int i,j;
    char s[10];
@@ -1939,9 +1822,7 @@ XKeyEvent *event;
  * the structures are identical up to the button field (which we do not
  * examine for drag events).  Mouse coordinates are queued up after the event.
  */
-static void handle_mouse(w,event)
-wbp w;
-XButtonEvent *event;
+static void handle_mouse(wbp w, XButtonEvent *event)
    {
    static unsigned int buttonorder[3] =
      { Button1Mask, Button2Mask, Button3Mask };
@@ -2017,10 +1898,7 @@ XButtonEvent *event;
 /*
  * fill a series of rectangles
  */
-void fillrectangles(w, recs, nrecs)
-wbp w;
-XRectangle *recs;
-int nrecs;
+void fillrectangles(wbp w, XRectangle *recs, int nrecs)
    {
    STDLOCALS(w);
 
@@ -2041,9 +1919,7 @@ int nrecs;
 /*
  * erase an area
  */
-void eraseArea(w,x,y,width,height)
-wbp w;
-int x, y, width, height;
+void eraseArea(wbp w, int x, int y, int width, int height)
    {
    STDLOCALS(w);
 
@@ -2076,9 +1952,7 @@ int x, y, width, height;
 /*
  * copy an area
  */
-int copyArea(w,w2,x,y,width,height,x2,y2)
-wbp w, w2;
-int x, y, width, height, x2, y2;
+int copyArea(wbp w, wbp w2, int x, int y, int width, int height, int x2, int y2)
    {
    int lpad, rpad, tpad, bpad;
    Pixmap src;
@@ -2214,9 +2088,7 @@ int x, y, width, height, x2, y2;
    return Succeeded;
    }
 
-int getdefault(w, prog, opt, answer)
-wbp w;
-char *prog, *opt, *answer;
+int getdefault(wbp w, char *prog, char *opt, char *answer)
    {
    char *p;
    STDLOCALS(w);
@@ -2232,11 +2104,7 @@ char *prog, *opt, *answer;
 /*
  * Allocate a mutable color
  */
-int mutable_color(w, argv, ac, retval)
-wbp w;
-dptr argv;
-int ac;
-int *retval;
+int mutable_color(wbp w, dptr argv, int ac, int *retval)
    {
    XColor colorcell;
    LinearColor clr;
@@ -2313,9 +2181,7 @@ int *retval;
    }
    }
 
-char *get_mutable_name(w, mute_index)
-wbp w;
-int mute_index;
+char *get_mutable_name(wbp w, int mute_index)
    {
    wdp dp;
    int i;
@@ -2333,10 +2199,7 @@ int mute_index;
    return colorname;
    }
 
-int set_mutable(w, i, s)
-wbp w;
-int i;
-char *s;
+int set_mutable(wbp w, int i, char *s)
    {
    LinearColor clr;
    XColor colorcell;
@@ -2350,9 +2213,7 @@ char *s;
    return Succeeded;
    }
 
-void free_mutable(w, mute_index)
-wbp w;
-int mute_index;
+void free_mutable(wbp w, int mute_index)
    {
    wdp dp;
    int i;
@@ -2367,9 +2228,7 @@ int mute_index;
    }
 
 
-void freecolor(w, s)
-wbp w;
-char *s;
+void freecolor(wbp w, char *s)
    {
    wdp dp;
    int i;
@@ -2392,11 +2251,8 @@ char *s;
 /*
  * Draw a bilevel image
  */
-int blimage(w, x, y, width, height, ch, s, len)
-wbp w;
-int x, y, width, height, ch;
-unsigned char *s;
-word len;
+int blimage(wbp w, int x, int y, int width, int height,
+   int ch, unsigned char *s, word len)
    {
    unsigned int m, msk1, c, ix, iy;
    long fg, bg;
@@ -2463,13 +2319,8 @@ word len;
 /*
  * Draw a character-per-pixel image
  */
-int strimage(w, x, y, width, height, e, s, len, on_icon)
-wbp w;
-int x, y, width, height;
-struct palentry *e;
-unsigned char *s;
-word len;
-int on_icon;
+int strimage(wbp w, int x, int y, int width, int height,
+   struct palentry *e, unsigned char *s, word len, int on_icon)
    {
    int c, v, ret, trans;
    unsigned int r, g, b, ix, iy;
@@ -2553,10 +2404,7 @@ int on_icon;
  *
  * Stores the specified subimage in data as 15-bit linear color.
  */
-int capture(w, x, y, width, height, data)
-wbp w;
-int x, y, width, height;
-short *data;
+int capture(wbp w, int x, int y, int width, int height, short *data)
    {
    Visual *v;
    XImage *im;
@@ -2636,9 +2484,7 @@ short *data;
  * If init is nonzero, initialize it with current contents.
  * If init is zero and (x,y,w,h) fills the window, free existing color set.
  */
-static XImage *getximage(w, x, y, width, height, init)
-wbp w;
-int x, y, width, height, init;
+static XImage *getximage(wbp w, int x, int y, int width, int height, int init)
    {
    int tx, ty;
    XImage *im;
@@ -2672,10 +2518,7 @@ int x, y, width, height, init;
    return im;
    }
 
-int readimage(w, filename, x, y, status)
-wbp w;
-char *filename;
-int x, y, *status;
+int readimage(wbp w, char *filename, int x, int y, int *status)
    {
    Pixmap p;
    unsigned int width, height;
@@ -2706,9 +2549,7 @@ int x, y, *status;
 /*
  * Initialize client for producing pixels from a window
  */
-int getpixel_init(w, imem)
-wbp w;
-struct imgmem *imem;
+int getpixel_init(wbp w, struct imgmem *imem)
    {
    STDLOCALS(w);
 
@@ -2725,9 +2566,7 @@ struct imgmem *imem;
    return Succeeded;
    }
 
-int getpixel_term(w, imem)
-wbp w;
-struct imgmem *imem;
+int getpixel_term(wbp w, struct imgmem *imem)
    {
    if (imem->im != NULL)
       XDestroyImage(imem->im);
@@ -2737,12 +2576,7 @@ struct imgmem *imem;
 /*
  * Return pixel (x,y) from a window in long value (rv)
  */
-int getpixel(w, x, y, rv, s, imem)
-wbp w;
-int x, y;
-long *rv;
-char *s;
-struct imgmem *imem;
+int getpixel(wbp w, int x, int y, long *rv, char *s, struct imgmem *imem)
    {
    XColor colorcell;
    LinearColor clr;
@@ -2782,9 +2616,7 @@ struct imgmem *imem;
    }
 
 
-int query_pointer(w, pp)
-wbp w;
-XPoint *pp;
+int query_pointer(wbp w, XPoint *pp)
    {
    Display *theDisplay;
    Window theWindow;
@@ -2803,8 +2635,7 @@ XPoint *pp;
    return Succeeded;
    }
 
-int query_rootpointer(pp)
-XPoint *pp;
+int query_rootpointer(XPoint *pp)
    {
    Display *theDisplay;
    Window theWindow;
@@ -2881,10 +2712,7 @@ stringint siPatternSyms[] = {
 /*
  * SetPattern
  */
-int SetPattern(w, name, len)
-wbp w;
-char *name;
-int len;
+int SetPattern(wbp w, char *name, int len)
    {
    int width, nbits;
    int i;
@@ -2935,11 +2763,7 @@ int len;
    return Failed;
    }
 
-int SetPatternBits(w, width, bits, nbits)
-wbp w;
-int width;
-C_integer *bits;
-int nbits;
+int SetPatternBits(wbp w, int width, C_integer *bits, int nbits)
    {
    C_integer v;
    int i, j;
@@ -2968,9 +2792,7 @@ int nbits;
 /*
  * remap a window ... this time with an iconwin
  */
-int remap(w,x,y)
-wbp w;
-int x,y;
+int remap(wbp w, int x, int y)
    {
    XSizeHints size_hints;
    XWMHints   *wmhints;
@@ -3019,9 +2841,7 @@ int x,y;
    }
 
 
-int seticonimage(w, dp)
-wbp w;
-dptr dp;
+int seticonimage(wbp w, dptr dp)
    {
    int status;
    Pixmap pix;
@@ -3097,10 +2917,8 @@ dptr dp;
  * Accepts only .xpm and .xbm file names, returning NoCvt for anything else.
  */
 
-int dumpimage(w,filename,x,y,width,height)
-wbp w;
-char *filename;
-unsigned int x, y, height, width;
+int dumpimage(wbp w, char *filename,
+   unsigned int x, unsigned int y, unsigned int width, unsigned int height)
    {
    int status;
    STDLOCALS(w);
@@ -3202,12 +3020,8 @@ unsigned int x, y, height, width;
 /*
  * Load an image, in any format we can figure out.
  */
-Pixmap loadimage(w, filename, height, width, atorigin, status)
-wbp w;
-char *filename;
-unsigned int *height, *width;
-int atorigin;
-int *status;
+Pixmap loadimage(wbp w, char *filename,
+   unsigned int *height, unsigned int *width, int atorigin, int *status)
    {
    Pixmap p1, p2 = (Pixmap) NULL;
    int xhot, yhot, i, j;
@@ -3351,10 +3165,7 @@ int *status;
  * Interpret a platform-specific color name s.
  * Under X, we can do this only if there is a window.
  */
-int nativecolor(w, s, r, g, b)
-wbp w;
-char *s;
-long *r, *g, *b;
+int nativecolor(wbp w, char *s, long *r, long *g, long *b)
    {
    XColor colorcell;
    LinearColor clr;
@@ -3377,9 +3188,7 @@ long *r, *g, *b;
 /*
  * Convert an X color into an Icon linear color.
  */
-LinearColor lcolor(w, colorcell)
-wbp w;
-XColor colorcell;
+LinearColor lcolor(wbp w, XColor colorcell)
    {
    LinearColor l;
    double gamma = w->context->gamma;
@@ -3393,9 +3202,7 @@ XColor colorcell;
 /*
  * Convert an Icon linear color into an X colorcell.
  */
-XColor xcolor(w, c)
-wbp w;
-LinearColor c;
+XColor xcolor(wbp w, LinearColor c)
    {
    XColor x;
    double invgamma = 1.0 / w->context->gamma;
@@ -3408,8 +3215,7 @@ LinearColor c;
    }
 
 
-int raiseWindow(w)
-wbp w;
+int raiseWindow(wbp w)
    {
    wsp ws = w->window;
    if (ws->win) {
@@ -3419,17 +3225,14 @@ wbp w;
    return Succeeded;
    }
 
-int lowerWindow(w)
-wbp w;
+int lowerWindow(wbp w)
    {
    if (w->window->win)
       XLowerWindow(w->window->display->display, w->window->win);
    return Succeeded;
    }
 
-int walert(w, volume)
-wbp w;
-int volume;
+int walert(wbp w, int volume)
 {
   STDLOCALS(w);
   XBell(stddpy, volume);

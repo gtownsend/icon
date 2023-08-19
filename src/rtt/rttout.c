@@ -87,8 +87,7 @@ static struct node *fnc_head; /* header of function being "copied" to output */
 /*
  * chk_nl - if a new-line is required, output it and indent the next line.
  */
-static void chk_nl(indent)
-int indent;
+static void chk_nl(int indent)
    {
    int col;
 
@@ -107,9 +106,7 @@ int indent;
 /*
  * line_dir - Output a line directive.
  */
-static void line_dir(nxt_line, new_fname)
-int nxt_line;
-char *new_fname;
+static void line_dir(int nxt_line, char *new_fname)
    {
    char *s;
 
@@ -159,9 +156,7 @@ char *new_fname;
  * prt_str - print a string to the output file, possibly preceded by
  *   a new-line and indenting.
  */
-void prt_str(s, indent)
-char *s;
-int indent;
+void prt_str(char *s, int indent)
    {
    chk_nl(indent);
    fprintf(out_file, "%s", s);
@@ -171,9 +166,7 @@ int indent;
  * tok_line - determine if a line directive is needed to synchronize the
  *  output file name and line number with an input token.
  */
-static void tok_line(t, indent)
-struct token *t;
-int indent;
+static void tok_line(struct token *t, int indent)
    {
    int nxt_line;
 
@@ -211,9 +204,7 @@ int indent;
 /*
  * prt_tok - print a token.
  */
-static void prt_tok(t, indent)
-struct token *t;
-int indent;
+static void prt_tok(struct token *t, int indent)
    {
    char *s;
 
@@ -246,8 +237,7 @@ int indent;
  * untend - output code to removed the tended descriptors in this
  *  function from the global tended list.
  */
-static void untend(indent)
-int indent;
+static void untend(int indent)
    {
    ForceNl();
    prt_str("tend = ", indent);
@@ -267,11 +257,8 @@ int indent;
 /*
  * tnd_var - output an expression to accessed a tended variable.
  */
-static void tnd_var(sym, strct_ptr, access, indent)
-struct sym_entry *sym;
-char *strct_ptr;
-char *access;
-int indent;
+static void tnd_var(struct sym_entry *sym, char *strct_ptr,
+   char *access, int indent)
    {
    /*
     * A variable that is a specific block pointer type must be cast
@@ -318,9 +305,7 @@ int indent;
 /*
  * prt_var - print a variable.
  */
-static void prt_var(n, indent)
-struct node *n;
-int indent;
+static void prt_var(struct node *n, int indent)
    {
    struct token *t;
    struct sym_entry *sym;
@@ -430,8 +415,7 @@ int indent;
  * does_call - determine if an expression contains a function call by
  *  walking its syntax tree.
  */
-static int does_call(expr)
-struct node *expr;
+static int does_call(struct node *expr)
    {
    int n_subs;
    int i;
@@ -481,11 +465,8 @@ struct node *expr;
 /*
  * prt_runerr - print code to implement runerr().
  */
-static void prt_runerr(t, num, val, indent)
-struct token *t;
-struct node *num;
-struct node *val;
-int indent;
+static void prt_runerr(struct token *t, struct node *num,
+   struct node *val, int indent)
    {
    if (op_type == OrdFunc)
       errt1(t, "'runerr' may not be used in an ordinary C function");
@@ -516,9 +497,7 @@ int indent;
  * typ_name - convert a type code to a string that can be used to
  *  output "T_" or "D_" type codes.
  */
-char *typ_name(typcd, tok)
-int typcd;
-struct token *tok;
+char *typ_name(int typcd, struct token *tok)
    {
    if (typcd == Empty_type)
       errt1(tok, "it is meaningless to assert a type of empty_type");
@@ -536,11 +515,7 @@ struct token *tok;
  * Produce a C conditional expression to check a descriptor for a
  *  particular type.
  */
-static void typ_asrt(typcd, desc, tok, indent)
-int typcd;
-struct node *desc;
-struct token *tok;
-int indent;
+static void typ_asrt(int typcd,struct node *desc,struct token *tok,int indent)
    {
    tok_line(tok, indent);
 
@@ -592,9 +567,7 @@ int indent;
  *  variable is a temporary location to store the result of the argument
  *  to a C return statement.
  */
-static int retval_dcltor(dcltor, indent)
-struct node *dcltor;
-int indent;
+static int retval_dcltor(struct node *dcltor, int indent)
    {
    int flag;
 
@@ -650,13 +623,8 @@ int indent;
 /*
  * cnv_fnc - produce code to handle RTT cnv: and def: constructs.
  */
-static void cnv_fnc(t, typcd, src, dflt, dest, indent)
-struct token *t;
-int typcd;
-struct node *src;
-struct node *dflt;
-struct node *dest;
-int indent;
+static void cnv_fnc(struct token *t, int typcd,
+   struct node *src, struct node *dflt, struct node *dest, int indent)
    {
    int dflt_to_ptr;
    int loc;
@@ -780,10 +748,7 @@ int indent;
  *   constructed in a static buffer. Also determine if a default
  *   must be passed "by reference".
  */
-char *cnv_name(typcd, dflt, dflt_to_ptr)
-int typcd;
-struct node *dflt;
-int *dflt_to_ptr;
+char *cnv_name(int typcd, struct node *dflt, int *dflt_to_ptr)
    {
    static char buf[15];
    int by_ref;
@@ -845,10 +810,7 @@ int *dflt_to_ptr;
  * ret_value - produce code to set the result location of an operation
  *  using the expression on a return or suspend.
  */
-static void ret_value(t, n, indent)
-struct token *t;
-struct node *n;
-int indent;
+static void ret_value(struct token *t, struct node *n, int indent)
    {
    struct node *caller;
    struct node *args;
@@ -1059,13 +1021,8 @@ int indent;
 /*
  * ret_1_arg - produce code for a special return/suspend with one argument.
  */
-static void ret_1_arg(t, args, typcd, vwrd_asgn, arg_rep, indent)
-struct token *t;
-struct node *args;
-int typcd;
-char *vwrd_asgn;
-char *arg_rep;
-int indent;
+static void ret_1_arg(struct token *t, struct node *args,
+   int typcd, char *vwrd_asgn, char *arg_rep, int indent)
    {
    if (args == NULL || args->nd_id == CommaNd)
       errt3(t, "wrong no. of args for", icontypes[typcd].id, arg_rep);
@@ -1092,8 +1049,7 @@ int indent;
  * chk_rsltblk - the result value contains an allocated block, make sure
  *    the allocation succeeded.
  */
-static void chk_rsltblk(indent)
-int indent;
+static void chk_rsltblk(int indent)
    {
    ForceNl();
    prt_str("if (", indent);
@@ -1115,9 +1071,7 @@ int indent;
 /*
  * failure - produce code for fail or efail.
  */
-static void failure(indent, brace)
-int indent;
-int brace;
+static void failure(int indent, int brace)
    {
    /*
     * If there are tended variables, they must be removed from the tended
@@ -1151,10 +1105,7 @@ int brace;
  *  corresponding ordinary C. Return and indication of whether execution
  *  falls through the code.
  */
-int c_walk(n, indent, brace)
-struct node *n;
-int indent;
-int brace;
+int c_walk(struct node *n, int indent, int brace)
    {
    struct token *t;
    struct node *n1;
@@ -1830,8 +1781,7 @@ int brace;
 /*
  * call_ret - decide whether a function being called might return.
  */
-int call_ret(n)
-struct node *n;
+int call_ret(struct node *n)
    {
    /*
     * Assume functions return except for c_exit(), fatalerr(), and syserr().
@@ -1871,8 +1821,7 @@ struct parminfo *new_prmloc()
  * ld_prmloc - load parameter location information that has been
  *  saved in an arrary into the symbol table.
  */
-void ld_prmloc(parminfo)
-struct parminfo *parminfo;
+void ld_prmloc(struct parminfo *parminfo)
    {
    struct sym_entry *sym;
    int param_num;
@@ -1890,8 +1839,7 @@ struct parminfo *parminfo;
  * sv_prmloc - save parameter location information from the the symbol table
  *  into an array.
  */
-void sv_prmloc(parminfo)
-struct parminfo *parminfo;
+void sv_prmloc(struct parminfo *parminfo)
    {
    struct sym_entry *sym;
    int param_num;
@@ -1911,8 +1859,7 @@ struct parminfo *parminfo;
  *  in conflicting location information, but conflicts are only detected
  *  when a parameter is actually used.
  */
-void mrg_prmloc(parminfo)
-struct parminfo *parminfo;
+void mrg_prmloc(struct parminfo *parminfo)
    {
    struct sym_entry *sym;
    int param_num;
@@ -1948,13 +1895,8 @@ void clr_prmloc()
  *  "walk" is a function used to process the subtrees within the type_case
  *  statement.
  */
-static int typ_case(var, slct_lst, dflt, walk, maybe_var, indent)
-struct node *var;
-struct node *slct_lst;
-struct node *dflt;
-int (*walk)(struct node *n, int xindent, int brace);
-int maybe_var;
-int indent;
+static int typ_case(struct node *var, struct node *slct_lst, struct node *dflt,
+   int (*walk)(struct node *n,int xindent,int brace), int maybe_var, int indent)
    {
    struct node *lst;
    struct node *select;
@@ -2207,8 +2149,7 @@ int indent;
  *   conversion of a parameter other than a conversion to C_integer or
  *   C_double. If so issue a warning.
  */
-static void chk_conj(n)
-struct node *n;
+static void chk_conj(struct node *n)
    {
    struct node *cnv_type;
    struct node *src;
@@ -2269,11 +2210,8 @@ struct node *n;
  *  clause. Return an indication of whether execution falls through the
  *  clause.
  */
-static int len_sel(sel, strt_prms, end_prms, indent)
-struct node *sel;
-struct parminfo *strt_prms;
-struct parminfo *end_prms;
-int indent;
+static int len_sel(struct node *sel,
+   struct parminfo *strt_prms, struct parminfo *end_prms, int indent)
    {
    int fall_thru;
 
@@ -2301,10 +2239,7 @@ int indent;
  * rt_walk - walk the part of the syntax tree containing rtt code, producing
  *   code for the most-general version of the routine.
  */
-static int rt_walk(n, indent, brace)
-struct node *n;
-int indent;
-int brace;
+static int rt_walk(struct node *n, int indent, int brace)
    {
    struct token *t, *t1;
    struct node *n1, *errnum;
@@ -2720,8 +2655,7 @@ int brace;
  * spcl_dcls - print special declarations for tended variables, parameter
  *  conversions, and buffers.
  */
-void spcl_dcls(op_params)
-struct sym_entry *op_params; /* operation parameters or NULL */
+void spcl_dcls(struct sym_entry *op_params) /* operation parameters or NULL */
    {
    register struct sym_entry *sym;
    struct sym_entry *sym1;
@@ -2889,8 +2823,7 @@ struct sym_entry *op_params; /* operation parameters or NULL */
  *  declarations for buffers and locations to hold conversions to C values.
  *  Determine what tended locations are needed for parameters.
  */
-static void spcl_start(op_params)
-struct sym_entry *op_params;
+static void spcl_start(struct sym_entry *op_params)
    {
    ForceNl();
    if (n_tmp_str > 0) {
@@ -2913,8 +2846,7 @@ struct sym_entry *op_params;
 /*
  * tend_ary - write struct containing array of tended descriptors.
  */
-static void tend_ary(n)
-int n;
+static void tend_ary(int n)
    {
    if (n == 0)
       return;
@@ -2997,8 +2929,7 @@ static void tend_init()
 /*
  * parm_tnd - produce code to put a parameter in its tended location.
  */
-static void parm_tnd(sym)
-struct sym_entry *sym;
+static void parm_tnd(struct sym_entry *sym)
    {
    /*
     * A parameter may either be dereferenced into its tended location
@@ -3021,8 +2952,7 @@ struct sym_entry *sym;
  *  their conversions. Produce declarations for the C_integer and C_double
  *  locations.
  */
-static void parm_locs(op_params)
-struct sym_entry *op_params;
+static void parm_locs(struct sym_entry *op_params)
    {
    struct sym_entry *next_parm;
 
@@ -3059,8 +2989,7 @@ struct sym_entry *op_params;
 /*
  * real_def - see if a declaration really defines storage.
  */
-static int real_def(n)
-struct node *n;
+static int real_def(struct node *n)
    {
    struct node *dcl_lst;
 
@@ -3083,8 +3012,7 @@ struct node *n;
 /*
  * only_proto - see if this declarator list contains only function prototypes.
  */
-static int only_proto(n)
-struct node *n;
+static int only_proto(struct node *n)
    {
    switch (n->nd_id) {
       case CommaNd:
@@ -3129,8 +3057,7 @@ struct node *n;
 /*
  * tdef_or_extr - see if this is a typedef or extern.
  */
-static int tdef_or_extr(n)
-struct node *n;
+static int tdef_or_extr(struct node *n)
    {
    switch (n->nd_id) {
       case LstNd:
@@ -3154,8 +3081,7 @@ struct node *n;
 /*
  * dclout - output an ordinary global C declaration.
  */
-void dclout(n)
-struct node *n;
+void dclout(struct node *n)
    {
    if (!enable_out)
       return;        /* output disabled */
@@ -3168,10 +3094,7 @@ struct node *n;
 /*
  * fncout - output code for a C function.
  */
-void fncout(head, prm_dcl, block)
-struct node *head;
-struct node *prm_dcl;
-struct node *block;
+void fncout(struct node *head, struct node *prm_dcl, struct node *block)
    {
    if (!enable_out)
       return;       /* output disabled */
@@ -3223,8 +3146,7 @@ struct node *block;
 /*
  * defout - output operation definitions (except for constant keywords)
  */
-void defout(n)
-struct node *n;
+void defout(struct node *n)
    {
    struct sym_entry *sym, *sym1;
 
@@ -3266,8 +3188,7 @@ struct node *n;
 /*
  * comp_def - output code for the compiler for operation definitions.
  */
-static void comp_def(n)
-struct node *n;
+static void comp_def(struct node *n)
    {
    #ifdef Rttx
       fprintf(stdout,
@@ -3340,14 +3261,12 @@ struct node *n;
        *  for the operation type, the prefix that makes the function
        *  name unique, and the name of the operation.
        */
-      fprintf(out_file, "int %c%c%c_%s(r_nargs, r_args, r_rslt, r_s_cont)\n",
+      fprintf(out_file, "int %c%c%c_%s(",
          uc_letter, prfx1, prfx2, cur_impl->name);
-      fprintf(out_file, "int r_nargs;\n");
-      fprintf(out_file, "dptr r_args;\n");
-      fprintf(out_file, "dptr r_rslt;\n");
-      fprintf(out_file, "continuation r_s_cont;");
+      fprintf(out_file,
+         "int r_nargs, dptr r_args, dptr r_rslt, continuation r_s_cont)");
       fname = cname;
-      line = 12;
+      line = 8;
       ForceNl();
       prt_str("{", IndentInc);
       ForceNl();
@@ -3441,8 +3360,7 @@ struct node *n;
 /*
  * interp_def - output code for the interpreter for operation definitions.
  */
-static void interp_def(n)
-struct node *n;
+static void interp_def(struct node *n)
    {
    struct sym_entry *sym;
    struct node *n1;
@@ -3535,15 +3453,8 @@ struct node *n;
     */
    fprintf(out_file, "int %c%s(", letter, name);
    if (params != NULL && (params->id_type & VarPrm))
-      fprintf(out_file, "r_nargs, ");
-   fprintf(out_file, "r_args)\n");
-   ++line;
-   if (params != NULL && (params->id_type & VarPrm)) {
-      fprintf(out_file, "int r_nargs;\n");
-      ++line;
-      }
-   fprintf(out_file, "dptr r_args;");
-   ++line;
+      fprintf(out_file, "int r_nargs, ");
+   fprintf(out_file, "dptr r_args)");
    ForceNl();
    prt_str("{", IndentInc);
 
@@ -3648,8 +3559,7 @@ struct node *n;
 /*
  * keyconst - produce code for a constant keyword.
  */
-void keyconst(t)
-struct token *t;
+void keyconst(struct token *t)
    {
    struct il_code *il;
    int n;
@@ -3661,9 +3571,8 @@ struct token *t;
       rslt_loc = "r_args[0]";  /* result location */
 
       fprintf(out_file, "\n");
-      fprintf(out_file, "int K%s(r_args)\n", cur_impl->name);
-      fprintf(out_file, "dptr r_args;");
-      line += 2;
+      fprintf(out_file, "int K%s(dptr r_args)\n", cur_impl->name);
+      line++;
       ForceNl();
       prt_str("{", IndentInc);
       ForceNl();
@@ -3758,8 +3667,7 @@ struct token *t;
  *   If it is #passthru, print just the body of the directive, otherwise
  *   print the whole thing.
  */
-void keepdir(t)
-struct token *t;
+void keepdir(struct token *t)
    {
    char *s;
 

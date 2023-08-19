@@ -398,10 +398,7 @@ end
 /*
  * ripow - raise a real number to an integral power.
  */
-int ripow(r, n, drslt)
-double r;
-C_integer n;
-dptr drslt;
+int ripow(double r, C_integer n, dptr drslt)
    {
    double retval;
 

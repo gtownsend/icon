@@ -7,8 +7,7 @@ int line_cntrl;
 /*
  * output - output preprocessed tokens for the current file.
  */
-void output(out_file)
-FILE *out_file;
+void output(FILE *out_file)
    {
    struct token *t, *t1;
    struct token *saved_whsp;

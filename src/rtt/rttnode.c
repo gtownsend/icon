@@ -3,9 +3,7 @@
 /*
  * node0 - create a syntax tree leaf node.
  */
-struct node *node0(id, tok)
-int id;
-struct token *tok;
+struct node *node0(int id, struct token *tok)
    {
    struct node *n;
 
@@ -18,10 +16,7 @@ struct token *tok;
 /*
  * node1 - create a syntax tree node with one child.
  */
-struct node *node1(id, tok, n1)
-int id;
-struct token *tok;
-struct node *n1;
+struct node *node1(int id, struct token *tok, struct node *n1)
    {
    struct node *n;
 
@@ -35,11 +30,7 @@ struct node *n1;
 /*
  * node2 - create a syntax tree node with two children.
  */
-struct node *node2(id, tok, n1, n2)
-int id;
-struct token *tok;
-struct node *n1;
-struct node *n2;
+struct node *node2(int id, struct token *tok, struct node *n1, struct node *n2)
    {
    struct node *n;
 
@@ -54,12 +45,8 @@ struct node *n2;
 /*
  * node3 - create a syntax tree node with three children.
  */
-struct node *node3(id, tok, n1, n2, n3)
-int id;
-struct token *tok;
-struct node *n1;
-struct node *n2;
-struct node *n3;
+struct node *node3(int id, struct token *tok,
+   struct node *n1, struct node *n2, struct node *n3)
    {
    struct node *n;
 
@@ -75,13 +62,8 @@ struct node *n3;
 /*
  * node4 - create a syntax tree node with four children.
  */
-struct node *node4(id, tok, n1, n2, n3, n4)
-int id;
-struct token *tok;
-struct node *n1;
-struct node *n2;
-struct node *n3;
-struct node *n4;
+struct node *node4(int id, struct token *tok,
+   struct node *n1, struct node *n2, struct node *n3, struct node *n4)
    {
    struct node *n;
 
@@ -100,8 +82,7 @@ struct node *n4;
  *  is in the symbol table, create a node that references the entry,
  *  otherwise create a simple leaf node.
  */
-struct node *sym_node(tok)
-struct token *tok;
+struct node *sym_node(struct token *tok)
    {
    struct sym_entry *sym;
    struct node *n;
@@ -128,10 +109,7 @@ struct token *tok;
 /*
  * comp_nd - create a node for a compound statement.
  */
-struct node *comp_nd(tok, dcls, stmts)
-struct token *tok;
-struct node *dcls;
-struct node *stmts;
+struct node *comp_nd(struct token *tok, struct node *dcls, struct node *stmts)
    {
    struct node *n;
 
@@ -147,16 +125,9 @@ struct node *stmts;
 /*
  * arith_nd - create a node for an arith_case statement.
  */
-struct node *arith_nd(tok, p1, p2, c_int, ci_act, intgr, i_act, dbl, d_act)
-struct token *tok;
-struct node *p1;
-struct node *p2;
-struct node *c_int;
-struct node *ci_act;
-struct node *intgr;
-struct node *i_act;
-struct node *dbl;
-struct node *d_act;
+struct node *arith_nd(struct token *tok, struct node *p1, struct node *p2,
+   struct node *c_int, struct node *ci_act, struct node *intgr,
+   struct node *i_act, struct node *dbl, struct node *d_act)
    {
    struct node *n;
 
@@ -190,8 +161,7 @@ struct node *d_act;
    return node3(TrnryNd, tok, p1, p2, n);
    }
 
-struct node *dest_node(tok)
-struct token *tok;
+struct node *dest_node(struct token *tok)
    {
    struct node *n;
    int typcd;
@@ -208,8 +178,7 @@ struct token *tok;
 /*
  * free_tree - free storage for a syntax tree.
  */
-void free_tree(n)
-struct node *n;
+void free_tree(struct node *n)
    {
    struct sym_entry *sym, *sym1;
 

@@ -31,8 +31,7 @@ int nfields = 0;		/* number of fields in field table */
  * instid - copy the string s to the start of the string free space
  *  and call putident with the length of the string.
  */
-word instid(s)
-char *s;
+word instid(char *s)
    {
    register int l;
    register word indx;
@@ -64,8 +63,7 @@ char *s;
  * If "install" is 0, putident returns -1 for a nonexistent identifier,
  * and does not install it.
  */
-word putident(len, install)
-int len, install;
+word putident(int len, int install)
    {
    register int hash;
    register char *s;
@@ -118,9 +116,7 @@ int len, install;
  * lexeql - compare two strings of given length.  Returns non-zero if
  *  equal, zero if not equal.
  */
-int lexeql(l, s1, s2)
-register int l;
-register char *s1, *s2;
+int lexeql(int l, char *s1, char *s2)
    {
    while (l--)
       if (*s1++ != *s2++)
@@ -132,9 +128,7 @@ register char *s1, *s2;
  * alcident - get the next free identifier table entry, and fill it in with
  *  the specified values.
  */
-static struct ientry *alcident(nam, len)
-char *nam;
-int len;
+static struct ientry *alcident(char *nam, int len)
    {
    register struct ientry *ip;
 
@@ -160,12 +154,7 @@ void locinit()
 /*
  * putlocal - make a local symbol table entry.
  */
-void putlocal(n, id, flags, imperror, procname)
-int n;
-word id;
-register int flags;
-int imperror;
-word procname;
+void putlocal(int n, word id, int flags, int imperror, word procname)
    {
    register struct lentry *lp;
    union {
@@ -218,11 +207,7 @@ word procname;
 /*
  * putglobal - make a global symbol table entry.
  */
-struct gentry *putglobal(id, flags, nargs, procid)
-word id;
-int flags;
-int nargs;
-int procid;
+struct gentry *putglobal(word id, int flags, int nargs, int procid)
    {
    register struct gentry *p;
 
@@ -241,12 +226,7 @@ int procid;
 /*
  * putconst - make a constant symbol table entry.
  */
-void putconst(n, flags, len, pc, valp)
-int n;
-int flags, len;
-word pc;
-union xval *valp;
-
+void putconst(int n, int flags, int len, word pc, union xval *valp)
    {
    register struct centry *p;
    if (n >= csize)
@@ -289,10 +269,7 @@ union xval *valp;
 /*
  * putfield - make a record/field table entry.
  */
-void putfield(fname, gp, fnum)
-word fname;
-struct gentry *gp;
-int fnum;
+void putfield(word fname, struct gentry *gp, int fnum)
    {
    register struct fentry *fp;
    register struct rentry *rp, *rp2;
@@ -327,8 +304,7 @@ int fnum;
  * glocate - lookup identifier in global symbol table, return NULL
  *  if not present.
  */
-struct gentry *glocate(id)
-word id;
+struct gentry *glocate(word id)
    {
    register struct gentry *p;
 
@@ -341,8 +317,7 @@ word id;
 /*
  * flocate - lookup identifier in field table.
  */
-struct fentry *flocate(id)
-word id;
+struct fentry *flocate(word id)
    {
    register struct fentry *p;
 
@@ -355,12 +330,8 @@ word id;
 /*
  * alcglobal - create a new global symbol table entry.
  */
-static struct gentry *alcglobal(blink, name, flag, nargs, procid)
-struct gentry *blink;
-word name;
-int flag;
-int nargs;
-int procid;
+static struct gentry *alcglobal(struct gentry *blink,
+   word name, int flag, int nargs, int procid)
    {
    register struct gentry *gp;
 
@@ -386,11 +357,8 @@ int procid;
 /*
  * alcfhead - allocate a field table header.
  */
-static struct fentry *alcfhead(blink, name, fid, rlist)
-struct fentry *blink;
-word name;
-int fid;
-struct rentry *rlist;
+static struct fentry *alcfhead(struct fentry *blink,
+   word name, int fid, struct rentry *rlist)
    {
    register struct fentry *fp;
 
@@ -411,10 +379,7 @@ struct rentry *rlist;
 /*
  * alcfrec - allocate a field table record list element.
  */
-static struct rentry *alcfrec(link, gp, fnum)
-struct rentry *link;
-struct gentry *gp;
-int fnum;
+static struct rentry *alcfrec(struct rentry *link, struct gentry *gp, int fnum)
    {
    register struct rentry *rp;
 
@@ -429,11 +394,9 @@ int fnum;
  * blocate - search for a function. The search is linear to make
  *  it easier to add/delete functions. If found, returns index+1 for entry.
  */
-
-int blocate(s_indx)
-word s_indx;
+int blocate(word s_indx)
    {
-register char *s;
+   register char *s;
    register int i;
    extern char *ftable[];
    extern int ftbsize;

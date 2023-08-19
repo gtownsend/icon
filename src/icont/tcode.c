@@ -69,9 +69,7 @@ static int nextlab;		/* next label allocated by alclab() */
 /*
  * codegen - traverse tree t, generating code.
  */
-
-void codegen(t)
-nodeptr t;
+void codegen(nodeptr t)
    {
    nextlab = 1;
    traverse(t);
@@ -82,8 +80,7 @@ nodeptr t;
  *  plug and chug code for each of the node types.
  */
 
-static int traverse(t)
-register nodeptr t;
+static int traverse(nodeptr t)
    {
    register int lab, n, i;
    struct loopstk loopsave;
@@ -658,8 +655,7 @@ register nodeptr t;
  *  the name of operator is emitted.  For augmented operators, an "asgn"
  *  is emitted after the name of the operator.
  */
-static void binop(op)
-int op;
+static void binop(int op)
    {
    register int asgn;
    register char *name = NULL;
@@ -858,9 +854,7 @@ int op;
  *  number of "pnull" operations to receive the intermediate results.  This
  *  amounts to a pnull for each operation.
  */
-static void unopa(op,t)
-int op;
-nodeptr t;
+static void unopa(int op, nodeptr t)
    {
    switch (op) {
       case NEQUIV:		/* unary ~ and three = operators */
@@ -910,8 +904,7 @@ nodeptr t;
  *		emits "tabmat"
  *	    emits "compl"
  */
-static void unopb(op)
-int op;
+static void unopb(int op)
    {
    register char *name = NULL;
 
@@ -995,15 +988,13 @@ int op;
 static char *lastfiln = NULL;
 static int lastlin = 0;
 
-static void setloc(n)
-nodeptr n;
+static void setloc(nodeptr n)
    {
    emitfile(n);
    emitline(n);
    }
 
-static void emitfile(n)
-nodeptr n;
+static void emitfile(nodeptr n)
    {
    if ((n != NULL) &&
       (TType(n) != N_Empty) &&
@@ -1014,8 +1005,7 @@ nodeptr n;
          }
    }
 
-static void emitline(n)
-nodeptr n;
+static void emitline(nodeptr n)
    {
    /*
     * if either line or column has changed, emit location information
@@ -1036,34 +1026,27 @@ nodeptr n;
  *  emitn(s,n) - emit instruction s with numeric argument a.
  *  emits(s,a) - emit instruction s with string argument a.
  */
-static void emitlab(l)
-int l;
+static void emitlab(int l)
    {
    writecheck(fprintf(codefile, "lab L%d\n", l));
    }
 
-static void emit(s)
-char *s;
+static void emit(char *s)
    {
    writecheck(fprintf(codefile, "\t%s\n", s));
    }
 
-static void emitl(s, a)
-char *s;
-int a;
+static void emitl(char *s, int a)
    {
    writecheck(fprintf(codefile, "\t%s\tL%d\n", s, a));
    }
 
-static void emitn(s, a)
-char *s;
-int a;
+static void emitn(char *s, int a)
    {
    writecheck(fprintf(codefile, "\t%s\t%d\n", s, a));
    }
 
-static void emits(s, a)
-char *s, *a;
+static void emits(char *s, char *a)
    {
    writecheck(fprintf(codefile, "\t%s\t%s\n", s, a));
    }
@@ -1073,8 +1056,7 @@ char *s, *a;
  *  labels are restarted at 1 for each procedure, while in the compiler,
  *  they start at 1 and increase throughout the entire compilation.
  */
-static int alclab(n)
-int n;
+static int alclab(int n)
    {
    register int lab;
 

@@ -44,7 +44,6 @@ static struct keyent keytab[] = {
 /*
  * loc_init - clear the local and constant symbol tables.
  */
-
 void loc_init()
    {
    struct tlentry *lptr, *lptr1;
@@ -84,9 +83,7 @@ void loc_init()
  *  the identifier if it isn't already there.  Some semantic checks
  *  are performed.
  */
-void install(name, flag, argcnt)
-char *name;
-int flag, argcnt;
+void install(char *name, int flag, int argcnt)
    {
    union {
       struct tgentry *gp;
@@ -136,9 +133,7 @@ int flag, argcnt;
  * putloc - make a local symbol table entry and return the index
  *  of the entry in lhash.  alcloc does the work if there is a collision.
  */
-int putloc(id,id_type)
-char *id;
-int id_type;
+int putloc(char *id, int id_type)
    {
    register struct tlentry *ptr;
 
@@ -154,10 +149,7 @@ int id_type;
  * putglob makes a global symbol table entry. alcglob does the work if there
  *  is a collision.
  */
-
-static void putglob(id, id_type, n_args)
-char *id;
-int id_type, n_args;
+static void putglob(char *id, int id_type, int n_args)
    {
    register struct tgentry *ptr;
 
@@ -171,9 +163,7 @@ int id_type, n_args;
  * putlit makes a constant symbol table entry and returns the table "index"
  *  of the constant.  alclit does the work if there is a collision.
  */
-int putlit(id, idtype, len)
-char *id;
-int len, idtype;
+int putlit(char *id, int idtype, int len)
    {
    register struct tcentry *ptr;
 
@@ -189,9 +179,7 @@ int len, idtype;
  * llookup looks up id in local symbol table and returns pointer to
  *  to it if found or NULL if not present.
  */
-
-static struct tlentry *llookup(id)
-char *id;
+static struct tlentry *llookup(char *id)
    {
    register struct tlentry *ptr;
 
@@ -205,8 +193,7 @@ char *id;
  * glookup looks up id in global symbol table and returns pointer to
  *  to it if found or NULL if not present.
  */
-static struct tgentry *glookup(id)
-char *id;
+static struct tgentry *glookup(char *id)
    {
    register struct tgentry *ptr;
 
@@ -221,9 +208,7 @@ char *id;
  * clookup looks up id in constant symbol table and returns pointer to
  *  to it if found or NULL if not present.
  */
-static struct tcentry *clookup(id,flag)
-char *id;
-int flag;
+static struct tcentry *clookup(char *id, int flag)
    {
    register struct tcentry *ptr;
 
@@ -238,8 +223,7 @@ int flag;
  * klookup looks up keyword named by id in keyword table and returns
  *  its number (keyid).
  */
-int klookup(id)
-register char *id;
+int klookup(char *id)
    {
    register struct keyent *kp;
 
@@ -254,10 +238,7 @@ register char *id;
  * alcloc allocates a local symbol table entry, fills in fields with
  *  specified values and returns the new entry.
  */
-static struct tlentry *alcloc(blink, name, flag)
-struct tlentry *blink;
-char *name;
-int flag;
+static struct tlentry *alcloc(struct tlentry *blink, char *name, int flag)
    {
    register struct tlentry *lp;
 
@@ -282,10 +263,8 @@ int flag;
  * alcglob allocates a global symbol table entry, fills in fields with
  *  specified values and returns offset of new entry.
  */
-static struct tgentry *alcglob(blink, name, flag, nargs)
-struct tgentry *blink;
-char *name;
-int flag, nargs;
+static struct tgentry *alcglob(struct tgentry *blink,
+   char *name, int flag, int nargs)
    {
    register struct tgentry *gp;
 
@@ -311,10 +290,8 @@ int flag, nargs;
  * alclit allocates a constant symbol table entry, fills in fields with
  *  specified values and returns the new entry.
  */
-static struct tcentry *alclit(blink, name, len, flag)
-struct tcentry *blink;
-char *name;
-int len, flag;
+static struct tcentry *alclit(struct tcentry *blink,
+   char *name, int len, int flag)
    {
    register struct tcentry *cp;
 
@@ -339,8 +316,7 @@ int len, flag;
 /*
  * lout dumps local symbol table to fd, which is a .u1 file.
  */
-void lout(fd)
-FILE *fd;
+void lout(FILE *fd)
    {
    register struct tlentry *lp;
 
@@ -352,8 +328,7 @@ FILE *fd;
 /*
  * constout dumps constant symbol table to fd, which is a .u1 file.
  */
-void constout(fd)
-FILE *fd;
+void constout(FILE *fd)
    {
    register int l;
    register char *c;
@@ -379,9 +354,7 @@ FILE *fd;
 /*
  * rout dumps a record declaration for name to file fd, which is a .u2 file.
  */
-void rout(fd,name)
-FILE *fd;
-char *name;
+void rout(FILE *fd, char *name)
    {
    register struct tlentry *lp;
    int n;
@@ -400,8 +373,7 @@ char *name;
  *  include: implicit status, tracing activation, link directives,
  *  invocable directives, and the global table.
  */
-void gout(fd)
-FILE *fd;
+void gout(FILE *fd)
    {
    register char *name;
    register struct tgentry *gp;

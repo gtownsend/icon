@@ -38,8 +38,7 @@ wbp alc_wbinding()
 /*
  * free a window binding.
  */
-void free_binding(w)
-wbp w;
+void free_binding(wbp w)
    {
    w->refcount--;
    if(w->refcount == 0) {

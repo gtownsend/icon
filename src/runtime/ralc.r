@@ -93,8 +93,7 @@ struct astkblk *alcactiv()
  * alcbignum - allocate an n-digit bignum in the block region
  */
 
-struct b_bignum *alcbignum(n)
-word n;
+struct b_bignum *alcbignum(word n)
    {
    register struct b_bignum *blk;
    register uword size;
@@ -213,10 +212,7 @@ struct b_external *alcexternal(long nbytes, struct b_extlfuns *f, void *data)
  * alcfile - allocate a file block in the block region.
  */
 
-struct b_file *alcfile(fd, status, name)
-FILE *fd;
-int status;
-dptr name;
+struct b_file *alcfile(FILE *fd, int status, dptr name)
    {
    tended struct descrip tname = *name;
    register struct b_file *blk;
@@ -232,8 +228,7 @@ dptr name;
  * alchash - allocate a hashed structure (set or table header) in the block
  *  region.
  */
-union block *alchash(tcode)
-int tcode;
+union block *alchash(int tcode)
    {
    register int i;
    register struct b_set *ps;
@@ -259,8 +254,7 @@ int tcode;
  * alcsegment - allocate a slot block in the block region.
  */
 
-struct b_slots *alcsegment(nslots)
-word nslots;
+struct b_slots *alcsegment(word nslots)
    {
    uword size;
    register struct b_slots *blk;
@@ -279,8 +273,7 @@ word nslots;
  *  Forces a g.c. if there's not enough room for the whole list.
  */
 
-struct b_list *alclist(size)
-uword size;
+struct b_list *alclist(uword size)
    {
    register struct b_list *blk;
 
@@ -298,8 +291,7 @@ uword size;
  * alclstb - allocate a list element block in the block region.
  */
 
-struct b_lelem *alclstb(nslots, first, nused)
-uword nslots, first, nused;
+struct b_lelem *alclstb(uword nslots, uword first, uword nused)
    {
    register struct b_lelem *blk;
    register word i;
@@ -322,8 +314,7 @@ uword nslots, first, nused;
  * alcreal - allocate a real value in the block region.
  */
 
-struct b_real *alcreal(val)
-double val;
+struct b_real *alcreal(double val)
    {
    register struct b_real *blk;
 
@@ -348,9 +339,7 @@ double val;
  * alcrecd - allocate record with nflds fields in the block region.
  */
 
-struct b_record *alcrecd(nflds, recptr)
-int nflds;
-union block *recptr;
+struct b_record *alcrecd(int nflds, union block *recptr)
    {
    tended union block *trecptr = recptr;
    register struct b_record *blk;
@@ -365,9 +354,7 @@ union block *recptr;
  * alcrefresh - allocate a co-expression refresh block.
  */
 
-struct b_refresh *alcrefresh(entryx, na, nl)
-word *entryx;
-int na, nl;
+struct b_refresh *alcrefresh(word *entryx, int na, int nl)
    {
    struct b_refresh *blk;
 
@@ -381,9 +368,7 @@ int na, nl;
  * alcselem - allocate a set element block.
  */
 
-struct b_selem *alcselem(mbr,hn)
-uword hn;
-dptr mbr;
+struct b_selem *alcselem(dptr mbr, uword hn)
 
    {
    tended struct descrip tmbr = *mbr;
@@ -400,9 +385,7 @@ dptr mbr;
  * alcstr - allocate a string in the string space.
  */
 
-char *alcstr(s, slen)
-register char *s;
-register word slen;
+char *alcstr(char *s, word slen)
    {
    tended struct descrip ts;
    register char *d;
@@ -442,9 +425,7 @@ register word slen;
  * alcsubs - allocate a substring trapped variable in the block region.
  */
 
-struct b_tvsubs *alcsubs(len, pos, var)
-word len, pos;
-dptr var;
+struct b_tvsubs *alcsubs(word len, word pos, dptr var)
    {
    tended struct descrip tvar = *var;
    register struct b_tvsubs *blk;
@@ -476,9 +457,7 @@ struct b_telem *alctelem()
  *  region.
  */
 
-struct b_tvtbl *alctvtbl(tbl, ref, hashnum)
-register dptr tbl, ref;
-uword hashnum;
+struct b_tvtbl *alctvtbl(dptr tbl, dptr ref, uword hashnum)
    {
    tended struct descrip ttbl = *tbl;
    tended struct descrip tref = *ref;
@@ -496,8 +475,7 @@ uword hashnum;
  *
  *  The block must be the one that is at the very end of a block region.
  */
-void deallocate (bp)
-union block *bp;
+void deallocate(union block *bp)
 {
    word nbytes;
    struct region *rp;
@@ -531,9 +509,7 @@ union block *bp;
  *  10. give up and signal error.
  */
 
-char *reserve(region, nbytes)
-int region;
-word nbytes;
+char *reserve(int region, word nbytes)
 {
    struct region **pcurr, *curr, *rp;
    word want, newsize;
@@ -632,9 +608,7 @@ word nbytes;
 /*
  * findgap - search region chain for a region having at least nbytes available
  */
-static struct region *findgap(curr, nbytes)
-struct region *curr;
-word nbytes;
+static struct region *findgap(struct region *curr, word nbytes)
    {
    struct region *rp;
 
@@ -651,8 +625,7 @@ word nbytes;
  * newregion - try to malloc a new region and tenure the old one,
  *  backing off if the requested size fails.
  */
-static struct region *newregion(nbytes,stdsize)
-word nbytes,stdsize;
+static struct region *newregion(word nbytes, word stdsize)
 {
    uword minSize = MinAbrSize;
    struct region *rp;

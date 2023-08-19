@@ -8,9 +8,7 @@ extern struct errtab errtab[];		/* error numbers and messages */
  * err_msg - print run-time error message, performing trace back if required.
  *  This function underlies the rtt runerr() construct.
  */
-void err_msg(n, v)
-int n;
-dptr v;
+void err_msg(int n, dptr v)
 {
    register struct errtab *p;
 
@@ -80,9 +78,7 @@ dptr v;
  * irunerr - print an error message when the offending value is a C_integer
  *  rather than a descriptor.
  */
-void irunerr(n, v)
-int n;
-C_integer v;
+void irunerr(int n, C_integer v)
    {
    t_errornumber = n;
    IntVal(t_errorvalue) = v;
@@ -95,9 +91,7 @@ C_integer v;
  * drunerr - print an error message when the offending value is a C double
  *  rather than a descriptor.
  */
-void drunerr(n, v)
-int n;
-double v;
+void drunerr(int n, double v)
    {
    union block *bp;
 

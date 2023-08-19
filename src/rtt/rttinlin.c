@@ -54,8 +54,7 @@ char prfx3;		/* 3rd prefix char; used for unique body func names */
  * in_line - place in the data base in-line code for an operation and
  *   produce C functions for body statements.
  */
-void in_line(n)
-struct node *n;
+void in_line(struct node *n)
    {
    struct sym_entry *sym;
    int i;
@@ -129,8 +128,7 @@ struct node *n;
 /*
  * il_walk - walk the syntax tree producing in-line code.
  */
-static struct il_code *il_walk(n)
-struct node *n;
+static struct il_code *il_walk(struct node *n)
    {
    struct token *t;
    struct node *n1;
@@ -693,8 +691,7 @@ struct node *n;
  * il_var - produce in-line code in the data base for varibel references.
  *   These include both simple identifiers and subscripted identifiers.
  */
-static struct il_code *il_var(n)
-struct node *n;
+static struct il_code *il_var(struct node *n)
    {
    struct il_code *il = NULL;
 
@@ -719,11 +716,8 @@ struct node *n;
  * abstrcomp - produce data base code for RTL abstract type computations.
  *  In the process, do a few sanity checks where they are easy to do.
  */
-static struct il_code *abstrcomp(n, indx_stor, chng_stor, escapes)
-struct node *n;
-int indx_stor;
-int chng_stor;
-int escapes;
+static struct il_code *abstrcomp(struct node *n,
+   int indx_stor, int chng_stor, int escapes)
    {
    struct token *t;
    struct il_code *il;
@@ -877,11 +871,7 @@ int escapes;
  * abstrsnty - do some sanity checks on how this type is being used in
  *  an abstract type computation.
  */
-static void abstrsnty(t, typcd, indx_stor, chng_stor)
-struct token *t;
-int typcd;
-int indx_stor;
-int chng_stor;
+static void abstrsnty(struct token *t, int typcd, int indx_stor, int chng_stor)
    {
    struct icon_type *itp;
 
@@ -908,12 +898,12 @@ int chng_stor;
  *  The value returned indicates whether it is possible for execution
  *  to fall through the the code.
  */
-static int body_anlz(n, does_break, may_mod, const_cast, all)
-struct node *n;   /* subtree being analyzed */
-int *does_break;  /* output flag: subtree contains "break;" */
-int may_mod;      /* input flag: this subtree might be assigned to */
-int const_cast;   /* input flag: expression is cast to (const ...) */
-int all;          /* input flag: need all information about operation */
+static int body_anlz(
+   struct node *n,   /* subtree being analyzed */
+   int *does_break,  /* output flag: subtree contains "break;" */
+   int may_mod,      /* input flag: this subtree might be assigned to */
+   int const_cast,   /* input flag: expression is cast to (const ...) */
+   int all)          /* input flag: need all information about operation */
    {
    struct token *t;
    struct node *n1, *n2, *n3;
@@ -1300,8 +1290,7 @@ int all;          /* input flag: need all information about operation */
  *  lcl_tend  - allocate any tended variables needed in this body or inline
  *   statement.
  */
-static void lcl_tend(n)
-struct node *n;
+static void lcl_tend(struct node *n)
    {
    struct sym_entry *sym;
 
@@ -1359,8 +1348,7 @@ struct node *n;
  * chkrettyp - check type of return to see if it is a C integer or a
  *  C double and make note of what is found.
  */
-static void chkrettyp(n)
-struct node *n;
+static void chkrettyp(struct node *n)
    {
    if (n->nd_id == PrefxNd && n->tok != NULL) {
       switch (n->tok->tok_id) {
@@ -1378,8 +1366,7 @@ struct node *n;
 /*
  * body_fnc - produce the function which implements a body statement.
  */
-static struct il_code *body_fnc(n)
-struct node *n;
+static struct il_code *body_fnc(struct node *n)
    {
    struct node *compound;
    struct node *dcls;
@@ -1799,9 +1786,7 @@ struct node *n;
  * strct_typ - determine if the declaration may be for a structured type
  *   and look for register declarations.
  */
-static int strct_typ(typ, is_reg)
-struct node *typ;
-int *is_reg;
+static int strct_typ(struct node *typ, int *is_reg)
    {
    if (typ->nd_id == LstNd) {
       return strct_typ(typ->u[0].child, is_reg) |
@@ -1838,9 +1823,7 @@ int *is_reg;
 /*
  * determine if the variable being declared evaluates to an address.
  */
-static int is_addr(dcltor, modifier)
-struct node *dcltor;
-int modifier;
+static int is_addr(struct node *dcltor, int modifier)
    {
    switch (dcltor->nd_id) {
       case ConCatNd:
@@ -1884,9 +1867,7 @@ int modifier;
  * chgn_ploc - if this is an "in-place" conversion to a C value, change
  *  the "location" of the parameter being converted.
  */
-static void chng_ploc(typcd, src)
-int typcd;
-struct node *src;
+static void chng_ploc(int typcd, struct node *src)
    {
    int loc;
 
@@ -1915,8 +1896,7 @@ struct node *src;
  * cnt_bufs - See if we need to allocate a string or cset buffer for
  *  this conversion.
  */
-static void cnt_bufs(cnv_typ)
-struct node *cnv_typ;
+static void cnt_bufs(struct node *cnv_typ)
    {
    if (cnv_typ->nd_id == PrimryNd)
       switch (cnv_typ->tok->tok_id) {
@@ -1934,9 +1914,7 @@ struct node *cnv_typ;
  *   The type lattice has three levels: NoAbstr is bottom, SomeType is top,
  *   and individual types form the middle level.
  */
-static int mrg_abstr(sum, typ)
-int sum;
-int typ;
+static int mrg_abstr(int sum, int typ)
    {
    if (sum == NoAbstr)
       return typ;

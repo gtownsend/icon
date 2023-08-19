@@ -42,8 +42,7 @@ static char *defined = "defined";
  *  macro table. If the macro is not in the table, the pointer at the
  *  location is NULL.
  */
-static struct macro **m_find(mname)
-char *mname;
+static struct macro **m_find(char *mname)
    {
    struct macro **mpp;
 
@@ -57,9 +56,7 @@ char *mname;
  * eq_id_lst - check to see if two identifier lists contain the same identifiers
  *  in the same order.
  */
-static int eq_id_lst(lst1, lst2)
-struct id_lst *lst1;
-struct id_lst *lst2;
+static int eq_id_lst(struct id_lst *lst1, struct id_lst *lst2)
    {
    if (lst1 == lst2)
       return 1;
@@ -74,9 +71,7 @@ struct id_lst *lst2;
  * eq_tok_lst - check to see if 2 token lists contain the same tokens
  *  in the same order. All white space tokens are considered equal.
  */
-static int eq_tok_lst(lst1, lst2)
-struct tok_lst *lst1;
-struct tok_lst *lst2;
+static int eq_tok_lst(struct tok_lst *lst1, struct tok_lst *lst2)
    {
    if (lst1 == lst2)
       return 1;
@@ -179,12 +174,12 @@ void init_macro()
 /*
  * m_install - install a macro.
  */
-void m_install(mname, category, multi_line, prmlst, body)
-struct token *mname;	/* name of macro */
-int multi_line;		/* flag indicating if this is a multi-line macro */
-int category;		/* # parms, or NoArgs if it is object-like macro */
-struct id_lst *prmlst;	/* parameter list */
-struct tok_lst *body;	/* replacement list */
+void m_install(
+   struct token *mname,	/* name of macro */
+   int category,		/* # parms, or NoArgs if it is object-like macro */
+   int multi_line,		/* flag indicating if this is a multi-line macro */
+   struct id_lst *prmlst,	/* parameter list */
+   struct tok_lst *body)	/* replacement list */
    {
    struct macro **mpp;
    char *s;
@@ -229,8 +224,7 @@ struct tok_lst *body;	/* replacement list */
 /*
  * m_delete - delete a macro.
  */
-void m_delete(mname)
-struct token *mname;
+void m_delete(struct token *mname)
    {
    struct macro **mpp, *mp;
 
@@ -263,8 +257,7 @@ struct token *mname;
  *  return NULL, if it is not. This routine sets the definition for macros
  *  whose definitions various from place to place.
  */
-struct macro *m_lookup(id)
-struct token *id;
+struct macro *m_lookup(struct token *id)
    {
    struct macro *m;
    static char buf[20];
@@ -286,9 +279,7 @@ struct token *id;
 /*
  * parm_indx - see if a name is a paramter to the given macro.
  */
-static int parm_indx(id, m)
-char *id;
-struct macro *m;
+static int parm_indx(char *id, struct macro *m)
    {
    struct id_lst *idlst;
    int i;
@@ -302,11 +293,8 @@ struct macro *m;
 /*
  * cpy_str - copy a string into a string buffer, adding delimiters.
  */
-static void cpy_str(ldelim, image, rdelim, sbuf)
-char *ldelim;
-char *image;
-char *rdelim;
-struct str_buf *sbuf;
+static void cpy_str(char *ldelim, char *image, char *rdelim,
+   struct str_buf *sbuf)
    {
    register char *s;
 
@@ -326,9 +314,7 @@ struct str_buf *sbuf;
 /*
  * stringize - create a stringized version of a token.
  */
-static struct token *stringize(trigger, me)
-struct token *trigger;
-struct mac_expand *me;
+static struct token *stringize(struct token *trigger, struct mac_expand *me)
    {
    register struct token *t;
    struct tok_lst *arg;
@@ -393,9 +379,7 @@ struct mac_expand *me;
  *  is needed for each operand). Any needed stringizing is done as the list
  *  is created.
  */
-static struct paste_lsts *paste_parse(t, me)
-struct token *t;
-struct mac_expand *me;
+static struct paste_lsts *paste_parse(struct token *t, struct mac_expand *me)
    {
    struct token *t1;
    struct token *trigger = NULL;
@@ -452,11 +436,9 @@ struct mac_expand *me;
 
 /*
  * cpy_image - copy the image of a token into a character buffer adding
- *  delimiters if it is a string or character literal.
+ *  delimiters if it is a string or character literal.  s can contain EOF.
  */
-static int *cpy_image(t, s)
-struct token *t;
-int *s;          /* the string buffer can contain EOF */
+static int *cpy_image(struct token *t, int *s)
    {
    register char *s1;
 

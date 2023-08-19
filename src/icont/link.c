@@ -31,9 +31,7 @@ int fatals = 0;				/* number of errors encountered */
 /*
  *  ilink - link a number of files, returning error count
  */
-int ilink(ifiles,outname)
-char **ifiles;
-char *outname;
+int ilink(char **ifiles, char *outname)
    {
    int i;
    struct lfile *lf,*lfls;
@@ -164,8 +162,7 @@ char *outname;
 /*
  * lwarn - issue a linker warning message.
  */
-void lwarn(s1, s2, s3)
-char *s1, *s2, *s3;
+void lwarn(char *s1, char *s2, char *s3)
    {
    fprintf(stderr, "%s: ", icnname);
    if (lineno)
@@ -178,8 +175,7 @@ char *s1, *s2, *s3;
  * lfatal - issue a fatal linker error message.
  */
 
-void lfatal(s1, s2)
-char *s1, *s2;
+void lfatal(char *s1, char *s2)
    {
    fatals++;
    fprintf(stderr, "%s: ", icnname);
@@ -192,8 +188,7 @@ char *s1, *s2;
  * setexe - mark the output file as executable
  */
 
-static void setexe(fname)
-char *fname;
+static void setexe(char *fname)
    {
    struct stat stbuf;
    int u, r, m;

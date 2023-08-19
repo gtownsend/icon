@@ -83,8 +83,7 @@ void init_tok()
 /*
  * pp_tok_id - see if s in the name of a preprocessing directive.
  */
-static int pp_tok_id(s)
-char *s;
+static int pp_tok_id(char *s)
    {
    struct rsrvd_wrd *rw;
 
@@ -112,8 +111,7 @@ int chk_eq_sign()
  *  and return it, otherwise return NULL. This function also helps keeps track
  *  of preprocessor directive boundaries.
  */
-static struct token *chck_wh_sp(cs)
-struct char_src *cs;
+static struct token *chck_wh_sp(struct char_src *cs)
    {
    register int c1, c2;
    struct token *t;
@@ -260,9 +258,7 @@ static struct token *pp_number()
 /*
  * char_str - construct a token for a character constant or string literal.
  */
-static struct token *char_str(delim, tok_id)
-int delim;
-int tok_id;
+static struct token *char_str(int delim, int tok_id)
    {
    register int c;
 
@@ -291,10 +287,7 @@ int tok_id;
  * hdr_tok - create a token for an #include header. The delimiter may be
  *  > or ".
  */
-static struct token *hdr_tok(delim, tok_id, cs)
-int delim;
-int tok_id;
-struct char_src *cs;
+static struct token *hdr_tok(int delim, int tok_id, struct char_src *cs)
    {
    register int c;
 

@@ -51,9 +51,7 @@ static word brk_lbl = 0;       /* destination label for C break statement */
  * inlin_c - Create a self-contained piece of in-line C code from a syntax
  *   sub-tree.
  */
-struct il_c *inlin_c(n, may_mod)
-struct node *n;
-int may_mod;
+struct il_c *inlin_c(struct node *n, int may_mod)
    {
    init_ilc();              /* initialize code list and string buffer */
    ilc_walk(n, may_mod, 0); /* translate the syntax sub-tree */
@@ -65,10 +63,7 @@ int may_mod;
  * simpl_dcl - produce a simple declaration both in the output file and as
  *   in-line C code.
  */
-struct il_c *simpl_dcl(tqual, addr_of, sym)
-char *tqual;
-int addr_of;
-struct sym_entry *sym;
+struct il_c *simpl_dcl(char *tqual, int addr_of, struct sym_entry *sym)
    {
    init_ilc();             /* initialize code list and string buffer */
    prt_str(tqual, 0);
@@ -89,9 +84,7 @@ struct sym_entry *sym;
  * parm_dcl - produce the declaration for a parameter to a body function.
  *   Print it in the output file and proceduce in-line C code for it.
  */
-struct il_c *parm_dcl(addr_of, sym)
-int addr_of;
-struct sym_entry *sym;
+struct il_c *parm_dcl(int addr_of, struct sym_entry *sym)
    {
    init_ilc();        /* initialize code list and string buffer */
 
@@ -122,8 +115,7 @@ struct sym_entry *sym;
  * add_ptr - add another level of indirection to a declarator. Print it in
  *   the output file and proceduce in-line C code.
  */
-static void add_ptr(dcltor)
-struct node *dcltor;
+static void add_ptr(struct node *dcltor)
    {
    while (dcltor->nd_id == ConCatNd) {
       c_walk(dcltor->u[0].child, IndentInc, 0);
@@ -184,11 +176,8 @@ struct node *dcltor;
  * bdy_prm - produce the code that must be be supplied as the argument
  *  to the call of a body function.
  */
-struct il_c *bdy_prm(addr_of, just_desc, sym, may_mod)
-int addr_of;
-int just_desc;
-struct sym_entry *sym;
-int may_mod;
+struct il_c *bdy_prm(int addr_of, int just_desc,
+   struct sym_entry *sym, int may_mod)
    {
    init_ilc();              /* initialize code list and string buffer */
    if (addr_of)
@@ -203,10 +192,7 @@ int may_mod;
 /*
  * ilc_dcl - produce in-line code for a C declaration.
  */
-struct il_c *ilc_dcl(tqual, dcltor, init)
-struct node *tqual;
-struct node *dcltor;
-struct node *init;
+struct il_c *ilc_dcl(struct node *tqual, struct node *dcltor, struct node *init)
    {
    init_ilc();              /* initialize code list and string buffer */
    ilc_walk(tqual, 0, 0);
@@ -240,8 +226,7 @@ static void init_ilc()
 /*
  * - ilc_chnl - check for new-line.
  */
-static void ilc_chnl(t)
-struct token *t;
+static void ilc_chnl(struct token *t)
    {
    /*
     * See if this is a reasonable place to put a newline.
@@ -258,8 +243,7 @@ struct token *t;
  * ilc_tok - convert a token to its string representation, quoting it
  *  if it is a string or character literal.
  */
-static void ilc_tok(t)
-struct token *t;
+static void ilc_tok(struct token *t)
    {
    char *s;
 
@@ -294,8 +278,7 @@ struct token *t;
 /*
  * ilc_str - append a string to the string buffer.
  */
-static void ilc_str(s)
-char *s;
+static void ilc_str(char *s)
    {
    /*
     * see if a new-line is needed before the string
@@ -345,8 +328,7 @@ static void flush_str()
  *   is called for non-string elements. If necessary it flushes the
  *   string buffer to another element first.
  */
-static void new_ilc(il_c_type)
-int il_c_type;
+static void new_ilc(int il_c_type)
    {
    flush_str();
    alloc_ilc(il_c_type);
@@ -356,8 +338,7 @@ int il_c_type;
  * alloc_ilc - allocate a new element for the list of in-line C code
  *   and add it to the list.
  */
-static void alloc_ilc(il_c_type)
-int il_c_type;
+static void alloc_ilc(int il_c_type)
    {
    int i;
    ilc_cur->next = NewStruct(il_c);
@@ -375,10 +356,7 @@ int il_c_type;
  *  strings) into a sub-list of in-line C code, remove the sub-list from
  *  the main list, and return it.
  */
-static struct il_c *sep_ilc(s1, n, s2)
-char *s1;
-struct node *n;
-char *s2;
+static struct il_c *sep_ilc(char *s1, struct node *n, char *s2)
    {
    struct il_c *ilc;
 
@@ -403,10 +381,7 @@ char *s2;
 /*
  * ilc_var - create in-line C code for a variable in the symbol table.
  */
-static void ilc_var(sym, just_desc, may_mod)
-struct sym_entry *sym;
-int just_desc;
-int may_mod;
+static void ilc_var(struct sym_entry *sym, int just_desc, int may_mod)
    {
    if (sym->il_indx >= 0) {
       /*
@@ -493,10 +468,7 @@ int may_mod;
  *   code. This function needs to know if the code is in a modifying context,
  *   such as the left-hand-side of an assignment.
  */
-static void ilc_walk(n, may_mod, const_cast)
-struct node *n;
-int may_mod;
-int const_cast;
+static void ilc_walk(struct node *n, int may_mod, int const_cast)
    {
    struct token *t;
    struct node *n1;
@@ -1072,11 +1044,8 @@ int const_cast;
 /*
  * ilc_cnv - produce code for a cnv: or def: statement.
  */
-static void ilc_cnv(cnv_typ, src, dflt, dest)
-struct node *cnv_typ;
-struct node *src;
-struct node *dflt;
-struct node *dest;
+static void ilc_cnv(struct node *cnv_typ, struct node *src,
+   struct node *dflt, struct node *dest)
    {
    int dflt_to_ptr;
    int typcd;
@@ -1138,10 +1107,7 @@ struct node *dest;
 /*
  * ilc_ret - produce in-line code for suspend/return statement.
  */
-static void ilc_ret(t, ilc_typ, n)
-struct token *t;
-int ilc_typ;
-struct node *n;
+static void ilc_ret(struct token *t, int ilc_typ, struct node *n)
    {
    struct node *caller;
    struct node *args;
@@ -1267,8 +1233,7 @@ struct node *n;
 /*
  * ilc_goto - produce in-line C code for a goto to a numbered label.
  */
-static void ilc_goto(lbl)
-word lbl;
+static void ilc_goto(word lbl)
    {
    insert_nl = 1;
    new_ilc(ILC_Goto);
@@ -1281,10 +1246,7 @@ word lbl;
  * ilc_cgoto - produce in-line C code for a conditional goto to a numbered
  *  label. The condition may be negated.
  */
-static void ilc_cgoto(neg, cond, lbl)
-int neg;
-struct node *cond;
-word lbl;
+static void ilc_cgoto(int neg, struct node *cond, word lbl)
    {
    insert_nl = 1;
    line_ref = NULL;
@@ -1301,8 +1263,7 @@ word lbl;
 /*
  * ilc_lbl - produce in-line C code for a numbered label.
  */
-static void ilc_lbl(lbl)
-word lbl;
+static void ilc_lbl(word lbl)
    {
    insert_nl = 1;
    new_ilc(ILC_Lbl);
@@ -1317,9 +1278,7 @@ word lbl;
  *  was encountered and that it is consistent with this return,
  *  suspend, or fail.
  */
-void chkabsret(tok, ret_typ)
-struct token *tok;
-int ret_typ;
+void chkabsret(struct token *tok, int ret_typ)
    {
    if (abs_ret == NoAbstr)
       errt2(tok, tok->image, " with no preceding abstract return");
@@ -1348,10 +1307,7 @@ int ret_typ;
  * just_type - strip non-type information from a type-qualifier list. Print
  *   it in the output file and if ilc is set, produce in-line C code.
  */
-void just_type(typ, indent, ilc)
-struct node *typ;
-int indent;
-int ilc;
+void just_type(struct node *typ, int indent, int ilc)
    {
    if (typ->nd_id == LstNd) {
       /*

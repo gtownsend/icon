@@ -37,10 +37,7 @@ int GraphicsEnd   = XK_End;
  * Return 0 if the key was strange and keysym should be returned.
  * Return -1 if the key was a modifier key and should be dropped.
  */
-int translate_key_event(event, s, k)
-XKeyEvent *event;
-char *s;
-KeySym *k;
+int translate_key_event(XKeyEvent *event, char *s, KeySym *k)
 {
    int i = XLookupString(event, s, 10, k, NULL);
 

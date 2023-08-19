@@ -233,8 +233,7 @@ uword segsize[] = {
  * initalloc - initialization routine to allocate memory regions
  */
 
-void initalloc(codesize)
-word codesize;
+void initalloc(word codesize)
    {
 
    if ((uword)codesize > (unsigned)MaxBlock)
@@ -282,8 +281,7 @@ word codesize;
  * collect - do a garbage collection of currently active regions.
  */
 
-int collect(region)
-int region;
+int collect(int region)
    {
    struct b_coexpr *cp;
 
@@ -417,8 +415,7 @@ int region;
  *  are ignored.
  */
 
-static void postqual(dp)
-dptr dp;
+static void postqual(dptr dp)
    {
    char *newqual;
 
@@ -453,8 +450,7 @@ dptr dp;
  *  back-list of descriptors pointing to that block. (Phase I of garbage
  *  collection.)
  */
-static void markblock(dp)
-dptr dp;
+static void markblock(dptr dp)
    {
    register dptr dp1;
    register char *block, *endblock;
@@ -647,8 +643,7 @@ dptr dp;
  *  is just a block pointer, not a descriptor.
  */
 
-static void markptr(ptr)
-union block **ptr;
+static void markptr(union block **ptr)
    {
    register dptr dp;
    register char *block, *endblock;
@@ -783,8 +778,7 @@ union block **ptr;
  *  marking the descriptors.
  */
 
-static void sweep(ce)
-struct b_coexpr *ce;
+static void sweep(struct b_coexpr *ce)
    {
    register struct tend_desc *tp;
    register int i;
@@ -816,8 +810,7 @@ struct b_coexpr *ce;
  *  the "if it can't be identified it's a descriptor" methodology.
  */
 
-static void sweep_stk(ce)
-struct b_coexpr *ce;
+static void sweep_stk(struct b_coexpr *ce)
    {
    register word *s_sp;
    register struct pf_marker *fp;
@@ -990,8 +983,7 @@ static void cofree()
  *  descriptors rather than pointers to them.
  */
 
-static void scollect(extra)
-word extra;
+static void scollect(word extra)
    {
    register char *source, *dest;
    register dptr *qptr;
@@ -1056,8 +1048,7 @@ word extra;
  * qlcmp - compare the location fields of two string qualifiers for qsort.
  */
 
-static int qlcmp(q1,q2)
-dptr *q1, *q2;
+static int qlcmp(dptr *q1, dptr *q2)
    {
    return (int)(DiffPtrs(StrLoc(**q1),StrLoc(**q2)));
    }
@@ -1068,8 +1059,7 @@ dptr *q1, *q2;
  *  collection.)
  */
 
-static void adjust(source,dest)
-char *source, *dest;
+static void adjust(char *source, char *dest)
    {
    register union block **nxtptr, **tptr;
 
@@ -1103,8 +1093,7 @@ char *source, *dest;
  *  collection.)
  */
 
-static void compact(source)
-char *source;
+static void compact(char *source)
    {
    register char *dest;
    register word size;
@@ -1149,9 +1138,7 @@ char *source;
  * be fairly large.)
  */
 
-static void mvc(n, src, dest)
-uword n;
-register char *src, *dest;
+static void mvc(uword n, char *src, char *dest)
    {
    register char *srcend, *destend;        /* end of data areas */
    word copy_size;                  /* of size copy_size */

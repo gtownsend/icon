@@ -12,12 +12,8 @@ struct src *src_stack = NULL;  /* stack of token sources */
 /*
  * new_macro - allocate a new entry for the macro symbol table.
  */
-struct macro *new_macro(mname, category, multi_line, prmlst, body)
-char *mname;
-int category;
-int multi_line;
-struct id_lst *prmlst;
-struct tok_lst *body;
+struct macro *new_macro(char *mname, int category, int multi_line,
+   struct id_lst *prmlst, struct tok_lst *body)
    {
    struct macro *mp;
 
@@ -36,11 +32,7 @@ struct tok_lst *body;
 /*
  * new_token - allocate a new token.
  */
-struct token *new_token(id, image, fname, line)
-int id;
-char *image;
-char *fname;
-int line;
+struct token *new_token(int id, char *image, char *fname, int line)
    {
    struct token *t;
 
@@ -56,8 +48,7 @@ int line;
 /*
  * copy_t - make a copy of a token.
  */
-struct token *copy_t(t)
-struct token *t;
+struct token *copy_t(struct token *t)
    {
    struct token *t1;
 
@@ -72,8 +63,7 @@ struct token *t;
 /*
  * new_t_lst - allocate a new element for a token list.
  */
-struct tok_lst *new_t_lst(tok)
-struct token *tok;
+struct tok_lst *new_t_lst(struct token *tok)
    {
    struct tok_lst *tlst;
 
@@ -86,8 +76,7 @@ struct token *tok;
 /*
  * new_id_lst - allocate a new element for an identifier list.
  */
-struct id_lst *new_id_lst(id)
-char *id;
+struct id_lst *new_id_lst(char *id)
    {
    struct id_lst *ilst;
 
@@ -101,10 +90,7 @@ char *id;
  * new_cs - allocate a new structure for a source of tokens created from
  *  characters.
  */
-struct char_src *new_cs(fname, f, bufsize)
-char *fname;
-FILE *f;
-int bufsize;
+struct char_src *new_cs(char *fname, FILE *f, int bufsize)
    {
    struct char_src *cs;
 
@@ -125,10 +111,8 @@ int bufsize;
  * new_me - allocate a new structure for a source of tokens derived
  *  from macro expansion.
  */
-struct mac_expand *new_me(m, args, exp_args)
-struct macro *m;
-struct tok_lst **args;
-struct tok_lst **exp_args;
+struct mac_expand *new_me(struct macro *m,
+   struct tok_lst **args, struct tok_lst **exp_args)
    {
    struct mac_expand *me;
 
@@ -145,10 +129,8 @@ struct tok_lst **exp_args;
  *  as source of tokens derived from a sequence of token pasting
  *  operations.
  */
-struct paste_lsts *new_plsts(trigger, tlst, plst)
-struct token *trigger;
-struct tok_lst *tlst;
-struct paste_lsts *plst;
+struct paste_lsts *new_plsts(struct token *trigger,
+   struct tok_lst *tlst, struct paste_lsts *plst)
    {
    struct paste_lsts *plsts;
 
@@ -175,9 +157,7 @@ struct str_buf *get_sbuf()
  * push_src - push an entry on the stack of tokens sources. This entry
  *  becomes the current source.
  */
-void push_src(flag, ref)
-int flag;
-union src_ref *ref;
+void push_src(int flag, union src_ref *ref)
    {
    struct src *sp;
 
@@ -196,8 +176,7 @@ union src_ref *ref;
 /*
  * free_t - free a token.
  */
-void free_t(t)
-struct token *t;
+void free_t(struct token *t)
    {
    if (t != NULL)
       free((char *)t);
@@ -206,8 +185,7 @@ struct token *t;
 /*
  * free_t_lst - free a token list.
  */
-void free_t_lst(tlst)
-struct tok_lst *tlst;
+void free_t_lst(struct tok_lst *tlst)
    {
    if (tlst == NULL)
       return;
@@ -219,8 +197,7 @@ struct tok_lst *tlst;
 /*
  * free_id_lst - free an identifier list.
  */
-void free_id_lst(ilst)
-struct id_lst *ilst;
+void free_id_lst(struct id_lst *ilst)
    {
    if (ilst == NULL)
        return;
@@ -232,8 +209,7 @@ struct id_lst *ilst;
  * free_m - if there are no more pointers to this macro entry, free it
  *  and other associated storage.
  */
-void free_m(m)
-struct macro *m;
+void free_m(struct macro *m)
    {
    if (--m->ref_cnt != 0)
       return;
@@ -245,8 +221,7 @@ struct macro *m;
 /*
  * free_m_lst - free a hash chain of macro symbol table entries.
  */
-void free_m_lst(m)
-struct macro *m;
+void free_m_lst(struct macro *m)
    {
    if (m == NULL)
       return;
@@ -258,8 +233,7 @@ struct macro *m;
  * free_plsts - free an entry from a list of token lists used in
  *  token pasting.
  */
-void free_plsts(plsts)
-struct paste_lsts *plsts;
+void free_plsts(struct paste_lsts *plsts)
    {
    free((char *)plsts);
    }
@@ -267,8 +241,7 @@ struct paste_lsts *plsts;
 /*
  * rel_sbuf - free a string buffer.
  */
-void rel_sbuf(sbuf)
-struct str_buf *sbuf;
+void rel_sbuf(struct str_buf *sbuf)
    {
    free((char *)sbuf);
    }

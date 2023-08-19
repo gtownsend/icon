@@ -166,8 +166,7 @@ void init_lex()
  * int_suffix - we have reached the end of what seems to be an integer
  *  constant. check for a valid suffix.
  */
-static int int_suffix(s)
-char *s;
+static int int_suffix(char *s)
    {
    int tok_id;
 

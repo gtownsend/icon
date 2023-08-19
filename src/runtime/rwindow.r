@@ -23,9 +23,7 @@ uword xmod_control, xmod_shift, xmod_meta;
  * subscript the already-processed-events "queue" to index i.
  * used in "cooked mode" I/O to determine, e.g. how far to backspace.
  */
-char *evquesub(w,i)
-wbp w;
-int i;
+char *evquesub(wbp w, int i)
    {
    wsp ws = w->window;
    int j = ws->eQback+i;
@@ -47,9 +45,7 @@ int i;
  *
  * returns 0 for success, -1 if window died or EOF, -2 for malformed queue
  */
-int wgetevent(w,res)
-wbp w;
-dptr res;
+int wgetevent(wbp w, dptr res)
    {
    struct descrip xdesc, ydesc;
    uword i;
@@ -111,9 +107,7 @@ dptr res;
  *
  * return: 1 = success, -1 = window died, -2 = malformed queue, -3 = EOF
  */
-int wgetchne(w,res)
-wbp w;
-dptr res;
+int wgetchne(wbp w, dptr res)
    {
    int i;
 
@@ -135,9 +129,7 @@ dptr res;
  *
  * returns 1 for success, -1 if window died, -2 for malformed queue, -3 for EOF
  */
-int wgetche(w,res)
-wbp w;
-dptr res;
+int wgetche(wbp w, dptr res)
    {
    int i;
    i = wgetchne(w,res);
@@ -206,10 +198,7 @@ wsp getactivewindow()
  * returns length(>=0) for success, -1 if window died, -2 for malformed queue
  *  -3 on EOF
  */
-int wlongread(s, elsize, nelem, f)
-char *s;
-int elsize, nelem;
-FILE *f;
+int wlongread(char *s, int elsize, int nelem, FILE *f)
    {
    int c;
    tended char *ts = s;
@@ -242,10 +231,7 @@ FILE *f;
  * returns length(>=0) for success, -1 if window died, -2 for malformed queue
  *  -3 for EOF, -4 if length was limited by maxi
  */
-int wgetstrg(s, maxlen, f)
-char *s;
-long  maxlen;
-FILE *f;
+int wgetstrg(char *s, long  maxlen, FILE *f)
    {
    int c;
    tended char *ts = s;
@@ -279,8 +265,7 @@ FILE *f;
 /*
  * Assignment side-effects for &x,&y,&row,&col
  */
-int xyrowcol(dx)
-dptr dx;
+int xyrowcol(dptr dx)
 {
    if (VarLoc(*dx) == &amperX) { /* update &col too */
       wbp w;
@@ -337,12 +322,12 @@ dptr dx;
 /*
  * Enqueue an event, encoding time interval and key state with x and y values.
  */
-void qevent(ws,e,x,y,t,f)
-wsp ws;		/* canvas */
-dptr e;		/* event code (descriptor pointer) */
-int x, y;	/* x and y values */
-uword t;	/* ms clock value */
-long f;		/* modifier key flags */
+void qevent(
+   wsp ws,		/* canvas */
+   dptr e,		/* event code (descriptor pointer) */
+   int x, int y,	/* x and y values */
+   uword t,		/* ms clock value */
+   long f)		/* modifier key flags */
    {
    dptr q = &(ws->listp);	/* a window's event queue (Icon list value) */
    struct descrip d;
@@ -382,9 +367,7 @@ long f;		/* modifier key flags */
 /*
  * setpos() - set (move) canvas position on the screen
  */
-static int setpos(w,s)
-wbp w;
-char *s;
+static int setpos(wbp w, char *s)
    {
    char *s2, tmp[32];
    int posx, posy;
@@ -423,9 +406,7 @@ char *s;
 /*
  * setsize() - set canvas size
  */
-int setsize(w,s)
-wbp w;
-char *s;
+int setsize(wbp w, char *s)
    {
    char *s2, tmp[32];
    int width, height;
@@ -458,10 +439,7 @@ char *s;
 /*
  * put a string out to a window using the current attributes
  */
-void wputstr(w,s,len)
-wbp w;
-char *s;
-int len;
+void wputstr(wbp w, char *s, int len)
    {
    char *s2 = s;
    wstate *ws = w->window;
@@ -540,11 +518,7 @@ stringint fontwords[] = {
  * returns 1 on an OK font name
  * returns 0 on a "malformed" font (might be a window-system fontname)
  */
-int parsefont(s, family, style, size)
-char *s;
-char family[MAXFONTWORD+1];
-int *style;
-int *size;
+int parsefont(char *s, char family[MAXFONTWORD+1], int *style, int *size)
    {
    char c, *a, attr[MAXFONTWORD+1];
    int tmp;
@@ -616,11 +590,7 @@ int *size;
 /*
  * parsepattern() - parse an encoded numeric stipple pattern
  */
-int parsepattern(s, len, width, nbits, bits)
-char *s;
-int len;
-int *width, *nbits;
-C_integer *bits;
+int parsepattern(char *s, int len, int *width, int *nbits, C_integer *bits)
    {
    C_integer v;
    int i, j, hexdigits_per_row, maxbits = *nbits;
@@ -701,9 +671,7 @@ C_integer *bits;
  * Returns:
  *  0 on bad value, 1 if size is set, 2 if position is set, 3 if both are set
  */
-int parsegeometry(buf, x, y, width, height)
-char *buf;
-SHORT *x, *y, *width, *height;
+int parsegeometry(char *buf, SHORT *x, SHORT *y, SHORT *width, SHORT *height)
    {
    int retval = 0;
    if (isdigit(*buf)) {
@@ -743,12 +711,7 @@ SHORT *x, *y, *width, *height;
  * wattrib() - get/set a single attribute in a window, return the result attr
  *  string.
  */
-int wattrib(w, s, len, answer, abuf)
-wbp w;
-char *s;
-long len;
-dptr answer;
-char * abuf;
+int wattrib(wbp w, char *s, long len, dptr answer, char *abuf)
    {
    char val[128], *valptr;
    struct descrip d;
@@ -1346,12 +1309,8 @@ char * abuf;
  *
  *  Returns index of bad argument, if any, or -1 for success.
  */
-int rectargs(w, argc, argv, i, px, py, pw, ph)
-wbp w;
-int argc;
-dptr argv;
-int i;
-C_integer *px, *py, *pw, *ph;
+int rectargs(wbp w, int argc, dptr argv, int i,
+   C_integer *px, C_integer *py, C_integer *pw, C_integer *ph)
    {
    int defw, defh;
    wcp wc = w->context;
@@ -1406,11 +1365,7 @@ C_integer *px, *py, *pw, *ph;
  *  Helper for DrawCircle and FillCircle.
  *  Returns index of bad argument, or -1 for success.
  */
-int docircles(w, argc, argv, fill)
-wbp w;
-int argc;
-dptr argv;
-int fill;
+int docircles(wbp w, int argc, dptr argv, int fill)
    {
    XArc arc;
    int i, dx, dy;
@@ -1491,11 +1446,7 @@ int fill;
  *  A Recursive Evaluation Algorithm for a class of Catmull-Rom Splines.
  *  Computer Graphics 22(4), 199-204.
  */
-void genCurve(w, p, n, helper)
-wbp w;
-XPoint *p;
-int n;
-void (*helper)	(wbp, XPoint [], int);
+void genCurve(wbp w, XPoint *p, int n, void (*helper)(wbp, XPoint [], int))
    {
    int    i, j, steps;
    float  ax, ay, bx, by, stepsize, stepsize2, stepsize3;
@@ -1583,10 +1534,7 @@ static void curveHelper(wbp w, XPoint *thepoints, int n)
 /*
  * draw a smooth curve through the array of points
  */
-void drawCurve(w, p, n)
-wbp w;
-XPoint *p;
-int n;
+void drawCurve(wbp w, XPoint *p, int n)
    {
    genCurve(w, p, n, curveHelper);
    }
@@ -1594,8 +1542,7 @@ int n;
 /*
  * Compare two unsigned long values for qsort or qsearch.
  */
-int ulcmp(p1, p2)
-pointer p1, p2;
+int ulcmp(pointer p1, pointer p2)
    {
    register unsigned long u1 = *(unsigned int *)p1;
    register unsigned long u2 = *(unsigned int *)p2;
@@ -1614,8 +1561,7 @@ pointer p1, p2;
 /*
  * string-integer comparison, for qsearch()
  */
-static int sicmp(sip1,sip2)
-siptr sip1, sip2;
+static int sicmp(siptr sip1, siptr sip2)
 {
   return strcmp(sip1->s, sip2->s);
 }
@@ -1623,9 +1569,7 @@ siptr sip1, sip2;
 /*
  * string-integer lookup function: given a string, return its integer
  */
-int si_s2i(sip,s)
-siptr sip;
-char *s;
+int si_s2i(siptr sip, char *s)
 {
   stringint key;
   siptr p;
@@ -1639,9 +1583,7 @@ char *s;
 /*
  * string-integer inverse function: given an integer, return its string
  */
-char *si_i2s(sip,i)
-siptr sip;
-int i;
+char *si_i2s(siptr sip, int i)
 {
   register siptr sip2 = sip+1;
   for(;sip2<=sip+sip[0].i;sip2++) if (sip2->i == i) return sip2->s;

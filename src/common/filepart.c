@@ -35,8 +35,7 @@ static char *tryfile	(char *buf, char *dir, char *name, char *extn);
  *  name is the file name.
  *  extn is the file extension (.icn or .u1) to be appended, or NULL if none.
  */
-char *pathfind(buf, path, name, extn)
-char *buf, *path, *name, *extn;
+char *pathfind(char *buf, char *path, char *name, char *extn)
    {
    char pbuf[MaxPath];
 
@@ -56,8 +55,7 @@ char *buf, *path, *name, *extn;
  *
  *  Returns the updated pointer s.
  */
-static char *pathelem(s, buf)
-char *s, *buf;
+static char *pathelem(char *s, char *buf)
    {
    char c;
 
@@ -90,8 +88,7 @@ char *s, *buf;
  *  The file name is constructed in buf from dir + name + extn.
  *  findfile returns buf if successful or NULL if not.
  */
-static char *tryfile(buf, dir, name, extn)
-char *buf, *dir, *name, *extn;
+static char *tryfile(char *buf, char *dir, char *name, char *extn)
    {
    FILE *f;
    makename(buf, dir, name, extn);
@@ -107,8 +104,7 @@ char *buf, *dir, *name, *extn;
  * fparse - break a file name down into component parts.
  *  Result is a pointer to a struct of static pointers good until the next call.
  */
-struct fileparts *fparse(s)
-char *s;
+struct fileparts *fparse(char *s)
    {
    static char buf[MaxPath+2];
    static struct fileparts fp;
@@ -144,8 +140,7 @@ char *s;
 /*
  * makename - make a file name, optionally substituting a new dir and/or ext
  */
-char *makename(dest,d,name,e)
-char *dest, *d, *name, *e;
+char *makename(char *dest, char *d, char *name, char *e)
    {
    struct fileparts fp;
    fp = *fparse(name);
@@ -160,8 +155,7 @@ char *dest, *d, *name, *e;
 /*
  * smatch - case-insensitive string match - returns nonzero if they match
  */
-int smatch(s,t)
-char *s, *t;
+int smatch(char *s, char *t)
    {
    char a, b;
    for (;;) {

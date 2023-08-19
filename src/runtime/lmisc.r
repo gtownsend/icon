@@ -7,9 +7,7 @@
  * create - return an entry block for a co-expression.
  */
 
-int Ocreate(entryp, cargp)
-word *entryp;
-register dptr cargp;
+int Ocreate(word *entryp, dptr cargp)
    {
    tended struct b_coexpr *sblkp;
    register struct b_refresh *rblkp;
@@ -80,10 +78,7 @@ register dptr cargp;
 /*
  * activate - activate a co-expression.
  */
-int activate(val, ncp, result)
-dptr val;
-struct b_coexpr *ncp;
-dptr result;
+int activate(dptr val, struct b_coexpr *ncp, dptr result)
    {
    int first;
 

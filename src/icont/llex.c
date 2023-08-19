@@ -15,8 +15,7 @@ int nlflag = 0;		/* newline last seen */
  * getopc - get an opcode from infile, return the opcode number (via
  *  binary search of opcode table), and point id at the name of the opcode.
  */
-int getopc(id)
-char **id;
+int getopc(char **id)
    {
    register char *s;
    register struct opentry *p;
@@ -159,9 +158,7 @@ int getoct()
  *  Get integer, but if it's too large for a long, put the string via wp
  *   and return -1.
  */
-long getint(j,wp)
-   int j;
-   word *wp;
+long getint(int j, word *wp)
    {
    register int c;
    int over = 0;
@@ -289,8 +286,7 @@ int getlab()
  * getstrlit - get a string literal from infile, as a string
  *  of octal bytes, and return its index into the string table.
  */
-word getstrlit(l)
-register int l;
+word getstrlit(int l)
    {
    register word indx;
 

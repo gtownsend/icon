@@ -15,9 +15,7 @@ static char **incl_search; /* standard locations to search for header files */
  * file_src - set up the structures for a characters source from a file,
  *  putting the source on the top of the stack.
  */
-static void file_src(fname, f)
-char *fname;
-FILE *f;
+static void file_src(char *fname, FILE *f)
    {
    union src_ref ref;
 
@@ -31,8 +29,7 @@ FILE *f;
  * source - Open the file named fname or use stdin if fname is "-". fname
  *  is the first file from which to read input (that is, the outermost file).
  */
-void source(fname)
-char *fname;
+void source(char *fname)
    {
    FILE *f;
 
@@ -48,10 +45,7 @@ char *fname;
 /*
  * include - open the file named fname and make it the current input file.
  */
-void include(trigger, fname, system)
-struct token *trigger;
-char *fname;
-int system;
+void include(struct token *trigger, char *fname, int system)
    {
    struct str_buf *sbuf;
    char *s;
@@ -128,9 +122,7 @@ int system;
  * init_files - Initialize this module, setting up the search path for
  *  system header files.
  */
-void init_files(opt_lst, opt_args)
-char *opt_lst;
-char **opt_args;
+void init_files(char *opt_lst, char **opt_args)
    {
    int n_paths = 0;
    int i, j;

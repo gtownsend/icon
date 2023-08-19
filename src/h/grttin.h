@@ -22,9 +22,7 @@
 #begdef LibDcl(nm,n,pn)
    #passthru OpBlock(nm,n,pn,0)
 
-   int O##nm(nargs,cargp)
-   int nargs;
-   register dptr cargp;
+   int O##nm(int nargs, dptr cargp)
 #enddef					/* LibDcl */
 
 /*

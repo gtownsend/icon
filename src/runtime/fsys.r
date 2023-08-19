@@ -689,7 +689,7 @@ function{0,1} where(f)
 
    body {
       FILE *fd;
-      long ftell();
+      long ftell(FILE*);
       long pos;
 
       fd = BlkLoc(f)->file.fd;

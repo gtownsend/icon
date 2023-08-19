@@ -31,8 +31,7 @@ void clr_def()
  * ttol - convert a token representing an integer constant into a long
  *  integer value.
  */
-long ttol(t)
-struct token *t;
+long ttol(struct token *t)
 {
    register long i;
    register char *s;
@@ -62,8 +61,7 @@ struct token *t;
    return i;
    }
 
-struct token *chk_exct(tok)
-struct token *tok;
+struct token *chk_exct(struct token *tok)
    {
    struct sym_entry *sym;
 
@@ -77,8 +75,7 @@ struct token *tok;
  * icn_typ - convert a type node into a type code for the internal
  *   representation of the data base.
  */
-int icn_typ(typ)
-struct node *typ;
+int icn_typ(struct node *typ)
    {
    switch (typ->nd_id) {
       case PrimryNd:

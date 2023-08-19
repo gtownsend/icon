@@ -155,10 +155,7 @@ int iconx(int argc, char *argv[]) {
 /*
  * ixopts - handle interpreter command line options.
  */
-void ixopts(argc,argv,ip)
-int argc;
-char **argv;
-int *ip;
+void ixopts(int argc, char **argv, int *ip)
    {
    *ip = 0;			/* number of arguments processed */
 
@@ -197,7 +194,7 @@ void resolve()
    register word i, j;
    register struct b_proc *pp;
    register dptr dp;
-   extern int Omkrec();
+   extern int Omkrec(int, dptr);
 
    /*
     * Relocate the names of the global variables.

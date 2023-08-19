@@ -73,10 +73,7 @@ static int gf_rem;			/* remaining bytes in this block */
  * p is a palette number to which the GIF colors are to be coerced;
  * p=0 uses the colors exactly as given in the GIF file.
  */
-int readGIF(filename, p, imd)
-char *filename;
-int p;
-struct imgdata *imd;
+int readGIF(char *filename, int p, struct imgdata *imd)
    {
    int r;
 
@@ -103,9 +100,7 @@ struct imgdata *imd;
 /*
  * gfread(filename, p) - read GIF file, setting gf_ globals
  */
-static int gfread(filename, p)
-char *filename;
-int p;
+static int gfread(char *filename, int p)
    {
    int i;
 
@@ -148,8 +143,7 @@ int p;
 /*
  * gfheader(f) - read GIF file header; return nonzero if successful
  */
-static int gfheader(f)
-FILE *f;
+static int gfheader(FILE *f)
    {
    unsigned char hdr[13];		/* size of a GIF header */
    int b;
@@ -169,8 +163,7 @@ FILE *f;
 /*
  * gfskip(f) - skip intermediate blocks and locate image
  */
-static int gfskip(f)
-FILE *f;
+static int gfskip(FILE *f)
    {
    int c, n;
 
@@ -196,8 +189,7 @@ FILE *f;
 /*
  * gfcontrol(f) - process control extension subblock
  */
-static void gfcontrol(f)
-FILE *f;
+static void gfcontrol(FILE *f)
    {
    int i, n, c, t;
 
@@ -216,8 +208,7 @@ FILE *f;
 /*
  * gfimhdr(f) - read image header
  */
-static int gfimhdr(f)
-FILE *f;
+static int gfimhdr(FILE *f)
    {
    unsigned char hdr[9];		/* size of image hdr excl separator */
    int b;
@@ -237,9 +228,7 @@ FILE *f;
 /*
  * gfmap(f, p) - read GIF color map into paltbl under control of palette p
  */
-static int gfmap(f, p)
-FILE *f;
-int p;
+static int gfmap(FILE *f, int p)
    {
    int ncolors, i, r, g, b, c;
    struct palentry *stdpal = 0;
@@ -308,8 +297,7 @@ static int gfsetup()
 /*
  * gfrdata(f) - read GIF data
  */
-static int gfrdata(f)
-FILE *f;
+static int gfrdata(FILE *f)
    {
    int curr, prev, c;
 
@@ -362,8 +350,7 @@ FILE *f;
 /*
  * gfrcode(f) - read next LZW code
  */
-static int gfrcode(f)
-FILE *f;
+static int gfrcode(FILE *f)
    {
    int c, r;
 
@@ -386,8 +373,7 @@ FILE *f;
 /*
  * gfinsert(prev, c) - insert into table
  */
-static void gfinsert(prev, c)
-int prev, c;
+static void gfinsert(int prev, int c)
    {
 
    if (gf_free >= GifTableSize)		/* sanity check */
@@ -407,8 +393,7 @@ int prev, c;
 /*
  * gffirst(c) - return the first pixel in a map structure
  */
-static int gffirst(c)
-int c;
+static int gffirst(int c)
    {
    int d;
 
@@ -422,8 +407,7 @@ int c;
 /*
  * gfgen(c) - generate and output prefix
  */
-static void gfgen(c)
-int c;
+static void gfgen(int c)
    {
    int d;
 
@@ -435,8 +419,7 @@ int c;
 /*
  * gfput(b) - add a byte to the output string
  */
-static void gfput(b)
-int b;
+static void gfput(int b)
    {
    if (gf_nxt >= gf_lim) {		/* if current row is full */
       gf_row += gf_step;
@@ -473,10 +456,7 @@ int b;
  * Returns Succeeded, Failed, or Error.
  * We assume that the area specified is within the window.
  */
-int writeGIF(w, filename, x, y, width, height)
-wbp w;
-char *filename;
-int x, y, width, height;
+int writeGIF(wbp w, char *filename, int x, int y, int width, int height)
    {
    int r;
 
@@ -493,10 +473,7 @@ int x, y, width, height;
  * we don't need any of the extensions of GIF89.
  */
 
-static int gfwrite(w, filename, x, y, width, height)
-wbp w;
-char *filename;
-int x, y, width, height;
+static int gfwrite(wbp w, char *filename, int x, int y, int width, int height)
    {
    unsigned char obuf[GifBlockSize];
    short *p, *q;
@@ -625,8 +602,7 @@ int x, y, width, height;
  * gfmktree() - initialize or reinitialize encoding tree
  */
 
-static void gfmktree(tree)
-lzwnode *tree;
+static void gfmktree(lzwnode *tree)
    {
    int i;
 
@@ -642,8 +618,7 @@ lzwnode *tree;
 /*
  * gfout(code) - output one LZW token
  */
-static void gfout(tcode)
-int tcode;
+static void gfout(int tcode)
    {
    gf_curr |= tcode << gf_valid;		/* add to current word */
    gf_valid += gf_lzwbits;		/* count the bits */

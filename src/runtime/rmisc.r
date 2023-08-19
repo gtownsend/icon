@@ -11,18 +11,14 @@
 /*
  * Prototypes.
  */
-
-static void	listimage
-   (FILE *f,struct b_list *lp, int noimage);
-static void	printimage	(FILE *f,int c,int q);
-static char *	csname		(dptr dp);
-
+static void listimage(FILE *f, struct b_list *lp, int noimage);
+static void printimage(FILE *f, int c, int q);
+static char *csname(dptr dp);
 
 /*
  * eq - compare two Icon strings for equality
  */
-int eq(d1, d2)
-dptr d1, d2;
+int eq(dptr d1, dptr d2)
 {
 	char *s1, *s2;
 	int i;
@@ -42,9 +38,7 @@ dptr d1, d2;
  *  of the variable (Succeeded for keywords), or Failed if the variable
  *  does not exist.
  */
-int getvar(s,vp)
-   char *s;
-   dptr vp;
+int getvar(char *s, dptr vp)
    {
    register dptr dp;
    register dptr np;
@@ -175,8 +169,7 @@ glbvars:
  * hash - compute hash value of arbitrary object for table and set accessing.
  */
 
-uword hash(dp)
-dptr dp;
+uword hash(dptr dp)
    {
    register char *s;
    register uword i;
@@ -301,10 +294,7 @@ dptr dp;
  *  fields of records will not be imaged.
  */
 
-void outimage(f, dp, noimage)
-FILE *f;
-dptr dp;
-int noimage;
+void outimage(FILE *f, dptr dp, int noimage)
    {
    register word i, j;
    register char *s;
@@ -608,9 +598,7 @@ int noimage;
  *  if c is unprintable, '\', or equal to q.
  */
 
-static void printimage(f, c, q)
-FILE *f;
-int c, q;
+static void printimage(FILE *f, int c, int q)
    {
    if (printable(c)) {
       /*
@@ -675,10 +663,7 @@ int c, q;
  * listimage - print an image of a list.
  */
 
-static void listimage(f, lp, noimage)
-FILE *f;
-struct b_list *lp;
-int noimage;
+static void listimage(FILE *f, struct b_list *lp, int noimage)
    {
    register word i, j;
    register struct b_lelem *bp;
@@ -733,41 +718,34 @@ int noimage;
  *  Returns a pointer to the item matching "key", or NULL if none.
  *  Based on Bentley, CACM 28,7 (July, 1985), p. 676.
  */
+char *qsearch(char *key, char *base, int nel, int width,
+   int (*compar)(void*, void*))
+   {
+   int l, u, m, r;
+   char * a;
 
-char * qsearch (key, base, nel, width, compar)
-char * key;
-char * base;
-int nel, width;
-int (*compar)();
-{
-    int l, u, m, r;
-    char * a;
-
-    l = 0;
-    u = nel - 1;
-    while (l <= u) {
-	m = (l + u) / 2;
-	a = (char *) ((char *) base + width * m);
-	r = compar (a, key);
-	if (r < 0)
-	    l = m + 1;
-	else if (r > 0)
-	    u = m - 1;
-	else
-	    return a;
-    }
-    return 0;
-}
+   l = 0;
+   u = nel - 1;
+   while (l <= u) {
+      m = (l + u) / 2;
+      a = (char *) ((char *) base + width * m);
+      r = compar (a, key);
+      if (r < 0)
+         l = m + 1;
+      else if (r > 0)
+         u = m - 1;
+      else
+         return a;
+      }
+   return 0;
+   }
 
 /*
  * qtos - convert a qualified string named by *dp to a C-style string.
  *  Put the C-style string in sbuf if it will fit, otherwise put it
  *  in the string region.
  */
-
-int qtos(dp, sbuf)
-dptr dp;
-char *sbuf;
+int qtos(dptr dp, char *sbuf)
    {
    register word slen;
    register char *c, *s;
@@ -797,8 +775,7 @@ char *sbuf;
 /*
  * pushact - push actvtr on the activator stack of ce
  */
-int pushact(ce, actvtr)
-struct b_coexpr *ce, *actvtr;
+int pushact(struct b_coexpr *ce, struct b_coexpr *actvtr)
 {
    struct astkblk *abp = ce->es_actstk, *nabp;
    struct actrec *arp;
@@ -835,8 +812,7 @@ struct b_coexpr *ce, *actvtr;
  * popact - pop the most recent activator from the activator stack of ce
  *  and return it.
  */
-struct b_coexpr *popact(ce)
-struct b_coexpr *ce;
+struct b_coexpr *popact(struct b_coexpr *ce)
 {
    struct astkblk *abp = ce->es_actstk, *oabp;
    struct actrec *arp;
@@ -871,8 +847,7 @@ struct b_coexpr *ce;
 /*
  * topact - return the most recent activator of ce.
  */
-struct b_coexpr *topact(ce)
-struct b_coexpr *ce;
+struct b_coexpr *topact(struct b_coexpr *ce)
 {
    struct astkblk *abp = ce->es_actstk;
 
@@ -884,19 +859,16 @@ struct b_coexpr *ce;
 /*
  * findline - find the source line number associated with the ipc
  */
-int findline(ipc)
-word *ipc;
+int findline(word *ipc)
 {
   return findloc(ipc) & 65535;
 }
-int findcol(ipc)
-word *ipc;
+int findcol(word *ipc)
 {
   return findloc(ipc) >> 16;
 }
 
-int findloc(ipc)
-word *ipc;
+int findloc(word *ipc)
 {
    uword ipc_offset;
    uword size;
@@ -926,8 +898,7 @@ word *ipc;
 /*
  * findipc - find the first ipc associated with a source-code line number.
  */
-int findipc(line)
-int line;
+int findipc(int line)
 {
    uword size;
    struct ipc_line *base;
@@ -951,8 +922,7 @@ int line;
 /*
  * findfile - find source file name associated with the ipc
  */
-char *findfile(ipc)
-word *ipc;
+char *findfile(word *ipc)
 {
    uword ipc_offset;
    struct ipc_fname *p;
@@ -977,8 +947,7 @@ word *ipc;
  *  Returns number of characters allocated.
  */
 
-int doimage(c, q)
-int c, q;
+int doimage(int c, int q)
    {
    static char cbuf[5];
 
@@ -1048,8 +1017,7 @@ int c, q;
  * getimage(dp1,dp2) - return string image of object dp1 in dp2.
  */
 
-int getimage(dp1,dp2)
-dptr dp1, dp2;
+int getimage(dptr dp1, dptr dp2)
    {
    register word len, outlen, rnlen;
    int i;
@@ -1320,8 +1288,7 @@ dptr dp1, dp2;
 /*
  * csname(dp) -- return the name of a predefined cset matching dp.
  */
-static char *csname(dp)
-dptr dp;
+static char *csname(dptr dp)
    {
    register int n;
 
@@ -1360,8 +1327,7 @@ dptr dp;
 /*
  * cssize(dp) - calculate cset size, store it, and return it
  */
-int cssize(dp)
-dptr dp;
+int cssize(dptr dp)
 {
    register int i, n;
    register unsigned int w, *wp;
@@ -1380,9 +1346,7 @@ dptr dp;
 /*
  * printable(c) -- is c a "printable" character?
  */
-
-int printable(c)
-int c;
+int printable(int c)
    {
    return (isascii(c) && isprint(c));
    }
@@ -1397,8 +1361,7 @@ extern int over_flow;
 /*
  * add - integer addition with overflow checking
  */
-word add(a, b)
-word a, b;
+word add(word a, word b)
 {
    if ((a ^ b) >= 0 && (a >= 0 ? b > MaxLong - a : b < MinLong - a)) {
       over_flow = 1;
@@ -1413,8 +1376,7 @@ word a, b;
 /* 
  * sub - integer subtraction with overflow checking
  */
-word sub(a, b)
-word a, b;
+word sub(word a, word b)
 {
    if ((a ^ b) < 0 && (a >= 0 ? b < a - MaxLong : b > a - MinLong)) {
       over_flow = 1;
@@ -1429,8 +1391,7 @@ word a, b;
 /*
  * mul - integer multiplication with overflow checking
  */
-word mul(a, b)
-word a, b;
+word mul(word a, word b)
 {
    if (b != 0) {
       if ((a ^ b) >= 0) {
@@ -1452,8 +1413,7 @@ word a, b;
 /*
  * mod3 - integer modulo with overflow checking (always rounds to 0)
  */
-word mod3(a, b)
-word a, b;
+word mod3(word a, word b)
 {
    word retval;
 
@@ -1486,8 +1446,7 @@ word a, b;
 /*
  * div3 - integer divide with overflow checking (always rounds to 0)
  */
-word div3(a, b)
-word a, b;
+word div3(word a, word b)
 {
    if ( ( b == 0 ) ||	/* Not really an overflow, but definitely an error */
         ( b == -1 && a == MinLong ) ) {
@@ -1502,8 +1461,7 @@ word a, b;
 /*
  * neg - integer negation with overflow checking
  */
-word neg(a)
-word a;
+word neg(word a)
 {
    if (a == MinLong) {
       over_flow = 1;
@@ -1518,10 +1476,7 @@ word a;
  *  string-valued variables. This is used for return, suspend, and
  *  transmitting values across co-expression context switches.
  */
-void retderef(valp, low, high)
-dptr valp;
-word *low;
-word *high;
+void retderef(dptr valp, word *low, word *high)
    {
    struct b_tvsubs *tvb;
    word *loc;

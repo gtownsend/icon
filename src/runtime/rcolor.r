@@ -77,10 +77,7 @@ static colrmod sattable[] = {			/* saturation levels */
  *     <native color spec>
  */
 
-int parsecolor(w, buf, r, g, b)
-wbp w;
-char *buf;
-long *r, *g, *b;
+int parsecolor(wbp w, char *buf, long *r, long *g, long *b)
    {
    int len, mul;
    char *fmt, c;
@@ -157,9 +154,7 @@ long *r, *g, *b;
  *	IEEE Computer Graphics & Applications, May 1982
  */
 
-static int colorphrase(buf, r, g, b)
-char *buf;
-long *r, *g, *b;
+static int colorphrase(char *buf, long *r, long *g, long *b)
    {
    int len, very;
    char c, *p, *ebuf, cbuffer[MAXCOLORNAME];
@@ -317,8 +312,7 @@ long *r, *g, *b;
 /*
  * rgbval(n1, n2, hue) - helper function for HLS to RGB conversion
  */
-static double rgbval(n1, n2, hue)
-double n1, n2, hue;
+static double rgbval(double n1, double n2, double hue)
    {
    if (hue > 360)
       hue -= 360;
@@ -541,8 +535,7 @@ static unsigned char c1rgb[] = {
  *    returns 0 for unrecognized palette name
  *    returns -1 for non-string argument
  */
-int palnum(d)
-dptr d;
+int palnum(dptr d)
    {
    tended char *s;
    char c, x;
@@ -567,8 +560,7 @@ struct palentry *palsetup_palette;	/* current palette */
 /*
  * palsetup(p) - set up palette for specified palette.
  */
-struct palentry *palsetup(p)
-int p;
+struct palentry *palsetup(int p)
    {
    int r, g, b, i, n, c;
    unsigned int rr, gg, bb;
@@ -664,9 +656,7 @@ int p;
  *
  * In color cubes, finds "extra" grays only if r == g == b.
  */
-char *rgbkey(p, r, g, b)
-int p;
-double r, g, b;
+char *rgbkey(int p, double r, double g, double b)
    {
    int n, i;
    double m;

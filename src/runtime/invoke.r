@@ -5,9 +5,7 @@
 /*
  * invoke -- Perform setup for invocation.
  */
-int invoke(nargs,cargp,n)
-dptr *cargp;
-int nargs, *n;
+int invoke(int nargs, dptr *cargp, int *n)
 {
    register struct pf_marker *newpfp;
    register dptr newargp;

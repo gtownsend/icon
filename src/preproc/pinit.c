@@ -17,10 +17,7 @@ struct src dummy;
  * init_preproc - initialize all parts of the preprocessor, establishing
  *  the primary file as the current source of tokens.
  */
-void init_preproc(fname, opt_lst, opt_args)
-char *fname;
-char *opt_lst;
-char **opt_args;
+void init_preproc(char *fname, char *opt_lst, char **opt_args)
    {
 
    init_str();                      /* initialize string table */
@@ -39,9 +36,7 @@ char **opt_args;
  *  effect when preprocessing starts.  The options may be on the command
  *  line.  Also establish predefined macros.
  */
-static void mac_opts(opt_lst, opt_args)
-char *opt_lst;
-char **opt_args;
+static void mac_opts(char *opt_lst, char **opt_args)
    {
    int i;
 
@@ -70,10 +65,7 @@ char **opt_args;
  * str_src - establish a string, given by a character pointer and a length,
  *  as the current source of tokens.
  */
-void str_src(src_name, s, len)
-char *src_name;
-char *s;
-int len;
+void str_src(char *src_name, char *s, int len)
    {
    union src_ref ref;
    int *ip1, *ip2;
@@ -102,9 +94,7 @@ int len;
  * undef_opt - take the argument to a -U option and, if it is valid,
  *  undefine it.
  */
-static void undef_opt(s, len)
-char *s;
-int len;
+static void undef_opt(char *s, int len)
    {
    struct token *mname;
    int i;
@@ -130,10 +120,7 @@ int len;
  * define_opt - take an argument to a -D option and, if it is valid, perform
  *  the requested definition.
  */
-static void define_opt(s, len, dflt)
-char *s;
-int len;
-struct token *dflt;
+static void define_opt(char *s, int len, struct token *dflt)
    {
    struct token *mname;
    struct token *t;

@@ -487,7 +487,9 @@ static ppminfo ppmcrack(descriptor d)
  *  Otherwise, ppmrows returns zero.
  */
 
-static int ppmrows(ppminfo hdr, int nbr, int (*func) (), long arg)
+typedef int rowfunc(char **a, int w, int i, long arg);
+
+static int ppmrows(ppminfo hdr, int nbr, rowfunc func, long arg)
    {
    char **a, *s;
    void *buf;

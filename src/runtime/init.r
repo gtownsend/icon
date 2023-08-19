@@ -2,7 +2,7 @@
  * File: init.r
  * Initialization, termination, and such.
  * Contents: readhdr, init/icon_init, envset, env_err, env_int,
- *  fpe_trap, inttrag, segvtrap, error, syserr, c_exit, err,
+ *  fpe_trap, inttrag, segvtrap, error, syserr, c_exit,
  *  fatalerr, pstrnmcmp, datainit, [loadicode, savepstate, loadpstate]
  */
 
@@ -126,9 +126,7 @@ word *stackend;			/* End of interpreter stack */
  * Open the icode file and read the header.
  * Used by icon_init().
  */
-static FILE *readhdr(name,hdr)
-char *name;
-struct header *hdr;
+static FILE *readhdr(char *name, struct header *hdr)
    {
    FILE *fname = NULL;
    int n;
@@ -204,15 +202,12 @@ struct header *hdr;
  */
 struct header hdr;
 
-void icon_init(name, argcp, argv)
-char *name;
-int *argcp;
-char *argv[];
+void icon_init(char *name, int *argcp, char *argv[])
    {
    char *itval;
    int delete_icode = 0;
    FILE *fname = NULL;
-   word cbread, longread();
+   word cbread;
 
    prog_name = name;			/* Set icode file name */
 
@@ -429,10 +424,7 @@ void envset()
  * env_err - print an error mesage about the value of an environment
  *  variable.
  */
-static void env_err(msg, name, val)
-char *msg;
-char *name;
-char *val;
+static void env_err(char *msg, char *name, char *val)
 {
    char msg_buf[100];
 
@@ -447,11 +439,7 @@ char *val;
 /*
  * env_int - get the value of an integer-valued environment variable.
  */
-void env_int(name, variable, non_neg, limit)
-char *name;
-word *variable;
-int non_neg;
-uword limit;
+void env_int(char *name, word *variable, int non_neg, uword limit)
 {
    char *value;
    char *s;
@@ -526,8 +514,7 @@ void segvtrap(int sig)
 /*
  * error - print error message from s1 and s2; used only in startup code.
  */
-void error(s1, s2)
-char *s1, *s2;
+void error(char *s1, char *s2)
    {
    if (!s1)
       fprintf(stderr, "error in startup code\n%s\n", s2);
@@ -542,8 +529,7 @@ char *s1, *s2;
 /*
  * syserr - print s as a system error.
  */
-void syserr(s)
-char *s;
+void syserr(char *s)
    {
    fprintf(stderr, "System error");
    if (pfp == NULL)
@@ -563,8 +549,7 @@ char *s;
 /*
  * c_exit(i) - flush all buffers and exit with status i.
  */
-void c_exit(i)
-int i;
+void c_exit(int i)
 {
 
    if (k_dump && ixinited) {
@@ -582,22 +567,9 @@ int i;
 }
 
 /*
- * err() is called if an erroneous situation occurs in the virtual
- *  machine code.  It is typed as int to avoid declaration problems
- *  elsewhere.
- */
-int err()
-{
-   syserr("call to 'err'\n");
-   return 1;		/* unreachable; make compilers happy */
-}
-
-/*
  * fatalerr - disable error conversion and call run-time error routine.
  */
-void fatalerr(n, v)
-int n;
-dptr v;
+void fatalerr(int n, dptr v)
    {
    IntVal(kywd_err) = 0;
    err_msg(n, v);
@@ -606,8 +578,7 @@ dptr v;
 /*
  * pstrnmcmp - compare names in two pstrnm structs; used for qsort.
  */
-int pstrnmcmp(a,b)
-struct pstrnm *a, *b;
+int pstrnmcmp(struct pstrnm *a, struct pstrnm *b)
 {
   return strcmp(a->pstrep, b->pstrep);
 }

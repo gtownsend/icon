@@ -6,8 +6,7 @@
  * co_init - use the contents of the refresh block to initialize the
  *  co-expression.
  */
-void co_init(sblkp)
-struct b_coexpr *sblkp;
+void co_init(struct b_coexpr *sblkp)
 {
    register word *newsp;
    register struct b_refresh *rblkp;
@@ -68,12 +67,12 @@ struct b_coexpr *sblkp;
 /*
  * co_chng - high-level co-expression context switch.
  */
-int co_chng(ncp, valloc, rsltloc, swtch_typ, first)
-struct b_coexpr *ncp;
-struct descrip *valloc; /* location of value being transmitted */
-struct descrip *rsltloc;/* location to put result */
-int swtch_typ;          /* A_Coact, A_Coret, A_Cofail, or A_MTEvent */
-int first;
+int co_chng(
+   struct b_coexpr *ncp,
+   struct descrip *valloc, /* location of value being transmitted */
+   struct descrip *rsltloc,/* location to put result */
+   int swtch_typ,          /* A_Coact, A_Coret, A_Cofail, or A_MTEvent */
+   int first)
 {
    register struct b_coexpr *ccp;
    static int coexp_act;     /* used to pass signal across activations */
@@ -138,9 +137,7 @@ int first;
  * new_context - determine what function to call to execute the new
  *  co-expression; this completes the context switch.
  */
-void new_context(fsig,cargp)
-int fsig;
-dptr cargp;
+void new_context(int fsig, dptr cargp)
    {
    interp(fsig, cargp);
    }

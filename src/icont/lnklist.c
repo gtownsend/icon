@@ -18,9 +18,7 @@ struct invkl *invkls;
  * addinvk adds an "invokable" name to the list.
  *  n==1 if name is an identifier; otherwise it is a string literal.
  */
-void addinvk(name, n)
-char *name;
-int n;
+void addinvk(char *name, int n)
    {
    struct invkl *p;
 
@@ -47,8 +45,7 @@ int n;
  * alclfile allocates an lfile structure for the named file, fills
  *  in the name and returns a pointer to it.
  */
-static struct lfile *alclfile(name)
-char *name;
+static struct lfile *alclfile(char *name)
    {
    struct lfile *p;
 
@@ -64,8 +61,7 @@ char *name;
  * addlfile creates an lfile structure for the named file and add it to the
  *  end of the list of files (lfiles) to generate link instructions for.
  */
-void addlfile(name)
-char *name;
+void addlfile(char *name)
    {
    struct lfile *nlf, *p;
 

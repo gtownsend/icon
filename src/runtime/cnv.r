@@ -29,9 +29,7 @@ static int tmp_str (char *sbuf, dptr s, dptr d);
 /*
  * cnv_c_dbl - cnv:C_double(*s, *d), convert a value directly into a C double
  */
-int cnv_c_dbl(s, d)
-dptr s;
-double *d;
+int cnv_c_dbl(dptr s, double *d)
    {
    tended struct descrip result, cnvstr;
    char sbuf[MaxCvtLen];
@@ -83,9 +81,7 @@ double *d;
 /*
  * cnv_c_int - cnv:C_integer(*s, *d), convert a value directly into a C_integer
  */
-int cnv_c_int(s, d)
-dptr s;
-C_integer *d;
+int cnv_c_int(dptr s, C_integer *d)
    {
    tended struct descrip cnvstr, result;
    union numeric numrc;
@@ -144,9 +140,7 @@ C_integer *d;
 /*
  * cnv_c_str - cnv:C_string(*s, *d), convert a value into a C (and Icon) string
  */
-int cnv_c_str(s, d)
-dptr s;
-dptr d;
+int cnv_c_str(dptr s, dptr d)
    {
    /*
     * Get the string to the end of the string region and append a '\0'.
@@ -187,8 +181,7 @@ dptr d;
 /*
  * cnv_cset - cnv:cset(*s, *d), convert to a cset
  */
-int cnv_cset(s, d)
-dptr s, d;
+int cnv_cset(dptr s, dptr d)
    {
    tended struct descrip str;
    char sbuf[MaxCvtLen];
@@ -221,9 +214,7 @@ dptr s, d;
 /*
  * cnv_ec_int - cnv:(exact)C_integer(*s, *d), convert to an exact C integer
  */
-int cnv_ec_int(s, d)
-dptr s;
-C_integer *d;
+int cnv_ec_int(dptr s, C_integer *d)
    {
    tended struct descrip cnvstr;
    union numeric numrc;
@@ -264,8 +255,7 @@ C_integer *d;
 /*
  * cnv_eint - cnv:(exact)integer(*s, *d), convert to an exact integer
  */
-int cnv_eint(s, d)
-dptr s, d;
+int cnv_eint(dptr s, dptr d)
    {
    tended struct descrip cnvstr;
    char sbuf[MaxCvtLen];
@@ -307,8 +297,7 @@ dptr s, d;
 /*
  * cnv_int - cnv:integer(*s, *d), convert to integer
  */
-int cnv_int(s, d)
-dptr s, d;
+int cnv_int(dptr s, dptr d)
    {
    tended struct descrip cnvstr;
    char sbuf[MaxCvtLen];
@@ -375,8 +364,7 @@ dptr s, d;
 /*
  * cnv_real - cnv:real(*s, *d), convert to real
  */
-int cnv_real(s, d)
-dptr s, d;
+int cnv_real(dptr s, dptr d)
    {
    double dbl;
 
@@ -392,8 +380,7 @@ dptr s, d;
 /*
  * cnv_str - cnv:string(*s, *d), convert to a string
  */
-int cnv_str(s, d)
-dptr s, d;
+int cnv_str(dptr s, dptr d)
    {
    char sbuf[MaxCvtLen];
 
@@ -429,9 +416,7 @@ dptr s, d;
 /*
  * cnv_tcset - cnv:tmp_cset(*s, *d), convert to a temporary cset
  */
-int cnv_tcset(cbuf, s, d)
-struct b_cset *cbuf;
-dptr s, d;
+int cnv_tcset(struct b_cset *cbuf, dptr s, dptr d)
    {
    struct descrip tmpstr;
    char sbuf[MaxCvtLen];
@@ -463,10 +448,7 @@ dptr s, d;
 /*
  * cnv_tstr - cnv:tmp_string(*s, *d), convert to a temporary string
  */
-int cnv_tstr(sbuf, s, d)
-char *sbuf;
-dptr s;
-dptr d;
+int cnv_tstr(char *sbuf, dptr s, dptr d)
    {
    if (is:string(*s)) {
       *d = *s;
@@ -483,8 +465,7 @@ dptr d;
 /*
  * deref - dereference a descriptor.
  */
-void deref(s, d)
-dptr s, d;
+void deref(dptr s, dptr d)
    {
    /*
     * no allocation is done, so nothing need be tended.
@@ -549,8 +530,7 @@ dptr s, d;
 /*
  * getdbl - return as a double the value inside a real block.
  */
-double getdbl(dp)
-dptr dp;
+double getdbl(dptr dp)
    {
    double d;
    GetReal(dp, d);
@@ -560,10 +540,7 @@ dptr dp;
 /*
  * tmp_str - Convert to temporary string.
  */
-static int tmp_str(sbuf, s, d)
-char *sbuf;
-dptr s;
-dptr d;
+static int tmp_str(char *sbuf, dptr s, dptr d)
    {
    type_case *s of {
       string:
@@ -594,9 +571,7 @@ dptr d;
  * dp_pnmcmp - do a string comparison of a descriptor to the procedure
  *   name in a pstrnm struct; used in call to qsearch().
  */
-int dp_pnmcmp(pne,dp)
-struct pstrnm *pne;
-struct descrip *dp;
+int dp_pnmcmp(struct pstrnm *pne, struct descrip *dp)
 {
    struct descrip d;
    StrLen(d) = strlen(pne->pstrep);
@@ -607,9 +582,7 @@ struct descrip *dp;
 /*
  * bi_strprc - convert a string to a (built-in) function or operator.
  */
-struct b_proc *bi_strprc(s, arity)
-dptr s;
-C_integer arity;
+struct b_proc *bi_strprc(dptr s, C_integer arity)
    {
    C_integer i;
    struct pstrnm *pp;
@@ -643,9 +616,7 @@ C_integer arity;
 /*
  * strprc - convert a string to a procedure.
  */
-struct b_proc *strprc(s, arity)
-dptr s;
-C_integer arity;
+struct b_proc *strprc(dptr s, C_integer arity)
    {
    C_integer i;
 
@@ -672,10 +643,7 @@ C_integer arity;
  *  making q a descriptor for the resulting string.
  */
 
-static void itos(num, dp, s)
-C_integer num;
-dptr dp;
-char *s;
+static void itos(C_integer num, dptr dp, char *s)
    {
    register char *p;
    long ival;
@@ -716,9 +684,7 @@ char *s;
  * (we do this to avoid allocating a block for a real
  * that will later be used directly as a C_double).
  */
-static int ston(sp, result)
-dptr sp;
-union numeric *result;
+static int ston(dptr sp, union numeric *result)
    {
    register char *s = StrLoc(*sp), *end_s;
    register int c;
@@ -914,9 +880,7 @@ union numeric *result;
  *  given length.
  */
 
-word cvpos(pos, len)
-long pos;
-register long len;
+word cvpos(long pos, long len)
    {
    register word p;
 
@@ -945,10 +909,7 @@ double dblZero = 0.0;
  * rtos - convert the real number n into a string using s as a buffer and
  *  making a descriptor for the resulting string.
  */
-void rtos(n, dp, s)
-double n;
-dptr dp;
-char *s;
+void rtos(double n, dptr dp, char *s)
    {
    s++;					/* leave room for leading zero */
    sprintf(s, "%.*g", Precision, n + dblZero);   /* format, avoiding -0 */
@@ -975,10 +936,7 @@ char *s;
  *  s as a buffer and making a descriptor for the resulting string.
  */
 
-static void cstos(cs, dp, s)
-unsigned int *cs;
-dptr dp;
-char *s;
+static void cstos(unsigned int *cs, dptr dp, char *s)
    {
    register unsigned int w;
    register int j, i;

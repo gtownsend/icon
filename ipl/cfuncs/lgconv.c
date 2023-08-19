@@ -57,9 +57,7 @@ struct b_bignum {		/* large integer block */
 
 
 
-int lgconv(argc, argv)		/*: convert large integer to string */
-int argc;
-descriptor *argv;
+int lgconv(int argc, descriptor *argv)	/*: convert large integer to string */
    {
 #define BCDIGITS (2 * sizeof(long))	/* BCD digits per long */
    int nbig, ndec, nbcd, nchr, bcdlen, i, j, n, t;

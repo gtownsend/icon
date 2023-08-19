@@ -26,9 +26,7 @@ static int escape               (char **str_ptr, int *nchars_ptr);
  * escape - translate the character sequence following a '\' into the
  *   single character it represents.
  */
-static int escape(str_ptr, nchars_ptr)
-char **str_ptr;
-int *nchars_ptr;
+static int escape(char **str_ptr, int *nchars_ptr)
    {
    register int c, nc, i;
 
@@ -84,9 +82,7 @@ int *nchars_ptr;
 /*
  * bitvect - convert cset literal into a bitvector
  */
-unsigned short *bitvect(image, len)
-char *image;
-int len;
+unsigned short *bitvect(char *image, int len)
    {
    register int c;
    register unsigned short *bv;
@@ -108,9 +104,7 @@ int len;
  * cset_init - use bitvector for a cset to write an initialization for
  *    a cset block.
  */
-void cset_init(f, bv)
-FILE *f;
-unsigned short *bv;
+void cset_init(FILE *f, unsigned short *bv)
    {
    int size;
    unsigned short n;
@@ -130,10 +124,7 @@ unsigned short *bv;
 /*
  * prtstr - print an Icon string literal as a C string literal.
  */
-int prt_i_str(f, s, len)
-FILE *f;
-char *s;
-int len;
+int prt_i_str(FILE *f, char *s, int len)
    {
    int c;
    int n_chars;

@@ -10,10 +10,7 @@
  *  Discards \r before \n in translated mode.  [[ Needs ferror() check. ]]
  */
 
-int getstrg(buf, maxi, fbp)
-register char *buf;
-int maxi;
-struct b_file *fbp;
+int getstrg(char *buf, int maxi, struct b_file *fbp)
    {
    register int c, l;
    FILE *fd;
@@ -57,8 +54,7 @@ struct b_file *fbp;
  *  by hostname.  This code accommodates several different host name
  *  fetching schemes.
  */
-void iconhost(hostname)
-char *hostname;
+void iconhost(char *hostname)
    {
    /*
     * Use the uname system call.  (POSIX)
@@ -72,11 +68,7 @@ char *hostname;
  * Read a long string in shorter parts. (Standard read may not handle long
  *  strings.)
  */
-word longread(s,width,len,fd)
-FILE *fd;
-int width;
-char *s;
-long len;
+word longread(char *s, int width, long len, FILE *fd)
 {
    tended char *ts = s;
    long tally = 0;
@@ -102,10 +94,7 @@ long len;
  * Print string referenced by descriptor d. Note, d must not move during
  *   a garbage collection.
  */
-
-int putstr(f, d)
-register FILE *f;
-dptr d;
+int putstr(FILE *f, dptr d)
    {
    register char *s;
    register word l;
@@ -123,8 +112,7 @@ dptr d;
 /*
  * idelay(n) - delay for n milliseconds
  */
-int idelay(n)
-int n;
+int idelay(int n)
    {
    struct timeval t;
    t.tv_sec = n / 1000;

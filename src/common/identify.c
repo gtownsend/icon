@@ -8,8 +8,7 @@ extern char *progname;
  * id_comment - output a comment C identifying the date and time and what
  *  program is producing the output.
  */
-void id_comment(f)
-FILE *f;
+void id_comment(FILE *f)
    {
    static char sbuf[26];
    static int first_time = 1;

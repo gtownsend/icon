@@ -281,8 +281,7 @@ void scanrefs()
 /*
  * scanfile -- scan one file for references.
  */
-static void scanfile(filename)
-char *filename;
+static void scanfile(char *filename)
    {
    int i, k, f, op, nrefs, flags;
    word id, procid;
@@ -342,8 +341,7 @@ char *filename;
 /*
  *
  */
-static void reference(gp)
-struct gentry *gp;
+static void reference(struct gentry *gp)
    {
    struct gentry **rp;
 

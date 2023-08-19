@@ -100,8 +100,7 @@ void linit()
  * alsolink - create an lfile structure for the named file and add it to the
  *  end of the list of files (llfiles) to generate link instructions for.
  */
-void alsolink(name)
-char *name;
+void alsolink(char *name)
    {
    struct lfile *nlf, *p;
    char file[MaxPath];
@@ -131,8 +130,7 @@ char *name;
  *  and move lptr to the lfile structure that p points at.  That is, getlfile
  *  returns a pointer to the current (wrt. lptr) lfile and advances lptr.
  */
-struct lfile *getlfile(lptr)
-struct lfile **lptr;
+struct lfile *getlfile(struct lfile **lptr)
    {
    struct lfile *p;
 
@@ -149,8 +147,7 @@ struct lfile **lptr;
  * alclfile - allocate an lfile structure for the named file, fill
  *  in the name and return a pointer to it.
  */
-static struct lfile *alclfile(name)
-char *name;
+static struct lfile *alclfile(char *name)
    {
    struct lfile *p;
 

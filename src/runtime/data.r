@@ -329,25 +329,25 @@ struct errtab errtab[] = {
  *  nth word here is the routine to call.
  */
 
-int (*optab[])() = {
-	err,
+int (*optab[])(dptr) = {
+   NULL,
 #define OpDef(p,n,s,u) Cat(O,p),
 #include "../h/odefs.h"
 #undef OpDef
-   Obscan,
-   err,
-   err,
-   err,
-   err,
-   err,
-   Ocreate,
-   err,
-   err,
-   err,
-   err,
-   Oescan,
-   err,
-   Ofield
+   (int(*)(dptr))Obscan,
+   NULL,
+   NULL,
+   NULL,
+   NULL,
+   NULL,
+   (int(*)(dptr))Ocreate,
+   NULL,
+   NULL,
+   NULL,
+   NULL,
+   (int(*)(dptr))Oescan,
+   NULL,
+   (int(*)(dptr))Ofield
    };
 
 /*
@@ -357,8 +357,8 @@ int (*optab[])() = {
 #include "../h/kdefs.h"
 #undef KDef
 
-int (*keytab[])() = {
-   err,
+int (*keytab[])(dptr) = {
+   NULL,
 #define KDef(p,n) Cat(K,p),
 #include "../h/kdefs.h"
    };

@@ -190,10 +190,7 @@ ret:
  * getident - gather an identifier beginning with ac.  The character
  *  following identifier goes in cc.
  */
-
-static struct toktab *getident(ac, cc)
-int ac;
-int *cc;
+static struct toktab *getident(int ac, int *cc)
    {
    register int c;
    register struct toktab *t;
@@ -229,7 +226,6 @@ int *cc;
  *  is a reserved word, return a pointer to its entry in the token table.
  *  Return NULL if the string isn't a reserved word.
  */
-
 static struct toktab *findres()
    {
    register struct toktab *t;
@@ -258,8 +254,7 @@ static struct toktab *findres()
 /*
  * bufcmp - compare a null terminated string to what is in the string buffer.
  */
-static int bufcmp(s)
-char *s;
+static int bufcmp(char *s)
    {
    register char *s1;
    s1 = lex_sbuf.strtimage;
@@ -280,10 +275,7 @@ char *s;
  * getnum also handles the "." operator, which is distinguished from
  *  a numeric literal by what follows it.
  */
-
-static struct toktab *getnum(ac, cc)
-int ac;
-int *cc;
+static struct toktab *getnum(int ac, int *cc)
    {
    register int c;
    register unsigned int r, state;
@@ -369,9 +361,7 @@ int *cc;
  * getstring - gather a string literal starting with ac and place the
  *  character following the literal in *cc.
  */
-static struct toktab *getstring(ac, cc)
-int ac;
-int *cc;
+static struct toktab *getstring(int ac, int *cc)
    {
    register int c, sc;
    int sav_indx;
@@ -439,7 +429,6 @@ int *cc;
  * ctlesc - translate a control escape -- backslash followed by
  *  caret and one character.
  */
-
 static int ctlesc()
    {
    register int c;
@@ -455,9 +444,7 @@ static int ctlesc()
  * octesc - translate an octal escape -- backslash followed by
  *  one, two, or three octal digits.
  */
-
-static int octesc(ac)
-int ac;
+static int octesc(int ac)
    {
    register int c, nc, i;
 
@@ -479,7 +466,6 @@ int ac;
  * hexesc - translate a hexadecimal escape -- backslash-x
  *  followed by one or two hexadecimal digits.
  */
-
 static int hexesc()
    {
    register int c, nc, i;
@@ -509,7 +495,6 @@ static int hexesc()
 /*
  * setlineno - set line number from #line comment, return following char.
  */
-
 static int setlineno()
    {
    register int c;
@@ -533,9 +518,7 @@ static int setlineno()
 /*
  * setfilenm -	set file name from #line comment, return following char.
  */
-
-static int setfilenm(c)
-register int c;
+static int setfilenm(int c)
    {
    while (c == ' ' || c == '\t')
       c = NextChar;
@@ -562,7 +545,6 @@ register int c;
  *
  *  Called from the lexical analyzer; interfaces it to the preprocessor.
  */
-
 int nextchar()
    {
    register int c;
