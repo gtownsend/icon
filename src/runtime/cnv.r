@@ -348,7 +348,7 @@ int cnv_int(dptr s, dptr d)
       case T_Real: {
          double dbl = numrc.real;
          if (dbl > MaxLong || dbl < MinLong) {
-            if (realtobig(s, d) == Succeeded)
+            if (doubletobig(dbl, d) == Succeeded)
                return 1;
             else
                return 0;
@@ -699,7 +699,6 @@ static int ston(dptr sp, union numeric *result)
    int exponent = 0;	/* exponent part of real number */
    double fiveto;	/* holds 5^scale */
    double power;	/* holds successive squares of 5 to compute fiveto */
-   int err_no;
    char *ssave;         /* holds original ptr for bigradix */
 
    if (StrLen(*sp) == 0)
@@ -861,13 +860,9 @@ static int ston(dptr sp, union numeric *result)
    else
       mantissa /= fiveto;
 
-   err_no = 0;
    mantissa = ldexp(mantissa, scale);
-   if (err_no > 0 && mantissa > 0)
-      /*
-       * ldexp caused overflow.
-       */
-      return CvtFail;
+   if (mantissa == HUGE_VAL)
+      return CvtFail;	/* value overflowed */
 
    if (msign == '-')
       mantissa = -mantissa;

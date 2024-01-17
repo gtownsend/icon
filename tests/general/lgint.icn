@@ -114,7 +114,7 @@ procedure perfect(m)			# Mersenne perfect numbers
 end
 
 procedure tmul(x)			# test multiply, divide, real(I)
-   local n, p, q, d, e
+   local n, p, q, d, e, err
 
    p := 1
    n := 0
@@ -133,7 +133,7 @@ procedure tmul(x)			# test multiply, divide, real(I)
 end
 
 procedure conv(n)			# test conversion to/from real & string
-   local sn, rn, in, d, r
+   local sn, rn, in, d, r, r2, err
 
    sn := string(n)
    in := integer(sn)
@@ -145,10 +145,17 @@ procedure conv(n)			# test conversion to/from real & string
    in := integer(rn)
    d := n - in
    r := d / rn
-   if abs(r) > 1.0e-14 then		# 1e-15 works for most, need -14 for IBM
+   if abs(r) > 1.0e-14 then	{	# 1e-15 works for most, need -14 for IBM
       write("real conv err: n=", n, " rn=", rn, " in=", in, " d=", d, " r=", r)
-   else
-      write("conv ok: ", n)
+	  return
+   }
+   r2 := real(integer(sn || ".4321"))
+   err := abs((r2 - rn) / rn)
+   if err > 1.0e-14 then {
+      write("rconv: rn=", rn, " r2=", r2)
+	  return
+   }
+   write("conv ok: ", n)
    return
 end
 

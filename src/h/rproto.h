@@ -136,6 +136,7 @@ word		bigradix	(int sign, int r, char *s, char *x,
 						   union numeric *result);
 int		bigtoreal	(dptr da, double *result);
 int		realtobig	(dptr da, dptr dx);
+int     	doubletobig	(double x, dptr dx);
 int		bigtos		(dptr da, dptr dx);
 void		bigprint	(FILE *f, dptr da);
 int		cpbignum	(dptr da, dptr db);

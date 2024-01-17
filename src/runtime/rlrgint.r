@@ -295,12 +295,22 @@ int bigtoreal(dptr da, double *d)
 int realtobig(dptr da, dptr dx)
 {
    double x;
+
+   GetReal(da, x);
+   return doubletobig(x, dx);
+}
+
+/*
+ *  double -> bignum
+ */
+
+int doubletobig(double x, dptr dx)
+{
    struct b_bignum *b;
    word i, blen;
    word d;
    int sgn;
 
-   GetReal(da, x);
    if (sgn = x < 0)
       x = -x;
    blen = ln(x) / ln(B) + 0.99;
