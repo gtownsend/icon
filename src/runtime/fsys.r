@@ -150,7 +150,6 @@ function{0,1} open(fname, spec)
       register char *s;
       int status;
       char mode[4];
-      extern FILE *fopen();
       FILE *f;
       struct b_file *fl;
 
