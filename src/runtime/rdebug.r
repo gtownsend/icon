@@ -360,7 +360,7 @@ static void showlevel(int n)
 #include "../h/opdefs.h"
 
 extern struct descrip value_tmp;		/* argument of Op_Apply */
-extern struct b_proc *opblks[];
+extern struct b_iproc *opblks[];
 
 
 /*
@@ -469,7 +469,7 @@ static void ttrace()
 
       default:
 
-         bp = opblks[lastop];
+         bp = (struct b_proc *)opblks[lastop];
          nargs = abs((int)bp->nparam);
          putc('{', stderr);
          if (lastop == Op_Bang || lastop == Op_Random)

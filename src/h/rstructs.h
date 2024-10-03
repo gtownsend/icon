@@ -81,6 +81,12 @@ struct b_list {			/* list-header block */
    union block *listtail;	/*   pointer to last list-element block */
    };
 
+/*
+ * b_proc and b_iproc must be kept identical in size and layout.  The
+ * only differences being entryp and ip_entryp and pname and ip_pname.
+ * See b_iproc for details.
+ */
+
 struct b_proc {			/* procedure block */
    word title;			/*   T_Proc */
    word blksize;		/*   size of block */

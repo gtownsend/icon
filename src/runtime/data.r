@@ -9,28 +9,28 @@ struct b_proc Bnoproc;
  * External declarations for function blocks.
  */
 
-#define FncDef(p,n) extern struct b_proc Cat(B,p);
-#define FncDefV(p) extern struct b_proc Cat(B,p);
+#define FncDef(p,n) extern struct b_iproc Cat(B,p);
+#define FncDefV(p) extern struct b_iproc Cat(B,p);
 #passthru #undef exit
 #undef exit
 #include "../h/fdefs.h"
 #undef FncDef
 #undef FncDefV
 
-#define OpDef(p,n,s,u) extern struct b_proc Cat(B,p);
+#define OpDef(p,n,s,u) extern struct b_iproc Cat(B,p);
 #include "../h/odefs.h"
 #undef OpDef
 
-extern struct b_proc Bbscan;
-extern struct b_proc Bescan;
-extern struct b_proc Bfield;
-extern struct b_proc Blimit;
-extern struct b_proc Bllist;
+extern struct b_iproc Bbscan;
+extern struct b_iproc Bescan;
+extern struct b_iproc Bfield;
+extern struct b_iproc Blimit;
+extern struct b_iproc Bllist;
 
 
 
 
-struct b_proc *opblks[] = {
+struct b_iproc *opblks[] = {
 	NULL,
 #define OpDef(p,n,s,u) Cat(&B,p),
 #include "../h/odefs.h"
