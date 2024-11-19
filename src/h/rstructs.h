@@ -81,6 +81,10 @@ struct b_list {			/* list-header block */
    union block *listtail;	/*   pointer to last list-element block */
    };
 
+/*
+ * b_proc and b_iproc must be kept identical in size and layout.
+ *  The non-unioned b_iproc variant (q.v.) is used for initialization.
+ */
 struct b_proc {			/* procedure block */
    word title;			/*   T_Proc */
    word blksize;		/*   size of block */
