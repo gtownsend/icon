@@ -22,6 +22,9 @@ if [ ! -d "$NAME" ]; then
    exit 1
 fi
 
+# report the version being built
+grep '#define Version[ND]' $SRC/h/version.h
+
 # build the "define.h" file
 echo "#define Config \"$NAME\""			 > $SRC/h/define.h
 echo "#define $GPX 1"				>> $SRC/h/define.h
