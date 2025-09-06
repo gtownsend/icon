@@ -712,35 +712,6 @@ static void listimage(FILE *f, struct b_list *lp, int noimage)
    }
 
 /*
- * qsearch(key,base,nel,width,compar) - binary search
- *
- *  A binary search routine with arguments similar to qsort(3).
- *  Returns a pointer to the item matching "key", or NULL if none.
- *  Based on Bentley, CACM 28,7 (July, 1985), p. 676.
- */
-char *qsearch(char *key, char *base, int nel, int width,
-   int (*compar)(void*, void*))
-   {
-   int l, u, m, r;
-   char * a;
-
-   l = 0;
-   u = nel - 1;
-   while (l <= u) {
-      m = (l + u) / 2;
-      a = (char *) ((char *) base + width * m);
-      r = compar (a, key);
-      if (r < 0)
-         l = m + 1;
-      else if (r > 0)
-         u = m - 1;
-      else
-         return a;
-      }
-   return 0;
-   }
-
-/*
  * qtos - convert a qualified string named by *dp to a C-style string.
  *  Put the C-style string in sbuf if it will fit, otherwise put it
  *  in the string region.

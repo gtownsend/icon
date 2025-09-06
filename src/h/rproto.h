@@ -70,7 +70,6 @@ int		def_tstr	(char *sbuf, dptr s, dptr df, dptr d);
 word		div3		(word a,word b);
 int		doasgn		(dptr dp1,dptr dp2);
 int		doimage		(int c,int q);
-int		dp_pnmcmp	(struct pstrnm *pne,dptr dp);
 void		drunerr		(int n, double v);
 void		dumpact		(struct b_coexpr *ce);
 void		env_int	(char *name,word *variable,int non_neg, uword limit);
@@ -112,8 +111,6 @@ word		prescan		(dptr d);
 int		pstrnmcmp	(struct pstrnm *a,struct pstrnm *b);
 int		pushact		(struct b_coexpr *ce, struct b_coexpr *actvtr);
 int		putstr		(FILE *f,dptr d);
-char		*qsearch	(char *key, char *base, int nel, int width,
-				   int (*cmp)());
 int		qtos		(dptr dp,char *sbuf);
 void		quittrap	(int);
 int		 radix		(int sign, register int r, register char *s,
@@ -188,7 +185,6 @@ int		bigrand		(dptr da, dptr dx);
    int	setsize		(wbp w, char *s);
    char	*si_i2s		(siptr sip, int i);
    int	si_s2i		(siptr sip, char *s);
-   int	ulcmp		(pointer p1, pointer p2);
    int	wattrib		(wbp w, char *s, long len, dptr answer, char *abuf);
    int	wgetche		(wbp w, dptr res);
    int	wgetchne	(wbp w, dptr res);

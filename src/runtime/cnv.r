@@ -569,14 +569,16 @@ static int tmp_str(char *sbuf, dptr s, dptr d)
 
 /*
  * dp_pnmcmp - do a string comparison of a descriptor to the procedure
- *   name in a pstrnm struct; used in call to qsearch().
+ *   name in a pstrnm struct; used in call to bsearch().
  */
-int dp_pnmcmp(struct pstrnm *pne, struct descrip *dp)
+int dp_pnmcmp(const void *key, const void *elem)
 {
+   struct descrip *dp = (struct descrip *) key;
+   struct pstrnm *pne = (struct pstrnm *) elem;
    struct descrip d;
    StrLen(d) = strlen(pne->pstrep);
    StrLoc(d) = pne->pstrep;
-   return lexcmp(&d,dp);
+   return lexcmp(dp, &d);
 }
 
 /*
@@ -605,8 +607,8 @@ struct b_proc *bi_strprc(dptr s, C_integer arity)
    /*
     * See if the string represents a built-in function.
     */
-   pp = (struct pstrnm *)qsearch((char *)s,(char *)pntab,pnsize,
-				 sizeof(struct pstrnm),dp_pnmcmp);
+   pp = (struct pstrnm *)bsearch((void *)s, (void *)pntab, pnsize,
+				 sizeof(struct pstrnm), dp_pnmcmp);
    if (pp!=NULL)
       return (struct b_proc *)pp->pblock;
 

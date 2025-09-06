@@ -7,6 +7,7 @@
 
 static	int	colorphrase	(char *buf, long *r, long *g, long *b);
 static	double	rgbval		(double n1, double n2, double hue);
+static	int	sscmp		(const void *s1, const void *s2);
 
 /*
  * Structures and tables used for color parsing.
@@ -193,8 +194,8 @@ static int colorphrase(char *buf, long *r, long *g, long *b)
       very = 0;
 
    /* check for lightness adjective */
-   p = qsearch(buf, (char *)lighttable,
-      ElemCount(lighttable), ElemSize(lighttable), strcmp);
+   p = bsearch(buf, lighttable,
+      ElemCount(lighttable), ElemSize(lighttable), sscmp);
    if (p) {
       /* set the "very" flag for "pale" or "deep" */
       if (strcmp(buf, "pale") == 0)
@@ -213,8 +214,8 @@ static int colorphrase(char *buf, long *r, long *g, long *b)
       return 0;
 
    /* check for saturation adjective */
-   p = qsearch(buf, (char *)sattable,
-      ElemCount(sattable), ElemSize(sattable), strcmp);
+   p = bsearch(buf, sattable,
+      ElemCount(sattable), ElemSize(sattable), sscmp);
    if (p) {
       sat = ((colrmod *)p) -> val / 100.0;
       buf += strlen(buf) + 1;
@@ -226,12 +227,12 @@ static int colorphrase(char *buf, long *r, long *g, long *b)
       blend = h1 = l1 = s1 = 0.0;	/* only one word left */
    else {
       /* we have two (or more) name words; get the first */
-      if ((p = qsearch(buf, colortable[0].name,
-            ElemCount(colortable), ElemSize(colortable), strcmp)) != NULL) {
+      if ((p = bsearch(buf, &colortable[0].name,
+            ElemCount(colortable), ElemSize(colortable), sscmp)) != NULL) {
          blend = 0.5;
          }
-      else if ((p = qsearch(buf, colortable[0].ish,
-            ElemCount(colortable), ElemSize(colortable), strcmp)) != NULL) {
+      else if ((p = bsearch(buf, &colortable[0].ish,
+            ElemCount(colortable), ElemSize(colortable), sscmp)) != NULL) {
          p -= sizeof(colortable[0].name);
          blend = 0.25;
          }
@@ -245,8 +246,8 @@ static int colorphrase(char *buf, long *r, long *g, long *b)
       }
 
    /* process second (or only) name word */
-   p = qsearch(buf, colortable[0].name,
-      ElemCount(colortable), ElemSize(colortable), strcmp);
+   p = bsearch(buf, &colortable[0].name,
+      ElemCount(colortable), ElemSize(colortable), sscmp);
    if (!p || buf + strlen(buf) < ebuf)
       return 0;
    h2 = ((colrname *)p) -> hue;
@@ -308,6 +309,14 @@ static int colorphrase(char *buf, long *r, long *g, long *b)
 
    return 1;
    }
+
+/*
+ * string-string comparison, for bsearch()
+ */
+static int sscmp(const void *s1, const void *s2)
+{
+  return strcmp((char *)s1, (char *)s2);
+}
 
 /*
  * rgbval(n1, n2, hue) - helper function for HLS to RGB conversion

@@ -6,7 +6,7 @@
 #ifdef Graphics
 
 static	int	setpos          (wbp w, char *s);
-static	int	sicmp		(siptr sip1, siptr sip2);
+static	int	sicmp		(const void *sip1, const void *sip2);
 
 int canvas_serial, context_serial;
 
@@ -1540,29 +1540,17 @@ void drawCurve(wbp w, XPoint *p, int n)
    }
 
 /*
- * Compare two unsigned long values for qsort or qsearch.
- */
-int ulcmp(pointer p1, pointer p2)
-   {
-   register unsigned long u1 = *(unsigned int *)p1;
-   register unsigned long u2 = *(unsigned int *)p2;
-
-   if (u1 < u2)
-      return -1;
-   else
-      return (u1 > u2);
-   }
-
-/*
  * the next section consists of code to deal with string-integer
  * (stringint) symbols.  See graphics.h.
  */
 
 /*
- * string-integer comparison, for qsearch()
+ * string-integer comparison, for bsearch()
  */
-static int sicmp(siptr sip1, siptr sip2)
+static int sicmp(const void *key, const void *elem)
 {
+  siptr sip1 = (siptr)key;
+  siptr sip2 = (siptr)elem;
   return strcmp(sip1->s, sip2->s);
 }
 
@@ -1575,7 +1563,7 @@ int si_s2i(siptr sip, char *s)
   siptr p;
   key.s = s;
 
-  p = (siptr)qsearch((char *)&key,(char *)(sip+1),sip[0].i,sizeof(key),sicmp);
+  p = (siptr)bsearch(&key, (sip+1), sip[0].i, sizeof(key), sicmp);
   if (p) return p->i;
   return -1;
 }

@@ -297,10 +297,6 @@ struct coexp_block {
 struct pstrnm {	char* pstrep; proc_block *pblock; };
 extern pstrnm pntab[]; //table of original procedure blocks (src/runtime/data.r)
 extern int pnsize; //size of said table
-extern "C" {
-int dp_pnmcmp(struct pstrmn*, value*); //comparison function
-char* qsearch(char*, char*, int, int, int (*)(struct pstrmn*, value*)); //search for a name
-}
 
 inline int safecall_0(iconfunc*,  value&);
 inline int safecall_1(iconfunc*,  value&, const value&);
