@@ -1,5 +1,6 @@
 #  Makefile for the Icon run-time translator, rtt,
 #  which is used to build the Icon run-time system.
+.POSIX:
 
 include ../../Makedefs
 

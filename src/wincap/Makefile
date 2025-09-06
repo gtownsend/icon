@@ -1,4 +1,5 @@
 # Makefile for creating a library of the parts of Wincap used by Icon.
+.POSIX:
 
 include ../../Makedefs
 

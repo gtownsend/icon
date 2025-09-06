@@ -1,4 +1,5 @@
 #  Makefile for TIGER mapping programs
+.POSIX:
 
 
 IC = icont

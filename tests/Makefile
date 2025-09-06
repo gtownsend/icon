@@ -1,4 +1,5 @@
 #  Makefile for testing Icon
+.POSIX:
 
 
 #  The default is to run all tests.

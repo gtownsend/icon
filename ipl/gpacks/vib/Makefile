@@ -1,4 +1,5 @@
 #  Makefile for vib, the Visual Interface Builder
+.POSIX:
 
 ICONT = icont
 IFLAGS = -us

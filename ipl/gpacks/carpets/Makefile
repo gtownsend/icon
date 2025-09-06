@@ -1,5 +1,6 @@
 #  note that only carport is built here
 #  carplay is built by the carport program after generating carpincl.icn
+.POSIX:
 
 carport:
 		icont -usc carputil carprec

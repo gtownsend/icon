@@ -1,4 +1,5 @@
 #  Makefile for the Icon Program Library
+.POSIX:
 
 
 All:	Ilib Ibin

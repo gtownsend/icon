@@ -55,6 +55,7 @@
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 ############################################################################ 
+.POSIX:
 
 ICONT=icont -s
 ITWEAK=itweak

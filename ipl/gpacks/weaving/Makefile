@@ -1,6 +1,7 @@
 #  The programs listed in this Makefile (there are more in the
 #  directory) are those that are not labeled AD HOC that have
 #  been verified to build cleanly.
+.POSIX:
 
 
 PROCS = cells.u2 tdialog.u2 tieutils.u2 tpath.u2 \

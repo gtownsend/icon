@@ -1,6 +1,7 @@
 #  Makefile for programs illustrating dynamic loading of C functions from Icon
 #
 #  It is assumed that the standard C functions will be found by iconx.
+.POSIX:
 
 include ../../../Makedefs
 CFLAGS = -O $(CFDYN) -I../../cfuncs

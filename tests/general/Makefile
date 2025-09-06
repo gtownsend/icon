@@ -1,4 +1,5 @@
 #  Makefile for testing Icon
+.POSIX:
 
 
 SAMPLES = btrees diffwrds kross meander prefix recogn roman sieve wordcnt

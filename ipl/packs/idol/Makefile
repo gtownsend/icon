@@ -1,6 +1,8 @@
 #
 # Sample makefile for compiling Idol
 #
+.POSIX:
+
 idol: idol.iol idolmain.u1 unix.u1 idolboot
 	./idolboot idol unix.u1 idolmain.u1
 

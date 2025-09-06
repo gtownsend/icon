@@ -1,3 +1,5 @@
+.POSIX:
+
 euler: 
 	icont -s -c xcode  escape ebcdic 
 	icont -s -c parsell1 readll1 semstk eulerscn

@@ -1,3 +1,5 @@
+.POSIX:
+
 ICONT=icont
 IFLAGS=-us
 

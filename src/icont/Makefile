@@ -1,4 +1,5 @@
 #  Makefile for the Icon translator, icont.
+.POSIX:
 
 include ../../Makedefs
 

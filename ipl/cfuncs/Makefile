@@ -2,6 +2,7 @@
 #
 #  If building with the compiler (instead of the interpreter)
 #  use the "-fs" option to avoid problems.
+.POSIX:
 
 
 include ../../Makedefs

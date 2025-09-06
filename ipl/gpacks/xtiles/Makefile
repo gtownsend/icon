@@ -1,3 +1,5 @@
+.POSIX:
+
 SRC = xtiles.icn smiley1.icn smiley2.icn smiley3.icn
 
 xtiles:	$(SRC)

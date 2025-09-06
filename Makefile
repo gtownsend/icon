@@ -1,6 +1,7 @@
 #  Makefile for Version 9.5 of Icon
 #
 #  See doc/install.htm for instructions.
+.POSIX:
 
 
 #  configuration parameters

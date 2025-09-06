@@ -5,6 +5,7 @@
 #  Because of that it is targeted for the Icon development environment
 #  (Mac OS X plus some specialized tools) and is less portable than
 #  other Makefiles.
+.POSIX:
 
 MADE = icon.txt icont.txt
 

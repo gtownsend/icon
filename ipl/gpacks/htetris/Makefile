@@ -1,3 +1,5 @@
+.POSIX:
+
 htetris:
 	icont -s htetris
 

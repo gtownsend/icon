@@ -1,3 +1,5 @@
+.POSIX:
+
 Build drawtree:
 	icont -s -c -u draw_crc
 	icont -s -c -u data

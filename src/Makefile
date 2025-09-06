@@ -1,4 +1,5 @@
 #  Icon source Makefile, normally used only for cleanup.
+.POSIX:
 
 
 what:

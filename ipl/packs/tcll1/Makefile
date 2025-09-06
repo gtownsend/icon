@@ -1,3 +1,5 @@
+.POSIX:
+
 tcll1:
 	icont -s -c xcode  escape ebcdic 
 	icont -s -c gramanal ll1 semstk readll1 parsell1 scangram semgram

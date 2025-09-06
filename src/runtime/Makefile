@@ -1,4 +1,5 @@
 #  Makefile for the Icon run-time system.
+.POSIX:
 
 include ../../Makedefs
 
