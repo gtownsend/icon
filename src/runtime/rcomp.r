@@ -7,12 +7,14 @@
  * anycmp - compare any two objects.
  */
 
-int anycmp(dptr dp1, dptr dp2)
+int anycmp(const void *p1, const void *p2)
    {
    register int o1, o2;
    register long v1, v2, lresult;
    int iresult;
    double rres1, rres2, rresult;
+   dptr dp1 = (dptr)p1;
+   dptr dp2 = (dptr)p2;
 
    /*
     * Get a collating number for dp1 and dp2.

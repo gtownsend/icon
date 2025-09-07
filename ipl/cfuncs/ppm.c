@@ -69,10 +69,12 @@ typedef struct {	/* ppminfo: struct describing a ppm image */
    char *data;		/* pointer to start of raw data; null indicates error */
 } ppminfo;
 
+typedef int rowfunc(char **a, int w, int i, long arg);
+
 static ppminfo ppmcrack(descriptor d);
 static descriptor ppmalc(int w, int h, int max);
 static char *rowextend(char *dst, char *src, int w, int nbr);
-static int ppmrows(ppminfo hdr, int nbr, int (*func) (), long arg);
+static int ppmrows(ppminfo hdr, int nbr, rowfunc, long arg);
 static int sharpenrow(char *a[], int w, int i, long max);
 static int convrow(char *a[], int w, int i, long max);
 
@@ -486,8 +488,6 @@ static ppminfo ppmcrack(descriptor d)
  *  If func returns nonzero, ppmrows returns that value immediately.
  *  Otherwise, ppmrows returns zero.
  */
-
-typedef int rowfunc(char **a, int w, int i, long arg);
 
 static int ppmrows(ppminfo hdr, int nbr, rowfunc func, long arg)
    {

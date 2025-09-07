@@ -6,7 +6,7 @@
 /*
  * Prototypes.
  */
-static int     glbcmp    (char *pi, char *pj);
+static int     glbcmp    (const void *pi, const void *pj);
 static int     keyref    (union block *bp, dptr dp);
 static void showline  (char *f, int l);
 static void showlevel (register int n);
@@ -737,7 +737,7 @@ int xdisp(struct pf_marker *fp, dptr dp, int count, FILE *f)
    else {
       for (n = 0; n < nglobals; n++)
          indices[n] = n;
-      qsort ((char*)indices, (int)nglobals, sizeof(word), (int (*)())glbcmp);
+      qsort ((char*)indices, (int)nglobals, sizeof(word), glbcmp);
       fprintf(f, "\nglobal identifiers:\n");
       for (n = 0; n < nglobals; n++) {
          fprintf(f, "   ");
@@ -755,7 +755,7 @@ int xdisp(struct pf_marker *fp, dptr dp, int count, FILE *f)
 /*
  * glbcmp - compare the names of two globals using their temporary indices.
  */
-static int glbcmp(char *pi, char *pj)
+static int glbcmp(const void *pi, const void *pj)
    {
    register word i = *(word *)pi;
    register word j = *(word *)pj;

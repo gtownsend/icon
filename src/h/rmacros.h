@@ -453,7 +453,7 @@
    struct b_iproc Cat(B,f) = {\
    T_Proc,\
    Vsizeof(struct b_proc),\
-   Cat(Z,f),\
+   (intfunc)Cat(Z,f),\
    nargs,\
    -1,\
    deref, 0,\
@@ -466,7 +466,7 @@
    struct b_iproc Cat(B,f) = {\
    T_Proc,\
    Vsizeof(struct b_proc),\
-   Cat(O,f),\
+   (intfunc)Cat(O,f),\
    nargs,\
    -1,\
    xtrargs,\

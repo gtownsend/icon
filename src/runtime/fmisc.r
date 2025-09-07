@@ -636,7 +636,7 @@ function{1} sort(t, i)
             if (cplist(&t, &result, (word)1, size + 1) == Error)
 	       runerr(0);
             qsort((char *)BlkLoc(result)->list.listhead->lelem.lslots,
-               (int)size, sizeof(struct descrip), (int (*)()) anycmp);
+               (int)size, sizeof(struct descrip), anycmp);
 
             return result;
             }
@@ -669,7 +669,7 @@ function{1} sort(t, i)
                for (i = 0; i < size; i++)
                   *d1++ = bp->record.fields[i];
                qsort((char *)lp->listhead->lelem.lslots,(int)size,
-                     sizeof(struct descrip), (int (*)())anycmp);
+                     sizeof(struct descrip), anycmp);
                }
 
             return list(lp);
@@ -706,7 +706,7 @@ function{1} sort(t, i)
                      for (ep = seg->hslots[k]; ep != NULL; ep= ep->telem.clink)
                         *d1++ = ep->selem.setmem;
                qsort((char *)lp->listhead->lelem.lslots,(int)size,
-                     sizeof(struct descrip), (int (*)())anycmp);
+                     sizeof(struct descrip), anycmp);
                }
 
             return list(lp);
@@ -798,10 +798,10 @@ function{1} sort(t, i)
                 */
                if (i == 1)
                   qsort((char *)lp->listhead->lelem.lslots, (int)size,
-                        sizeof(struct descrip), (int (*)())trefcmp);
+                        sizeof(struct descrip), trefcmp);
                else
                   qsort((char *)lp->listhead->lelem.lslots, (int)size,
-                        sizeof(struct descrip), (int (*)())tvalcmp);
+                        sizeof(struct descrip), tvalcmp);
                break;		/* from cases 1 and 2 */
                }
             /*
@@ -859,10 +859,10 @@ function{1} sort(t, i)
              */
             if (i == 3)
                qsort((char *)lp->listhead->lelem.lslots, (int)size / 2,
-                     (2 * sizeof(struct descrip)), (int (*)())trcmp3);
+                     (2 * sizeof(struct descrip)), trcmp3);
             else
                qsort((char *)lp->listhead->lelem.lslots, (int)size / 2,
-                     (2 * sizeof(struct descrip)), (int (*)())tvcmp4);
+                     (2 * sizeof(struct descrip)), tvcmp4);
             break; /* from case 3 or 4 */
                }
 
@@ -890,8 +890,10 @@ end
  * trefcmp(d1,d2) - compare two-element lists on first field.
  */
 
-int trefcmp(dptr d1, dptr d2)
+int trefcmp(const void *p1, const void *p2)
    {
+   dptr d1 = (dptr)p1;
+   dptr d2 = (dptr)p2;
    return (anycmp(&(BlkLoc(*d1)->list.listhead->lelem.lslots[0]),
                   &(BlkLoc(*d2)->list.listhead->lelem.lslots[0])));
    }
@@ -900,29 +902,35 @@ int trefcmp(dptr d1, dptr d2)
  * tvalcmp(d1,d2) - compare two-element lists on second field.
  */
 
-int tvalcmp(dptr d1, dptr d2)
+int tvalcmp(const void *p1, const void *p2)
    {
+   dptr d1 = (dptr)p1;
+   dptr d2 = (dptr)p2;
    return (anycmp(&(BlkLoc(*d1)->list.listhead->lelem.lslots[1]),
       &(BlkLoc(*d2)->list.listhead->lelem.lslots[1])));
    }
 
 /*
- * The following two routines are used to compare descriptor pairs in the
- *  experimental table sort.
+ * The following two routines are used to compare descriptor pairs
+ *  for Icon sort(T, 3) and sort(T, 4)
  *
  * trcmp3(dp1,dp2)
  */
 
-int trcmp3(struct dpair *dp1, struct dpair *dp2)
+int trcmp3(const void *p1, const void *p2)
 {
+   struct dpair *dp1 = (struct dpair *)p1;
+   struct dpair *dp2 = (struct dpair *)p2;
    return (anycmp(&((*dp1).dr),&((*dp2).dr)));
 }
 /*
  * tvcmp4(dp1,dp2)
  */
 
-int tvcmp4(struct dpair *dp1, struct dpair *dp2)
+int tvcmp4(const void *p1, const void *p2)
    {
+   struct dpair *dp1 = (struct dpair *)p1;
+   struct dpair *dp2 = (struct dpair *)p2;
    return (anycmp(&((*dp1).dv),&((*dp2).dv)));
    }
 
@@ -954,7 +962,7 @@ function{1} sortf(t, i)
                runerr(0);
             sort_field = i;
             qsort((char *)BlkLoc(result)->list.listhead->lelem.lslots,
-               (int)size, sizeof(struct descrip), (int (*)()) nthcmp);
+               (int)size, sizeof(struct descrip), nthcmp);
 
             return result;
             }
@@ -996,7 +1004,7 @@ function{1} sortf(t, i)
                   *d1++ = bp->record.fields[j];
                sort_field = i;
                qsort((char *)lp->listhead->lelem.lslots,(int)size,
-                  sizeof(struct descrip), (int (*)())nthcmp);
+                  sizeof(struct descrip), nthcmp);
                }
 
             return list(lp);
@@ -1042,7 +1050,7 @@ function{1} sortf(t, i)
                         *d1++ = ep->selem.setmem;
                sort_field = i;
                qsort((char *)lp->listhead->lelem.lslots,(int)size,
-                     sizeof(struct descrip), (int (*)())nthcmp);
+                     sizeof(struct descrip), nthcmp);
                }
 
             return list(lp);
@@ -1060,10 +1068,12 @@ end
 word sort_field;		/* field number, set by sort function */
 static dptr nth (dptr d);
 
-int nthcmp(dptr d1, dptr d2)
+int nthcmp(const void *p1, const void *p2)
    {
    int t1, t2, rv;
    dptr e1, e2;
+   dptr d1 = (dptr)p1;
+   dptr d2 = (dptr)p2;
 
    t1 = Type(*d1);
    t2 = Type(*d2);

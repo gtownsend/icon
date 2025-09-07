@@ -39,7 +39,7 @@ function{0,1} loadfunc(filename,funcname)
       }
    body
       {
-      int (*func)();
+      int (*func)(int, dptr);
       static char *curfile;
       static void *handle;
       char *funcname2;
@@ -57,7 +57,7 @@ function{0,1} loadfunc(filename,funcname)
        * Load the function.  Diagnose both library and function errors here.
        */
       if (handle) {
-         func = (int (*)())dlsym(handle, funcname);
+         func = (int (*)(int, dptr))dlsym(handle, funcname);
          if (!func) {
             /*
              * If no function, try again by prepending an underscore.
@@ -67,7 +67,7 @@ function{0,1} loadfunc(filename,funcname)
             if (funcname2) {
                *funcname2 = '_';
                strcpy(funcname2 + 1, funcname);
-               func = (int (*)())dlsym(handle, funcname2);
+               func = (int (*)(int, dptr))dlsym(handle, funcname2);
                free(funcname2);
                }
             }

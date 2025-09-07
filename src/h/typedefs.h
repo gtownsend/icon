@@ -28,6 +28,7 @@ typedef unsigned int DIGIT;
 typedef void *pointer;
 typedef struct descrip *dptr;
 typedef word C_integer;
+typedef int (*intfunc)(void);	/* universal func ptr for b_iproc.ip_entryp */
 
 /*
  * A success continuation is referenced by a pointer to an integer function

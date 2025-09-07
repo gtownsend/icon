@@ -192,7 +192,7 @@ struct descrip k_eventsource = {D_Null};/* &eventsource */
 struct descrip k_eventvalue = {D_Null};	/* &eventvalue */
 struct descrip kywd_dmp = {D_Integer};	/* &dump */
 
-struct descrip nullptr =
+struct descrip nullbptr =
    {F_Ptr | F_Nqual};	                /* descriptor with null block pointer */
 struct descrip trashcan;		/* descriptor that is never read */
 

@@ -24,7 +24,7 @@ static FILE *readhdr(char *name, struct header *hdr);
 	{\
 	T_Proc,\
 	Vsizeof(struct b_proc),\
-	Cat(O,f),\
+	(intfunc)Cat(O,f),\
 	nargs,\
 	-1,\
 	underef,\
@@ -578,8 +578,10 @@ void fatalerr(int n, dptr v)
 /*
  * pstrnmcmp - compare names in two pstrnm structs; used for qsort.
  */
-int pstrnmcmp(struct pstrnm *a, struct pstrnm *b)
+int pstrnmcmp(const void *pa, const void *pb)
 {
+  struct pstrnm *a = (struct pstrnm *)pa;
+  struct pstrnm *b = (struct pstrnm *)pb;
   return strcmp(a->pstrep, b->pstrep);
 }
 
@@ -621,7 +623,7 @@ void datainit()
    StrLoc(blank) = " ";
    StrLen(emptystr) = 0;
    StrLoc(emptystr) = "";
-   BlkLoc(nullptr) = (union block *)NULL;
+   BlkLoc(nullbptr) = (union block *)NULL;
    StrLen(lcase) = 26;
    StrLoc(lcase) = "abcdefghijklmnopqrstuvwxyz";
    StrLen(letr) = 1;
@@ -636,7 +638,7 @@ void datainit()
    maps2 = nulldesc;
    maps3 = nulldesc;
 
-   qsort((char *)pntab,pnsize,sizeof(struct pstrnm), (int(*)())pstrnmcmp);
+   qsort((char *)pntab,pnsize,sizeof(struct pstrnm), pstrnmcmp);
    }
 
 #ifdef WinGraphics

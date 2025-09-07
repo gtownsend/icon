@@ -89,7 +89,7 @@ struct b_proc {			/* procedure block */
    word title;			/*   T_Proc */
    word blksize;		/*   size of block */
    union {			/*   entry points for */
-      int (*ccode)();		/*     C routines */
+      int (*ccode)(int, dptr);	/*     C routines */
       uword ioff;		/*     and icode as offset */
       pointer icode;		/*     and icode as absolute pointer */
       } entryp;
@@ -343,7 +343,7 @@ struct gf_smallmarker {		/* generator frame marker */
 struct b_iproc {		/* procedure block */
    word ip_title;		/*   T_Proc */
    word ip_blksize;		/*   size of block */
-   int (*ip_entryp)();		/*   entry point (code) */
+   intfunc ip_entryp;		/*   entry point (code) */
    word ip_nparam;		/*   number of parameters */
    word ip_ndynam;		/*   number of dynamic locals */
    word ip_nstatic;		/*   number of static locals */

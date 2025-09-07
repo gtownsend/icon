@@ -15,7 +15,7 @@ static void sweep_stk	(struct b_coexpr *ce);
 static void reclaim		(void);
 static void cofree		(void);
 static void scollect		(word extra);
-static int     qlcmp		(dptr  *q1,dptr  *q2);
+static int  qlcmp		(const void *q1, const void *q2);
 static void adjust		(char *source, char *dest);
 static void compact		(char *source);
 static void mvc		(uword n, char *src, char *dest);
@@ -1002,7 +1002,7 @@ static void scollect(word extra)
     *  locations.
     */
    qsort((char *)quallist, (int)(DiffPtrs((char *)qualfree,(char *)quallist)) /
-     sizeof(dptr *), sizeof(dptr), (int (*)())qlcmp);
+     sizeof(dptr *), sizeof(dptr), qlcmp);
    /*
     * The string qualifiers are now ordered by starting location.
     */
@@ -1048,8 +1048,10 @@ static void scollect(word extra)
  * qlcmp - compare the location fields of two string qualifiers for qsort.
  */
 
-static int qlcmp(dptr *q1, dptr *q2)
+static int qlcmp(const void *p1, const void *p2)
    {
+   dptr *q1 = (dptr *)p1;
+   dptr *q2 = (dptr *)p2;
    return (int)(DiffPtrs(StrLoc(**q1),StrLoc(**q2)));
    }
 

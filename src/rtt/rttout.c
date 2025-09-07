@@ -2910,7 +2910,7 @@ static void tend_init()
              */
             prt_str(tendstrct, IndentInc);
             if (tnd->init == NULL)
-               fprintf(out_file, ".d[%d] = nullptr;", tnd->t_indx);
+               fprintf(out_file, ".d[%d] = nullbptr;", tnd->t_indx);
             else {
                fprintf(out_file, ".d[%d].dword = F_Ptr | F_Nqual;",tnd->t_indx);
                ForceNl();

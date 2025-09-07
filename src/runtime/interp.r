@@ -519,13 +519,13 @@ invokej:
 	       /* ExInterp not needed since no change since last EntInterp */
 	       if (type == I_Vararg) {
 	          int (*bfunc)(word,dptr);
-                  bfunc = bproc->entryp.ccode;
+                  bfunc = (int(*)(word,dptr))bproc->entryp.ccode;
 		  signal = (*bfunc)(nargs,rargp);
                   }
 	       else
                   {
                   int (*bfunc)(dptr);
-                  bfunc = bproc->entryp.ccode;
+                  bfunc = (int(*)(dptr))bproc->entryp.ccode;
 		  signal = (*bfunc)(rargp);
                   }
 	       goto C_rtn_term;

@@ -34,7 +34,7 @@ extern struct descrip blank;	/* blank */
 extern struct descrip emptystr;	/* empty string */
 
 extern struct descrip kywd_dmp; /* descriptor for &dump */
-extern struct descrip nullptr;	/* descriptor with null block pointer */
+extern struct descrip nullbptr;	/* descriptor with null block pointer */
 extern struct descrip lcase;	/* lowercase string */
 extern struct descrip letr;	/* letter "r" */
 extern struct descrip maps2;	/* second argument to map() */
