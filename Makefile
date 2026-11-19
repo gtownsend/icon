@@ -65,7 +65,7 @@ Icont bin/icont: src/h/define.h
 		cd src/common;		$(MAKE)
 		cd src/rtt;		$(MAKE)
 		cd src/icont;		$(MAKE)
-		cd src/runtime;		$(MAKE) 
+		cd src/runtime;		$(MAKE)
 
 
 # The Icon program library.
@@ -89,13 +89,13 @@ Ibin:		bin/icont
 
 D=$(dest)
 Install:
-		mkdir $D
-		mkdir $D/bin $D/lib $D/doc $D/man $D/man/man1
+		mkdir -p $D
+		mkdir -p $D/bin $D/lib $D/doc $D/man $D/man/man1
 		cp README $D
 		cp bin/[cflpvwx]* $D/bin
 		cp bin/icon[tx]* $D/bin
 		rm -f $D/bin/libI*
-		(cd $D/bin; ln -s icont icon)
+		(cd $D/bin; ln -sf icont icon)
 		cp lib/*.* $D/lib
 		cp doc/*.* $D/doc
 		cp man/man1/*.* $D/man/man1
